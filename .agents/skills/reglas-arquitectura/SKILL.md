@@ -1,6 +1,6 @@
 ---
 name: reglas-arquitectura
-description: Checklist de las reglas de estructura del backend de Ensambla (backend/ARQUITECTURA.md) para aplicar al escribir o revisar cualquier código Java del backend - tests con Testcontainers y nunca H2, ids tipados (ProyectoId, NegocioId…) en lugar de UUID, enums junto a su modelo, DTOs en el subpaquete de su caso de uso, casos de uso sin sufijo UseCase, DTOs con fábrica de() y sin mappers de dominio, servicios solo para lo compartido y dominio sin Spring (beans manuales, TransaccionPort). Usar siempre que se cree, mueva, renombre o revise una clase de backend/src, cuando se pregunte "dónde va esto", "¿hace falta un servicio/mapper?", "¿cómo tipo este id?", o antes de cerrar una tarea o un PR del backend. Para crear una feature completa usar crear-use-case; para reordenar un caso de uso existente, refactor-use-case; para tests, escribir-tests.
+description: Checklist de las reglas de estructura del backend de Ensambla (backend/ARQUITECTURA.md) para aplicar al escribir o revisar cualquier código Java del backend - tests con Testcontainers y nunca H2, ids tipados (ProyectoId, NegocioId…) en lugar de UUID, enums junto a su modelo, DTOs en el subpaquete de su caso de uso, casos de uso sin sufijo UseCase, DTOs con fábrica de() y sin mappers de dominio, servicios solo para lo compartido y dominio sin Spring (beans manuales, TransaccionPort). Incluye la regla 8 de calidad (código semántico, métodos cortos, polimorfismo en lugar de switch por tipo; detalle en codigo-semantico). Usar siempre que se cree, mueva, renombre o revise una clase de backend/src, cuando se pregunte "dónde va esto", "¿hace falta un servicio/mapper?", "¿cómo tipo este id?", o antes de cerrar una tarea o un PR del backend. Para crear una feature completa usar crear-use-case; para cómo se escribe cada clase por dentro, codigo-semantico; para reordenar un caso de uso existente, refactor-use-case; para tests, escribir-tests.
 ---
 
 > Copia para Codex. La fuente es `.claude/skills/reglas-arquitectura/SKILL.md`: si cambiás uno, cambiá los dos.
@@ -10,7 +10,9 @@ description: Checklist de las reglas de estructura del backend de Ensambla (back
 La fuente es [`backend/ARQUITECTURA.md`](../../../backend/ARQUITECTURA.md), con el porqué y los ejemplos de cada regla.
 Este skill es el checklist para aplicarlas. Si una regla choca con lo que pide la tarea, decilo antes de romperla.
 
-## Las 7 reglas
+## Las 9 reglas
+
+Son **obligatorias**, no sugerencias: ninguna tarea se cierra rompiendo una.
 
 1. **Sin H2.** Todo test que levanta base o contexto `extends PostgresRepositoryTestSupport` (Testcontainers, perfil
    `postgres-test`). Nada de `@ActiveProfiles("h2-test")` ni de la dependencia `com.h2database:h2`.
@@ -39,6 +41,22 @@ Este skill es el checklist para aplicarlas. Si una regla choca con lo que pide l
    - La transacción la abre el caso de uso con `TransaccionPort` (`transaccionPort.ejecutar(() -> …)`); en los tests
      unitarios se pasa `new TransaccionDirecta()`.
 
+8. **Calidad de código: semántico, corto y polimórfico.** Skill `codigo-semantico` (obligatorio).
+   - Métodos de ≈10 líneas y un solo nivel de abstracción; el método público se lee como una frase y el detalle va a
+     métodos privados con nombre de intención.
+   - Sin comentarios que repitan el código (solo el porqué no obvio) y con cláusulas de guarda, no `if` anidados.
+   - **Nunca `switch` ni cadenas de `if/else if` por tipo o estado**: clase base abstracta + subclases, o enum con
+     constructor/fábrica. En `domain/model/campo` lo verifica `ArchitectureTest`.
+   - Tests dado/cuando/entonces (`givenX/whenX/thenX`), un comportamiento por test, sin lógica ni ternarios.
+   - Si tocás un archivo, lo dejás semántico.
+   - **Los métodos públicos no llaman a repositorios, puertos ni servicios**: `execute()` y los públicos de un servicio
+     solo llaman a privados con nombre de intención (`obtenerCampo(...)`, no `campoRepository.obtener(...)`). En los
+     tests, un `@Test` no usa `when/verify` ni arma datos inline: todo va a `givenX/whenX/thenX`.
+9. **El dominio no conoce formatos de persistencia ni de transporte.** Sin prefijos de clave (`"servidor:"`), JSON ni
+   `Map<?, ?>` con claves de texto en `domain`: la infraestructura los convierte a objetos tipados (interfaz sellada +
+   records, polimorfismo, mapa tipo→fábrica en el mapper). Ej.: `AccionDeAviso` y `AvisoId` en el dominio; la clave
+   `"servidor:" + id` la arma la infraestructura.
+
 Siguen valiendo: el `NegocioId` sale de la sesión (recurso ajeno → 404), solo los casos de uso tienen `Clock`, una
 migración aplicada no se edita, nombres de dominio en español y 100 % de cobertura por clase.
 
@@ -54,11 +72,12 @@ migración aplicada no se edita, nombres de dominio en español y 100 % de cober
 | Un id nuevo | `domain/model/<area>/<Modelo>Id` |
 | Un enum | el paquete de su modelo |
 | Un proveedor externo o la transacción | un puerto en `domain/port`, su adaptador en `infrastructure` |
+| Comportamiento que cambia según un tipo o estado | una clase por tipo (herencia), nunca un `switch` (skill `codigo-semantico`) |
 
 ## Verificación
 
-`ArchitectureTest` controla las reglas 1, 2, 3, 4, 5, 6 y de la 7 que el dominio no use Spring y que un caso de uso no
-dependa de otro. Que un servicio sea realmente compartido no se puede verificar automáticamente: revisalo a mano con
+`ArchitectureTest` controla las reglas 1, 2, 3, 4, 5, 6, de la 7 que el dominio no use Spring y que un caso de uso no
+dependa de otro, y de la 8 que no haya `switch (` en `domain/model/campo`; el resto de la 8 y la 9 se revisan a mano con los greps. Que un servicio sea realmente compartido no se puede verificar automáticamente: revisalo a mano con
 grep. Desde `backend/`, estos controles deberían
 salir vacíos:
 
@@ -68,6 +87,11 @@ find src/main/java/com/ensambla/backend/domain -name "*UseCase.java"
 ls -d src/main/java/com/ensambla/backend/domain/{dto,mapper,model/enums} 2>/dev/null
 grep -rlw "UUID" src/main/java/com/ensambla/backend/domain | grep -v "Id.java$\|Identificador\|IdSistema\|Huella"
 grep -rn "h2-test\|h2database" pom.xml src/test
+grep -rn "switch (" src/main/java/com/ensambla/backend/domain/model/campo
+grep -rn "switch (\|else if" src/main/java/com/ensambla/backend/domain   # revisar cada resultado
+grep -nE "=\s*\w+(Repository|Port|Service)\.\w+\(" src/main/java/com/ensambla/backend/domain/useCase   # solo líneas dentro de métodos privados
+grep -rn "servidor:" src/main   # solo en infrastructure
+grep -rnE "Map<\?, ?\?>" src/main/java/com/ensambla/backend/domain   # vacío
 ```
 
 Para saber cuántos casos de uso usan un método de servicio:

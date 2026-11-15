@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.model.aviso;
 
 import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.support.AccionesDePrueba;
 import com.ensambla.backend.support.AvisoTestData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -126,10 +127,7 @@ class ReglaStockBajoTest {
 
         List<ResultadoRegla> resultados = regla.evaluar(contexto);
 
-        assertThat(resultados.get(0).acciones()).containsExactly(Map.of(
-                "tipo", "REGISTRAR", "texto", "Registrar entrada",
-                "proyectoId", AvisoTestData.PROYECTO_ID.toString(),
-                "bloqueId", AvisoTestData.ENTRADAS_ID.toString()));
+        assertThat(resultados.get(0).acciones()).containsExactly(AccionesDePrueba.registrarEntrada());
     }
 
     @Test
@@ -137,11 +135,7 @@ class ReglaStockBajoTest {
     void evaluarShouldSuggestOpeningProductWhenProjectHasNoEntradas() {
         List<ResultadoRegla> resultados = whenEvaluar(AvisoTestData.registro(REGISTRO_ID.valor(), "Yerba", 0, null));
 
-        assertThat(resultados.get(0).acciones()).containsExactly(Map.of(
-                "tipo", "ABRIR", "texto", "Ver producto",
-                "proyectoId", AvisoTestData.PROYECTO_ID.toString(),
-                "bloqueId", AvisoTestData.INVENTARIO_ID.toString(),
-                "registroId", REGISTRO_ID.toString()));
+        assertThat(resultados.get(0).acciones()).containsExactly(AccionesDePrueba.abrirProducto(REGISTRO_ID));
     }
 
     @Test

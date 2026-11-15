@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
+import com.ensambla.backend.domain.model.aviso.AccionAbrirRegistro;
 import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
@@ -50,7 +51,7 @@ class AvisoRepositoryMapperTest {
                 .id(ID.valor()).negocioId(NEGOCIO_ID.valor()).proyectoId(PROYECTO_ID.valor()).tipo(TipoAviso.STOCK)
                 .grupo(GrupoAviso.STOCK).prioridad((short) 3).entidad("registro:1").huella("STOCK:registro:1:ab")
                 .datos(Map.of("cantidad", 0)).titulo("Te quedaste sin yerba").detalle("No te quedan unidades")
-                .motivos(List.of("motivo")).acciones(List.of(Map.of("tipo", "ABRIR")))
+                .motivos(List.of("motivo")).acciones(List.of(Map.of("tipo", "ABRIR", "texto", "Ver producto")))
                 .estado(EstadoAviso.DESCARTADO).resueltoEn(AHORA).creadoEn(AHORA).actualizadoEn(AHORA)
                 .build();
     }
@@ -60,7 +61,7 @@ class AvisoRepositoryMapperTest {
                 .id(ID).negocioId(NEGOCIO_ID).proyectoId(PROYECTO_ID).tipo(TipoAviso.STOCK)
                 .grupo(GrupoAviso.STOCK).prioridad((short) 3).entidad("registro:1").huella("STOCK:registro:1:ab")
                 .datos(Map.of("cantidad", 0)).titulo("Te quedaste sin yerba").detalle("No te quedan unidades")
-                .motivos(List.of("motivo")).acciones(List.of(Map.of("tipo", "ABRIR")))
+                .motivos(List.of("motivo")).acciones(List.of(new AccionAbrirRegistro("Ver producto", null, null, null)))
                 .estado(EstadoAviso.DESCARTADO).resueltoEn(AHORA).creadoEn(AHORA).actualizadoEn(AHORA)
                 .build();
     }

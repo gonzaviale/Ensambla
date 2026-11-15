@@ -1,6 +1,6 @@
 import { CATALOG } from './catalogo';
+import { comportamientoDe } from './comportamiento';
 import { normalize } from './core';
-import { hoy } from './formato';
 import type { Campo, TipoBloque, Valor } from './tipos';
 
 export const DESCRIPCION_DE_EJEMPLO =
@@ -18,30 +18,25 @@ export function filasDeEjemplo(
     const ejemplo = muestras[indice % Math.max(muestras.length, 1)] ?? {};
     const fila: Record<string, Valor> = {};
     for (const campo of campos) {
-      let valor: Valor = ejemplo[campo.key];
-      if (campo.type === 'relation') {
-        const ids = vinculos[campo.key] ?? [];
-        valor = ids.length ? ids[indice % ids.length] : '';
-      } else if (valor == null) {
-        valor =
-          campo.type === 'select'
-            ? (campo.options?.[0] ?? '')
-            : campo.type === 'checkbox'
-              ? false
-              : campo.type === 'date'
-                ? hoy()
-                : campo.type === 'number' || campo.type === 'currency'
-                  ? indice + 1
-                  : campo.type === 'email'
-                    ? 'contacto@example.com'
-                    : campo.required
-                      ? `Registro ${indice + 1}`
-                      : '';
-      }
-      fila[campo.key] = valor;
+      fila[campo.key] = valorDeEjemploDe(campo, indice, ejemplo, vinculos);
     }
     return fila;
   });
+}
+
+function valorDeEjemploDe(
+  campo: Campo,
+  indice: number,
+  ejemplo: Record<string, Valor>,
+  vinculos: Record<string, string[]>,
+): Valor {
+  const idsVinculables = vinculos[campo.key] ?? [];
+  return comportamientoDe(campo.type).valorDeEjemplo(
+    campo,
+    indice,
+    ejemplo[campo.key],
+    idsVinculables,
+  );
 }
 
 // Una columna que una anotación en papel suele traer y que el bloque de ese tipo no tiene todavía.

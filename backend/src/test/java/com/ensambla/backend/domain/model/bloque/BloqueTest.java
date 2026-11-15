@@ -105,10 +105,10 @@ class BloqueTest {
         Bloque bloque = givenBloqueConCampos();
         Campo precio = givenCampo(PRECIO_ID.valor(), "Precio", 3);
 
-        bloque.editarCampo(precio, configuracion("precio"), AHORA.plusHours(1));
+        Campo editado = bloque.editarCampo(precio, configuracion("precio"), AHORA.plusHours(1));
 
-        assertThat(precio.getNombre()).isEqualTo("precio");
-        assertThat(precio.getActualizadoEn()).isEqualTo(AHORA.plusHours(1));
+        assertThat(editado.getNombre()).isEqualTo("precio");
+        assertThat(editado.getActualizadoEn()).isEqualTo(AHORA.plusHours(1));
     }
 
     @Test
