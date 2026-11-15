@@ -1,3 +1,4 @@
+import { cuentasDeCaja } from '@/mocks/db/cuentasCaja';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -100,7 +101,9 @@ async function abrir({ respuestaPerdida = false, recuperar = false } = {}) {
     sessionStorage.setItem(clave, JSON.stringify(request));
   }
   server.use(
-    http.get('/api/caja/ventas', () => HttpResponse.json({ ventas, cobros })),
+    http.get('/api/caja/ventas', () =>
+      HttpResponse.json({ ventas, cobros, cuentas: cuentasDeCaja(ventas, cobros) }),
+    ),
     http.post('/api/caja/cobros', async ({ request }) => {
       const body = (await request.json()) as SolicitudPagoDeudaCaja;
       solicitudes.push(body);

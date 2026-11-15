@@ -20,6 +20,8 @@ import com.ensambla.backend.domain.useCase.caja.cobrarVenta.CobrarVentaResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.caja.CobrarVentaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.caja.CobrarVentaWebResponse;
 import org.springframework.stereotype.Component;
+import com.ensambla.backend.domain.useCase.caja.listarVentas.CuentaClienteCajaItem;
+import com.ensambla.backend.infrastructure.presentation.dto.caja.CuentaClienteCajaWebResponse;
 import com.ensambla.backend.domain.useCase.caja.CobroCajaItem;
 import com.ensambla.backend.domain.useCase.caja.listarVentas.ListarVentasCajaRequest;
 import com.ensambla.backend.domain.useCase.caja.listarVentas.ListarVentasCajaResponse;
@@ -37,7 +39,15 @@ public class CajaPresentationMapper {
 
     public ListarVentasCajaWebResponse toListadoResponse(ListarVentasCajaResponse response) {
         return new ListarVentasCajaWebResponse(response.ventas().stream().map(this::toResponse).toList(),
-                response.cobros().stream().map(this::toCobroResponse).toList());
+                response.cobros().stream().map(this::toCobroResponse).toList(),
+                response.cuentas().stream().map(this::toCuentaResponse).toList());
+    }
+
+    private CuentaClienteCajaWebResponse toCuentaResponse(CuentaClienteCajaItem cuenta) {
+        return new CuentaClienteCajaWebResponse(cuenta.clienteId(), cuenta.clienteNombre(), cuenta.saldo(),
+                cuenta.cantidadPendientes(), cuenta.pendienteDesde(),
+                cuenta.ventas().stream().map(this::toResponse).toList(),
+                cuenta.cobros().stream().map(this::toCobroResponse).toList());
     }
 
     public RegistrarCobroRequest toCobro(UsuarioId usuarioId, RegistrarCobroWebRequest request) {

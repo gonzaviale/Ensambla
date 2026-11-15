@@ -12,6 +12,17 @@
 .caja-clientes h2 {
   margin: 0;
 }
+.caja-deuda-antigua {
+  display: inline-block;
+  width: fit-content;
+  padding: 4px 8px;
+  border: 1px solid #ad721a;
+  border-radius: 6px;
+  color: #704300 !important;
+  background: #fff3d5;
+  font-size: 12px !important;
+  font-weight: 700;
+}
 .caja-clientes label {
   display: grid;
   gap: 8px;

@@ -1,3 +1,4 @@
+import { AntiguedadDeudaCaja } from './AntiguedadDeudaCaja';
 import { useState } from 'react';
 import { ClienteCajaForm } from './ClienteCajaForm';
 import { CuentaClienteCaja } from './CuentaClienteCaja';
@@ -16,6 +17,8 @@ type CuentaCliente = {
   nombre: string;
   telefono: string;
   origen?: { tabla: Bloque; fila: Fila };
+  saldo: number;
+  pendienteDesde: string | null;
   ventas: VentaCaja[];
   cobros: CobroDeudaCaja[];
 };
@@ -52,27 +55,27 @@ export function ClientesCaja({
       nombre: String(origen.fila.name ?? ''),
       telefono: String(origen.fila.phone ?? ''),
       origen,
+      saldo: 0,
+      pendienteDesde: null,
       ventas: [],
       cobros: [],
     });
   }
-  for (const venta of cuentas.data?.ventas ?? []) {
-    if (!venta.clienteId) continue;
-    const id = idCaja(venta.clienteId);
-    const cuenta = porCliente.get(id) ?? {
+  for (const cuenta of cuentas.data?.cuentas ?? []) {
+    const id = idCaja(cuenta.clienteId);
+    const contacto = porCliente.get(id);
+    porCliente.set(id, {
       id,
-      nombre: venta.clienteNombre ?? 'Cliente de una venta',
+      nombre: cuenta.clienteNombre,
       telefono: '',
-      ventas: [],
-      cobros: [],
-    };
-    cuenta.ventas.push(venta);
-    porCliente.set(id, cuenta);
+      ...contacto,
+      saldo: cuenta.saldo,
+      pendienteDesde: cuenta.pendienteDesde,
+      ventas: cuenta.ventas,
+      cobros: cuenta.cobros,
+    });
   }
-  for (const cobro of cuentas.data?.cobros ?? [])
-    porCliente.get(idCaja(cobro.clienteId))?.cobros.push(cobro);
-  const saldoDe = (cuenta: CuentaCliente) =>
-    cuenta.ventas.reduce((sum, v) => sum + Math.round((v.saldo ?? 0) * 100), 0);
+  const saldoDe = (cuenta: CuentaCliente) => Math.round(cuenta.saldo * 100);
   const clientes = [...porCliente.values()].filter(
     (cuenta) =>
       (mostrarTodos ||
@@ -172,6 +175,7 @@ export function ClientesCaja({
           <li key={cuenta.id}>
             <div>
               <strong>{cuenta.nombre}</strong>
+              <AntiguedadDeudaCaja ventas={cuenta.ventas} />
               {hayPagoDeudaPendiente(usuarioId, sistemaId, inventarioId, cuenta.id) && (
                 <span>Hay un pago pendiente de verificar</span>
               )}
@@ -184,15 +188,7 @@ export function ClientesCaja({
                   : 'Saldo sin actualizar'}
               </span>
               {saldoDe(cuenta) > 0 && (
-                <small>
-                  Pendiente desde{' '}
-                  {fechaCaja(
-                    [...cuenta.ventas]
-                      .filter((v) => (v.saldo ?? 0) > 0)
-                      .sort((a, b) => Date.parse(a.creadoEn) - Date.parse(b.creadoEn))[0]
-                      ?.creadoEn ?? '',
-                  )}
-                </small>
+                <small>Pendiente desde {fechaCaja(cuenta.pendienteDesde ?? '')}</small>
               )}
               {tablas.length > 1 && cuenta.origen && <small>{cuenta.origen.tabla.name}</small>}
             </div>

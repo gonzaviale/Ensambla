@@ -97,7 +97,18 @@ export type SolicitudPagoDeudaCaja = {
   inventarioId: string;
   aplicaciones: { ventaId: string; pagos: PagoCaja[] }[];
 };
+export const cuentaClienteCajaSchema = z.object({
+  clienteId: z.string(),
+  clienteNombre: z.string(),
+  saldo: z.number(),
+  cantidadPendientes: z.number(),
+  pendienteDesde: z.string().nullable(),
+  ventas: z.array(ventaCajaSchema),
+  cobros: z.array(cobroDeudaCajaSchema),
+});
+export type CuentaClienteCaja = z.infer<typeof cuentaClienteCajaSchema>;
 export const cuentasCajaSchema = z.object({
+  cuentas: z.array(cuentaClienteCajaSchema),
   ventas: z.array(ventaCajaSchema),
   cobros: z.array(cobroDeudaCajaSchema),
 });

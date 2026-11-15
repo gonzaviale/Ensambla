@@ -5,6 +5,8 @@ import com.ensambla.backend.domain.repository.caja.CobroCajaRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import lombok.RequiredArgsConstructor;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
 @RequiredArgsConstructor
 public class ListarVentasCaja {
@@ -15,8 +17,20 @@ public class ListarVentasCaja {
     private final CobroCajaRepository cobroCajaRepository;
 
     public ListarVentasCajaResponse execute(ListarVentasCajaRequest request) {
-        var negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+        exigirInventarioPropio(negocioId, request);
+        return listarCuentasDelInventario(negocioId, request);
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private void exigirInventarioPropio(NegocioId negocioId, ListarVentasCajaRequest request) {
         sistemaRepository.obtenerInventarioCaja(negocioId, request.proyectoId(), request.inventarioId());
+    }
+
+    private ListarVentasCajaResponse listarCuentasDelInventario(NegocioId negocioId, ListarVentasCajaRequest request) {
         return ListarVentasCajaResponse.de(ventaCajaRepository.listarTodas(
                 negocioId, request.proyectoId(), request.inventarioId()), cobroCajaRepository.listarTodos(
                 negocioId, request.proyectoId(), request.inventarioId()));

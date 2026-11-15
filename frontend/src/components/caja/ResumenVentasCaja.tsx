@@ -1,3 +1,4 @@
+import { AntiguedadDeudaCaja } from './AntiguedadDeudaCaja';
 import { detalleLineaVendida } from '@/lib/caja/importeLibre';
 import { useState } from 'react';
 import { dineroCaja, fechaCaja } from '@/lib/caja';
@@ -104,6 +105,7 @@ export function ResumenVentasCaja({
             <summary>
               <span>
                 {fechaCaja(v.creadoEn)}
+                {onVerCuenta && <AntiguedadDeudaCaja ventas={[v]} />}
                 <small>
                   {v.clienteNombre && `${v.clienteNombre} · `}
                   {(v.saldo ?? 0) > 0

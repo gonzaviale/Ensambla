@@ -19,7 +19,7 @@ async function abrir(sinTabla = false) {
     if (sinTabla) seccion.blocks = seccion.blocks.filter((b) => b.type !== 'clients');
   }
   estado.sistemas.set(usuario.email, [sistema]);
-  server.use(http.get('/api/caja/ventas', () => HttpResponse.json({ ventas: [], cobros: [] })));
+  server.use(http.get('/api/caja/ventas', () => HttpResponse.json({ ventas: [], cobros: [], cuentas: [] })));
   const app = renderApp('/caja');
   await screen.findByRole('heading', { name: 'Caja', level: 1 }, ESPERA);
   const user = userEvent.setup();

@@ -1,3 +1,4 @@
+import { AntiguedadDeudaCaja } from './AntiguedadDeudaCaja';
 import { useState } from 'react';
 import { DialogoCaja } from './DialogoCaja';
 import { CobroDeudaCaja } from './CobroDeudaCaja';
@@ -59,6 +60,7 @@ export function CuentaClienteCaja({
                   <strong>
                     Venta {v.id.slice(0, 8)} · {fechaCaja(v.creadoEn)}
                   </strong>
+                  <AntiguedadDeudaCaja ventas={[v]} />
                   <span>Total: {dineroCaja(Math.round(v.total * 100))}</span>
                   <span>Cobrado: {dineroCaja(Math.round((v.cobrado ?? v.total) * 100))}</span>
                   <span>

@@ -4,7 +4,8 @@ import { expect, vi } from 'vitest';
 import { ImporteLibreCaja } from '@/components/caja/ImporteLibreCaja';
 import { agregarLinea } from '@/lib/caja';
 import { crearImporteLibre, lineaParaCobrar } from '@/lib/caja/importeLibre';
-import type { LineaCaja } from '@/types/caja';
+import { esDeudaAntigua } from '@/lib/caja/antiguedadDeuda';
+import type { LineaCaja, VentaCaja } from '@/types/caja';
 
 export function givenFormularioImporteLibre() {
   const cerrado = vi.fn();
@@ -43,4 +44,20 @@ export function thenNoSeAgrupanImportesDistintos(
     { productoId: null, descripcion: 'Servicio A', cantidad: 1, precio: 10, modo: 'UNIDAD' },
     { productoId: null, descripcion: 'Servicio B', cantidad: 1, precio: 20, modo: 'UNIDAD' },
   ]);
+}
+export function givenDeudaDesde(creadoEn: string, saldo = 100): VentaCaja {
+  return {
+    id: 'venta',
+    lineas: [],
+    medio: 'EFECTIVO',
+    total: 100,
+    recibido: 0,
+    vuelto: 0,
+    creadoEn,
+    pagos: [],
+    saldo,
+  };
+}
+export function thenEsDeudaAntigua(venta: VentaCaja, hoy: string, esperado: boolean) {
+  expect(esDeudaAntigua(venta, new Date(hoy))).toBe(esperado);
 }
