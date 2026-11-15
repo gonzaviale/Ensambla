@@ -194,3 +194,25 @@ La lectura y selección de lentes en dispositivos físicos Android e iPhone requ
   El índice incluido es una extracción transformada y deduplicada de sus identificadores de productos.
 - [Open Food Facts y asociados](https://openfoodfacts.github.io/openfoodfacts-server/api/): base ODbL,
   contenido DbCL y fotos CC BY-SA, con posibles derechos de terceros. Las fuentes se mantienen separadas.
+
+## Revisión del lector e integración con dev (15/11/2026)
+
+El lector de inventario usa la misma jerarquía visual de Caja: visor horizontal, acción principal
+de cámara y accesos compactos a código manual y ajustes. Las opciones de cámara, ayuda y atribución
+quedan en Ajustes; no se muestran actividad, ventas ni acciones de cobro. El código manual sigue
+aceptando lectores USB/Bluetooth, y conserva el foco al volver de una carga o reposición.
+
+Se integró dev hasta c8f38e0a (PR #96). Su modelo polimórfico de campos y acciones de avisos convive
+con la validación de códigos y el guardado de inventario. Se preservaron tanto la configuración de
+catálogos como la de objetivos. La interfaz nueva separa visor, acciones, paneles y manejo del foco;
+las pruebas de recuperación de cámara usan escenarios compartidos de dado/cuando/entonces.
+
+La revisión visual en 320 × 568 y 390 × 704 comprueba que el lector inicial entra sin scroll de página
+ni desborde horizontal. Las pruebas automáticas cubren carga, reposición, validaciones, recuperación
+de cámara y continuidad del lector manual. La cámara y el teclado virtual físicos requieren la prueba
+en el teléfono.
+
+Deuda de legibilidad acotada fuera de este ajuste visual: la composición previa de
+CargaInventarioPage, los hooks useCamaraCodigo/useCargaInventario y los casos extensos previos de
+escaneo-inventario.test.tsx aún requieren una división por intención. Esta actualización no cambia
+sus reglas de stock, persistencia ni consultas de catálogo.

@@ -58,7 +58,13 @@
 }
 .escaneo-marco-codigo {
   position: absolute;
-  inset: 26% 25% 10%;
+  inset: auto;
+  top: 56%;
+  left: 50%;
+  width: 70%;
+  max-width: 280px;
+  height: clamp(48px, 10dvh, 72px);
+  transform: translate(-50%, -50%);
   display: grid;
   place-items: center;
   border: 2px solid var(--orange);
