@@ -26,6 +26,7 @@ public record ObtenerAvisoEconomicoResponse(Aviso aviso) {
             BigDecimal variacionVentas,
             BigDecimal variacionResultadoBruto,
             List<String> productos,
+            List<AvisoEconomico.Cambio> cambios,
             String confianza) {
 
         static Aviso de(AvisoEconomico aviso) {
@@ -38,6 +39,7 @@ public record ObtenerAvisoEconomicoResponse(Aviso aviso) {
                     aviso.variacionVentas(),
                     aviso.variacionResultadoBruto(),
                     aviso.productos(),
+                    aviso.cambios(),
                     aviso.confianza().name());
         }
     }

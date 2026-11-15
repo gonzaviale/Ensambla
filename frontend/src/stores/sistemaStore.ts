@@ -1,5 +1,6 @@
 import { recuperarBorradorSesion } from '@/lib/borradorSesion';
 import { create } from 'zustand';
+import type { AvisoEconomico } from '@/types/avisoEconomico';
 import type { AccesoContenido } from '@/types/contenidoPlan';
 import { clone } from '@/lib/sistema/core';
 import type { Aviso } from '@/lib/sistema/alertas';
@@ -36,7 +37,13 @@ export type Modal =
   | { tipo: 'campo'; bloqueId: string; clave?: string | null }
   | { tipo: 'bienvenida' }
   /** Los productos detrás del aviso económico del inicio (pueden ser cientos). */
-  | { tipo: 'productosDelAviso'; productos: string[] }
+  | {
+      tipo: 'productosDelAviso';
+      cambios: AvisoEconomico['cambios'];
+      /** «Rentabilidad» (ganancia) o «Ventas»: de qué es el monto de cada producto. */
+      categoria: string;
+      titulo: string;
+    }
   /** Con `enBorrador` trabajan sobre la propuesta de Sami en vez de sobre el cuaderno abierto. */
   | { tipo: 'secciones'; enBorrador?: boolean }
   | { tipo: 'agregarSeccion'; enBorrador?: boolean }

@@ -11,10 +11,10 @@ import { ModalEliminarCuaderno } from './modales/ModalEliminarCuaderno';
 import { ModalElegirBloque } from './modales/ModalElegirBloque';
 import { ModalImportar } from './modales/ModalImportar';
 import { ModalPlantilla } from './modales/ModalPlantilla';
-import { ModalProductosDelAviso } from './modales/ModalProductosDelAviso';
 import { ModalRenombrar } from './modales/ModalRenombrar';
 import { ModalRegistro } from './modales/ModalRegistro';
 import { ModalResumen } from './modales/ModalResumen';
+import { ModalProductosDelAviso } from './modales/ModalProductosDelAviso';
 import { ModalRenombrarPieza } from './modales/ModalRenombrarPieza';
 import { ModalSecciones } from './modales/ModalSecciones';
 import { ModalPruebaPremium } from '@/components/planes/ModalPruebaPremium';
@@ -33,8 +33,6 @@ function ContenidoDelModal() {
       return <ModalBienvenida />;
     case 'blanco':
       return <ModalBlanco />;
-    case 'productosDelAviso':
-      return <ModalProductosDelAviso productos={modal.productos} />;
     case 'plantilla':
       return <ModalPlantilla clave={modal.clave} />;
     case 'ayuda':
@@ -75,6 +73,14 @@ function ContenidoDelModal() {
           sistemaId={modal.sistemaId}
           bloqueId={modal.bloqueId}
           contexto={modal.contexto}
+        />
+      );
+    case 'productosDelAviso':
+      return (
+        <ModalProductosDelAviso
+          cambios={modal.cambios}
+          categoria={modal.categoria}
+          titulo={modal.titulo}
         />
       );
     case 'confirmar':

@@ -1,3 +1,4 @@
+import { CarruselDeRentabilidad } from '@/components/inicio/CarruselDeRentabilidad';
 import { PanelDelNegocio } from '@/components/inicio/PanelDelNegocio';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { FichasParaEmpezar } from '@/components/sistema/FichasParaEmpezar';
@@ -26,6 +27,7 @@ export function InicioPage() {
     <>
       <CabeceraComun />
       <main id="main" tabIndex={-1} className="home inicio reveal">
+        {hayPanel && <CarruselDeRentabilidad />}
         {hayPanel && (
           <section className="inicio-bienvenida" aria-label="Empezar algo nuevo">
             <div className="inicio-bienvenida-texto">

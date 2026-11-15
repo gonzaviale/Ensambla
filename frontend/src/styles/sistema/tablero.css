@@ -466,8 +466,9 @@
 }
 .productos-aviso-lista li {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
   padding: 10px 12px;
   border-radius: 12px;
   background: #fff;
@@ -476,19 +477,21 @@
   font-size: 15px;
   font-weight: 700;
   overflow-wrap: anywhere;
-  counter-increment: producto;
 }
-.productos-aviso-lista li::before {
-  content: counter(producto);
-  flex: none;
-  min-width: 24px;
-  padding: 2px 6px;
-  border-radius: 8px;
-  background: var(--petrol);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 800;
-  text-align: center;
+.productos-aviso-cambio {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1f9d55;
+}
+.productos-aviso-cambio[data-baja='true'] {
+  color: #d6293e;
+}
+.productos-aviso-cambio .icon {
+  width: 18px;
+  height: 18px;
 }
 .tablero-aviso-sami h3 {
   font-size: 20px;
@@ -808,4 +811,210 @@
   .tablero-cargando > span {
     animation: none;
   }
+}
+
+/* Carrusel de rentabilidad, arriba del Inicio y en poco espacio: tarjetas cortas que se deslizan con flechas o con el dedo */
+.inicio-carrusel {
+  position: relative;
+  margin-bottom: 14px;
+}
+.inicio-carrusel-pista {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+  padding: 2px 2px 10px;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.inicio-carrusel-pista::-webkit-scrollbar {
+  display: none;
+}
+.inicio-carrusel-pista > li {
+  flex: 0 0 min(86%, 340px);
+  scroll-snap-align: start;
+}
+.inicio-carrusel-flecha {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-top: -23px;
+  border: 2px solid var(--petrol);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--petrol);
+  cursor: pointer;
+  box-shadow: 0 6px 14px -8px var(--petrol);
+}
+.inicio-carrusel-flecha.anterior {
+  left: -10px;
+}
+.inicio-carrusel-flecha.siguiente {
+  right: -10px;
+}
+.inicio-carrusel-flecha .icon {
+  width: 16px;
+  height: 16px;
+}
+.inicio-carrusel-flecha:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  .inicio-carrusel-flecha {
+    display: none;
+  }
+}
+
+.rentabilidad-tarjeta {
+  --tono: var(--petrol);
+  position: relative;
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 10px;
+  align-items: center;
+  height: 100%;
+  padding: 8px 38px 8px 12px;
+  border-radius: 16px;
+  background: #fff;
+  color: var(--petrol);
+  box-shadow:
+    inset 6px 0 0 var(--tono),
+    inset 0 0 0 1.5px color-mix(in srgb, var(--petrol) 22%, #fff);
+}
+.rentabilidad-tarjeta[data-tono='baja'] {
+  --tono: #d6293e;
+}
+.rentabilidad-tarjeta[data-tono='sube'] {
+  --tono: #1f9d55;
+}
+.rentabilidad-tarjeta[data-tono='neutro'] {
+  --tono: var(--yellow);
+}
+.rentabilidad-icono {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-left: 4px;
+  border-radius: 10px;
+  background: var(--tono);
+  color: #fff;
+}
+.rentabilidad-tarjeta[data-tono='neutro'] .rentabilidad-icono {
+  color: var(--petrol);
+}
+.rentabilidad-icono .icon {
+  width: 22px;
+  height: 22px;
+}
+.rentabilidad-cuerpo p {
+  margin: 0;
+}
+.rentabilidad-etiqueta {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.rentabilidad-valor {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+.rentabilidad-valor strong {
+  font-size: 20px;
+  line-height: 1.15;
+}
+.rentabilidad-valor span {
+  font-size: 12.5px;
+}
+.rentabilidad-detalle {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 12.5px;
+}
+.rentabilidad-productos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin: 4px 0;
+  padding: 0;
+  list-style: none;
+}
+.rentabilidad-productos li {
+  padding: 1px 9px;
+  border: 1.5px solid color-mix(in srgb, var(--petrol) 25%, #fff);
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.rentabilidad-descartar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1.5px solid color-mix(in srgb, var(--petrol) 25%, #fff);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--petrol);
+  cursor: pointer;
+}
+.rentabilidad-descartar .icon {
+  width: 12px;
+  height: 12px;
+}
+.rentabilidad-descartar:hover,
+.rentabilidad-descartar:focus-visible {
+  background: color-mix(in srgb, var(--petrol) 10%, #fff);
+}
+
+.rentabilidad-abrir {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.rentabilidad-abrir > span {
+  display: block;
+}
+.rentabilidad-titulo {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.rentabilidad-abrir .rentabilidad-detalle {
+  margin-top: 2px;
+  font-size: 12px;
+}
+.rentabilidad-tarjeta:has(.rentabilidad-abrir):hover {
+  box-shadow:
+    inset 6px 0 0 var(--tono),
+    inset 0 0 0 2px var(--c-accion);
+}
+
+/* La flecha de la comparación en «Cómo te va»: un flecha doble, verde si subió y roja si bajó */
+p.tablero-ventas-comparacion > .icon {
+  width: 22px;
+  height: 22px;
+  color: #1f9d55;
+}
+p.tablero-ventas-comparacion[data-sube='false'] > .icon {
+  color: #d6293e;
 }

@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.reporte.PeriodoMetricas;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.model.reporte.AvisoEconomico;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenNegocio;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenRequest;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenResponse;
@@ -191,7 +192,8 @@ class ResumenControllerTest {
     private static ObtenerAvisoEconomicoResponse respuestaDeAviso() {
         return new ObtenerAvisoEconomicoResponse(new ObtenerAvisoEconomicoResponse.Aviso(
                 "BAJA", "MEJORA", "Rentabilidad", "Las ventas subieron 12 % y la ganancia subió 5 %",
-                "Tu negocio está mejorando.", new BigDecimal("12"), new BigDecimal("5"), List.of("Yerba"), "ALTA"));
+                "Tu negocio está mejorando.", new BigDecimal("12"), new BigDecimal("5"), List.of("Yerba"),
+                List.of(new AvisoEconomico.Cambio("Yerba", new BigDecimal("500"))), "ALTA"));
     }
 
     private static ObtenerMetricasResponse respuestaDeMetricas() {

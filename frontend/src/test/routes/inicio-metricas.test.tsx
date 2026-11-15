@@ -9,12 +9,7 @@ import type { Sistema } from '@/lib/sistema/tipos';
 import { estado } from '@/mocks/db/estado';
 import { server } from '@/mocks/node';
 import { renderApp } from '@/test/renderApp';
-import {
-  ESPERA,
-  setupUsuarioConSesion,
-  verifyHeadingPresentAsync,
-  verifyPathAsync,
-} from '@/test/testHelpers';
+import { ESPERA, setupUsuarioConSesion, verifyHeadingPresentAsync } from '@/test/testHelpers';
 
 const sinVentas = {
   ingresos: 0,
@@ -207,32 +202,54 @@ describe('inicio: cómo te va', () => {
 
     const seccion = await screen.findByRole('region', { name: 'Cómo te va' }, ESPERA);
     expect(
-      await within(seccion).findByRole('article', { name: 'Aviso económico' }, ESPERA),
+      await screen.findByRole('region', { name: 'Avisos de rentabilidad' }, ESPERA),
     ).toBeVisible();
     expect(within(seccion).queryByRole('heading', { name: /vendiste/ })).toBeNull();
   });
 });
 
-describe('inicio: aviso económico', () => {
+describe('inicio: carrusel de rentabilidad', () => {
   beforeEach(() => window.localStorage.clear());
 
-  it('muestra el aviso de la semana con su prioridad y sus números', async () => {
+  const tarjetas = async () =>
+    within(
+      await screen.findByRole('region', { name: 'Avisos de rentabilidad' }, ESPERA),
+    ).getAllByRole('article', { name: 'Aviso económico' });
+
+  it('parte el aviso en tarjetas cortas: ventas, ganancia y productos', async () => {
     await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
 
-    const tarjeta = await screen.findByRole('article', { name: 'Aviso económico' }, ESPERA);
-    expect(
-      within(tarjeta).getByRole('heading', {
-        name: 'Las ventas subieron 12 %, pero la ganancia bajó 4 %',
+    const [ventas, ganancia, productos] = await tarjetas();
+    expect(within(ventas as HTMLElement).getByText('Ventas')).toBeVisible();
+    expect(within(ventas as HTMLElement).getByText('+12 %')).toBeVisible();
+    expect(within(ganancia as HTMLElement).getByText('Ganancia')).toBeVisible();
+    expect(within(ganancia as HTMLElement).getByText('−4 %')).toBeVisible();
+    expect(within(productos as HTMLElement).queryByText('Aceite')).toBeNull();
+
+    await userEvent.click(
+      within(productos as HTMLElement).getByRole('button', {
+        name: /Productos que te dejaron menos/,
       }),
-    ).toBeVisible();
-    expect(within(tarjeta).getByText('Prioridad alta')).toBeVisible();
-    expect(within(tarjeta).getByText('Ventas').nextSibling).toHaveTextContent('+12 %');
-    expect(within(tarjeta).getByText('Ganancia').nextSibling).toHaveTextContent('−4 %');
-    expect(within(tarjeta).getByText('Productos involucrados').nextSibling).toHaveTextContent('3');
-    expect(within(tarjeta).queryByText('Confianza')).toBeNull();
+    );
+    const lista = await screen.findByRole('list', { name: 'Productos involucrados' });
+    const filas = within(lista).getAllByRole('listitem');
+    expect(filas.map((item) => item.textContent)).toEqual([
+      expect.stringContaining('Aceite'),
+      expect.stringContaining('Leche'),
+      expect.stringContaining('Yerba'),
+    ]);
+    expect(filas[0]).toHaveTextContent(/Te dejó \$\s?4\.200 menos de ganancia/);
   });
 
-  it('cuando el negocio mejora lo dice y ofrece ver los objetivos', async () => {
+  it('no manda a ninguna otra pantalla ni abre ventanas solas', async () => {
+    await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
+    await tarjetas();
+
+    expect(screen.queryByRole('button', { name: 'Entender por qué' })).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('sin costos cargados lo dice en la tarjeta de ganancia', async () => {
     server.use(
       http.get('/api/proyectos/:sistemaId/resumen/aviso-economico', () =>
         HttpResponse.json({
@@ -245,24 +262,20 @@ describe('inicio: aviso económico', () => {
             variacionVentas: 20,
             variacionResultadoBruto: null,
             productos: ['Yerba'],
+            cambios: [{ nombre: 'Yerba', monto: 800 }],
             confianza: 'BAJA',
           },
         }),
       ),
     );
-    const user = await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
+    await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
 
-    const tarjeta = await screen.findByRole('article', { name: 'Aviso económico' }, ESPERA);
-    expect(within(tarjeta).getByText('Vas mejorando')).toBeVisible();
-    expect(within(tarjeta).getByText('Ganancia').nextSibling).toHaveTextContent('Sin costos');
-    expect(within(tarjeta).queryByRole('button', { name: 'Probar una solución' })).toBeNull();
-
-    await user.click(within(tarjeta).getByRole('button', { name: 'Ver mis objetivos' }));
-
-    await verifyPathAsync(user.router, '/objetivos');
+    const [ventas, costos] = await tarjetas();
+    expect(within(ventas as HTMLElement).getByText('+20 %')).toBeVisible();
+    expect(within(costos as HTMLElement).getByText('Sin costos')).toBeVisible();
   });
 
-  it('sin una semana anterior para comparar no muestra el aviso', async () => {
+  it('sin una semana anterior para comparar no muestra el carrusel', async () => {
     server.use(
       http.get('/api/proyectos/:sistemaId/resumen/aviso-economico', () =>
         HttpResponse.json({ aviso: null }),
@@ -272,33 +285,31 @@ describe('inicio: aviso económico', () => {
 
     const seccion = await screen.findByRole('region', { name: 'Cómo te va' }, ESPERA);
     await within(seccion).findByRole('heading', { name: /vendiste/ }, ESPERA);
-    expect(within(seccion).queryByRole('article', { name: 'Aviso económico' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Avisos de rentabilidad' })).toBeNull();
   });
 
-  it('«Productos involucrados» abre un modal con la lista y se cierra', async () => {
+  it('cada tarjeta se descarta sola y no vuelve a aparecer', async () => {
     const user = await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
-    const tarjeta = await screen.findByRole('article', { name: 'Aviso económico' }, ESPERA);
-    expect(within(tarjeta).queryByRole('list', { name: 'Productos involucrados' })).toBeNull();
+    const [ventas] = await tarjetas();
 
-    await user.click(within(tarjeta).getByRole('button', { name: /Productos involucrados|3/ }));
-    const modal = await screen.findByRole('dialog');
-    const lista = within(modal).getByRole('list', { name: 'Productos involucrados' });
-    expect(
-      within(lista)
-        .getAllByRole('listitem')
-        .map((item) => item.textContent),
-    ).toEqual(['Aceite', 'Leche', 'Yerba']);
+    await user.click(
+      within(ventas as HTMLElement).getByRole('button', { name: 'Descartar aviso' }),
+    );
 
-    await user.click(within(modal).getByRole('button', { name: 'Listo' }));
-    expect(screen.queryByRole('dialog')).toBeNull();
+    const quedan = await tarjetas();
+    expect(quedan).toHaveLength(2);
+    expect(screen.queryByText('+12 %')).toBeNull();
+    expect(window.localStorage.getItem('ensambla.inicio.rentabilidadDescartada')).toContain(
+      ':ventas',
+    );
   });
 
-  it.each(['Entender por qué', 'Probar una solución'])('«%s» lleva a Objetivos', async (boton) => {
-    const user = await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
-    const tarjeta = await screen.findByRole('article', { name: 'Aviso económico' }, ESPERA);
+  it('con un solo negocio muestra solo sus tarjetas, no una por negocio', async () => {
+    await abrirInicio([
+      almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z'),
+      almacen('Kiosco del centro', '2026-10-21T10:00:00.000Z'),
+    ]);
 
-    await user.click(within(tarjeta).getByRole('button', { name: boton }));
-
-    await verifyPathAsync(user.router, '/objetivos');
+    expect(await tarjetas()).toHaveLength(3);
   });
 });

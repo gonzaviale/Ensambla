@@ -4,11 +4,8 @@ import { GraficoDeBarras } from '@/components/sistema/metricas/GraficoDeBarras';
 import { SelectorDeCuaderno, SelectorDePeriodo } from '@/components/sistema/metricas/Selectores';
 import { useNumeroAnimado } from '@/components/sistema/metricas/useNumeroAnimado';
 import { useResumenInicio } from '@/hooks/reportes/queries';
-import { useAvisoEconomico } from '@/hooks/reportes/useAvisoEconomico';
 import { useCuadernoElegido } from '@/hooks/reportes/useCuadernoElegido';
-import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { formatoPesos } from '@/lib/sistema/formato';
-import { useSistemaStore } from '@/stores/sistemaStore';
 import {
   PERIODOS_DE_VENTAS,
   comparacionConElPeriodoAnterior,
@@ -19,11 +16,10 @@ import {
   textoUnidades,
   type PeriodoDeVentas,
 } from '@/lib/sistema/metricasInicio';
-import type { AvisoEconomico } from '@/types/avisoEconomico';
 import type { ResumenInicio } from '@/types/resumenInicio';
 
-// El tablero del inicio para quien ya usa Ensambla: lo que viene vendiendo (lo primero que se mira) y el aviso
-// económico, de un cuaderno a elegir. La página ya saluda arriba, en la bienvenida compacta. Nunca muestra ceros de
+// El tablero del inicio para quien ya usa Ensambla: lo que viene vendiendo, de un cuaderno a elegir (el aviso
+// económico va arriba de todo, en su carrusel). La página ya saluda arriba, en la bienvenida compacta. Nunca muestra ceros de
 // relleno: si no hay datos, lo dice.
 export function MetricasDelInicio() {
   const { cuadernos, cuaderno, elegir } = useCuadernoElegido();
@@ -58,14 +54,13 @@ export function MetricasDelInicio() {
           <span />
           <span />
         </div>
-      ) : !resumen.hayVentas && !resumen.hayProductos ? (
+      ) : !resumen.hayVentas ? (
         <p className="tablero-aviso" role="status">
           Cuando anotes ventas o productos en «{cuaderno.name}», acá vas a ver cómo te va.
         </p>
       ) : (
         <div className="tablero-cuerpo">
-          {resumen.hayVentas && <TarjetaDeVentas resumen={resumen} />}
-          <TarjetaDeAvisoEconomico sistemaId={cuaderno.id} cuaderno={cuaderno.name} />
+          <TarjetaDeVentas resumen={resumen} />
         </div>
       )}
     </section>
@@ -73,103 +68,6 @@ export function MetricasDelInicio() {
 }
 
 type PropsDeTarjeta = { resumen: ResumenInicio };
-
-const PRIORIDAD: Record<AvisoEconomico['prioridad'], string> = {
-  ALTA: 'Prioridad alta',
-  MEDIA: 'Prioridad media',
-  BAJA: 'Para mirar',
-};
-
-const conSigno = (valor: number) => `${valor > 0 ? '+' : valor < 0 ? '−' : ''}${Math.abs(valor)} %`;
-
-// El aviso económico del cuaderno: esta semana frente a la anterior. La prioridad a un costado, qué cambió, los
-// números que lo muestran y qué hacer. Cuando el negocio mejora también avisa, para que se sepa qué está andando bien.
-function TarjetaDeAvisoEconomico({ sistemaId, cuaderno }: { sistemaId: string; cuaderno: string }) {
-  const { aviso } = useAvisoEconomico(sistemaId);
-  const navegacion = useNavegacion();
-  const abrirModal = useSistemaStore((estado) => estado.abrirModal);
-  if (!aviso) return null;
-  const irAObjetivos = () => void navegacion.irAObjetivos();
-  const mejora = aviso.tendencia === 'MEJORA';
-  return (
-    <article
-      className="tablero-aviso-sami"
-      data-prioridad={aviso.prioridad}
-      data-tendencia={aviso.tendencia}
-      aria-label="Aviso económico"
-    >
-      <div className="tablero-aviso-sami-prioridad">
-        <Icon name={mejora ? 'up' : 'chart'} />
-        <span>{mejora ? 'Vas mejorando' : PRIORIDAD[aviso.prioridad]}</span>
-      </div>
-      <div className="tablero-aviso-sami-contenido">
-        <p className="tablero-aviso-sami-etiqueta">
-          {aviso.categoria} · {cuaderno}
-        </p>
-        <h3>{aviso.titulo}</h3>
-        <p className="tablero-aviso-sami-detalle">{aviso.explicacion}</p>
-        <dl className="tablero-aviso-sami-evidencias">
-          <div>
-            <dt>Ventas</dt>
-            <dd>{conSigno(aviso.variacionVentas)}</dd>
-          </div>
-          <div>
-            <dt>Ganancia</dt>
-            <dd>
-              {aviso.variacionResultadoBruto === null
-                ? 'Sin costos'
-                : conSigno(aviso.variacionResultadoBruto)}
-            </dd>
-          </div>
-          <div>
-            <dt>Productos involucrados</dt>
-            <dd>
-              {aviso.productos.length > 0 ? (
-                <button
-                  type="button"
-                  className="tablero-aviso-sami-evidencia-boton"
-                  aria-haspopup="dialog"
-                  onClick={() =>
-                    abrirModal({ tipo: 'productosDelAviso', productos: aviso.productos })
-                  }
-                >
-                  {aviso.productos.length}
-                  <Icon name="arrow" />
-                </button>
-              ) : (
-                0
-              )}
-            </dd>
-          </div>
-        </dl>
-        <div className="tablero-aviso-sami-acciones">
-          {mejora ? (
-            <button
-              type="button"
-              className="tablero-aviso-sami-boton principal"
-              onClick={irAObjetivos}
-            >
-              Ver mis objetivos
-            </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                className="tablero-aviso-sami-boton principal"
-                onClick={irAObjetivos}
-              >
-                Entender por qué
-              </button>
-              <button type="button" className="tablero-aviso-sami-boton" onClick={irAObjetivos}>
-                Probar una solución
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    </article>
-  );
-}
 
 // Lo que se viene vendiendo: el número grande, la comparación y las ventas día por día. Arranca en la semana.
 function TarjetaDeVentas({ resumen }: PropsDeTarjeta) {
@@ -222,7 +120,7 @@ function TarjetaDeVentas({ resumen }: PropsDeTarjeta) {
                 className="tablero-ventas-comparacion"
                 data-sube={ventas.ingresos >= ventas.ingresosAnteriores ? 'true' : 'false'}
               >
-                <Icon name={ventas.ingresos >= ventas.ingresosAnteriores ? 'up' : 'down'} />
+                <Icon name={ventas.ingresos >= ventas.ingresosAnteriores ? 'sube' : 'baja'} />
                 {comparacion}
               </p>
             )}
