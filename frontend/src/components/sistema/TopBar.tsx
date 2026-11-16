@@ -6,7 +6,16 @@ import { MenuDePerfil } from './MenuDePerfil';
 import { SelectorDeNegocio } from './SelectorDeNegocio';
 
 export type SeccionActiva =
-  'home' | 'caja' | 'templates' | 'zone' | 'avisos' | 'goals' | 'learn' | 'plans' | 'account';
+  | 'home'
+  | 'caja'
+  | 'templates'
+  | 'zone'
+  | 'carteles'
+  | 'avisos'
+  | 'goals'
+  | 'learn'
+  | 'plans'
+  | 'account';
 
 type TopBarProps = {
   active?: SeccionActiva;
@@ -17,6 +26,7 @@ type TopBarProps = {
   onCaja: () => void;
   onPlantillas: () => void;
   onZona: () => void;
+  onCarteles: () => void;
   onAvisos: () => void;
   onObjetivos: () => void;
   onEnsenanza: () => void;
@@ -37,6 +47,7 @@ export function TopBar({
   onCaja,
   onPlantillas,
   onZona,
+  onCarteles,
   onAvisos,
   onObjetivos,
   onEnsenanza,
@@ -107,6 +118,14 @@ export function TopBar({
         </button>
         <button type="button" className={active === 'zone' ? 'active' : ''} onClick={ir(onZona)}>
           Zona
+        </button>
+        <button
+          type="button"
+          className={active === 'carteles' ? 'active' : ''}
+          aria-current={active === 'carteles' ? 'page' : undefined}
+          onClick={ir(onCarteles)}
+        >
+          Carteles
         </button>
         <button
           type="button"

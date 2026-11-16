@@ -1192,3 +1192,47 @@
   border-color: var(--c-accion);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-accion) 20%, transparent);
 }
+
+/* Carteles y promociones: tres opciones una al lado de la otra y, en celular, una debajo de la otra. */
+.carteles-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+.carteles-promociones {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+}
+.carteles-promocion {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--c-borde);
+  border-radius: 20px;
+  background: #fff;
+}
+.carteles-opciones {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin: 24px 0;
+}
+.carteles-opcion {
+  display: grid;
+  gap: 8px;
+  cursor: pointer;
+}
+.carteles-opcion img {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--c-borde);
+  border-radius: 12px;
+}
+.carteles-editor,
+.carteles-acciones {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 24px;
+}

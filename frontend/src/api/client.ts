@@ -151,8 +151,11 @@ export function nombreDeArchivo(disposicion: string | null) {
   return /filename="?([^";]+)"?/i.exec(disposicion ?? '')?.[1] ?? NOMBRE_POR_DEFECTO;
 }
 
-async function requestArchivo(path: string, signal?: AbortSignal): Promise<Archivo> {
-  const response = await send(path, { signal });
+async function requestArchivo(
+  path: string,
+  options: RequestOptions = {},
+): Promise<Archivo> {
+  const response = await send(path, options);
   await exigirOk(path, response);
   return {
     blob: await response.blob(),
@@ -161,7 +164,9 @@ async function requestArchivo(path: string, signal?: AbortSignal): Promise<Archi
 }
 
 export const http = {
-  getArchivo: (path: string, signal?: AbortSignal) => requestArchivo(path, signal),
+  getArchivo: (path: string, signal?: AbortSignal) => requestArchivo(path, { signal }),
+  postArchivo: (path: string, body: unknown, signal?: AbortSignal) =>
+    requestArchivo(path, { method: 'POST', body, signal }),
   getConEncabezado: <S extends z.ZodTypeAny>(
     path: string,
     schema: S,

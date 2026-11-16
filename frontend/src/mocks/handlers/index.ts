@@ -2,6 +2,7 @@ import type { ModoMocks } from '@/config/env';
 import { handlersAuth } from './auth';
 import { handlersCatalogos } from './catalogos';
 import { handlersAvisos } from './avisos';
+import { handlersCarteles } from './carteles';
 import { handlersImportaciones } from './importaciones';
 import { handlersObjetivos } from './objetivos';
 import { handlersSamiProyecto } from './samiProyecto';
@@ -38,6 +39,7 @@ export function handlersPara(modo: ModoMocks) {
       ...handlersSamiProyecto,
       ...handlersSamiTaller,
       ...handlersComoVieneTuNegocio,
+      ...handlersCarteles,
     ];
   if (modo === 'parcial') return []; // Las rutas ya implementadas usan el backend real.
   return [];

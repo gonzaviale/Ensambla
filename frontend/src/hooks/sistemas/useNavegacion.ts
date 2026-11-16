@@ -53,6 +53,7 @@ export function useNavegacion() {
       | '/zona'
       | '/zona/donde-abrir'
       | '/planes'
+      | '/carteles'
       | '/sami'
       | '/avisos'
       | '/objetivos'
@@ -158,6 +159,7 @@ export function useNavegacion() {
       return navigate({ to: '/sami-te-ensena', search: { leccion, objetivo: objetivoId } });
     },
     irAPlanes: () => irA('/planes'),
+    irACarteles: () => irA('/carteles'),
     /** «Armalo con Sami»: la conversación que crea un proyecto real en el backend. */
     irASami: () => irA('/sami'),
     abrirSistema,
