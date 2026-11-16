@@ -13,7 +13,7 @@ async function abrir(sinTabla = false) {
   const usuario = setupUsuarioConSesion();
   const sistema = makeTemplate('shop', {}, false);
   const inventario = allBlocks(sistema).find((b) => b.type === 'inventory');
-  if (!inventario) throw new Error('Falta el inventario de prueba');
+  if (!inventario) throw new Error('Falta la sección de stock de prueba');
   prepararCaja(sistema, inventario.id);
   for (const seccion of sistema.sections) {
     if (sinTabla) seccion.blocks = seccion.blocks.filter((b) => b.type !== 'clients');
@@ -62,7 +62,7 @@ describe('clientes compartidos de Caja y Mi Negocio', () => {
     const { user } = await abrir();
     await user.click(screen.getByRole('button', { name: 'Crear cliente' }));
     await user.click(screen.getByRole('button', { name: 'Guardar cliente' }));
-    expect(screen.getByText('Completá este campo.')).toBeVisible();
+    expect(screen.getByText('Completá este dato.')).toBeVisible();
     await user.type(screen.getByLabelText(/^Nombre/), 'Ana');
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
     await user.click(await screen.findByRole('button', { name: 'Seguir editando' }));

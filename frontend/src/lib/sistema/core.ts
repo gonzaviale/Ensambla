@@ -128,7 +128,7 @@ function errorDeCampo(campo: Campo, valor: Valor, sistema: Sistema): string | un
   const hayValor = valor !== '' && valor != null;
   const errorDeValor = hayValor ? comportamiento.validar(campo, valor, sistema) : undefined;
   if (errorDeValor) return errorDeValor;
-  return campo.required && comportamiento.falta(valor) ? 'Completá este campo.' : undefined;
+  return campo.required && comportamiento.falta(valor) ? 'Completá este dato.' : undefined;
 }
 
 export function validateRow(

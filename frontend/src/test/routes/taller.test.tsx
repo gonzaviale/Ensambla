@@ -231,7 +231,7 @@ describe('el taller de Sami', () => {
     await screen.findByRole('heading', { name: 'Registrar producto' });
     await clickButton(user, 'Guardar');
 
-    expect((await screen.findAllByText('Completá este campo.')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('Completá este dato.')).length).toBeGreaterThan(0);
     expect(screen.getByRole('heading', { name: 'Registrar producto' })).toBeVisible();
     expect(within(bloque).getAllByRole('row')).toHaveLength(antes);
   });

@@ -210,7 +210,7 @@ describe('la campana y la pantalla de avisos', () => {
     expect(within(aviso).queryByText(/Vendiste 10 en los últimos 30 días/)).toBeNull();
     await user.click(within(aviso).getByRole('button', { name: /Ver por qué/ }));
     expect(within(aviso).getByText(/Vendiste 10 en los últimos 30 días/)).toBeVisible();
-    expect(within(aviso).getByRole('button', { name: 'Registrar entrada' })).toBeVisible();
+    expect(within(aviso).getByRole('button', { name: 'Cargar entrada' })).toBeVisible();
     expect(within(aviso).getByRole('button', { name: 'Descartar' })).toBeVisible();
 
     const subida = tarjeta(/Yerba Playadito 1 kg se vende mucho/);
@@ -286,7 +286,7 @@ describe('la campana y la pantalla de avisos', () => {
 
     await user.click(
       within(tarjeta('Te quedaste sin Aceite Natura 900 ml')).getByRole('button', {
-        name: 'Registrar entrada',
+        name: 'Cargar entrada',
       }),
     );
 
@@ -300,7 +300,7 @@ describe('la campana y la pantalla de avisos', () => {
 
     await user.click(
       within(tarjeta(/Leche La Serenísima 1 L y no lo tenés/)).getByRole('button', {
-        name: 'Sumar a mi inventario',
+        name: 'Sumar a mi stock',
       }),
     );
 
@@ -643,7 +643,7 @@ describe('los avisos del motor del servidor', () => {
         acciones: [
           {
             tipo: 'REGISTRAR',
-            texto: 'Registrar entrada',
+            texto: 'Cargar entrada',
             proyectoId: sistema.id,
             bloqueId: entradas.id,
           },
@@ -658,7 +658,7 @@ describe('los avisos del motor del servidor', () => {
 
     await user.click(
       within(tarjeta('Te quedaste sin Yerba Playadito 1 kg')).getByRole('button', {
-        name: 'Registrar entrada',
+        name: 'Cargar entrada',
       }),
     );
     const modal = await screen.findByRole('dialog', { name: 'Registrar entrada' }, ESPERA);

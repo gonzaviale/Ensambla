@@ -33,7 +33,7 @@ const cifrasAsync = () =>
 /** El flujo de caja arranca cerrado: se espera a que llegue y se abre como lo haría la persona. */
 const abrirFlujoAsync = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.click(
-    await screen.findByRole('heading', { name: 'Tu flujo de caja, semana a semana' }, ESPERA),
+    await screen.findByRole('heading', { name: 'Semana a semana' }, ESPERA),
   );
 };
 
@@ -43,7 +43,7 @@ describe('inicio: panel del negocio', () => {
 
     const titulo = await screen.findByRole(
       'heading',
-      { name: 'Tu flujo de caja, semana a semana' },
+      { name: 'Semana a semana' },
       ESPERA,
     );
     const flujo = titulo.closest('details') as HTMLElement;
@@ -68,9 +68,9 @@ describe('inicio: panel del negocio', () => {
 
     expect(filas).toHaveLength(5);
     for (const fila of filas) {
-      expect(within(fila).getByText('Entró')).toBeVisible();
-      expect(within(fila).getByText('Salió')).toBeVisible();
-      expect(within(fila).getByText('Saldo')).toBeVisible();
+      expect(within(fila).getByText('Cobraste')).toBeVisible();
+      expect(within(fila).getByText('Gastaste')).toBeVisible();
+      expect(within(fila).getByText('Te quedó')).toBeVisible();
       expect(fila).toHaveTextContent(/\$\d/);
     }
     expect(screen.getByText('Te va quedando')).toBeVisible();
@@ -207,7 +207,7 @@ describe('inicio: panel del negocio', () => {
     await clickButton(user, 'Probar de nuevo');
 
     expect(
-      await screen.findByRole('heading', { name: 'Tu flujo de caja, semana a semana' }, ESPERA),
+      await screen.findByRole('heading', { name: 'Semana a semana' }, ESPERA),
     ).toBeVisible();
     expect(screen.queryByRole('alert')).toBeNull();
   });

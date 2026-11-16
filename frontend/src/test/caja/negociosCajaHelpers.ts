@@ -16,7 +16,7 @@ function crearNegocio(nombre: string, producto: string) {
   const sistema = makeTemplate('shop', {}, false);
   sistema.name = nombre;
   const inventario = allBlocks(sistema).find((bloque) => bloque.type === 'inventory');
-  if (!inventario) throw new Error('Falta el inventario del escenario');
+  if (!inventario) throw new Error('Falta la sección de stock del escenario');
   inventario.rows = [
     { id: crypto.randomUUID(), name: producto, quantity: 10, price: 1000, favorite: true },
   ];

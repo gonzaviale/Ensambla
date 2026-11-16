@@ -24,7 +24,7 @@ export const NOMBRE_DE_TIPO: Record<TipoDeAviso, string> = {
 
 export const NIVEL_DE_AVISO = { 3: 'Urgente', 2: 'Para hoy', 1: 'Para mirar' } as const;
 
-/** Lo que dice el botón: la acción, tal cual («Subir a $ 3.820», «Registrar entrada»). */
+/** Lo que dice el botón: la acción, tal cual («Subir a $ 3.820», «Cargar entrada»). */
 export function textoDeAccion(accion: AccionDeAviso) {
   return accion.texto;
 }
@@ -84,7 +84,7 @@ export function propuestaDelAviso(aviso: Aviso): string | undefined {
     }
   }
   if (aviso.tipo === 'stock') {
-    const pedir = /pedí ([^.]+)\./.exec(aviso.detalle)?.[1];
+    const pedir = /(?:pedí|pedir) ([^.]+?)(?: para [^.]+)?\./.exec(aviso.detalle)?.[1];
     if (pedir) return `Te conviene pedir ${pedir}`;
   }
   return accion.texto;

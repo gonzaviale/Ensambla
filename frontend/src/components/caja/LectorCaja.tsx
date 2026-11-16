@@ -133,8 +133,8 @@ export function LectorCaja({
         <button
           type="button"
           className="caja-ingresar-codigo"
-          aria-label="Ingresar código · lector USB"
-          title="Ingresar código o usar lector USB"
+          aria-label="Escribir código · lector USB"
+          title="Escribir código o usar lector USB"
           disabled={buscando}
           onClick={() => abrirPanel('codigo')}
         >
@@ -151,7 +151,7 @@ export function LectorCaja({
       </div>
       {panel && !revisandoProducto && (
         <DialogoCaja
-          titulo={panel === 'codigo' ? 'Ingresar código' : 'Ajustes del lector'}
+          titulo={panel === 'codigo' ? 'Escribir código' : 'Ajustes del lector'}
           onCerrar={() => setPanel(null)}
         >
           {panel === 'codigo' ? (

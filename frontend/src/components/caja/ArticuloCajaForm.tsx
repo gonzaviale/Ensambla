@@ -203,7 +203,7 @@ export function ArticuloCajaForm({
               )}
               {adicionales.length > 0 && (
                 <details>
-                  <summary>Otros datos requeridos del inventario</summary>
+                  <summary>Otros datos que necesitamos del producto</summary>
                   {adicionales.map((campo) => (
                     <label key={campo.key}>
                       {campo.label}

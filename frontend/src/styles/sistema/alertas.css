@@ -88,6 +88,10 @@
   box-shadow: -18px 0 40px rgb(0 80 106 / 0.18);
   animation: campana-entra 0.22s ease-out;
 }
+/* Con muchos avisos el panel se desplaza: nada se encoge (Sami quedaba aplastado). */
+.campana-menu > * {
+  flex-shrink: 0;
+}
 @keyframes campana-entra {
   from {
     transform: translateX(100%);
@@ -150,7 +154,7 @@
 .campana-vacia,
 .campana-premium {
   margin: 0;
-  color: var(--muted);
+  color: var(--c-estructura);
   font-size: 13px;
 }
 .campana-premium {
@@ -239,7 +243,7 @@
   white-space: nowrap;
 }
 .campana-aviso-sistema {
-  color: var(--muted);
+  color: var(--c-estructura);
   font-size: 12px;
 }
 .campana-aviso-ocultar {
@@ -250,7 +254,7 @@
   height: 32px;
   margin-right: 8px;
   border-radius: 50%;
-  color: var(--muted);
+  color: var(--c-estructura);
 }
 .campana-aviso-ocultar:hover {
   background: var(--coral);
@@ -270,9 +274,10 @@
   gap: 14px;
   margin-top: auto;
   padding: 16px;
+  border: 2px solid var(--petrol);
   border-radius: 20px;
-  background: var(--petrol);
-  color: white;
+  background: #fff;
+  color: var(--c-estructura);
   overflow: hidden;
 }
 .campana-pie img {
@@ -286,7 +291,7 @@
 }
 .campana-menu .campana-pie p {
   margin: 0;
-  color: white;
+  color: var(--c-estructura);
   font-size: 16px;
   font-weight: 700;
   line-height: 1.35;
@@ -339,7 +344,7 @@
 .alertas-head p {
   margin: 0;
   font-size: 12px;
-  color: var(--muted);
+  color: var(--c-estructura);
 }
 
 /* Filtros */
@@ -362,7 +367,7 @@
   cursor: pointer;
 }
 .alertas-filtros button span {
-  color: var(--muted);
+  color: var(--c-estructura);
   font-weight: 700;
   margin-left: 2px;
 }
@@ -429,7 +434,7 @@
   gap: 8px;
   align-items: center;
   font-size: 10px;
-  color: var(--muted);
+  color: var(--c-estructura);
   margin-bottom: 4px;
 }
 .alerta-nivel {
@@ -487,7 +492,7 @@
 .alerta-acciones .text-link {
   font-size: 11px;
   margin-left: auto;
-  color: var(--muted);
+  color: var(--c-estructura);
 }
 .alertas-lista.mini .alerta {
   box-shadow: none;
@@ -510,7 +515,7 @@
 }
 .alertas-vacio p {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--c-estructura);
   margin: 0 auto 14px;
   max-width: 330px;
   line-height: 1.5;
@@ -528,7 +533,7 @@
   justify-self: start;
 }
 .alertas-nota {
-  color: var(--muted);
+  color: var(--c-estructura);
   font-size: 11px;
   line-height: 1.5;
   margin: 10px 0 0;
@@ -667,11 +672,23 @@
   margin: 0 0 10px;
   font-size: 12px;
   line-height: 1.45;
-  color: var(--muted);
+  color: var(--c-estructura);
 }
 .sami-aviso-txt .row {
   flex-wrap: wrap;
   gap: 6px;
+}
+/* Los dos botones en una sola línea (la tarjeta es más ancha); en el celular, si no entran, bajan. */
+@media (min-width: 641px) {
+  .sami-aviso {
+    width: min(480px, calc(100% - 32px));
+  }
+  .sami-aviso-txt .row {
+    flex-wrap: nowrap;
+  }
+  .sami-aviso-txt .row .btn {
+    white-space: nowrap;
+  }
 }
 
 @media (max-width: 640px) {
@@ -892,7 +909,7 @@
   border: 2px solid #e4e6df;
   border-radius: 10px;
   background: #fff;
-  color: var(--muted);
+  color: var(--c-estructura);
   transition:
     background 0.15s,
     border-color 0.15s,
@@ -1054,7 +1071,7 @@
 }
 .impacto-avisos-lista span,
 .impacto-avisos-nota {
-  color: var(--muted, #5b6470);
+  color: var(--c-estructura);
 }
 .impacto-avisos-nota {
   font-size: 12px;
@@ -1142,7 +1159,7 @@ button.alertas-preguntar {
 }
 .alertas-preguntar small {
   font-size: 13px;
-  color: var(--muted);
+  color: var(--c-estructura);
 }
 .alertas-preguntar > .icon {
   width: 20px;
@@ -1217,7 +1234,7 @@ button.alertas-preguntar:focus-visible > .icon {
   color: #fff;
 }
 .alerta-sistema {
-  color: var(--muted);
+  color: var(--c-estructura);
   font-weight: 600;
 }
 .alertas-lista .alerta h3 {
@@ -1248,7 +1265,7 @@ button.alertas-preguntar:focus-visible > .icon {
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--c-estructura);
 }
 .alerta-propuesta strong {
   font-size: 14.5px;
@@ -1292,7 +1309,7 @@ button.alertas-preguntar:focus-visible > .icon {
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--c-estructura);
 }
 .alerta-datos {
   display: grid;
@@ -1314,7 +1331,7 @@ button.alertas-preguntar:focus-visible > .icon {
 }
 .alerta-datos dt {
   font-size: 11px;
-  color: var(--muted);
+  color: var(--c-estructura);
   font-weight: 700;
 }
 .alerta-datos dd {
@@ -1326,7 +1343,7 @@ button.alertas-preguntar:focus-visible > .icon {
 .alerta-origen {
   margin-top: 12px;
   font-size: 12px;
-  color: var(--muted);
+  color: var(--c-estructura);
 }
 
 /* Filtro por sección */
@@ -1342,7 +1359,7 @@ button.alertas-preguntar:focus-visible > .icon {
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--c-estructura);
 }
 .alertas-sistemas button {
   padding: 6px 12px;
@@ -1371,12 +1388,14 @@ button.alertas-preguntar:focus-visible > .icon {
 }
 
 /* Lo que no puede esperar: una franja que se ve primero */
+/* (sin fondo de color: tarjeta blanca con borde coral) */
 .alertas-urgentes {
   margin: 0 0 14px;
   padding: 14px 16px;
+  border: 2px solid var(--coral);
   border-radius: 16px;
-  background: #c42b2b;
-  color: #fff;
+  background: #fff;
+  color: var(--c-estructura);
 }
 .alertas-urgentes strong {
   display: block;
@@ -1392,10 +1411,10 @@ button.alertas-preguntar:focus-visible > .icon {
 }
 .alertas-urgentes button {
   padding: 6px 12px;
-  border: 0;
+  border: 2px solid var(--coral);
   border-radius: 999px;
   background: #fff;
-  color: #7a1010;
+  color: var(--c-estructura);
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
@@ -1403,7 +1422,8 @@ button.alertas-preguntar:focus-visible > .icon {
 }
 .alertas-urgentes button:hover,
 .alertas-urgentes button:focus-visible {
-  background: #ffe8e4;
+  background: #fff;
+  border-color: var(--c-estructura);
 }
 
 @media (max-width: 520px) {

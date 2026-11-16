@@ -72,11 +72,11 @@ function FlujoDeCaja({ panel }: { panel: Panel }) {
   const queda = panel.flujoDeCaja.at(-1)?.saldoAcumulado ?? 0;
   return (
     <Desplegable
-      titulo="Tu flujo de caja, semana a semana"
+      titulo="Semana a semana"
       resumen={`Te va quedando ${pesos(queda)}`}
     >
       <p className="panel-flujo-bajada">
-        Entra lo que cobraste. Sale lo que gastaste y la mercadería que compraste. Lo fiado no entra
+        Suma lo que cobraste. Resta lo que gastaste y la mercadería que compraste. Lo fiado no entra
         hasta que lo cobrás.
       </p>
       <FlujoDeCajaPorSemana semanas={panel.flujoDeCaja} />

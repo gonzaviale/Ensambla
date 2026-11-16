@@ -127,7 +127,7 @@ describe('stock', () => {
       'stock',
     );
     expect(aviso?.porque[0]).toBe('Te alcanza para 3 días.');
-    expect(aviso?.porque[1]).toContain('pedí 22');
+    expect(aviso?.porque[1]).toContain('pedir 22');
   });
 
   it('sugiere registrar una entrada si hay bloque de entradas', () => {

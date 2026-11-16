@@ -211,7 +211,7 @@ export function analizar({ sistemas = [], zona, hoy, grupos = {} }: Entrada): Av
     for (const inventario of inventarios) {
       const abrir = {
         tipo: 'abrir' as const,
-        texto: 'Ver inventario',
+        texto: 'Ver stock',
         sistemaId: sistema.id,
         bloqueId: inventario.id,
       };
@@ -259,14 +259,14 @@ export function analizar({ sistemas = [], zona, hoy, grupos = {} }: Entrada): Av
                 ? `Vendiste ${rotacion.u30} en los últimos 30 días.`
                 : `Te alcanza para ${alcanza < 1 ? 'menos de 1 día' : `${Math.floor(alcanza)} días`}.`,
             );
-            porque.push(`Para cubrir las próximas 2 semanas, pedí ${pedir}.`);
+            porque.push(`Te conviene pedir ${pedir} para cubrir las próximas 2 semanas.`);
           } else {
             porque.push(
               minimo > 0
                 ? `Definiste un mínimo de ${minimo} y quedan ${cantidad}.`
                 : 'No tiene un mínimo definido: te avisamos porque se agotó.',
             );
-            porque.push(`Para no quedarte corto, pedí ${pedir}.`);
+            porque.push(`Te conviene pedir ${pedir} para no quedarte sin stock.`);
           }
           if (delaZona) {
             porque.push(
@@ -281,13 +281,13 @@ export function analizar({ sistemas = [], zona, hoy, grupos = {} }: Entrada): Av
             prioridad: cantidad <= 0 ? 3 : 2,
             titulo:
               cantidad <= 0 ? `Te quedaste sin ${nombre}` : `${nombre} está por debajo del mínimo`,
-            detalle: `${cantidad <= 0 ? 'No te quedan unidades' : `Te quedan ${cantidad}`}${minimo ? ` y tu mínimo es ${minimo}` : ''}. Para no quedarte corto, pedí ${pedir}.`,
+            detalle: `${cantidad <= 0 ? 'No te quedan unidades' : `Te quedan ${cantidad}`}${minimo ? ` y tu mínimo es ${minimo}` : ''}. Te conviene pedir ${pedir} para no quedarte sin stock.`,
             porque,
             acciones: [
               entradas
                 ? {
                     tipo: 'registrar',
-                    texto: 'Registrar entrada',
+                    texto: 'Cargar entrada',
                     sistemaId: sistema.id,
                     bloqueId: entradas.id,
                   }
@@ -361,7 +361,7 @@ export function analizar({ sistemas = [], zona, hoy, grupos = {} }: Entrada): Av
             titulo: alCosto
               ? `Vendés ${nombre} casi al costo`
               : `${nombre} está más barato que en tu zona`,
-            detalle: `Lo tenés a ${pesos(venta)} y el promedio de tu zona es ${pesos(promedio)}. Puede que estés perdiendo margen.`,
+            detalle: `Lo tenés a ${pesos(venta)} y el promedio de tu zona es ${pesos(promedio)}. Puede que estés ganando menos de lo que podrías.`,
             porque: [referencia, margenTexto(sugerido)],
             acciones: [aplicarPrecio(`Subir a ${pesos(sugerido)}`, sugerido), abrir],
           });
@@ -411,16 +411,16 @@ export function analizar({ sistemas = [], zona, hoy, grupos = {} }: Entrada): Av
           titulo: `En tu zona se vende ${producto.nombre} y no lo tenés`,
           detalle: `${producto.ventas.comercios} de ${datosDeZona.comercios} comercios lo venden, a ${pesos(producto.precio.promedio)} en promedio. Cada uno vende unas ${producto.ventas.unidadesPorSemana} unidades por semana.`,
           porque: [
-            'No encontramos nada parecido en tu inventario. Es un dato agregado: nadie queda identificado.',
+            'No encontramos nada parecido en tu stock. Es un dato agregado: nadie queda identificado.',
           ],
           acciones: [
             {
               tipo: 'crear',
-              texto: 'Sumar a mi inventario',
+              texto: 'Sumar a mi stock',
               sistemaId: sistema.id,
               bloqueId: inventarios[0].id,
               valores: { name: producto.nombre, quantity: 0, price: precio, cost: '', minimum: 5 },
-              confirmacion: `Sumamos ${producto.nombre} a tu inventario, a ${pesos(precio)}.`,
+              confirmacion: `Sumamos ${producto.nombre} a tu stock, a ${pesos(precio)}.`,
             },
             { tipo: 'zona', texto: 'Ver en Mi zona', producto: producto.nombre },
           ],
@@ -622,7 +622,7 @@ export function responder(
       de('precio_zona', 'muy_vendido'),
       (n) =>
         `Hay ${n === 1 ? '1 producto' : `${n} productos`} donde podés ganar más sin pasarte del precio de tu zona.`,
-      'No veo productos con poco margen frente a lo que cobran en tu zona.',
+      'No veo productos con poca ganancia frente a lo que cobran en tu zona.',
     );
   }
   if (/repon|falta|stock|queda|agot|pedir/.test(texto)) {

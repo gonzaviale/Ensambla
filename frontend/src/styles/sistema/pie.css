@@ -206,3 +206,37 @@
     max-width: none;
   }
 }
+
+/* Celular: Sami ya no queda sola en una fila al final con un espacio en blanco enorme; se acomoda en el hueco
+   que dejan los atajos, abajo a la derecha, con su globo arriba. */
+@media (max-width: 760px) {
+  .page-footer.pie { margin-top: 48px; }
+  .pie-cuerpo { gap: 18px; padding: 22px 0 24px; }
+  .pie-sami {
+    position: absolute;
+    left: calc(50% + 12px); /* justo debajo de la columna de la derecha de los atajos */
+    right: auto;
+    bottom: 24px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .pie-sami img { width: 72px; }
+  .pie-sami-globo { max-width: 150px; padding: 8px 12px; font-size: 13px; border-radius: 16px 16px 4px 16px; }
+  .pie-sami-globo::after {
+    top: auto;
+    right: auto;
+    left: 22px;
+    bottom: -9px;
+    border-top: 0;
+    border-bottom: 2px solid var(--c-estructura);
+  }
+}
+
+/* Accesos rápidos reserva 88 px abajo para no tapar el contenido; en pantallas grandes, con el pie, ese
+   espacio sobraba (una banda en blanco debajo). En el celular se mantiene para que el botón no tape los atajos. */
+@media (min-width: 801px) {
+  #app:has(.acciones-rapidas):has(.pie) {
+    padding-bottom: 0;
+  }
+}

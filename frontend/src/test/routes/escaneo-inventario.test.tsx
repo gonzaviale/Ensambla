@@ -45,7 +45,7 @@ async function abrir(segundaTabla = false) {
   const sistema = makeTemplate('shop', { movements: true }, false);
   sistema.name = 'Kiosco de Nacho';
   const inventario = allBlocks(sistema).find((bloque) => bloque.type === 'inventory');
-  if (!inventario) throw new Error('Falta el inventario');
+  if (!inventario) throw new Error('Falta la sección de stock');
   inventario.rows = [
     {
       id: 'alfajor',
@@ -86,13 +86,13 @@ async function abrir(segundaTabla = false) {
 }
 async function buscar(user: ReturnType<typeof userEvent.setup>, codigo: string) {
   if (!screen.queryByRole('textbox', { name: 'Código de barras' }))
-    await user.click(screen.getByRole('button', { name: 'Ingresar código · lector USB' }));
+    await user.click(screen.getByRole('button', { name: 'Escribir código · lector USB' }));
   await user.type(screen.getByRole('textbox', { name: 'Código de barras' }), `${codigo}{Enter}`);
   await screen.findByRole('region', { name: 'Producto detectado' });
   await waitFor(() =>
     expect(
       screen.getByRole('button', {
-        name: /Agregar producto al inventario|Guardar cambios del producto|Agregar al stock/,
+        name: /Agregar producto al stock|Guardar cambios del producto|Agregar al stock/,
       }),
     ).toBeEnabled(),
   );
@@ -156,7 +156,7 @@ describe('carga exclusiva de productos en inventario', () => {
     cambiar('Stock mínimo', '3');
     await user.selectOptions(screen.getByRole('combobox', { name: 'Categoría' }), 'Kiosco');
     expect(allBlocks(actual()).find((bloque) => bloque.id === destino.id)?.rows).toHaveLength(1);
-    await user.click(screen.getByRole('button', { name: 'Agregar producto al inventario' }));
+    await user.click(screen.getByRole('button', { name: 'Agregar producto al stock' }));
     await screen.findByRole('region', { name: 'Último producto guardado' });
     expect(allBlocks(actual()).find((bloque) => bloque.id === destino.id)?.rows[1]).toMatchObject({
       barcode: '7790957000101',
@@ -188,7 +188,7 @@ describe('carga exclusiva de productos en inventario', () => {
         name: 'Guaymallén',
       }),
     ).toBeVisible();
-    expect(screen.getByText('Este producto ya está en tu inventario')).toBeVisible();
+    expect(screen.getByText('Este producto ya está en tu stock')).toBeVisible();
     expect(screen.getByRole('heading', { name: '¿Querés sumar al stock?' })).toBeVisible();
     expect(screen.queryByRole('spinbutton', { name: 'Precio' })).toBeNull();
     expect(screen.queryByRole('region', { name: 'Lector de códigos' })).toBeNull();
@@ -310,7 +310,7 @@ describe('carga exclusiva de productos en inventario', () => {
     sinCoincidencias('77905741');
     const { user, actual, destino } = await abrir();
     await buscar(user, '77905741');
-    await user.click(screen.getByRole('button', { name: 'Agregar producto al inventario' }));
+    await user.click(screen.getByRole('button', { name: 'Agregar producto al stock' }));
     expect(screen.getByRole('textbox', { name: 'Producto' })).toHaveAttribute(
       'aria-invalid',
       'true',
@@ -319,7 +319,7 @@ describe('carga exclusiva de productos en inventario', () => {
     await user.type(screen.getByRole('textbox', { name: 'Producto' }), 'Producto manual');
     cambiar('Cantidad', '0');
     await user.selectOptions(screen.getByRole('combobox', { name: 'Categoría' }), 'Almacén');
-    await user.click(screen.getByRole('button', { name: 'Agregar producto al inventario' }));
+    await user.click(screen.getByRole('button', { name: 'Agregar producto al stock' }));
     await screen.findByRole('region', { name: 'Último producto guardado' });
     expect(allBlocks(actual()).find((bloque) => bloque.id === destino.id)?.rows[1]).toMatchObject({
       name: 'Producto manual',
@@ -350,11 +350,11 @@ describe('carga exclusiva de productos en inventario', () => {
   it('volver al inventario protege el borrador y abre su tabla cuando se confirma salir', async () => {
     const { user, router, destino } = await abrir();
     await buscar(user, '77903754');
-    await user.click(screen.getByRole('button', { name: 'Volver al inventario' }));
+    await user.click(screen.getByRole('button', { name: 'Volver al stock' }));
     await user.click(await screen.findByRole('button', { name: 'Seguir editando' }));
     expect(router.state.location.search).toMatchObject({ escanear: destino.id });
     expect(screen.getByRole('region', { name: 'Sumar al stock' })).toBeVisible();
-    await user.click(screen.getByRole('button', { name: 'Volver al inventario' }));
+    await user.click(screen.getByRole('button', { name: 'Volver al stock' }));
     await user.click(await screen.findByRole('button', { name: 'Descartar y continuar' }));
     await screen.findByRole('dialog', { name: destino.name });
     expect(router.state.location.search.escanear).toBeUndefined();
@@ -366,7 +366,7 @@ describe('carga exclusiva de productos en inventario', () => {
     await user.type(screen.getByRole('textbox', { name: 'Producto' }), 'Para depósito');
     cambiar('Cantidad', '4');
     await user.selectOptions(screen.getByRole('combobox', { name: 'Categoría' }), 'Kiosco');
-    await user.click(screen.getByRole('button', { name: 'Agregar producto al inventario' }));
+    await user.click(screen.getByRole('button', { name: 'Agregar producto al stock' }));
     await screen.findByRole('region', { name: 'Último producto guardado' });
     expect(allBlocks(actual()).find((bloque) => bloque.id === inventario.id)?.rows).toHaveLength(1);
     expect(allBlocks(actual()).find((bloque) => bloque.id === destino.id)?.rows[0]).toMatchObject({

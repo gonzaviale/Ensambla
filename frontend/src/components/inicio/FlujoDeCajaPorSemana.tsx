@@ -23,10 +23,10 @@ export function FlujoDeCajaPorSemana({ semanas }: { semanas: SemanaDeCaja[] }) {
             <h4>
               {diaYMes(semana.desde)} al {diaYMes(semana.hasta)}
             </h4>
-            <FilaDeSemana tipo="entra" etiqueta="Entró" importe={semana.entradas} maximo={maximo} />
-            <FilaDeSemana tipo="sale" etiqueta="Salió" importe={semana.salidas} maximo={maximo} />
+            <FilaDeSemana tipo="entra" etiqueta="Cobraste" importe={semana.entradas} maximo={maximo} />
+            <FilaDeSemana tipo="sale" etiqueta="Gastaste" importe={semana.salidas} maximo={maximo} />
             <p className="panel-semana-saldo" data-signo={Math.sign(semana.saldo)}>
-              <span>Saldo</span>
+              <span>Te quedó</span>
               <strong>{pesosConSigno(semana.saldo)}</strong>
             </p>
           </li>

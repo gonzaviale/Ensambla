@@ -10,7 +10,7 @@ function crearNegocio(nombre: string) {
   const sistema = makeTemplate('shop', {}, false);
   sistema.name = nombre;
   const inventario = allBlocks(sistema).find((bloque) => bloque.type === 'inventory');
-  if (!inventario) throw new Error('Falta el inventario del escenario');
+  if (!inventario) throw new Error('Falta la sección de stock del escenario');
   inventario.rows = [
     { id: crypto.randomUUID(), name: 'Café del negocio', quantity: 3, price: 1000 },
   ];
@@ -50,7 +50,7 @@ export function thenLectorDelNegocioElegido(caso: NavegacionDelLector, negocio: 
 }
 
 export async function whenVuelveAlInventario(caso: NavegacionDelLector, negocio: NegocioDePrueba) {
-  await caso.user.click(screen.getByRole('button', { name: 'Volver al inventario' }));
+  await caso.user.click(screen.getByRole('button', { name: 'Volver al stock' }));
   await screen.findByRole('dialog', { name: negocio.inventario.name }, ESPERA);
 }
 
@@ -61,7 +61,7 @@ export function thenConservaElNegocioAlVolver(caso: NavegacionDelLector, negocio
 }
 
 export async function whenVuelveAlInicio(caso: NavegacionDelLector) {
-  const ubicacion = within(screen.getByRole('navigation', { name: 'Ubicación en el inventario' }));
+  const ubicacion = within(screen.getByRole('navigation', { name: 'Ubicación en el stock' }));
   await caso.user.click(ubicacion.getByRole('button', { name: 'Inicio' }));
   await screen.findByRole('heading', { name: /En qué puedo/ }, ESPERA);
 }

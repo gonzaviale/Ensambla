@@ -537,7 +537,7 @@ describe('registros', () => {
     const modal = await screen.findByRole('dialog');
     await user.click(within(modal).getByRole('button', { name: 'Guardar' }));
 
-    expect(within(modal).getAllByText('Completá este campo.').length).toBeGreaterThan(0);
+    expect(within(modal).getAllByText('Completá este dato.').length).toBeGreaterThan(0);
     expect(modal.querySelector('.field.invalid')).not.toBeNull();
     expect(tipoDeBloque('inventory').rows).toHaveLength(3);
   });

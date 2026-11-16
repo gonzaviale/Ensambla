@@ -56,7 +56,7 @@ export function ProductoDetectado({
           {buscando
             ? 'Buscando producto'
             : existente
-              ? 'En tu inventario'
+              ? 'En tu stock'
               : sugerencia?.nombre
                 ? 'Producto encontrado'
                 : 'Carga manual'}
