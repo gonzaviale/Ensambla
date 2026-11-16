@@ -28,10 +28,7 @@ export function MetricasDelInicio() {
   if (!sistema) return null;
 
   return (
-    <section className="tablero" aria-labelledby="tablero-titulo">
-      <h2 id="tablero-titulo" className="inicio-seccion-titulo">
-        Cómo te va
-      </h2>
+    <section className="tablero" aria-label="Tus métricas">
       <p className="tablero-sistema">
         <span>Así viene</span>
         <SelectorDeSistema sistemas={sistemas} sistema={sistema} onCambio={elegir} />

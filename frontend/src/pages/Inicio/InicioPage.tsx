@@ -1,15 +1,14 @@
-import { DecisionesRapidas } from '@/components/inicio/DecisionesRapidas';
 import { PanelDelNegocio } from '@/components/inicio/PanelDelNegocio';
 import { TuNegocio } from '@/components/inicio/TuNegocio';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { FichasParaEmpezar } from '@/components/sistema/FichasParaEmpezar';
-import { Icon } from '@/components/sistema/Icon';
 import { MetricasDelInicio } from '@/components/sistema/MetricasDelInicio';
+import { Icon } from '@/components/sistema/Icon';
 import { PageFooter } from '@/components/sistema/PageFooter';
 import { varsDeColor } from '@/components/sistema/colores';
 import { sistemaDelPanel, tieneVentas } from '@/lib/sistema/panelDelNegocio';
 import type { NombreDeIcono } from '@/lib/sistema/iconos';
-import type { Color } from '@/lib/sistema/tipos';
+import type { Color, Sistema } from '@/lib/sistema/tipos';
 import { usePanelDelNegocio } from '@/hooks/panel/queries';
 import { useSistemaElegido } from '@/hooks/reportes/useSistemaElegido';
 import { useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
@@ -17,81 +16,23 @@ import { useAccionesDelTutorial } from '@/hooks/tutorial/useAccionesDelTutorial'
 import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
 import { useNegociosDeLaCuenta } from '@/hooks/negocios/queries';
 
-// Inicio: quien ya tiene una sección ve un encabezado corto con las maneras de empezar (Sami primero), sus negocios,
-// «Tu negocio» (su nombre y sus secciones como accesos) y, abajo, lo que conviene decidir hoy, cómo viene vendiendo y
-// el flujo de caja; quien recién llega ve la bienvenida grande. Las plantillas tienen su pantalla y su ficha de arriba.
+// Inicio: siempre el mismo formato, tenga o no datos: una bienvenida corta con las maneras de empezar, los negocios
+// de la cuenta, «Tu negocio» (su nombre y sus secciones como accesos), sus métricas (ventas y, con dos semanas de
+// ventas para comparar, las tarjetas de rentabilidad) y, si hay ventas, el flujo de caja. Las plantillas tienen su
+// pantalla y su ficha.
 // Fondo blanco; el color va lleno en cada ficha, con íconos blancos.
 export function InicioPage() {
-  const nombre = useNombre();
-  const tutorial = useAccionesDelTutorial();
-  // Quien ya tiene una sección ve el panel de su negocio: la bienvenida pasa a una franja corta (el h1 es el mismo)
-  // y las formas de empezar siguen a mano. Quien recién empieza ve la bienvenida grande de siempre.
-  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
-  const { sistema: elegido } = useSistemaElegido();
-  const delPanel = elegido ?? sistemaDelPanel(sistemas);
-  const panel = usePanelDelNegocio(delPanel?.id ?? null);
-  // Sin ventas en el período no hay métricas para mostrar: se ve el inicio común. Mientras llegan los números se
-  // supone que hay (si la sección tiene ventas), así el panel no parpadea.
-  const hayPanel =
-    delPanel !== null &&
-    (panel.data ? panel.data.hayDatos : !panel.isPending || tieneVentas(delPanel));
+  const sistema = useSistemaDelInicio();
+  const hayPanel = useHayPanel(sistema);
   return (
     <>
       <CabeceraComun />
       <main id="main" tabIndex={-1} className="home inicio reveal">
-        {hayPanel && (
-          <section className="inicio-bienvenida" aria-label="Empezar algo nuevo">
-            <div className="inicio-encabezado">
-              <div className="inicio-bienvenida-texto">
-                <p className="inicio-hola">Hola, {nombre}.</p>
-                <h1>¿En qué puedo ayudarte hoy?</h1>
-                <button type="button" className="inicio-guia-chica" onClick={tutorial.empezar}>
-                  ¿Primera vez? Mostrarme cómo empezar
-                </button>
-              </div>
-            </div>
-            <div className="inicio-bienvenida-acciones">
-              <FichasParaEmpezar guia compacto />
-              <Atajos compactos />
-            </div>
-          </section>
-        )}
-
+        <Bienvenida />
         <AgregarNegocio />
-
         <TuNegocio />
-
-        {/* El orden de la home (T-213): lo que hay que decidir hoy, después cómo viene el negocio y, al final, la
-            consulta de la caja. */}
-        {hayPanel && (
-          <>
-            <DecisionesRapidas />
-            <MetricasDelInicio />
-            <PanelDelNegocio />
-          </>
-        )}
-
-        {!hayPanel && (
-          <section className="inicio-portada">
-            <div className="inicio-saludo">
-              <p className="inicio-hola">Hola, {nombre}.</p>
-              <h1>¿En qué puedo ayudarte hoy?</h1>
-              <p className="inicio-bajada">
-                Tocá una ficha para arrancar. Lo que armes, después lo podés cambiar.
-              </p>
-              <button type="button" className="inicio-guia" onClick={tutorial.empezar}>
-                <span className="inicio-guia-icono">
-                  <Icon name="help" />
-                </span>
-                ¿Primera vez? Mostrarme cómo empezar
-              </button>
-            </div>
-
-            <FichasParaEmpezar guia />
-          </section>
-        )}
-
-        {!hayPanel && <Atajos />}
+        <MetricasDelInicio />
+        {hayPanel && <PanelDelNegocio />}
 
         {/* <section className="inicio-bloque inicio-ejemplo">
           <Titulo
@@ -132,6 +73,41 @@ export function InicioPage() {
   );
 }
 
+// La sección que mira el inicio: la última elegida o, si no hay, la que tiene el panel.
+function useSistemaDelInicio() {
+  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
+  const { sistema: elegido } = useSistemaElegido();
+  return elegido ?? sistemaDelPanel(sistemas);
+}
+
+// Sin ventas en el período no hay flujo de caja para mostrar. Mientras llegan los números se supone que hay (si la
+// sección tiene ventas), así el panel no parpadea.
+function useHayPanel(sistema: Sistema | null) {
+  const panel = usePanelDelNegocio(sistema?.id ?? null);
+  if (!sistema) return false;
+  return panel.data ? panel.data.hayDatos : !panel.isPending || tieneVentas(sistema);
+}
+
+function Bienvenida() {
+  const nombre = useNombre();
+  const tutorial = useAccionesDelTutorial();
+  return (
+    <section className="inicio-bienvenida" aria-label="Empezar algo nuevo">
+      <div className="inicio-bienvenida-texto">
+        <p className="inicio-hola">Hola, {nombre}.</p>
+        <h1>¿En qué puedo ayudarte hoy?</h1>
+        <button type="button" className="inicio-guia-chica" onClick={tutorial.empezar}>
+          ¿Primera vez? Mostrarme cómo empezar
+        </button>
+      </div>
+      <div className="inicio-bienvenida-acciones">
+        <FichasParaEmpezar guia compacto />
+        <Atajos />
+      </div>
+    </section>
+  );
+}
+
 function AgregarNegocio() {
   const { data } = useNegociosDeLaCuenta();
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
@@ -156,16 +132,12 @@ function AgregarNegocio() {
   );
 }
 
-// «Cargar desde una foto» y «Ver mi zona». Con la bienvenida grande son dos atajos con su explicación; en la franja
-// compacta de quien ya tiene datos son dos botones chicos, debajo de las formas de empezar.
-function Atajos({ compactos = false }: { compactos?: boolean }) {
+// «Cargar desde una foto» y «Ver mi zona»: dos botones chicos en la bienvenida, debajo de las formas de empezar.
+function Atajos() {
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const navegacion = useNavegacion();
   return (
-    <section
-      className={compactos ? 'inicio-atajos compactos' : 'inicio-atajos'}
-      aria-label="Más para tu negocio"
-    >
+    <section className="inicio-atajos compactos" aria-label="Más para tu negocio">
       <Atajo
         color="petrol"
         icono="camera"

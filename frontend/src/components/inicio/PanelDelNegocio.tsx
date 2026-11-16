@@ -13,8 +13,8 @@ import { FlujoDeCajaPorSemana } from './FlujoDeCajaPorSemana';
 
 const DIA_MES = (fecha: string) => `${fecha.slice(8, 10)}/${fecha.slice(5, 7)}`;
 
-// Lo último del inicio, para consultar: el flujo de caja de los últimos días, con el cálculo del servidor. Mira la
-// misma sección que las métricas (la que se eligió arriba). Sin secciones no aparece; sin
+// Al final del inicio: el flujo de caja de los últimos días, con el cálculo del servidor. Mira la sección
+// elegida en el inicio. Sin secciones no aparece; sin
 // ventas explica cómo cargarlas, sin inventar números.
 export function PanelDelNegocio() {
   const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
@@ -36,9 +36,7 @@ export function PanelDelNegocio() {
   return (
     <section className="panel-negocio" aria-labelledby="panel-negocio-titulo">
       <div className="inicio-titulo">
-        <h2 id="panel-negocio-titulo" className="inicio-seccion-titulo">
-          Tu flujo de caja
-        </h2>
+        <h2 id="panel-negocio-titulo">Tu flujo de caja</h2>
         {consulta.data?.hayDatos && <p>{periodo(consulta.data)}</p>}
       </div>
       {consulta.isPending && <Esqueleto />}
@@ -80,39 +78,18 @@ function Esqueleto() {
   );
 }
 
-// Primero lo que queda y, en chico, lo que entró y salió en todo el período; el detalle semana a semana, en el
-// desplegable de siempre.
 function FlujoDeCaja({ panel }: { panel: Panel }) {
   const queda = panel.flujoDeCaja.at(-1)?.saldoAcumulado ?? 0;
-  const entro = panel.flujoDeCaja.reduce((total, semana) => total + semana.entradas, 0);
-  const salio = panel.flujoDeCaja.reduce((total, semana) => total + semana.salidas, 0);
-  const semanas = panel.flujoDeCaja.length;
   return (
-    <div className="panel-flujo">
-      <dl className="panel-flujo-resumen">
-        <div className="panel-flujo-queda" data-signo={Math.sign(queda)}>
-          <dt>Te va quedando</dt>
-          <dd>{pesos(queda)}</dd>
-        </div>
-        <div data-tipo="entra">
-          <dt>Entró</dt>
-          <dd>{pesos(entro)}</dd>
-        </div>
-        <div data-tipo="sale">
-          <dt>Salió</dt>
-          <dd>{pesos(salio)}</dd>
-        </div>
-      </dl>
-      <Desplegable
-        titulo="Semana a semana"
-        resumen={`${semanas} ${semanas === 1 ? 'semana' : 'semanas'}`}
-      >
-        <p className="panel-flujo-bajada">
-          Entra lo que cobraste. Sale lo que gastaste y la mercadería que compraste. Lo fiado no
-          entra hasta que lo cobrás.
-        </p>
-        <FlujoDeCajaPorSemana semanas={panel.flujoDeCaja} />
-      </Desplegable>
-    </div>
+    <Desplegable
+      titulo="Tu flujo de caja, semana a semana"
+      resumen={`Te va quedando ${pesos(queda)}`}
+    >
+      <p className="panel-flujo-bajada">
+        Entra lo que cobraste. Sale lo que gastaste y la mercadería que compraste. Lo fiado no entra
+        hasta que lo cobrás.
+      </p>
+      <FlujoDeCajaPorSemana semanas={panel.flujoDeCaja} />
+    </Desplegable>
   );
 }

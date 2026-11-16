@@ -1,4 +1,5 @@
 import type { AvisoEconomico } from '@/types/avisoEconomico';
+import type { ResumenInicio } from '@/types/resumenInicio';
 
 /** Una señal del aviso de rentabilidad: lo que cambió en las ventas, en la ganancia o qué productos lo explican. */
 export type Diapositiva =
@@ -49,3 +50,15 @@ export function tituloDeProductos(aviso: Pick<AvisoEconomico, 'categoria' | 'ten
     ? `Productos que vendiste ${menos ? 'menos' : 'más'}`
     : `Productos que te dejaron ${menos ? 'menos' : 'más'}`;
 }
+
+const diasConVentas = (resumen: ResumenInicio) =>
+  resumen.ventasPorDia.filter((dia) => dia.ingresos > 0).length;
+
+/**
+ * El carrusel sólo tiene sentido con algo de verdad para comparar: ventas esta semana y en los 7 días anteriores, en
+ * al menos dos días distintos. Con un solo día o una sola venta no se muestra.
+ */
+export const hayVentasParaComparar = (resumen: ResumenInicio) =>
+  resumen.ventas.semana.ingresos > 0 &&
+  resumen.ventas.semana.ingresosAnteriores > 0 &&
+  diasConVentas(resumen) >= 2;
