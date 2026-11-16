@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Icon } from '@/components/sistema/Icon';
 import { ControlSonidosEscaneo } from '@/components/escaneo/ControlSonidosEscaneo';
 import { AtribucionCatalogos } from '@/components/escaneo/AtribucionCatalogos';
-import type { PropsLectorCodigos } from '@/components/escaneo/LectorDeCodigos';
+import type { PropsLectorCodigos } from '@/types/lectorInventario';
 import { useSonidosEscaneo } from '@/hooks/escaneo/useSonidosEscaneo';
 import { useLectorAutomatico } from '@/hooks/escaneo/useLectorAutomatico';
 import {

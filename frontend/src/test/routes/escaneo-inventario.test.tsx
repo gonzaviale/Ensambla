@@ -85,6 +85,8 @@ async function abrir(segundaTabla = false) {
   return { usuario, sistema, inventario, destino, router, user, actual };
 }
 async function buscar(user: ReturnType<typeof userEvent.setup>, codigo: string) {
+  if (!screen.queryByRole('textbox', { name: 'Código de barras' }))
+    await user.click(screen.getByRole('button', { name: 'Ingresar código · lector USB' }));
   await user.type(screen.getByRole('textbox', { name: 'Código de barras' }), `${codigo}{Enter}`);
   await screen.findByRole('region', { name: 'Producto detectado' });
   await waitFor(() =>
