@@ -22,7 +22,7 @@ const abrirConBienvenida = async () => {
 };
 
 const empezarLaGuia = async (user: Usuario) => {
-  await user.click(screen.getByRole('button', { name: /Hacer mi primer cuaderno con guía/ }));
+  await user.click(screen.getByRole('button', { name: /Hacer mi primera sección con guía/ }));
   await esperarPaso('Tres maneras de empezar.');
 };
 
@@ -48,7 +48,7 @@ describe('la bienvenida', () => {
   it('aparece la primera vez con el nombre y no vuelve una vez vista', async () => {
     const { user, usuario } = await abrirConBienvenida();
 
-    expect(screen.getByRole('button', { name: /Hacer mi primer cuaderno con guía/ })).toHaveFocus();
+    expect(screen.getByRole('button', { name: /Hacer mi primera sección con guía/ })).toHaveFocus();
     await user.click(screen.getByRole('button', { name: /Explorar por mi cuenta/ }));
 
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -119,7 +119,7 @@ describe('el tutorial', () => {
 
     await user.click(screen.getAllByRole('button', { name: 'Fila completa' })[1] as HTMLElement);
     await esperarPaso('Cuando te cierre, la creamos.');
-    await user.click(screen.getByRole('button', { name: /Sí, crear mi cuaderno/ }));
+    await user.click(screen.getByRole('button', { name: /Sí, crear mi sección/ }));
     await esperarPaso('De acá se cambia.');
     expect(router.state.location.pathname).toMatch(/^\/sistemas\//);
 
@@ -145,7 +145,7 @@ describe('el tutorial', () => {
     await user.type(within(modal).getByLabelText(/Producto/), 'Yerba mate');
     await user.type(within(modal).getByLabelText(/Cantidad/), '8');
     await user.click(within(modal).getByRole('button', { name: 'Guardar' }));
-    await esperarPaso('Tu primer cuaderno ya es tuyo.');
+    await esperarPaso('Tu primera sección ya es tuya.');
     expect(within(cartel()).getByLabelText('Etapa 5 de 5')).toBeVisible();
 
     await user.click(within(cartel()).getByRole('button', { name: 'Salir del tutorial' }));
@@ -180,13 +180,13 @@ describe('el tutorial', () => {
     const tarjeta = document.querySelector<HTMLElement>(
       '.template-page [data-template="shop"]',
     ) as HTMLElement;
-    await user.click(within(tarjeta).getByRole('button', { name: /Ver el cuaderno/ }));
+    await user.click(within(tarjeta).getByRole('button', { name: /Ver la sección/ }));
     await esperarPaso('Mirá las piezas antes de empezar.');
 
     await user.click(screen.getByRole('button', { name: 'Seguir mirando' }));
     await esperarPaso('Una plantilla es un conjunto.');
 
-    await user.click(within(tarjeta).getByRole('button', { name: /Ver el cuaderno/ }));
+    await user.click(within(tarjeta).getByRole('button', { name: /Ver la sección/ }));
     await esperarPaso('Mirá las piezas antes de empezar.');
     await user.click(screen.getByRole('button', { name: /Empezar con este conjunto/ }));
     await esperarPaso('De acá se cambia.');

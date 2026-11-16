@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { HerramientasDelCuaderno } from '@/components/sistema/editor/HerramientasDelCuaderno';
+import { HerramientasDelSistema } from '@/components/sistema/editor/HerramientasDelSistema';
 
 const montar = () => {
   const acciones = {
@@ -12,11 +12,11 @@ const montar = () => {
     onFoto: vi.fn(),
     onResumen: vi.fn(),
   };
-  render(<HerramientasDelCuaderno distribucion="mosaic" {...acciones} />);
+  render(<HerramientasDelSistema distribucion="mosaic" {...acciones} />);
   return { user: userEvent.setup(), ...acciones };
 };
 
-describe('HerramientasDelCuaderno', () => {
+describe('HerramientasDelSistema', () => {
   it('son dos íconos y cada uno despliega lo suyo al tocarlo', async () => {
     const { user } = montar();
     const agregar = screen.getByRole('button', { name: 'Agregar y organizar' });

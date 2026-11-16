@@ -1,3 +1,4 @@
+import { guardarNegocioActivo, leerNegocioGuardado, negocioActivoDe } from '@/lib/negocios/lista';
 import { recuperarBorradorSesion } from '@/lib/borradorSesion';
 import { create } from 'zustand';
 import type { AccesoContenido } from '@/types/contenidoPlan';
@@ -19,13 +20,15 @@ export type Modal =
   | { tipo: 'plantilla'; clave: ClavePlantilla }
   | { tipo: 'ayuda'; respuesta?: string }
   | { tipo: 'pruebaPremium' }
+  | { tipo: 'agregarNegocio' }
+  | { tipo: 'eliminarNegocio'; negocioId: string; nombre: string }
   | { tipo: 'contratarPremium' }
   | { tipo: 'cancelarRenovacion' }
-  /** Configurar el cuaderno: cambiarle el nombre o, desde ahí, eliminarlo. */
+  /** Configurar la sección: cambiarle el nombre o, desde ahí, eliminarla. */
   | { tipo: 'renombrar' }
   /** El resumen del negocio en PDF del sistema abierto. */
   | { tipo: 'resumen' }
-  | { tipo: 'eliminarCuaderno' }
+  | { tipo: 'eliminarSistema' }
   | { tipo: 'renombrarPieza'; bloqueId: string }
   /** `avisoId`: el aviso del servidor desde el que se abrió; al guardar el registro se da por aplicado. */
   | { tipo: 'registro'; bloqueId: string; filaId?: string | null; avisoId?: string }
@@ -37,7 +40,7 @@ export type Modal =
   | { tipo: 'bienvenida' }
   /** Los productos detrás del aviso económico del inicio (pueden ser cientos). */
   | { tipo: 'productosDelAviso'; productos: string[] }
-  /** Con `enBorrador` trabajan sobre la propuesta de Sami en vez de sobre el cuaderno abierto. */
+  /** Con `enBorrador` trabajan sobre la propuesta de Sami en vez de sobre la sección abierta. */
   | { tipo: 'secciones'; enBorrador?: boolean }
   | { tipo: 'agregarSeccion'; enBorrador?: boolean }
   | { tipo: 'elegirBloque'; enBorrador?: boolean }
@@ -97,8 +100,8 @@ export type PanelDeAvisos = {
   /** La pantalla de avisos está a la vista: mientras tanto no salta «Sami vio un cambio». */
   abierto: boolean;
   filtro: string;
-  /** El cuaderno por el que se filtran los avisos: «todos» o el id del cuaderno. */
-  cuaderno: string;
+  /** La sección por la que se filtran los avisos: «todos» o el id de la sección. */
+  sistema: string;
   /** El aviso que se abrió desde el toast o la franja: la pantalla lo muestra resaltado. */
   foco: string | null;
 };
@@ -106,7 +109,7 @@ export type PanelDeAvisos = {
 const PANEL_CERRADO: PanelDeAvisos = {
   abierto: false,
   filtro: 'todas',
-  cuaderno: 'todos',
+  sistema: 'todos',
   foco: null,
 };
 
@@ -115,6 +118,8 @@ const MAX_HISTORIAL = 30;
 type EstadoDelStore = {
   usuarioId: string | null;
   sistemas: Sistema[];
+  /** El cuaderno que hace de negocio activo: las pantallas muestran sólo lo suyo. */
+  negocioActivoId: string | null;
   /** Ids de los sistemas con cambios todavía sin guardar en el servidor. */
   pendientes: string[];
   /** Ids de los sistemas que hay que borrar en el servidor. */
@@ -149,6 +154,8 @@ type Acciones = {
   /** Carga lo que dice el servidor. Si es la misma persona que ya estaba, no pisa lo que editó. */
   hidratar: (usuarioId: string, sistemas: Sistema[]) => void;
   reiniciar: () => void;
+  /** Pasa a trabajar con otro negocio (otro cuaderno) y lo recuerda para la próxima vez. */
+  activarNegocio: (id: string) => void;
   abrirSistema: (id: string, modo?: ModoDelEditor, esNuevo?: boolean) => void;
   agregarSistema: (sistema: Sistema) => void;
   /** Suma los sistemas que el servidor creó por su cuenta (por ejemplo con Sami) y que la copia local no tiene. */
@@ -194,6 +201,7 @@ export type SistemaStore = EstadoDelStore & Acciones;
 const ESTADO_INICIAL: EstadoDelStore = {
   usuarioId: null,
   sistemas: [],
+  negocioActivoId: null,
   pendientes: [],
   eliminados: [],
   activeId: null,
@@ -239,12 +247,19 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
       ...ESTADO_INICIAL,
       usuarioId,
       sistemas: recuperados,
+      negocioActivoId: negocioActivoDe(recuperados, leerNegocioGuardado())?.id ?? null,
       pendientes: borrador?.pendientes ?? [],
       eliminados: borrador?.eliminados ?? [],
     });
   },
 
   reiniciar: () => set({ ...ESTADO_INICIAL }),
+
+  activarNegocio: (id) => {
+    if (!get().sistemas.some((sistema) => sistema.id === id)) return;
+    guardarNegocioActivo(id);
+    set({ negocioActivoId: id });
+  },
 
   abrirSistema: (id, modo = 'use', esNuevo = false) => {
     const sistema = get().sistemas.find((item) => item.id === id);
@@ -259,11 +274,15 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
     });
   },
 
-  agregarSistema: (sistema) =>
+  // Un cuaderno nuevo es un negocio nuevo: se pasa a trabajar con él.
+  agregarSistema: (sistema) => {
+    guardarNegocioActivo(sistema.id);
     set((estado) => ({
       sistemas: [...estado.sistemas, sistema],
+      negocioActivoId: sistema.id,
       pendientes: sinRepetir(estado.pendientes, sistema.id),
-    })),
+    }));
+  },
 
   incorporarSistemas: (sistemas) =>
     set((estado) => {
@@ -301,11 +320,14 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
       return cambio || nuevos.length > 0 ? { sistemas: [...actualizados, ...nuevos] } : estado;
     }),
 
-  eliminarSistema: (id) =>
+  eliminarSistema: (id) => {
+    const siguiente = get().sistemas.find((item) => item.id !== id)?.id ?? null;
+    if (get().negocioActivoId === id && siguiente) guardarNegocioActivo(siguiente);
     set((estado) => ({
       sistemas: estado.sistemas.filter((item) => item.id !== id),
       pendientes: estado.pendientes.filter((pendiente) => pendiente !== id),
       eliminados: sinRepetir(estado.eliminados, id),
+      ...(estado.negocioActivoId === id ? { negocioActivoId: siguiente } : {}),
       ...(estado.activeId === id
         ? {
             activeId: null,
@@ -315,7 +337,8 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
             historial: [],
           }
         : {}),
-    })),
+    }));
+  },
 
   commit: (cambio) => {
     const { activeId, sistemas, historial, pendientes } = get();
@@ -354,7 +377,7 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
       sistemas: sistemas.map((item) => (item.id === anterior.id ? anterior : item)),
       historial: historial.slice(0, -1),
       pendientes: sinRepetir(pendientes, anterior.id),
-      // Si la sección elegida ya no existe en la copia anterior, se vuelve a la primera.
+      // Si la pestaña elegida ya no existe en la copia anterior, se vuelve a la primera.
       sectionId: anterior.sections.some((seccion) => seccion.id === sectionId)
         ? sectionId
         : (anterior.sections[0]?.id ?? null),
@@ -434,6 +457,29 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
 
 export const seleccionarSistemaActivo = (estado: SistemaStore): Sistema | undefined =>
   estado.sistemas.find((item) => item.id === estado.activeId);
+
+/** El cuaderno del negocio activo; si el elegido ya no está, el primero. */
+export const seleccionarNegocioActivo = (estado: SistemaStore): Sistema | undefined =>
+  negocioActivoDe(estado.sistemas, estado.negocioActivoId);
+
+let delNegocio: { sistemas: Sistema[]; activoId: string | null; resultado: Sistema[] } | null =
+  null;
+
+/**
+ * Los cuadernos que ven las pantallas: sólo el del negocio activo. Devuelve la misma lista mientras no cambien los
+ * cuadernos ni el negocio, para que quien la lee no se vuelva a dibujar de más.
+ */
+export const seleccionarSistemasDelNegocio = (estado: SistemaStore): Sistema[] => {
+  if (delNegocio?.sistemas !== estado.sistemas || delNegocio.activoId !== estado.negocioActivoId) {
+    const activo = seleccionarNegocioActivo(estado);
+    delNegocio = {
+      sistemas: estado.sistemas,
+      activoId: estado.negocioActivoId,
+      resultado: activo ? [activo] : [],
+    };
+  }
+  return delNegocio.resultado;
+};
 
 export const seleccionarSeccionActiva = (estado: SistemaStore): Seccion | undefined => {
   const sistema = seleccionarSistemaActivo(estado);

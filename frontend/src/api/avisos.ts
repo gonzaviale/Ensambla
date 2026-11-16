@@ -1,4 +1,8 @@
-import { avisoDelServidorSchema, avisosDelServidorSchema, impactoAvisosSchema } from '@/types/avisos';
+import {
+  avisoDelServidorSchema,
+  avisosDelServidorSchema,
+  impactoAvisosSchema,
+} from '@/types/avisos';
 import { http } from './client';
 
 // Los pendientes primero y del más urgente al menos urgente: es el orden en que se muestran.

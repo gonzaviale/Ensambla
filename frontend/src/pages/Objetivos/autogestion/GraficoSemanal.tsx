@@ -164,7 +164,7 @@ export function GraficoSemanal({ progreso, decisiones }: Props) {
               <th scope="row">{semanaDel(punto.semana)}</th>
               <td>
                 {formatoPesos(punto.valor)}
-                {punto.estimado ? ' (calculado con tus cuadernos)' : ''}
+                {punto.estimado ? ' (calculado con tus secciones)' : ''}
               </td>
               <td>
                 {(porSemana.get(punto.semana) ?? [])

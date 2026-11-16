@@ -104,13 +104,13 @@ export function SamiAgente() {
               <p className="ens-sami-message" key={`${actual.nombre}-${ejemplo.organizado}`}>
                 <strong>Sami, tu asistente</strong>
                 {ejemplo.organizado
-                  ? 'Así podés revisar cada dato por separado antes de guardarlo en tu cuaderno.'
+                  ? 'Así podés revisar cada dato por separado antes de guardarlo en tu sección.'
                   : actual.mensaje}
               </p>
             </div>
-            <div className="ens-sami-notebook" key={`cuaderno-${actual.nombre}`}>
+            <div className="ens-sami-notebook" key={`seccion-${actual.nombre}`}>
               <div className="ens-sami-notebook-head">
-                <span>Tu cuaderno · {actual.nombre}</span>
+                <span>Tu sección · {actual.nombre}</span>
                 <span>Ejemplo</span>
               </div>
               <div className="ens-sami-notebook-body">

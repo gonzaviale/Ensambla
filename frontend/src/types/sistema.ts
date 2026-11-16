@@ -59,7 +59,7 @@ const bloqueSchema = z.object({
   stockDirection: z.union([z.literal(1), z.literal(-1)]).optional(),
 });
 
-// El sistema que arma la persona: secciones con bloques, y cada bloque con sus campos y registros.
+// El sistema que arma la persona: pestañas con bloques, y cada bloque con sus campos y registros.
 export const sistemaSchema = z.object({
   id: z.string().min(1),
   name: z.string().trim().min(1).max(100),

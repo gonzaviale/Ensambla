@@ -7,16 +7,21 @@ type SeccionesTabsProps = {
   secciones: Seccion[];
   activaId: string;
   onElegir: (seccionId: string) => void;
-  /** La sección sobre la que está pasando lo que se arrastra. */
+  /** La pestaña sobre la que está pasando lo que se arrastra. */
   sobreId?: string | null;
 };
 
-// Las pastillas de sección del cuaderno. Con una sola sección no hace falta la barra: quien la usa decide cuándo
+// Las pastillas de pestaña de la sección. Con una sola pestaña no hace falta la barra: quien la usa decide cuándo
 // mostrarla (se agrega otra desde el ícono «Agregar y organizar»).
-export function SeccionesTabs({ secciones, activaId, onElegir, sobreId = null }: SeccionesTabsProps) {
+export function SeccionesTabs({
+  secciones,
+  activaId,
+  onElegir,
+  sobreId = null,
+}: SeccionesTabsProps) {
   return (
     <div className="tabs-y-distribucion">
-      <nav className="section-tabs" aria-label="Secciones del cuaderno">
+      <nav className="section-tabs" aria-label="Pestañas de la sección">
         {secciones.map((otra, indice) => {
           const color = COLORES_DE_SECCION[indice % COLORES_DE_SECCION.length] ?? 'orange';
           return (

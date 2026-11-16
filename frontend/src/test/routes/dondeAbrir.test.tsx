@@ -109,7 +109,9 @@ describe('dónde abrir', () => {
       'href',
       '/ubicacion',
     );
-    expect(screen.queryByRole('button', { name: /No, quiero cambiar algo/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /No, quiero cambiar algo/ }),
+    ).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Cambiar el tipo de local' }));
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
     expect(screen.getByRole('button', { name: 'Continuar con estos datos' })).toBeVisible();

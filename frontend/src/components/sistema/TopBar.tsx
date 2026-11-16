@@ -3,18 +3,10 @@ import { GraduationCapIcon } from '@phosphor-icons/react';
 import { Icon } from './Icon';
 import { Logo } from './Logo';
 import { MenuDePerfil } from './MenuDePerfil';
+import { SelectorDeNegocio } from './SelectorDeNegocio';
 
 export type SeccionActiva =
-  | 'home'
-  | 'caja'
-  | 'sistemas'
-  | 'templates'
-  | 'zone'
-  | 'avisos'
-  | 'goals'
-  | 'learn'
-  | 'plans'
-  | 'account';
+  'home' | 'caja' | 'templates' | 'zone' | 'avisos' | 'goals' | 'learn' | 'plans' | 'account';
 
 type TopBarProps = {
   active?: SeccionActiva;
@@ -22,8 +14,7 @@ type TopBarProps = {
   /** La campana de avisos, que vive en el encabezado. */
   campana?: ReactNode;
   onInicio: () => void;
-  onCaja?: () => void;
-  onSistemas: () => void;
+  onCaja: () => void;
   onPlantillas: () => void;
   onZona: () => void;
   onAvisos: () => void;
@@ -44,7 +35,6 @@ export function TopBar({
   campana,
   onInicio,
   onCaja,
-  onSistemas,
   onPlantillas,
   onZona,
   onAvisos,
@@ -84,17 +74,13 @@ export function TopBar({
         >
           Inicio
         </button>
-        <button type="button" className={active === 'caja' ? 'active' : ''}
-          aria-current={active === 'caja' ? 'page' : undefined} onClick={onCaja ? ir(onCaja) : undefined}>
-          Caja
-        </button>
         <button
           type="button"
-          className={active === 'sistemas' ? 'active' : ''}
-          aria-current={active === 'sistemas' ? 'page' : undefined}
-          onClick={ir(onSistemas)}
+          className={active === 'caja' ? 'active' : ''}
+          aria-current={active === 'caja' ? 'page' : undefined}
+          onClick={ir(onCaja)}
         >
-          Mi Negocio
+          Caja
         </button>
         <button
           type="button"
@@ -155,13 +141,16 @@ export function TopBar({
         >
           <Icon name="help" />
         </button>
-        <MenuDePerfil
-          nombre={nombre}
-          enCuenta={active === 'account'}
-          cerrando={cerrandoSesion}
-          onConfiguracion={onCuenta}
-          onCerrarSesion={onCerrarSesion}
-        />
+        <div className="topbar-cuenta">
+          <SelectorDeNegocio />
+          <MenuDePerfil
+            nombre={nombre}
+            enCuenta={active === 'account'}
+            cerrando={cerrandoSesion}
+            onConfiguracion={onCuenta}
+            onCerrarSesion={onCerrarSesion}
+          />
+        </div>
         <button
           type="button"
           className="menu-movil-boton"

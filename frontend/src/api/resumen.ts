@@ -21,7 +21,7 @@ export function descargarResumen(
   );
 }
 
-/** Las métricas del inicio de un cuaderno: lo vendido hoy, lo que más salió, lo que falta y lo que está parado. */
+/** Las métricas del inicio de una sección: lo vendido hoy, lo que más salió, lo que falta y lo que está parado. */
 export const obtenerResumenInicio = (sistemaId: string, signal?: AbortSignal) =>
   http.get(
     `/proyectos/${encodeURIComponent(sistemaId)}/resumen/inicio`,

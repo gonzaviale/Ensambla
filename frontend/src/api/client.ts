@@ -133,7 +133,10 @@ async function requestConEncabezado<S extends z.ZodTypeAny>(
 ): Promise<{ datos: z.output<S>; encabezado: string | null }> {
   const response = await send(path, { signal });
   await exigirOk(path, response);
-  return { datos: schema.parse(await response.json()), encabezado: response.headers.get(encabezado) };
+  return {
+    datos: schema.parse(await response.json()),
+    encabezado: response.headers.get(encabezado),
+  };
 }
 
 /** Un archivo que el servidor manda para descargar, con el nombre que sugiere. */
@@ -176,8 +179,7 @@ export const http = {
     body: unknown,
     schema: S,
     headers?: Record<string, string>,
-  ) =>
-    request(path, schema, { method: 'PUT', body, headers }),
+  ) => request(path, schema, { method: 'PUT', body, headers }),
   patch: <S extends z.ZodTypeAny>(path: string, body: unknown, schema: S) =>
     request(path, schema, { method: 'PATCH', body }),
   delete: <S extends z.ZodTypeAny>(path: string, schema: S) =>

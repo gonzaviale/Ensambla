@@ -15,7 +15,7 @@ export function LayoutToolbar({
 }: {
   distribucion: Distribucion | undefined;
   onElegir: (distribucion: Distribucion) => void;
-  /** Solo el título y las opciones, en una línea, para ir al lado de las secciones. */
+  /** Solo el título y las opciones, en una línea, para ir al lado de las pestañas. */
   compacta?: boolean;
 }) {
   return (

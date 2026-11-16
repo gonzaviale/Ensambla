@@ -10,6 +10,14 @@ import { server } from '@/mocks/node';
 import { renderApp } from '@/test/renderApp';
 import { ESPERA, setupUsuarioConSesion } from '@/test/testHelpers';
 import type { SolicitudCobro } from '@/types/caja';
+import {
+  whenAgregaDosGaseosas,
+  whenRestaUnaGaseosa,
+  whenQuitaLaGaseosa,
+  whenDeshaceElCambio,
+  thenCantidadDeGaseosa,
+  thenGaseosaRetirada,
+} from '@/test/caja/cantidadesCajaHelpers';
 
 async function abrir(escanear = false) {
   const usuario = setupUsuarioConSesion();
@@ -155,24 +163,16 @@ describe('caja integrada con el cliente HTTP', () => {
     await user.type(screen.getByLabelText('Código de barras'), '7790895000997{Enter}');
     expect(screen.getByLabelText('Cantidad de Coca-Cola')).toHaveValue('7');
   });
-  it('ubica Caja entre Inicio y Mi Negocio y suma unidades con retiro y deshacer', async () => {
+  it('permite corregir las unidades y recuperar el artículo quitado', async () => {
     const { user } = await abrir();
-    const nav = screen.getByRole('navigation', { name: 'Principal' });
-    expect(
-      within(nav)
-        .getAllByRole('button')
-        .slice(0, 3)
-        .map((b) => b.textContent),
-    ).toEqual(['Inicio', 'Caja', 'Mi Negocio']);
-    await user.click(screen.getByRole('button', { name: /Coca-Cola.*2.700/ }));
-    await user.click(screen.getByRole('button', { name: /Coca-Cola.*2.700/ }));
-    expect(screen.getByLabelText('Cantidad de Coca-Cola')).toHaveValue('2');
-    await user.click(screen.getByRole('button', { name: 'Restar una unidad de Coca-Cola' }));
-    expect(screen.getByLabelText('Cantidad de Coca-Cola')).toHaveValue('1');
-    await user.click(screen.getByRole('button', { name: 'Quitar Coca-Cola' }));
-    expect(screen.queryByLabelText('Cantidad de Coca-Cola')).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Deshacer último cambio' }));
-    expect(screen.getByLabelText('Cantidad de Coca-Cola')).toHaveValue('1');
+    await whenAgregaDosGaseosas(user);
+    thenCantidadDeGaseosa('2');
+    await whenRestaUnaGaseosa(user);
+    thenCantidadDeGaseosa('1');
+    await whenQuitaLaGaseosa(user);
+    thenGaseosaRetirada();
+    await whenDeshaceElCambio(user);
+    thenCantidadDeGaseosa('1');
   });
 
   it('toma gramos para un favorito por kilo y permite corregir el peso final', async () => {

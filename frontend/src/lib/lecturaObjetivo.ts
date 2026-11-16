@@ -261,7 +261,7 @@ export function leerObjetivo(texto: string, negocio?: Negocio): LecturaDeObjetiv
     tipo === 'RETIRAR'
       ? `Retirar ${escrito}: el negocio tiene que dejarte al menos eso después de pagar mercadería y gastos.`
       : tipo === 'CUBRIR_GASTOS'
-        ? `Juntar ${escrito} para tus gastos. Si ya los anotás como gastos en un cuaderno, Sami ya los descuenta: la meta es lo que te queda aparte.`
+        ? `Juntar ${escrito} para tus gastos. Si ya los anotás como gastos en una sección, Sami ya los descuenta: la meta es lo que te queda aparte.`
         : `Ganar ${escrito}, después de pagar la mercadería y los gastos.`;
   if (quedaHoy && mensual <= quedaHoy) {
     avisos.push(`Hoy ya te quedan ${formatoPesos(quedaHoy)} por mes: esta meta ya la cumplís.`);

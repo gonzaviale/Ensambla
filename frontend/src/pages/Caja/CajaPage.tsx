@@ -3,14 +3,14 @@ import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { CajaMostrador } from '@/components/caja/CajaMostrador';
 import { DialogoCaja } from '@/components/caja/DialogoCaja';
 import { Icon } from '@/components/sistema/Icon';
-import { useSistemaStore } from '@/stores/sistemaStore';
+import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { allBlocks, makeBlock } from '@/lib/sistema/core';
 import { prepararCaja } from '@/lib/caja';
 
 export function CajaPage() {
   useTituloPagina('Caja');
-  const sistemas = useSistemaStore((s) => s.sistemas);
+  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
   const activeId = useSistemaStore((s) => s.activeId);
   const [elegido, setElegido] = useState(activeId ?? '');
   const [tabla, setTabla] = useState('');
