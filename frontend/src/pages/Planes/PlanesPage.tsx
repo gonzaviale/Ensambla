@@ -8,10 +8,23 @@ import { usePlanes } from '@/hooks/planes/queries';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
-const fecha = (valor: string) =>
-  new Intl.DateTimeFormat('es-AR', { dateStyle: 'long', timeStyle: 'short', hour12: false }).format(
-    new Date(valor),
-  );
+// «21 nov, 22:51 h»; el año solo si no es el actual (guía de lenguaje, fechas y horas).
+const fecha = (valor: string) => {
+  const dia = new Date(valor);
+  const diaYMes = new Intl.DateTimeFormat('es-AR', {
+    day: 'numeric',
+    month: 'short',
+    year: dia.getFullYear() === new Date().getFullYear() ? undefined : 'numeric',
+  })
+    .format(dia)
+    .replace(/\./g, '');
+  const hora = new Intl.DateTimeFormat('es-AR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(dia);
+  return `${diaYMes}, ${hora} h`;
+};
 
 function Uso({
   titulo,
@@ -32,7 +45,9 @@ function Uso({
         {limite !== null ? (
           <progress aria-label={titulo} value={Math.min(cantidad, limite)} max={limite || 1} />
         ) : null}
-        {superado ? <p>Superás el límite de nuevas altas. Tus datos siguen disponibles.</p> : null}
+        {superado ? (
+          <p>Pasaste el límite para cargar datos nuevos. Los que ya tenés siguen ahí.</p>
+        ) : null}
       </dd>
     </div>
   );
@@ -58,17 +73,12 @@ export function PlanesPage() {
       <main id="main" tabIndex={-1} className="plans-page reveal">
         <header className="plans-heading">
           <div>
-            <span className="eyebrow">CADA ETAPA DE TU NEGOCIO CUENTA</span>
             <h1>
               Un plan para seguir
-              <br />
               dándole forma.
             </h1>
-            <p>Conocé lo que incluye tu espacio y elegí cuándo probar más herramientas.</p>
+            <p>Mirá qué incluye cada plan y elegí la que más se ajuste a vos.</p>
           </div>
-          <span className="plans-heading-piece" aria-hidden="true">
-            <Icon name="spark" />
-          </span>
         </header>
         {consulta.isPending ? (
           <div role="status" className="plan-loading">
@@ -96,14 +106,14 @@ export function PlanesPage() {
             >
               <div className="plan-current-heading">
                 <div>
-                  <span className="eyebrow">TU PLAN HOY</span>
+                  <span className="eyebrow">Tu plan hoy</span>
                   <h2 id="plan-current-title">
                     {esPrueba
                       ? 'Tu prueba Premium está activa'
                       : `${actual.nombre}, tu espacio actual`}
                   </h2>
                   {esPrueba && datos.prueba ? (
-                    <p>Disfrutá las funciones premium hasta el {fecha(datos.prueba.finEn)}.</p>
+                    <p>Tenés las funciones premium hasta el {fecha(datos.prueba.finEn)}.</p>
                   ) : null}
                   {pruebaFinalizada ? (
                     <p>Tu prueba terminó. Seguís con el gratuito y todos tus datos se conservan.</p>
@@ -111,7 +121,7 @@ export function PlanesPage() {
                   {!esPrueba && !pruebaFinalizada ? (
                     <p>
                       {actual.codigo === 'PREMIUM' && datos.suscripcion.finEn
-                        ? `Tu período pago está disponible hasta el ${fecha(datos.suscripcion.finEn)}.`
+                        ? `Tu período pago llega hasta el ${fecha(datos.suscripcion.finEn)}.`
                         : 'Acá podés ver lo que llevás usado en tu negocio.'}
                     </p>
                   ) : null}
@@ -126,33 +136,35 @@ export function PlanesPage() {
               </div>
               <dl className="plan-usage-grid">
                 <Uso
-                  titulo="Cuadernos"
+                  titulo="Negocios"
                   cantidad={datos.uso.proyectos}
                   limite={actual.limiteProyectos}
                 />
                 <Uso
-                  titulo="Registros guardados"
+                  titulo="Datos guardados"
                   cantidad={datos.uso.registros}
                   limite={actual.limiteRegistros}
                 />
                 <Uso
-                  titulo={esPrueba ? 'Análisis de foto de la prueba' : 'Análisis de foto de este mes'}
+                  titulo={
+                    esPrueba ? 'Análisis de foto de la prueba' : 'Análisis de foto de este mes'
+                  }
                   cantidad={datos.uso.paginasIa}
                   limite={datos.uso.limitePaginasIa}
                 />
               </dl>
               <p className="plan-usage-note">
                 {esPrueba
-                  ? 'Los diez análisis de foto son para toda la prueba: cambiar de mes no renueva el cupo.'
+                  ? 'Los 10 análisis de foto valen para toda la prueba, aunque cambie el mes.'
                   : `El cupo mensual de IA se renueva el ${fecha(datos.uso.finPeriodoIa)}.`}{' '}
-                Los intentos admitidos y los reintentos también consumen páginas.
+                Los reintentos también cuentan.
               </p>
               {esPrueba &&
               datos.uso.limitePaginasIa !== null &&
               datos.uso.paginasIa >= datos.uso.limitePaginasIa ? (
                 <p className="plan-quota-notice" role="status">
-                  Usaste los análisis de foto incluidos. Las demás funciones premium siguen disponibles
-                  hasta que termine la prueba.
+                  Usaste los análisis de foto incluidos. Las demás funciones premium siguen
+                  disponibles hasta que termine la prueba.
                 </p>
               ) : null}
             </section>
@@ -179,9 +191,9 @@ export function PlanesPage() {
               <div>
                 <h2 id="plans-data-title">Tus datos tienen su lugar.</h2>
                 <p>
-                  Cuando termina la prueba conservás tus cuadernos, registros y recetas. Podés
-                  consultar y editar tus datos; las nuevas altas y las funciones premium respetan
-                  los límites del plan gratuito.
+                  Cuando termina la prueba conservás tus negocios, tus datos y tus recetas. Podés
+                  consultarlos y editarlos; lo nuevo y las funciones premium respetan los límites
+                  del plan gratuito. Si pasás de Premium a Gratuito, no perdés nada.
                 </p>
               </div>
             </section>
