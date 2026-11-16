@@ -267,3 +267,15 @@ Moneda en pesos argentinos, mes de noviembre de 2026. Los números salen del sis
 - No se publica directo en redes: sólo se descarga y se comparte.
 - El nivel 2 queda como subtarea opcional (T-270).
 - Los textos siguen la guía de tono de H-56.
+
+## Cómo quedó el motor de render (T-264 · ENS-363)
+
+- El dominio compone el cartel como una lista de piezas (`Rectangulo` y `TextoDeCartel`) en unidades de dibujo; no
+  conoce ningún formato de salida. Un puerto (`DibujanteDeCartelPort`) lo convierte: hoy a SVG (vista previa) y en T-269
+  a PDF y PNG recorriendo las mismas piezas.
+- Cada variante (`BLOQUE`, `FRANJA`, `MARCO`) es una subclase de `DisenoDeVariante`; el reparto de los textos
+  (`RolDeTexto`: titular, protagonista, bajada, detalle y líneas) es común y se acomoda en la zona de texto de la variante.
+- `PaletaDeCartel` ajusta los colores del negocio (oscurece o aclara en pasos) hasta que todo texto cumpla 4,5 : 1.
+- Un texto largo se achica hasta el tamaño mínimo del formato y después se corta con «…». Si las líneas no entran con
+  altura legible (por ejemplo 10 productos en el cuadrado), se rechaza con un mensaje en vez de superponerlas.
+- Endpoint: `POST /api/carteles/opciones` devuelve las 3 composiciones con su dibujo, con la marca del negocio de la sesión.
