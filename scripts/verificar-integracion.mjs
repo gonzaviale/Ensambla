@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import { fileURLToPath } from 'node:url';
-import { setTimeout as esperar } from 'node:timers/promises';
+
+assert.ok(
+  process.argv.slice(2).every((argumento) => argumento === '--exigir-off'),
+  'La verificación solo acepta --exigir-off; no inicia ni reinicia servicios.',
+);
 
 const url = new URL(process.env.ENSAMBLA_URL || 'http://localhost:8088');
-const ejecutar = promisify(execFile);
 const codigo = '7790895000997';
 const resultados = [];
 
@@ -161,22 +161,6 @@ async function principal() {
     assert.ok(!otros.some((item) => item.id === id));
     await exigir(ajeno, ruta, 404, { metodo: 'PUT', cuerpo: guardado });
     resultados.push('aislamiento entre negocios y recurso ajeno 404');
-
-    if (process.argv.includes('--reiniciar-backend')) {
-      const raiz = fileURLToPath(new URL('../', import.meta.url));
-      await ejecutar('docker', ['compose', '-f', fileURLToPath(new URL('../compose.yaml', import.meta.url)), 'restart', 'backend'],
-        { cwd: raiz, timeout: 120_000, windowsHide: true });
-      const limite = Date.now() + 120_000;
-      let listo = false;
-      while (Date.now() < limite) {
-        try { listo = (await propio.pedir('/api/auth/me')).estado === 200; } catch { }
-        if (listo) break;
-        await esperar(2000);
-      }
-      assert.ok(listo, 'No se recuperó la sesión después de reiniciar el backend');
-      await comprobarInventario(propio, id);
-      resultados.push('sesión e inventario conservados tras reiniciar el contenedor del backend');
-    }
 
     await exigir(propio, '/api/auth/logout', 204, { metodo: 'POST' });
     await exigir(propio, '/api/auth/me', 401);
