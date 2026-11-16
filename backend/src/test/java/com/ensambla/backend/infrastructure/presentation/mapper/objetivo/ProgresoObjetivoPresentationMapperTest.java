@@ -49,7 +49,7 @@ class ProgresoObjetivoPresentationMapperTest {
     @Test
     @DisplayName("Sin semanas ni mini-objetivos devuelve listas vacías")
     void toResponseShouldReturnEmptyLists() {
-        whenSeMapeaElProgreso(new ObtenerProgresoResponse(META, null, List.of(), List.of()));
+        whenSeMapeaElProgreso(progresoVacio());
 
         thenNoHayHitoNiSeries();
     }
@@ -99,5 +99,9 @@ class ProgresoObjetivoPresentationMapperTest {
         MiniProgreso mini = new MiniProgreso(MiniObjetivoItem.de(miniObjetivo()), HitoObjetivo.SIN_AVANCE,
                 List.of(new PuntoSemanal(SEMANA, BigDecimal.TEN, false)));
         return new ObtenerProgresoResponse(META, HitoObjetivo.OBJETIVO_ALCANZADO, List.of(punto), List.of(mini));
+    }
+
+    private static ObtenerProgresoResponse progresoVacio() {
+        return new ObtenerProgresoResponse(META, null, List.of(), List.of());
     }
 }

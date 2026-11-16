@@ -21,6 +21,14 @@ class TextoResumenTest {
     private static final BigDecimal RESULTADO_ANTERIOR_MENOR = new BigDecimal("175900");
     private static final BigDecimal RESULTADO_ANTERIOR_MAYOR = new BigDecimal("182000");
     private static final ConteoDecisiones NINGUNA = new ConteoDecisiones(0, 0, 0, 0);
+    private static final ConteoDecisiones UNA_APLICADA_Y_UNA_DESCARTADA = new ConteoDecisiones(1, 1, 0, 0);
+    private static final ConteoDecisiones VARIAS_DECISIONES = new ConteoDecisiones(2, 1, 1, 3);
+    private static final ConteoDecisiones UNA_POSTERGADA = new ConteoDecisiones(0, 0, 0, 1);
+    private static final BigDecimal MARGEN_LOGRADO = new BigDecimal("60");
+    private static final BigDecimal CAPITAL_PARADO_LOGRADO = new BigDecimal("24000");
+    private static final BigDecimal CAPITAL_PARADO_NUEVO = new BigDecimal("18000");
+    private static final BigDecimal VARIEDAD_LOGRADA = new BigDecimal("3");
+    private static final BigDecimal VARIEDAD_NUEVA = new BigDecimal("4");
     private static final String TITULO_NUEVO = "Vender más";
 
     private String texto;
@@ -39,7 +47,7 @@ class TextoResumenTest {
     @Test
     @DisplayName("Si el resultado subió dice cuánto y lista las decisiones")
     void queFuncionoShouldTellHowMuchTheResultRose() {
-        whenSeResumeLaSemana(Optional.of(RESULTADO_ANTERIOR_MENOR), new ConteoDecisiones(1, 1, 0, 0), META, false,
+        whenSeResumeLaSemana(Optional.of(RESULTADO_ANTERIOR_MENOR), UNA_APLICADA_Y_UNA_DESCARTADA, META, false,
                 false);
 
         thenElTextoEs("Esta semana tu resultado subió $4.100: de $175.900 a $180.000. "
@@ -49,7 +57,7 @@ class TextoResumenTest {
     @Test
     @DisplayName("Si el resultado bajó lo dice y, con la meta alcanzada, sugiere subirla")
     void queFuncionoShouldTellTheResultFellAndCelebrateTheGoal() {
-        whenSeResumeLaSemana(Optional.of(RESULTADO_ANTERIOR_MAYOR), new ConteoDecisiones(2, 1, 1, 3), META, true,
+        whenSeResumeLaSemana(Optional.of(RESULTADO_ANTERIOR_MAYOR), VARIAS_DECISIONES, META, true,
                 false);
 
         thenElTextoEs("Esta semana tu resultado bajó $2.000: de $182.000 a $180.000. "
@@ -60,7 +68,7 @@ class TextoResumenTest {
     @Test
     @DisplayName("Si el resultado no cambió y no hubo ventas, avisa que no se cambiaron los mini-objetivos")
     void queFuncionoShouldTellNothingChangedWhenThereWereNoSales() {
-        whenSeResumeLaSemana(Optional.of(RESULTADO), new ConteoDecisiones(0, 0, 0, 1), META, false, true);
+        whenSeResumeLaSemana(Optional.of(RESULTADO), UNA_POSTERGADA, META, false, true);
 
         thenElTextoEs("Esta semana tu resultado se mantuvo en $180.000. Dejaste para después 1 paso. "
                 + "No hubo ventas esta semana, así que no cambiamos tus mini-objetivos.");
@@ -122,7 +130,7 @@ class TextoResumenTest {
     void motivoShouldExplainAnAchievedMiniObjetivoThatCannotAskForMore() {
         givenUnAnteriorLogradoDeMargen();
 
-        whenSeExplicaElMotivo(MotivoReajuste.LOGRADO, new BigDecimal("60"));
+        whenSeExplicaElMotivo(MotivoReajuste.LOGRADO, MARGEN_LOGRADO);
 
         thenElTextoEs("Lo lograste: llegaste a 60 %. Como ya no se puede pedir más, ahora probamos con "
                 + "«Vender más».");
@@ -154,7 +162,7 @@ class TextoResumenTest {
     @Test
     @DisplayName("La meta subida del capital parado se dice en pesos de mercadería parada")
     void metaSubidaShouldSpeakTheUnitOfStuckCapital() {
-        whenSeDiceLaMetaSubida(TipoMiniObjetivo.CAPITAL_PARADO, new BigDecimal("24000"), new BigDecimal("18000"));
+        whenSeDiceLaMetaSubida(TipoMiniObjetivo.CAPITAL_PARADO, CAPITAL_PARADO_LOGRADO, CAPITAL_PARADO_NUEVO);
 
         thenElTextoContiene("$24.000 en mercadería parada", "$18.000 en mercadería parada");
     }
@@ -162,7 +170,7 @@ class TextoResumenTest {
     @Test
     @DisplayName("La meta subida de la variedad vendida se dice en productos distintos por semana")
     void metaSubidaShouldSpeakTheUnitOfSoldVariety() {
-        whenSeDiceLaMetaSubida(TipoMiniObjetivo.VARIEDAD_VENDIDA, new BigDecimal("3"), new BigDecimal("4"));
+        whenSeDiceLaMetaSubida(TipoMiniObjetivo.VARIEDAD_VENDIDA, VARIEDAD_LOGRADA, VARIEDAD_NUEVA);
 
         thenElTextoContiene("3 productos distintos por semana", "4 productos distintos por semana");
     }
@@ -178,11 +186,7 @@ class TextoResumenTest {
     @Test
     @DisplayName("Cuenta lo que la persona hizo, hizo en parte y no hizo")
     void manualesShouldCountTheAnswers() {
-        whenSeResumenLosManuales(List.of(
-                new ManualCierre(MINI_ID, "Uno", HizoManual.SI, QuePaso.FUNCIONO),
-                new ManualCierre(OTRO_MINI_ID, "Dos", HizoManual.SI, QuePaso.OTRA),
-                new ManualCierre(MiniObjetivoId.nuevo(), "Tres", HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO),
-                new ManualCierre(MiniObjetivoId.nuevo(), "Cuatro", HizoManual.NO, QuePaso.NO_FUNCIONO)));
+        whenSeResumenLosManuales(cuatroManualesRespondidos());
 
         thenElTextoEs("De tus acciones respondiste: 2 hechas, 1 en parte y 1 sin hacer.");
     }
@@ -190,9 +194,7 @@ class TextoResumenTest {
     @Test
     @DisplayName("Dice qué acciones quedaron sin respuesta y que no cambian hasta que responda")
     void manualesShouldTellWhichOnesHaveNoAnswer() {
-        whenSeResumenLosManuales(List.of(
-                new ManualCierre(MINI_ID, "Uno", HizoManual.SI, QuePaso.FUNCIONO),
-                new ManualCierre(OTRO_MINI_ID, "Un cartel", null, null)));
+        whenSeResumenLosManuales(unManualRespondidoYUnoSinRespuesta());
 
         thenElTextoEs("De tus acciones respondiste: 1 hechas, 0 en parte y 0 sin hacer. "
                 + "No me contaste cómo te fue con «Un cartel»: queda igual hasta que respondas.");
@@ -201,7 +203,7 @@ class TextoResumenTest {
     @Test
     @DisplayName("Si ninguna se respondió sólo dice cuáles esperan la respuesta")
     void manualesShouldOnlyListTheMissingAnswers() {
-        whenSeResumenLosManuales(List.of(new ManualCierre(OTRO_MINI_ID, "Un cartel", null, null)));
+        whenSeResumenLosManuales(soloUnManualSinRespuesta());
 
         thenElTextoEs("No me contaste cómo te fue con «Un cartel»: queda igual hasta que respondas.");
     }
@@ -261,5 +263,23 @@ class TextoResumenTest {
         MiniObjetivo mini = miniObjetivo();
         mini.setTitulo(TITULO_NUEVO);
         return mini;
+    }
+
+    private static List<ManualCierre> cuatroManualesRespondidos() {
+        return List.of(
+                new ManualCierre(MINI_ID, "Uno", HizoManual.SI, QuePaso.FUNCIONO),
+                new ManualCierre(OTRO_MINI_ID, "Dos", HizoManual.SI, QuePaso.OTRA),
+                new ManualCierre(MiniObjetivoId.nuevo(), "Tres", HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO),
+                new ManualCierre(MiniObjetivoId.nuevo(), "Cuatro", HizoManual.NO, QuePaso.NO_FUNCIONO));
+    }
+
+    private static List<ManualCierre> unManualRespondidoYUnoSinRespuesta() {
+        return List.of(
+                new ManualCierre(MINI_ID, "Uno", HizoManual.SI, QuePaso.FUNCIONO),
+                new ManualCierre(OTRO_MINI_ID, "Un cartel", null, null));
+    }
+
+    private static List<ManualCierre> soloUnManualSinRespuesta() {
+        return List.of(new ManualCierre(OTRO_MINI_ID, "Un cartel", null, null));
     }
 }

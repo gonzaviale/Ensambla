@@ -150,7 +150,7 @@ class CrearObjetivoTest {
     void executeShouldSaveTheTextsWrittenByTheAi() {
         givenDosCandidatos();
         givenCupoDisponible();
-        givenLaIaRedacta(new TextoMiniObjetivo("Título 1", "Razón 1"), new TextoMiniObjetivo("Título 2", "Razón 2"));
+        givenLaIaRedactaDosTextos();
 
         whenCrear(true, TEXTO);
 
@@ -163,7 +163,7 @@ class CrearObjetivoTest {
     void executeShouldPassOnlyTheChosenCandidatesToTheAi() {
         givenCandidatos(candidato());
         givenCupoDisponible();
-        givenLaIaRedacta(new TextoMiniObjetivo("Título", "Razón"));
+        givenLaIaRedactaUnTexto();
 
         whenCrear(true, TEXTO);
 
@@ -212,7 +212,7 @@ class CrearObjetivoTest {
     void executeShouldUseTheReserveTextWhenTheAiReturnsFewerTexts() {
         givenDosCandidatos();
         givenCupoDisponible();
-        givenLaIaRedacta(new TextoMiniObjetivo("Título", "Razón"));
+        givenLaIaRedactaUnTexto();
 
         whenCrear(true, TEXTO);
 
@@ -271,6 +271,14 @@ class CrearObjetivoTest {
 
     private void givenSinCupoDiario() {
         when(consumoSamiRepository.reservar(NEGOCIO_ID, HOY, LIMITE_DIARIO, AHORA)).thenReturn(false);
+    }
+
+    private void givenLaIaRedactaDosTextos() {
+        givenLaIaRedacta(new TextoMiniObjetivo("Título 1", "Razón 1"), new TextoMiniObjetivo("Título 2", "Razón 2"));
+    }
+
+    private void givenLaIaRedactaUnTexto() {
+        givenLaIaRedacta(new TextoMiniObjetivo("Título", "Razón"));
     }
 
     private void givenLaIaRedacta(TextoMiniObjetivo... textos) {

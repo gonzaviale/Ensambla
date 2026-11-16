@@ -63,7 +63,7 @@ class MiniObjetivoTest {
     @Test
     @DisplayName("Uno nuevo conserva que el texto lo redactó la IA")
     void nuevoShouldKeepThatTheTextCameFromTheAi() {
-        givenUnCandidato(candidato().conTextoDeIa(new TextoMiniObjetivo("Título", "Razón")));
+        givenUnCandidatoConTextoDeIa();
 
         whenSeCreaUnMiniNuevo();
 
@@ -942,5 +942,9 @@ class MiniObjetivoTest {
         MiniObjetivo manual = miniManual();
         manual.abandonar(AHORA);
         return manual;
+    }
+
+    private void givenUnCandidatoConTextoDeIa() {
+        givenUnCandidato(candidato().conTextoDeIa(new TextoMiniObjetivo("Título", "Razón")));
     }
 }

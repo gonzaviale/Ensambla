@@ -23,7 +23,7 @@ class AccionManualTest {
     void deShouldAcceptAValidAction() {
         whenSeArmaLaAccion("  " + TITULO + " ", JUSTIFICACION + "\n");
 
-        thenLaAccionEs(new AccionManual(TITULO, JUSTIFICACION));
+        thenLaAccionEsLaValida();
     }
 
     @Test
@@ -132,8 +132,8 @@ class AccionManualTest {
     }
 
     // --- assert ---
-    private void thenLaAccionEs(AccionManual esperada) {
-        assertThat(accion).contains(esperada);
+    private void thenLaAccionEsLaValida() {
+        assertThat(accion).contains(new AccionManual(TITULO, JUSTIFICACION));
     }
 
     private void thenHayAccion() {

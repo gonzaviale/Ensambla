@@ -40,7 +40,7 @@ class ProponerObjetivoConSamiResponseTest {
     @Test
     @DisplayName("Copia la respuesta, lo entendido, el tipo, los datos y lo que queda por escribir")
     void deShouldCopyEveryField() {
-        whenSeResponde(propuestaConUnMedido(), new CuotaObjetivosIa(2, 5), MENSAJES_RESTANTES);
+        whenSeRespondeConUnMedidoYDosDeCinco();
 
         thenSeCopianLaRespuestaYLoEntendido();
         thenSeCopianLosDatosYLaCuota();
@@ -57,7 +57,7 @@ class ProponerObjetivoConSamiResponseTest {
     @Test
     @DisplayName("Un mini-objetivo manual trae sólo su texto, sin métrica ni números")
     void miniShouldCopyOnlyTheTextOfAManualMini() {
-        whenSeArmaElItem(MiniObjetivoPropuesto.manual(new AccionManual(TITULO_ACCION, JUSTIFICACION_ACCION), true));
+        whenSeArmaElItemDeUnManual();
 
         thenElItemTraeSoloElTexto();
     }
@@ -65,7 +65,7 @@ class ProponerObjetivoConSamiResponseTest {
     @Test
     @DisplayName("Una meta en pesos no tiene tipo y no se puede guardar")
     void deShouldHaveNoTypeForAMonetaryGoal() {
-        whenSeResponde(propuestaMonetaria(), new CuotaObjetivosIa(0, null), 5);
+        whenSeRespondeUnaMetaEnPesosSinLimiteDeCuota();
 
         thenNoHayTipoNiSePuedeGuardar();
         thenLaCuotaNoTieneLimite();
@@ -75,6 +75,18 @@ class ProponerObjetivoConSamiResponseTest {
     private void whenSeResponde(PropuestaObjetivo propuesta, CuotaObjetivosIa cuota, int mensajesRestantes) {
         respuesta = ProponerObjetivoConSamiResponse.de(
                 propuesta, List.of(new DatoUsado(FuenteDato.ZONA, false)), mensajesRestantes, cuota);
+    }
+
+    private void whenSeRespondeConUnMedidoYDosDeCinco() {
+        whenSeResponde(propuestaConUnMedido(), new CuotaObjetivosIa(2, 5), MENSAJES_RESTANTES);
+    }
+
+    private void whenSeRespondeUnaMetaEnPesosSinLimiteDeCuota() {
+        whenSeResponde(propuestaMonetaria(), new CuotaObjetivosIa(0, null), 5);
+    }
+
+    private void whenSeArmaElItemDeUnManual() {
+        whenSeArmaElItem(MiniObjetivoPropuesto.manual(new AccionManual(TITULO_ACCION, JUSTIFICACION_ACCION), true));
     }
 
     private void whenSeArmaElItem(MiniObjetivoPropuesto propuesto) {

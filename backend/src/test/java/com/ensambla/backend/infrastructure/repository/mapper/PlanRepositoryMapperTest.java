@@ -28,11 +28,16 @@ class PlanRepositoryMapperTest {
     @Test
     @DisplayName("Conserva los campos nulos en toDomain de plan")
     void toDomainShouldPreserveNullFields() {
-        origen = new PlanEntity();
+        givenUnaEntidadVacia();
 
         whenSeLeeLaEntidad();
 
         thenTodosLosCamposSonNulos();
+    }
+
+    // --- arrange ---
+    private void givenUnaEntidadVacia() {
+        origen = new PlanEntity();
     }
 
     // --- act ---

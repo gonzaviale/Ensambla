@@ -21,6 +21,9 @@ class ResumenSemanalTest {
     private static final LocalDate SEMANA = LocalDate.of(2026, 11, 9);
     private static final ConteoDecisiones CONTEO = new ConteoDecisiones(1, 0, 2, 0);
     private static final BigDecimal VALOR_DE_CIERRE = new BigDecimal("12600.00");
+    private static final BigDecimal RESULTADO_DE_CIEN_MIL = new BigDecimal("100000");
+    private static final BigDecimal RESULTADO_NEGATIVO = new BigDecimal("-500");
+    private static final BigDecimal RESULTADO_DE_QUINIENTOS = new BigDecimal("500");
     private static final CierreMini CIERRE = new CierreMini(MINI_ID, VALOR_DE_CIERRE);
 
     private List<CierreMini> cierres;
@@ -34,7 +37,7 @@ class ResumenSemanalTest {
     void deShouldBuildTheSummaryWithTheProgressTowardsTheGoal() {
         givenCierres();
 
-        whenSeArmaElResumenConCierres(new BigDecimal("100000"));
+        whenSeArmaElResumenConCierres(RESULTADO_DE_CIEN_MIL);
         whenSeVacianLosCierresOriginales();
 
         thenElResumenTieneElAvanceHaciaLaMeta();
@@ -43,7 +46,7 @@ class ResumenSemanalTest {
     @Test
     @DisplayName("Un resultado negativo deja el avance en 0")
     void avanceDeShouldNotBeBelowZero() {
-        whenSeCalculaElAvance(new BigDecimal("-500"), BigDecimal.TEN);
+        whenSeCalculaElAvance(RESULTADO_NEGATIVO, BigDecimal.TEN);
 
         thenElAvanceEs("0");
     }
@@ -51,7 +54,7 @@ class ResumenSemanalTest {
     @Test
     @DisplayName("Un resultado mayor que la meta deja el avance en 1")
     void avanceDeShouldNotBeAboveOne() {
-        whenSeCalculaElAvance(new BigDecimal("500"), BigDecimal.TEN);
+        whenSeCalculaElAvance(RESULTADO_DE_QUINIENTOS, BigDecimal.TEN);
 
         thenElAvanceEs("1");
     }
@@ -59,7 +62,7 @@ class ResumenSemanalTest {
     @Test
     @DisplayName("Una meta de cero ya está cumplida")
     void avanceDeShouldBeOneForAZeroGoal() {
-        whenSeCalculaElAvance(new BigDecimal("500"), BigDecimal.ZERO);
+        whenSeCalculaElAvance(RESULTADO_DE_QUINIENTOS, BigDecimal.ZERO);
 
         thenElAvanceEs("1");
     }
@@ -89,7 +92,7 @@ class ResumenSemanalTest {
     @Test
     @DisplayName("Sin meta en pesos el avance es cero")
     void avanceDeShouldBeZeroWithoutGoal() {
-        whenSeCalculaElAvance(new BigDecimal("500"), null);
+        whenSeCalculaElAvanceSinMeta(RESULTADO_DE_QUINIENTOS);
 
         thenElAvanceEs("0");
     }
@@ -135,6 +138,10 @@ class ResumenSemanalTest {
 
     private void whenSeCalculaElAvance(BigDecimal resultado, BigDecimal meta) {
         avance = ResumenSemanal.avanceDe(resultado, meta);
+    }
+
+    private void whenSeCalculaElAvanceSinMeta(BigDecimal resultado) {
+        avance = ResumenSemanal.avanceDe(resultado, null);
     }
 
     private void whenSeBuscaElValorDe(MiniObjetivoId id) {

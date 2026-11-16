@@ -62,7 +62,7 @@ class SamiObjetivoPresentationMapperTest {
     @Test
     @DisplayName("Sin lista de mini-objetivos (el seguimiento) se manda una lista vacía")
     void toGuardarRequestShouldUseAnEmptyListWithoutMinis() {
-        whenSeArmaElPedidoDeGuardar(new GuardarObjetivoConSamiWebRequest(OBJETIVO, true, null));
+        whenSeArmaElPedidoDeGuardar(seguimientoManualSinLista());
 
         thenEsSeguimientoManualSinMinis();
     }
@@ -86,7 +86,7 @@ class SamiObjetivoPresentationMapperTest {
     @Test
     @DisplayName("Si el pedido no dice nada del seguimiento manual, es que no")
     void toGuardarRequestShouldTreatAMissingFlagAsFalse() {
-        whenSeArmaElPedidoDeGuardar(new GuardarObjetivoConSamiWebRequest(OBJETIVO, null, List.of()));
+        whenSeArmaElPedidoDeGuardar(guardarSinDecirElSeguimiento());
 
         thenNoEsSeguimientoManual();
     }
@@ -192,5 +192,13 @@ class SamiObjetivoPresentationMapperTest {
                 List.of(new ProponerObjetivoConSamiResponse.DatoItem(FuenteDato.ZONA, true)),
                 OrigenPropuesta.IA, 4, true,
                 new ProponerObjetivoConSamiResponse.CuotaItem(2, 5, 3));
+    }
+
+    private static GuardarObjetivoConSamiWebRequest seguimientoManualSinLista() {
+        return new GuardarObjetivoConSamiWebRequest(OBJETIVO, true, null);
+    }
+
+    private static GuardarObjetivoConSamiWebRequest guardarSinDecirElSeguimiento() {
+        return new GuardarObjetivoConSamiWebRequest(OBJETIVO, null, List.of());
     }
 }

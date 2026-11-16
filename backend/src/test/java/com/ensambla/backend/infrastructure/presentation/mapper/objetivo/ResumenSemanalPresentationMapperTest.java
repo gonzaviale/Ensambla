@@ -48,7 +48,7 @@ class ResumenSemanalPresentationMapperTest {
     @Test
     @DisplayName("Copia cada semana con sus decisiones y reajustes; un reajuste sin nuevo queda sin «a»")
     void toResponseShouldCopyEveryWeek() {
-        whenSeMapeanLasSemanas(new ListarSemanasResponse(SEMANA, List.of(unaSemanaConUnReajusteSinNuevo())));
+        whenSeMapeanLasSemanas(unaSemanaCerrada());
 
         thenSeCopiaLaSemanaConSusDecisionesYManuales();
         thenSeCopiaElReajusteSinDestino();
@@ -57,7 +57,7 @@ class ResumenSemanalPresentationMapperTest {
     @Test
     @DisplayName("Sin semanas devuelve una lista vacía")
     void toResponseShouldReturnAnEmptyListWhenThereAreNoWeeks() {
-        whenSeMapeanLasSemanas(new ListarSemanasResponse(null, List.of()));
+        whenSeMapeanLasSemanas(sinSemanas());
 
         thenNoHayUltimoCierreNiSemanas();
     }
@@ -119,5 +119,13 @@ class ResumenSemanalPresentationMapperTest {
                 TipoReajuste.REEMPLAZAR, "Sin avance", new MiniItem("Viejo", BigDecimal.ONE), null);
         return new SemanaItem(SEMANA, BigDecimal.TEN, BigDecimal.ONE, new DecisionesItem(1, 2, 3, 4), "Bien", true,
                 List.of(reajuste), MANUALES);
+    }
+
+    private static ListarSemanasResponse unaSemanaCerrada() {
+        return new ListarSemanasResponse(SEMANA, List.of(unaSemanaConUnReajusteSinNuevo()));
+    }
+
+    private static ListarSemanasResponse sinSemanas() {
+        return new ListarSemanasResponse(null, List.of());
     }
 }

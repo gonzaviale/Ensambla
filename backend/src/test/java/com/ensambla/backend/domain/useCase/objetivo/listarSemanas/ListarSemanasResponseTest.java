@@ -35,7 +35,7 @@ class ListarSemanasResponseTest {
     @DisplayName("El último cierre es la semana del primer resumen y se copia cada campo")
     void deShouldCopyEverySummaryAndTakeTheNewestAsLastClose() {
         whenSeResponde(
-                resumen(SEMANA, List.of(reajuste("Nuevo", new BigDecimal("110")))),
+                resumenConUnReajusteSubidoA110(),
                 resumen(SEMANA.minusWeeks(1), List.of()));
 
         thenElUltimoCierreEsLaSemanaMasNueva();
@@ -129,5 +129,9 @@ class ListarSemanasResponseTest {
     private static ReajusteMiniObjetivo reajuste(String tituloNuevo, BigDecimal metaNueva) {
         return new ReajusteMiniObjetivo(ReajusteMiniObjetivoId.nuevo(), MINI_ID, OTRO_MINI_ID,
                 TipoReajuste.SUBIR_META, "Lo lograste", "Viejo", new BigDecimal("100"), tituloNuevo, metaNueva, AHORA);
+    }
+
+    private static ResumenSemanal resumenConUnReajusteSubidoA110() {
+        return resumen(SEMANA, List.of(reajuste("Nuevo", new BigDecimal("110"))));
     }
 }

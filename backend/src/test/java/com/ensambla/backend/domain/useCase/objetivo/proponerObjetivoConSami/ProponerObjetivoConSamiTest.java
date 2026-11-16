@@ -194,7 +194,7 @@ class ProponerObjetivoConSamiTest {
     @Test
     @DisplayName("Una meta en pesos no arma mini-objetivos y no se puede guardar")
     void executeShouldReportAMonetaryGoal() {
-        givenLaIaResponde(new PropuestaObjetivoIa(RESPUESTA_IA, ENTENDIDO, true, List.of(medido("c1")), CONSUMO));
+        givenLaIaProponeUnaMetaEnPesos();
 
         whenSeProponeConIaHabilitada(mensajes());
 
@@ -250,7 +250,7 @@ class ProponerObjetivoConSamiTest {
     @Test
     @DisplayName("Si la IA no da una respuesta válida propone el respaldo, y su consumo queda registrado")
     void executeShouldFallBackWhenTheIaAnswerIsInvalid() {
-        givenLaIaResponde(new PropuestaObjetivoIa(" ", ENTENDIDO, false, List.of(), CONSUMO));
+        givenLaIaRespondeEnBlanco();
 
         whenSeProponeConIaHabilitada(mensajes());
 
@@ -455,5 +455,13 @@ class ProponerObjetivoConSamiTest {
 
     private static List<MensajeObjetivo> mensajeConUnCorreo() {
         return List.of(new MensajeObjetivo(RolMensaje.PERSONA, "Quiero cobrarle a ana@mail.com"));
+    }
+
+    private void givenLaIaProponeUnaMetaEnPesos() {
+        givenLaIaResponde(new PropuestaObjetivoIa(RESPUESTA_IA, ENTENDIDO, true, List.of(medido("c1")), CONSUMO));
+    }
+
+    private void givenLaIaRespondeEnBlanco() {
+        givenLaIaResponde(new PropuestaObjetivoIa(" ", ENTENDIDO, false, List.of(), CONSUMO));
     }
 }

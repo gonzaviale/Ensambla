@@ -73,7 +73,7 @@ class DecisionObjetivoPresentationMapperTest {
     @Test
     @DisplayName("Sin decisiones devuelve una lista vacía")
     void toResponseShouldReturnEmptyWeeks() {
-        whenSeMapeanLasSemanas(new ListarDecisionesResponse(List.of()));
+        whenSeMapeanLasSemanas(sinDecisiones());
 
         thenNoHaySemanas();
     }
@@ -138,5 +138,9 @@ class DecisionObjetivoPresentationMapperTest {
     private static ListarDecisionesResponse unaSemanaConDosDecisiones() {
         DecisionItem item = DecisionItem.de(decision(TipoDecision.PASO_ACEPTADO, null), EfectoDecision.SIN_MEDICION);
         return new ListarDecisionesResponse(List.of(new SemanaDecisiones(SEMANA, List.of(item, item))));
+    }
+
+    private static ListarDecisionesResponse sinDecisiones() {
+        return new ListarDecisionesResponse(List.of());
     }
 }

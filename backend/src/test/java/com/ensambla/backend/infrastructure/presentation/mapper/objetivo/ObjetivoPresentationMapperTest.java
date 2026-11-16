@@ -107,7 +107,7 @@ class ObjetivoPresentationMapperTest {
     @Test
     @DisplayName("Mapea todos los campos de los pasos y su rango de zona")
     void toResponseShouldMapEveryStepAndZoneField() {
-        whenSeMapeanLosPasos(new ObtenerPasosResponse(List.of(pasoConZona())));
+        whenSeMapeanLosPasos(pasosConZona());
 
         thenSeMapeanTodosLosCamposDelPasoYSuZona();
     }
@@ -115,7 +115,7 @@ class ObjetivoPresentationMapperTest {
     @Test
     @DisplayName("Conserva la zona vacía de un paso")
     void toResponseShouldKeepMissingZone() {
-        whenSeMapeanLosPasos(new ObtenerPasosResponse(List.of(pasoSinZona())));
+        whenSeMapeanLosPasos(pasosSinZona());
 
         thenElPasoNoTieneZona();
     }
@@ -123,7 +123,7 @@ class ObjetivoPresentationMapperTest {
     @Test
     @DisplayName("Sin pasos devuelve una lista vacía")
     void toResponseShouldAllowEmptyList() {
-        whenSeMapeanLosPasos(new ObtenerPasosResponse(List.of()));
+        whenSeMapeanLosPasos(sinPasos());
 
         thenNoHayPasos();
     }
@@ -239,5 +239,17 @@ class ObjetivoPresentationMapperTest {
 
     private static BigDecimal decimal(String valor) {
         return new BigDecimal(valor);
+    }
+
+    private static ObtenerPasosResponse pasosConZona() {
+        return new ObtenerPasosResponse(List.of(pasoConZona()));
+    }
+
+    private static ObtenerPasosResponse pasosSinZona() {
+        return new ObtenerPasosResponse(List.of(pasoSinZona()));
+    }
+
+    private static ObtenerPasosResponse sinPasos() {
+        return new ObtenerPasosResponse(List.of());
     }
 }
