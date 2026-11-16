@@ -5,6 +5,7 @@ import { IconSprite } from '@/components/sistema/IconSprite';
 import { ModalHost } from '@/components/sistema/ModalHost';
 import { Toast } from '@/components/sistema/Toast';
 import { Tutorial } from '@/components/sistema/tutorial/Tutorial';
+import { AccesosRapidos } from '@/components/caja/AccesosRapidos';
 import { useUsuarioOpcional } from '@/hooks/auth/queries';
 import { usePreferencias } from '@/hooks/preferencias/queries';
 import { useSistemasDelServidor } from '@/hooks/sistemas/queries';
@@ -64,6 +65,7 @@ function PantallaConAvisosYGuia() {
   return (
     <>
       <Outlet />
+      <AccesosRapidos />
       <MotorDeAvisos />
       <Tutorial />
     </>
