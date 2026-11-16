@@ -2,6 +2,12 @@
 
 ## Base y entregas
 
+Actualización de alcance: por indicación de Nach0, el emparejamiento celular–PC (ENS-328 a ENS-331)
+queda postergado. El protocolo de abajo es sólo una propuesta; no hay endpoints ni WebSockets
+implementados ni se habilita esa opción en la aplicación. El trabajo activo es presentación mobile,
+accesibilidad y accesos rápidos. El enlace para probar la aplicación desde el celular es un tema
+distinto del emparejamiento y no autoriza cambios de Caddy, pipelines, deploy o runtimes.
+
 Rama: feat/ENS-327-caja-mobile. Base dev actualizada, con la dependencia local del PR #93.
 No publicar un PR que vuelva a incluir Caja completa: integrar primero #93 a dev y actualizar esta rama.
 Todos los PR futuros tienen destino dev. No se modifican workflows, deploy, Caddy, runtimes ni políticas globales de migración.
@@ -81,6 +87,24 @@ parte implícita de la historia. Si el entorno requiere un ajuste de proxy para 
 el archivo y el impacto por separado antes de modificarlo. No agregar etapas ni disparadores de CI.
 
 ## Aceptación pendiente
+
+### Revisión de presentación realizada
+
+- Navegador a 375 px: Inicio, Avisos, Objetivos, Zona y Planes sin desborde horizontal de página.
+  Se corrigieron las evidencias del aviso económico del inicio, que excedían el ancho disponible.
+- Cabecera compacta a 375 px: símbolo de marca, controles y selector de negocio sin quitar navegación.
+  Botones del menú medidos en 46 px de alto.
+- Compra de dos artículos a 375×812 y 768×1024: página y lista sin scroll adicional.
+- Componente real de cobro en un escenario visual aislado: 375×667 y 768×1024, sin desborde
+  horizontal ni scroll del cuerpo, incluso con pago parcial y mixto. Confirmación visible al pie.
+- Los diálogos incluyen los selectores en el ciclo de Tab, omiten controles deshabilitados,
+  conservan el foco al cambiar el estado de guardado y restauran el foco al cerrar.
+  Su altura se ajusta al viewport visual disponible; falta comprobar el teclado físico de Safari y Android.
+- El flotante se oculta ante un diálogo o al editar texto en mobile y cierra sus acciones al cambiar de negocio.
+
+La demo completa quedó en «Guardando inventario» al preparar Caja: no se validó el cobro de punta a punta
+en ese recorrido. La revisión visual aislada no demuestra persistencia de una venta ni sustituye
+la prueba con backend. No se modificó la sincronización ni se atribuyó una causa sin confirmarla.
 
 Android Chrome e iPhone Safari reales: cámara, orientación, teclado, enfoque, desconexión, caducidad,
 lecturas repetidas, varias tablas y cambio de negocio. Emparejar en redes distintas y comprobar

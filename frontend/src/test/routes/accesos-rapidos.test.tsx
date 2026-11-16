@@ -1,10 +1,32 @@
 import { describe, it } from 'vitest';
-import { givenInicioConNegocioElegido, whenAbreAccesos, whenEligeVenta, whenEligeInventario,
-  thenCajaSinFlotante, thenLectorDelNegocioActual, whenCierraConEscape, thenRecuperaFoco,
+import {
+  givenInicioConNegocioElegido,
+  whenAbreAccesos,
+  whenEligeVenta,
+  whenEligeInventario,
+  thenCajaSinFlotante,
+  thenLectorDelNegocioActual,
+  whenCierraConEscape,
+  thenRecuperaFoco,
   thenPrimeraAccionEnfocada,
+  whenCambiaNegocioConAccesosAbiertos,
+  whenSaleConTeclado,
+  thenMenuDeAccesosCerrado,
 } from '@/test/caja/accesosRapidosHelpers';
 
 describe('accesos rápidos del negocio', () => {
+  it('cierra las acciones anteriores cuando cambia de negocio en la misma pantalla', async () => {
+    const caso = await givenInicioConNegocioElegido();
+    await whenAbreAccesos(caso);
+    await whenCambiaNegocioConAccesosAbiertos();
+    thenMenuDeAccesosCerrado();
+  });
+  it('cierra el panel cuando el teclado sale de sus acciones', async () => {
+    const caso = await givenInicioConNegocioElegido();
+    await whenAbreAccesos(caso);
+    await whenSaleConTeclado(caso);
+    thenMenuDeAccesosCerrado();
+  });
   it('abre Caja desde otra sección y oculta el flotante durante la venta', async () => {
     const caso = await givenInicioConNegocioElegido();
     await whenAbreAccesos(caso);

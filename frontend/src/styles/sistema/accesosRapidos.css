@@ -37,6 +37,29 @@
   color: var(--petrol, #005064);
   border: 1px solid currentColor;
 }
-.acciones-rapidas-inventarios { display: grid; gap: 8px; max-height: 35dvh; overflow-y: auto; }
-.acciones-rapidas :focus-visible { outline: 3px solid var(--orange, #ed8600); outline-offset: 3px; }
-#app:has(.acciones-rapidas) { padding-bottom: 88px; }
+.acciones-rapidas-inventarios {
+  display: grid;
+  gap: 8px;
+  max-height: 35dvh;
+  overflow-y: auto;
+}
+.acciones-rapidas :focus-visible {
+  outline: 3px solid var(--orange, #ed8600);
+  outline-offset: 3px;
+}
+#app:has(.acciones-rapidas) {
+  padding-bottom: 88px;
+}
+.mk-root:has([aria-modal='true']) .acciones-rapidas {
+  display: none;
+}
+@media (max-width: 800px) {
+  .mk-root:has(
+      input:not([type='checkbox']):not([type='radio']):focus,
+      textarea:focus,
+      [contenteditable='true']:focus
+    )
+    .acciones-rapidas {
+    display: none;
+  }
+}

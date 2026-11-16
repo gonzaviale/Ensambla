@@ -9,13 +9,17 @@ export function useAccesosRapidos() {
   const negocio = useSistemaStore(seleccionarNegocioActivo);
   const modal = useSistemaStore((estado) => estado.modal);
   const navegacion = useNavegacion();
-  const [menu, cambiarMenu] = useState({ ruta: ubicacion.pathname, abierto: false });
-  const abierto = menu.ruta === ubicacion.pathname && menu.abierto;
-  const cambiarAbierto = (valor: boolean) => cambiarMenu({ ruta: ubicacion.pathname, abierto: valor });
+  const contexto = `${ubicacion.href}:${negocio?.id ?? ''}`;
+  const [menu, cambiarMenu] = useState({ contexto, abierto: false });
+  const abierto = menu.contexto === contexto && menu.abierto;
+  const cambiarAbierto = (valor: boolean) => cambiarMenu({ contexto, abierto: valor });
   const oculto = ubicacion.pathname === '/caja' || !!ubicacion.search.escanear || !!modal;
   const inventarios = allBlocks(negocio).filter((bloque) => bloque.type === 'inventory');
   const cerrar = () => cambiarAbierto(false);
-  const vender = () => { cerrar(); void navegacion.irACaja(); };
+  const vender = () => {
+    cerrar();
+    void navegacion.irACaja();
+  };
   const escanear = (id: string) => {
     if (!negocio) return;
     cerrar();
