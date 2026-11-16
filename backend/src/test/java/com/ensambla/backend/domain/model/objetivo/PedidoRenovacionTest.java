@@ -11,40 +11,66 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class PedidoRenovacionTest {
 
+    private MiniObjetivo mini;
+    private RespuestaMiniObjetivo respuesta;
+    private PedidoRenovacion pedido;
+
     @Test
     @DisplayName("Lleva la acción anterior, qué hacer con ella y lo que respondió la persona")
     void deShouldCarryThePreviousActionAndTheAnswer() {
-        MiniObjetivo mini = miniManual();
-        RespuestaMiniObjetivo respuesta = RespuestaMiniObjetivo.de(
-                mini, HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO, "Hablé con 1 sola vecina", AHORA);
+        givenUnaRespuesta(HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO, "Hablé con 1 sola vecina");
 
-        PedidoRenovacion result = PedidoRenovacion.de(mini, respuesta);
+        whenSeArmaElPedido();
 
-        assertThat(result.accion()).isEqualTo(AccionRenovacion.SE_DIVIDE);
-        assertThat(result.titulo()).isEqualTo(TITULO_MANUAL);
-        assertThat(result.justificacion()).isEqualTo(JUSTIFICACION_MANUAL);
-        assertThat(result.hizo()).isEqualTo(HizoManual.EN_PARTE);
-        assertThat(result.quePaso()).isEqualTo(QuePaso.NO_TUVE_TIEMPO);
-        assertThat(result.comentario()).isEqualTo("Hablé con 1 sola vecina");
+        thenElPedidoLlevaLaAccionAnteriorYLaRespuesta();
     }
 
     @Test
     @DisplayName("A la IA no le llegan correos ni teléfonos del comentario")
     void deShouldHidePersonalDataOfTheComment() {
-        MiniObjetivo mini = miniManual();
-        RespuestaMiniObjetivo respuesta = RespuestaMiniObjetivo.de(
-                mini, HizoManual.SI, QuePaso.FUNCIONO, "Le escribí a ana@mail.com y al 11 5555 5555", AHORA);
+        givenUnaRespuesta(HizoManual.SI, QuePaso.FUNCIONO, "Le escribí a ana@mail.com y al 11 5555 5555");
 
-        assertThat(PedidoRenovacion.de(mini, respuesta).comentario())
-                .isEqualTo("Le escribí a [dato oculto] y al [dato oculto]");
+        whenSeArmaElPedido();
+
+        thenElComentarioEs("Le escribí a [dato oculto] y al [dato oculto]");
     }
 
     @Test
     @DisplayName("Sin comentario el pedido queda sin comentario")
     void deShouldKeepAMissingComment() {
-        MiniObjetivo mini = miniManual();
-        RespuestaMiniObjetivo respuesta = RespuestaMiniObjetivo.de(mini, HizoManual.NO, QuePaso.OTRA, null, AHORA);
+        givenUnaRespuesta(HizoManual.NO, QuePaso.OTRA, null);
 
-        assertThat(PedidoRenovacion.de(mini, respuesta).comentario()).isNull();
+        whenSeArmaElPedido();
+
+        thenNoHayComentario();
+    }
+
+    // --- arrange ---
+    private void givenUnaRespuesta(HizoManual hizo, QuePaso quePaso, String comentario) {
+        mini = miniManual();
+        respuesta = RespuestaMiniObjetivo.de(mini, hizo, quePaso, comentario, AHORA);
+    }
+
+    // --- act ---
+    private void whenSeArmaElPedido() {
+        pedido = PedidoRenovacion.de(mini, respuesta);
+    }
+
+    // --- assert ---
+    private void thenElPedidoLlevaLaAccionAnteriorYLaRespuesta() {
+        assertThat(pedido.accion()).isEqualTo(AccionRenovacion.SE_DIVIDE);
+        assertThat(pedido.titulo()).isEqualTo(TITULO_MANUAL);
+        assertThat(pedido.justificacion()).isEqualTo(JUSTIFICACION_MANUAL);
+        assertThat(pedido.hizo()).isEqualTo(HizoManual.EN_PARTE);
+        assertThat(pedido.quePaso()).isEqualTo(QuePaso.NO_TUVE_TIEMPO);
+        assertThat(pedido.comentario()).isEqualTo("Hablé con 1 sola vecina");
+    }
+
+    private void thenElComentarioEs(String esperado) {
+        assertThat(pedido.comentario()).isEqualTo(esperado);
+    }
+
+    private void thenNoHayComentario() {
+        assertThat(pedido.comentario()).isNull();
     }
 }
