@@ -109,19 +109,19 @@ export function MiniObjetivoCard({ mini, decidido, ocupado, onDecidir, onRestaur
           <>
             <button
               type="button"
-              className="btn primary"
-              disabled={ocupado}
-              onClick={() => onDecidir('ACEPTADO')}
-            >
-              <CheckIcon aria-hidden size={16} /> Lo hago
-            </button>
-            <button
-              type="button"
               className="btn secondary"
               disabled={ocupado}
               onClick={() => onDecidir('IGNORADO')}
             >
               <ClockIcon aria-hidden size={16} /> Dejarlo para después
+            </button>
+            <button
+              type="button"
+              className="btn primary"
+              disabled={ocupado}
+              onClick={() => onDecidir('ACEPTADO')}
+            >
+              <CheckIcon aria-hidden size={16} /> Lo hago
             </button>
           </>
         )}
