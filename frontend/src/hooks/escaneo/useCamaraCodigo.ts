@@ -17,7 +17,7 @@ import type { CamaraDelLector } from '@/types/escaneo';
 const PLAZO_INICIO_MS = 15_000;
 const AVISO_SIN_LECTURA_MS = 8_000;
 
-export function useCamaraCodigo(onCodigo: (codigo: string) => void) {
+export function useCamaraCodigo(onCodigo: (codigo: string) => void, continua = false) {
   const video = useRef<HTMLVideoElement>(null);
   const callback = useRef(onCodigo);
   const usarAutomatica = useRef(false);
@@ -39,6 +39,8 @@ export function useCamaraCodigo(onCodigo: (codigo: string) => void) {
     if (!abierta || !elemento) return;
     let cancelado = false;
     let recibido = false;
+    let codigoAnterior = '';
+    let sinCodigoDesde: number | undefined;
     let controles: IScannerControls | undefined;
     let controlDetenido = false;
     let stream: MediaStream | undefined;
@@ -183,6 +185,20 @@ export function useCamaraCodigo(onCodigo: (codigo: string) => void) {
           (resultado, errorDeLectura, control) => {
             if (cancelado || recibido) return;
             if (resultado) {
+              if (continua) {
+                const texto = resultado.getText();
+                clearTimeout(aviso);
+                if (codigoAnterior === texto) {
+                  sinCodigoDesde = undefined;
+                  return;
+                }
+                codigoAnterior = texto;
+                sinCodigoDesde = undefined;
+                recordarCamaraComprobada(idComprobado);
+                setSinLectura(false);
+                callback.current(texto);
+                return;
+              }
               recibido = true;
               cancelado = true;
               recordarCamaraComprobada(idComprobado);
@@ -190,6 +206,9 @@ export function useCamaraCodigo(onCodigo: (codigo: string) => void) {
               setIniciando(false);
               setAbierta(false);
               callback.current(resultado.getText());
+            } else if (continua && errorDeLectura instanceof NotFoundException) {
+              sinCodigoDesde ??= Date.now();
+              if (Date.now() - sinCodigoDesde >= 600) codigoAnterior = '';
             } else if (
               errorDeLectura &&
               !(errorDeLectura instanceof NotFoundException) &&
@@ -243,7 +262,7 @@ export function useCamaraCodigo(onCodigo: (codigo: string) => void) {
       liberar();
       document.removeEventListener('visibilitychange', alOcultar);
     };
-  }, [abierta, sesion, camaraId]);
+  }, [abierta, sesion, camaraId, continua]);
 
   const abrir = () => {
     setError('');

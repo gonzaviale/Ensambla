@@ -12,6 +12,8 @@ import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
+import com.ensambla.backend.domain.repository.caja.CobroCajaRepository;
+import com.ensambla.backend.domain.repository.caja.VentaCajaRepository;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,7 +35,8 @@ class ProductosPropiosServiceTest {
     private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
     private final RegistroRepository registroRepository = mock(RegistroRepository.class);
     private final ProductosPropiosService service = new ProductosPropiosService(
-            proyectoRepository, new DatosDeProyectoService(registroRepository));
+            proyectoRepository, new DatosDeProyectoService(registroRepository,
+                    mock(VentaCajaRepository.class), mock(CobroCajaRepository.class)));
 
     @Test
     @DisplayName("Devuelve los nombres del inventario sin las filas de ejemplo ni las sin nombre")

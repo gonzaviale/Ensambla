@@ -14,6 +14,8 @@ import com.ensambla.backend.domain.model.reporte.BloqueGastos;
 import com.ensambla.backend.domain.model.reporte.DatosDeProyecto;
 import com.ensambla.backend.domain.model.sistema.Sistema;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
+import com.ensambla.backend.domain.repository.caja.CobroCajaRepository;
+import com.ensambla.backend.domain.repository.caja.VentaCajaRepository;
 import lombok.RequiredArgsConstructor;
 
 import java.util.LinkedHashMap;
@@ -30,20 +32,23 @@ import java.util.function.Function;
 public class DatosDeProyectoService {
 
     private final RegistroRepository registroRepository;
+    private final VentaCajaRepository ventaCajaRepository;
+    private final CobroCajaRepository cobroCajaRepository;
 
     public DatosDeProyecto cargar(Proyecto proyecto, NegocioId negocioId) {
-        return cargar(proyecto, bloque -> registrosReales(bloque, negocioId));
+        return cargar(proyecto, negocioId, bloque -> registrosReales(bloque, negocioId));
     }
 
     /** Reutiliza un sistema ya cargado en lote, sin volver a consultar sus filas. */
     public DatosDeProyecto cargar(Sistema sistema) {
-        return cargar(sistema.proyecto(), bloque -> sistema.registrosPorBloque()
+        return cargar(sistema.proyecto(), sistema.proyecto().getNegocioId(), bloque -> sistema.registrosPorBloque()
                 .getOrDefault(bloque.getId(), List.of()).stream()
                 .filter(registro -> !registro.esDeEjemplo())
                 .toList());
     }
 
-    private DatosDeProyecto cargar(Proyecto proyecto, Function<Bloque, List<Registro>> registrosDe) {
+    private DatosDeProyecto cargar(Proyecto proyecto, NegocioId negocioId,
+                                   Function<Bloque, List<Registro>> registrosDe) {
         BloqueId entradasId = proyecto.getBloques().stream()
                 .filter(bloque -> bloque.getTipo() == TipoBloque.ENTRADAS)
                 .map(Bloque::getId)
@@ -67,7 +72,9 @@ public class DatosDeProyectoService {
                 delTipo(proyecto, TipoBloque.ENTRADAS).stream()
                         .map(bloque -> new BloqueEntradas(
                                 bloque, camposPorClave(bloque), registrosDe.apply(bloque)))
-                        .toList());
+                        .toList(),
+                ventaCajaRepository.listarPorProyecto(negocioId, proyecto.getId()),
+                cobroCajaRepository.listarPorProyecto(negocioId, proyecto.getId()));
     }
 
     /** El nombre (campo {@code name}) de cada fila de las tablas de clientes, por id de la fila. */

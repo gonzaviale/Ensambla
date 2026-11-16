@@ -16,6 +16,14 @@ V3 carga Inventario, Pedidos y Clientes
 como plantillas globales; sus UUID coinciden con los del modo simulado del frontend. Este documento explica el
 porqué; si cambian, se actualizan juntos.
 
+## Caja: cobros posteriores (V37 · ENS-317)
+
+`cobro_caja` conserva cada pago de deuda con id propio, negocio, proyecto, inventario, fecha del servidor y aplicaciones a una o varias ventas del mismo cliente. Los importes y medios viven en el JSON inmutable; `cierre_id` vincula el movimiento al período en que se recibió. No se editan migraciones anteriores.
+
+`venta_caja.datos` conserva `clienteId`, `clienteNombre` y `pagosIniciales`, además de los pagos acumulados. Un cobro actualiza sólo ese acumulado, con bloqueo por negocio y en la misma transacción que el movimiento nuevo; conserva el cierre original de la venta. El saldo y el estado se calculan desde total y pagos. Los datos JSON anteriores, sin `pagosIniciales` ni cobros de deuda en el resumen de cierre, siguen siendo legibles.
+
+El cierre guarda una foto de ventas, cobros y saldos. Recibir después un pago modifica el estado actual de la venta y el nuevo período de caja; el cierre anterior conserva sus importes. Ver el contrato y la prueba de aceptación en [caja-clientes-y-cobros.md](caja-clientes-y-cobros.md).
+
 ## Convenciones
 
 - Nombres en **español, `snake_case`, sin tildes**; tablas en **singular**.
@@ -678,6 +686,23 @@ pocos bloques por negocio, mandarlos en el prompt es más simple y barato que ma
 falta buscar registros "parecidos" o deduplicar con muchos datos, se agrega en una migración nueva
 (`CREATE EXTENSION vector`, columna `vector(n)` + índice HNSW) y la imagen `pgvector/pgvector:pg17` en Docker y
 Testcontainers.
+
+## Caja: importes libres y movimientos (ENS-317)
+
+El JSON de `venta_caja.datos.lineas` admite `productoId: null` para una línea por importe libre,
+con nombre descriptivo, cantidad 1 y precio/importe positivos. No se crea un registro de inventario.
+La tabla genérica Ventas conserva la línea sin relación Producto y con el origen canónico Caja + id.
+La descripción queda en el comprobante. Inicio incorpora los importes libres desde ese comprobante, sin productos ficticios.
+Los pagos y cobros posteriores conservan el mismo esquema; las cuentas agrupadas son una proyección de lectura.
+No se modifica ninguna migración aplicada ni hace falta agregar columnas para estos datos.
+
+Una salida de caja reutiliza `movimiento_stock`: sincroniza el saldo con la cantidad actual del inventario
+mediante un ajuste identificado cuando difiere y registra luego una SALIDA por la venta.
+Venta, cantidades, ajuste y salida comparten transacción y bloqueo por negocio; el reintento no crea movimientos.
+Los importes libres y artículos sin control de stock no generan salidas.
+Los cierres nuevos exigen recuento y motivo de diferencias en el modelo; los JSON históricos con null se siguen leyendo.
+
+Ver [contratos y anulación](caja-contratos.md) y [aceptación](caja-validacion.md).
 
 ## Qué queda para después
 

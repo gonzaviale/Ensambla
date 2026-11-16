@@ -64,11 +64,11 @@ beforeEach(() => {
   });
 });
 
-async function abrirLector() {
+async function abrirLector(continua = false) {
   const camara = crearCamara();
   pedirCamara.mockResolvedValueOnce(camara.stream);
   const onCodigo = vi.fn();
-  const hook = renderHook(() => useCamaraCodigo(onCodigo));
+  const hook = renderHook(() => useCamaraCodigo(onCodigo, continua));
   const video = document.createElement('video');
   hook.result.current.video.current = video;
   act(() => hook.result.current.abrir());
@@ -78,6 +78,28 @@ async function abrirLector() {
 }
 
 describe('ciclo de vida del lector con cámara', () => {
+  it('en Caja ignora fotogramas repetidos y agrega nuevamente después de retirar el código', async () => {
+    const {onCodigo,result}=await abrirLector(true);
+    await act(()=>emitir(0,'77903754'));
+    await act(()=>emitir(0,'77903754'));
+    expect(onCodigo).toHaveBeenCalledTimes(1);
+    expect(result.current.abierta).toBe(true);
+    let instante=1000;
+    vi.spyOn(Date,'now').mockImplementation(()=>instante);
+    await act(()=>emitir(0,undefined,new NotFoundException()));
+    instante+=601;
+    await act(()=>emitir(0,undefined,new NotFoundException()));
+    await act(()=>emitir(0,'77903754'));
+    expect(onCodigo).toHaveBeenCalledTimes(2);
+  });
+
+  it('en Caja agrega productos distintos sin reiniciar la cámara', async () => {
+    const {onCodigo,pista}=await abrirLector(true);
+    await act(()=>emitir(0,'77903754'));
+    await act(()=>emitir(0,'7790895000997'));
+    expect(onCodigo).toHaveBeenCalledTimes(2);
+    expect(pista.stop).not.toHaveBeenCalled();
+  });
   const dispositivos = [
     { kind: 'videoinput', deviceId: 'ultra', label: 'camera 2, facing back ultra wide' },
     { kind: 'videoinput', deviceId: 'principal', label: 'camera 0, facing back' },

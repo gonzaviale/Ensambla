@@ -3,6 +3,11 @@ import type { CamaraDelLector } from './escaneo';
 
 export type PanelLector = 'codigo' | 'ajustes' | null;
 
+export type PropsLectorCodigos = Omit<LectorInventario, 'panel' | 'onPanel' | 'mensaje'> & {
+  continua?: boolean;
+  compacto?: boolean;
+};
+
 export type LectorInventario = {
   codigo: string;
   buscando: boolean;

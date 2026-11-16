@@ -47,6 +47,7 @@ export function useNavegacion() {
   const irA = (
     to:
       | '/inicio'
+      | '/caja'
       | '/plantillas'
       | '/taller'
       | '/zona'
@@ -73,6 +74,7 @@ export function useNavegacion() {
 
   return {
     irAInicio: () => irA('/inicio'),
+    irACaja: () => irA('/caja'),
     irAEscaneoInventario: (cuaderno: string, inventarioId: string) => {
       limpiar();
       useSistemaStore.getState().verTablaCompleta(null);
