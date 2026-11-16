@@ -299,3 +299,13 @@ Moneda en pesos argentinos, mes de noviembre de 2026. Los números salen del sis
   nuevo, el ahorro y el descuento en porcentaje entero. Todo se calcula en el servidor con `BigDecimal`.
 - Cada tipo de aviso es una fuente (`FuenteDePromocion`); sumar otra es sumar una clase. Los números de la promoción son
   los que después se le pasan a `POST /api/carteles/textos`, que descarta cualquier número que no esté entre ellos.
+
+## Cómo quedó la descarga (T-269 · ENS-368)
+
+- `POST /api/carteles/exportar` baja el cartel elegido: PDF en A4 y A5 (página del tamaño exacto, con los márgenes de
+  impresión de la composición) y PNG en cuadrado y vertical. Devuelve el archivo con `Content-Disposition`.
+- Cada salida tiene su exportador (`ExportadorPdfDeCartel` con OpenPDF y `ExportadorPngDeCartel` con `Graphics2D`) que
+  recorre las mismas piezas que la vista previa. Limitación conocida: las descargas usan Helvetica (PDF) y la sans
+  del sistema (PNG); la tipografía propia del negocio se ve en la vista previa y todavía no se incrusta en el archivo.
+- Compartir por WhatsApp y copiar el texto del posteo son acciones de la pantalla (usan el archivo descargado y el
+  `textoPosteo` de `POST /api/carteles/textos`).

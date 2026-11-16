@@ -4,9 +4,11 @@ import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.cartel.armarOpcionesDeCartel.ArmarOpcionesDeCartelRequest;
 import com.ensambla.backend.domain.useCase.cartel.armarOpcionesDeCartel.ArmarOpcionesDeCartelResponse;
 import com.ensambla.backend.domain.useCase.cartel.TextosDeCartelItem;
+import com.ensambla.backend.domain.useCase.cartel.exportarCartel.ExportarCartelRequest;
 import com.ensambla.backend.domain.useCase.cartel.sugerirPromociones.SugerirPromocionesRequest;
 import com.ensambla.backend.domain.useCase.cartel.sugerirPromociones.SugerirPromocionesResponse;
 import com.ensambla.backend.domain.useCase.cartel.redactarTextosDeCartel.RedactarTextosDeCartelRequest;
+import com.ensambla.backend.infrastructure.presentation.dto.cartel.ExportarCartelWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.cartel.OpcionesDeCartelResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.cartel.OpcionesDeCartelWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.cartel.PromocionesSugeridasResponse;
@@ -57,5 +59,18 @@ public class CartelPresentationMapper {
                         promocion.tipo(), promocion.productos(), promocion.precioAnterior(), promocion.precioNuevo(),
                         promocion.ahorro(), promocion.descuentoPorcentaje()))
                 .toList());
+    }
+
+    public ExportarCartelRequest toExportarRequest(UsuarioId usuarioId, ExportarCartelWebRequest request) {
+        return new ExportarCartelRequest(
+                usuarioId,
+                request.variante(),
+                request.tipo(),
+                request.formato(),
+                request.titular(),
+                request.bajada(),
+                request.protagonista(),
+                request.detalle(),
+                request.lineas() == null ? List.of() : request.lineas());
     }
 }

@@ -10,6 +10,9 @@ import com.ensambla.backend.domain.useCase.cartel.TextosDeCartelItem;
 import com.ensambla.backend.domain.useCase.cartel.sugerirPromociones.SugerirPromocionesRequest;
 import com.ensambla.backend.domain.useCase.cartel.sugerirPromociones.SugerirPromocionesResponse;
 import com.ensambla.backend.domain.useCase.cartel.redactarTextosDeCartel.RedactarTextosDeCartel;
+import com.ensambla.backend.domain.useCase.cartel.exportarCartel.ExportarCartel;
+import com.ensambla.backend.domain.useCase.cartel.exportarCartel.ExportarCartelRequest;
+import com.ensambla.backend.domain.useCase.cartel.exportarCartel.ExportarCartelResponse;
 import com.ensambla.backend.domain.useCase.cartel.sugerirPromociones.SugerirPromociones;
 import com.ensambla.backend.domain.useCase.cartel.redactarTextosDeCartel.RedactarTextosDeCartelRequest;
 import com.ensambla.backend.domain.useCase.cartel.armarOpcionesDeCartel.ArmarOpcionesDeCartel;
@@ -28,6 +31,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import java.math.BigDecimal;
 import java.util.List;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -35,6 +39,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -45,6 +51,7 @@ class CartelControllerTest {
     private final ArmarOpcionesDeCartel armarOpciones = mock(ArmarOpcionesDeCartel.class);
     private final RedactarTextosDeCartel redactarTextos = mock(RedactarTextosDeCartel.class);
     private final SugerirPromociones sugerirPromociones = mock(SugerirPromociones.class);
+    private final ExportarCartel exportarCartel = mock(ExportarCartel.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
     private MockMvc mockMvc;
@@ -52,7 +59,7 @@ class CartelControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcDePrueba.standalone(new CartelController(armarOpciones, redactarTextos, sugerirPromociones, new CartelPresentationMapper()))
+        mockMvc = MockMvcDePrueba.standalone(new CartelController(armarOpciones, redactarTextos, sugerirPromociones, exportarCartel, new CartelPresentationMapper()))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -146,5 +153,51 @@ class CartelControllerTest {
                 .andExpect(jsonPath("$.promociones[0].ahorro").value(500))
                 .andExpect(jsonPath("$.promociones[0].descuentoPorcentaje").value(20));
         verify(sugerirPromociones).execute(new SugerirPromocionesRequest(USUARIO_ID));
+    }
+
+    @Test
+    @DisplayName("POST de exportar devuelve el archivo con su tipo y su nombre para descargar")
+    void exportarShouldReturnTheFile() throws Exception {
+        when(exportarCartel.execute(any())).thenReturn(
+                new ExportarCartelResponse(new byte[] {7, 8}, "application/pdf", "cartel-promo-precio-a4.pdf"));
+
+        respuesta = mockMvc.perform(post("/api/carteles/exportar").principal(principal)
+                .contentType("application/json")
+                .content("{\"variante\":\"BLOQUE\",\"tipo\":\"PROMO_PRECIO\",\"formato\":\"A4\","
+                        + "\"titular\":\"Aceite\"}"));
+
+        respuesta.andExpect(status().isOk())
+                .andExpect(content().contentType("application/pdf"))
+                .andExpect(header().string("Content-Disposition", containsString("cartel-promo-precio-a4.pdf")))
+                .andExpect(content().bytes(new byte[] {7, 8}));
+    }
+
+    @Test
+    @DisplayName("POST de exportar pasa las líneas de la lista al caso de uso")
+    void exportarShouldPassTheLines() throws Exception {
+        when(exportarCartel.execute(any())).thenReturn(
+                new ExportarCartelResponse(new byte[] {1}, "image/png", "cartel-lista-precios-vertical.png"));
+
+        respuesta = mockMvc.perform(post("/api/carteles/exportar").principal(principal)
+                .contentType("application/json")
+                .content("{\"variante\":\"MARCO\",\"tipo\":\"LISTA_PRECIOS\",\"formato\":\"VERTICAL\","
+                        + "\"titular\":\"Lista\",\"lineas\":[\"Yerba $2.500\"]}"));
+
+        respuesta.andExpect(status().isOk()).andExpect(content().contentType("image/png"));
+        verify(exportarCartel).execute(new ExportarCartelRequest(
+                USUARIO_ID, VarianteDeComposicion.MARCO,
+                TipoDeCartel.LISTA_PRECIOS, FormatoDeCartel.VERTICAL, "Lista", null, null, null,
+                List.of("Yerba $2.500")));
+    }
+
+    @Test
+    @DisplayName("POST de exportar sin formato se rechaza sin tocar el caso de uso")
+    void exportarShouldRejectMissingFormat() throws Exception {
+        respuesta = mockMvc.perform(post("/api/carteles/exportar").principal(principal)
+                .contentType("application/json")
+                .content("{\"variante\":\"BLOQUE\",\"tipo\":\"PROMO_PRECIO\",\"titular\":\"Aceite\"}"));
+
+        respuesta.andExpect(status().isBadRequest());
+        verifyNoInteractions(exportarCartel);
     }
 }

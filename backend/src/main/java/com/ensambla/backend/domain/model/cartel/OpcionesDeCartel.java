@@ -18,4 +18,11 @@ public final class OpcionesDeCartel {
                 .map(variante -> variante.componer(kit, formato, contenido))
                 .toList();
     }
+
+    /** Una sola de las composiciones, la que la persona eligió. */
+    public static ComposicionDeCartel componer(VarianteDeComposicion variante, KitDeMarca kit, TipoDeCartel tipo,
+                                               FormatoDeCartel formato, ContenidoDeCartel contenido) {
+        tipo.exigirLineasAdmitidas(contenido.lineas().size());
+        return variante.componer(kit, formato, contenido);
+    }
 }

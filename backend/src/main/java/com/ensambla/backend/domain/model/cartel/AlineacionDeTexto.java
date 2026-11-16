@@ -3,13 +3,20 @@ package com.ensambla.backend.domain.model.cartel;
 /** Hacia dónde se alinea un texto; el valor de {@code ancla} es el que usa el dibujo. */
 public enum AlineacionDeTexto {
 
-    IZQUIERDA("start"),
-    CENTRO("middle");
+    IZQUIERDA("start", 0),
+    CENTRO("middle", -0.5);
 
     private final String ancla;
+    private final double desplazamiento;
 
-    AlineacionDeTexto(String ancla) {
+    AlineacionDeTexto(String ancla, double desplazamiento) {
         this.ancla = ancla;
+        this.desplazamiento = desplazamiento;
+    }
+
+    /** Dónde empieza un texto de ese ancho para quedar alineado en el punto {@code x}. */
+    public double inicioDe(double x, double anchoDelTexto) {
+        return x + anchoDelTexto * desplazamiento;
     }
 
     public String ancla() {

@@ -30,6 +30,22 @@ class CartelModeloBasicoTest {
     }
 
     @Test
+    @DisplayName("Las hojas se bajan en PDF y los formatos de redes en PNG, y cada salida conoce su archivo")
+    void formatoShouldKnowItsOutput() {
+        assertThat(FormatoDeCartel.A5.salida()).isEqualTo(SalidaDeCartel.PDF);
+        assertThat(FormatoDeCartel.VERTICAL.salida()).isEqualTo(SalidaDeCartel.PNG);
+        assertThat(SalidaDeCartel.PNG.tipoMime()).isEqualTo("image/png");
+        assertThat(SalidaDeCartel.PDF.extension()).isEqualTo("pdf");
+    }
+
+    @Test
+    @DisplayName("Un texto centrado empieza medio ancho antes de su punto y uno a la izquierda, en el punto")
+    void alineacionShouldStartTheTextAtTheRightPlace() {
+        assertThat(AlineacionDeTexto.CENTRO.inicioDe(500, 200)).isEqualTo(400);
+        assertThat(AlineacionDeTexto.IZQUIERDA.inicioDe(500, 200)).isEqualTo(500);
+    }
+
+    @Test
     @DisplayName("Un tipo de cartel admite hasta su máximo de líneas y rechaza más")
     void tipoShouldLimitTheLines() {
         TipoDeCartel.LISTA_PRECIOS.exigirLineasAdmitidas(10);
