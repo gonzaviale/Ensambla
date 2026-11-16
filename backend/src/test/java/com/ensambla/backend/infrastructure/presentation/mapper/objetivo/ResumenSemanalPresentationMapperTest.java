@@ -34,26 +34,52 @@ class ResumenSemanalPresentationMapperTest {
     private static final LocalDate SEMANA = LocalDate.of(2026, 11, 9);
 
     private final ResumenSemanalPresentationMapper mapper = new ResumenSemanalPresentationMapper();
+    private ListarSemanasRequest pedido;
+    private SemanasObjetivoResponse respuesta;
 
     @Test
     @DisplayName("Arma el pedido con el usuario de la sesión y el objetivo")
     void toRequestShouldCarryTheUserAndTheObjetivo() {
-        ListarSemanasRequest result = mapper.toRequest(USUARIO_ID, OBJETIVO_ID);
+        whenSeArmaElPedido();
 
-        assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(result.objetivoId()).isEqualTo(OBJETIVO_ID);
+        thenElPedidoTraeUsuarioYObjetivo();
     }
 
     @Test
     @DisplayName("Copia cada semana con sus decisiones y reajustes; un reajuste sin nuevo queda sin «a»")
     void toResponseShouldCopyEveryWeek() {
-        SemanasObjetivoResponse result = mapper.toResponse(new ListarSemanasResponse(SEMANA, List.of(new SemanaItem(
-                SEMANA, BigDecimal.TEN, BigDecimal.ONE, new DecisionesItem(1, 2, 3, 4), "Bien", true, List.of(
-                        new ReajusteItem(TipoReajuste.REEMPLAZAR, "Sin avance", new MiniItem("Viejo", BigDecimal.ONE),
-                                null)), MANUALES))));
+        whenSeMapeanLasSemanas(new ListarSemanasResponse(SEMANA, List.of(unaSemanaConUnReajusteSinNuevo())));
 
-        assertThat(result.ultimoCierre()).isEqualTo(SEMANA);
-        SemanaResponse semana = result.semanas().get(0);
+        thenSeCopiaLaSemanaConSusDecisionesYManuales();
+        thenSeCopiaElReajusteSinDestino();
+    }
+
+    @Test
+    @DisplayName("Sin semanas devuelve una lista vacía")
+    void toResponseShouldReturnAnEmptyListWhenThereAreNoWeeks() {
+        whenSeMapeanLasSemanas(new ListarSemanasResponse(null, List.of()));
+
+        thenNoHayUltimoCierreNiSemanas();
+    }
+
+    // --- act ---
+    private void whenSeArmaElPedido() {
+        pedido = mapper.toRequest(USUARIO_ID, OBJETIVO_ID);
+    }
+
+    private void whenSeMapeanLasSemanas(ListarSemanasResponse semanas) {
+        respuesta = mapper.toResponse(semanas);
+    }
+
+    // --- assert ---
+    private void thenElPedidoTraeUsuarioYObjetivo() {
+        assertThat(pedido.usuarioId()).isEqualTo(USUARIO_ID);
+        assertThat(pedido.objetivoId()).isEqualTo(OBJETIVO_ID);
+    }
+
+    private void thenSeCopiaLaSemanaConSusDecisionesYManuales() {
+        SemanaResponse semana = respuesta.semanas().get(0);
+        assertThat(respuesta.ultimoCierre()).isEqualTo(SEMANA);
         assertThat(semana.semana()).isEqualTo(SEMANA);
         assertThat(semana.resultado()).isEqualTo(BigDecimal.TEN);
         assertThat(semana.avance()).isEqualTo(BigDecimal.ONE);
@@ -70,7 +96,10 @@ class ResumenSemanalPresentationMapperTest {
         assertThat(semana.manuales().get(0).quePaso()).isEqualTo(QuePaso.FUNCIONO);
         assertThat(semana.manuales().get(1).hizo()).isNull();
         assertThat(semana.manuales().get(1).quePaso()).isNull();
-        assertThat(semana.reajustes()).singleElement().satisfies(reajuste -> {
+    }
+
+    private void thenSeCopiaElReajusteSinDestino() {
+        assertThat(respuesta.semanas().get(0).reajustes()).singleElement().satisfies(reajuste -> {
             assertThat(reajuste.tipo()).isEqualTo(TipoReajuste.REEMPLAZAR);
             assertThat(reajuste.motivo()).isEqualTo("Sin avance");
             assertThat(reajuste.de().titulo()).isEqualTo("Viejo");
@@ -79,12 +108,16 @@ class ResumenSemanalPresentationMapperTest {
         });
     }
 
-    @Test
-    @DisplayName("Sin semanas devuelve una lista vacía")
-    void toResponseShouldReturnAnEmptyListWhenThereAreNoWeeks() {
-        SemanasObjetivoResponse result = mapper.toResponse(new ListarSemanasResponse(null, List.of()));
+    private void thenNoHayUltimoCierreNiSemanas() {
+        assertThat(respuesta.ultimoCierre()).isNull();
+        assertThat(respuesta.semanas()).isEmpty();
+    }
 
-        assertThat(result.ultimoCierre()).isNull();
-        assertThat(result.semanas()).isEmpty();
+    // --- helpers ---
+    private static SemanaItem unaSemanaConUnReajusteSinNuevo() {
+        ReajusteItem reajuste = new ReajusteItem(
+                TipoReajuste.REEMPLAZAR, "Sin avance", new MiniItem("Viejo", BigDecimal.ONE), null);
+        return new SemanaItem(SEMANA, BigDecimal.TEN, BigDecimal.ONE, new DecisionesItem(1, 2, 3, 4), "Bien", true,
+                List.of(reajuste), MANUALES);
     }
 }
