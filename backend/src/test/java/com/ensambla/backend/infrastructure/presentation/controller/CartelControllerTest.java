@@ -5,8 +5,12 @@ import com.ensambla.backend.domain.model.cartel.TipoDeCartel;
 import com.ensambla.backend.domain.model.cartel.VarianteDeComposicion;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.cartel.OpcionDeCartelItem;
+import com.ensambla.backend.domain.useCase.cartel.PromocionSugeridaItem;
 import com.ensambla.backend.domain.useCase.cartel.TextosDeCartelItem;
+import com.ensambla.backend.domain.useCase.cartel.sugerirPromociones.SugerirPromocionesRequest;
+import com.ensambla.backend.domain.useCase.cartel.sugerirPromociones.SugerirPromocionesResponse;
 import com.ensambla.backend.domain.useCase.cartel.redactarTextosDeCartel.RedactarTextosDeCartel;
+import com.ensambla.backend.domain.useCase.cartel.sugerirPromociones.SugerirPromociones;
 import com.ensambla.backend.domain.useCase.cartel.redactarTextosDeCartel.RedactarTextosDeCartelRequest;
 import com.ensambla.backend.domain.useCase.cartel.armarOpcionesDeCartel.ArmarOpcionesDeCartel;
 import com.ensambla.backend.domain.useCase.cartel.armarOpcionesDeCartel.ArmarOpcionesDeCartelRequest;
@@ -29,6 +33,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -39,6 +44,7 @@ class CartelControllerTest {
 
     private final ArmarOpcionesDeCartel armarOpciones = mock(ArmarOpcionesDeCartel.class);
     private final RedactarTextosDeCartel redactarTextos = mock(RedactarTextosDeCartel.class);
+    private final SugerirPromociones sugerirPromociones = mock(SugerirPromociones.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
     private MockMvc mockMvc;
@@ -46,7 +52,7 @@ class CartelControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcDePrueba.standalone(new CartelController(armarOpciones, redactarTextos, new CartelPresentationMapper()))
+        mockMvc = MockMvcDePrueba.standalone(new CartelController(armarOpciones, redactarTextos, sugerirPromociones, new CartelPresentationMapper()))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -123,5 +129,22 @@ class CartelControllerTest {
 
         respuesta.andExpect(status().isBadRequest());
         verifyNoInteractions(redactarTextos);
+    }
+
+    @Test
+    @DisplayName("GET de promociones sugeridas devuelve los números calculados por el servidor")
+    void sugerirPromocionesShouldReturnTheCalculatedNumbers() throws Exception {
+        when(sugerirPromociones.execute(any())).thenReturn(new SugerirPromocionesResponse(List.of(
+                new PromocionSugeridaItem(TipoDeCartel.PROMO_PRECIO, List.of("Aceite"), new BigDecimal("2500"),
+                        new BigDecimal("2000"), new BigDecimal("500"), new BigDecimal("20")))));
+
+        respuesta = mockMvc.perform(get("/api/carteles/promociones-sugeridas").principal(principal));
+
+        respuesta.andExpect(status().isOk())
+                .andExpect(jsonPath("$.promociones[0].tipo").value("PROMO_PRECIO"))
+                .andExpect(jsonPath("$.promociones[0].productos[0]").value("Aceite"))
+                .andExpect(jsonPath("$.promociones[0].ahorro").value(500))
+                .andExpect(jsonPath("$.promociones[0].descuentoPorcentaje").value(20));
+        verify(sugerirPromociones).execute(new SugerirPromocionesRequest(USUARIO_ID));
     }
 }

@@ -3,8 +3,10 @@ package com.ensambla.backend.infrastructure.presentation.controller;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.cartel.armarOpcionesDeCartel.ArmarOpcionesDeCartel;
 import com.ensambla.backend.domain.useCase.cartel.redactarTextosDeCartel.RedactarTextosDeCartel;
+import com.ensambla.backend.domain.useCase.cartel.sugerirPromociones.SugerirPromociones;
 import com.ensambla.backend.infrastructure.presentation.dto.cartel.OpcionesDeCartelResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.cartel.OpcionesDeCartelWebRequest;
+import com.ensambla.backend.infrastructure.presentation.dto.cartel.PromocionesSugeridasResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.cartel.TextosDeCartelResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.cartel.TextosDeCartelWebRequest;
 import com.ensambla.backend.infrastructure.presentation.mapper.cartel.CartelPresentationMapper;
@@ -14,6 +16,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,6 +31,8 @@ public class CartelController {
     private final ArmarOpcionesDeCartel armarOpcionesDeCartel;
 
     private final RedactarTextosDeCartel redactarTextosDeCartel;
+
+    private final SugerirPromociones sugerirPromociones;
 
     private final CartelPresentationMapper cartelPresentationMapper;
 
@@ -45,5 +50,12 @@ public class CartelController {
             Authentication authentication, @Valid @RequestBody TextosDeCartelWebRequest request) {
         return ResponseEntity.ok(cartelPresentationMapper.toResponse(redactarTextosDeCartel.execute(
                 cartelPresentationMapper.toRedactarRequest(UsuarioId.de(authentication.getName()), request))));
+    }
+
+    @GetMapping("/promociones-sugeridas")
+    @Operation(summary = "Sugerir qué promocionar con lo que el motor de avisos encontró en el negocio de la sesión")
+    public ResponseEntity<PromocionesSugeridasResponse> sugerirPromociones(Authentication authentication) {
+        return ResponseEntity.ok(cartelPresentationMapper.toResponse(sugerirPromociones.execute(
+                cartelPresentationMapper.toSugerirRequest(UsuarioId.de(authentication.getName())))));
     }
 }

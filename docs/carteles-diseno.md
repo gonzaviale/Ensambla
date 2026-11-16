@@ -291,3 +291,11 @@ Moneda en pesos argentinos, mes de noviembre de 2026. Los números salen del sis
   plantilla que no era posible, marcado o enlaces, o si pasa los largos máximos. Un texto descartado no descuenta del cupo.
 - A la IA sólo viaja el nombre y el rubro del negocio, el tono, las plantillas, los nombres de los productos y los
   números permitidos; nunca clientes, deudas, ventas ni la dirección.
+
+## Cómo quedó «qué promocionar» (T-266 · ENS-365)
+
+- `GET /api/carteles/promociones-sugeridas` lee los avisos pendientes que el motor ya generó (producto caro que no se
+  mueve y combo de baja rotación) y devuelve, para cada uno, el tipo de cartel, los productos, el precio anterior, el
+  nuevo, el ahorro y el descuento en porcentaje entero. Todo se calcula en el servidor con `BigDecimal`.
+- Cada tipo de aviso es una fuente (`FuenteDePromocion`); sumar otra es sumar una clase. Los números de la promoción son
+  los que después se le pasan a `POST /api/carteles/textos`, que descarta cualquier número que no esté entre ellos.

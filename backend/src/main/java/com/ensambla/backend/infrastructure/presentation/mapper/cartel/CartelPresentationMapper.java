@@ -4,9 +4,12 @@ import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.cartel.armarOpcionesDeCartel.ArmarOpcionesDeCartelRequest;
 import com.ensambla.backend.domain.useCase.cartel.armarOpcionesDeCartel.ArmarOpcionesDeCartelResponse;
 import com.ensambla.backend.domain.useCase.cartel.TextosDeCartelItem;
+import com.ensambla.backend.domain.useCase.cartel.sugerirPromociones.SugerirPromocionesRequest;
+import com.ensambla.backend.domain.useCase.cartel.sugerirPromociones.SugerirPromocionesResponse;
 import com.ensambla.backend.domain.useCase.cartel.redactarTextosDeCartel.RedactarTextosDeCartelRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.cartel.OpcionesDeCartelResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.cartel.OpcionesDeCartelWebRequest;
+import com.ensambla.backend.infrastructure.presentation.dto.cartel.PromocionesSugeridasResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.cartel.TextosDeCartelResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.cartel.TextosDeCartelWebRequest;
 import org.springframework.stereotype.Component;
@@ -42,5 +45,17 @@ public class CartelPresentationMapper {
     public TextosDeCartelResponse toResponse(TextosDeCartelItem textos) {
         return new TextosDeCartelResponse(
                 textos.plantilla(), textos.titular(), textos.bajada(), textos.textoPosteo(), textos.redactadoConIa());
+    }
+
+    public SugerirPromocionesRequest toSugerirRequest(UsuarioId usuarioId) {
+        return new SugerirPromocionesRequest(usuarioId);
+    }
+
+    public PromocionesSugeridasResponse toResponse(SugerirPromocionesResponse response) {
+        return new PromocionesSugeridasResponse(response.promociones().stream()
+                .map(promocion -> new PromocionesSugeridasResponse.PromocionResponse(
+                        promocion.tipo(), promocion.productos(), promocion.precioAnterior(), promocion.precioNuevo(),
+                        promocion.ahorro(), promocion.descuentoPorcentaje()))
+                .toList());
     }
 }
