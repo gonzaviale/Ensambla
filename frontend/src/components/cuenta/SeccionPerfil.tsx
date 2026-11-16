@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useUsuario } from '@/hooks/auth/queries';
 import { useConfiguracionNegocio } from '@/hooks/negocio/queries';
+import { useNegociosDeLaCuenta } from '@/hooks/negocios/queries';
 import { useGuardarPreferencias } from '@/hooks/preferencias/mutations';
 import { usePreferencias } from '@/hooks/preferencias/queries';
 import { useNombre } from '@/hooks/sistemas/useNavegacion';
@@ -18,7 +19,9 @@ export function SeccionPerfil() {
   const preferencias = usePreferencias();
   const guardarPreferencias = useGuardarPreferencias();
   const negocio = useConfiguracionNegocio();
+  const { data: negocios } = useNegociosDeLaCuenta();
   const avisar = useSistemaStore((estado) => estado.avisar);
+  const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const [nombre, setNombre] = useState(nombreActual);
   const limpio = nombre.trim();
 
@@ -100,6 +103,24 @@ export function SeccionPerfil() {
         <Link className="text-link" to="/ubicacion">
           Ubicación y rubro de mi comercio
         </Link>
+        <div className="cuenta-administrar-negocio">
+          <div>
+            <strong>Administrar este negocio</strong>
+            <p>Se elimina solamente este negocio y todo lo que cargaste dentro de él.</p>
+          </div>
+          <button
+            type="button"
+            className="btn danger"
+            disabled={negocios.negocios.length === 1 || !comercio}
+            title={negocios.negocios.length === 1 ? 'No podés eliminar el único negocio de tu cuenta' : undefined}
+            onClick={() => {
+              const activo = negocios.negocios.find((item) => item.id === negocios.activoId);
+              if (activo) abrirModal({ tipo: 'eliminarNegocio', negocioId: activo.id, nombre: activo.nombre });
+            }}
+          >
+            Eliminar negocio
+          </button>
+        </div>
       </section>
     </>
   );

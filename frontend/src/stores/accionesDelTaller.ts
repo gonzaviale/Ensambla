@@ -10,16 +10,18 @@ import {
 import type { TipoBloque } from '@/lib/sistema/tipos';
 import { useSistemaStore } from './sistemaStore';
 
-// Lo mismo que hace el editor con las secciones y los bloques, pero sobre la propuesta de Sami (`taller.borrador`):
+// Lo mismo que hace el editor con las pestañas y los bloques, pero sobre la propuesta de Sami (`taller.borrador`):
 // no pasa por el historial ni se guarda hasta que la persona confirma.
 
 const store = () => useSistemaStore.getState();
 
-/** La sección del taller que se está viendo (la primera, si la que estaba ya no existe). */
+/** La pestaña del taller que se está viendo (la primera, si la que estaba ya no existe). */
 const seccionVigente = () => {
   const taller = store().taller;
   const borrador = taller?.borrador;
-  return borrador?.sections.find((seccion) => seccion.id === taller?.seccionId) ?? borrador?.sections[0];
+  return (
+    borrador?.sections.find((seccion) => seccion.id === taller?.seccionId) ?? borrador?.sections[0]
+  );
 };
 
 export function sumarBloqueAlBorrador(tipo: TipoBloque) {
@@ -39,7 +41,7 @@ export function agregarSeccionAlBorrador(nombre: string, inicio: string) {
   });
   store().actualizarTaller({ seccionId: nueva.id });
   store().cerrarModal();
-  store().avisar('Sección agregada. Ya podés sumar o mover bloques.');
+  store().avisar('Pestaña agregada. Ya podés sumar o mover bloques.');
 }
 
 export function renombrarSeccionesDelBorrador(nombres: [string, string][]) {
@@ -59,5 +61,5 @@ export function quitarSeccionDelBorrador(seccionId: string) {
     quitarSeccionDe(copia, seccionId);
   });
   if (store().taller?.seccionId === seccionId) store().actualizarTaller({ seccionId: destino.id });
-  store().avisar('Sección quitada. Los bloques y sus datos se conservaron.');
+  store().avisar('Pestaña quitada. Los bloques y sus datos se conservaron.');
 }

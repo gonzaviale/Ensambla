@@ -58,7 +58,7 @@ describe('las acciones de Sami sobre el taller', () => {
       expect(JSON.stringify(resumen)).not.toContain('Yerba');
     });
 
-    it('lleva la distribución elegida y la sección de cada pieza', () => {
+    it('lleva la distribución elegida y la pestaña de cada pieza', () => {
       sistema.layout = 'single';
 
       const resumen = resumirSistema(sistema);
@@ -163,7 +163,7 @@ describe('las acciones de Sami sobre el taller', () => {
       expect(pieza('summary').fields).toEqual([]);
     });
 
-    it('no puede sumar nada si no hay secciones', () => {
+    it('no puede sumar nada si no hay pestañas', () => {
       sistema.sections = [];
 
       const resultado = aplicarAcciones(sistema, [accion('agregar_pieza', { tipo: 'expenses' })]);
@@ -352,7 +352,7 @@ describe('las acciones de Sami sobre el taller', () => {
   });
 
   describe('separar_en_seccion y cambiar_distribucion', () => {
-    it('crea la sección y pasa la pieza', () => {
+    it('crea la pestaña y pasa la pieza', () => {
       const resultado = aplicarAcciones(sistema, [
         accion('separar_en_seccion', { pieza: 'clients', seccion: 'Mis clientes' }),
       ]);
@@ -362,7 +362,7 @@ describe('las acciones de Sami sobre el taller', () => {
       expect(seccion?.blocks.map((bloque) => bloque.type)).toEqual(['clients']);
     });
 
-    it('reutiliza una sección que ya existe sin importar mayúsculas', () => {
+    it('reutiliza una pestaña que ya existe sin importar mayúsculas', () => {
       aplicarAcciones(sistema, [
         accion('separar_en_seccion', { pieza: 'clients', seccion: 'Aparte' }),
         accion('separar_en_seccion', { pieza: 'sales', seccion: 'aparte' }),
@@ -374,7 +374,7 @@ describe('las acciones de Sami sobre el taller', () => {
       expect(sistema.sections.find((item) => item.name === 'Aparte')?.blocks).toHaveLength(2);
     });
 
-    it('omite una pieza inexistente o una sección sin nombre', () => {
+    it('omite una pieza inexistente o una pestaña sin nombre', () => {
       const resultado = aplicarAcciones(sistema, [
         accion('separar_en_seccion', { pieza: 'nada', seccion: 'X' }),
         accion('separar_en_seccion', { pieza: 'clients', seccion: ' ' }),
@@ -854,7 +854,7 @@ describe('Sami ensambla el sistema desde cero', () => {
 
       expect(resultado.aplicadas).toEqual([
         'Sumé turnos.',
-        'Sumé encargos en la sección Agenda.',
+        'Sumé encargos en la pestaña Agenda.',
         'Sumé clientes.',
       ]);
       expect(resultado.omitidas).toEqual([
@@ -933,7 +933,7 @@ describe('Sami ensambla el sistema desde cero', () => {
   });
 
   describe('cargar_registros', () => {
-    it('entiende las fechas como se anotan en un cuaderno y descarta las que no existen', () => {
+    it('entiende las fechas como se anotan en una sección y descarta las que no existen', () => {
       aplicarAcciones(sistema, [accion('agregar_pieza', { tipo: 'expenses', ejemplos: [] })]);
       const anio = new Date().getFullYear();
 
@@ -1845,7 +1845,7 @@ describe('sistemaParaCrear: el sistema que sale del taller', () => {
 
     const sistema = sistemaParaCrear(borrador);
 
-    expect(sistema.name).toBe('Mi cuaderno');
+    expect(sistema.name).toBe('Mi sección');
     expect(sistema.id).toBe(borrador.id);
     const filas = allBlocks(sistema).flatMap((bloque) => bloque.rows);
     expect(filas.some((fila) => fila.__example)).toBe(false);

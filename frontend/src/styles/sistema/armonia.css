@@ -25,7 +25,7 @@
    el período elegido y la barra de hoy en el gráfico.
 
    Cómo se reparte el resto de la paleta (siempre por significado, nunca por turno):
-     · Naranja: Sami y la acción principal.   · Petróleo: estructura y lo que es del negocio (ventas, cuadernos).
+     · Naranja: Sami y la acción principal.   · Petróleo: estructura y lo que es del negocio (ventas, secciones).
      · Celeste: información y datos de la zona.   · Amarillo: lo destacado y lo que se debe mirar (fiado, «bajo»).
      · Coral: alerta, costo y peligro.
    Lo que entra, lo que sale, lo que queda y lo que te deben llevan cada uno su color; la posición de un precio
@@ -263,9 +263,9 @@
   color: var(--c-accion-texto);
 }
 
-/* ===== Cuadernos ===== */
+/* ===== Secciones ===== */
 
-.inicio-cuaderno {
+.inicio-sistema {
   position: relative;
   border: 2px solid var(--c-estructura);
   background: #fff;
@@ -277,18 +277,18 @@
     box-shadow 0.2s,
     background 0.2s;
 }
-.inicio-cuaderno:hover,
-.inicio-cuaderno:focus-visible {
+.inicio-sistema:hover,
+.inicio-sistema:focus-visible {
   background: var(--c-estructura-50);
   transform: translate(-2px, -2px);
   box-shadow: 8px 8px 0 color-mix(in srgb, var(--c-estructura) 45%, #fff);
 }
-.inicio-cuaderno:active {
+.inicio-sistema:active {
   transform: translate(2px, 2px);
   box-shadow: 2px 2px 0 color-mix(in srgb, var(--c-estructura) 28%, #fff);
 }
-/* Marcapáginas con el color propio del cuaderno: el único toque de color de la tapa. */
-.inicio-cuaderno::after {
+/* Marcapáginas con el color propio de la sección: el único toque de color de la tapa. */
+.inicio-sistema::after {
   content: '';
   position: absolute;
   top: -2px;
@@ -299,29 +299,29 @@
   clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 76%, 0 100%);
 }
 /* El lomo de espiral: línea petróleo y agujeros del mismo color. */
-.inicio-cuaderno-lomo {
+.inicio-sistema-lomo {
   border-right: 2px solid var(--c-estructura);
   background:
-    radial-gradient(circle, var(--c-estructura) 3.5px, transparent 4px) center 6px / 22px 18px repeat-y,
+    radial-gradient(circle, var(--c-estructura) 3.5px, transparent 4px) center 6px / 22px 18px
+      repeat-y,
     #fff;
 }
-/* Hoja rayada abajo, como un cuaderno de verdad. */
-.inicio-cuaderno-tapa {
+/* Hoja rayada abajo, como una sección de verdad. */
+.inicio-sistema-tapa {
   flex: 1;
-  background:
-    repeating-linear-gradient(
-        to bottom,
-        transparent 0 21px,
-        color-mix(in srgb, var(--c-estructura) 14%, #fff) 21px 22px
-      )
-      0 100% / 100% 58% no-repeat;
+  background: repeating-linear-gradient(
+      to bottom,
+      transparent 0 21px,
+      color-mix(in srgb, var(--c-estructura) 14%, #fff) 21px 22px
+    )
+    0 100% / 100% 58% no-repeat;
 }
-.inicio-cuaderno-tapa,
-.inicio-cuaderno-tapa strong,
-.inicio-cuaderno-tapa .icon {
+.inicio-sistema-tapa,
+.inicio-sistema-tapa strong,
+.inicio-sistema-tapa .icon {
   color: var(--c-estructura);
 }
-.inicio-cuaderno-tapa .icon {
+.inicio-sistema-tapa .icon {
   box-sizing: content-box;
   width: 22px;
   height: 22px;
@@ -329,23 +329,17 @@
   border-radius: 12px;
   background: var(--c-estructura-100);
 }
-.inicio-cuaderno-tapa strong {
+.inicio-sistema-tapa strong {
   font-size: 18px;
   font-weight: 800;
 }
-.inicio-cuaderno-tapa span {
+.inicio-sistema-tapa span {
   color: var(--c-estructura);
   opacity: 0.75;
 }
-.cuadernos-etiqueta {
+.tu-negocio-etiqueta {
   background: var(--c-estructura-100);
   color: var(--c-estructura);
-}
-.cuadernos-cifras span,
-.cuadernos-cifras span[data-color='blue'] {
-  background: var(--c-fondo-suave);
-  border: 1px solid var(--c-borde);
-  color: var(--ink);
 }
 
 /* Plantillas del inicio: las tres son del mismo peso, así que las tres iguales. */
@@ -408,7 +402,7 @@
   background: #fff;
 }
 
-/* ===== Bloques del cuaderno: cabecera blanca, el color sólo en el ícono y la línea de arriba ===== */
+/* ===== Bloques de la sección: cabecera blanca, el color sólo en el ícono y la línea de arriba ===== */
 
 .block {
   border: 1px solid var(--c-borde);
@@ -480,7 +474,7 @@
   color: var(--c-accion);
 }
 
-/* ===== Encabezado del cuaderno ===== */
+/* ===== Encabezado de la sección ===== */
 
 .canvas-titulo-icono,
 .canvas-titulo-icono.usando {
@@ -535,7 +529,7 @@
   color: var(--c-estructura);
 }
 
-/* Herramientas del cuaderno: íconos petróleo; el naranja queda para la acción principal. */
+/* Herramientas de la sección: íconos petróleo; el naranja queda para la acción principal. */
 .herramienta-icono {
   border-width: 1px;
   border-color: var(--c-borde-fuerte);
@@ -798,8 +792,8 @@
   background: var(--nivel-tint);
   color: var(--nivel-ink);
 }
-/* Con la grilla, el nombre del cuaderno repite lo que ya se sabe: queda en el detalle. */
-.alerta-cuaderno {
+/* Con la grilla, el nombre de la sección repite lo que ya se sabe: queda en el detalle. */
+.alerta-sistema {
   display: none;
 }
 .alertas-lista .alerta h3 {
@@ -910,7 +904,7 @@
 .inicio-ficha-flecha,
 .inicio-atajo-icono,
 .foto-redonda,
-.inicio-cuaderno-tapa .icon,
+.inicio-sistema-tapa .icon,
 .template-page .template-body .icon-tile {
   background: var(--c-estructura);
   color: var(--c-celeste);
@@ -926,7 +920,7 @@
 }
 
 /* Etiquetas: petróleo con letra blanca. */
-.cuadernos-etiqueta,
+.tu-negocio-etiqueta,
 .canvas-etiqueta,
 .field-type-badge,
 .field-type-badge[data-tipo] {
@@ -997,7 +991,10 @@
   background: var(--c-celeste);
   opacity: 1;
 }
-.tablero-ventas .grafico-barras-oscuro .grafico-barra[data-destacada='true'] .grafico-barra-relleno {
+.tablero-ventas
+  .grafico-barras-oscuro
+  .grafico-barra[data-destacada='true']
+  .grafico-barra-relleno {
   background: var(--c-accion);
 }
 .tablero-ventas .grafico-barras-oscuro .grafico-barra:hover .grafico-barra-relleno {
@@ -1147,7 +1144,7 @@
   border-left-color: var(--blue);
 }
 
-/* Avisos: tarjeta blanca con borde petróleo, como el cuaderno; Sami pone el color. */
+/* Avisos: tarjeta blanca con borde petróleo, como la sección; Sami pone el color. */
 .alertas-head {
   border: 2px solid var(--c-estructura);
   background: #fff;

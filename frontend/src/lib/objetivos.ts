@@ -54,7 +54,8 @@ export function metaDesdeTexto(texto: string): number {
   const importes = [...texto.matchAll(IMPORTE)].map((encontrado) => {
     const [, peso, entero = '', decimales = '', sufijo] = encontrado;
     const multiplicador = sufijo ? MULTIPLICADOR[sufijo.toLowerCase()] : undefined;
-    const valor = Number(`${entero.replace(/[.,]/g, '')}.${decimales || '0'}`) * (multiplicador ?? 1);
+    const valor =
+      Number(`${entero.replace(/[.,]/g, '')}.${decimales || '0'}`) * (multiplicador ?? 1);
     return { valor: Math.round(valor), marcado: Boolean(peso) || multiplicador !== undefined };
   });
   const razonables = importes.filter((importe) => importe.valor >= META_MINIMA);

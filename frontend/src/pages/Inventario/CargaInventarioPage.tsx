@@ -32,11 +32,11 @@ export function CargaInventarioPage({
   useTituloPagina('Cargar productos al inventario');
   return (
     <>
-      <CabeceraComun active="sistemas" />
+      <CabeceraComun />
       <main id="main" tabIndex={-1} className="escaneo-pagina" data-lectura={!carga.borrador}>
         <nav className="escaneo-migas" aria-label="Ubicación en el inventario">
-          <button type="button" onClick={() => void navegacion.irAMisSistemas()}>
-            Mis cuadernos
+          <button type="button" onClick={() => void navegacion.irAInicio()}>
+            Inicio
           </button>
           <span aria-hidden="true">/</span>
           <button type="button" onClick={() => void navegacion.abrirSistema(sistemaId)}>

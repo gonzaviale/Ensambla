@@ -17,7 +17,7 @@ export function LlamadaFinal() {
           necesites.
         </p>
         <Link to="/registro" className="ens-primary">
-          Empezar mi cuaderno <ArrowUpRightIcon aria-hidden size={20} />
+          Armar mi negocio <ArrowUpRightIcon aria-hidden size={20} />
         </Link>
         <Link to="/login" className="ens-final-login">
           Ya tengo cuenta

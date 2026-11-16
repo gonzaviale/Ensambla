@@ -18,7 +18,8 @@ function useResolverAviso(resolver: (id: string) => Promise<AvisoDelServidor>) {
       return { anteriores };
     },
     onError: (_error, _id, contexto) => {
-      if (contexto?.anteriores) queryClient.setQueryData(avisosKeys.pendientes, contexto.anteriores);
+      if (contexto?.anteriores)
+        queryClient.setQueryData(avisosKeys.pendientes, contexto.anteriores);
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: avisosKeys.pendientes }),
   });

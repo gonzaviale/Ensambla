@@ -5,11 +5,7 @@ import { Modal } from '../Modal';
 import { varsDeColor } from '../colores';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
-const sinTildes = (texto: string) =>
-  texto
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
+const sinTildes = (texto: string) => texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 // Los productos detrás del aviso económico. Pueden ser cientos, así que van en una lista que se desplaza y,
 // pasados unos pocos, con un buscador.

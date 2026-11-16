@@ -34,7 +34,7 @@ const haceDias = (iso: string, dias: number) => {
   return aIso(fecha);
 };
 
-// Las mismas cuentas que hace el backend con las ventas y el inventario del cuaderno, para que la demostración
+// Las mismas cuentas que hace el backend con las ventas y el inventario de la sección, para que la demostración
 // muestre lo que mostraría el servidor real.
 export function resumenInicioDe(sistema: Sistema, hoy: string): ResumenInicio {
   const filas = (tipo: 'sales' | 'inventory') =>

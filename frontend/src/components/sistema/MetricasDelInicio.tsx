@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Icon } from '@/components/sistema/Icon';
 import { GraficoDeBarras } from '@/components/sistema/metricas/GraficoDeBarras';
-import { SelectorDeCuaderno, SelectorDePeriodo } from '@/components/sistema/metricas/Selectores';
+import { SelectorDeSistema, SelectorDePeriodo } from '@/components/sistema/metricas/Selectores';
 import { useNumeroAnimado } from '@/components/sistema/metricas/useNumeroAnimado';
 import { useResumenInicio } from '@/hooks/reportes/queries';
 import { useAvisoEconomico } from '@/hooks/reportes/useAvisoEconomico';
-import { useCuadernoElegido } from '@/hooks/reportes/useCuadernoElegido';
+import { useSistemaElegido } from '@/hooks/reportes/useSistemaElegido';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { formatoPesos } from '@/lib/sistema/formato';
 import { useSistemaStore } from '@/stores/sistemaStore';
@@ -23,20 +23,20 @@ import type { AvisoEconomico } from '@/types/avisoEconomico';
 import type { ResumenInicio } from '@/types/resumenInicio';
 
 // El tablero del inicio para quien ya usa Ensambla: lo que viene vendiendo (lo primero que se mira) y el aviso
-// económico, de un cuaderno a elegir. La página ya saluda arriba, en la bienvenida compacta. Nunca muestra ceros de
+// económico, de una sección a elegir. La página ya saluda arriba, en la bienvenida compacta. Nunca muestra ceros de
 // relleno: si no hay datos, lo dice.
 export function MetricasDelInicio() {
-  const { cuadernos, cuaderno, elegir } = useCuadernoElegido();
-  const { resumen, fallo, reintentar } = useResumenInicio(cuaderno?.id);
-  if (!cuaderno) return null;
+  const { sistemas, sistema, elegir } = useSistemaElegido();
+  const { resumen, fallo, reintentar } = useResumenInicio(sistema?.id);
+  if (!sistema) return null;
 
   return (
     <section className="tablero" aria-label="Cómo te va">
       <div className="tablero-cabecera">
         <div className="tablero-saludo">
-          <p className="tablero-cuaderno">
+          <p className="tablero-sistema">
             <span>Así viene</span>
-            <SelectorDeCuaderno cuadernos={cuadernos} cuaderno={cuaderno} onCambio={elegir} />
+            <SelectorDeSistema sistemas={sistemas} sistema={sistema} onCambio={elegir} />
           </p>
         </div>
       </div>
@@ -60,12 +60,12 @@ export function MetricasDelInicio() {
         </div>
       ) : !resumen.hayVentas && !resumen.hayProductos ? (
         <p className="tablero-aviso" role="status">
-          Cuando anotes ventas o productos en «{cuaderno.name}», acá vas a ver cómo te va.
+          Cuando anotes ventas o productos en «{sistema.name}», acá vas a ver cómo te va.
         </p>
       ) : (
         <div className="tablero-cuerpo">
           {resumen.hayVentas && <TarjetaDeVentas resumen={resumen} />}
-          <TarjetaDeAvisoEconomico sistemaId={cuaderno.id} cuaderno={cuaderno.name} />
+          <TarjetaDeAvisoEconomico sistemaId={sistema.id} sistema={sistema.name} />
         </div>
       )}
     </section>
@@ -82,9 +82,9 @@ const PRIORIDAD: Record<AvisoEconomico['prioridad'], string> = {
 
 const conSigno = (valor: number) => `${valor > 0 ? '+' : valor < 0 ? '−' : ''}${Math.abs(valor)} %`;
 
-// El aviso económico del cuaderno: esta semana frente a la anterior. La prioridad a un costado, qué cambió, los
+// El aviso económico de la sección: esta semana frente a la anterior. La prioridad a un costado, qué cambió, los
 // números que lo muestran y qué hacer. Cuando el negocio mejora también avisa, para que se sepa qué está andando bien.
-function TarjetaDeAvisoEconomico({ sistemaId, cuaderno }: { sistemaId: string; cuaderno: string }) {
+function TarjetaDeAvisoEconomico({ sistemaId, sistema }: { sistemaId: string; sistema: string }) {
   const { aviso } = useAvisoEconomico(sistemaId);
   const navegacion = useNavegacion();
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
@@ -104,7 +104,7 @@ function TarjetaDeAvisoEconomico({ sistemaId, cuaderno }: { sistemaId: string; c
       </div>
       <div className="tablero-aviso-sami-contenido">
         <p className="tablero-aviso-sami-etiqueta">
-          {aviso.categoria} · {cuaderno}
+          {aviso.categoria} · {sistema}
         </p>
         <h3>{aviso.titulo}</h3>
         <p className="tablero-aviso-sami-detalle">{aviso.explicacion}</p>
