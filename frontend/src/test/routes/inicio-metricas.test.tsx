@@ -2,6 +2,7 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { makeTemplate } from '@/lib/sistema/core';
 import { crearAlmacenCargado } from '@/lib/sistema/demo';
 import { hoy } from '@/lib/sistema/formato';
 import type { Sistema } from '@/lib/sistema/tipos';
@@ -103,15 +104,27 @@ describe('inicio: sin tablero ni decisiones', () => {
 describe('inicio: métricas', () => {
   beforeEach(() => window.localStorage.clear());
 
-  it('debajo de «Tu negocio» muestra lo vendido de la sección, sin el título «Cómo te va»', async () => {
+  it('dentro de «Tu negocio» muestra lo vendido junto al cuaderno, sin elegir sección', async () => {
     await whenAbreInicio([almacen('Almacén de barrio')]);
 
-    const metricas = await screen.findByRole('region', { name: 'Tus métricas' }, ESPERA);
+    const negocio = within(screen.getByRole('region', { name: 'Almacén de barrio' }));
+    const metricas = await negocio.findByRole('region', { name: 'Tus métricas' }, ESPERA);
     expect(
       await within(metricas).findByRole('heading', { name: 'Esta semana vendiste' }, ESPERA),
     ).toBeVisible();
-    expect(within(metricas).getByText('Así viene')).toBeVisible();
+    expect(negocio.getByRole('button', { name: /Abrir Almacén de barrio/ })).toBeVisible();
+    expect(screen.queryByText('Así viene')).toBeNull();
     expect(screen.queryByText('Cómo te va')).toBeNull();
+  });
+
+  it('con un negocio sin ventas la sección queda igual y las métricas lo dicen', async () => {
+    await whenAbreInicio([{ ...makeTemplate('shop', {}, true), name: 'Kiosco nuevo' }]);
+
+    const negocio = within(await screen.findByRole('region', { name: 'Kiosco nuevo' }, ESPERA));
+    expect(
+      await negocio.findByText(/Cuando anotes ventas o productos/, undefined, ESPERA),
+    ).toBeVisible();
+    expect(negocio.getByRole('button', { name: /Abrir Kiosco nuevo/ })).toBeVisible();
   });
 });
 

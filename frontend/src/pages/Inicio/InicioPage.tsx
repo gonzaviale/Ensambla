@@ -1,8 +1,8 @@
+import { CarruselDeRentabilidad } from '@/components/inicio/CarruselDeRentabilidad';
 import { PanelDelNegocio } from '@/components/inicio/PanelDelNegocio';
 import { TuNegocio } from '@/components/inicio/TuNegocio';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { FichasParaEmpezar } from '@/components/sistema/FichasParaEmpezar';
-import { MetricasDelInicio } from '@/components/sistema/MetricasDelInicio';
 import { Icon } from '@/components/sistema/Icon';
 import { PageFooter } from '@/components/sistema/PageFooter';
 import { varsDeColor } from '@/components/sistema/colores';
@@ -14,12 +14,10 @@ import { useSistemaElegido } from '@/hooks/reportes/useSistemaElegido';
 import { useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
 import { useAccionesDelTutorial } from '@/hooks/tutorial/useAccionesDelTutorial';
 import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
-import { useNegociosDeLaCuenta } from '@/hooks/negocios/queries';
 
-// Inicio: siempre el mismo formato, tenga o no datos: una bienvenida corta con las maneras de empezar, los negocios
-// de la cuenta, «Tu negocio» (su nombre y sus secciones como accesos), sus métricas (ventas y, con dos semanas de
-// ventas para comparar, las tarjetas de rentabilidad) y, si hay ventas, el flujo de caja. Las plantillas tienen su
-// pantalla y su ficha.
+// Inicio: siempre el mismo formato, tenga o no datos: una bienvenida corta con las maneras de empezar, «Tu
+// negocio» (su nombre, sus métricas y el acceso a su cuaderno), las tarjetas de rentabilidad cuando
+// hay dos semanas de ventas para comparar y, si hay ventas, el flujo de caja. Las plantillas tienen su pantalla.
 // Fondo blanco; el color va lleno en cada ficha, con íconos blancos.
 export function InicioPage() {
   const sistema = useSistemaDelInicio();
@@ -29,9 +27,8 @@ export function InicioPage() {
       <CabeceraComun />
       <main id="main" tabIndex={-1} className="home inicio reveal">
         <Bienvenida />
-        <AgregarNegocio />
         <TuNegocio />
-        <MetricasDelInicio />
+        {sistema && <CarruselDeRentabilidad sistemaId={sistema.id} />}
         {hayPanel && <PanelDelNegocio />}
 
         {/* <section className="inicio-bloque inicio-ejemplo">
@@ -105,30 +102,6 @@ function Bienvenida() {
         <Atajos />
       </div>
     </section>
-  );
-}
-
-function AgregarNegocio() {
-  const { data } = useNegociosDeLaCuenta();
-  const abrirModal = useSistemaStore((estado) => estado.abrirModal);
-  return (
-    <div className="inicio-agregar-negocio">
-      <span>
-        <strong>
-          {data.negocios.length === 1
-            ? 'Tu negocio está activo'
-            : `${data.negocios.length} negocios en tu cuenta`}
-        </strong>
-        <small>La información de cada uno se mantiene separada.</small>
-      </span>
-      <button
-        type="button"
-        className="btn secondary"
-        onClick={() => abrirModal({ tipo: 'agregarNegocio' })}
-      >
-        <Icon name="plus" /> Agregar un negocio
-      </button>
-    </div>
   );
 }
 

@@ -484,10 +484,10 @@
   gap: 4px;
   font-size: 13.5px;
   font-weight: 700;
-  color: #1f9d55;
+  color: var(--petrol);
 }
 .productos-aviso-cambio[data-baja='true'] {
-  color: #d6293e;
+  color: var(--c-accion-texto);
 }
 .productos-aviso-cambio .icon {
   width: 18px;
@@ -888,10 +888,10 @@
     inset 0 0 0 1.5px color-mix(in srgb, var(--petrol) 22%, #fff);
 }
 .rentabilidad-tarjeta[data-tono='baja'] {
-  --tono: #d6293e;
+  --tono: var(--coral);
 }
 .rentabilidad-tarjeta[data-tono='sube'] {
-  --tono: #1f9d55;
+  --tono: var(--petrol);
 }
 .rentabilidad-tarjeta[data-tono='neutro'] {
   --tono: var(--yellow);
@@ -929,11 +929,14 @@
   gap: 4px 8px;
 }
 .rentabilidad-valor strong {
-  font-size: 20px;
-  line-height: 1.15;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--c-estructura);
+  line-height: 1.05;
 }
 .rentabilidad-valor span {
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .rentabilidad-detalle {
   display: -webkit-box;

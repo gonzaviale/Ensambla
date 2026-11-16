@@ -62,11 +62,12 @@ describe('inicio · tu negocio', () => {
     await waitFor(() => expect(router.state.location.pathname).toMatch(/^\/sistemas\//), ESPERA);
   });
 
-  it('no ofrece crear secciones: otro negocio se agrega desde «Agregar un negocio»', async () => {
+  it('no ofrece crear secciones ni agregar negocios: eso queda en el selector de arriba', async () => {
     await whenAbreInicio(['Kiosco Centro']);
     const bloque = await bloqueDe('Kiosco Centro');
 
     expect(bloque.queryByRole('button', { name: 'Crear una sección' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Agregar un negocio' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Agregar un negocio' })).toBeNull();
+    expect(screen.queryByText(/negocios en tu cuenta/)).toBeNull();
   });
 });

@@ -473,12 +473,6 @@
 .cuenta-administrar-negocio { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 6px; padding-top: 16px; border-top: 1px solid var(--c-borde); }
 .cuenta-administrar-negocio strong { color: var(--ink); font-size: 13px; }
 .cuenta-administrar-negocio p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
-.inicio-agregar-negocio { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin: -4px 0 26px; padding: 14px 16px; border: 1px solid var(--c-borde); border-radius: 16px; background: var(--c-fondo-suave); }
-.inicio-agregar-negocio span,
-.inicio-agregar-negocio strong,
-.inicio-agregar-negocio small { display: block; }
-.inicio-agregar-negocio strong { color: var(--c-estructura); font-size: 13px; }
-.inicio-agregar-negocio small { color: var(--muted); font-size: 11px; }
 
 /* Cabecera: logo, pestañas centradas y, a la derecha, ayudas + (selector de negocio y perfil) separados por una raya. */
 .topbar-cuenta {
@@ -511,8 +505,6 @@
   .negocio-selector-disparador { width: 100%; max-width: none; }
   .negocio-selector-menu { right: auto; left: 0; width: min(340px, calc(100vw - 38px)); }
   .negocio-busqueda-fila { grid-template-columns: 1fr; }
-  .cuenta-administrar-negocio,
-  .inicio-agregar-negocio { align-items: stretch; flex-direction: column; }
-  .cuenta-administrar-negocio .btn,
-  .inicio-agregar-negocio .btn { width: 100%; justify-content: center; }
+  .cuenta-administrar-negocio { align-items: stretch; flex-direction: column; }
+  .cuenta-administrar-negocio .btn { width: 100%; justify-content: center; }
 }

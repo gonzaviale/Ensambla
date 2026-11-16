@@ -1,11 +1,9 @@
 import { useState } from 'react';
-import { CarruselDeRentabilidad } from '@/components/inicio/CarruselDeRentabilidad';
 import { Icon } from '@/components/sistema/Icon';
 import { GraficoDeBarras } from '@/components/sistema/metricas/GraficoDeBarras';
-import { SelectorDeSistema, SelectorDePeriodo } from '@/components/sistema/metricas/Selectores';
+import { SelectorDePeriodo } from '@/components/sistema/metricas/Selectores';
 import { useNumeroAnimado } from '@/components/sistema/metricas/useNumeroAnimado';
 import { useResumenInicio } from '@/hooks/reportes/queries';
-import { useSistemaElegido } from '@/hooks/reportes/useSistemaElegido';
 import { formatoPesos } from '@/lib/sistema/formato';
 import {
   PERIODOS_DE_VENTAS,
@@ -17,23 +15,16 @@ import {
   textoUnidades,
   type PeriodoDeVentas,
 } from '@/lib/sistema/metricasInicio';
+import type { Sistema } from '@/lib/sistema/tipos';
 import type { ResumenInicio } from '@/types/resumenInicio';
 
-// El tablero del inicio para quien ya usa Ensambla: lo que viene vendiendo de una sección a elegir y, debajo, las
-// tarjetas cortas del aviso económico (ventas y ganancia frente a la semana pasada), todo junto. Nunca muestra ceros
-// de relleno: si no hay datos, lo dice.
-export function MetricasDelInicio() {
-  const { sistemas, sistema, elegir } = useSistemaElegido();
-  const { resumen, fallo, reintentar } = useResumenInicio(sistema?.id);
-  if (!sistema) return null;
+// Las métricas del negocio, dentro de «Tu negocio»: lo que viene vendiendo. Nunca muestra ceros de relleno: si no
+// hay datos, lo dice.
+export function MetricasDelInicio({ sistema }: { sistema: Sistema }) {
+  const { resumen, fallo, reintentar } = useResumenInicio(sistema.id);
 
   return (
     <section className="tablero" aria-label="Tus métricas">
-      <p className="tablero-sistema">
-        <span>Así viene</span>
-        <SelectorDeSistema sistemas={sistemas} sistema={sistema} onCambio={elegir} />
-      </p>
-
       {fallo ? (
         <p className="tablero-aviso" role="status">
           No pudimos traer tus números ahora.{' '}
@@ -60,7 +51,6 @@ export function MetricasDelInicio() {
           <TarjetaDeVentas resumen={resumen} />
         </div>
       )}
-      <CarruselDeRentabilidad sistemaId={sistema.id} />
     </section>
   );
 }

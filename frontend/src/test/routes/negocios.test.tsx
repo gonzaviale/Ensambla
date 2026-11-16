@@ -38,6 +38,13 @@ function givenDosNegocios(usuario: UsuarioMock) {
 const selectorDe = (nombre: RegExp) =>
   screen.findByRole('button', { name: new RegExp(`Negocio activo.*${nombre.source}`) }, ESPERA);
 
+async function whenAbreAgregarNegocioEnLaBarra(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole('button', { name: /Negocio activo/ }, ESPERA));
+  await user.click(
+    within(screen.getByRole('menu')).getByRole('menuitem', { name: /Agregar un negocio/ }),
+  );
+}
+
 async function whenEligeEnLaBarra(nombre: RegExp) {
   const user = userEvent.setup();
   await user.click(await screen.findByRole('button', { name: /Negocio activo/ }, ESPERA));
@@ -48,14 +55,17 @@ const nombresEnElServidor = (usuario: UsuarioMock) =>
   sistemasDe(usuario.email).map((sistema) => sistema.name);
 
 describe('mis negocios: cada negocio es un cuaderno', () => {
-  it('con un solo negocio no muestra selector en la barra', async () => {
+  it('con un solo negocio el selector de la barra deja agregar otro, sin comparar', async () => {
     const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
     setupNegocios(usuario.email, KIOSCO);
     renderApp('/inicio');
+    const user = userEvent.setup();
 
-    await verifyHeadingPresentAsync(/En qué puedo/);
+    await user.click(await selectorDe(/Kiosco de la plaza/));
 
-    expect(screen.queryByRole('button', { name: /Negocio activo/ })).toBeNull();
+    const menu = within(screen.getByRole('menu'));
+    expect(menu.getByRole('menuitem', { name: /Agregar un negocio/ })).toBeVisible();
+    expect(menu.queryByRole('menuitem', { name: /Todos mis negocios/ })).toBeNull();
   });
 
   it('lista los negocios de la cuenta y arranca con el primero', async () => {
@@ -113,7 +123,7 @@ describe('mis negocios: cada negocio es un cuaderno', () => {
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('crea un negocio desde Inicio como un cuaderno vacío, lo activa y lo guarda', async () => {
+  it('crea un negocio desde el selector de arriba como un cuaderno vacío, lo activa y lo guarda', async () => {
     const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
     givenPremium(usuario.email);
     setupNegocios(usuario.email, KIOSCO);
@@ -121,7 +131,7 @@ describe('mis negocios: cada negocio es un cuaderno', () => {
     const user = userEvent.setup();
     await verifyHeadingPresentAsync(/En qué puedo/);
 
-    await user.click(screen.getByRole('button', { name: 'Agregar un negocio' }));
+    await whenAbreAgregarNegocioEnLaBarra(user);
     await user.type(screen.getByLabelText('Nombre del negocio'), 'Dietética Centro');
     await user.click(screen.getByRole('button', { name: 'Crear y entrar al negocio' }));
 
@@ -141,7 +151,7 @@ describe('mis negocios: cada negocio es un cuaderno', () => {
     const user = userEvent.setup();
     await verifyHeadingPresentAsync(/En qué puedo/);
 
-    await user.click(screen.getByRole('button', { name: 'Agregar un negocio' }));
+    await whenAbreAgregarNegocioEnLaBarra(user);
 
     expect(
       await screen.findByRole('heading', { name: 'Tu plan ya alcanzó el límite' }, ESPERA),
@@ -166,7 +176,7 @@ describe('mis negocios: cada negocio es un cuaderno', () => {
       ESPERA,
     );
     await waitFor(() => expect(router.state.location.pathname).toBe('/inicio'), ESPERA);
-    expect(screen.queryByRole('button', { name: /Negocio activo/ })).toBeNull();
+    expect(await selectorDe(/Kiosco de la plaza/)).toBeVisible();
     expect(leerNegocioGuardado()).toBe(KIOSCO.id);
   });
 });

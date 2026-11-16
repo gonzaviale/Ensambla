@@ -37,7 +37,8 @@ export function SelectorDeNegocio() {
     };
   }, [abierto]);
 
-  if (!activo || data.negocios.length <= 1) return null;
+  if (!activo) return null;
+  const variosNegocios = data.negocios.length > 1;
 
   const compararNegocios = () => {
     setAbierto(false);
@@ -57,8 +58,9 @@ export function SelectorDeNegocio() {
     const sentido = { ArrowDown: 1, ArrowUp: -1 }[evento.key];
     if (!sentido) return;
     evento.preventDefault();
-    const opciones = [...evento.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
-      .filter((boton) => !boton.disabled);
+    const opciones = [
+      ...evento.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'),
+    ].filter((boton) => !boton.disabled);
     const actual = opciones.indexOf(document.activeElement as HTMLButtonElement);
     opciones.at((actual + sentido + opciones.length) % opciones.length)?.focus();
   };
@@ -99,7 +101,9 @@ export function SelectorDeNegocio() {
               key={negocio.id}
               type="button"
               role="menuitem"
-              className={negocio.activo ? 'negocio-selector-opcion activa' : 'negocio-selector-opcion'}
+              className={
+                negocio.activo ? 'negocio-selector-opcion activa' : 'negocio-selector-opcion'
+              }
               aria-current={negocio.activo ? 'true' : undefined}
               onClick={() => elegir(negocio.id)}
             >
@@ -110,15 +114,22 @@ export function SelectorDeNegocio() {
               {negocio.activo && <Icon name="check" />}
             </button>
           ))}
-          <button
-            type="button"
-            role="menuitem"
-            className="negocio-selector-opcion negocio-selector-todos"
-            onClick={compararNegocios}
-          >
-            <span className="negocio-selector-inicial"><Icon name="grid" /></span>
-            <span><strong>Todos mis negocios</strong><small>Comparar y ver los totales</small></span>
-          </button>
+          {variosNegocios && (
+            <button
+              type="button"
+              role="menuitem"
+              className="negocio-selector-opcion negocio-selector-todos"
+              onClick={compararNegocios}
+            >
+              <span className="negocio-selector-inicial">
+                <Icon name="grid" />
+              </span>
+              <span>
+                <strong>Todos mis negocios</strong>
+                <small>Comparar y ver los totales</small>
+              </span>
+            </button>
+          )}
           <button
             type="button"
             role="menuitem"
@@ -130,7 +141,11 @@ export function SelectorDeNegocio() {
           >
             <Icon name="plus" /> Agregar un negocio
           </button>
-          {error && <p className="negocio-selector-error" role="alert">{error.mensaje}</p>}
+          {error && (
+            <p className="negocio-selector-error" role="alert">
+              {error.mensaje}
+            </p>
+          )}
         </div>
       )}
     </div>
