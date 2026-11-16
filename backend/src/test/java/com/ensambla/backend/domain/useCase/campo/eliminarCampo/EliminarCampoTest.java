@@ -55,7 +55,7 @@ class EliminarCampoTest {
 
         eliminarCampo.execute(REQUEST);
 
-        verify(campoRepository).deleteByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID);
+        thenSeEliminaElCampo();
     }
 
     @Test
@@ -68,17 +68,17 @@ class EliminarCampoTest {
         assertThatThrownBy(() -> eliminarCampo.execute(REQUEST))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("No se puede eliminar «Cantidad»: la fórmula «Doble» lo usa");
-        verify(campoRepository, never()).deleteByIdAndNegocioId(any(), any());
+        thenNoSeEliminaNingunCampo();
     }
 
     @Test
     @DisplayName("Un campo ajeno propaga el 404 y no borra nada")
     void executeShouldNotDeleteWhenCampoIsForeign() {
-        when(campoRepository.findByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+        givenCampoAjeno();
 
         assertThatThrownBy(() -> eliminarCampo.execute(REQUEST))
                 .isInstanceOf(ResourceNotFoundException.class);
-        verify(campoRepository, never()).deleteByIdAndNegocioId(any(), any());
+        thenNoSeEliminaNingunCampo();
     }
 
     // --- arrange ---
@@ -88,5 +88,18 @@ class EliminarCampoTest {
 
     private void givenCamposDelBloque(Campo... campos) {
         when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of(campos));
+    }
+
+    private void givenCampoAjeno() {
+        when(campoRepository.findByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+    }
+
+    // --- assert ---
+    private void thenSeEliminaElCampo() {
+        verify(campoRepository).deleteByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID);
+    }
+
+    private void thenNoSeEliminaNingunCampo() {
+        verify(campoRepository, never()).deleteByIdAndNegocioId(any(), any());
     }
 }

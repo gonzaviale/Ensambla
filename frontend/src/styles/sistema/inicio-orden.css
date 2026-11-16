@@ -42,15 +42,6 @@
 .inicio-guia-chica {
   margin-top: 2px;
 }
-.inicio-negocio {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 8px;
-  margin: 0;
-  font-size: 16px;
-  color: var(--c-estructura);
-}
 
 /* ===== B. Acciones: Crear con Sami grande; plantilla, de cero, foto y zona en una grilla de cuatro ===== */
 .inicio-bienvenida-acciones {

@@ -21,7 +21,7 @@ const sinVentas = {
   ventasFiadas: 0,
 };
 
-/** Un cuaderno con productos pero sin ventas, sin faltantes y sin parados. */
+/** Una sección con productos pero sin ventas, sin faltantes y sin parados. */
 const resumenSinNovedades = () => ({
   sistema: 'x',
   hoy: hoy(),
@@ -64,7 +64,7 @@ const escucharPedidos = () => {
 describe('inicio: cómo te va', () => {
   beforeEach(() => window.localStorage.clear());
 
-  it('sin cuadernos no muestra métricas ni las pide', async () => {
+  it('sin secciones no muestra métricas ni las pide', async () => {
     const pedidos = escucharPedidos();
 
     await abrirInicio([]);
@@ -73,7 +73,7 @@ describe('inicio: cómo te va', () => {
     expect(pedidos).toEqual([]);
   });
 
-  it('un cuaderno con sólo filas de ejemplo no muestra métricas ni las pide', async () => {
+  it('una sección con sólo filas de ejemplo no muestra métricas ni las pide', async () => {
     const pedidos = escucharPedidos();
 
     await abrirInicio([makeTemplate('shop', {}, true)]);
@@ -82,7 +82,7 @@ describe('inicio: cómo te va', () => {
     expect(pedidos).toEqual([]);
   });
 
-  it('con un cuaderno cargado muestra lo vendido y lo parado, sin lo que más salió ni lo que falta', async () => {
+  it('con una sección cargada muestra lo vendido y lo parado, sin lo que más salió ni lo que falta', async () => {
     await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
 
     const seccion = await screen.findByRole('region', { name: 'Cómo te va' }, ESPERA);
@@ -91,9 +91,7 @@ describe('inicio: cómo te va', () => {
       await within(seccion).findByRole('heading', { name: 'Esta semana vendiste' }, ESPERA),
     ).toBeVisible();
     expect(within(seccion).queryByRole('heading', { level: 1 })).toBeNull();
-    // El negocio elegido se muestra en el encabezado, no dentro de la sección.
-    expect(within(seccion).queryByText('Almacén de barrio')).toBeNull();
-    expect(screen.getByText('Estás mirando').parentElement).toHaveTextContent('Almacén de barrio');
+    expect(within(seccion).getByText('Almacén de barrio')).toBeVisible();
     expect(
       within(seccion).getByRole('list', { name: 'Ventas de los últimos 7 días' }),
     ).toBeVisible();
@@ -121,7 +119,7 @@ describe('inicio: cómo te va', () => {
     expect(within(seccion).getByRole('heading', { name: 'Este mes vendiste' })).toBeVisible();
   });
 
-  it('con varios cuadernos deja elegir de cuál ver los números y se acuerda de la elección', async () => {
+  it('con varios negocios muestra los números del activo y no deja elegir otro acá', async () => {
     const pedidos: string[] = [];
     server.use(
       http.get('/api/proyectos/:sistemaId/resumen/inicio', ({ params }) => {
@@ -129,46 +127,13 @@ describe('inicio: cómo te va', () => {
         return HttpResponse.json(resumenSinNovedades());
       }),
     );
-    const reciente = almacen('Kiosco Centro', '2026-10-21T10:00:00.000Z');
-    const viejo = almacen('Almacén Norte', '2026-10-01T10:00:00.000Z');
-    const user = await abrirInicio([viejo, reciente]);
+    const activo = almacen('Almacén Norte', '2026-10-01T10:00:00.000Z');
+    const otro = almacen('Kiosco Centro', '2026-10-21T10:00:00.000Z');
 
-    const selector = await screen.findByRole('button', { name: 'Cuaderno: Kiosco Centro' }, ESPERA);
-    expect(pedidos).toEqual([reciente.id]);
+    await abrirInicio([activo, otro]);
 
-    await user.click(selector);
-    const lista = screen.getByRole('listbox', { name: 'Cuadernos' });
-    expect(within(lista).getByRole('option', { name: 'Kiosco Centro' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
-    await user.click(within(lista).getByRole('option', { name: 'Almacén Norte' }));
-
-    await waitFor(() => expect(pedidos).toContain(viejo.id), ESPERA);
-    expect(screen.queryByRole('listbox')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Cuaderno: Almacén Norte' })).toBeVisible();
-    expect(window.localStorage.getItem('ensambla.inicio.cuaderno')).toBe(viejo.id);
-  });
-
-  it('la lista de cuadernos se maneja con el teclado y se cierra con Escape', async () => {
-    const reciente = almacen('Kiosco Centro', '2026-10-21T10:00:00.000Z');
-    const viejo = almacen('Almacén Norte', '2026-10-01T10:00:00.000Z');
-    const user = await abrirInicio([viejo, reciente]);
-    const selector = await screen.findByRole('button', { name: 'Cuaderno: Kiosco Centro' }, ESPERA);
-
-    selector.focus();
-    await user.keyboard('{ArrowDown}');
-    expect(screen.getByRole('listbox', { name: 'Cuadernos' })).toBeVisible();
-    await user.keyboard('{Escape}');
-    expect(screen.queryByRole('listbox')).toBeNull();
-    expect(selector).toHaveFocus();
-
-    await user.keyboard('{ArrowDown}{ArrowDown}{Enter}');
-
-    expect(
-      await screen.findByRole('button', { name: 'Cuaderno: Almacén Norte' }, ESPERA),
-    ).toBeVisible();
-    expect(window.localStorage.getItem('ensambla.inicio.cuaderno')).toBe(viejo.id);
+    await waitFor(() => expect(pedidos).toEqual([activo.id]), ESPERA);
+    expect(screen.queryByRole('button', { name: /^Sección:/ })).toBeNull();
   });
 
   it('si el servidor no contesta lo dice en lugar de mostrar ceros', async () => {
@@ -192,7 +157,7 @@ describe('inicio: cómo te va', () => {
     expect(screen.queryByRole('button', { name: 'Mis métricas' })).toBeNull();
   });
 
-  it('sin ventas anotadas no muestra la tarjeta de ventas', async () => {
+  it('sin ventas anotadas no muestra métricas: se ve el inicio común', async () => {
     const sistema = almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z');
     sistema.sections.forEach((seccion) =>
       seccion.blocks.forEach((bloque) => {
@@ -202,11 +167,10 @@ describe('inicio: cómo te va', () => {
 
     await abrirInicio([sistema]);
 
-    const seccion = await screen.findByRole('region', { name: 'Cómo te va' }, ESPERA);
     expect(
-      await screen.findByRole('region', { name: 'Avisos de rentabilidad' }, ESPERA),
+      await screen.findByText(/Tocá una ficha para arrancar/, undefined, ESPERA),
     ).toBeVisible();
-    expect(within(seccion).queryByRole('heading', { name: /vendiste/ })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Cómo te va' })).toBeNull();
   });
 });
 

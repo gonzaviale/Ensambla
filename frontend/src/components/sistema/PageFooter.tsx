@@ -11,7 +11,6 @@ export function PageFooter() {
       titulo: 'Tu negocio',
       enlaces: [
         { texto: 'Inicio', ruta: '/inicio', ir: navegacion.irAInicio },
-        { texto: 'Mis cuadernos', ruta: '/cuadernos', ir: navegacion.irAMisSistemas },
         { texto: 'Avisos', ruta: '/avisos', ir: navegacion.irAAvisos },
         { texto: 'Objetivos', ruta: '/objetivos', ir: navegacion.irAObjetivos },
       ],
@@ -53,7 +52,7 @@ export function PageFooter() {
             <BrandMark />
             <strong>Ensambla</strong>
           </p>
-          <p className="pie-frase">Tu negocio, un bloque a la vez.</p>
+          <p className="pie-frase">Tu sección, un bloque a la vez.</p>
         </div>
         <nav className="pie-enlaces" aria-label="Pie de página">
           {grupos.map((grupo) => (

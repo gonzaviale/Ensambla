@@ -7,7 +7,7 @@ export function LandingFooter() {
         <a href="#inicio" aria-label="Ensambla, volver al inicio">
           <Logo />
         </a>
-        <p>Un cuaderno digital para el día a día de tu negocio.</p>
+        <p>Una forma simple de ordenar el día a día de tu negocio.</p>
         <a className="ens-link" href="#tus-dudas">
           Resolver mis dudas
         </a>

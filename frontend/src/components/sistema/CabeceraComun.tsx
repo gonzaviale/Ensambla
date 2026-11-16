@@ -19,7 +19,6 @@ export function CabeceraComun({ active = 'home' }: { active?: SeccionActiva }) {
       nombre={nombre}
       campana={<Campana />}
       onInicio={() => void navegacion.irAInicio()}
-      onSistemas={() => void navegacion.irAMisSistemas()}
       onPlantillas={() => void navegacion.irAPlantillas()}
       onZona={() => void navegacion.irAZona()}
       onAvisos={() => void abrirAvisos()}
@@ -33,7 +32,7 @@ export function CabeceraComun({ active = 'home' }: { active?: SeccionActiva }) {
           tipo: 'confirmar',
           titulo: '¿Cerrar la sesión?',
           mensaje:
-            'Salís de tu cuenta en este dispositivo. Tus cuadernos y tus datos quedan guardados para cuando vuelvas a entrar.',
+            'Salís de tu cuenta en este dispositivo. Tus secciones y tus datos quedan guardados para cuando vuelvas a entrar.',
           etiqueta: 'Cerrar sesión',
           onConfirmar: () => void cerrarSesion(),
         })

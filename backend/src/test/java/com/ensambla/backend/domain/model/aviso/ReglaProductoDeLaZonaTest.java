@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.model.aviso;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.zona.AgregadoZonaProducto;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
+import com.ensambla.backend.support.AccionesDePrueba;
 import com.ensambla.backend.support.AvisoTestData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -67,14 +68,10 @@ class ReglaProductoDeLaZonaTest {
         List<ResultadoRegla> resultados = whenEvaluar(zona(), producto(YERBA));
 
         assertThat(resultados.get(0).acciones()).hasSize(2);
-        assertThat(resultados.get(0).acciones().get(0)).isEqualTo(Map.of(
-                "tipo", "CREAR_REGISTRO",
-                "texto", "Sumar a mi inventario",
-                "proyectoId", AvisoTestData.PROYECTO_ID.toString(),
-                "bloqueId", AvisoTestData.INVENTARIO_ID.toString(),
-                "valores", Map.of("name", CAFE, "quantity", 0, "price", new BigDecimal("3200"), "minimum", 5)));
-        assertThat(resultados.get(0).acciones().get(1)).isEqualTo(Map.of(
-                "tipo", "VER_ZONA", "texto", "Ver en Mi zona", "producto", CAFE));
+        assertThat(resultados.get(0).acciones().get(0)).isEqualTo(AccionesDePrueba.crearEnElInventario(
+                "Sumar a mi inventario",
+                Map.of("name", CAFE, "quantity", 0, "price", new BigDecimal("3200"), "minimum", 5)));
+        assertThat(resultados.get(0).acciones().get(1)).isEqualTo(AccionesDePrueba.verEnLaZona(CAFE));
     }
 
     @Test

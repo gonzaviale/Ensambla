@@ -34,18 +34,18 @@ export function SelectorDePeriodo({
   );
 }
 
-// Un color de la marca para cada cuaderno de la lista, para reconocerlos de un vistazo.
+// Un color de la marca para cada sección de la lista, para reconocerlas de un vistazo.
 const COLORES: Color[] = ['petrol', 'orange', 'blue', 'coral', 'yellow'];
 
-// De qué cuaderno son los números: con uno solo es su nombre; con varios, un botón que abre una lista propia
+// De qué sección son los números: con uno solo es su nombre; con varios, un botón que abre una lista propia
 // (la lista nativa del navegador no sigue el diseño). Se maneja con el mouse, con el dedo o con el teclado.
-export function SelectorDeCuaderno({
-  cuadernos,
-  cuaderno,
+export function SelectorDeSistema({
+  sistemas,
+  sistema,
   onCambio,
 }: {
-  cuadernos: Sistema[];
-  cuaderno: Sistema;
+  sistemas: Sistema[];
+  sistema: Sistema;
   onCambio: (id: string) => void;
 }) {
   const [abierto, setAbierto] = useState(false);
@@ -65,13 +65,13 @@ export function SelectorDeCuaderno({
     return () => document.removeEventListener('pointerdown', alTocarAfuera);
   }, [abierto]);
 
-  if (cuadernos.length < 2) return <strong className="selector-cuaderno">{cuaderno.name}</strong>;
+  if (sistemas.length < 2) return <strong className="selector-sistema">{sistema.name}</strong>;
 
   const abrir = () => {
     setMarcado(
       Math.max(
         0,
-        cuadernos.findIndex((item) => item.id === cuaderno.id),
+        sistemas.findIndex((item) => item.id === sistema.id),
       ),
     );
     setAbierto(true);
@@ -81,18 +81,18 @@ export function SelectorDeCuaderno({
     boton.current?.focus();
   };
   const elegir = (id: string) => {
-    if (id !== cuaderno.id) onCambio(id);
+    if (id !== sistema.id) onCambio(id);
     cerrar();
   };
   const alApretarTecla = (evento: KeyboardEvent<HTMLUListElement>) => {
-    const ultimo = cuadernos.length - 1;
+    const ultimo = sistemas.length - 1;
     const teclas: Record<string, () => void> = {
       ArrowDown: () => setMarcado((actual) => Math.min(actual + 1, ultimo)),
       ArrowUp: () => setMarcado((actual) => Math.max(actual - 1, 0)),
       Home: () => setMarcado(0),
       End: () => setMarcado(ultimo),
-      Enter: () => elegir(cuadernos[marcado]?.id ?? cuaderno.id),
-      ' ': () => elegir(cuadernos[marcado]?.id ?? cuaderno.id),
+      Enter: () => elegir(sistemas[marcado]?.id ?? sistema.id),
+      ' ': () => elegir(sistemas[marcado]?.id ?? sistema.id),
       Escape: cerrar,
       Tab: () => setAbierto(false),
     };
@@ -103,15 +103,15 @@ export function SelectorDeCuaderno({
   };
 
   return (
-    <div className="selector-cuaderno-caja" ref={contenedor}>
+    <div className="selector-sistema-caja" ref={contenedor}>
       <button
         ref={boton}
         type="button"
-        className="selector-cuaderno selector-cuaderno-boton"
+        className="selector-sistema selector-sistema-boton"
         aria-haspopup="listbox"
         aria-expanded={abierto}
         aria-controls={abierto ? idLista : undefined}
-        aria-label={`Cuaderno: ${cuaderno.name}`}
+        aria-label={`Sección: ${sistema.name}`}
         onClick={() => (abierto ? setAbierto(false) : abrir())}
         onKeyDown={(evento) => {
           if (evento.key === 'ArrowDown' || evento.key === 'ArrowUp') {
@@ -120,36 +120,36 @@ export function SelectorDeCuaderno({
           }
         }}
       >
-        <span>{cuaderno.name}</span>
+        <span>{sistema.name}</span>
         <Icon name="down" />
       </button>
       {abierto && (
         <ul
           ref={lista}
           id={idLista}
-          className="selector-cuaderno-lista"
+          className="selector-sistema-lista"
           role="listbox"
-          aria-label="Cuadernos"
+          aria-label="Secciones"
           tabIndex={-1}
           aria-activedescendant={`${idLista}-${marcado}`}
           onKeyDown={alApretarTecla}
         >
-          {cuadernos.map((item, indice) => (
+          {sistemas.map((item, indice) => (
             <li
               key={item.id}
               id={`${idLista}-${indice}`}
               role="option"
-              aria-selected={item.id === cuaderno.id}
+              aria-selected={item.id === sistema.id}
               data-marcado={indice === marcado ? 'true' : undefined}
               onPointerEnter={() => setMarcado(indice)}
               onClick={() => elegir(item.id)}
             >
               <span
-                className="selector-cuaderno-punto"
+                className="selector-sistema-punto"
                 style={varsDeColor(COLORES[indice % COLORES.length] ?? 'petrol')}
               />
-              <span className="selector-cuaderno-nombre">{item.name}</span>
-              {item.id === cuaderno.id && <Icon name="check" />}
+              <span className="selector-sistema-nombre">{item.name}</span>
+              {item.id === sistema.id && <Icon name="check" />}
             </li>
           ))}
         </ul>

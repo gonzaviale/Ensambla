@@ -1,5 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
-import { act, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { id as nuevoId, makeSystem, wireSystem } from '@/lib/sistema/core';
@@ -9,10 +9,17 @@ import type { Sistema } from '@/lib/sistema/tipos';
 import { estado } from '@/mocks/db/estado';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { avisoDelServidor } from '@/test/avisosData';
+import {
+  cuandoBajaElStockDeLaGaseosa,
+  cuandoSeAbreElAvisoDeSami,
+  entoncesAparecePendienteElAviso,
+  entoncesElPanelResaltaElAvisoDeStock,
+  entoncesNoHayAvisoDeSami,
+  esperarQueSamiTomeSuLineaBase,
+} from '@/test/avisosDeSami';
 import { renderApp } from '@/test/renderApp';
 import {
   ESPERA,
-  clickButton,
   setupServerError,
   setupUsuarioConSesion as setupUsuarioBase,
   verifyHeadingPresentAsync,
@@ -353,7 +360,7 @@ describe('sin datos y con el almacén de ejemplo', () => {
 
     await waitFor(() => expect(useSistemaStore.getState().sistemas).toHaveLength(1), ESPERA);
     expect(useSistemaStore.getState().sistemas[0]?.demoAlmacen).toBe(true);
-    // Primero el cuaderno (la pantalla de avisos también tiene su Sami flotante); después el número.
+    // Primero la sección (la pantalla de avisos también tiene su Sami flotante); después el número.
     await screen.findByRole('heading', { level: 1, name: /Almacén de ejemplo/ }, ESPERA);
     await waitFor(
       () => expect(screen.getByRole('button', { name: /Hablar con Sami: 9 avisos/ })).toBeVisible(),
@@ -377,7 +384,7 @@ describe('sin datos y con el almacén de ejemplo', () => {
       await user.click(within(chat).getByRole('button', { name: 'Enviar' }));
     };
 
-    it('el Sami flotante muestra cuántos avisos tiene el cuaderno', async () => {
+    it('el Sami flotante muestra cuántos avisos tiene la sección', async () => {
       await abrirConDemo();
 
       const sami = screen.getByRole('button', { name: /Hablar con Sami: 9 avisos/ });
@@ -455,14 +462,14 @@ describe('sin datos y con el almacén de ejemplo', () => {
     expect(screen.getByRole('group', { name: 'Distribuí tus piezas' })).toBeVisible();
   });
 
-  it('con una sola sección no hay barra de secciones (se agrega otra desde los íconos)', async () => {
+  it('con una sola pestaña no hay barra de pestañas (se agrega otra desde los íconos)', async () => {
     await abrirConDemo();
 
-    expect(screen.queryByRole('navigation', { name: 'Secciones del cuaderno' })).toBeNull();
+    expect(screen.queryByRole('navigation', { name: 'Pestañas de la sección' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Agregar y organizar' })).toBeVisible();
   });
 
-  it('el cuaderno ya no muestra los avisos arriba: viven en el chat de Sami', async () => {
+  it('la sección ya no muestra los avisos arriba: viven en el chat de Sami', async () => {
     await abrirConDemo();
 
     expect(screen.queryByRole('region', { name: /Encontré \d+ cosas para mirar/ })).toBeNull();
@@ -470,46 +477,25 @@ describe('sin datos y con el almacén de ejemplo', () => {
 });
 
 describe('«Sami vio un cambio»', () => {
-  it('no avisa al abrir, pero sí cuando un cambio genera un aviso nuevo', async () => {
+  it('avisa de un stock bajo mínimo recién después de abrir, no al abrir', async () => {
     const { cliente } = await abrirConDemo();
-    expect(document.getElementById('sami-aviso')).toBeNull();
-    // Mientras cargan los avisos del servidor el motor todavía no tomó su línea base: sin esperarlos, el cambio
-    // de abajo quedaría incluido en ella y no se avisaría.
-    await waitFor(
-      () => expect(cliente.isFetching({ queryKey: ['avisos', 'pendientes'] })).toBe(0),
-      ESPERA,
-    );
-    await waitFor(
-      () => expect(cliente.getQueryState(['avisos', 'pendientes'])?.status).toBe('success'),
-      ESPERA,
-    );
-    await act(async () => {
-      await new Promise((resolver) => setTimeout(resolver, 50));
-    });
+    entoncesNoHayAvisoDeSami();
+    await esperarQueSamiTomeSuLineaBase(cliente);
 
-    // Bajar la gaseosa por debajo de su mínimo: aparece un aviso de stock nuevo.
-    act(() => {
-      useSistemaStore.getState().actualizarSistema(sistemaActual()?.id ?? '', (sistema) => {
-        const gaseosa = sistema.sections[0]?.blocks[0]?.rows.find(
-          (fila) => fila.name === 'Coca-Cola 2,25 L',
-        );
-        if (gaseosa) gaseosa.quantity = 3;
-      });
-    });
+    cuandoBajaElStockDeLaGaseosa();
 
-    const aviso = await waitFor(() => {
-      const nodo = document.getElementById('sami-aviso');
-      if (!nodo) throw new Error('Todavía no apareció');
-      return nodo;
-    }, ESPERA);
-    expect(within(aviso).getByText('Sami vio un cambio')).toBeVisible();
-    expect(within(aviso).getByText('Coca-Cola 2,25 L está por debajo del mínimo')).toBeVisible();
+    await entoncesAparecePendienteElAviso();
+  });
 
-    await clickButton(userEvent.setup(), 'Ver el aviso');
-    expect(await screen.findByRole('region', { name: /Lo que encontré/ }, ESPERA)).toBeVisible();
-    expect(document.querySelector('.alerta.foco')).toHaveTextContent(
-      'Coca-Cola 2,25 L está por debajo del mínimo',
-    );
+  it('el aviso de Sami lleva al panel con ese aviso resaltado', async () => {
+    const { cliente } = await abrirConDemo();
+    await esperarQueSamiTomeSuLineaBase(cliente);
+    cuandoBajaElStockDeLaGaseosa();
+    await entoncesAparecePendienteElAviso();
+
+    await cuandoSeAbreElAvisoDeSami();
+
+    await entoncesElPanelResaltaElAvisoDeStock();
   });
 });
 
@@ -580,7 +566,7 @@ describe('los avisos del motor del servidor', () => {
     expect(within(estancado).getByText(/Hace \d+ días/)).toBeVisible();
   });
 
-  it('se filtra por cuaderno y la franja resume lo que no puede esperar', async () => {
+  it('se filtra por sección y la franja resume lo que no puede esperar', async () => {
     const { user } = await abrirConAvisosDelServidor(
       avisoDelServidor(),
       avisoDelServidor({
@@ -595,10 +581,10 @@ describe('los avisos del motor del servidor', () => {
 
     const franja = screen.getByRole('complementary', { name: 'Lo urgente' });
     expect(within(franja).getByText(/1 cosa que no puede esperar/)).toBeVisible();
-    const cuadernos = screen.getByRole('group', { name: 'Filtrar por negocio' });
-    expect(within(cuadernos).getAllByRole('button').length).toBeGreaterThanOrEqual(3);
+    const sistemas = screen.getByRole('group', { name: 'Filtrar por sección' });
+    expect(within(sistemas).getAllByRole('button').length).toBeGreaterThanOrEqual(3);
 
-    await user.click(within(cuadernos).getAllByRole('button')[2] as HTMLElement);
+    await user.click(within(sistemas).getAllByRole('button')[2] as HTMLElement);
     expect(screen.queryByRole('heading', { level: 3, name: /Yerba Playadito/ })).toBeNull();
     expect(screen.getByRole('heading', { level: 3, name: /Azúcar/ })).toBeVisible();
   });
@@ -646,7 +632,7 @@ describe('los avisos del motor del servidor', () => {
     const bloques = sistema.sections.flatMap((seccion) => seccion.blocks);
     const inventario = bloques.find((bloque) => bloque.type === 'inventory');
     const entradas = bloques.find((bloque) => bloque.type === 'entries');
-    if (!inventario || !entradas) throw new Error('Faltan las tablas del cuaderno');
+    if (!inventario || !entradas) throw new Error('Faltan las tablas de la sección');
     const producto = { id: nuevoId(), name: 'Yerba Playadito 1 kg', quantity: 0, price: 4200 };
     inventario.rows = [producto];
     wireSystem(sistema);

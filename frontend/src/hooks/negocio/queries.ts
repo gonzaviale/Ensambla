@@ -1,5 +1,6 @@
 import { queryOptions, useQuery } from '@tanstack/react-query';
 import { obtenerConfiguracionNegocio } from '@/api/negocio';
+import { listarRubros } from '@/api/ubicacion';
 import { useUsuarioOpcional } from '@/hooks/auth/queries';
 
 export const configuracionNegocioKey = ['negocio', 'configuracion'] as const;
@@ -24,4 +25,14 @@ export function useConfiguracionNegocio() {
 export function useFaltaConfiguracionNegocio() {
   const consulta = useConfiguracionNegocio();
   return !!consulta.data && !consulta.data.ubicacion;
+}
+
+/** El catálogo de rubros del servidor, para mostrar el nombre del rubro del negocio. */
+export function useRubros() {
+  return useQuery({
+    queryKey: ['ubicacion', 'rubros'],
+    queryFn: ({ signal }) => listarRubros(signal),
+    staleTime: Infinity,
+    retry: false,
+  });
 }

@@ -42,7 +42,11 @@ describe('las filas de ejemplo en la vista previa', () => {
     const inventario = allBlocks(sistema).find((bloque) => bloque.type === 'inventory');
     if (!inventario) throw new Error('Falta el inventario');
     const base = inventario.rows[0];
-    inventario.rows = Array.from({ length: 16 }, (_, i) => ({ ...base, id: `fila-${i}`, __example: undefined }));
+    inventario.rows = Array.from({ length: 16 }, (_, i) => ({
+      ...base,
+      id: `fila-${i}`,
+      __example: undefined,
+    }));
     render(<PreviewBoard sistema={sistema} />);
 
     const tabla = screen.getByText(inventario.name).closest('section');

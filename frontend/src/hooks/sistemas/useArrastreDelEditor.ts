@@ -17,7 +17,7 @@ export type CargaDeArrastre = { tipo: 'catalogo' | 'bloque'; valor: string };
 /** Hacia dónde se corre el bloque de destino cuando se le suelta otro encima. */
 export type LadoDelCambio = 'left' | 'right' | 'top' | 'bottom';
 
-/** Lo que está bajo el cursor mientras se arrastra: una pieza, una pestaña de sección o el lienzo. */
+/** Lo que está bajo el cursor mientras se arrastra: una pieza, una pestaña o el lienzo. */
 export type SobreElDestino = { bloque?: string; lado?: LadoDelCambio; destino?: string } | null;
 
 export type AjusteDeAncho = { id: string; span: number };
@@ -86,7 +86,7 @@ export function useArrastreDelEditor(seccionId: string | undefined) {
     const nodo = objetivo.closest<HTMLElement>('[data-block]');
     const bloque = nodo?.dataset.block;
     if (carga.tipo === 'bloque') {
-      // Un bloque solo cambia de lugar con otro, o se pasa a otra sección desde su pestaña.
+      // Un bloque solo cambia de lugar con otro, o se pasa a otra pestaña desde su pestaña.
       if (nodo && bloque && bloque !== carga.valor) {
         evento.preventDefault();
         setSobre({ bloque, lado: ladoHaciaElArrastrado(carga.valor, nodo) });

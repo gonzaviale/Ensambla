@@ -85,7 +85,7 @@ export function TarjetaDeAviso({
                 <span className="alerta-nivel">{NIVEL_DE_AVISO[aviso.prioridad]}</span>
               </>
             )}
-            <span className="alerta-cuaderno">{aviso.sistema}</span>
+            <span className="alerta-sistema">{aviso.sistema}</span>
             {conNegocio && <span className="alerta-negocio">{aviso.sistema}</span>}
           </div>
           <h3>{aviso.titulo}</h3>

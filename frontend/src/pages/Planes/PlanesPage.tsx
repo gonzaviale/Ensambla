@@ -170,7 +170,7 @@ export function PlanesPage() {
             </section>
             <div className="plans-section-heading">
               <h2>Qué incluye cada plan</h2>
-              <p>Los límites son para todo tu negocio.</p>
+              <p>El plan es de tu cuenta y vale para todos tus negocios.</p>
             </div>
             <section className="plans-grid" aria-label="Comparación de planes">
               {datos.planes.map((plan) => (
@@ -191,9 +191,9 @@ export function PlanesPage() {
               <div>
                 <h2 id="plans-data-title">Tus datos tienen su lugar.</h2>
                 <p>
-                  Cuando termina la prueba conservás tus negocios, tus datos y tus recetas. Podés
-                  consultarlos y editarlos; lo nuevo y las funciones premium respetan los límites
-                  del plan gratuito. Si pasás de Premium a Gratuito, no perdés nada.
+                  Cuando termina la prueba conservás tus secciones, registros y recetas. Podés
+                  consultar y editar tus datos; las nuevas altas y las funciones premium respetan
+                  los límites del plan gratuito.
                 </p>
               </div>
             </section>

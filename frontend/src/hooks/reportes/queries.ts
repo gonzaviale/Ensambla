@@ -10,12 +10,12 @@ export const resumenInicioQuery = (sistemaId: string) =>
   queryOptions({
     queryKey: resumenKeys.inicio(sistemaId),
     queryFn: ({ signal }) => obtenerResumenInicio(sistemaId, signal),
-    // Las ventas cambian mientras se carga el cuaderno: se vuelve a preguntar al volver al inicio.
+    // Las ventas cambian mientras se carga la sección: se vuelve a preguntar al volver al inicio.
     staleTime: 30_000,
     retry: false,
   });
 
-/** Las métricas del inicio del cuaderno elegido; sin cuaderno no se pide nada. */
+/** Las métricas del inicio de la sección elegida; sin sección no se pide nada. */
 export function useResumenInicio(sistemaId: string | undefined) {
   const consulta = useQuery({
     ...resumenInicioQuery(sistemaId ?? ''),

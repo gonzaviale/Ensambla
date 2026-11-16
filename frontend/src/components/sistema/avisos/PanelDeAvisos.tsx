@@ -5,7 +5,7 @@ import { MINIMO_DE_COMERCIOS } from '@/lib/sistema/zona';
 import { useAccionesDeAvisos } from '@/hooks/avisos/useAccionesDeAvisos';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useZona } from '@/hooks/zona/queries';
-import { useSistemaStore } from '@/stores/sistemaStore';
+import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
 import { Btn } from '../Btn';
 import { Icon } from '../Icon';
 import { Sami } from '../Sami';
@@ -22,7 +22,7 @@ export function PanelDeAvisos() {
   const panel = useSistemaStore((estado) => estado.panel);
   const avisos = useSistemaStore((estado) => estado.avisos);
   const acceso = useSistemaStore((estado) => estado.accesoAvisos);
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
+  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
   const actualizarPanel = useSistemaStore((estado) => estado.actualizarPanel);
   const navegacion = useNavegacion();
   const zona = useZona();
@@ -69,36 +69,34 @@ export function PanelDeAvisos() {
   const deslizar = (sentido: number) =>
     cinta.current?.scrollBy?.({ left: sentido * 160, behavior: 'smooth' });
 
-  // Los negocios que tienen avisos, con cuántos. Si el elegido ya no tiene ninguno, se vuelve a «todos».
-  const cuadernos = new Map<string, { nombre: string; cantidad: number }>();
+  // Las secciones que tienen avisos, con cuántos. Si la elegida ya no tiene ninguno, se vuelve a «todos».
+  const conAvisos = new Map<string, { nombre: string; cantidad: number }>();
   for (const aviso of avisos) {
-    const actual = cuadernos.get(aviso.sistemaId);
-    cuadernos.set(aviso.sistemaId, {
+    const actual = conAvisos.get(aviso.sistemaId);
+    conAvisos.set(aviso.sistemaId, {
       nombre: aviso.sistema,
       cantidad: (actual?.cantidad ?? 0) + 1,
     });
   }
-  const opcionesDeCuaderno: [string, { nombre: string; cantidad: number }][] = [
+  const opcionesDeSistema: [string, { nombre: string; cantidad: number }][] = [
     ['todos', { nombre: 'Todos', cantidad: avisos.length }],
-    ...cuadernos,
+    ...conAvisos,
   ];
-  const cuaderno = cuadernos.has(panel.cuaderno) ? panel.cuaderno : 'todos';
-  const delCuaderno = avisos.filter(
-    (aviso) => cuaderno === 'todos' || aviso.sistemaId === cuaderno,
-  );
+  const elegido = conAvisos.has(panel.sistema) ? panel.sistema : 'todos';
+  const delSistema = avisos.filter((aviso) => elegido === 'todos' || aviso.sistemaId === elegido);
 
-  const urgentes = delCuaderno.filter((aviso) => aviso.prioridad >= 2).length;
-  const muyUrgentes = delCuaderno.filter((aviso) => aviso.prioridad === 3);
+  const urgentes = delSistema.filter((aviso) => aviso.prioridad >= 2).length;
+  const muyUrgentes = delSistema.filter((aviso) => aviso.prioridad === 3);
   const filtros: [string, string, number][] = [
-    ['todas', 'Todas', delCuaderno.length],
+    ['todas', 'Todas', delSistema.length],
     ['urgentes', 'Urgentes', urgentes],
     ...GRUPOS_EN_ORDEN.map(([clave, nombre]): [string, string, number] => [
       clave,
       nombre,
-      delCuaderno.filter((aviso) => aviso.grupo === clave).length,
+      delSistema.filter((aviso) => aviso.grupo === clave).length,
     ]),
   ];
-  const lista = delCuaderno.filter(
+  const lista = delSistema.filter(
     (aviso) =>
       panel.filtro === 'todas' ||
       (panel.filtro === 'urgentes' ? aviso.prioridad >= 2 : aviso.grupo === panel.filtro),
@@ -148,7 +146,7 @@ export function PanelDeAvisos() {
             {avisos.length > 0 &&
               `${urgentes ? `${urgentes} para resolver pronto · ` : ''}${avisos.length} ${acceso?.bloqueadas ? 'visibles' : 'en total'}. `}
             {acceso?.bloqueadas ? `${acceso.bloqueadas} más con Premium. ` : ''}
-            Miré {sistemas.length === 1 ? '1 negocio' : `${sistemas.length} negocios`}{' '}
+            Miré {sistemas.length === 1 ? '1 sección' : `${sistemas.length} secciones`}{' '}
             {zonaSuficiente
               ? `y los datos de tu zona (${zona.comercios} comercios, sin nombres).`
               : 'pero todavía no hay comercios suficientes en tu zona para usar sus datos.'}
@@ -217,16 +215,16 @@ export function PanelDeAvisos() {
           <strong>Normal</strong>
         </li>
       </ul>
-      {cuadernos.size > 1 && (
-        <div className="alertas-cuadernos" role="group" aria-label="Filtrar por negocio">
-          <span>Negocio</span>
-          {opcionesDeCuaderno.map(([clave, { nombre, cantidad }]) => (
+      {conAvisos.size > 1 && (
+        <div className="alertas-sistemas" role="group" aria-label="Filtrar por sección">
+          <span>Sección</span>
+          {opcionesDeSistema.map(([clave, { nombre, cantidad }]) => (
             <button
               key={clave}
               type="button"
-              className={cuaderno === clave ? 'active' : ''}
-              aria-pressed={cuaderno === clave}
-              onClick={() => actualizarPanel({ cuaderno: clave })}
+              className={elegido === clave ? 'active' : ''}
+              aria-pressed={elegido === clave}
+              onClick={() => actualizarPanel({ sistema: clave })}
             >
               {nombre} <span>{cantidad}</span>
             </button>

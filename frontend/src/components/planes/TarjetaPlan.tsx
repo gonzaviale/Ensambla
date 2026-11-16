@@ -2,6 +2,7 @@ import { Btn } from '@/components/sistema/Btn';
 import { GestionRenovacion } from './GestionRenovacion';
 import { Icon } from '@/components/sistema/Icon';
 import type { NombreDeIcono } from '@/lib/sistema/iconos';
+import { textoDeNegocios } from '@/lib/planes/negocios';
 import type { Plan } from '@/types/planes';
 
 const FUNCIONES = [['REPORTES_FILTRADOS', 'Resúmenes en PDF']] as const;
@@ -47,11 +48,11 @@ export function TarjetaPlan({
     {
       icono: 'folder',
       titulo: 'Negocios',
-      valor: limite(plan.limiteProyectos, plan.limitesConfigurados),
+      valor: plan.limitesConfigurados ? textoDeNegocios(plan.limiteProyectos) : 'Por definir',
     },
     {
       icono: 'note',
-      titulo: 'Datos cargados',
+      titulo: 'Registros en total',
       valor: limite(plan.limiteRegistros, plan.limitesConfigurados),
     },
     {
@@ -60,7 +61,7 @@ export function TarjetaPlan({
       valor: limite(plan.limitePaginasIaMensuales, plan.limitesConfigurados),
     },
     { icono: 'bell', titulo: 'Avisos por mes', valor: avisos },
-    { icono: 'ubicacion', titulo: 'Avisos de zona por mes', valor: avisos },
+    { icono: 'ubicacion', titulo: 'Recomendaciones de zona por mes', valor: avisos },
   ];
   return (
     <article

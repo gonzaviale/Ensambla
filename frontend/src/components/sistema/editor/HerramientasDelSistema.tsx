@@ -36,9 +36,9 @@ function Accion({
   );
 }
 
-// Dos íconos en lugar de una fila de botones: «Agregar» (bloques, secciones, foto, resumen) y «Distribución»
-// (los mosaicos). Cada uno despliega lo suyo al tocarlo, así el cuaderno queda limpio hasta que se necesita.
-export function HerramientasDelCuaderno({
+// Dos íconos en lugar de una fila de botones: «Agregar» (bloques, pestañas, foto, resumen) y «Distribución»
+// (los mosaicos). Cada uno despliega lo suyo al tocarlo, así la sección queda limpia hasta que se necesita.
+export function HerramientasDelSistema({
   distribucion,
   onDistribucion,
   onBloques,
@@ -96,10 +96,10 @@ export function HerramientasDelCuaderno({
             Bloques
           </Accion>
           <Accion icono="folder" onClick={y(onSecciones)}>
-            Secciones
+            Pestañas
           </Accion>
           <Accion icono="plus" onClick={y(onNuevaSeccion)}>
-            Agregar una sección
+            Agregar una pestaña
           </Accion>
           {onFoto && (
             <Accion icono="camera" onClick={y(onFoto)}>

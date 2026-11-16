@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { CarruselDeRentabilidad } from '@/components/inicio/CarruselDeRentabilidad';
 import { Icon } from '@/components/sistema/Icon';
 import { GraficoDeBarras } from '@/components/sistema/metricas/GraficoDeBarras';
-import { SelectorDePeriodo } from '@/components/sistema/metricas/Selectores';
+import { SelectorDeSistema, SelectorDePeriodo } from '@/components/sistema/metricas/Selectores';
 import { useNumeroAnimado } from '@/components/sistema/metricas/useNumeroAnimado';
 import { useResumenInicio } from '@/hooks/reportes/queries';
-import { useCuadernoElegido } from '@/hooks/reportes/useCuadernoElegido';
+import { useSistemaElegido } from '@/hooks/reportes/useSistemaElegido';
 import { formatoPesos } from '@/lib/sistema/formato';
 import {
   PERIODOS_DE_VENTAS,
@@ -19,19 +19,23 @@ import {
 } from '@/lib/sistema/metricasInicio';
 import type { ResumenInicio } from '@/types/resumenInicio';
 
-// El tablero del inicio para quien ya usa Ensambla: lo que viene vendiendo del negocio elegido en el encabezado y,
-// debajo, las tarjetas cortas del aviso económico (ventas y ganancia frente a la semana pasada), todo junto. Nunca muestra ceros de
-// relleno: si no hay datos, lo dice.
+// El tablero del inicio para quien ya usa Ensambla: lo que viene vendiendo de una sección a elegir y, debajo, las
+// tarjetas cortas del aviso económico (ventas y ganancia frente a la semana pasada), todo junto. Nunca muestra ceros
+// de relleno: si no hay datos, lo dice.
 export function MetricasDelInicio() {
-  const { cuaderno } = useCuadernoElegido();
-  const { resumen, fallo, reintentar } = useResumenInicio(cuaderno?.id);
-  if (!cuaderno) return null;
+  const { sistemas, sistema, elegir } = useSistemaElegido();
+  const { resumen, fallo, reintentar } = useResumenInicio(sistema?.id);
+  if (!sistema) return null;
 
   return (
     <section className="tablero" aria-labelledby="tablero-titulo">
       <h2 id="tablero-titulo" className="inicio-seccion-titulo">
         Cómo te va
       </h2>
+      <p className="tablero-sistema">
+        <span>Así viene</span>
+        <SelectorDeSistema sistemas={sistemas} sistema={sistema} onCambio={elegir} />
+      </p>
 
       {fallo ? (
         <p className="tablero-aviso" role="status">
@@ -52,14 +56,14 @@ export function MetricasDelInicio() {
         </div>
       ) : !resumen.hayVentas ? (
         <p className="tablero-aviso" role="status">
-          Cuando anotes ventas o productos en «{cuaderno.name}», acá vas a ver cómo te va.
+          Cuando anotes ventas o productos en «{sistema.name}», acá vas a ver cómo te va.
         </p>
       ) : (
         <div className="tablero-cuerpo">
           <TarjetaDeVentas resumen={resumen} />
         </div>
       )}
-      <CarruselDeRentabilidad />
+      <CarruselDeRentabilidad sistemaId={sistema.id} />
     </section>
   );
 }

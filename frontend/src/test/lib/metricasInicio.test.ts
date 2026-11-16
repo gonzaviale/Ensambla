@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   comparacionConElPeriodoAnterior,
   cuandoFue,
-  cuadernosConDatos,
+  sistemasConDatos,
   diaCompleto,
   diasDelGrafico,
   etiquetaDelDia,
@@ -21,15 +21,15 @@ const conFilas = (nombre: string, actualizadoEn: string, ejemplo: boolean): Sist
 };
 
 describe('métricas del inicio', () => {
-  it('sólo cuenta los cuadernos con filas propias y deja primero el más reciente', () => {
+  it('sólo cuenta las secciones con filas propias y deja primera la más reciente', () => {
     const viejo = conFilas('Viejo', '2026-10-01T00:00:00.000Z', false);
     const reciente = conFilas('Reciente', '2026-10-20T00:00:00.000Z', false);
     const deEjemplo = conFilas('De ejemplo', '2026-10-25T00:00:00.000Z', true);
     const vacio = makeSystem('Vacío', ['inventory', 'sales'], false);
 
-    const resultado = cuadernosConDatos([viejo, deEjemplo, vacio, reciente]);
+    const resultado = sistemasConDatos([viejo, deEjemplo, vacio, reciente]);
 
-    expect(resultado.map((cuaderno) => cuaderno.name)).toEqual(['Reciente', 'Viejo']);
+    expect(resultado.map((sistema) => sistema.name)).toEqual(['Reciente', 'Viejo']);
   });
 
   it('compara con el mismo día de la semana pasada, con la semana pasada y con el mes pasado', () => {

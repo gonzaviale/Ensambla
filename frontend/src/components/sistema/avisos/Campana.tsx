@@ -128,7 +128,7 @@ export function Campana() {
 
 type PropsAviso = { aviso: Aviso; onAbrir: () => void; onOcultar: () => void };
 
-// Un aviso resumido: ícono, título y de qué cuaderno es. Se desliza hacia un costado para ocultarlo.
+// Un aviso resumido: ícono, título y de qué sección es. Se desliza hacia un costado para ocultarlo.
 function AvisoDeLaCampana({ aviso, onAbrir, onOcultar }: PropsAviso) {
   const inicio = useRef<number | null>(null);
   const movido = useRef(false);

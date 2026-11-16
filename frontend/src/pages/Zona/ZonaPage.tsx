@@ -22,7 +22,7 @@ import { useAccionesDeAvisos } from '@/hooks/avisos/useAccionesDeAvisos';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { useAnalisisDeOtraZona } from '@/hooks/zona/useAnalisisDeOtraZona';
 import { useZona, useZonaDeLoQueSeVende } from '@/hooks/zona/queries';
-import { useSistemaStore } from '@/stores/sistemaStore';
+import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
 
 type Vista = 'precios' | 'cerca' | 'otra';
 
@@ -88,7 +88,7 @@ function SinDatosSuficientes({ zona }: { zona: Zona }) {
 export function ZonaPage() {
   useTituloPagina('Mi zona');
   const zona = useZona();
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
+  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
   const [vista, setVista] = useState<Vista>('precios');
   const propios = useMemo(() => productosPropios(sistemas), [sistemas]);
   const { titulo, texto } = TITULOS[vista];
@@ -96,7 +96,7 @@ export function ZonaPage() {
   return (
     <main id="main" tabIndex={-1} className="page-wrap zona-page reveal">
       <Link className="text-link" to="/ubicacion">
-        Probar ubicación y rubro de mi negocio
+        Probar ubicación y rubro de mi comercio
       </Link>
       <div className="zona-cabeza">
         <div className="page-title">
@@ -199,7 +199,7 @@ function VistaDePrecios({
 // `zona` es la de «Precios» (primero lo que ya tenés): sirve para el resumen lateral, que compara tus precios. La lista
 // sale de la zona de esta pestaña, que prioriza lo que todavía no tenés y gasta su propio cupo del plan gratuito.
 function VistaDeLoQueSeVende({ zona }: { zona: Zona }) {
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
+  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
   const acciones = useAccionesDeAvisos();
   const propios = useMemo(() => productosPropios(sistemas), [sistemas]);
   const cerca = useZonaDeLoQueSeVende(!sinSuficientes(zona));
@@ -245,7 +245,8 @@ function VistaDeLoQueSeVende({ zona }: { zona: Zona }) {
         <section className="zona-panel">
           {!destino && (
             <div className="info-box">
-              Para sumar productos a tu stock necesitás una sección de Stock en tu negocio.
+              Para sumar productos a tu inventario necesitás una sección con un bloque de
+              Inventario.
             </div>
           )}
           <div className="row between">
@@ -336,7 +337,7 @@ const TEXTOS_DEL_MARCADOR = {
 };
 
 function VistaDeOtraZona() {
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
+  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
   const propios = useMemo(() => productosPropios(sistemas), [sistemas]);
   const estado = useAnalisisDeOtraZona();
   const resultado = estado.resultado;

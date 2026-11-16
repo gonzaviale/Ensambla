@@ -8,8 +8,8 @@ import type { AvisoEconomico } from '@/types/avisoEconomico';
 // Las señales de rentabilidad del negocio, arriba de todo en el Inicio y en poco espacio: una tarjeta corta para lo que
 // cambió en las ventas, otra para la ganancia y otra para los productos que lo explican. Se desliza con las flechas
 // o, en el celular, con el dedo. Sin señales no ocupa lugar. Cada una se puede descartar.
-export function CarruselDeRentabilidad() {
-  const { diapositivas, aviso, descartar } = useRentabilidad();
+export function CarruselDeRentabilidad({ sistemaId }: { sistemaId: string }) {
+  const { diapositivas, aviso, descartar } = useRentabilidad(sistemaId);
   const pista = useRef<HTMLUListElement>(null);
   const [desborda, setDesborda] = useState(false);
 

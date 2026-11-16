@@ -3,28 +3,29 @@ import { Btn } from '@/components/sistema/Btn';
 import { Icon } from '@/components/sistema/Icon';
 import { useAccionesDeAvisos } from '@/hooks/avisos/useAccionesDeAvisos';
 import { usePanelDelNegocio } from '@/hooks/panel/queries';
-import { useCuadernoElegido } from '@/hooks/reportes/useCuadernoElegido';
+import { useSistemaElegido } from '@/hooks/reportes/useSistemaElegido';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { bloqueDeVentas, pesos, sistemaDelPanel } from '@/lib/sistema/panelDelNegocio';
-import { useSistemaStore } from '@/stores/sistemaStore';
+import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
 import type { PanelDelNegocio as Panel } from '@/types/panel';
 import { Desplegable } from './Desplegable';
 import { FlujoDeCajaPorSemana } from './FlujoDeCajaPorSemana';
 
 const DIA_MES = (fecha: string) => `${fecha.slice(8, 10)}/${fecha.slice(5, 7)}`;
 
-// Lo último del inicio, para consultar: el flujo de caja de los últimos días, con el cálculo del servidor. Mira el mismo cuaderno que las métricas (el que se eligió arriba). Sin cuadernos no aparece; sin
+// Lo último del inicio, para consultar: el flujo de caja de los últimos días, con el cálculo del servidor. Mira la
+// misma sección que las métricas (la que se eligió arriba). Sin secciones no aparece; sin
 // ventas explica cómo cargarlas, sin inventar números.
 export function PanelDelNegocio() {
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
-  const { cuaderno } = useCuadernoElegido();
-  const sistema = useMemo(() => cuaderno ?? sistemaDelPanel(sistemas), [cuaderno, sistemas]);
+  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
+  const { sistema: elegido } = useSistemaElegido();
+  const sistema = useMemo(() => elegido ?? sistemaDelPanel(sistemas), [elegido, sistemas]);
   const consulta = usePanelDelNegocio(sistema?.id ?? null);
   const navegacion = useNavegacion();
   const acciones = useAccionesDeAvisos();
   if (!sistema) return null;
 
-  // «Ver mis ventas» lleva a la tabla de ventas y la marca; si el cuaderno no tiene una, lo abre.
+  // «Ver mis ventas» lleva a la tabla de ventas y la marca; si la sección no tiene una, la abre.
   const abrirVentas = () => {
     const ventas = bloqueDeVentas(sistema);
     return ventas

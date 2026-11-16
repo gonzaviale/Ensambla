@@ -32,7 +32,7 @@ describe('registrosNuevos', () => {
     expect([...nuevas]).toEqual(['nueva', 'otra-nueva']);
   });
 
-  it('al armar un cuaderno nuevo todo lo real es nuevo', () => {
+  it('al armar una sección nueva todo lo real es nuevo', () => {
     const nuevas = registrosNuevos([{ rows: [fila('a'), fila('b')] }], new Set());
 
     expect(nuevas.size).toBe(2);

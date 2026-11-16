@@ -1,31 +1,40 @@
 import { DecisionesRapidas } from '@/components/inicio/DecisionesRapidas';
 import { PanelDelNegocio } from '@/components/inicio/PanelDelNegocio';
+import { TuNegocio } from '@/components/inicio/TuNegocio';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { FichasParaEmpezar } from '@/components/sistema/FichasParaEmpezar';
 import { Icon } from '@/components/sistema/Icon';
 import { MetricasDelInicio } from '@/components/sistema/MetricasDelInicio';
-import { SelectorDeCuaderno } from '@/components/sistema/metricas/Selectores';
 import { PageFooter } from '@/components/sistema/PageFooter';
 import { varsDeColor } from '@/components/sistema/colores';
-import { sistemaDelPanel } from '@/lib/sistema/panelDelNegocio';
+import { sistemaDelPanel, tieneVentas } from '@/lib/sistema/panelDelNegocio';
 import type { NombreDeIcono } from '@/lib/sistema/iconos';
 import type { Color } from '@/lib/sistema/tipos';
+import { usePanelDelNegocio } from '@/hooks/panel/queries';
+import { useSistemaElegido } from '@/hooks/reportes/useSistemaElegido';
 import { useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
-import { useCuadernoElegido } from '@/hooks/reportes/useCuadernoElegido';
 import { useAccionesDelTutorial } from '@/hooks/tutorial/useAccionesDelTutorial';
-import { useSistemaStore } from '@/stores/sistemaStore';
+import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
+import { useNegociosDeLaCuenta } from '@/hooks/negocios/queries';
 
-// Inicio: quien ya tiene un cuaderno ve un encabezado corto con el negocio que mira, las maneras de empezar (Sami
-// primero) y, abajo, lo que conviene decidir hoy, cómo viene vendiendo y el flujo de caja; quien recién llega ve la
-// bienvenida grande. Las
-// plantillas tienen su pantalla y su ficha de arriba (los cuadernos guardados, la suya: «Mis cuadernos»).
+// Inicio: quien ya tiene una sección ve un encabezado corto con las maneras de empezar (Sami primero), sus negocios,
+// «Tu negocio» (su nombre y sus secciones como accesos) y, abajo, lo que conviene decidir hoy, cómo viene vendiendo y
+// el flujo de caja; quien recién llega ve la bienvenida grande. Las plantillas tienen su pantalla y su ficha de arriba.
 // Fondo blanco; el color va lleno en cada ficha, con íconos blancos.
 export function InicioPage() {
   const nombre = useNombre();
   const tutorial = useAccionesDelTutorial();
-  // Quien ya tiene un cuaderno ve el panel de su negocio: la bienvenida pasa a una franja corta (el h1 es el mismo)
+  // Quien ya tiene una sección ve el panel de su negocio: la bienvenida pasa a una franja corta (el h1 es el mismo)
   // y las formas de empezar siguen a mano. Quien recién empieza ve la bienvenida grande de siempre.
-  const hayPanel = useSistemaStore((estado) => sistemaDelPanel(estado.sistemas) !== null);
+  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
+  const { sistema: elegido } = useSistemaElegido();
+  const delPanel = elegido ?? sistemaDelPanel(sistemas);
+  const panel = usePanelDelNegocio(delPanel?.id ?? null);
+  // Sin ventas en el período no hay métricas para mostrar: se ve el inicio común. Mientras llegan los números se
+  // supone que hay (si la sección tiene ventas), así el panel no parpadea.
+  const hayPanel =
+    delPanel !== null &&
+    (panel.data ? panel.data.hayDatos : !panel.isPending || tieneVentas(delPanel));
   return (
     <>
       <CabeceraComun />
@@ -40,7 +49,6 @@ export function InicioPage() {
                   ¿Primera vez? Mostrarme cómo empezar
                 </button>
               </div>
-              <NegocioElegido />
             </div>
             <div className="inicio-bienvenida-acciones">
               <FichasParaEmpezar guia compacto />
@@ -48,6 +56,10 @@ export function InicioPage() {
             </div>
           </section>
         )}
+
+        <AgregarNegocio />
+
+        <TuNegocio />
 
         {/* El orden de la home (T-213): lo que hay que decidir hoy, después cómo viene el negocio y, al final, la
             consulta de la caja. */}
@@ -83,13 +95,13 @@ export function InicioPage() {
 
         {/* <section className="inicio-bloque inicio-ejemplo">
           <Titulo
-            titulo="Así se ve un cuaderno"
+            titulo="Así se ve una sección"
             detalle="Un ejemplo para mirar. Probá cambiar cómo se reparten las piezas."
           />
           <div className="hero-system">
             <div className="hero-system-top">
               <span className="live-dot" />
-              <strong>Un cuaderno. Tu forma de organizarlo.</strong>
+              <strong>Una sección. Tu forma de organizarlo.</strong>
               <span className="tag outline">Ejemplo</span>
             </div>
             <PreviewBoard sistema={ejemplo} compacto />
@@ -120,15 +132,27 @@ export function InicioPage() {
   );
 }
 
-// De qué negocio son las ventas y la caja de abajo: el mismo selector de antes, ahora en el encabezado.
-function NegocioElegido() {
-  const { cuadernos, cuaderno, elegir } = useCuadernoElegido();
-  if (!cuaderno) return null;
+function AgregarNegocio() {
+  const { data } = useNegociosDeLaCuenta();
+  const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   return (
-    <p className="inicio-negocio">
-      <span>Estás mirando</span>
-      <SelectorDeCuaderno cuadernos={cuadernos} cuaderno={cuaderno} onCambio={elegir} />
-    </p>
+    <div className="inicio-agregar-negocio">
+      <span>
+        <strong>
+          {data.negocios.length === 1
+            ? 'Tu negocio está activo'
+            : `${data.negocios.length} negocios en tu cuenta`}
+        </strong>
+        <small>La información de cada uno se mantiene separada.</small>
+      </span>
+      <button
+        type="button"
+        className="btn secondary"
+        onClick={() => abrirModal({ tipo: 'agregarNegocio' })}
+      >
+        <Icon name="plus" /> Agregar un negocio
+      </button>
+    </div>
   );
 }
 
