@@ -9,8 +9,6 @@ import { useComoVieneTuNegocio } from '@/hooks/objetivos/useComoVieneTuNegocio';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { formatoPesos, type Objetivo } from '@/lib/objetivos';
-import { diaCorto, proximoCierre } from '@/lib/objetivosAutogestion';
-import { hoy } from '@/lib/sistema/formato';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { EntradaDondeAbrir } from '@/pages/DondeAbrir/EntradaDondeAbrir';
 import { DefinirObjetivo } from './DefinirObjetivo';
@@ -52,8 +50,6 @@ export function ObjetivosPage() {
               etiqueta="Objetivos"
               titulo="Definí tu primer objetivo"
               texto="Contale a Sami qué querés lograr y te dice cómo llegar."
-              samiTitulo="Sami te ayuda"
-              sami="Le pone número a lo que querés lograr"
             />
             <DefinirObjetivo onDefinido={() => setDefiniendo(false)} />
           </>
@@ -63,8 +59,6 @@ export function ObjetivosPage() {
               etiqueta="Objetivos"
               titulo="Cómo van tus objetivos"
               texto="Cuánto te falta para llegar. Tus pasos están en «Ver mi semana»."
-              samiTitulo="Sami sigue tus objetivos"
-              sami={`Mide cada día · cierra el domingo ${diaCorto(proximoCierre(hoy()))}`}
             />
             <NegocioHoy negocio={negocio} />
             <div className="objetivos-lista">

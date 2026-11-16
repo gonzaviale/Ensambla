@@ -778,24 +778,41 @@
 }
 .objetivos-tarjeta-avance {
   display: grid;
-  grid-template-columns: 1fr minmax(220px, 0.8fr);
-  gap: 26px;
-  align-items: end;
-  margin-top: 18px;
+  grid-template-columns: auto minmax(0, 520px);
+  align-items: center;
+  justify-content: start;
+  gap: 18px 40px;
+  margin-top: 14px;
 }
 .objetivos-avance-cifras {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 8px;
+  display: grid;
+  gap: 2px;
 }
 .objetivos-avance-cifras strong {
-  font-size: 30px;
   color: var(--petrol);
+  font-size: 34px;
+  line-height: 1.1;
 }
 .objetivos-avance-cifras span {
-  color: var(--muted);
-  font-size: 12px;
+  color: var(--petrol);
+  font-size: 13px;
+  font-weight: 700;
+}
+.objetivos-avance-meta {
+  display: grid;
+  gap: 6px;
+}
+.objetivos-avance-meta > p:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  color: var(--petrol);
+  font-size: 13px;
+  font-weight: 700;
+}
+.objetivos-avance-meta > p:first-child strong {
+  color: var(--orange);
 }
 .objetivos-progreso {
   height: 12px;
@@ -810,45 +827,8 @@
   background: var(--orange);
 }
 .objetivos-tendencia-texto {
-  margin-top: 10px;
-  color: var(--muted);
+  color: var(--petrol);
   font-size: 12px;
-}
-.objetivos-tendencia {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  height: 96px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--line);
-}
-.objetivos-tendencia figure {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  flex: 1;
-  height: 100%;
-  margin: 0;
-}
-.objetivos-tendencia i {
-  display: block;
-  min-height: 6px;
-  border-radius: 6px 6px 0 0;
-  background: var(--blue);
-}
-.objetivos-tendencia figure:last-child i {
-  background: var(--orange);
-}
-.objetivos-tendencia figcaption {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -19px;
-  color: var(--muted);
-  font-size: 9px;
-  text-align: center;
-  white-space: nowrap;
 }
 .objetivos-tarjeta-acciones {
   display: flex;
@@ -1172,7 +1152,7 @@
 }
 @media (max-width: 900px) {
   .objetivos-tarjeta-avance {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .objetivos-tarjeta > header {
     flex-direction: column;
@@ -1625,7 +1605,7 @@
   text-align: center;
 }
 .objetivo-tablero-porcentaje strong {
-  font-size: 48px;
+  font-size: 34px;
   line-height: 1;
 }
 .objetivo-tablero-porcentaje span {
@@ -2411,4 +2391,9 @@
 .grafico-semanal-avance span {
   font-size: 14px;
   font-weight: 700;
+}
+
+/* Todos los títulos de Objetivos van en petróleo, nunca en negro. */
+.objetivos-page :is(h1, h2, h3, h4) {
+  color: var(--petrol);
 }

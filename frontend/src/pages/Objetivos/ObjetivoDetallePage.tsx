@@ -1,13 +1,11 @@
 import { ArrowLeftIcon, FlagCheckeredIcon, TrendUpIcon } from '@phosphor-icons/react';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { PageFooter } from '@/components/sistema/PageFooter';
-import { useMiniObjetivos, useObjetivos, useSemanasObjetivo } from '@/hooks/objetivos/queries';
+import { useObjetivos } from '@/hooks/objetivos/queries';
 import { useMedirObjetivos } from '@/hooks/objetivos/useMedirObjetivos';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { avance, brecha, formatoPesos, ultimoValor, type Objetivo } from '@/lib/objetivos';
-import { estadoDeSami, resumenSinVer } from '@/lib/objetivosAutogestion';
-import { hoy } from '@/lib/sistema/formato';
 import { SeguimientoDelObjetivo } from './autogestion/SeguimientoDelObjetivo';
 import { Encabezado, Progreso } from './piezas';
 
@@ -57,22 +55,12 @@ export function ObjetivoDetallePage({ objetivoId }: { objetivoId: string }) {
 
 function Detalle({ objetivo }: { objetivo: Objetivo }) {
   const cumplido = brecha(objetivo) === 0;
-  const minis = useMiniObjetivos(objetivo.id).data;
-  const ultimoCierre = useSemanasObjetivo(objetivo.id).data?.ultimoCierre ?? null;
-  const sami = estadoDeSami({
-    alcanzado: cumplido || minis?.faltanDatos === 'OBJETIVO_ALCANZADO',
-    sinDatos: minis?.faltanDatos === 'POCOS_DATOS',
-    resumenListo: resumenSinVer(objetivo.id, ultimoCierre),
-    dia: hoy(),
-  });
   return (
     <>
       <Encabezado
         etiqueta={`Tu objetivo · Meta ${formatoPesos(objetivo.meta)} por mes`}
         titulo={objetivo.texto}
         texto="Sami lo divide en 3 mini-objetivos y los ajusta cada domingo."
-        samiTitulo={sami.titulo}
-        sami={sami.detalle}
       />
       <section className="objetivo-tablero" aria-label="Avance hacia tu meta">
         <div className="objetivo-tablero-extremo hoy">
@@ -84,7 +72,6 @@ function Detalle({ objetivo }: { objetivo: Objetivo }) {
         </div>
         <p className="objetivo-tablero-porcentaje">
           <strong>{Math.round(avance(objetivo) * 100)} %</strong>
-          <span>de tu meta</span>
         </p>
         <div className="objetivo-tablero-extremo meta">
           <span className="objetivo-tablero-etiqueta">

@@ -137,17 +137,6 @@ describe('la semana de un objetivo que se autogestiona', () => {
     ]);
   });
 
-  it('el recuadro de Sami cuenta qué hace con el objetivo, no un «Sami está listo» genérico', async () => {
-    conObjetivoDeEjemplo();
-    renderApp(DETALLE);
-
-    await minis();
-    expect(screen.queryByText('Sami está listo')).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/Sami sigue tu semana|Tu resumen está listo|Sami espera tus ventas/),
-    ).toBeVisible();
-  });
-
   it('si el servidor no trae los mini-objetivos lo explica sin romper la pantalla', async () => {
     conObjetivoDeEjemplo();
     setupServerError('get', `/objetivos/${ID_OBJETIVO_DE_EJEMPLO}/mini-objetivos`, 503, 'Caído');
