@@ -1,7 +1,7 @@
 import type { ResumenDeNegocio } from '@/types/negocios';
 
-// Cómo se dice cada negocio de la cuenta en pantalla (ENS-284). Los datos salen de `GET /api/negocios/resumen`
-// (docs/negocios-de-la-cuenta.md).
+// Cómo se dice cada negocio de la cuenta en pantalla (ENS-284). Los datos salen del resumen conjunto, que junta el
+// panel de cada cuaderno (ver `lib/negocios/lista`).
 
 export type EstadoDelNegocio = 'BIEN' | 'ATENCION' | 'SIN_DATOS';
 
@@ -9,8 +9,7 @@ export type EstadoDelNegocio = 'BIEN' | 'ATENCION' | 'SIN_DATOS';
 export type NegocioParaElegir = {
   id: string;
   nombre: string;
-  rubro: string;
-  avisosPendientes: number;
+  avisosPendientes: number | null;
   estado: EstadoDelNegocio;
 };
 
@@ -33,7 +32,6 @@ export const estadoDelNegocio = ({
 export const paraElegir = (resumen: ResumenDeNegocio): NegocioParaElegir => ({
   id: resumen.id,
   nombre: resumen.nombre,
-  rubro: resumen.rubro,
   avisosPendientes: resumen.avisosPendientes,
   estado: estadoDelNegocio(resumen),
 });

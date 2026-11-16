@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { sistemasConDatos } from '@/lib/sistema/metricasInicio';
-import { useSistemaStore } from '@/stores/sistemaStore';
+import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
 
 const CLAVE_DEL_SISTEMA = 'ensambla.inicio.sistema';
 
@@ -17,7 +17,7 @@ const leerSistemaElegido = () => {
  * si no hay, con la última que se tocó.
  */
 export function useSistemaElegido() {
-  const todos = useSistemaStore((estado) => estado.sistemas);
+  const todos = useSistemaStore(seleccionarSistemasDelNegocio);
   const sistemas = useMemo(() => sistemasConDatos(todos), [todos]);
   const [elegido, setElegido] = useState(leerSistemaElegido);
   const sistema = sistemas.find((item) => item.id === elegido) ?? sistemas[0];

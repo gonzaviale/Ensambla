@@ -7,7 +7,6 @@ import type { NegocioParaElegir } from '@/lib/negocios/presentacion';
 const ALMACEN: NegocioParaElegir = {
   id: 'almacen',
   nombre: 'Almacén Don Pepe',
-  rubro: 'ALMACEN',
   avisosPendientes: 3,
   estado: 'BIEN',
 };
@@ -15,7 +14,6 @@ const ALMACEN: NegocioParaElegir = {
 const KIOSCO: NegocioParaElegir = {
   id: 'kiosco',
   nombre: 'Kiosco de la esquina',
-  rubro: 'KIOSCO',
   avisosPendientes: 1,
   estado: 'ATENCION',
 };
@@ -23,23 +21,18 @@ const KIOSCO: NegocioParaElegir = {
 const FERIA: NegocioParaElegir = {
   id: 'feria',
   nombre: 'Puesto de la feria',
-  rubro: 'OTRO',
   avisosPendientes: 0,
   estado: 'SIN_DATOS',
 };
 
-const listo = (activoId: string | null = null): EstadoDeLaEleccion => ({
-  tipo: 'listo',
-  negocios: [ALMACEN, KIOSCO, FERIA],
-  activoId,
-});
+const listo = (
+  activoId: string | null = null,
+  negocios: NegocioParaElegir[] = [ALMACEN, KIOSCO, FERIA],
+): EstadoDeLaEleccion => ({ tipo: 'listo', negocios, activoId });
 
-const montar = (
-  estado: EstadoDeLaEleccion,
-  nombreDelRubro?: (codigo: string) => string | undefined,
-) => {
+const montar = (estado: EstadoDeLaEleccion) => {
   const onElegir = vi.fn();
-  render(<ElegirNegocio estado={estado} onElegir={onElegir} nombreDelRubro={nombreDelRubro} />);
+  render(<ElegirNegocio estado={estado} onElegir={onElegir} />);
   return { user: userEvent.setup(), onElegir };
 };
 
@@ -56,17 +49,15 @@ describe('ElegirNegocio', () => {
     ]);
   });
 
-  it('dice de cada negocio su rubro, cómo viene y sus avisos, sin montos', () => {
+  it('dice de cada negocio cómo viene y sus avisos, sin montos', () => {
     montar(listo());
 
     const kiosco = opcion('Kiosco de la esquina');
     expect(kiosco).toHaveTextContent('Atención');
-    expect(kiosco).toHaveAccessibleDescription('Kiosco · 1 aviso pendiente');
+    expect(kiosco).toHaveAccessibleDescription('1 aviso pendiente');
     expect(kiosco).not.toHaveTextContent('$');
     expect(opcion('Almacén Don Pepe')).toHaveTextContent('Viene bien');
-    expect(opcion('Puesto de la feria')).toHaveAccessibleDescription(
-      'Otro · Sin avisos pendientes',
-    );
+    expect(opcion('Puesto de la feria')).toHaveAccessibleDescription('Sin avisos pendientes');
   });
 
   it('marca los avisos pendientes y el estado para que se vean', () => {
@@ -84,20 +75,16 @@ describe('ElegirNegocio', () => {
     montar(listo('kiosco'));
 
     expect(opcion('Kiosco de la esquina')).toHaveAccessibleDescription(
-      'Kiosco · 1 aviso pendiente · El último que usaste',
+      '1 aviso pendiente · El último que usaste',
     );
     expect(opcion('Almacén Don Pepe')).not.toHaveTextContent('El último que usaste');
   });
 
-  it('usa el nombre del rubro que da el servidor y, si no lo tiene, el código legible', () => {
-    montar(listo(), (codigo) => (codigo === 'ALMACEN' ? 'Almacén de barrio' : undefined));
+  it('si no se sabe cuántos avisos tiene un negocio, no dice nada de ellos', () => {
+    montar(listo('kiosco', [{ ...KIOSCO, avisosPendientes: null }]));
 
-    expect(opcion('Almacén Don Pepe')).toHaveAccessibleDescription(
-      'Almacén de barrio · 3 avisos pendientes',
-    );
-    expect(opcion('Kiosco de la esquina')).toHaveAccessibleDescription(
-      'Kiosco · 1 aviso pendiente',
-    );
+    expect(opcion('Kiosco de la esquina')).toHaveAccessibleDescription('El último que usaste');
+    expect(opcion('Kiosco de la esquina')).not.toHaveTextContent('aviso');
   });
 
   it('tocar un negocio avisa cuál se eligió', async () => {

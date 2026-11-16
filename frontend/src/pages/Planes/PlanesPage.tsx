@@ -127,8 +127,8 @@ export function PlanesPage() {
               <dl className="plan-usage-grid">
                 <Uso
                   titulo="Negocios"
-                  cantidad={datos.uso.negocios}
-                  limite={actual.limiteNegocios}
+                  cantidad={datos.uso.proyectos}
+                  limite={actual.limiteProyectos}
                 />
                 <Uso
                   titulo="Registros guardados"

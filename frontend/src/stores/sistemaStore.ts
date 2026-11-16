@@ -1,3 +1,4 @@
+import { guardarNegocioActivo, leerNegocioGuardado, negocioActivoDe } from '@/lib/negocios/lista';
 import { recuperarBorradorSesion } from '@/lib/borradorSesion';
 import { create } from 'zustand';
 import type { AccesoContenido } from '@/types/contenidoPlan';
@@ -117,6 +118,8 @@ const MAX_HISTORIAL = 30;
 type EstadoDelStore = {
   usuarioId: string | null;
   sistemas: Sistema[];
+  /** El cuaderno que hace de negocio activo: las pantallas muestran sólo lo suyo. */
+  negocioActivoId: string | null;
   /** Ids de los sistemas con cambios todavía sin guardar en el servidor. */
   pendientes: string[];
   /** Ids de los sistemas que hay que borrar en el servidor. */
@@ -151,6 +154,8 @@ type Acciones = {
   /** Carga lo que dice el servidor. Si es la misma persona que ya estaba, no pisa lo que editó. */
   hidratar: (usuarioId: string, sistemas: Sistema[]) => void;
   reiniciar: () => void;
+  /** Pasa a trabajar con otro negocio (otro cuaderno) y lo recuerda para la próxima vez. */
+  activarNegocio: (id: string) => void;
   abrirSistema: (id: string, modo?: ModoDelEditor, esNuevo?: boolean) => void;
   agregarSistema: (sistema: Sistema) => void;
   /** Suma los sistemas que el servidor creó por su cuenta (por ejemplo con Sami) y que la copia local no tiene. */
@@ -196,6 +201,7 @@ export type SistemaStore = EstadoDelStore & Acciones;
 const ESTADO_INICIAL: EstadoDelStore = {
   usuarioId: null,
   sistemas: [],
+  negocioActivoId: null,
   pendientes: [],
   eliminados: [],
   activeId: null,
@@ -241,12 +247,19 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
       ...ESTADO_INICIAL,
       usuarioId,
       sistemas: recuperados,
+      negocioActivoId: negocioActivoDe(recuperados, leerNegocioGuardado())?.id ?? null,
       pendientes: borrador?.pendientes ?? [],
       eliminados: borrador?.eliminados ?? [],
     });
   },
 
   reiniciar: () => set({ ...ESTADO_INICIAL }),
+
+  activarNegocio: (id) => {
+    if (!get().sistemas.some((sistema) => sistema.id === id)) return;
+    guardarNegocioActivo(id);
+    set({ negocioActivoId: id });
+  },
 
   abrirSistema: (id, modo = 'use', esNuevo = false) => {
     const sistema = get().sistemas.find((item) => item.id === id);
@@ -261,11 +274,15 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
     });
   },
 
-  agregarSistema: (sistema) =>
+  // Un cuaderno nuevo es un negocio nuevo: se pasa a trabajar con él.
+  agregarSistema: (sistema) => {
+    guardarNegocioActivo(sistema.id);
     set((estado) => ({
       sistemas: [...estado.sistemas, sistema],
+      negocioActivoId: sistema.id,
       pendientes: sinRepetir(estado.pendientes, sistema.id),
-    })),
+    }));
+  },
 
   incorporarSistemas: (sistemas) =>
     set((estado) => {
@@ -303,11 +320,14 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
       return cambio || nuevos.length > 0 ? { sistemas: [...actualizados, ...nuevos] } : estado;
     }),
 
-  eliminarSistema: (id) =>
+  eliminarSistema: (id) => {
+    const siguiente = get().sistemas.find((item) => item.id !== id)?.id ?? null;
+    if (get().negocioActivoId === id && siguiente) guardarNegocioActivo(siguiente);
     set((estado) => ({
       sistemas: estado.sistemas.filter((item) => item.id !== id),
       pendientes: estado.pendientes.filter((pendiente) => pendiente !== id),
       eliminados: sinRepetir(estado.eliminados, id),
+      ...(estado.negocioActivoId === id ? { negocioActivoId: siguiente } : {}),
       ...(estado.activeId === id
         ? {
             activeId: null,
@@ -317,7 +337,8 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
             historial: [],
           }
         : {}),
-    })),
+    }));
+  },
 
   commit: (cambio) => {
     const { activeId, sistemas, historial, pendientes } = get();
@@ -436,6 +457,29 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
 
 export const seleccionarSistemaActivo = (estado: SistemaStore): Sistema | undefined =>
   estado.sistemas.find((item) => item.id === estado.activeId);
+
+/** El cuaderno del negocio activo; si el elegido ya no está, el primero. */
+export const seleccionarNegocioActivo = (estado: SistemaStore): Sistema | undefined =>
+  negocioActivoDe(estado.sistemas, estado.negocioActivoId);
+
+let delNegocio: { sistemas: Sistema[]; activoId: string | null; resultado: Sistema[] } | null =
+  null;
+
+/**
+ * Los cuadernos que ven las pantallas: sólo el del negocio activo. Devuelve la misma lista mientras no cambien los
+ * cuadernos ni el negocio, para que quien la lee no se vuelva a dibujar de más.
+ */
+export const seleccionarSistemasDelNegocio = (estado: SistemaStore): Sistema[] => {
+  if (delNegocio?.sistemas !== estado.sistemas || delNegocio.activoId !== estado.negocioActivoId) {
+    const activo = seleccionarNegocioActivo(estado);
+    delNegocio = {
+      sistemas: estado.sistemas,
+      activoId: estado.negocioActivoId,
+      resultado: activo ? [activo] : [],
+    };
+  }
+  return delNegocio.resultado;
+};
 
 export const seleccionarSeccionActiva = (estado: SistemaStore): Seccion | undefined => {
   const sistema = seleccionarSistemaActivo(estado);

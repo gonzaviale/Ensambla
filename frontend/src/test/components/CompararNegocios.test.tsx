@@ -5,8 +5,6 @@ import { CompararNegocios } from '@/components/negocios/CompararNegocios';
 import type { ResumenConjunto } from '@/types/negocios';
 
 const RESUMEN: ResumenConjunto = {
-  desde: '2026-10-15',
-  hasta: '2026-11-13',
   dias: 30,
   total: {
     negocios: 3,
@@ -14,50 +12,46 @@ const RESUMEN: ResumenConjunto = {
     gastos: 462000,
     queda: 768000,
     teDeben: 60000,
-    avisosPendientes: 6,
   },
   negocios: [
     {
       id: 'kiosco',
       nombre: 'Kiosco de la estación',
-      rubro: 'KIOSCO',
       activo: false,
       hayDatos: true,
       vendiste: 280000,
       gastos: 52000,
       queda: -72000,
       teDeben: 0,
-      avisosPendientes: 2,
+      avisosPendientes: null,
     },
     {
       id: 'feria',
       nombre: 'Puesto de la feria',
-      rubro: 'OTRO',
       activo: false,
       hayDatos: false,
       vendiste: null,
       gastos: null,
       queda: null,
       teDeben: null,
-      avisosPendientes: 1,
+      avisosPendientes: null,
     },
     {
       id: 'almacen',
       nombre: 'Almacén San Justo',
-      rubro: 'ALMACEN',
       activo: true,
       hayDatos: true,
       vendiste: 1250000,
       gastos: 410000,
       queda: 840000,
       teDeben: 60000,
-      avisosPendientes: 3,
+      avisosPendientes: null,
     },
   ],
 };
 
-const montar = (nombreDelRubro?: (codigo: string) => string | undefined) => {
-  render(<CompararNegocios resumen={RESUMEN} nombreDelRubro={nombreDelRubro} />);
+const montar = () => {
+  render(<CompararNegocios resumen={RESUMEN} />);
   return userEvent.setup();
 };
 
@@ -84,9 +78,7 @@ describe('CompararNegocios', () => {
       '$1.530.000',
     );
     expect(within(totales).getByText('Te queda').nextElementSibling).toHaveTextContent('$768.000');
-    expect(within(totales).getByText('Avisos pendientes').nextElementSibling).toHaveTextContent(
-      '6',
-    );
+    expect(within(totales).queryByText('Avisos pendientes')).toBeNull();
   });
 
   it('arranca ordenada por lo vendido, con el negocio sin ventas al final', () => {
@@ -142,12 +134,5 @@ describe('CompararNegocios', () => {
     expect(feria).toHaveTextContent('Sin ventas en el período');
     expect(within(feria).getAllByText('—')).toHaveLength(4);
     expect(feria).not.toHaveTextContent('$0');
-  });
-
-  it('usa el nombre del rubro que da el servidor y, si no lo tiene, el código legible', () => {
-    montar((codigo) => (codigo === 'ALMACEN' ? 'Almacén de barrio' : undefined));
-
-    expect(fila('Almacén San Justo')).toHaveTextContent('Almacén de barrio');
-    expect(fila('Kiosco de la estación')).toHaveTextContent('Kiosco');
   });
 });

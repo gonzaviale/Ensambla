@@ -16,34 +16,30 @@ import {
   objetivosDe,
   sistemasDe,
 } from './estado';
-import { reflejarNegocioActivo, type NegocioMock } from './negocios';
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 
-/** Los tres negocios de la demo: el almacén es el primero (el de la cuenta) y tiene los avisos y los objetivos. */
-const NEGOCIOS_DE_LA_DEMO = [
-  { id: 'demo-almacen', nombre: 'Almacén de barrio', rubro: 'ALMACEN', hace: 120 },
-  { id: 'demo-kiosco', nombre: 'Kiosco de la estación', rubro: 'KIOSCO', hace: 75 },
-  { id: 'demo-feria', nombre: 'Puesto de la feria', rubro: 'OTRO', hace: 70 },
-] as const;
-
-const SECCIONES_DE_LA_DEMO: Record<
-  (typeof NEGOCIOS_DE_LA_DEMO)[number]['id'],
-  (hoy: string) => Sistema
-> = {
-  'demo-almacen': crearAlmacenCargado,
-  'demo-kiosco': crearKioscoCargado,
-  'demo-feria': crearPuestoDeFeria,
-};
+/** Los tres negocios de la demo, cada uno en su cuaderno: el almacén es el primero. */
+const NEGOCIOS_DE_LA_DEMO: ReadonlyArray<{
+  id: string;
+  nombre: string;
+  hace: number;
+  crear: (hoy: string) => Sistema;
+}> = [
+  { id: 'demo-almacen', nombre: 'Almacén de barrio', hace: 120, crear: crearAlmacenCargado },
+  { id: 'demo-kiosco', nombre: 'Kiosco de la estación', hace: 75, crear: crearKioscoCargado },
+  { id: 'demo-feria', nombre: 'Puesto de la feria', hace: 70, crear: crearPuestoDeFeria },
+];
 
 /**
  * Deja la cuenta de demostración lista para mostrar: tres negocios (el almacén con muchos datos, un kiosco que este mes
  * viene en rojo y un puesto de feria sin ventas en el último mes), con las fechas contadas desde hoy, los avisos sin
  * descartar y Premium por un año. Se corre en cada arranque de `npm run dev:demo`, así la demo siempre empieza igual:
- * vuelven los tres negocios y sus secciones de ejemplo, y se conservan las secciones que armó la persona a mano.
+ * vuelven los tres negocios de ejemplo y se conservan los que armó la persona a mano.
  */
 export function sembrarDemoCargada(email: string, ahora = new Date()) {
-  sembrarNegocios(email, ahora);
+  const propios = sistemasDe(email).filter((sistema) => !sistema.demoAlmacen);
+  guardarSistemasDe(email, [...negociosDeLaDemo(ahora), ...propios]);
   guardarPreferenciasDe(email, PREFERENCIAS_INICIALES);
   // El objetivo de ejemplo vuelve a su lugar (el primero) en cada arranque; los que la persona definió se conservan.
   guardarObjetivosDe(email, [
@@ -64,52 +60,13 @@ export function sembrarDemoCargada(email: string, ahora = new Date()) {
   estado.alCambiar?.();
 }
 
-function sembrarNegocios(email: string, ahora: Date) {
-  const anterior = estado.negociosDeLaCuenta.get(email);
-  // Las secciones propias se leen antes de cambiar la lista, con la clave que tenían.
-  const propias = new Map(
-    NEGOCIOS_DE_LA_DEMO.map(({ id }) => [
-      id,
-      anterior?.negocios.some((negocio) => negocio.id === id)
-        ? sistemasDe(email, id).filter((sistema) => !sistema.demoAlmacen)
-        : [],
-    ]),
-  );
-  // Antes de que hubiera varios negocios, las secciones de la cuenta eran las del almacén.
-  if (!anterior?.negocios.some((negocio) => negocio.id === 'demo-almacen')) {
-    propias.set(
-      'demo-almacen',
-      (estado.sistemas.get(email) ?? []).filter((sistema) => !sistema.demoAlmacen),
-    );
-  }
-
-  // El nombre y el rubro son siempre los de la demo; la ubicación que se haya cargado se conserva. Antes de que hubiera
-  // varios negocios, la configuración de la cuenta era la del almacén.
-  const configuracionPrevia = (id: string) =>
-    anterior?.negocios.find((negocio) => negocio.id === id)?.configuracion ??
-    (id === 'demo-almacen' ? estado.negocios.get(email) : undefined);
-  const negocios: NegocioMock[] = NEGOCIOS_DE_LA_DEMO.map(({ id, nombre, rubro, hace }) => ({
-    id,
-    nombre,
-    rubro,
-    creadoEn: new Date(ahora.getTime() - hace * DIA_MS).toISOString(),
-    configuracion: {
-      ubicacion: null,
-      comparteDatosZona: true,
-      zona: null,
-      ...configuracionPrevia(id),
-      nombre,
-      rubro,
-    },
-  }));
-  const activoId = negocios.some((negocio) => negocio.id === anterior?.activoId)
-    ? (anterior?.activoId ?? 'demo-almacen')
-    : 'demo-almacen';
-  estado.negociosDeLaCuenta.set(email, { activoId, negocios });
-
+/** Cada negocio con un id y un nombre fijos, así el elegido en el navegador se conserva entre arranques. */
+function negociosDeLaDemo(ahora: Date): Sistema[] {
   const dia = hoy();
-  for (const { id } of NEGOCIOS_DE_LA_DEMO) {
-    guardarSistemasDe(email, [SECCIONES_DE_LA_DEMO[id](dia), ...(propias.get(id) ?? [])], id);
-  }
-  reflejarNegocioActivo(email);
+  return NEGOCIOS_DE_LA_DEMO.map(({ id, nombre, hace, crear }) => ({
+    ...crear(dia),
+    id,
+    name: nombre,
+    createdAt: new Date(ahora.getTime() - hace * DIA_MS).toISOString(),
+  }));
 }

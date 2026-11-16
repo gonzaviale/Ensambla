@@ -169,12 +169,13 @@ describe('inicio: panel del negocio', () => {
     expect(screen.queryByText('Estamos haciendo tus cuentas…')).toBeNull();
   });
 
-  it('si la primera sección no tiene ventas, mira la que sí las tiene', async () => {
+  it('mira sólo el negocio activo: si no tiene ventas no muestra el panel de otro', async () => {
     await abrirInicio([makeTemplate('shop', {}, true), crearAlmacenCargado(hoy())]);
 
-    await cifrasAsync();
-
-    expect(screen.queryByText(/Todavía no cargaste ventas/)).toBeNull();
+    expect(
+      await screen.findByText(/Tocá una ficha para arrancar/, undefined, ESPERA),
+    ).toBeVisible();
+    expect(titulo()).toBeNull();
   });
 
   it('sin secciones no aparece: la home queda como siempre', async () => {

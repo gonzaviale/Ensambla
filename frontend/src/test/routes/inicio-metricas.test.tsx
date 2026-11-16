@@ -124,7 +124,7 @@ describe('inicio: cómo te va', () => {
     expect(within(seccion).getByRole('heading', { name: 'Este mes vendiste' })).toBeVisible();
   });
 
-  it('con varias secciones deja elegir de cuál ver los números y se acuerda de la elección', async () => {
+  it('con varios negocios muestra los números del activo y no deja elegir otro acá', async () => {
     const pedidos: string[] = [];
     server.use(
       http.get('/api/proyectos/:sistemaId/resumen/inicio', ({ params }) => {
@@ -132,46 +132,13 @@ describe('inicio: cómo te va', () => {
         return HttpResponse.json(resumenSinNovedades());
       }),
     );
-    const reciente = almacen('Kiosco Centro', '2026-10-21T10:00:00.000Z');
-    const viejo = almacen('Almacén Norte', '2026-10-01T10:00:00.000Z');
-    const user = await abrirInicio([viejo, reciente]);
+    const activo = almacen('Almacén Norte', '2026-10-01T10:00:00.000Z');
+    const otro = almacen('Kiosco Centro', '2026-10-21T10:00:00.000Z');
 
-    const selector = await screen.findByRole('button', { name: 'Sección: Kiosco Centro' }, ESPERA);
-    expect(pedidos).toEqual([reciente.id]);
+    await abrirInicio([activo, otro]);
 
-    await user.click(selector);
-    const lista = screen.getByRole('listbox', { name: 'Secciones' });
-    expect(within(lista).getByRole('option', { name: 'Kiosco Centro' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
-    await user.click(within(lista).getByRole('option', { name: 'Almacén Norte' }));
-
-    await waitFor(() => expect(pedidos).toContain(viejo.id), ESPERA);
-    expect(screen.queryByRole('listbox')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Sección: Almacén Norte' })).toBeVisible();
-    expect(window.localStorage.getItem('ensambla.inicio.sistema')).toBe(viejo.id);
-  });
-
-  it('la lista de secciones se maneja con el teclado y se cierra con Escape', async () => {
-    const reciente = almacen('Kiosco Centro', '2026-10-21T10:00:00.000Z');
-    const viejo = almacen('Almacén Norte', '2026-10-01T10:00:00.000Z');
-    const user = await abrirInicio([viejo, reciente]);
-    const selector = await screen.findByRole('button', { name: 'Sección: Kiosco Centro' }, ESPERA);
-
-    selector.focus();
-    await user.keyboard('{ArrowDown}');
-    expect(screen.getByRole('listbox', { name: 'Secciones' })).toBeVisible();
-    await user.keyboard('{Escape}');
-    expect(screen.queryByRole('listbox')).toBeNull();
-    expect(selector).toHaveFocus();
-
-    await user.keyboard('{ArrowDown}{ArrowDown}{Enter}');
-
-    expect(
-      await screen.findByRole('button', { name: 'Sección: Almacén Norte' }, ESPERA),
-    ).toBeVisible();
-    expect(window.localStorage.getItem('ensambla.inicio.sistema')).toBe(viejo.id);
+    await waitFor(() => expect(pedidos).toEqual([activo.id]), ESPERA);
+    expect(screen.queryByRole('button', { name: /^Sección:/ })).toBeNull();
   });
 
   it('si el servidor no contesta lo dice en lugar de mostrar ceros', async () => {

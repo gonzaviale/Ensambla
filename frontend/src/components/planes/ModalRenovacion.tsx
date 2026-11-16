@@ -15,10 +15,10 @@ export function ModalRenovacion({ cancelar = false }: { cancelar?: boolean }) {
   const precio = premium?.precioMensual;
   // Sólo se dice cuántos negocios incluye si el límite está configurado y es más de uno.
   const negociosPremium =
-    premium?.limitesConfigurados && premium.limiteNegocios !== 1
-      ? premium.limiteNegocios === null
+    premium?.limitesConfigurados && premium.limiteProyectos !== 1
+      ? premium.limiteProyectos === null
         ? 'todos los negocios que quieras'
-        : textoDeNegocios(premium.limiteNegocios).toLowerCase()
+        : textoDeNegocios(premium.limiteProyectos).toLowerCase()
       : null;
   const precioTexto =
     precio == null

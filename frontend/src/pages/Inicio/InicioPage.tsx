@@ -13,7 +13,7 @@ import { usePanelDelNegocio } from '@/hooks/panel/queries';
 import { useSistemaElegido } from '@/hooks/reportes/useSistemaElegido';
 import { useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
 import { useAccionesDelTutorial } from '@/hooks/tutorial/useAccionesDelTutorial';
-import { useSistemaStore } from '@/stores/sistemaStore';
+import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
 import { useNegociosDeLaCuenta } from '@/hooks/negocios/queries';
 
 // Inicio: quien ya tiene una sección ve una bienvenida corta con las maneras de empezar, «Tu negocio» (su nombre y sus
@@ -25,7 +25,7 @@ export function InicioPage() {
   const tutorial = useAccionesDelTutorial();
   // Quien ya tiene una sección ve el panel de su negocio: la bienvenida pasa a una franja corta (el h1 es el mismo)
   // y las formas de empezar siguen a mano. Quien recién empieza ve la bienvenida grande de siempre.
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
+  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
   const { sistema: elegido } = useSistemaElegido();
   const delPanel = elegido ?? sistemaDelPanel(sistemas);
   const panel = usePanelDelNegocio(delPanel?.id ?? null);

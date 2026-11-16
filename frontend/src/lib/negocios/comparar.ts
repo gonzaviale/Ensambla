@@ -1,10 +1,10 @@
 import { pesos } from '@/lib/sistema/panelDelNegocio';
 import type { ResumenDeNegocio } from '@/types/negocios';
 
-// «Comparar mis negocios» (ENS-284 · T-205): cómo se ordenan y se leen las métricas del resumen conjunto
-// (`GET /api/negocios/resumen`, docs/negocios-de-la-cuenta.md). Son las mismas que el panel de un negocio.
+// «Comparar mis negocios» (ENS-284 · T-205): cómo se ordenan y se leen las métricas del resumen conjunto, que son
+// las del panel de cada negocio (ver `lib/negocios/lista`).
 
-export type MetricaComparable = 'vendiste' | 'gastos' | 'queda' | 'teDeben' | 'avisosPendientes';
+export type MetricaComparable = 'vendiste' | 'gastos' | 'queda' | 'teDeben';
 
 export type Sentido = 'desc' | 'asc';
 
@@ -16,7 +16,6 @@ export const METRICAS: ReadonlyArray<{ clave: MetricaComparable; titulo: string 
   { clave: 'gastos', titulo: 'Gastos' },
   { clave: 'queda', titulo: 'Te queda' },
   { clave: 'teDeben', titulo: 'Te deben' },
-  { clave: 'avisosPendientes', titulo: 'Avisos' },
 ];
 
 /** Arranca por lo que más vendió, que es lo primero que se quiere comparar. */
@@ -44,11 +43,10 @@ export const siguienteOrden = (actual: Orden, metrica: MetricaComparable): Orden
     ? { metrica, sentido: actual.sentido === 'desc' ? 'asc' : 'desc' }
     : { metrica, sentido: 'desc' };
 
-/** El valor de una celda: los importes en pesos, los avisos como número y lo que no hay como raya. */
+/** El valor de una celda: los importes en pesos y lo que no hay como raya. */
 export const valorDeMetrica = (negocio: ResumenDeNegocio, metrica: MetricaComparable) => {
   const valor = negocio[metrica];
-  if (valor === null) return '—';
-  return metrica === 'avisosPendientes' ? String(valor) : pesos(valor);
+  return valor === null ? '—' : pesos(valor);
 };
 
 const DIA_Y_MES = new Intl.DateTimeFormat('es-AR', {

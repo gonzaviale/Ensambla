@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { ElegirNegocio, type EstadoDeLaEleccion } from '@/components/negocios/ElegirNegocio';
 import { Btn } from '@/components/sistema/Btn';
-import { useRubros } from '@/hooks/negocio/queries';
 import { useElegirNegocioAlEntrar } from '@/hooks/negocios/mutations';
 import { useResumenConjunto } from '@/hooks/negocios/resumenConjunto';
 import { paraElegir } from '@/lib/negocios/presentacion';
@@ -21,17 +20,13 @@ const ENFOCABLES = 'button:not(:disabled)';
 // carga de entrada los datos de ese negocio. Elegir el que ya estaba activo o «Seguir con…» entran sin cambiar nada.
 // Esc no hace nada: hay que elegir.
 export function ElegirNegocioAlEntrar({ lista, onListo }: Props) {
-  const resumen = useResumenConjunto();
-  const rubros = useRubros();
+  const resumen = useResumenConjunto(lista.negocios);
   const activar = useElegirNegocioAlEntrar();
   const dialogo = useRef<HTMLElement>(null);
   const ultimo = lista.negocios.find((negocio) => negocio.id === lista.activoId);
   const abriendo = activar.isPending
     ? lista.negocios.find((negocio) => negocio.id === activar.variables)
     : undefined;
-
-  const nombreDelRubro = (codigo: string) =>
-    rubros.data?.rubros.find((rubro) => rubro.codigo === codigo)?.nombre;
 
   const estado: EstadoDeLaEleccion = resumen.isPending
     ? { tipo: 'cargando' }
@@ -90,7 +85,7 @@ export function ElegirNegocioAlEntrar({ lista, onListo }: Props) {
           <span className="eyebrow">Tenés {lista.negocios.length} negocios</span>
           <h2 id="elegir-negocio-titulo">¿Con qué negocio trabajás hoy?</h2>
           <p id="elegir-negocio-ayuda">Seleccioná uno para entrar.</p>
-          <ElegirNegocio estado={estado} onElegir={elegir} nombreDelRubro={nombreDelRubro} />
+          <ElegirNegocio estado={estado} onElegir={elegir} />
           {abriendo && (
             <p className="elegir-negocio-abriendo" role="status">
               Abriendo {abriendo.nombre}…

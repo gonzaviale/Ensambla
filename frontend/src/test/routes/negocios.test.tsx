@@ -1,21 +1,28 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import {
-  guardarNegociosDe,
-  negociosDe,
-  reflejarNegocioActivo,
-  type NegocioMock,
-} from '@/mocks/db/negocios';
-import { estado, guardarSistemasDe, type UsuarioMock } from '@/mocks/db/estado';
-import { server } from '@/mocks/node';
+import { estado, sistemasDe, type UsuarioMock } from '@/mocks/db/estado';
+import { leerNegocioGuardado } from '@/lib/negocios/lista';
 import { crearAlmacenCargado } from '@/lib/sistema/demo';
 import { hoy } from '@/lib/sistema/formato';
-import { useSistemaStore } from '@/stores/sistemaStore';
+import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
 import { renderApp } from '@/test/renderApp';
-import { ESPERA, setupUsuarioConSesion, verifyHeadingPresentAsync } from '@/test/testHelpers';
+import {
+  ESPERA,
+  negocioDePrueba,
+  setupNegocios,
+  setupUsuarioConSesion,
+  verifyHeadingPresentAsync,
+} from '@/test/testHelpers';
 
-const premium = (email: string) =>
+const ALMACEN = {
+  ...crearAlmacenCargado(hoy()),
+  id: '10000000-0000-4000-8000-000000000001',
+  name: 'Almacén San Justo',
+};
+const KIOSCO = negocioDePrueba('20000000-0000-4000-8000-000000000002', 'Kiosco de la plaza');
+
+const givenPremium = (email: string) =>
   estado.pruebasPremium.set(email, {
     inicioEn: new Date(Date.now() - 1000).toISOString(),
     finEn: new Date(Date.now() + 86_400_000).toISOString(),
@@ -23,33 +30,27 @@ const premium = (email: string) =>
     limitePaginasIa: 10,
   });
 
-const segundo: NegocioMock = {
-  id: '20000000-0000-4000-8000-000000000002',
-  nombre: 'Kiosco de la plaza',
-  rubro: 'KIOSCO',
-  creadoEn: '2026-11-13T12:00:00Z',
-  configuracion: {
-    nombre: 'Kiosco de la plaza',
-    rubro: 'KIOSCO',
-    ubicacion: null,
-    comparteDatosZona: true,
-    zona: null,
-  },
-};
-
-function conSegundoNegocio(usuario: UsuarioMock, activoSegundo = false) {
-  premium(usuario.email);
-  const cuenta = negociosDe(usuario);
-  guardarNegociosDe(usuario.email, {
-    activoId: activoSegundo ? segundo.id : cuenta.activoId,
-    negocios: [...cuenta.negocios, structuredClone(segundo)],
-  });
-  reflejarNegocioActivo(usuario.email);
+function givenDosNegocios(usuario: UsuarioMock) {
+  givenPremium(usuario.email);
+  setupNegocios(usuario.email, ALMACEN, KIOSCO);
 }
 
-describe('mis negocios · Ola 2', () => {
+const selectorDe = (nombre: RegExp) =>
+  screen.findByRole('button', { name: new RegExp(`Negocio activo.*${nombre.source}`) }, ESPERA);
+
+async function whenEligeEnLaBarra(nombre: RegExp) {
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole('button', { name: /Negocio activo/ }, ESPERA));
+  await user.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: nombre }));
+}
+
+const nombresEnElServidor = (usuario: UsuarioMock) =>
+  sistemasDe(usuario.email).map((sistema) => sistema.name);
+
+describe('mis negocios: cada negocio es un cuaderno', () => {
   it('con un solo negocio no muestra selector en la barra', async () => {
-    setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+    const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+    setupNegocios(usuario.email, KIOSCO);
     renderApp('/inicio');
 
     await verifyHeadingPresentAsync(/En qué puedo/);
@@ -57,71 +58,65 @@ describe('mis negocios · Ola 2', () => {
     expect(screen.queryByRole('button', { name: /Negocio activo/ })).toBeNull();
   });
 
-  it('lista los negocios y cambia el activo desde la barra', async () => {
+  it('lista los negocios de la cuenta y arranca con el primero', async () => {
     const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
-    conSegundoNegocio(usuario);
+    givenDosNegocios(usuario);
     renderApp('/inicio');
     const user = userEvent.setup();
 
-    const selector = await screen.findByRole('button', { name: /Negocio activo.*Negocio de Ana Pérez/ }, ESPERA);
-    await user.click(selector);
+    await user.click(await selectorDe(/Almacén San Justo/));
+
     const menu = screen.getByRole('menu');
-    expect(within(menu).getByText('2 de 6')).toBeVisible();
+    expect(within(menu).getByRole('menuitem', { name: /Almacén San Justo/ })).toHaveAttribute(
+      'aria-current',
+      'true',
+    );
+    expect(within(menu).getByRole('menuitem', { name: /Kiosco de la plaza/ })).toBeEnabled();
     expect(within(menu).getByRole('menuitem', { name: /Todos mis negocios/ })).toBeEnabled();
+  });
 
-    await user.click(within(menu).getByRole('menuitem', { name: /Kiosco de la plaza/ }));
+  it('cambiar de negocio en la barra lo deja activo y lo recuerda', async () => {
+    const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+    givenDosNegocios(usuario);
+    renderApp('/inicio');
 
-    expect(await screen.findByRole('button', { name: /Negocio activo.*Kiosco de la plaza/ }, ESPERA)).toBeVisible();
-    expect(negociosDe(usuario).activoId).toBe(segundo.id);
+    await whenEligeEnLaBarra(/Kiosco de la plaza/);
+
+    expect(await selectorDe(/Kiosco de la plaza/)).toBeVisible();
+    expect(leerNegocioGuardado()).toBe(KIOSCO.id);
+  });
+
+  it('las pantallas sólo ven el cuaderno del negocio activo y no se pierde nada del otro', async () => {
+    const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+    givenDosNegocios(usuario);
+    renderApp('/inicio');
+
+    await whenEligeEnLaBarra(/Kiosco de la plaza/);
+    await selectorDe(/Kiosco de la plaza/);
+
+    const visibles = seleccionarSistemasDelNegocio(useSistemaStore.getState());
+    expect(visibles.map((sistema) => sistema.id)).toEqual([KIOSCO.id]);
+    expect(useSistemaStore.getState().sistemas).toHaveLength(2);
   });
 
   it('«Todos mis negocios» lleva a comparar los negocios de la cuenta', async () => {
     const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
-    conSegundoNegocio(usuario);
+    givenDosNegocios(usuario);
     const router = renderApp('/inicio');
-    const user = userEvent.setup();
 
-    await user.click(await screen.findByRole('button', { name: /Negocio activo/ }, ESPERA));
-    await user.click(screen.getByRole('menuitem', { name: /Todos mis negocios/ }));
+    await whenEligeEnLaBarra(/Todos mis negocios/);
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/negocios/comparar'), ESPERA);
-    expect(await screen.findByRole('heading', { name: 'Comparar mis negocios', level: 1 }, ESPERA)).toBeVisible();
+    expect(
+      await screen.findByRole('heading', { name: 'Comparar mis negocios', level: 1 }, ESPERA),
+    ).toBeVisible();
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('al cambiar de negocio guarda antes lo pendiente y no deja el borrador del anterior', async () => {
+  it('crea un negocio desde Inicio como un cuaderno vacío, lo activa y lo guarda', async () => {
     const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
-    conSegundoNegocio(usuario);
-    const almacen = crearAlmacenCargado(hoy());
-    guardarSistemasDe(usuario.email, [almacen], negociosDe(usuario).negocios[0]?.id);
-    const guardados: string[] = [];
-    server.events.on('request:start', ({ request }) => {
-      if (request.method === 'PUT' && request.url.includes('/api/sistemas/')) guardados.push(request.url);
-    });
-    renderApp('/inicio');
-    const user = userEvent.setup();
-    const selector = await screen.findByRole('button', { name: /Negocio activo/ }, ESPERA);
-    await waitFor(() => expect(useSistemaStore.getState().sistemas).toHaveLength(1), ESPERA);
-    useSistemaStore.setState({ pendientes: [almacen.id] });
-    sessionStorage.setItem(
-      'ensambla:borrador-de-sesion',
-      JSON.stringify({ usuarioId: usuario.id, fecha: Date.now(), sistemas: [almacen], pendientes: [almacen.id], eliminados: [] }),
-    );
-
-    await user.click(selector);
-    await user.click(screen.getByRole('menuitem', { name: /Kiosco de la plaza/ }));
-
-    expect(await screen.findByRole('button', { name: /Negocio activo.*Kiosco de la plaza/ }, ESPERA)).toBeVisible();
-    expect(guardados.some((url) => url.endsWith(encodeURIComponent(almacen.id)))).toBe(true);
-    expect(sessionStorage.getItem('ensambla:borrador-de-sesion')).toBeNull();
-    expect(useSistemaStore.getState().pendientes).toEqual([]);
-    expect(useSistemaStore.getState().sistemas.map((sistema) => sistema.id)).not.toContain(almacen.id);
-    server.events.removeAllListeners();
-  });
-
-  it('crea un negocio desde Inicio, lo activa y vuelve a entrar a Inicio', async () => {
-    const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
-    premium(usuario.email);
+    givenPremium(usuario.email);
+    setupNegocios(usuario.email, KIOSCO);
     const router = renderApp('/inicio');
     const user = userEvent.setup();
     await verifyHeadingPresentAsync(/En qué puedo/);
@@ -130,40 +125,48 @@ describe('mis negocios · Ola 2', () => {
     await user.type(screen.getByLabelText('Nombre del negocio'), 'Dietética Centro');
     await user.click(screen.getByRole('button', { name: 'Crear y entrar al negocio' }));
 
-    expect(await screen.findByRole('button', { name: /Negocio activo.*Dietética Centro/ }, ESPERA)).toBeVisible();
-    await waitFor(() => expect(router.state.location.pathname).toBe('/inicio'), ESPERA);
-    expect(negociosDe(usuario).negocios).toHaveLength(2);
-    expect(negociosDe(usuario).negocios.find((negocio) => negocio.id === negociosDe(usuario).activoId)?.nombre)
-      .toBe('Dietética Centro');
+    expect(await selectorDe(/Dietética Centro/)).toBeVisible();
+    expect(router.state.location.pathname).toBe('/inicio');
+    await waitFor(
+      () =>
+        expect(nombresEnElServidor(usuario)).toEqual(['Kiosco de la plaza', 'Dietética Centro']),
+      ESPERA,
+    );
   });
 
-  it('con el cupo gratuito agotado explica el límite y lleva a Planes', async () => {
-    setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+  it('con el cupo del plan agotado explica el límite y lleva a Planes', async () => {
+    const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+    setupNegocios(usuario.email, KIOSCO);
     const router = renderApp('/inicio');
     const user = userEvent.setup();
     await verifyHeadingPresentAsync(/En qué puedo/);
 
     await user.click(screen.getByRole('button', { name: 'Agregar un negocio' }));
 
-    expect(screen.getByRole('heading', { name: 'Tu plan ya alcanzó el límite' })).toBeVisible();
+    expect(
+      await screen.findByRole('heading', { name: 'Tu plan ya alcanzó el límite' }, ESPERA),
+    ).toBeVisible();
     await user.click(screen.getByRole('link', { name: 'Ver planes' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/planes'), ESPERA);
   });
 
-  it('elimina desde Configuración, confirma el alcance y conserva el otro negocio', async () => {
+  it('elimina el negocio activo desde Configuración y conserva el otro', async () => {
     const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
-    conSegundoNegocio(usuario);
+    givenDosNegocios(usuario);
     const router = renderApp('/cuenta');
     const user = userEvent.setup();
     await verifyHeadingPresentAsync('Tu cuenta');
 
     await user.click(await screen.findByRole('button', { name: 'Eliminar negocio' }, ESPERA));
-    expect(screen.getByText(/secciones, movimientos, avisos, objetivos, zona/)).toBeVisible();
+    expect(screen.getByText(/tablas y todo lo que cargaste en ellas/)).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Sí, eliminar negocio' }));
 
-    await waitFor(() => expect(negociosDe(usuario).negocios).toHaveLength(1), ESPERA);
-    expect(negociosDe(usuario).negocios[0]?.nombre).toBe('Kiosco de la plaza');
+    await waitFor(
+      () => expect(nombresEnElServidor(usuario)).toEqual(['Kiosco de la plaza']),
+      ESPERA,
+    );
     await waitFor(() => expect(router.state.location.pathname).toBe('/inicio'), ESPERA);
     expect(screen.queryByRole('button', { name: /Negocio activo/ })).toBeNull();
+    expect(leerNegocioGuardado()).toBe(KIOSCO.id);
   });
 });

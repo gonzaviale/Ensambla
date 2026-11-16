@@ -10,7 +10,7 @@ const CATALOGO: Plan[] = [
     limitesConfigurados: true,
     precioMensual: 0,
     moneda: null,
-    limiteNegocios: 1,
+    limiteProyectos: 1,
     limiteRegistros: 1000,
     limitePaginasIaMensuales: 10,
     funciones: [],
@@ -22,7 +22,7 @@ const CATALOGO: Plan[] = [
     limitesConfigurados: true,
     precioMensual: 14900,
     moneda: 'ARS',
-    limiteNegocios: 6,
+    limiteProyectos: null,
     limiteRegistros: null,
     limitePaginasIaMensuales: 100,
     funciones: [
@@ -56,7 +56,7 @@ export function planesDe(email: string, ahora = new Date()): Planes {
       finEn: activa ? prueba.finEn : null,
     },
     uso: {
-      negocios: estado.negociosDeLaCuenta.get(email)?.negocios.length ?? 1,
+      proyectos: sistemas.length,
       registros: sistemas.reduce((suma, sistema) => suma + totals(sistema).records, 0),
       paginasIa: activa
         ? prueba.paginasIaUtilizadas

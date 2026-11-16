@@ -2,7 +2,6 @@ import type { Sistema } from '@/lib/sistema/tipos';
 import type { AvisoDelServidor } from '@/types/avisos';
 import type { ConfiguracionNegocio } from '@/types/negocio';
 import type { ObjetivoDelServidor } from '@/types/objetivos';
-import type { NegociosDeLaCuenta } from './negocios';
 import type { DatosAutogestion } from './objetivosAutogestionados';
 import type { PruebaPremium } from '@/types/planes';
 import type { VerificacionWhatsapp, VinculoWhatsapp } from '@/types/whatsapp';
@@ -23,15 +22,10 @@ export type CuentaWhatsapp = {
 type Estado = {
   usuarios: Map<string, UsuarioMock>;
   sesionUsuarioId: string | null;
-  /**
-   * Las secciones de cada negocio. Las del primer negocio de la cuenta van con el email (como cuando había uno solo);
-   * las de los demás, con `email#idDelNegocio`. Ver `claveDeSistemas`.
-   */
+  /** Los sistemas de cada cuenta (por email). */
   sistemas: Map<string, Sistema[]>;
   preferencias: Map<string, Preferencias>;
   negocios: Map<string, ConfiguracionNegocio>;
-  /** Los negocios de cada cuenta (por email) y cuál está activo; el primero se crea al pedirlos por primera vez. */
-  negociosDeLaCuenta: Map<string, NegociosDeLaCuenta>;
   /** Los avisos que el motor del servidor dejó a cada cuenta (por email); los tests los siembran. */
   avisosDelServidor: Map<string, AvisoDelServidor[]>;
   /** Los objetivos de cada cuenta (por email), del más viejo al más nuevo. */
@@ -53,7 +47,6 @@ export const estado: Estado = {
   sistemas: new Map(),
   preferencias: new Map(),
   negocios: new Map(),
-  negociosDeLaCuenta: new Map(),
   avisosDelServidor: new Map(),
   objetivos: new Map(),
   autogestion: new Map(),
@@ -70,7 +63,6 @@ export function reiniciarEstado() {
   estado.sistemas = new Map();
   estado.preferencias = new Map();
   estado.negocios = new Map();
-  estado.negociosDeLaCuenta = new Map();
   estado.avisosDelServidor = new Map();
   estado.objetivos = new Map();
   estado.autogestion = new Map();
@@ -85,25 +77,13 @@ export function usuarioActual() {
   return [...estado.usuarios.values()].find((usuario) => usuario.id === estado.sesionUsuarioId);
 }
 
-/**
- * Dónde se guardan las secciones de un negocio; sin decir cuál, las del negocio activo. Las del primero quedan con el
- * email, así una cuenta de un solo negocio (y los tests que la siembran) siguen igual que antes.
- */
-export function claveDeSistemas(email: string, negocioId?: string) {
-  const cuenta = estado.negociosDeLaCuenta.get(email);
-  const id = negocioId ?? cuenta?.activoId;
-  if (!cuenta || !id || id === cuenta.negocios[0]?.id) return email;
-  return `${email}#${id}`;
-}
-
-export const sistemasDe = (email: string, negocioId?: string) =>
-  estado.sistemas.get(claveDeSistemas(email, negocioId)) ?? [];
+export const sistemasDe = (email: string) => estado.sistemas.get(email) ?? [];
 
 export const preferenciasDe = (email: string) =>
   estado.preferencias.get(email) ?? PREFERENCIAS_INICIALES;
 
-export function guardarSistemasDe(email: string, sistemas: Sistema[], negocioId?: string) {
-  estado.sistemas.set(claveDeSistemas(email, negocioId), sistemas);
+export function guardarSistemasDe(email: string, sistemas: Sistema[]) {
+  estado.sistemas.set(email, sistemas);
   estado.alCambiar?.();
 }
 

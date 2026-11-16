@@ -50,7 +50,7 @@ describe('planes y activación de prueba', () => {
     const premium = screen.getByRole('article', { name: 'Plan Premium' });
     const gratuito = screen.getByRole('article', { name: 'Plan Gratuito' });
     expect(within(gratuito).getByText('1 negocio')).toBeVisible();
-    expect(within(premium).getByText('Tu negocio y hasta 5 más')).toBeVisible();
+    expect(within(premium).getAllByText('Sin límite')[0]).toBeVisible();
     expect(
       screen.getByText('El plan es de tu cuenta y vale para todos tus negocios.'),
     ).toBeVisible();

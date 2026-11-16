@@ -5,7 +5,7 @@ import { MINIMO_DE_COMERCIOS } from '@/lib/sistema/zona';
 import { useAccionesDeAvisos } from '@/hooks/avisos/useAccionesDeAvisos';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useZona } from '@/hooks/zona/queries';
-import { useSistemaStore } from '@/stores/sistemaStore';
+import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
 import { Btn } from '../Btn';
 import { Icon } from '../Icon';
 import { Sami } from '../Sami';
@@ -20,7 +20,7 @@ export function PanelDeAvisos() {
   const panel = useSistemaStore((estado) => estado.panel);
   const avisos = useSistemaStore((estado) => estado.avisos);
   const acceso = useSistemaStore((estado) => estado.accesoAvisos);
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
+  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
   const actualizarPanel = useSistemaStore((estado) => estado.actualizarPanel);
   const navegacion = useNavegacion();
   const zona = useZona();

@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useRouter, useSearch } from '@tanstack/react-router';
 import { ElegirNegocioAlEntrar } from '@/components/negocios/ElegirNegocioAlEntrar';
-import { negociosQuery } from '@/hooks/negocios/queries';
+import { useNegociosAlEntrar } from '@/hooks/negocios/queries';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { destinoSeguro } from '@/lib/destino';
 
@@ -12,7 +11,7 @@ export function ElegirNegocioPage() {
   useTituloPagina('Elegí tu negocio');
   const { redirect } = useSearch({ from: '/elegir-negocio' });
   const router = useRouter();
-  const consulta = useQuery({ ...negociosQuery(), retry: false });
+  const consulta = useNegociosAlEntrar();
   const destino = destinoSeguro(redirect);
   const hayQueElegir = (consulta.data?.negocios.length ?? 0) > 1;
   const seguirDeLargo = consulta.isError || (consulta.isSuccess && !hayQueElegir);

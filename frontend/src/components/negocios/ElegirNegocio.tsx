@@ -1,6 +1,5 @@
 import {
   ESTADO_DEL_NEGOCIO,
-  rubroLegible,
   textoDeAvisos,
   type NegocioParaElegir,
 } from '@/lib/negocios/presentacion';
@@ -13,14 +12,12 @@ export type EstadoDeLaEleccion =
 type Props = {
   estado: EstadoDeLaEleccion;
   onElegir: (negocioId: string) => void;
-  /** El nombre de cada rubro según el servidor; sin él se muestra el código legible. */
-  nombreDelRubro?: (codigo: string) => string | undefined;
 };
 
 // Lo que se ve en el pop-up que aparece al iniciar sesión con más de un negocio (T-204): con qué negocio se va a
-// trabajar. Sólo lo justo para decidir (nombre, rubro, cómo viene y sus avisos), sin montos, así el Inicio sigue
+// trabajar. Sólo lo justo para decidir (nombre, cómo viene y, si se saben, sus avisos), sin montos, así el Inicio sigue
 // siendo el de un negocio. No sabe de consultas ni del diálogo: recibe el estado y avisa cuál se eligió.
-export function ElegirNegocio({ estado, onElegir, nombreDelRubro }: Props) {
+export function ElegirNegocio({ estado, onElegir }: Props) {
   if (estado.tipo === 'cargando') {
     return (
       <div className="elegir-negocio-cargando">
@@ -65,12 +62,15 @@ export function ElegirNegocio({ estado, onElegir, nombreDelRubro }: Props) {
                 <span className="negocio-estado">{ESTADO_DEL_NEGOCIO[negocio.estado]}</span>
               </span>
               <span id={detalleId} className="elegir-negocio-detalle">
-                {nombreDelRubro?.(negocio.rubro) ?? rubroLegible(negocio.rubro)} ·{' '}
-                <span data-hay={negocio.avisosPendientes > 0 || undefined}>
-                  {textoDeAvisos(negocio.avisosPendientes)}
-                </span>
+                {negocio.avisosPendientes !== null && (
+                  <span data-hay={negocio.avisosPendientes > 0 || undefined}>
+                    {textoDeAvisos(negocio.avisosPendientes)}
+                  </span>
+                )}
                 {esElActivo && (
-                  <span className="elegir-negocio-ultimo"> · El último que usaste</span>
+                  <span className="elegir-negocio-ultimo">
+                    {negocio.avisosPendientes !== null && ' · '}El último que usaste
+                  </span>
                 )}
               </span>
             </button>

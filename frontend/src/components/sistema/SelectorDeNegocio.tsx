@@ -8,9 +8,6 @@ import { useSistemaStore } from '@/stores/sistemaStore';
 
 const inicial = (nombre: string) => nombre.trim().charAt(0).toUpperCase() || 'N';
 
-const rubroLegible = (rubro: string) =>
-  `${rubro.charAt(0)}${rubro.slice(1).toLowerCase().replaceAll('_', ' ')}`;
-
 export function SelectorDeNegocio() {
   const { data } = useNegociosDeLaCuenta();
   const activar = useActivarNegocio();
@@ -92,7 +89,9 @@ export function SelectorDeNegocio() {
           <div className="negocio-selector-cabeza">
             <strong>Mis negocios</strong>
             <span>
-              {data.negocios.length} de {data.limite}
+              {data.limite === null
+                ? data.negocios.length
+                : `${data.negocios.length} de ${data.limite}`}
             </span>
           </div>
           {data.negocios.map((negocio) => (
@@ -107,7 +106,6 @@ export function SelectorDeNegocio() {
               <span className="negocio-selector-inicial">{inicial(negocio.nombre)}</span>
               <span>
                 <strong>{negocio.nombre}</strong>
-                <small>{rubroLegible(negocio.rubro)}</small>
               </span>
               {negocio.activo && <Icon name="check" />}
             </button>

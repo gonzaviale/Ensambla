@@ -1,77 +1,47 @@
-import { z } from 'zod';
-
-// Los negocios de una cuenta (ver docs/negocios-de-la-cuenta.md). El plan es de la cuenta y fija cuántos
-// negocios puede tener; uno de ellos es el activo y es el que usan todas las demás pantallas.
+// Los negocios de una cuenta. Cada negocio es un cuaderno (un `Sistema`, el proyecto del backend): la lista sale de los
+// cuadernos que ya trae `GET /api/sistemas` y el plan fija cuántos se pueden tener. Uno es el activo, que es el que
+// usan todas las demás pantallas; cuál es se recuerda en el navegador (ver `lib/negocios/lista`).
 
 export const NOMBRE_NEGOCIO_MAX = 120;
 
-export const negocioDeLaCuentaSchema = z.object({
-  id: z.string().min(1),
-  nombre: z.string().min(1).max(NOMBRE_NEGOCIO_MAX),
-  rubro: z.string().min(1),
-  activo: z.boolean(),
-  creadoEn: z.string(),
-});
-export type NegocioDeLaCuenta = z.infer<typeof negocioDeLaCuentaSchema>;
+export type NegocioDeLaCuenta = {
+  id: string;
+  nombre: string;
+  activo: boolean;
+  creadoEn: string;
+};
 
-export const listaDeNegociosSchema = z.object({
-  activoId: z.string().min(1),
-  /** Cuántos negocios permite el plan de la cuenta (Gratuito 1, Premium 6). */
-  limite: z.number().int().positive(),
-  puedeCrear: z.boolean(),
-  negocios: z.array(negocioDeLaCuentaSchema).min(1),
-});
-export type ListaDeNegocios = z.infer<typeof listaDeNegociosSchema>;
+export type ListaDeNegocios = {
+  /** `null` mientras la cuenta no tiene ningún negocio. */
+  activoId: string | null;
+  /** Cuántos negocios permite el plan de la cuenta; `null` es sin límite. */
+  limite: number | null;
+  puedeCrear: boolean;
+  negocios: NegocioDeLaCuenta[];
+};
 
-export const nuevoNegocioSchema = z
-  .object({
-    nombre: z.string().trim().min(1).max(NOMBRE_NEGOCIO_MAX),
-    rubro: z.string().min(1).optional(),
-    ubicacion: z
-      .object({
-        direccion: z.string().trim().min(1).max(500),
-        localidad: z.string().trim().min(1).max(120),
-        latitud: z.number().finite().min(-90).max(90),
-        longitud: z.number().finite().min(-180).max(180),
-      })
-      .optional(),
-  })
-  .strict();
-export type NuevoNegocio = z.infer<typeof nuevoNegocioSchema>;
+export type ResumenDeNegocio = {
+  id: string;
+  nombre: string;
+  activo: boolean;
+  hayDatos: boolean;
+  vendiste: number | null;
+  gastos: number | null;
+  queda: number | null;
+  teDeben: number | null;
+  /** `null` cuando no se sabe: los avisos del servidor son de toda la cuenta y no dicen de qué negocio son. */
+  avisosPendientes: number | null;
+};
 
-// El servidor no manda lo que no puede calcular (como en el panel de un solo negocio): llega como `null`.
-const opcional = z
-  .number()
-  .nullish()
-  .transform((valor) => valor ?? null);
-
-export const resumenDeNegocioSchema = z.object({
-  id: z.string().min(1),
-  nombre: z.string().min(1),
-  rubro: z.string().min(1),
-  activo: z.boolean(),
-  hayDatos: z.boolean(),
-  vendiste: opcional,
-  gastos: opcional,
-  queda: opcional,
-  teDeben: opcional,
-  avisosPendientes: z.number().int().nonnegative(),
-});
-export type ResumenDeNegocio = z.infer<typeof resumenDeNegocioSchema>;
-
-export const resumenConjuntoSchema = z.object({
-  desde: z.string(),
-  hasta: z.string(),
-  dias: z.number().int().positive(),
+export type ResumenConjunto = {
+  dias: number;
   /** La suma de los negocios con datos; los que no tienen ventas en el período no aportan. */
-  total: z.object({
-    negocios: z.number().int().positive(),
-    vendiste: z.number(),
-    gastos: z.number(),
-    queda: z.number(),
-    teDeben: z.number(),
-    avisosPendientes: z.number().int().nonnegative(),
-  }),
-  negocios: z.array(resumenDeNegocioSchema).min(1),
-});
-export type ResumenConjunto = z.infer<typeof resumenConjuntoSchema>;
+  total: {
+    negocios: number;
+    vendiste: number;
+    gastos: number;
+    queda: number;
+    teDeben: number;
+  };
+  negocios: ResumenDeNegocio[];
+};

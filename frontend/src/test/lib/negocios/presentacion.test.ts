@@ -10,7 +10,6 @@ import type { ResumenDeNegocio } from '@/types/negocios';
 const KIOSCO: ResumenDeNegocio = {
   id: 'kiosco',
   nombre: 'Kiosco de la esquina',
-  rubro: 'KIOSCO',
   activo: false,
   hayDatos: true,
   vendiste: 280000,
@@ -37,7 +36,6 @@ describe('paraElegir', () => {
     expect(paraElegir(KIOSCO)).toEqual({
       id: 'kiosco',
       nombre: 'Kiosco de la esquina',
-      rubro: 'KIOSCO',
       avisosPendientes: 2,
       estado: 'ATENCION',
     });

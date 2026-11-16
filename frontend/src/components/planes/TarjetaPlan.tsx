@@ -73,7 +73,9 @@ export function TarjetaPlan({
       <dl className="plan-limits">
         <div>
           <dt>Negocios</dt>
-          <dd>{plan.limitesConfigurados ? textoDeNegocios(plan.limiteNegocios) : 'Por definir'}</dd>
+          <dd>
+            {plan.limitesConfigurados ? textoDeNegocios(plan.limiteProyectos) : 'Por definir'}
+          </dd>
         </div>
         <div>
           <dt>Registros en total</dt>

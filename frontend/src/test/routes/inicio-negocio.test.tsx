@@ -4,94 +4,69 @@ import { describe, expect, it } from 'vitest';
 import { makeTemplate } from '@/lib/sistema/core';
 import { estado } from '@/mocks/db/estado';
 import { renderApp } from '@/test/renderApp';
-import {
-  ESPERA,
-  setupUsuarioConSesion,
-  verifyHeadingPresentAsync,
-  verifyPathAsync,
-} from '@/test/testHelpers';
+import { ESPERA, setupUsuarioConSesion, verifyHeadingPresentAsync } from '@/test/testHelpers';
 
-const abrirInicio = async (nombres: string[] = []) => {
-  const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
-  if (nombres.length) {
-    estado.sistemas.set(
-      usuario.email,
-      nombres.map((nombre) => {
-        const sistema = makeTemplate('shop', {}, true);
-        sistema.name = nombre;
-        return sistema;
-      }),
-    );
-  }
-  const router = renderApp('/inicio');
-  await verifyHeadingPresentAsync(/En qué puedo/);
-  return { usuario, router, user: userEvent.setup() };
+const cuadernoLlamado = (nombre: string) => {
+  const sistema = makeTemplate('shop', {}, true);
+  sistema.name = nombre;
+  return sistema;
 };
 
-const negocio = async () =>
-  within(await screen.findByRole('region', { name: /Negocio de Ana Pérez/ }, ESPERA));
+const givenNegocios = (email: string, nombres: string[]) => {
+  if (nombres.length) estado.sistemas.set(email, nombres.map(cuadernoLlamado));
+};
+
+const whenAbreInicio = async (nombres: string[] = []) => {
+  const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+  givenNegocios(usuario.email, nombres);
+  const router = renderApp('/inicio');
+  await verifyHeadingPresentAsync(/En qué puedo/);
+  return { router, user: userEvent.setup() };
+};
+
+const bloqueDe = async (nombre: string) =>
+  within(await screen.findByRole('region', { name: nombre }, ESPERA));
 
 describe('inicio · tu negocio', () => {
-  it('sin secciones no muestra el negocio: la bienvenida invita a crear la primera', async () => {
-    await abrirInicio();
+  it('sin negocios no muestra el bloque: la bienvenida invita a crear el primero', async () => {
+    await whenAbreInicio();
 
-    expect(screen.queryByRole('region', { name: /Negocio de Ana Pérez/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Abrir .*\d+ tablas?$/ })).toBeNull();
     expect(screen.getByRole('button', { name: /Crear con Sami/ })).toBeVisible();
   });
 
-  it('muestra el nombre del negocio y cuántas secciones tiene', async () => {
-    await abrirInicio(['Ventas', 'Stock']);
+  it('muestra el nombre del negocio activo y cuántas tablas tiene', async () => {
+    await whenAbreInicio(['Kiosco Centro']);
 
-    const bloque = await negocio();
+    const bloque = await bloqueDe('Kiosco Centro');
 
-    expect(bloque.getByRole('heading', { level: 2, name: 'Negocio de Ana Pérez' })).toBeVisible();
-    expect(bloque.getByText(/2 secciones/)).toBeVisible();
+    expect(bloque.getByRole('heading', { level: 2, name: 'Kiosco Centro' })).toBeVisible();
+    expect(bloque.getAllByText(/\d+ tablas?/).length).toBeGreaterThan(0);
   });
 
-  it('con una sola sección lo dice en singular', async () => {
-    await abrirInicio(['Ventas']);
+  it('con varios negocios sólo muestra el activo, que es el primero hasta que se elige otro', async () => {
+    await whenAbreInicio(['Kiosco Centro', 'Almacén Norte']);
 
-    expect((await negocio()).getByText(/1 sección\b/)).toBeVisible();
+    const bloque = await bloqueDe('Kiosco Centro');
+
+    expect(bloque.getByRole('button', { name: /Abrir Kiosco Centro/ })).toBeVisible();
+    expect(screen.queryByRole('button', { name: /Abrir Almacén Norte/ })).toBeNull();
   });
 
-  it('muestra cada sección como un acceso directo y abre la que se toca', async () => {
-    const { router, user } = await abrirInicio(['Ventas', 'Stock']);
-    const lista = within(
-      await screen.findByRole('list', { name: 'Secciones de tu negocio' }, ESPERA),
-    );
+  it('el acceso abre el cuaderno del negocio', async () => {
+    const { router, user } = await whenAbreInicio(['Kiosco Centro']);
+    const bloque = await bloqueDe('Kiosco Centro');
 
-    expect(lista.getAllByRole('button')).toHaveLength(2);
-    await user.click(lista.getByRole('button', { name: /^Stock/ }));
+    await user.click(bloque.getByRole('button', { name: /Abrir Kiosco Centro/ }));
 
     await waitFor(() => expect(router.state.location.pathname).toMatch(/^\/sistemas\//), ESPERA);
   });
 
-  it('el botón «Crear una sección» ofrece las tres maneras de empezar y se vuelve a cerrar', async () => {
-    const { user } = await abrirInicio(['Ventas']);
-    const bloque = await negocio();
-    const abrir = bloque.getByRole('button', { name: 'Crear una sección' });
-    expect(abrir).toHaveAttribute('aria-expanded', 'false');
-    expect(bloque.queryByRole('button', { name: /Crear con Sami/ })).toBeNull();
+  it('no ofrece crear secciones: otro negocio se agrega desde «Agregar un negocio»', async () => {
+    await whenAbreInicio(['Kiosco Centro']);
+    const bloque = await bloqueDe('Kiosco Centro');
 
-    await user.click(abrir);
-
-    expect(bloque.getByRole('button', { name: 'Cerrar' })).toHaveAttribute('aria-expanded', 'true');
-    expect(bloque.getByRole('button', { name: /Crear con Sami/ })).toBeVisible();
-    expect(bloque.getByRole('button', { name: /Elegir una plantilla/ })).toBeVisible();
-    expect(bloque.getByRole('button', { name: /Empezar de cero/ })).toBeVisible();
-
-    await user.click(bloque.getByRole('button', { name: 'Cerrar' }));
-
-    expect(bloque.queryByRole('button', { name: /Crear con Sami/ })).toBeNull();
-  });
-
-  it('desde «Crear una sección» se puede elegir una plantilla', async () => {
-    const { router, user } = await abrirInicio(['Ventas']);
-    const bloque = await negocio();
-
-    await user.click(bloque.getByRole('button', { name: 'Crear una sección' }));
-    await user.click(bloque.getByRole('button', { name: /Elegir una plantilla/ }));
-
-    await verifyPathAsync(router, '/plantillas');
+    expect(bloque.queryByRole('button', { name: 'Crear una sección' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Agregar un negocio' })).toBeVisible();
   });
 });

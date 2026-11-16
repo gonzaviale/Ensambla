@@ -6,7 +6,7 @@ import { usePanelDelNegocio } from '@/hooks/panel/queries';
 import { useSistemaElegido } from '@/hooks/reportes/useSistemaElegido';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { bloqueDeVentas, pesos, sistemaDelPanel } from '@/lib/sistema/panelDelNegocio';
-import { useSistemaStore } from '@/stores/sistemaStore';
+import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
 import type { PanelDelNegocio as Panel } from '@/types/panel';
 import { DecisionesRapidas } from './DecisionesRapidas';
 import { Desplegable } from './Desplegable';
@@ -18,7 +18,7 @@ const DIA_MES = (fecha: string) => `${fecha.slice(8, 10)}/${fecha.slice(5, 7)}`;
 // del servidor. Mira la misma sección que las métricas (la que se eligió arriba). Sin secciones no aparece; sin
 // ventas explica cómo cargarlas, sin inventar números.
 export function PanelDelNegocio() {
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
+  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
   const { sistema: elegido } = useSistemaElegido();
   const sistema = useMemo(() => elegido ?? sistemaDelPanel(sistemas), [elegido, sistemas]);
   const consulta = usePanelDelNegocio(sistema?.id ?? null);

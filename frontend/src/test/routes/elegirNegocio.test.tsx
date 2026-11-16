@@ -1,42 +1,30 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
-import { estado } from '@/mocks/db/estado';
-import { server } from '@/mocks/node';
+import { guardarNegocioActivo, leerNegocioGuardado } from '@/lib/negocios/lista';
+import type { Sistema } from '@/lib/sistema/tipos';
 import { renderApp } from '@/test/renderApp';
 import {
   ESPERA,
   negocioDePrueba,
+  setupNegocios,
   setupServerError,
   setupUsuarioSinSesion,
   typeLabel,
-  verifyAlertPresentAsync,
   verifyPathAsync,
 } from '@/test/testHelpers';
 
 const USUARIO = { email: 'dos-negocios@example.com', contrasenia: 'una-contrasenia-segura' };
 
-const ALMACEN = negocioDePrueba({
-  id: 'almacen',
-  nombre: 'Almacén San Justo',
-  rubro: 'ALMACEN',
-  creadoEn: '2026-10-02T14:03:11Z',
-});
-const KIOSCO = negocioDePrueba({
-  id: 'kiosco',
-  nombre: 'Kiosco de la estación',
-  rubro: 'KIOSCO',
-  creadoEn: '2026-11-05T09:41:57Z',
-});
+const ALMACEN = negocioDePrueba('10000000-0000-4000-8000-000000000001', 'Almacén San Justo');
+const KIOSCO = negocioDePrueba('20000000-0000-4000-8000-000000000002', 'Kiosco de la estación');
 
-const conNegocios = (...negocios: (typeof ALMACEN)[]) => {
+const givenNegocios = (...negocios: Sistema[]) => {
   setupUsuarioSinSesion(USUARIO);
-  const activoId = negocios[0]?.id ?? ALMACEN.id;
-  estado.negociosDeLaCuenta.set(USUARIO.email, { activoId, negocios });
+  setupNegocios(USUARIO.email, ...negocios);
 };
 
-const iniciarSesion = async (ruta = '/login') => {
+const whenIniciaSesion = async (ruta = '/login') => {
   const router = renderApp(ruta);
   const user = userEvent.setup();
   await screen.findByRole('heading', { name: 'Ingresá a tu cuenta' }, ESPERA);
@@ -48,59 +36,65 @@ const iniciarSesion = async (ruta = '/login') => {
 
 const popUp = () => screen.findByRole('dialog', { name: '¿Con qué negocio trabajás hoy?' }, ESPERA);
 
-const activoDelServidor = () => estado.negociosDeLaCuenta.get(USUARIO.email)?.activoId;
-
 describe('elegir con qué negocio trabajar al iniciar sesión', () => {
   it('con un solo negocio entra directo, sin preguntar', async () => {
-    conNegocios(ALMACEN);
-    const { router } = await iniciarSesion();
+    givenNegocios(ALMACEN);
+
+    const { router } = await whenIniciaSesion();
 
     await verifyPathAsync(router, '/inicio');
     expect(screen.queryByRole('dialog', { name: '¿Con qué negocio trabajás hoy?' })).toBeNull();
   });
 
-  it('con más de uno pregunta antes de entrar y activa el elegido', async () => {
-    conNegocios(ALMACEN, KIOSCO);
-    const { router, user } = await iniciarSesion();
+  it('con más de uno pregunta antes de entrar y recuerda el elegido', async () => {
+    givenNegocios(ALMACEN, KIOSCO);
 
+    const { router, user } = await whenIniciaSesion();
     const dialogo = await popUp();
     expect(dialogo).toHaveTextContent('Tenés 2 negocios');
     expect(router.state.location.pathname).toBe('/elegir-negocio');
-    expect(screen.queryByRole('heading', { name: 'Ingresá a tu cuenta' })).toBeNull();
-    const kiosco = await within(dialogo).findByRole(
-      'button',
-      { name: 'Kiosco de la estación' },
-      ESPERA,
+    await user.click(
+      await within(dialogo).findByRole('button', { name: 'Kiosco de la estación' }, ESPERA),
     );
-    expect(
-      within(dialogo).getByRole('button', { name: 'Almacén San Justo' }),
-    ).toHaveAccessibleDescription(/El último que usaste/);
-    await user.click(kiosco);
 
     await verifyPathAsync(router, '/inicio');
-    expect(activoDelServidor()).toBe(KIOSCO.id);
+    expect(leerNegocioGuardado()).toBe(KIOSCO.id);
+    expect(
+      await screen.findByRole('button', { name: /Negocio activo.*Kiosco de la estación/ }, ESPERA),
+    ).toBeVisible();
   });
 
-  it('elegir el último que se usó o «Seguir con…» entra sin cambiar de negocio', async () => {
-    conNegocios(ALMACEN, KIOSCO);
-    let cambios = 0;
-    server.events.on('request:start', ({ request }) => {
-      if (request.method === 'PUT' && request.url.endsWith('/activo')) cambios += 1;
-    });
-    const { router, user } = await iniciarSesion();
+  it('señala el último negocio que se usó en este navegador', async () => {
+    givenNegocios(ALMACEN, KIOSCO);
+    guardarNegocioActivo(KIOSCO.id);
 
+    await whenIniciaSesion();
+    const dialogo = await popUp();
+
+    expect(
+      await within(dialogo).findByRole('button', { name: 'Kiosco de la estación' }, ESPERA),
+    ).toHaveAccessibleDescription(/El último que usaste/);
+    expect(
+      within(dialogo).getByRole('button', { name: 'Seguir con Kiosco de la estación' }),
+    ).toBeVisible();
+  });
+
+  it('«Seguir con…» entra con el último que se usó, sin cambiar de negocio', async () => {
+    givenNegocios(ALMACEN, KIOSCO);
+
+    const { router, user } = await whenIniciaSesion();
     const dialogo = await popUp();
     await user.click(within(dialogo).getByRole('button', { name: 'Seguir con Almacén San Justo' }));
 
     await verifyPathAsync(router, '/inicio');
-    expect(activoDelServidor()).toBe(ALMACEN.id);
-    expect(cambios).toBe(0);
-    server.events.removeAllListeners();
+    expect(
+      await screen.findByRole('button', { name: /Negocio activo.*Almacén San Justo/ }, ESPERA),
+    ).toBeVisible();
   });
 
   it('Esc no hace nada: hay que elegir un negocio', async () => {
-    conNegocios(ALMACEN, KIOSCO);
-    const { router, user } = await iniciarSesion();
+    givenNegocios(ALMACEN, KIOSCO);
+    const { router, user } = await whenIniciaSesion();
     await popUp();
 
     await user.keyboard('{Escape}');
@@ -109,41 +103,23 @@ describe('elegir con qué negocio trabajar al iniciar sesión', () => {
     expect(screen.getByRole('dialog')).toBeVisible();
   });
 
-  it('si no se pudo cambiar de negocio lo dice y deja seguir', async () => {
-    conNegocios(ALMACEN, KIOSCO);
-    server.use(
-      http.put('/api/negocios/:id/activo', () =>
-        HttpResponse.json({ status: 500, message: 'Error interno' }, { status: 500 }),
-      ),
-    );
-    const { router, user } = await iniciarSesion();
-
-    const dialogo = await popUp();
-    await user.click(
-      await within(dialogo).findByRole('button', { name: 'Kiosco de la estación' }, ESPERA),
-    );
-
-    await verifyAlertPresentAsync('No pudimos abrir ese negocio.');
-    expect(router.state.location.pathname).toBe('/elegir-negocio');
-    await user.click(within(dialogo).getByRole('button', { name: 'Seguir con Almacén San Justo' }));
-    await verifyPathAsync(router, '/inicio');
-  });
-
   it('después de elegir va a donde se quería ir antes de ingresar', async () => {
-    conNegocios(ALMACEN, KIOSCO);
-    const { router, user } = await iniciarSesion('/login?redirect=%2Fplanes');
+    givenNegocios(ALMACEN, KIOSCO);
 
+    const { router, user } = await whenIniciaSesion('/login?redirect=%2Fplanes');
     const dialogo = await popUp();
     await user.click(within(dialogo).getByRole('button', { name: 'Seguir con Almacén San Justo' }));
 
     await verifyPathAsync(router, '/planes');
   });
 
-  it('si no llega la lista de negocios entra igual', async () => {
-    conNegocios(ALMACEN, KIOSCO);
-    setupServerError('get', '/negocios', 500, 'Error interno');
-    const { router } = await iniciarSesion();
+  it('si no llegan los cuadernos de la cuenta no pregunta nada', async () => {
+    givenNegocios(ALMACEN, KIOSCO);
+    setupServerError('get', '/sistemas', 500, 'Error interno');
+
+    const { router } = await whenIniciaSesion();
 
     await verifyPathAsync(router, '/inicio');
+    expect(screen.queryByRole('dialog', { name: '¿Con qué negocio trabajás hoy?' })).toBeNull();
   });
 });

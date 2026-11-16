@@ -11,7 +11,6 @@ import type { ResumenDeNegocio } from '@/types/negocios';
 const negocio = (id: string, datos: Partial<ResumenDeNegocio> = {}): ResumenDeNegocio => ({
   id,
   nombre: id,
-  rubro: 'OTRO',
   activo: false,
   hayDatos: true,
   vendiste: 0,
@@ -45,9 +44,6 @@ describe('ordenar', () => {
   });
 
   it('ordena por la métrica elegida en los dos sentidos', () => {
-    expect(
-      ids(ordenar([ALMACEN, KIOSCO, FERIA], { metrica: 'avisosPendientes', sentido: 'desc' })),
-    ).toEqual(['feria', 'almacen', 'kiosco']);
     expect(ids(ordenar([ALMACEN, KIOSCO, FERIA], { metrica: 'queda', sentido: 'asc' }))).toEqual([
       'kiosco',
       'almacen',
@@ -95,10 +91,9 @@ describe('siguienteOrden', () => {
 });
 
 describe('valorDeMetrica', () => {
-  it('muestra los importes en pesos, los avisos como número y lo que falta como raya', () => {
+  it('muestra los importes en pesos y lo que falta como raya', () => {
     expect(valorDeMetrica(KIOSCO, 'vendiste')).toBe('$280.000');
     expect(valorDeMetrica(KIOSCO, 'queda')).toBe('-$72.000');
-    expect(valorDeMetrica(KIOSCO, 'avisosPendientes')).toBe('2');
     expect(valorDeMetrica(FERIA, 'gastos')).toBe('—');
   });
 });

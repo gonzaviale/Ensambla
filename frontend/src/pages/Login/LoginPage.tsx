@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearch } from '@tanstack/react-router';
 import { AuthCard, EnlaceAuth } from '@/components/AuthForm/AuthCard';
 import { LoginForm } from '@/components/AuthForm/LoginForm';
-import { negociosQuery } from '@/hooks/negocios/queries';
+import { sistemasQuery } from '@/hooks/sistemas/queries';
 import { destinoSeguro } from '@/lib/destino';
 
 export function LoginPage() {
@@ -10,13 +10,13 @@ export function LoginPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  // Con más de un negocio, después de ingresar se elige con cuál trabajar (T-204). Si la lista no llega se entra
-  // igual, con el último que se usó: no saber cuántos negocios hay no tiene que trabar el inicio de sesión.
+  // Con más de un negocio (cada cuaderno es uno), después de ingresar se elige con cuál trabajar (T-204). Si la lista
+  // no llega se entra igual, con el último que se usó: no saber cuántos hay no tiene que trabar el inicio de sesión.
   const alIniciarSesion = async () => {
-    const lista = await queryClient
-      .fetchQuery({ ...negociosQuery(), retry: false })
+    const sistemas = await queryClient
+      .fetchQuery({ ...sistemasQuery(), retry: false })
       .catch(() => null);
-    if (lista && lista.negocios.length > 1) {
+    if (sistemas && sistemas.length > 1) {
       await router.navigate({ to: '/elegir-negocio', search: { redirect } });
     } else {
       router.history.push(destinoSeguro(redirect));

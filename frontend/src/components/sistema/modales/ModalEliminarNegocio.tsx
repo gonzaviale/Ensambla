@@ -25,12 +25,12 @@ export function ModalEliminarNegocio({ negocioId, nombre }: { negocioId: string;
     <Modal clase="modal-negocio modal-eliminar-negocio">
       <div className="icon-tile large"><Icon name="trash" /></div>
       <h2 id="modal-title">¿Eliminar {nombre}?</h2>
-      <p>Esta acción elimina los datos que pertenecen únicamente a este negocio.</p>
+      <p>Esta acción elimina el negocio y todo lo que anotaste en él.</p>
       <div className="negocio-eliminar-detalle">
         <Icon name="help" />
         <p>
-          También se eliminan sus <strong>secciones, movimientos, avisos, objetivos, zona y conversaciones con Sami</strong>.
-          Tu cuenta y tus otros negocios no cambian.
+          También se eliminan sus <strong>tablas y todo lo que cargaste en ellas</strong>. Tu cuenta y tus otros
+          negocios no cambian.
         </p>
       </div>
       {esUltimo && <p className="form-error" role="alert">No podés eliminar el único negocio de tu cuenta.</p>}

@@ -1,5 +1,5 @@
-// Cuántos negocios deja tener un plan, dicho como lo lee la persona (ENS-284 · T-206). El plan es de la cuenta
-// (docs/modelo-datos.md, «Plan por cuenta y límite de negocios»): Gratuito 1, Premium el propio y 5 más.
+// Cuántos negocios deja tener un plan, dicho como lo lee la persona (ENS-284 · T-206). Cada negocio es un cuaderno,
+// así que el límite es el de proyectos del plan (`limiteProyectos`).
 
 /** «1 negocio», «Tu negocio y hasta 5 más» o «Sin límite»; `null` en el límite es que no lo tiene. */
 export const textoDeNegocios = (limite: number | null) => {

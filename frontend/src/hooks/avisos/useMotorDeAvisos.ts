@@ -10,14 +10,14 @@ import { hoy } from '@/lib/sistema/formato';
 import { useAvisosDelServidor } from '@/hooks/avisos/queries';
 import { usePreferencias } from '@/hooks/preferencias/queries';
 import { useZona } from '@/hooks/zona/queries';
-import { useSistemaStore } from '@/stores/sistemaStore';
+import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
 
 // El motor de avisos de Sami: reúne los que calcula en el navegador (a partir de los sistemas y la zona) con los
 // que el motor del servidor dejó pendientes, los deja en el store y, si apareció alguno nuevo, lo muestra un rato.
 // Cada aviso del servidor lleva el id de su cuenta, así que no se pisa con los del navegador; los tipos que cubre el
 // servidor (ver tiposCubiertosPorElServidor) no se muestran también desde el navegador.
 export function useMotorDeAvisos() {
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
+  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
   const zona = useZona();
   const { grupos, descartadas } = usePreferencias();
   const { avisos: delServidor, cargando: avisosCargando, respondio } = useAvisosDelServidor();

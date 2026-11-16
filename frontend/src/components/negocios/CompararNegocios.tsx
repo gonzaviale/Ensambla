@@ -7,21 +7,18 @@ import {
   valorDeMetrica,
   type Orden,
 } from '@/lib/negocios/comparar';
-import { rubroLegible } from '@/lib/negocios/presentacion';
 import { pesos } from '@/lib/sistema/panelDelNegocio';
 import type { ResumenConjunto } from '@/types/negocios';
 
 type Props = {
   resumen: ResumenConjunto;
-  /** El nombre de cada rubro según el servidor; sin él se muestra el código legible. */
-  nombreDelRubro?: (codigo: string) => string | undefined;
 };
 
 const SENTIDO_ARIA = { desc: 'descending', asc: 'ascending' } as const;
 
 // Los totales de la cuenta y una tabla con un negocio por fila (T-205). Tocar el encabezado de una métrica ordena
 // por ella; lo que no tiene valor queda al final. No sabe de consultas: recibe el resumen ya cargado.
-export function CompararNegocios({ resumen, nombreDelRubro }: Props) {
+export function CompararNegocios({ resumen }: Props) {
   const [orden, setOrden] = useState<Orden>(ORDEN_INICIAL);
   const { total } = resumen;
   const filas = ordenar(resumen.negocios, orden);
@@ -49,10 +46,6 @@ export function CompararNegocios({ resumen, nombreDelRubro }: Props) {
           <div>
             <dt>Te deben</dt>
             <dd>{pesos(total.teDeben)}</dd>
-          </div>
-          <div>
-            <dt>Avisos pendientes</dt>
-            <dd data-hay={total.avisosPendientes > 0 || undefined}>{total.avisosPendientes}</dd>
           </div>
         </dl>
       </section>
@@ -90,10 +83,9 @@ export function CompararNegocios({ resumen, nombreDelRubro }: Props) {
               <tr key={negocio.id} data-sin-datos={!negocio.hayDatos || undefined}>
                 <th scope="row">
                   <span className="comparar-nombre">{negocio.nombre}</span>
-                  <span className="comparar-detalle">
-                    {nombreDelRubro?.(negocio.rubro) ?? rubroLegible(negocio.rubro)}
-                    {!negocio.hayDatos && ' · Sin ventas en el período'}
-                  </span>
+                  {!negocio.hayDatos && (
+                    <span className="comparar-detalle">Sin ventas en el período</span>
+                  )}
                 </th>
                 {METRICAS.map(({ clave, titulo }) => (
                   <td
@@ -102,9 +94,6 @@ export function CompararNegocios({ resumen, nombreDelRubro }: Props) {
                     data-negativo={
                       (clave === 'queda' && negocio.queda !== null && negocio.queda < 0) ||
                       undefined
-                    }
-                    data-hay={
-                      (clave === 'avisosPendientes' && negocio.avisosPendientes > 0) || undefined
                     }
                   >
                     {valorDeMetrica(negocio, clave)}

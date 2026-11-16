@@ -22,7 +22,7 @@ import { useAccionesDeAvisos } from '@/hooks/avisos/useAccionesDeAvisos';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { useAnalisisDeOtraZona } from '@/hooks/zona/useAnalisisDeOtraZona';
 import { useZona, useZonaDeLoQueSeVende } from '@/hooks/zona/queries';
-import { useSistemaStore } from '@/stores/sistemaStore';
+import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
 
 type Vista = 'precios' | 'cerca' | 'otra';
 
@@ -88,7 +88,7 @@ function SinDatosSuficientes({ zona }: { zona: Zona }) {
 export function ZonaPage() {
   useTituloPagina('Mi zona');
   const zona = useZona();
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
+  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
   const [vista, setVista] = useState<Vista>('precios');
   const propios = useMemo(() => productosPropios(sistemas), [sistemas]);
   const { titulo, texto } = TITULOS[vista];
@@ -201,7 +201,7 @@ function VistaDePrecios({
 // `zona` es la de «Precios» (primero lo que ya tenés): sirve para el resumen lateral, que compara tus precios. La lista
 // sale de la zona de esta pestaña, que prioriza lo que todavía no tenés y gasta su propio cupo del plan gratuito.
 function VistaDeLoQueSeVende({ zona }: { zona: Zona }) {
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
+  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
   const acciones = useAccionesDeAvisos();
   const propios = useMemo(() => productosPropios(sistemas), [sistemas]);
   const cerca = useZonaDeLoQueSeVende(!sinSuficientes(zona));
@@ -339,7 +339,7 @@ const TEXTOS_DEL_MARCADOR = {
 };
 
 function VistaDeOtraZona() {
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
+  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
   const propios = useMemo(() => productosPropios(sistemas), [sistemas]);
   const estado = useAnalisisDeOtraZona();
   const resultado = estado.resultado;

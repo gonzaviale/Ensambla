@@ -61,7 +61,7 @@ describe('contratación y renovación automática', () => {
     expect(within(dialogo).getByText(/El primer cobro se programa para/)).toBeVisible();
     expect(within(dialogo).getByText(/diez análisis de foto totales/)).toBeVisible();
     expect(
-      within(dialogo).getByText('El plan es de tu cuenta: incluye tu negocio y hasta 5 más.'),
+      within(dialogo).getByText('El plan es de tu cuenta: incluye todos los negocios que quieras.'),
     ).toBeVisible();
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('dialog')).toBeNull();

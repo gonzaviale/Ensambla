@@ -8,7 +8,6 @@ import {
   RUBROS_DE_PRUEBA,
   ZONA_DE_PRUEBA,
 } from '../db/ubicacion';
-import { actualizarConfiguracionActiva } from '../db/negocios';
 import { errorResponse } from '../errores';
 import { api, cuenta, pathDe } from './comun';
 
@@ -66,7 +65,6 @@ export const handlersNegocio = [
     const guardado = { ...actual, ...cambios.data };
     guardado.zona = zonaQueCubre(guardado.ubicacion);
     estado.negocios.set(usuario.email, guardado);
-    actualizarConfiguracionActiva(usuario.email, guardado);
     estado.alCambiar?.();
     return HttpResponse.json(guardado);
   }),
