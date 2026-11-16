@@ -2,6 +2,8 @@ package com.ensambla.backend.domain.useCase.sistema.guardarSistema;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.catalogo.CodigosInventario;
+import com.ensambla.backend.domain.model.caja.ProteccionCaja;
 import com.ensambla.backend.domain.model.sistema.Sistema;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
@@ -42,6 +44,9 @@ public class GuardarSistema {
         usoPlanRepository.bloquearNegocio(negocioId);
         Optional<NegocioId> duenioActual = sistemaRepository.findNegocioIdByProyectoId(sistema.id());
         validarDuenio(negocioId, duenioActual);
+        ProteccionCaja.validar(sistemaRepository.findAllByNegocioId(negocioId), sistema, leidoEn);
+        sistema.proyecto().getBloques().forEach(bloque -> CodigosInventario.validar(
+                bloque, sistema.registrosPorBloque().getOrDefault(bloque.getId(), List.of())));
         if (duenioActual.isEmpty()) {
             controlPlanService.validarAltaProyecto(negocioId, sistema.proyecto().getActualizadoEn());
         }

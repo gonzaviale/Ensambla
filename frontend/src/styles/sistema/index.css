@@ -35,6 +35,7 @@
 /* Los dos íconos de herramientas de la sección. */
 @import './herramientas.css';
 @import './overrides.css';
+@import './escaneo.css';
 /* Último: el criterio único de color, botones y tarjetas (ver el comentario de la hoja). */
 @import './armonia.css';
 /* T-213: las métricas del Inicio. */
@@ -43,3 +44,11 @@
 @import './pie.css';
 /* T-215: Mi zona y Tu próximo negocio. */
 @import './zona-vida.css';
+@import './lectorInventario.css';
+@import './caja.css';
+@import './cajaMostrador.css';
+@import './cajaEscaneo.css';
+@import './cajaClientes.css';
+@import './cajaCompraCobro.css';
+@import './accesosRapidos.css';
+@import './presentacionMovil.css';

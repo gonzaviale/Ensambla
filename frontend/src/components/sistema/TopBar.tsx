@@ -5,7 +5,7 @@ import { MenuDePerfil } from './MenuDePerfil';
 import { SelectorDeNegocio } from './SelectorDeNegocio';
 
 export type SeccionActiva =
-  'home' | 'templates' | 'zone' | 'avisos' | 'goals' | 'plans' | 'account';
+  'home' | 'caja' | 'templates' | 'zone' | 'avisos' | 'goals' | 'plans' | 'account';
 
 type TopBarProps = {
   active?: SeccionActiva;
@@ -13,6 +13,7 @@ type TopBarProps = {
   /** La campana de avisos, que vive en el encabezado. */
   campana?: ReactNode;
   onInicio: () => void;
+  onCaja: () => void;
   onPlantillas: () => void;
   onZona: () => void;
   onAvisos: () => void;
@@ -31,6 +32,7 @@ export function TopBar({
   nombre,
   campana,
   onInicio,
+  onCaja,
   onPlantillas,
   onZona,
   onAvisos,
@@ -68,6 +70,14 @@ export function TopBar({
           onClick={onInicio}
         >
           Inicio
+        </button>
+        <button
+          type="button"
+          className={active === 'caja' ? 'active' : ''}
+          aria-current={active === 'caja' ? 'page' : undefined}
+          onClick={ir(onCaja)}
+        >
+          Caja
         </button>
         <button
           type="button"

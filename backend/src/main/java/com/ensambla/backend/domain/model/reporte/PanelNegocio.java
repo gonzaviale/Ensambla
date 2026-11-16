@@ -4,6 +4,8 @@ import com.ensambla.backend.domain.model.aviso.BloqueInventario;
 import com.ensambla.backend.domain.model.aviso.BloqueVentas;
 import com.ensambla.backend.domain.model.aviso.VentaProducto;
 import com.ensambla.backend.domain.model.common.TextoNormalizado;
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
+import com.ensambla.backend.domain.model.caja.PagoCaja;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
@@ -16,6 +18,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /**
@@ -23,9 +26,9 @@ import java.util.stream.Stream;
  * Lo vendido, lo que le deben y la variación salen de {@link ResumenNegocio}, así que coinciden con el resumen en
  * PDF del mismo período.
  *
- * <p>El flujo de caja se arma con lo que ya se carga, no con un circuito de cobros y pagos:
+ * <p>El flujo combina las anotaciones manuales y los cobros reales de Caja:
  * <ul>
- *   <li>entradas: ventas con precio que no están marcadas «fiado»;</li>
+ *   <li>entradas: ventas manuales que no están marcadas «fiado», entregas iniciales y cobros posteriores de Caja;</li>
  *   <li>salidas: los gastos más las compras de mercadería.</li>
  * </ul>
  * Las compras de mercadería salen de la tabla de entradas, valuadas al costo actual de cada producto. Si el sistema
@@ -33,12 +36,11 @@ import java.util.stream.Stream;
  * suman las dos fuentes (contaría la compra dos veces), y esa categoría no cuenta como gasto: por eso el total de
  * gastos puede ser menor que el del PDF, que los suma todos.
  *
- * <p>Lo vendido a fiado se informa aparte como {@code teDeben}: como no hay forma de registrar el cobro, no pasa a
- * ser entrada. Sin ventas en el período el panel está vacío ({@code metricas} es {@code null}): no se inventan
- * ceros.
+ * <p>{@code teDeben} informa el saldo actual de las ventas del período. Un cobro de una venta anterior entra en
+ * su fecha real, aunque el período no tenga ventas nuevas. Sin ventas ni cobros el panel queda vacío.
  *
- * @param metricas    {@code null} si el período no tiene ventas
- * @param flujoDeCaja una semana tras otra desde el primer día del período; vacío si no hay ventas
+ * @param metricas    {@code null} si el período no tiene ventas ni cobros
+ * @param flujoDeCaja una semana tras otra desde el primer día del período; vacío si no hay actividad
  */
 public record PanelNegocio(PeriodoResumen periodo, Metricas metricas, List<SemanaDeCaja> flujoDeCaja) {
 
@@ -53,7 +55,7 @@ public record PanelNegocio(PeriodoResumen periodo, Metricas metricas, List<Seman
      * @param gastos         los gastos sin la mercadería; {@code null} si el sistema no tiene una tabla de gastos
      *                       con importe
      * @param queda          lo cobrado menos gastos y mercadería: el saldo con que cierra el flujo de caja
-     * @param teDeben        lo vendido a fiado en el período
+     * @param teDeben        el saldo actual de las ventas del período
      * @param margen         ganancia sobre lo vendido (en %), mirando solo los productos que tienen costo;
      *                       {@code null} si ninguno de los vendidos lo tiene
      * @param ticketPromedio lo vendido por cada venta con precio; {@code null} si ninguna tiene precio
@@ -87,7 +89,7 @@ public record PanelNegocio(PeriodoResumen periodo, Metricas metricas, List<Seman
     private record Gasto(Movimiento movimiento, boolean esMercaderia) {
     }
 
-    private record Venta(VentaProducto venta, boolean fiado) {
+    private record Venta(VentaProducto venta, boolean fiado, boolean deCaja) {
 
         BigDecimal importe() {
             return venta.precio().multiply(venta.cantidad());
@@ -100,16 +102,18 @@ public record PanelNegocio(PeriodoResumen periodo, Metricas metricas, List<Seman
 
     public static PanelNegocio armar(DatosDeProyecto datos, PeriodoResumen periodo, LocalDate hoy) {
         ResumenNegocio resumen = ResumenNegocio.armar("", datos, AnalisisZona.sinZona(), List.of(), periodo, hoy);
-        if (resumen.ventas().cantidad() == 0) {
+        List<Movimiento> cobrosCaja = cobrosCaja(datos, periodo);
+        if (resumen.ventas().cantidad() == 0 && cobrosCaja.isEmpty()) {
             return new PanelNegocio(periodo, null, List.of());
         }
-        List<Venta> ventas = ventasConPrecio(datos.ventas(), periodo);
+        List<Venta> ventas = ventasConPrecio(datos, periodo);
         List<Gasto> gastos = gastos(datos.gastos(), periodo);
         List<Movimiento> sinMercaderia = gastos.stream().filter(gasto -> !gasto.esMercaderia())
                 .map(Gasto::movimiento).toList();
         List<Movimiento> compras = compras(datos, gastos, periodo);
-        List<Movimiento> cobradas = ventas.stream().filter(venta -> !venta.fiado())
-                .map(venta -> new Movimiento(venta.venta().fecha(), venta.importe())).toList();
+        List<Movimiento> cobradas = Stream.concat(cobrosCaja.stream(), ventas.stream()
+                .filter(venta -> !venta.fiado() && !venta.deCaja())
+                .map(venta -> new Movimiento(venta.venta().fecha(), venta.importe()))).toList();
         List<SemanaDeCaja> flujo = flujoDeCaja(
                 periodo, cobradas, Stream.concat(sinMercaderia.stream(), compras.stream()).toList());
         boolean hayGastos = datos.gastos().stream().anyMatch(BloqueGastos::tieneImporte);
@@ -131,7 +135,7 @@ public record PanelNegocio(PeriodoResumen periodo, Metricas metricas, List<Seman
 
     /** La ganancia sobre lo vendido de los productos que tienen costo; lo de los demás no entra ni arriba ni abajo. */
     private static BigDecimal margen(List<Venta> ventas, Map<RegistroId, BigDecimal> costos) {
-        List<Venta> conCosto = ventas.stream().filter(venta -> costos.containsKey(venta.venta().productoId())).toList();
+        List<Venta> conCosto = ventas.stream().filter(venta -> venta.venta().productoId() != null && costos.containsKey(venta.venta().productoId())).toList();
         BigDecimal vendido = suma(conCosto.stream().map(Venta::importe));
         if (vendido.signum() == 0) {
             return null;
@@ -150,6 +154,16 @@ public record PanelNegocio(PeriodoResumen periodo, Metricas metricas, List<Seman
     }
 
     // --- flujo de caja ---
+
+    private static List<Movimiento> cobrosCaja(DatosDeProyecto datos, PeriodoResumen periodo) {
+        return Stream.concat(datos.ventasCaja().stream().map(venta -> new Movimiento(
+                        ZonaNegocio.dia(venta.creadoEn()),
+                        suma(venta.pagosIniciales().stream().map(PagoCaja::importe)))),
+                datos.cobrosCaja().stream().map(cobro -> new Movimiento(
+                        ZonaNegocio.dia(cobro.creadoEn()), cobro.importe())))
+                .filter(movimiento -> movimiento.importe().signum() > 0 && periodo.incluye(movimiento.fecha()))
+                .toList();
+    }
 
     private static List<SemanaDeCaja> flujoDeCaja(PeriodoResumen periodo, List<Movimiento> entradas,
                                                   List<Movimiento> salidas) {
@@ -176,13 +190,19 @@ public record PanelNegocio(PeriodoResumen periodo, Metricas metricas, List<Seman
     // --- lectura de las tablas ---
 
     /** Las ventas del período que tienen precio; las demás cuentan como venta pero no son plata. */
-    private static List<Venta> ventasConPrecio(List<BloqueVentas> bloques, PeriodoResumen periodo) {
+    private static List<Venta> ventasConPrecio(DatosDeProyecto datos, PeriodoResumen periodo) {
+        Stream<Venta> articulos = ventasDeTablas(datos.ventas(), datos.origenesVentasCaja());
+        Stream<Venta> importes = datos.importesLibres().stream().map(venta -> new Venta(venta, false, true));
+        return Stream.concat(articulos, importes)
+                .filter(venta -> venta.venta().precio() != null && periodo.incluye(venta.venta().fecha())).toList();
+    }
+
+    private static Stream<Venta> ventasDeTablas(List<BloqueVentas> bloques, Set<String> origenesCaja) {
         return bloques.stream()
                 .flatMap(bloque -> bloque.registros().stream()
                         .flatMap(registro -> VentaProducto.desde(bloque, registro).stream()
-                                .map(venta -> new Venta(venta, esFiado(bloque, registro)))))
-                .filter(venta -> venta.venta().precio() != null && periodo.incluye(venta.venta().fecha()))
-                .toList();
+                                .map(venta -> new Venta(venta, esFiado(bloque, registro),
+                                        origenesCaja.contains(registro.getOrigen())))));
     }
 
     private static boolean esFiado(BloqueVentas bloque, Registro registro) {

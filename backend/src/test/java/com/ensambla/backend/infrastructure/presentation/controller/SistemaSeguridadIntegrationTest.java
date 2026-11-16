@@ -225,7 +225,78 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    @DisplayName("El catálogo incluido requiere sesión y responde desde el backend")
+    void catalogoShouldRequireSessionAndLoadPackagedSepa() throws Exception {
+        mockMvc.perform(get("/api/catalogos/sepa/7790895000997"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(get("/api/catalogos/sepa/7790895000997").session(sesion))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.producto.codigo").value("7790895000997"));
+    }
+
+    @Test
+    @DisplayName("Guarda el código como texto y recarga el producto con su stock real desde PostgreSQL")
+    void scannedProductShouldRoundTripWithLeadingZeros() throws Exception {
+        String body = givenBodyConCodigos("07790895000997", "77903754");
+
+        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion)
+                        .header("X-CSRF-TOKEN", csrfToken).contentType("application/json").content(body))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/sistemas").session(sesion))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[0].barcode").value("07790895000997"))
+                .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[0].quantity").value(14))
+                .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[1].barcode").value("77903754"));
+    }
+
+    @Test
+    @DisplayName("El backend rechaza códigos equivalentes duplicados sin guardar parcialmente")
+    void scannedProductShouldRejectDuplicateCodes() throws Exception {
+        String body = givenBodyConCodigos("77903754", "00000077903754");
+
+        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion)
+                        .header("X-CSRF-TOKEN", csrfToken).contentType("application/json").content(body))
+                .andExpect(status().isConflict());
+
+        mockMvc.perform(get("/api/sistemas").session(sesion))
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("El backend rechaza un código de control inválido aunque se omita la validación del navegador")
+    void scannedProductShouldRejectInvalidCode() throws Exception {
+        String body = givenBodyConCodigos("77903755", "77905741");
+
+        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion)
+                        .header("X-CSRF-TOKEN", csrfToken).contentType("application/json").content(body))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get("/api/sistemas").session(sesion))
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("Un código inválido o una fuente desconocida se rechazan antes de consultar al proveedor")
+    void catalogoShouldRejectInvalidQuery() throws Exception {
+        mockMvc.perform(get("/api/catalogos/sepa/77903755").session(sesion))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get("/api/catalogos/desconocida/77903754").session(sesion))
+                .andExpect(status().isBadRequest());
+    }
+
     // --- arrange ---
+    private String givenBodyConCodigos(String primero, String segundo) {
+        return givenBody("Inventario escaneado")
+                .replace("\"fields\":[", "\"fields\":[{\"key\":\"barcode\",\"label\":\"Código\",\"type\":\"text\",\"required\":false},"
+                        + "{\"key\":\"quantity\",\"label\":\"Cantidad\",\"type\":\"number\",\"required\":true,\"min\":0},")
+                .replace("\"name\":\"Harina\",\"price\":1200", "\"name\":\"Harina\",\"price\":1200,\"quantity\":14,\"barcode\":\"" + primero + "\"")
+                .replace("\"name\":\"Azúcar\",\"price\":900", "\"name\":\"Azúcar\",\"price\":900,\"quantity\":0,\"barcode\":\"" + segundo + "\"");
+    }
+
     private String givenBody(String nombre) {
         return """
                 {"id":"%s","name":"%s","createdAt":"2026-01-10T09:00:00.000Z","updatedAt":"2026-10-21T10:00:00.000Z",

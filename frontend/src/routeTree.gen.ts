@@ -13,6 +13,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as PublicaRouteImport } from './routes/_publica'
 import { Route as ElegirNegocioRouteImport } from './routes/elegir-negocio'
 import { Route as AppAvisosRouteImport } from './routes/_app/avisos'
+import { Route as AppCajaRouteImport } from './routes/_app/caja'
 import { Route as AppCuadernosRouteImport } from './routes/_app/cuadernos'
 import { Route as AppCuentaRouteImport } from './routes/_app/cuenta'
 import { Route as AppDondeAbrirRouteImport } from './routes/_app/donde-abrir'
@@ -49,6 +50,11 @@ const ElegirNegocioRoute = ElegirNegocioRouteImport.update({
 const AppAvisosRoute = AppAvisosRouteImport.update({
   id: '/avisos',
   path: '/avisos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCajaRoute = AppCajaRouteImport.update({
+  id: '/caja',
+  path: '/caja',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCuadernosRoute = AppCuadernosRouteImport.update({
@@ -151,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/': typeof PublicaIndexRoute
   '/elegir-negocio': typeof ElegirNegocioRoute
   '/avisos': typeof AppAvisosRoute
+  '/caja': typeof AppCajaRoute
   '/cuadernos': typeof AppCuadernosRoute
   '/cuenta': typeof AppCuentaRoute
   '/donde-abrir': typeof AppDondeAbrirRoute
@@ -174,6 +181,7 @@ export interface FileRoutesByTo {
   '/': typeof PublicaIndexRoute
   '/elegir-negocio': typeof ElegirNegocioRoute
   '/avisos': typeof AppAvisosRoute
+  '/caja': typeof AppCajaRoute
   '/cuadernos': typeof AppCuadernosRoute
   '/cuenta': typeof AppCuentaRoute
   '/donde-abrir': typeof AppDondeAbrirRoute
@@ -198,6 +206,7 @@ export interface FileRoutesById {
   '/_publica': typeof PublicaRouteWithChildren
   '/elegir-negocio': typeof ElegirNegocioRoute
   '/_app/avisos': typeof AppAvisosRoute
+  '/_app/caja': typeof AppCajaRoute
   '/_app/cuadernos': typeof AppCuadernosRoute
   '/_app/cuenta': typeof AppCuentaRoute
   '/_app/donde-abrir': typeof AppDondeAbrirRoute
@@ -224,6 +233,7 @@ export interface FileRouteTypes {
     | '/'
     | '/elegir-negocio'
     | '/avisos'
+    | '/caja'
     | '/cuadernos'
     | '/cuenta'
     | '/donde-abrir'
@@ -247,6 +257,7 @@ export interface FileRouteTypes {
     | '/'
     | '/elegir-negocio'
     | '/avisos'
+    | '/caja'
     | '/cuadernos'
     | '/cuenta'
     | '/donde-abrir'
@@ -270,6 +281,7 @@ export interface FileRouteTypes {
     | '/_publica'
     | '/elegir-negocio'
     | '/_app/avisos'
+    | '/_app/caja'
     | '/_app/cuadernos'
     | '/_app/cuenta'
     | '/_app/donde-abrir'
@@ -325,6 +337,13 @@ declare module '@tanstack/react-router' {
       path: '/avisos'
       fullPath: '/avisos'
       preLoaderRoute: typeof AppAvisosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/caja': {
+      id: '/_app/caja'
+      path: '/caja'
+      fullPath: '/caja'
+      preLoaderRoute: typeof AppCajaRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/cuadernos': {
@@ -478,6 +497,7 @@ const AppZonaRouteWithChildren =
 
 interface AppRouteChildren {
   AppAvisosRoute: typeof AppAvisosRoute
+  AppCajaRoute: typeof AppCajaRoute
   AppCuadernosRoute: typeof AppCuadernosRoute
   AppCuentaRoute: typeof AppCuentaRoute
   AppDondeAbrirRoute: typeof AppDondeAbrirRoute
@@ -496,6 +516,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAvisosRoute: AppAvisosRoute,
+  AppCajaRoute: AppCajaRoute,
   AppCuadernosRoute: AppCuadernosRoute,
   AppCuentaRoute: AppCuentaRoute,
   AppDondeAbrirRoute: AppDondeAbrirRoute,
