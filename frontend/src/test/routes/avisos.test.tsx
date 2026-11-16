@@ -207,9 +207,9 @@ describe('la campana y la pantalla de avisos', () => {
     await abrirPanel(user);
 
     const aviso = tarjeta('Te quedaste sin Aceite Natura 900 ml');
-    expect(within(aviso).queryByText(/En los últimos 30 días vendiste 10 unidades/)).toBeNull();
+    expect(within(aviso).queryByText(/Vendiste 10 en los últimos 30 días/)).toBeNull();
     await user.click(within(aviso).getByRole('button', { name: /Ver por qué/ }));
-    expect(within(aviso).getByText(/En los últimos 30 días vendiste 10 unidades/)).toBeVisible();
+    expect(within(aviso).getByText(/Vendiste 10 en los últimos 30 días/)).toBeVisible();
     expect(within(aviso).getByRole('button', { name: 'Registrar entrada' })).toBeVisible();
     expect(within(aviso).getByRole('button', { name: 'Descartar' })).toBeVisible();
 

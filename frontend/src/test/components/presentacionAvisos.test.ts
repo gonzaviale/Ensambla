@@ -5,6 +5,8 @@ import {
   cuandoSeDetecto,
   datosDelAviso,
   NOMBRE_DE_TIPO,
+  razonDelAviso,
+  restoDelAviso,
   resumenDelAviso,
   suavizarTexto,
   tituloDeGrupo,
@@ -83,6 +85,30 @@ describe('avisos de lectura rápida', () => {
     expect(tituloDeGrupo('consumo_zona', 1, 2)).toBe('2 productos de la zona que no tenés');
     expect(tituloDeGrupo('revisar_precio', 2, 4)).toBe('4 precios para revisar');
     expect(tituloDeGrupo('stock', 3, 1)).toBe('1 producto sin stock');
+  });
+
+  it('deja para el detalle lo que no dice la tarjeta, sin repetir el resumen ni el «Te conviene pedir»', () => {
+    expect(
+      restoDelAviso('No te quedan unidades y tu mínimo es 6. Para no quedarte corto, pedí 5.'),
+    ).toBe('');
+    expect(restoDelAviso('Vendiste 0 en 30 días. Mirá el precio.')).toBe('Mirá el precio.');
+  });
+
+  it('muestra una sola razón por aviso, sin la aclaración de que el dato es agregado', () => {
+    const base = { ...avisoDeRevisarPrecio(), tipo: 'estancado' as const };
+    expect(
+      razonDelAviso({
+        ...base,
+        porque: [
+          'En tu zona, 9 comercios lo venden entre $ 1.050 y $ 1.250. Es un dato agregado: no se sabe quién cobra qué.',
+          'Tenés 25 en stock.',
+        ],
+      }),
+    ).toBe('En tu zona, 9 comercios lo venden entre $ 1.050 y $ 1.250.');
+    expect(
+      razonDelAviso({ ...base, tipo: 'stock', porque: ['Te alcanza para 6 días.', 'Pedí 7.'] }),
+    ).toBe('Te alcanza para 6 días.');
+    expect(razonDelAviso({ ...base, porque: [] })).toBeUndefined();
   });
 
   it('resume el aviso en una sola idea corta', () => {

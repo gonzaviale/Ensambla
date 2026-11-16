@@ -232,7 +232,7 @@ export function analizar({ sistemas = [], zona, hoy, grupos = {} }: Entrada): Av
         );
         const delaZona = productoDeZona(nombre, datosDeZona);
         const referencia = delaZona
-          ? `En tu zona, ${delaZona.comercios} comercios lo venden entre ${pesos(delaZona.precio.minimo)} y ${pesos(delaZona.precio.maximo)} (promedio ${pesos(delaZona.precio.promedio)}). Es un dato agregado: no se sabe quién cobra qué.`
+          ? `En tu zona, ${delaZona.comercios} comercios lo venden entre ${pesos(delaZona.precio.minimo)} y ${pesos(delaZona.precio.maximo)}. Es un dato agregado: no se sabe quién cobra qué.`
           : '';
         const aplicarPrecio = (texto: string, precio: number) => ({
           tipo: 'aplicar' as const,
@@ -255,7 +255,9 @@ export function analizar({ sistemas = [], zona, hoy, grupos = {} }: Entrada): Av
           if (rotacion.u30 > 0) {
             const alcanza = diario > 0 ? cantidad / diario : 0;
             porque.push(
-              `En los últimos 30 días vendiste ${rotacion.u30} unidades (${diario.toFixed(1).replace('.', ',')} por día): ${cantidad <= 0 ? 'ya no te queda stock' : `te alcanza para ${alcanza < 1 ? 'menos de 1 día' : `${Math.floor(alcanza)} días`}`}.`,
+              cantidad <= 0
+                ? `Vendiste ${rotacion.u30} en los últimos 30 días.`
+                : `Te alcanza para ${alcanza < 1 ? 'menos de 1 día' : `${Math.floor(alcanza)} días`}.`,
             );
             porque.push(`Para cubrir las próximas 2 semanas, pedí ${pedir}.`);
           } else {
@@ -268,7 +270,7 @@ export function analizar({ sistemas = [], zona, hoy, grupos = {} }: Entrada): Av
           }
           if (delaZona) {
             porque.push(
-              `En tu zona lo venden ${delaZona.ventas.comercios} comercios, a unos ${pesos(delaZona.precio.promedio)} en promedio.`,
+              `En tu zona lo venden ${delaZona.ventas.comercios} comercios, a unos ${pesos(delaZona.precio.promedio)}.`,
             );
           }
           sumar({
@@ -298,7 +300,7 @@ export function analizar({ sistemas = [], zona, hoy, grupos = {} }: Entrada): Av
         const promedio = delaZona.precio.promedio;
         const margenTexto = (sugerido: number) =>
           costo > 0
-            ? `Hoy ganás ${pesos(venta - costo)} por unidad (${porcentaje((venta - costo) / venta)}); a ${pesos(sugerido)} ganarías ${pesos(sugerido - costo)}.`
+            ? `Hoy ganás ${pesos(venta - costo)} por unidad; a ${pesos(sugerido)} ganarías ${pesos(sugerido - costo)}.`
             : `A ${pesos(sugerido)} ganarías ${pesos(sugerido - venta)} más por unidad.`;
 
         // 2. Mucha rotación con un precio por debajo del promedio de la zona.
@@ -374,10 +376,7 @@ export function analizar({ sistemas = [], zona, hoy, grupos = {} }: Entrada): Av
             detalle: `Lo tenés a ${pesos(venta)} y el promedio de tu zona es ${pesos(promedio)}. Bajarlo puede ayudarte a vender más.`,
             porque: [
               referencia,
-              hayVentas
-                ? `En los últimos 30 días vendiste ${rotacion.u30}.`
-                : 'Todavía no hay ventas anotadas para comparar.',
-              `A ${pesos(sugerido)} quedás apenas por encima del promedio.`,
+              `${hayVentas ? `Vendiste ${rotacion.u30} en 30 días.` : 'Todavía no hay ventas anotadas.'} A ${pesos(sugerido)} quedás apenas por encima del promedio.`,
             ],
             acciones: [aplicarPrecio(`Bajar a ${pesos(sugerido)}`, sugerido), abrir],
           });
@@ -412,8 +411,7 @@ export function analizar({ sistemas = [], zona, hoy, grupos = {} }: Entrada): Av
           titulo: `En tu zona se vende ${producto.nombre} y no lo tenés`,
           detalle: `${producto.ventas.comercios} de ${datosDeZona.comercios} comercios lo venden, a ${pesos(producto.precio.promedio)} en promedio. Cada uno vende unas ${producto.ventas.unidadesPorSemana} unidades por semana.`,
           porque: [
-            'Es un dato agregado de varios comercios de tu zona: nadie queda identificado.',
-            'Lo cruzamos con tu inventario y no encontramos nada parecido.',
+            'No encontramos nada parecido en tu inventario. Es un dato agregado: nadie queda identificado.',
           ],
           acciones: [
             {
@@ -490,8 +488,8 @@ function avisosDeCombo(
       titulo: `${nombreA} y ${nombreB} se venden juntos`,
       detalle: `Los dos salen poco por separado, pero ${veces} veces se los llevó el mismo cliente el mismo día.`,
       porque: [
-        `Por separado suman ${pesos(numero(a.price) + numero(b.price))}; como combo, ${pesos(precio)} (10% menos) puede ayudar a que roten.`,
-        'El combo se crea como un producto nuevo del inventario; después cargás cuántos armás.',
+        `Por separado suman ${pesos(numero(a.price) + numero(b.price))}; como combo, ${pesos(precio)} (10% menos).`,
+        'Se crea como un producto nuevo; después cargás cuántos armás.',
       ],
       acciones: [
         {

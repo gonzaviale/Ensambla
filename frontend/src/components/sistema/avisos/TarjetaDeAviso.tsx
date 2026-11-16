@@ -8,8 +8,9 @@ import {
   NIVEL_DE_AVISO,
   NOMBRE_DE_TIPO,
   propuestaDelAviso,
+  razonDelAviso,
+  restoDelAviso,
   resumenDelAviso,
-  suavizarTexto,
   textoDeAccion,
 } from './presentacion';
 
@@ -43,7 +44,8 @@ export function TarjetaDeAviso({
   const propuesta = propuestaDelAviso(aviso);
   const datos = datosDelAviso(aviso);
   const detectado = cuandoSeDetecto(aviso.creadoEn);
-  const completo = suavizarTexto(aviso.detalle);
+  const resto = restoDelAviso(aviso.detalle);
+  const razon = razonDelAviso(aviso);
   const resumen = resumenDelAviso(aviso.detalle);
 
   // Si se llega desde la campana o el toast, el aviso se abre solo para dar contexto.
@@ -127,7 +129,7 @@ export function TarjetaDeAviso({
       </div>
       {abierto && (
         <div className="alerta-detalle" id={idDetalle}>
-          {completo !== resumen && <p className="alerta-completo">{completo}</p>}
+          {resto && <p className="alerta-completo">{resto}</p>}
           {datos.length > 0 && (
             <dl className="alerta-datos">
               {datos.map((dato) => (
@@ -138,14 +140,10 @@ export function TarjetaDeAviso({
               ))}
             </dl>
           )}
-          {aviso.porque.length > 0 && (
+          {razon && (
             <>
               <h4>Por qué de este aviso</h4>
-              <ul className="alerta-porque">
-                {aviso.porque.map((motivo) => (
-                  <li key={motivo}>{suavizarTexto(motivo)}</li>
-                ))}
-              </ul>
+              <p className="alerta-razon">{razon}</p>
             </>
           )}
           {otras.length > 0 && (

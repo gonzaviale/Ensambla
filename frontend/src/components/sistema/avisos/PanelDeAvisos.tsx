@@ -310,6 +310,9 @@ export function PanelDeAvisos() {
           </div>
         )}
       </div>
+      <p className="alertas-aclaracion">
+        Los datos de tu zona vienen de varios comercios juntos: nadie queda identificado.
+      </p>
       <div className="alertas-pie">
         <button
           type="button"

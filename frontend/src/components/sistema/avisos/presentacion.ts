@@ -83,6 +83,10 @@ export function propuestaDelAviso(aviso: Aviso): string | undefined {
       return `Bajar el precio de ${pesos(precio)} a ${pesos(sugerido)}`;
     }
   }
+  if (aviso.tipo === 'stock') {
+    const pedir = /pedí ([^.]+)\./.exec(aviso.detalle)?.[1];
+    if (pedir) return `Te conviene pedir ${pedir}`;
+  }
   return accion.texto;
 }
 
@@ -109,6 +113,35 @@ export function suavizarTexto(texto: string) {
     /Para no quedarte corto, pedí ([^.]+)\./g,
     'Te conviene pedir $1 para no quedarte sin stock.',
   );
+}
+
+/**
+ * Lo que sigue a la primera idea del aviso, para «Ver por qué»: no repite el resumen de la tarjeta ni lo que ya dice
+ * la línea de propuesta («Te conviene pedir 5»). Vacío si no queda nada más para decir.
+ */
+export function restoDelAviso(detalle: string) {
+  const [primera = '', ...resto] = suavizarTexto(detalle).split(/(?<=\.)\s+/);
+  const sinPropuesta = resto.filter((frase) => !frase.startsWith('Te conviene pedir'));
+  return resumenDelAviso(detalle) === primera
+    ? sinPropuesta.join(' ')
+    : [primera, ...sinPropuesta].join(' ');
+}
+
+const RAZON_POR_TIPO: Partial<Record<TipoDeAviso, RegExp>> = {
+  muy_vendido: /^En tu zona,/,
+  estancado: /^En tu zona,/,
+  precio_zona: /^En tu zona,/,
+  combo: /^Por separado/,
+};
+
+/**
+ * La razón principal del aviso, en una línea, para «Por qué de este aviso». El resto de los motivos no se muestran, y
+ * la aclaración de que los datos de la zona son de varios comercios va una sola vez al pie de la lista.
+ */
+export function razonDelAviso(aviso: Aviso): string | undefined {
+  const patron = RAZON_POR_TIPO[aviso.tipo];
+  const motivo = (patron && aviso.porque.find((texto) => patron.test(texto))) ?? aviso.porque[0];
+  return motivo && suavizarTexto(motivo).replace(/\s*Es un dato agregado[^.]*\./, '');
 }
 
 export type GrupoDeAvisos = { clave: string; avisos: Aviso[] };
