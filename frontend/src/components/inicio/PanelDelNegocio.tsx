@@ -1,11 +1,10 @@
 import { useMemo } from 'react';
 import { Btn } from '@/components/sistema/Btn';
 import { Icon } from '@/components/sistema/Icon';
-import { useAccionesDeAvisos } from '@/hooks/avisos/useAccionesDeAvisos';
 import { usePanelDelNegocio } from '@/hooks/panel/queries';
+import { useAbrirVentas } from '@/hooks/panel/useAbrirVentas';
 import { useSistemaElegido } from '@/hooks/reportes/useSistemaElegido';
-import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
-import { bloqueDeVentas, pesos, sistemaDelPanel } from '@/lib/sistema/panelDelNegocio';
+import { pesos, sistemaDelPanel } from '@/lib/sistema/panelDelNegocio';
 import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
 import type { PanelDelNegocio as Panel } from '@/types/panel';
 import { Desplegable } from './Desplegable';
@@ -21,17 +20,8 @@ export function PanelDelNegocio() {
   const { sistema: elegido } = useSistemaElegido();
   const sistema = useMemo(() => elegido ?? sistemaDelPanel(sistemas), [elegido, sistemas]);
   const consulta = usePanelDelNegocio(sistema?.id ?? null);
-  const navegacion = useNavegacion();
-  const acciones = useAccionesDeAvisos();
+  const abrirVentas = useAbrirVentas();
   if (!sistema) return null;
-
-  // «Ver mis ventas» lleva a la tabla de ventas y la marca; si la sección no tiene una, la abre.
-  const abrirVentas = () => {
-    const ventas = bloqueDeVentas(sistema);
-    return ventas
-      ? acciones.irAlObjeto({ sistemaId: sistema.id, bloqueId: ventas.id })
-      : navegacion.abrirSistema(sistema.id, 'use');
-  };
 
   return (
     <section className="panel-negocio" aria-labelledby="panel-negocio-titulo">
@@ -55,7 +45,7 @@ export function PanelDelNegocio() {
             Anotá tus primeras ventas en «{sistema.name}» y acá vas a ver cómo se mueve tu plata
             semana a semana.
           </p>
-          <Btn cls="small" onClick={() => void abrirVentas()}>
+          <Btn cls="small" onClick={() => void abrirVentas(sistema)}>
             Cargar mis ventas <Icon name="arrow" />
           </Btn>
         </div>

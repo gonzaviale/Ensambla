@@ -34,6 +34,13 @@ const whenIniciaSesion = async (ruta = '/login') => {
   return { router, user };
 };
 
+/** Cada ícono del pop-up apunta a un dibujo que está en la página: si no, se ve el recuadro vacío. */
+const thenLosIconosSeDibujan = (dialogo: HTMLElement) => {
+  const usados = [...dialogo.querySelectorAll('use')].map((uso) => uso.getAttribute('href'));
+  expect(usados.length).toBeGreaterThan(0);
+  usados.forEach((href) => expect(document.querySelector(`symbol${href}`)).not.toBeNull());
+};
+
 const popUp = () => screen.findByRole('dialog', { name: '¿Con qué negocio trabajás hoy?' }, ESPERA);
 
 describe('elegir con qué negocio trabajar al iniciar sesión', () => {
@@ -74,17 +81,18 @@ describe('elegir con qué negocio trabajar al iniciar sesión', () => {
     expect(
       await within(dialogo).findByRole('button', { name: 'Kiosco de la estación' }, ESPERA),
     ).toHaveAccessibleDescription(/El último que usaste/);
-    expect(
-      within(dialogo).getByRole('button', { name: 'Seguir con Kiosco de la estación' }),
-    ).toBeVisible();
+    thenLosIconosSeDibujan(dialogo);
+    expect(within(dialogo).queryByRole('button', { name: /Seguir con/ })).toBeNull();
   });
 
-  it('«Seguir con…» entra con el último que se usó, sin cambiar de negocio', async () => {
+  it('tocar el último que se usó entra sin cambiar de negocio', async () => {
     givenNegocios(ALMACEN, KIOSCO);
 
     const { router, user } = await whenIniciaSesion();
     const dialogo = await popUp();
-    await user.click(within(dialogo).getByRole('button', { name: 'Seguir con Almacén San Justo' }));
+    await user.click(
+      await within(dialogo).findByRole('button', { name: 'Almacén San Justo' }, ESPERA),
+    );
 
     await verifyPathAsync(router, '/inicio');
     expect(
@@ -108,7 +116,9 @@ describe('elegir con qué negocio trabajar al iniciar sesión', () => {
 
     const { router, user } = await whenIniciaSesion('/login?redirect=%2Fplanes');
     const dialogo = await popUp();
-    await user.click(within(dialogo).getByRole('button', { name: 'Seguir con Almacén San Justo' }));
+    await user.click(
+      await within(dialogo).findByRole('button', { name: 'Almacén San Justo' }, ESPERA),
+    );
 
     await verifyPathAsync(router, '/planes');
   });

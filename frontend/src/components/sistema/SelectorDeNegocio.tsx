@@ -1,18 +1,19 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { useRouter } from '@tanstack/react-router';
 import { Icon } from './Icon';
+import { InicialDelNegocio } from '@/components/negocios/InicialDelNegocio';
+import { useDetalleDeNegocios } from '@/hooks/negocio/useDetalleDeNegocios';
 import { useActivarNegocio } from '@/hooks/negocios/mutations';
 import { useNegociosDeLaCuenta } from '@/hooks/negocios/queries';
 import { leerErrorServidor } from '@/hooks/errores';
 import { useSistemaStore } from '@/stores/sistemaStore';
-
-const inicial = (nombre: string) => nombre.trim().charAt(0).toUpperCase() || 'N';
 
 export function SelectorDeNegocio() {
   const { data } = useNegociosDeLaCuenta();
   const activar = useActivarNegocio();
   const router = useRouter();
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
+  const detalleDe = useDetalleDeNegocios();
   const [abierto, setAbierto] = useState(false);
   const raiz = useRef<HTMLDivElement>(null);
   const disparador = useRef<HTMLButtonElement>(null);
@@ -80,7 +81,11 @@ export function SelectorDeNegocio() {
         disabled={activar.isPending}
         onClick={() => setAbierto((actual) => !actual)}
       >
-        <span className="negocio-selector-inicial">{inicial(activo.nombre)}</span>
+        <InicialDelNegocio
+          className="negocio-selector-inicial"
+          nombre={activo.nombre}
+          posicion={data.negocios.indexOf(activo)}
+        />
         <span className="negocio-selector-texto">
           <strong>{activar.isPending ? 'Cambiando…' : activo.nombre}</strong>
         </span>
@@ -96,7 +101,7 @@ export function SelectorDeNegocio() {
                 : `${data.negocios.length} de ${data.limite}`}
             </span>
           </div>
-          {data.negocios.map((negocio) => (
+          {data.negocios.map((negocio, posicion) => (
             <button
               key={negocio.id}
               type="button"
@@ -107,9 +112,14 @@ export function SelectorDeNegocio() {
               aria-current={negocio.activo ? 'true' : undefined}
               onClick={() => elegir(negocio.id)}
             >
-              <span className="negocio-selector-inicial">{inicial(negocio.nombre)}</span>
+              <InicialDelNegocio
+                className="negocio-selector-inicial"
+                nombre={negocio.nombre}
+                posicion={posicion}
+              />
               <span>
                 <strong>{negocio.nombre}</strong>
+                <small>{detalleDe(negocio.id)}</small>
               </span>
               {negocio.activo && <Icon name="check" />}
             </button>

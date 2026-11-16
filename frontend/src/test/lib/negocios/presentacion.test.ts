@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
-  estadoDelNegocio,
+  colorDelNegocio,
+  detalleDelNegocio,
+  inicialDelNegocio,
   paraElegir,
   rubroLegible,
   textoDeAvisos,
@@ -19,25 +21,12 @@ const KIOSCO: ResumenDeNegocio = {
   avisosPendientes: 2,
 };
 
-describe('estadoDelNegocio', () => {
-  it('sin ventas en el período no lo juzga', () => {
-    expect(estadoDelNegocio({ hayDatos: false, queda: null })).toBe('SIN_DATOS');
-  });
-
-  it('pide atención si lo que queda es negativo y si no, viene bien', () => {
-    expect(estadoDelNegocio({ hayDatos: true, queda: -1 })).toBe('ATENCION');
-    expect(estadoDelNegocio({ hayDatos: true, queda: 0 })).toBe('BIEN');
-    expect(estadoDelNegocio({ hayDatos: true, queda: null })).toBe('BIEN');
-  });
-});
-
 describe('paraElegir', () => {
   it('toma del resumen lo justo para elegir, sin montos', () => {
     expect(paraElegir(KIOSCO)).toEqual({
       id: 'kiosco',
       nombre: 'Kiosco de la esquina',
       avisosPendientes: 2,
-      estado: 'ATENCION',
     });
   });
 });
@@ -54,5 +43,26 @@ describe('rubroLegible', () => {
   it('pasa el código del rubro a un texto con mayúscula inicial', () => {
     expect(rubroLegible('KIOSCO')).toBe('Kiosco');
     expect(rubroLegible('VENTA_ONLINE')).toBe('Venta online');
+  });
+});
+
+describe('colorDelNegocio', () => {
+  it('le da a cada negocio un color de la paleta según su lugar, y vuelve a empezar después del tercero', () => {
+    expect([0, 1, 2].map(colorDelNegocio)).toEqual(['petrol', 'orange', 'coral']);
+    expect(colorDelNegocio(3)).toBe('petrol');
+  });
+});
+
+describe('inicialDelNegocio', () => {
+  it('usa la primera letra en mayúscula, y una N si no hay nombre', () => {
+    expect(inicialDelNegocio(' almacén')).toBe('A');
+    expect(inicialDelNegocio('')).toBe('N');
+  });
+});
+
+describe('detalleDelNegocio', () => {
+  it('junta el rubro y las tablas, y sin rubro dice sólo las tablas', () => {
+    expect(detalleDelNegocio('Kiosco', 4)).toBe('Kiosco · 4 tablas');
+    expect(detalleDelNegocio(undefined, 1)).toBe('1 tabla');
   });
 });

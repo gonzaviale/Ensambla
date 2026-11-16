@@ -1,13 +1,12 @@
 import { Icon } from '@/components/sistema/Icon';
 import { MetricasDelInicio } from '@/components/sistema/MetricasDelInicio';
 import { varsDeColor } from '@/components/sistema/colores';
-import { useConfiguracionNegocio, useRubros } from '@/hooks/negocio/queries';
+import { useRubroDelPerfil } from '@/hooks/negocio/useDetalleDeNegocios';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
+import { detalleDelNegocio, textoDeTablas } from '@/lib/negocios/presentacion';
 import { CATALOG } from '@/lib/sistema/catalogo';
 import { allBlocks } from '@/lib/sistema/core';
 import { seleccionarNegocioActivo, useSistemaStore } from '@/stores/sistemaStore';
-
-const tablas = (cantidad: number) => (cantidad === 1 ? '1 tabla' : `${cantidad} tablas`);
 
 // «Tu negocio»: el negocio con que se está trabajando, que es un cuaderno. Muestra su nombre, el rubro del perfil de la
 // cuenta y, en dos columnas, sus métricas y el acceso para abrirlo (en el celular, primero el acceso). Los demás
@@ -21,7 +20,7 @@ export function TuNegocio() {
 
   const bloques = allBlocks(negocio);
   const primera = bloques[0];
-  const detalle = [rubro, tablas(bloques.length)].filter(Boolean).join(' · ');
+  const detalle = detalleDelNegocio(rubro, bloques.length);
 
   return (
     <section className="inicio-bloque tu-negocio" aria-labelledby="tu-negocio-titulo">
@@ -49,18 +48,11 @@ export function TuNegocio() {
             <span className="inicio-sistema-tapa">
               <Icon name={primera ? CATALOG[primera.type].icon : 'note'} />
               <strong>Abrir {negocio.name}</strong>
-              <span>{tablas(bloques.length)}</span>
+              <span>{textoDeTablas(bloques.length)}</span>
             </span>
           </button>
         </div>
       </div>
     </section>
   );
-}
-
-function useRubroDelPerfil() {
-  const configuracion = useConfiguracionNegocio();
-  const rubros = useRubros();
-  const codigo = configuracion.data?.rubro;
-  return rubros.data?.rubros.find((item) => item.codigo === codigo)?.nombre;
 }

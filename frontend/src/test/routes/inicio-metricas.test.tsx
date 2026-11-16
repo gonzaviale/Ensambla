@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -13,12 +13,17 @@ import { ESPERA, setupUsuarioConSesion, verifyHeadingPresentAsync } from '@/test
 
 const almacen = (nombre: string): Sistema => ({ ...crearAlmacenCargado(hoy()), name: nombre });
 
+const givenNegocioSinVentas = (): Sistema => ({
+  ...makeTemplate('shop', {}, true),
+  name: 'Kiosco nuevo',
+});
+
 const whenAbreInicio = async (sistemas: Sistema[]) => {
   const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
   estado.sistemas.set(usuario.email, sistemas);
-  renderApp('/inicio');
+  const router = renderApp('/inicio');
   await verifyHeadingPresentAsync(/En qué puedo/);
-  return userEvent.setup();
+  return Object.assign(userEvent.setup(), { router });
 };
 
 const sinVentas = {
@@ -117,14 +122,27 @@ describe('inicio: métricas', () => {
     expect(screen.queryByText('Cómo te va')).toBeNull();
   });
 
-  it('con un negocio sin ventas la sección queda igual y las métricas lo dicen', async () => {
-    await whenAbreInicio([{ ...makeTemplate('shop', {}, true), name: 'Kiosco nuevo' }]);
+  it('con un negocio sin ventas muestra qué se va a ver, junto al cuaderno', async () => {
+    await whenAbreInicio([givenNegocioSinVentas()]);
 
     const negocio = within(await screen.findByRole('region', { name: 'Kiosco nuevo' }, ESPERA));
     expect(
-      await negocio.findByText(/Cuando anotes ventas o productos/, undefined, ESPERA),
+      await negocio.findByRole('heading', { name: 'Acá vas a ver tus ventas' }, ESPERA),
     ).toBeVisible();
     expect(negocio.getByRole('button', { name: /Abrir Kiosco nuevo/ })).toBeVisible();
+  });
+
+  it('sin ventas, «Cargar mis primeras ventas» lleva al negocio para anotarlas', async () => {
+    const user = await whenAbreInicio([givenNegocioSinVentas()]);
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Cargar mis primeras ventas' }, ESPERA),
+    );
+
+    await waitFor(
+      () => expect(user.router.state.location.pathname).toMatch(/^\/sistemas\//),
+      ESPERA,
+    );
   });
 });
 

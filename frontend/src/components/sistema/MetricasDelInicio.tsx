@@ -3,6 +3,7 @@ import { Icon } from '@/components/sistema/Icon';
 import { GraficoDeBarras } from '@/components/sistema/metricas/GraficoDeBarras';
 import { SelectorDePeriodo } from '@/components/sistema/metricas/Selectores';
 import { useNumeroAnimado } from '@/components/sistema/metricas/useNumeroAnimado';
+import { useAbrirVentas } from '@/hooks/panel/useAbrirVentas';
 import { useResumenInicio } from '@/hooks/reportes/queries';
 import { formatoPesos } from '@/lib/sistema/formato';
 import {
@@ -43,15 +44,30 @@ export function MetricasDelInicio({ sistema }: { sistema: Sistema }) {
           <span />
         </div>
       ) : !resumen.hayVentas ? (
-        <p className="tablero-aviso" role="status">
-          Cuando anotes ventas o productos en «{sistema.name}», acá vas a ver cómo te va.
-        </p>
+        <SinVentas sistema={sistema} />
       ) : (
         <div className="tablero-cuerpo">
           <TarjetaDeVentas resumen={resumen} />
         </div>
       )}
     </section>
+  );
+}
+
+// Sin ventas todavía: la misma tarjeta, con qué se va a ver acá y el atajo para anotar las primeras.
+function SinVentas({ sistema }: { sistema: Sistema }) {
+  const abrirVentas = useAbrirVentas();
+  return (
+    <div className="tablero-vacio" role="status">
+      <span className="tablero-vacio-icono" aria-hidden="true">
+        <Icon name="chart" />
+      </span>
+      <h3>Acá vas a ver tus ventas</h3>
+      <p>Anotalas en «{sistema.name}» y aparecen solas.</p>
+      <button type="button" className="btn primary" onClick={() => void abrirVentas(sistema)}>
+        Cargar mis primeras ventas
+      </button>
+    </div>
   );
 }
 

@@ -1,6 +1,6 @@
 /* Elegir con qué negocio trabajar (T-204): el pop-up que aparece al iniciar sesión con más de un negocio. Sigue el
-   criterio de armonia.css: cada negocio es una opción blanca con borde fino, y el color del estado tiene
-   significado (petróleo si viene bien, coral si pide atención, gris si todavía no hay ventas). */
+   patrón del Inicio: cada negocio es una tarjeta blanca con borde petróleo a la izquierda, ícono de línea, nombre en
+   petróleo y la flecha de las acciones. Sin juicios sobre cómo viene: sólo lo que tiene pendiente. */
 
 .elegir-negocio {
   display: grid;
@@ -12,78 +12,84 @@
 
 .elegir-negocio-opcion {
   display: grid;
-  gap: 4px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
   width: 100%;
   padding: 14px 16px;
   border: 1px solid var(--c-borde);
-  border-left: 4px solid var(--c-borde);
+  border-left: 4px solid var(--c-estructura);
   border-radius: 14px;
   background: #fff;
+  color: var(--c-estructura);
   text-align: left;
   cursor: pointer;
   transition:
     border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
 }
 .elegir-negocio-opcion:hover,
 .elegir-negocio-opcion:focus-visible {
-  /* La franja izquierda es la que se prende al pasar el mouse: color del estado, de la paleta de la marca. */
-  border-left-color: var(--c-estructura);
-  box-shadow: var(--sombra-reposo);
-}
-.elegir-negocio-opcion[data-estado='ATENCION']:hover,
-.elegir-negocio-opcion[data-estado='ATENCION']:focus-visible {
-  border-left-color: var(--coral);
-}
-.elegir-negocio-opcion[data-estado='SIN_DATOS']:hover,
-.elegir-negocio-opcion[data-estado='SIN_DATOS']:focus-visible {
-  border-left-color: var(--blue);
+  border-color: var(--c-estructura);
+  border-left-color: var(--c-accion);
+  box-shadow: var(--sombra-elevada);
+  transform: translateY(-1px);
 }
 .elegir-negocio-opcion:focus-visible {
   outline: 3px solid var(--c-estructura);
   outline-offset: 2px;
 }
 
-.elegir-negocio-fila {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.elegir-negocio-fila strong {
+.elegir-negocio-icono {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--accent, var(--c-estructura));
+  color: #fff;
   font-size: 18px;
-  line-height: 1.25;
-  color: var(--ink);
+  font-weight: 800;
 }
-
-.negocio-estado {
-  flex-shrink: 0;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 600;
-  background: var(--c-estructura-100);
+.elegir-negocio-icono[data-color='yellow'] {
   color: var(--c-estructura);
 }
-[data-estado='ATENCION'] .negocio-estado {
-  background: #ffe9e8;
-  color: #b3322e;
+
+.elegir-negocio-texto {
+  display: grid;
+  gap: 2px;
 }
-[data-estado='SIN_DATOS'] .negocio-estado {
-  background: var(--c-fondo-suave);
-  color: var(--muted);
+.elegir-negocio-texto strong {
+  font-size: 18px;
+  line-height: 1.25;
+  color: var(--c-estructura);
+}
+
+.elegir-negocio-flecha {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--c-accion);
+  color: #fff;
+}
+.elegir-negocio-flecha .icon {
+  width: 16px;
+  height: 16px;
 }
 
 .elegir-negocio-detalle {
-  font-size: 15px;
-  color: var(--muted);
+  font-size: 14px;
+  color: var(--c-estructura);
 }
 .elegir-negocio-detalle [data-hay] {
-  font-weight: 600;
-  color: var(--yellow-dark);
+  font-weight: 700;
+  color: var(--c-accion-texto);
 }
 .elegir-negocio-ultimo {
-  color: var(--c-estructura);
+  font-weight: 600;
 }
 
 .elegir-negocio-cargando {
@@ -119,13 +125,13 @@
   }
 }
 
-/* Comparar mis negocios (T-205): los totales son la tarjeta destacada de la pantalla (borde petróleo) y la tabla va
-   en una tarjeta blanca de borde fino. Lo negativo va en coral y los avisos en amarillo oscuro, como en el pop-up.
-   En el celular cada fila pasa a ser una tarjeta con el nombre de cada métrica al lado de su valor. */
+/* Comparar mis negocios (T-205): tarjetas blancas, sin fondos de color. Cada total lleva su ícono de línea y una
+   línea arriba en su color (petróleo, coral, naranja, amarillo); cada negocio, su inicial en el mismo color que en el
+   menú y una barrita con su parte de las ventas. Letra siempre oscura. En el celular cada fila pasa a ser una tarjeta. */
 
 .comparar-negocios {
   display: grid;
-  gap: 20px;
+  gap: 24px;
   padding-bottom: 48px;
 }
 
@@ -133,65 +139,87 @@
   margin: 6px 0 4px;
   font-size: clamp(28px, 4vw, 40px);
   line-height: 1.1;
-  color: var(--ink);
+  color: var(--c-estructura);
 }
 .comparar-cabecera p {
   margin: 0;
-  color: var(--muted);
+  font-size: 17px;
+  color: var(--ink);
 }
 
 .comparar-cargando {
   padding: 24px;
   border-radius: var(--radius);
-  background: var(--soft);
-  color: var(--muted);
+  background: #fff;
+  border: 1px solid var(--c-borde);
+  color: var(--ink);
   animation: respira 1.2s ease-in-out infinite alternate;
 }
 
-.comparar-totales,
 .comparar-tabla {
-  padding: 20px 22px;
+  padding: 22px 24px;
   border: 1px solid var(--c-borde);
   border-radius: var(--radius);
   background: #fff;
-}
-.comparar-totales {
-  border: 2px solid var(--c-estructura);
   box-shadow: var(--sombra-reposo);
 }
 .comparar-totales h2,
 .comparar-tabla h2 {
   margin: 0;
   font-size: 20px;
-  color: var(--ink);
+  color: var(--c-estructura);
 }
 
 .comparar-totales-cabecera {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 .comparar-totales-cabecera span {
+  padding: 4px 12px;
+  border: 1.5px solid var(--c-estructura);
+  border-radius: 999px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--c-estructura);
 }
 
 .comparar-totales dl {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 14px 20px;
-  margin: 16px 0 0;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+  margin: 14px 0 0;
+}
+.comparar-total {
+  --tono: var(--c-estructura);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 10px;
+  padding: 16px 18px;
+  border: 1px solid var(--c-borde);
+  border-top: 4px solid var(--tono);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: var(--sombra-reposo);
+}
+.comparar-total[data-color='coral'] { --tono: var(--coral); }
+.comparar-total[data-color='orange'] { --tono: var(--c-accion); }
+.comparar-total[data-color='yellow'] { --tono: var(--yellow-dark); }
+.comparar-total-icono {
+  color: var(--tono);
 }
 .comparar-totales dt {
-  font-size: 14px;
-  color: var(--muted);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
 }
 .comparar-totales dd {
-  margin: 2px 0 0;
-  font-size: 24px;
-  font-weight: 700;
+  grid-column: 1 / -1;
+  margin: 10px 0 0;
+  font-size: 26px;
+  font-weight: 800;
   color: var(--c-estructura);
   font-variant-numeric: tabular-nums;
 }
@@ -205,8 +233,8 @@
 
 .comparar-ayuda {
   margin: 4px 0 12px;
-  font-size: 14px;
-  color: var(--muted);
+  font-size: 15px;
+  color: var(--ink);
 }
 
 .comparar-tabla table {
@@ -216,10 +244,10 @@
 }
 .comparar-tabla th,
 .comparar-tabla td {
-  padding: 12px 10px;
+  padding: 14px 10px;
   border-bottom: 1px solid var(--c-borde);
   text-align: center;
-  vertical-align: top;
+  vertical-align: middle;
 }
 .comparar-tabla thead th:first-child,
 .comparar-tabla tbody th {
@@ -228,18 +256,20 @@
 .comparar-tabla tbody tr:last-child > * {
   border-bottom: 0;
 }
+.comparar-tabla tbody tr:hover > * {
+  background: var(--c-estructura-50);
+}
 .comparar-tabla thead th {
   font-size: 14px;
-  font-weight: 600;
-  color: var(--muted);
+  font-weight: 700;
+  color: var(--ink);
   white-space: nowrap;
-  vertical-align: middle;
 }
 .comparar-tabla thead button {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 6px;
+  padding: 4px 8px;
   border: 0;
   border-radius: 8px;
   background: none;
@@ -256,7 +286,7 @@
   outline-offset: 2px;
 }
 .comparar-tabla th[aria-sort] button {
-  color: var(--c-estructura);
+  color: var(--c-accion-texto);
 }
 .comparar-flecha {
   min-width: 10px;
@@ -268,8 +298,12 @@
   color: var(--ink);
 }
 .comparar-tabla tbody tr[data-sin-datos] td {
-  color: var(--muted);
   font-weight: 400;
+}
+.comparar-negocio {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 .comparar-nombre {
   display: block;
@@ -281,20 +315,39 @@
   margin-top: 2px;
   font-size: 14px;
   font-weight: 400;
-  color: var(--muted);
+  color: var(--ink);
+}
+.comparar-parte {
+  display: block;
+  width: 100%;
+  max-width: 120px;
+  height: 6px;
+  margin: 6px auto 0;
+  border-radius: 999px;
+  background: var(--c-borde);
+  overflow: hidden;
+}
+.comparar-parte > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--c-estructura);
 }
 
 .comparar-nota {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin: 0;
-  padding: 12px 16px;
-  border-radius: 12px;
-  background: var(--c-fondo-suave);
   font-size: 15px;
-  color: var(--muted);
+  color: var(--ink);
+}
+.comparar-nota svg {
+  flex-shrink: 0;
+  color: var(--c-estructura);
 }
 
 @media (max-width: 640px) {
-  .comparar-totales,
   .comparar-tabla {
     padding: 16px;
   }
@@ -345,7 +398,10 @@
   .comparar-tabla td::before {
     content: attr(data-titulo);
     font-weight: 400;
-    color: var(--muted);
+    color: var(--ink);
+  }
+  .comparar-parte {
+    display: none;
   }
 }
 
@@ -383,11 +439,13 @@
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: var(--c-estructura);
+  background: var(--accent, var(--c-estructura));
   color: #fff;
   font-size: 13px;
   font-weight: 800;
 }
+/* Cada negocio en su color de la paleta; sobre el amarillo, la letra va en petróleo. */
+.negocio-selector-inicial[data-color='yellow'] { color: var(--c-estructura); }
 .negocio-selector-texto { min-width: 0; }
 .negocio-selector-texto strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .negocio-selector-texto strong { font-size: 13px; }
@@ -406,7 +464,7 @@
 }
 .negocio-selector-cabeza { display: flex; justify-content: space-between; padding: 5px 8px 8px; }
 .negocio-selector-cabeza strong { color: var(--c-estructura); font-size: 14px; }
-.negocio-selector-cabeza span { color: var(--muted); font-size: 11px; }
+.negocio-selector-cabeza span { color: var(--c-estructura); font-size: 11px; }
 .negocio-selector-opcion {
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr) auto;
@@ -421,17 +479,17 @@
   text-align: left;
 }
 .negocio-selector-opcion:hover:not(:disabled),
-.negocio-selector-opcion:focus-visible { background: var(--c-estructura-100); }
-.negocio-selector-opcion.activa { background: var(--c-estructura-50); }
-.negocio-selector-opcion .negocio-selector-inicial { width: 38px; height: 38px; background: var(--c-estructura-100); color: var(--c-estructura); }
-.negocio-selector-opcion.activa .negocio-selector-inicial { background: var(--c-estructura); color: #fff; }
+.negocio-selector-opcion:focus-visible { background: #fff; box-shadow: var(--sombra-reposo); }
+.negocio-selector-opcion.activa { background: #fff; box-shadow: inset 4px 0 0 var(--c-estructura); }
+.negocio-selector-opcion .negocio-selector-inicial { width: 38px; height: 38px; }
 .negocio-selector-opcion strong,
 .negocio-selector-opcion small { display: block; }
 .negocio-selector-opcion strong { font-size: 13px; }
-.negocio-selector-opcion small { color: var(--muted); font-size: 11px; }
-.negocio-selector-opcion > .icon { width: 18px; color: var(--ok); }
+.negocio-selector-opcion small { color: var(--c-estructura); font-size: 11px; }
+.negocio-selector-opcion > .icon { width: 18px; color: var(--c-estructura); }
 .negocio-selector-todos { margin-top: 5px; padding-top: 9px; border-top: 1px solid var(--c-borde); border-radius: 0 0 12px 12px; opacity: 1; }
-.negocio-selector-todos .negocio-selector-inicial { background: var(--c-accion-100); color: var(--c-accion-texto); }
+.negocio-selector-todos .negocio-selector-inicial { border: 1.5px solid var(--c-estructura); background: #fff; color: var(--c-estructura); }
+.negocio-selector-todos .negocio-selector-inicial .icon { width: 18px; height: 18px; }
 .negocio-selector-proximo { padding: 3px 7px; border-radius: 999px; background: var(--c-fondo-suave); color: var(--muted); font-size: 9px; font-weight: 800; }
 .negocio-selector-agregar {
   display: flex;
