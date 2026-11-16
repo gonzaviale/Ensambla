@@ -32,7 +32,7 @@ export function LeyendaDeColores({
         {hayLugarElegido && (
           <li className="zona elegido">
             <i aria-hidden />
-            Lugar que mediste
+            Lugar que elegiste
           </li>
         )}
       </ul>

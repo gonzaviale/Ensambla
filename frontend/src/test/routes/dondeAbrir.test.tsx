@@ -404,7 +404,7 @@ describe('dónde abrir', () => {
     expect(screen.getByRole('slider', { name: /Radio de búsqueda/ })).toHaveValue('4');
     expect(
       within(screen.getByRole('group', { name: 'Escuelas cerca' })).getByRole('radio', {
-        name: 'Importa',
+        name: 'Algo',
       }),
     ).toBeChecked();
   });

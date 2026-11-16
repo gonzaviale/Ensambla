@@ -42,11 +42,11 @@
   border: 1.5px solid #ebce32;
   border-radius: 12px;
   background: #fff;
-  color: #7a5f00;
+  color: #00506a;
   font-size: 12px;
 }
 .donde-demo strong {
-  color: #7a5f00;
+  color: #00506a;
 }
 .donde-nota-chica {
   margin-top: 8px;
@@ -267,7 +267,7 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #2f7a55;
+  background: #00506a;
 }
 .donde-leyendas {
   display: grid;
@@ -278,10 +278,10 @@
   font-weight: 700;
 }
 .donde-leyenda .intermedia i {
-  background: #c99a00;
+  background: #ebce32;
 }
 .donde-leyenda .mala i {
-  background: #c42b2b;
+  background: #f85f5a;
 }
 /* Las zonas se dibujan como anillos en el mapa y los lugares como puntos llenos: la leyenda copia esa diferencia. */
 .donde-leyenda .zona i {
@@ -292,14 +292,14 @@
   box-sizing: border-box;
 }
 .donde-leyenda .zona.buena i {
-  color: #2f7a55;
+  color: #00506a;
 }
 .donde-leyenda .zona.intermedia i {
-  color: #c99a00;
+  color: #ebce32;
   background: #fff;
 }
 .donde-leyenda .zona.mala i {
-  color: #c42b2b;
+  color: #f85f5a;
   background: #fff;
 }
 .donde-leyenda .zona.elegido i {
@@ -359,13 +359,13 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #2f7a55;
+  background: #00506a;
 }
 .donde-mejores button.intermedia i {
-  background: #c99a00;
+  background: #ebce32;
 }
 .donde-mejores button.mala i {
-  background: #c42b2b;
+  background: #f85f5a;
 }
 .donde-mejores button:hover {
   border-color: var(--petrol);
@@ -560,8 +560,8 @@
   font-weight: 700;
 }
 .donde-chips button:hover {
-  border-color: #c42b2b;
-  color: #c42b2b;
+  border-color: #f85f5a;
+  color: #00506a;
 }
 
 /* Ranking */
@@ -597,8 +597,8 @@
   list-style: none;
 }
 .donde-zona {
-  --c: #2f7a55;
-  --t: #2f7a55;
+  --c: #00506a;
+  --t: #00506a;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 14px;
@@ -612,12 +612,12 @@
   transition: border-color 0.15s;
 }
 .donde-zona.intermedia {
-  --c: #c99a00;
-  --t: #7a5f00;
+  --c: #ebce32;
+  --t: #00506a;
 }
 .donde-zona.mala {
-  --c: #c42b2b;
-  --t: #c42b2b;
+  --c: #f85f5a;
+  --t: #00506a;
 }
 .donde-zona:hover {
   border-color: #9fcfdf;
@@ -677,10 +677,10 @@
   vertical-align: middle;
 }
 .donde-cambio.sube {
-  color: #2f7a55;
+  color: #00506a;
 }
 .donde-cambio.baja {
-  color: #c42b2b;
+  color: #00506a;
 }
 .donde-cambio.nueva {
   color: var(--petrol);
@@ -689,7 +689,7 @@
   padding: 18px;
   border: 1.5px solid #ebce32;
   border-radius: 14px;
-  color: #7a5f00;
+  color: #00506a;
   font-size: 13px;
 }
 .donde-descartadas {
@@ -874,9 +874,9 @@
   align-items: center;
   gap: 7px;
   padding: 4px 12px;
-  border: 1.5px solid #2f7a55;
+  border: 1.5px solid #00506a;
   border-radius: 999px;
-  color: #2f7a55;
+  color: #00506a;
   font-size: 12px;
   font-weight: 800;
 }
@@ -887,12 +887,12 @@
   background: currentColor;
 }
 .donde-sello.intermedia {
-  border-color: #c99a00;
-  color: #7a5f00;
+  border-color: #ebce32;
+  color: #00506a;
 }
 .donde-sello.mala {
-  border-color: #c42b2b;
-  color: #c42b2b;
+  border-color: #f85f5a;
+  color: #00506a;
 }
 .donde-pestanias {
   display: flex;
@@ -943,10 +943,10 @@
   margin-top: 3px;
 }
 .donde-columnas .positivo svg {
-  color: #2f7a55;
+  color: #00506a;
 }
 .donde-columnas .riesgo svg {
-  color: #7a5f00;
+  color: #00506a;
 }
 .donde-plegable {
   margin-top: 12px;
@@ -1126,7 +1126,7 @@
 .donde-aprobaciones em {
   display: block;
   margin-top: 4px;
-  color: #7a5f00;
+  color: #00506a;
   font-size: 12px;
   font-style: normal;
 }
@@ -1326,7 +1326,7 @@
 }
 .donde-falta-ubicacion {
   margin-top: 6px;
-  color: #7a5f00;
+  color: #00506a;
   font-size: 12px;
 }
 .donde-seccion-cabeza {

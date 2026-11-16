@@ -12,7 +12,7 @@ import {
 
 const NIVELES: { valor: Importancia; etiqueta: string }[] = [
   { valor: 0, etiqueta: 'Nada' },
-  { valor: 1, etiqueta: 'Importa' },
+  { valor: 1, etiqueta: 'Algo' },
   { valor: 2, etiqueta: 'Mucho' },
 ];
 
@@ -39,8 +39,8 @@ export function PanelDeFiltros({ filtros, activos, onCambiar }: Props) {
             <SlidersHorizontalIcon size={18} />
           </span>
           <div>
-            <h2>Qué te importa</h2>
-            <p>Elegí un modo o personalizá cada factor.</p>
+            <h2>Qué priorizás</h2>
+            <p>Elegí un modo o ajustá cada punto.</p>
           </div>
         </div>
         <button

@@ -59,7 +59,7 @@ describe('Mi zona', () => {
       screen.getByRole('heading', { level: 2, name: 'Precios en Villa Crespo' }),
     ).toBeVisible();
     expect(document.querySelector('.leaflet-container, .mapa-lienzo, [class*="map"]')).toBeNull();
-    expect(screen.getByText(/DATOS DE VILLA CRESPO/)).toBeVisible();
+    expect(screen.getByText(/Datos de Villa Crespo/)).toBeVisible();
     // 12 productos: el que aportan menos de tres comercios (Fernet) no llega.
     expect(document.querySelectorAll('.zona-tarjeta')).toHaveLength(12);
     expect(screen.queryByText(/Fernet/)).toBeNull();
@@ -147,7 +147,7 @@ describe('Mi zona', () => {
 });
 
 describe('Qué se vende cerca', () => {
-  it('ordena por cuántos comercios lo venden y deja sumar lo que falta a tu inventario', async () => {
+  it('ordena por cuántos comercios lo venden y deja sumar lo que falta a tu stock', async () => {
     const { user } = await abrirZona(true);
     await user.click(screen.getByRole('tab', { name: /Qué se vende cerca/ }));
     await screen.findByText('Leche La Serenísima 1 L', { selector: 'strong' }, ESPERA);
@@ -165,7 +165,7 @@ describe('Qué se vende cerca', () => {
 
     await user.click(within(leche).getByRole('button', { name: /Sumar a mis productos/ }));
 
-    await verifyToastAsync('Sumamos Leche La Serenísima 1 L a tu inventario, a $ 1.650.');
+    await verifyToastAsync('Sumamos Leche La Serenísima 1 L a tu stock, a $ 1.650.');
     const inventario = useSistemaStore.getState().sistemas[0]?.sections[0]?.blocks[0];
     expect(inventario?.rows.find((fila) => fila.name === 'Leche La Serenísima 1 L')).toMatchObject({
       quantity: 0,
@@ -179,7 +179,7 @@ describe('Qué se vende cerca', () => {
     await user.click(screen.getByRole('tab', { name: /Qué se vende cerca/ }));
     await screen.findByText('Leche La Serenísima 1 L', { selector: 'strong' }, ESPERA);
 
-    expect(screen.getByText(/necesitás un cuaderno con un bloque de Inventario/)).toBeVisible();
+    expect(screen.getByText(/necesitás una sección de Stock/)).toBeVisible();
     expect(
       within(tarjetaDe('Leche La Serenísima 1 L')).getByRole('button', {
         name: /Sumar a mis productos/,

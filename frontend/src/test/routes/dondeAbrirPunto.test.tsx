@@ -112,14 +112,14 @@ describe('dónde abrir: medir un lugar del mapa', () => {
     expect(within(puntos()).getByText('Comercios similares')).toBeVisible();
     expect(within(puntos()).getByText('Escuelas')).toBeVisible();
     expect(within(puntos()).queryByText('Oficinas y bancos')).toBeNull();
-    expect(screen.queryByText('Lugar que mediste')).toBeNull();
+    expect(screen.queryByText('Lugar que elegiste')).toBeNull();
 
     await user.click(screen.getByText('Qué mostrar en el mapa'));
     await user.click(screen.getByRole('checkbox', { name: /Oficinas y bancos/ }));
     expect(within(puntos()).getByText('Oficinas y bancos')).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Tocar un lugar del mapa' }));
-    expect(await screen.findByText('Lugar que mediste', undefined, ESPERA)).toBeVisible();
+    expect(await screen.findByText('Lugar que elegiste', undefined, ESPERA)).toBeVisible();
   });
 
   it('quitar el lugar vuelve al ranking de siempre', async () => {

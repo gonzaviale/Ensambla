@@ -95,41 +95,39 @@ export function ZonaPage() {
 
   return (
     <main id="main" tabIndex={-1} className="page-wrap zona-page reveal">
-        <Link className="text-link" to="/ubicacion">
-          Probar ubicación y rubro de mi comercio
-        </Link>
-        <div className="zona-cabeza">
-          <div className="page-title">
-            <div className="eyebrow">
-              DATOS DE {zona.nombre ? zona.nombre.toUpperCase() : 'TU ZONA'}
-            </div>
-            <h1>{titulo}</h1>
-            <p>{texto}</p>
-          </div>
-          <div className="zona-vistas" role="tablist" aria-label="Qué querés ver">
-            {VISTAS.map(({ clave, etiqueta, icono }) => (
-              <button
-                key={clave}
-                type="button"
-                role="tab"
-                aria-selected={vista === clave}
-                className={vista === clave ? 'active' : ''}
-                onClick={() => setVista(clave)}
-              >
-                <Icon name={icono} /> {etiqueta}
-              </button>
-            ))}
-          </div>
+      <Link className="text-link" to="/ubicacion">
+        Probar ubicación y rubro de mi negocio
+      </Link>
+      <div className="zona-cabeza">
+        <div className="page-title">
+          <div className="eyebrow">Datos de {zona.nombre || 'tu zona'}</div>
+          <h1>{titulo}</h1>
+          <p>{texto}</p>
         </div>
-        {vista === 'precios' && (
-          <>
-            <VistaDePrecios zona={zona} propios={propios} titulo={`Precios en ${zona.nombre}`} />
-            <ContenidoPremium acceso={zona.acceso} recurso="recomendaciones" compacto />
-          </>
-        )}
-        {vista === 'cerca' && <VistaDeLoQueSeVende zona={zona} />}
-        {vista === 'otra' && <VistaDeOtraZona />}
-        <PageFooter />
+        <div className="zona-vistas" role="tablist" aria-label="Qué querés ver">
+          {VISTAS.map(({ clave, etiqueta, icono }) => (
+            <button
+              key={clave}
+              type="button"
+              role="tab"
+              aria-selected={vista === clave}
+              className={vista === clave ? 'active' : ''}
+              onClick={() => setVista(clave)}
+            >
+              <Icon name={icono} /> {etiqueta}
+            </button>
+          ))}
+        </div>
+      </div>
+      {vista === 'precios' && (
+        <>
+          <VistaDePrecios zona={zona} propios={propios} titulo={`Precios en ${zona.nombre}`} />
+          <ContenidoPremium acceso={zona.acceso} recurso="recomendaciones" compacto />
+        </>
+      )}
+      {vista === 'cerca' && <VistaDeLoQueSeVende zona={zona} />}
+      {vista === 'otra' && <VistaDeOtraZona />}
+      <PageFooter />
     </main>
   );
 }
@@ -237,7 +235,7 @@ function VistaDeLoQueSeVende({ zona }: { zona: Zona }) {
       sistemaId: destino.sistema.id,
       bloqueId: destino.inventario.id,
       valores: { name: producto.nombre, quantity: 0, price: precio, cost: '', minimum: 5 },
-      confirmacion: `Sumamos ${producto.nombre} a tu inventario, a ${pesos(precio)}.`,
+      confirmacion: `Sumamos ${producto.nombre} a tu stock, a ${pesos(precio)}.`,
     });
   };
 
@@ -247,8 +245,7 @@ function VistaDeLoQueSeVende({ zona }: { zona: Zona }) {
         <section className="zona-panel">
           {!destino && (
             <div className="info-box">
-              Para sumar productos a tu inventario necesitás un cuaderno con un bloque de
-              Inventario.
+              Para sumar productos a tu stock necesitás una sección de Stock en tu negocio.
             </div>
           )}
           <div className="row between">
@@ -326,7 +323,7 @@ function VistaDeLoQueSeVende({ zona }: { zona: Zona }) {
 }
 
 const TEXTOS_DEL_BUSCADOR = {
-  paso: 'PASO 1',
+  paso: 'Paso 1',
   titulo: 'Buscá el lugar',
   etiqueta: 'Barrio o dirección',
   ayuda: 'Un barrio, o calle, altura y localidad. Buscamos direcciones de Argentina.',
@@ -360,7 +357,7 @@ function VistaDeOtraZona() {
           botonSecundario
         />
         <section className="ubicacion-panel ubicacion-ajuste" aria-labelledby="titulo-punto-zona">
-          <div className="eyebrow">PASO 2</div>
+          <div className="eyebrow">Paso 2</div>
           <h2 id="titulo-punto-zona">Revisá el punto en el mapa</h2>
           <p>
             Arrastrá el marcador o tocá otro lugar del mapa. Analizamos la zona que contiene ese

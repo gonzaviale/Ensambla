@@ -341,11 +341,15 @@ export function DondeAbrirPage() {
               />
               <div className="donde-punto" role="status">
                 {punto && consulta.isFetching ? (
-                  <p>Midiendo ese lugar con datos de OpenStreetMap…</p>
+                  <p>Estamos midiendo ese lugar con datos de OpenStreetMap…</p>
                 ) : punto && !consulta.isError ? (
                   <p>
-                    Mediste un lugar a mano: se cuenta lo que hay a 500 m, ahora mismo.{' '}
-                    <button type="button" className="btn ghost small" onClick={() => setPunto(null)}>
+                    Elegiste un lugar en el mapa: contamos lo que hay a 500 m.{' '}
+                    <button
+                      type="button"
+                      className="btn ghost small"
+                      onClick={() => setPunto(null)}
+                    >
                       Quitar el lugar
                     </button>
                   </p>
