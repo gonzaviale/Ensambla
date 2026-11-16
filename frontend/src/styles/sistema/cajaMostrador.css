@@ -763,8 +763,8 @@
   .caja-dialogo[role='dialog'] {
     width: 100%;
     max-width: none;
-    height: 100dvh;
-    max-height: 100dvh;
+    height: min(100dvh, var(--alto-dialogo, 100dvh));
+    max-height: min(100dvh, var(--alto-dialogo, 100dvh));
     border-radius: 0;
     padding: 0 20px max(20px, env(safe-area-inset-bottom));
     border: 0;

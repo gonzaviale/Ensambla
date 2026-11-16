@@ -205,8 +205,8 @@
   }
   .caja-dialogo.caja-dialogo-cobro {
     width: 100%;
-    height: 100dvh;
-    max-height: 100dvh;
+    height: min(100dvh, var(--alto-dialogo, 100dvh));
+    max-height: min(100dvh, var(--alto-dialogo, 100dvh));
     padding: max(10px, env(safe-area-inset-top)) 12px max(10px, env(safe-area-inset-bottom));
     gap: 8px;
   }
