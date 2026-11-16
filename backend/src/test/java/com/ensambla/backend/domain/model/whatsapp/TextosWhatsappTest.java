@@ -30,9 +30,9 @@ class TextosWhatsappTest {
             new CampoConocido(MONTO_ID, "Monto", TipoCampo.MONEDA, List.of()))), "Mi panadería");
 
     @Test
-    @DisplayName("Sin tablas manda a armar la primera sección y la foto sigue siendo la del cuaderno de papel")
-    void textosShouldUseTheVocabularyOfNegociosAndSecciones() {
-        assertThat(TextosWhatsapp.SIN_TABLAS).contains("Armá tu primera sección en la app")
+    @DisplayName("Sin tablas manda a armar el negocio y la foto sigue siendo la del cuaderno de papel")
+    void textosShouldUseTheVocabularyOfNegocios() {
+        assertThat(TextosWhatsapp.SIN_TABLAS).contains("Armá tu negocio en la app")
                 .doesNotContain("sistema");
         assertThat(TextosWhatsapp.BIENVENIDA).contains("una foto de tu cuaderno");
         assertThat(TextosWhatsapp.VINCULADO).contains("tu negocio");
