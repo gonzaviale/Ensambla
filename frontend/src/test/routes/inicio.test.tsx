@@ -106,7 +106,6 @@ describe('pie de página', () => {
       'Objetivos',
       'Mi zona',
       'Plantillas',
-      'Sami te enseña',
       'Configuración',
       'Planes',
     ]) {

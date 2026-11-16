@@ -20,7 +20,6 @@ import { Route as AppInicioRouteImport } from './routes/_app/inicio'
 import { Route as AppPlanesRouteImport } from './routes/_app/planes'
 import { Route as AppPlantillasRouteImport } from './routes/_app/plantillas'
 import { Route as AppSamiRouteImport } from './routes/_app/sami'
-import { Route as AppSamiTeEnsenaRouteImport } from './routes/_app/sami-te-ensena'
 import { Route as AppTallerRouteImport } from './routes/_app/taller'
 import { Route as AppUbicacionRouteImport } from './routes/_app/ubicacion'
 import { Route as AppZonaRouteImport } from './routes/_app/zona'
@@ -85,11 +84,6 @@ const AppPlantillasRoute = AppPlantillasRouteImport.update({
 const AppSamiRoute = AppSamiRouteImport.update({
   id: '/sami',
   path: '/sami',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppSamiTeEnsenaRoute = AppSamiTeEnsenaRouteImport.update({
-  id: '/sami-te-ensena',
-  path: '/sami-te-ensena',
   getParentRoute: () => AppRoute,
 } as any)
 const AppTallerRoute = AppTallerRouteImport.update({
@@ -164,7 +158,6 @@ export interface FileRoutesByFullPath {
   '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
   '/sami': typeof AppSamiRoute
-  '/sami-te-ensena': typeof AppSamiTeEnsenaRoute
   '/taller': typeof AppTallerRoute
   '/ubicacion': typeof AppUbicacionRoute
   '/zona': typeof AppZonaRouteWithChildren
@@ -188,7 +181,6 @@ export interface FileRoutesByTo {
   '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
   '/sami': typeof AppSamiRoute
-  '/sami-te-ensena': typeof AppSamiTeEnsenaRoute
   '/taller': typeof AppTallerRoute
   '/ubicacion': typeof AppUbicacionRoute
   '/login': typeof PublicaLoginRoute
@@ -213,7 +205,6 @@ export interface FileRoutesById {
   '/_app/planes': typeof AppPlanesRoute
   '/_app/plantillas': typeof AppPlantillasRoute
   '/_app/sami': typeof AppSamiRoute
-  '/_app/sami-te-ensena': typeof AppSamiTeEnsenaRoute
   '/_app/taller': typeof AppTallerRoute
   '/_app/ubicacion': typeof AppUbicacionRoute
   '/_app/zona': typeof AppZonaRouteWithChildren
@@ -240,7 +231,6 @@ export interface FileRouteTypes {
     | '/planes'
     | '/plantillas'
     | '/sami'
-    | '/sami-te-ensena'
     | '/taller'
     | '/ubicacion'
     | '/zona'
@@ -264,7 +254,6 @@ export interface FileRouteTypes {
     | '/planes'
     | '/plantillas'
     | '/sami'
-    | '/sami-te-ensena'
     | '/taller'
     | '/ubicacion'
     | '/login'
@@ -288,7 +277,6 @@ export interface FileRouteTypes {
     | '/_app/planes'
     | '/_app/plantillas'
     | '/_app/sami'
-    | '/_app/sami-te-ensena'
     | '/_app/taller'
     | '/_app/ubicacion'
     | '/_app/zona'
@@ -386,13 +374,6 @@ declare module '@tanstack/react-router' {
       path: '/sami'
       fullPath: '/sami'
       preLoaderRoute: typeof AppSamiRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/sami-te-ensena': {
-      id: '/_app/sami-te-ensena'
-      path: '/sami-te-ensena'
-      fullPath: '/sami-te-ensena'
-      preLoaderRoute: typeof AppSamiTeEnsenaRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/taller': {
@@ -504,7 +485,6 @@ interface AppRouteChildren {
   AppPlanesRoute: typeof AppPlanesRoute
   AppPlantillasRoute: typeof AppPlantillasRoute
   AppSamiRoute: typeof AppSamiRoute
-  AppSamiTeEnsenaRoute: typeof AppSamiTeEnsenaRoute
   AppTallerRoute: typeof AppTallerRoute
   AppUbicacionRoute: typeof AppUbicacionRoute
   AppZonaRoute: typeof AppZonaRouteWithChildren
@@ -523,7 +503,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppPlanesRoute: AppPlanesRoute,
   AppPlantillasRoute: AppPlantillasRoute,
   AppSamiRoute: AppSamiRoute,
-  AppSamiTeEnsenaRoute: AppSamiTeEnsenaRoute,
   AppTallerRoute: AppTallerRoute,
   AppUbicacionRoute: AppUbicacionRoute,
   AppZonaRoute: AppZonaRouteWithChildren,

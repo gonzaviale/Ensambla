@@ -20,11 +20,6 @@ export function PageFooter() {
       enlaces: [
         { texto: 'Mi zona', ruta: '/zona', ir: navegacion.irAZona },
         { texto: 'Plantillas', ruta: '/plantillas', ir: navegacion.irAPlantillas },
-        {
-          texto: 'Sami te enseña',
-          ruta: '/sami-te-ensena',
-          ir: () => navegacion.irASamiTeEnsena(),
-        },
       ],
     },
     {
