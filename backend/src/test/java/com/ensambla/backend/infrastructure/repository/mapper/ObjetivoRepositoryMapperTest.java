@@ -18,11 +18,62 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ObjetivoRepositoryMapperTest {
 
     private final ObjetivoRepositoryMapper mapper = new ObjetivoRepositoryMapper();
+    private ObjetivoEntity entidad;
+    private Objetivo dominio;
 
     @Test
     @DisplayName("Mapea la entidad al dominio con todos sus campos")
     void toDomainShouldMapEveryField() {
-        ObjetivoEntity entity = ObjetivoEntity.builder()
+        givenUnaEntidadCompleta();
+
+        whenSeLeeLaEntidad();
+
+        thenElDominioTraeTodosLosCampos();
+    }
+
+    @Test
+    @DisplayName("Una entidad sin ids se mapea con ids nulos")
+    void toDomainShouldKeepMissingIdsNull() {
+        entidad = ObjetivoEntity.builder().build();
+
+        whenSeLeeLaEntidad();
+
+        thenElDominioNoTieneIds();
+    }
+
+    @Test
+    @DisplayName("Mapea el dominio a la entidad con todos sus campos")
+    void toEntityShouldMapEveryField() {
+        givenUnObjetivoAlcanzado();
+
+        whenSePasaElObjetivoALaEntidad();
+
+        thenLaEntidadTraeTodosLosCampos();
+    }
+
+    @Test
+    @DisplayName("Un objetivo armado con Sami se mapea a la entidad sin meta")
+    void toEntityShouldKeepTheMissingGoalAndTheType() {
+        dominio = objetivoSinMeta();
+
+        whenSePasaElObjetivoALaEntidad();
+
+        thenLaEntidadNoTieneMetaYLoArmoSami();
+    }
+
+    @Test
+    @DisplayName("Un objetivo nuevo, sin id, se mapea con id nulo para que la base lo asigne")
+    void toEntityShouldKeepMissingIdNull() {
+        dominio = Objetivo.nuevo(NEGOCIO_ID, TEXTO, META, AHORA);
+
+        whenSePasaElObjetivoALaEntidad();
+
+        thenLaEntidadNoTieneId();
+    }
+
+    // --- arrange ---
+    private void givenUnaEntidadCompleta() {
+        entidad = ObjetivoEntity.builder()
                 .id(OBJETIVO_ID.valor())
                 .negocioId(NEGOCIO_ID.valor())
                 .texto(TEXTO)
@@ -32,63 +83,57 @@ class ObjetivoRepositoryMapperTest {
                 .creadoEn(AHORA)
                 .alcanzadoEn(AHORA.plusDays(3))
                 .build();
-
-        Objetivo result = mapper.toDomain(entity);
-
-        assertThat(result.getId()).isEqualTo(OBJETIVO_ID);
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(result.getTexto()).isEqualTo(TEXTO);
-        assertThat(result.getTipo()).isEqualTo(TipoObjetivo.HIBRIDO);
-        assertThat(result.getMeta()).isEqualTo(META);
-        assertThat(result.isArmadoConSami()).isTrue();
-        assertThat(result.getCreadoEn()).isEqualTo(AHORA);
-        assertThat(result.getAlcanzadoEn()).isEqualTo(AHORA.plusDays(3));
     }
 
-    @Test
-    @DisplayName("Una entidad sin ids se mapea con ids nulos")
-    void toDomainShouldKeepMissingIdsNull() {
-        Objetivo result = mapper.toDomain(ObjetivoEntity.builder().build());
-
-        assertThat(result.getId()).isNull();
-        assertThat(result.getNegocioId()).isNull();
+    private void givenUnObjetivoAlcanzado() {
+        dominio = objetivo();
+        dominio.marcarAlcanzado(AHORA.plusDays(3));
     }
 
-    @Test
-    @DisplayName("Mapea el dominio a la entidad con todos sus campos")
-    void toEntityShouldMapEveryField() {
-        Objetivo alcanzado = objetivo();
-        alcanzado.marcarAlcanzado(AHORA.plusDays(3));
-
-        ObjetivoEntity result = mapper.toEntity(alcanzado);
-
-        assertThat(result.getAlcanzadoEn()).isEqualTo(AHORA.plusDays(3));
-        assertThat(result.getId()).isEqualTo(OBJETIVO_ID.valor());
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
-        assertThat(result.getTexto()).isEqualTo(TEXTO);
-        assertThat(result.getTipo()).isEqualTo(TipoObjetivo.MONETARIO);
-        assertThat(result.getMeta()).isEqualTo(META);
-        assertThat(result.isArmadoConSami()).isFalse();
-        assertThat(result.getCreadoEn()).isEqualTo(AHORA);
+    // --- act ---
+    private void whenSeLeeLaEntidad() {
+        dominio = mapper.toDomain(entidad);
     }
 
-    @Test
-    @DisplayName("Un objetivo armado con Sami se mapea a la entidad sin meta")
-    void toEntityShouldKeepTheMissingGoalAndTheType() {
-        ObjetivoEntity result = mapper.toEntity(objetivoSinMeta());
-
-        assertThat(result.getTipo()).isEqualTo(TipoObjetivo.SIN_DATOS);
-        assertThat(result.getMeta()).isNull();
-        assertThat(result.isArmadoConSami()).isTrue();
+    private void whenSePasaElObjetivoALaEntidad() {
+        entidad = mapper.toEntity(dominio);
     }
 
-    @Test
-    @DisplayName("Un objetivo nuevo, sin id, se mapea con id nulo para que la base lo asigne")
-    void toEntityShouldKeepMissingIdNull() {
-        Objetivo nuevo = Objetivo.nuevo(NEGOCIO_ID, TEXTO, META, AHORA);
+    // --- assert ---
+    private void thenElDominioTraeTodosLosCampos() {
+        assertThat(dominio.getId()).isEqualTo(OBJETIVO_ID);
+        assertThat(dominio.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(dominio.getTexto()).isEqualTo(TEXTO);
+        assertThat(dominio.getTipo()).isEqualTo(TipoObjetivo.HIBRIDO);
+        assertThat(dominio.getMeta()).isEqualTo(META);
+        assertThat(dominio.isArmadoConSami()).isTrue();
+        assertThat(dominio.getCreadoEn()).isEqualTo(AHORA);
+        assertThat(dominio.getAlcanzadoEn()).isEqualTo(AHORA.plusDays(3));
+    }
 
-        ObjetivoEntity result = mapper.toEntity(nuevo);
+    private void thenElDominioNoTieneIds() {
+        assertThat(dominio.getId()).isNull();
+        assertThat(dominio.getNegocioId()).isNull();
+    }
 
-        assertThat(result.getId()).isNull();
+    private void thenLaEntidadTraeTodosLosCampos() {
+        assertThat(entidad.getAlcanzadoEn()).isEqualTo(AHORA.plusDays(3));
+        assertThat(entidad.getId()).isEqualTo(OBJETIVO_ID.valor());
+        assertThat(entidad.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
+        assertThat(entidad.getTexto()).isEqualTo(TEXTO);
+        assertThat(entidad.getTipo()).isEqualTo(TipoObjetivo.MONETARIO);
+        assertThat(entidad.getMeta()).isEqualTo(META);
+        assertThat(entidad.isArmadoConSami()).isFalse();
+        assertThat(entidad.getCreadoEn()).isEqualTo(AHORA);
+    }
+
+    private void thenLaEntidadNoTieneMetaYLoArmoSami() {
+        assertThat(entidad.getTipo()).isEqualTo(TipoObjetivo.SIN_DATOS);
+        assertThat(entidad.getMeta()).isNull();
+        assertThat(entidad.isArmadoConSami()).isTrue();
+    }
+
+    private void thenLaEntidadNoTieneId() {
+        assertThat(entidad.getId()).isNull();
     }
 }

@@ -20,45 +20,78 @@ import static org.assertj.core.api.Assertions.assertThat;
 class RespuestaMiniObjetivoRepositoryMapperTest {
 
     private final RespuestaMiniObjetivoRepositoryMapper mapper = new RespuestaMiniObjetivoRepositoryMapper();
+    private RespuestaMiniObjetivoEntity entidad;
+    private RespuestaMiniObjetivo dominio;
 
     @Test
     @DisplayName("Mapea el dominio a la entidad con todos sus campos")
     void toEntityShouldMapEveryField() {
-        RespuestaMiniObjetivoEntity result = mapper.toEntity(respuesta());
+        whenSePasaLaRespuestaALaEntidad();
 
-        assertThat(result.getId()).isEqualTo(RESPUESTA_ID.valor());
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
-        assertThat(result.getObjetivoId()).isEqualTo(OBJETIVO_ID.valor());
-        assertThat(result.getMiniObjetivoId()).isEqualTo(OTRO_MINI_ID.valor());
-        assertThat(result.getHizo()).isEqualTo(HizoManual.EN_PARTE);
-        assertThat(result.getQuePaso()).isEqualTo(QuePaso.NO_TUVE_TIEMPO);
-        assertThat(result.getComentario()).isEqualTo(COMENTARIO);
-        assertThat(result.getSemanaInicio()).isEqualTo(SEMANA_RESPUESTA);
-        assertThat(result.getRespondidaEn()).isEqualTo(AHORA);
+        thenLaEntidadTraeTodosLosCampos();
     }
 
     @Test
     @DisplayName("Mapea la entidad al dominio con todos sus campos")
     void toDomainShouldMapEveryField() {
-        RespuestaMiniObjetivo result = mapper.toDomain(mapper.toEntity(respuesta()));
+        givenLaEntidadDeLaRespuesta();
 
-        assertThat(result.id()).isEqualTo(RESPUESTA_ID);
-        assertThat(result.negocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(result.objetivoId()).isEqualTo(OBJETIVO_ID);
-        assertThat(result.miniObjetivoId()).isEqualTo(OTRO_MINI_ID);
-        assertThat(result.hizo()).isEqualTo(HizoManual.EN_PARTE);
-        assertThat(result.quePaso()).isEqualTo(QuePaso.NO_TUVE_TIEMPO);
-        assertThat(result.comentario()).isEqualTo(COMENTARIO);
-        assertThat(result.semanaInicio()).isEqualTo(SEMANA_RESPUESTA);
-        assertThat(result.respondidaEn()).isEqualTo(AHORA);
+        whenSeLeeLaEntidad();
+
+        thenElDominioTraeTodosLosCampos();
     }
 
     @Test
     @DisplayName("Una entidad sin ids se mapea con ids nulos")
     void toDomainShouldKeepMissingIdsNull() {
-        RespuestaMiniObjetivo result = mapper.toDomain(RespuestaMiniObjetivoEntity.builder().build());
+        entidad = RespuestaMiniObjetivoEntity.builder().build();
 
-        assertThat(result.id()).isNull();
-        assertThat(result.miniObjetivoId()).isNull();
+        whenSeLeeLaEntidad();
+
+        thenElDominioNoTieneIds();
+    }
+
+    // --- arrange ---
+    private void givenLaEntidadDeLaRespuesta() {
+        entidad = mapper.toEntity(respuesta());
+    }
+
+    // --- act ---
+    private void whenSePasaLaRespuestaALaEntidad() {
+        entidad = mapper.toEntity(respuesta());
+    }
+
+    private void whenSeLeeLaEntidad() {
+        dominio = mapper.toDomain(entidad);
+    }
+
+    // --- assert ---
+    private void thenLaEntidadTraeTodosLosCampos() {
+        assertThat(entidad.getId()).isEqualTo(RESPUESTA_ID.valor());
+        assertThat(entidad.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
+        assertThat(entidad.getObjetivoId()).isEqualTo(OBJETIVO_ID.valor());
+        assertThat(entidad.getMiniObjetivoId()).isEqualTo(OTRO_MINI_ID.valor());
+        assertThat(entidad.getHizo()).isEqualTo(HizoManual.EN_PARTE);
+        assertThat(entidad.getQuePaso()).isEqualTo(QuePaso.NO_TUVE_TIEMPO);
+        assertThat(entidad.getComentario()).isEqualTo(COMENTARIO);
+        assertThat(entidad.getSemanaInicio()).isEqualTo(SEMANA_RESPUESTA);
+        assertThat(entidad.getRespondidaEn()).isEqualTo(AHORA);
+    }
+
+    private void thenElDominioTraeTodosLosCampos() {
+        assertThat(dominio.id()).isEqualTo(RESPUESTA_ID);
+        assertThat(dominio.negocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(dominio.objetivoId()).isEqualTo(OBJETIVO_ID);
+        assertThat(dominio.miniObjetivoId()).isEqualTo(OTRO_MINI_ID);
+        assertThat(dominio.hizo()).isEqualTo(HizoManual.EN_PARTE);
+        assertThat(dominio.quePaso()).isEqualTo(QuePaso.NO_TUVE_TIEMPO);
+        assertThat(dominio.comentario()).isEqualTo(COMENTARIO);
+        assertThat(dominio.semanaInicio()).isEqualTo(SEMANA_RESPUESTA);
+        assertThat(dominio.respondidaEn()).isEqualTo(AHORA);
+    }
+
+    private void thenElDominioNoTieneIds() {
+        assertThat(dominio.id()).isNull();
+        assertThat(dominio.miniObjetivoId()).isNull();
     }
 }

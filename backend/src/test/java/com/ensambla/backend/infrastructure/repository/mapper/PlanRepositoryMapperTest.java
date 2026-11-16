@@ -12,24 +12,36 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PlanRepositoryMapperTest {
 
     private final PlanRepositoryMapper planRepositoryMapper = new PlanRepositoryMapper();
+    private PlanEntity origen;
+    private Plan result;
 
     @Test
     @DisplayName("Mapea todos los campos de persistencia al dominio de plan")
     void toDomainShouldMapEveryField() {
-        PlanEntity origen = planEntity();
+        origen = planEntity();
 
-        Plan result = planRepositoryMapper.toDomain(origen);
+        whenSeLeeLaEntidad();
 
-        thenToDomainMatches(result);
+        thenToDomainMatches();
     }
 
     @Test
     @DisplayName("Conserva los campos nulos en toDomain de plan")
     void toDomainShouldPreserveNullFields() {
-        PlanEntity origen = new PlanEntity();
+        origen = new PlanEntity();
 
-        Plan result = planRepositoryMapper.toDomain(origen);
+        whenSeLeeLaEntidad();
 
+        thenTodosLosCamposSonNulos();
+    }
+
+    // --- act ---
+    private void whenSeLeeLaEntidad() {
+        result = planRepositoryMapper.toDomain(origen);
+    }
+
+    // --- assert ---
+    private void thenTodosLosCamposSonNulos() {
         assertThat(result.getId()).isNull();
         assertThat(result.getCodigo()).isNull();
         assertThat(result.getNombre()).isNull();
@@ -45,8 +57,7 @@ class PlanRepositoryMapperTest {
         assertThat(result.getActualizadoEn()).isNull();
     }
 
-    // --- assert ---
-    private void thenToDomainMatches(Plan result) {
+    private void thenToDomainMatches() {
         Plan esperado = plan();
         assertThat(result.getId()).isEqualTo(esperado.getId());
         assertThat(result.getCodigo()).isEqualTo(esperado.getCodigo());

@@ -42,67 +42,151 @@ class ResumenSemanalRepositoryMapperTest {
     private static final BigDecimal VALOR = new BigDecimal("12600.50");
 
     private final ResumenSemanalRepositoryMapper mapper = new ResumenSemanalRepositoryMapper();
+    private ResumenSemanalEntity entidadDelResumen;
+    private ResumenSemanal resumenLeido;
+    private ReajusteMiniObjetivoEntity entidadDelReajuste;
+    private ReajusteMiniObjetivo reajusteLeido;
+    private ReajusteMiniObjetivo reajusteSinNuevo;
 
     @Test
     @DisplayName("Pasa el resumen a la entidad con los mini-objetivos como JSON y el valor como texto")
     void toEntityShouldMapEveryFieldAndTheMinisAsJson() {
-        ResumenSemanalEntity result = mapper.toEntity(resumen());
+        whenSePasaElResumenALaEntidad();
 
-        assertThat(result.getId()).isEqualTo(RESUMEN_ID.valor());
-        assertThat(result.getObjetivoId()).isEqualTo(OBJETIVO_ID.valor());
-        assertThat(result.getSemanaInicio()).isEqualTo(SEMANA);
-        assertThat(result.getResultado()).isEqualTo(RESULTADO);
-        assertThat(result.getAvance()).isEqualTo(AVANCE);
-        assertThat(result.getDecisionesAplicadas()).isEqualTo(1);
-        assertThat(result.getDecisionesDescartadas()).isEqualTo(2);
-        assertThat(result.getDecisionesAceptadas()).isEqualTo(3);
-        assertThat(result.getDecisionesIgnoradas()).isEqualTo(4);
-        assertThat(result.getMinis()).containsExactly(
-                Map.of("miniObjetivoId", MINI_ID.toString(), "valor", "12600.50"));
-        assertThat(result.getQueFunciono()).isEqualTo("Bien");
-        assertThat(result.isTextoConIa()).isFalse();
-        assertThat(result.getCerradoEn()).isEqualTo(AHORA);
+        thenLaEntidadTraeTodosLosCamposYLosMinisComoJson();
     }
 
     @Test
     @DisplayName("Lee el resumen de la entidad con sus mini-objetivos y sus reajustes")
     void toDomainShouldMapEveryFieldWithTheMinisAndReajustes() {
-        ResumenSemanalEntity entity = mapper.toEntity(resumen());
+        givenLaEntidadDelResumen();
 
-        ResumenSemanal result = mapper.toDomain(entity, List.of(reajusteEntity(OTRO_MINI_ID.valor())));
+        whenSeLeeElResumenConUnReajuste();
 
-        assertThat(result).usingRecursiveComparison().ignoringFields("reajustes").isEqualTo(resumen());
-        assertThat(result.valorDe(MINI_ID)).contains(VALOR);
-        assertThat(result.reajustes()).singleElement()
-                .satisfies(reajuste -> assertThat(reajuste.miniNuevoId()).isEqualTo(OTRO_MINI_ID));
+        thenSeLeeElResumenConSusMinisYReajustes();
     }
 
     @Test
     @DisplayName("Pasa el reajuste a la entidad colgado de su resumen")
     void toEntityShouldMapTheReajusteWithItsResumen() {
-        ReajusteMiniObjetivoEntity result = mapper.toEntity(RESUMEN_ID, reajuste());
+        whenSePasaElReajusteALaEntidad(reajuste());
 
-        assertThat(result).usingRecursiveComparison().isEqualTo(reajusteEntity(OTRO_MINI_ID.valor()));
+        thenLaEntidadDelReajusteCuelgaDeSuResumen();
     }
 
     @Test
-    @DisplayName("Un reajuste sin mini-objetivo nuevo se guarda y se lee con el nuevo vacío")
-    void reajusteShouldKeepTheNewMiniEmptyWhenThereIsNone() {
-        ReajusteMiniObjetivo sinNuevo = new ReajusteMiniObjetivo(REAJUSTE_ID, MINI_ID, null, TipoReajuste.REEMPLAZAR,
-                "Sin reemplazo", "Subile", BigDecimal.TEN, null, null, AHORA);
+    @DisplayName("Un reajuste sin mini-objetivo nuevo se guarda con el nuevo vacío")
+    void reajusteShouldBeSavedWithTheNewMiniEmptyWhenThereIsNone() {
+        givenUnReajusteSinNuevo();
 
-        ReajusteMiniObjetivoEntity entity = mapper.toEntity(RESUMEN_ID, sinNuevo);
+        whenSePasaElReajusteALaEntidad(reajusteSinNuevo);
 
-        assertThat(entity.getMiniNuevoId()).isNull();
-        assertThat(mapper.toDomain(entity)).isEqualTo(sinNuevo);
+        thenLaEntidadNoTieneMiniNuevo();
+    }
+
+    @Test
+    @DisplayName("Un reajuste sin mini-objetivo nuevo se lee con el nuevo vacío")
+    void reajusteShouldBeReadWithTheNewMiniEmptyWhenThereIsNone() {
+        givenUnReajusteSinNuevo();
+
+        whenSeLeeElReajusteGuardado();
+
+        thenSeLeeElMismoReajusteSinNuevo();
     }
 
     @Test
     @DisplayName("Lee el reajuste de la entidad con todos sus campos")
     void toDomainShouldMapEveryFieldOfTheReajuste() {
-        ReajusteMiniObjetivo result = mapper.toDomain(reajusteEntity(OTRO_MINI_ID.valor()));
+        whenSeLeeElReajusteDeLaEntidad();
 
-        assertThat(result).isEqualTo(reajuste());
+        thenSeLeeElReajusteCompleto();
+    }
+
+    @Test
+    @DisplayName("Pasa lo respondido de los manuales a JSON, con vacío cuando no respondió")
+    void toEntityShouldMapTheManualAnswersAsJson() {
+        whenSePasaElResumenALaEntidad();
+
+        thenLosManualesVanComoJsonConVacioSiNoRespondio();
+    }
+
+    // --- arrange ---
+    private void givenLaEntidadDelResumen() {
+        entidadDelResumen = mapper.toEntity(resumen());
+    }
+
+    private void givenUnReajusteSinNuevo() {
+        reajusteSinNuevo = new ReajusteMiniObjetivo(REAJUSTE_ID, MINI_ID, null, TipoReajuste.REEMPLAZAR,
+                "Sin reemplazo", "Subile", BigDecimal.TEN, null, null, AHORA);
+    }
+
+    // --- act ---
+    private void whenSePasaElResumenALaEntidad() {
+        entidadDelResumen = mapper.toEntity(resumen());
+    }
+
+    private void whenSeLeeElResumenConUnReajuste() {
+        resumenLeido = mapper.toDomain(entidadDelResumen, List.of(reajusteEntity(OTRO_MINI_ID.valor())));
+    }
+
+    private void whenSePasaElReajusteALaEntidad(ReajusteMiniObjetivo reajuste) {
+        entidadDelReajuste = mapper.toEntity(RESUMEN_ID, reajuste);
+    }
+
+    private void whenSeLeeElReajusteGuardado() {
+        reajusteLeido = mapper.toDomain(mapper.toEntity(RESUMEN_ID, reajusteSinNuevo));
+    }
+
+    private void whenSeLeeElReajusteDeLaEntidad() {
+        reajusteLeido = mapper.toDomain(reajusteEntity(OTRO_MINI_ID.valor()));
+    }
+
+    // --- assert ---
+    private void thenLaEntidadTraeTodosLosCamposYLosMinisComoJson() {
+        assertThat(entidadDelResumen.getId()).isEqualTo(RESUMEN_ID.valor());
+        assertThat(entidadDelResumen.getObjetivoId()).isEqualTo(OBJETIVO_ID.valor());
+        assertThat(entidadDelResumen.getSemanaInicio()).isEqualTo(SEMANA);
+        assertThat(entidadDelResumen.getResultado()).isEqualTo(RESULTADO);
+        assertThat(entidadDelResumen.getAvance()).isEqualTo(AVANCE);
+        assertThat(entidadDelResumen.getDecisionesAplicadas()).isEqualTo(1);
+        assertThat(entidadDelResumen.getDecisionesDescartadas()).isEqualTo(2);
+        assertThat(entidadDelResumen.getDecisionesAceptadas()).isEqualTo(3);
+        assertThat(entidadDelResumen.getDecisionesIgnoradas()).isEqualTo(4);
+        assertThat(entidadDelResumen.getMinis()).containsExactly(
+                Map.of("miniObjetivoId", MINI_ID.toString(), "valor", "12600.50"));
+        assertThat(entidadDelResumen.getQueFunciono()).isEqualTo("Bien");
+        assertThat(entidadDelResumen.isTextoConIa()).isFalse();
+        assertThat(entidadDelResumen.getCerradoEn()).isEqualTo(AHORA);
+    }
+
+    private void thenSeLeeElResumenConSusMinisYReajustes() {
+        assertThat(resumenLeido).usingRecursiveComparison().ignoringFields("reajustes").isEqualTo(resumen());
+        assertThat(resumenLeido.valorDe(MINI_ID)).contains(VALOR);
+        assertThat(resumenLeido.reajustes()).singleElement()
+                .satisfies(reajuste -> assertThat(reajuste.miniNuevoId()).isEqualTo(OTRO_MINI_ID));
+    }
+
+    private void thenLaEntidadDelReajusteCuelgaDeSuResumen() {
+        assertThat(entidadDelReajuste).usingRecursiveComparison().isEqualTo(reajusteEntity(OTRO_MINI_ID.valor()));
+    }
+
+    private void thenLaEntidadNoTieneMiniNuevo() {
+        assertThat(entidadDelReajuste.getMiniNuevoId()).isNull();
+    }
+
+    private void thenSeLeeElMismoReajusteSinNuevo() {
+        assertThat(reajusteLeido).isEqualTo(reajusteSinNuevo);
+    }
+
+    private void thenSeLeeElReajusteCompleto() {
+        assertThat(reajusteLeido).isEqualTo(reajuste());
+    }
+
+    private void thenLosManualesVanComoJsonConVacioSiNoRespondio() {
+        assertThat(entidadDelResumen.getManuales()).containsExactly(
+                new LinkedHashMap<>(Map.of("miniObjetivoId", MINI_ID.toString(), "titulo", "Pedile a 3 clientes",
+                        "hizo", "EN_PARTE", "quePaso", "NO_TUVE_TIEMPO")),
+                jsonSinRespuesta());
     }
 
     // --- helpers ---
@@ -131,17 +215,6 @@ class ResumenSemanalRepositoryMapperTest {
                 .metaNueva(new BigDecimal("15000.00"))
                 .creadoEn(AHORA)
                 .build();
-    }
-
-    @Test
-    @DisplayName("Pasa lo respondido de los manuales a JSON, con vacío cuando no respondió")
-    void toEntityShouldMapTheManualAnswersAsJson() {
-        ResumenSemanalEntity result = mapper.toEntity(resumen());
-
-        assertThat(result.getManuales()).containsExactly(
-                new LinkedHashMap<>(Map.of("miniObjetivoId", MINI_ID.toString(), "titulo", "Pedile a 3 clientes",
-                        "hizo", "EN_PARTE", "quePaso", "NO_TUVE_TIEMPO")),
-                jsonSinRespuesta());
     }
 
     private static Map<String, Object> jsonSinRespuesta() {
