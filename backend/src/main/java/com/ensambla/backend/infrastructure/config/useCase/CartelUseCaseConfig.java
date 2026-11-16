@@ -1,9 +1,12 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.port.DibujanteDeCartelPort;
+import com.ensambla.backend.domain.port.RedaccionDeCartelIaPort;
 import com.ensambla.backend.domain.repository.marca.KitDeMarcaRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.cartel.armarOpcionesDeCartel.ArmarOpcionesDeCartel;
+import com.ensambla.backend.domain.useCase.cartel.redactarTextosDeCartel.RedactarTextosDeCartel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -19,5 +22,16 @@ public class CartelUseCaseConfig {
             DibujanteDeCartelPort dibujanteDeCartelPort,
             Clock clock) {
         return new ArmarOpcionesDeCartel(negocioRepository, kitDeMarcaRepository, dibujanteDeCartelPort, clock);
+    }
+
+    @Bean
+    public RedactarTextosDeCartel redactarTextosDeCartel(
+            NegocioRepository negocioRepository,
+            KitDeMarcaRepository kitDeMarcaRepository,
+            ControlPlanService controlPlanService,
+            RedaccionDeCartelIaPort redaccionDeCartelIaPort,
+            Clock clock) {
+        return new RedactarTextosDeCartel(
+                negocioRepository, kitDeMarcaRepository, controlPlanService, redaccionDeCartelIaPort, clock);
     }
 }

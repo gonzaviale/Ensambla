@@ -55,6 +55,23 @@ public class UsoPlanRepositoryImpl implements UsoPlanRepository {
     }
 
     @Override
+    public long cartelesIaEnElMes(NegocioId negocioId, LocalDate mes) {
+        return jdbcTemplate.queryForObject("""
+                SELECT COALESCE(sum(cantidad), 0) FROM consumo_cartel_ia WHERE negocio_id = ? AND mes = ?
+                """, Long.class, negocioId.valor(), mes);
+    }
+
+    @Override
+    public void registrarCartelIa(NegocioId negocioId, LocalDate mes, OffsetDateTime ahora) {
+        jdbcTemplate.update("""
+                INSERT INTO consumo_cartel_ia (negocio_id, mes, cantidad, creado_en, actualizado_en)
+                VALUES (?, ?, 1, ?, ?)
+                ON CONFLICT (negocio_id, mes) DO UPDATE
+                    SET cantidad = consumo_cartel_ia.cantidad + 1, actualizado_en = EXCLUDED.actualizado_en
+                """, negocioId.valor(), mes, ahora, ahora);
+    }
+
+    @Override
     public boolean registrarPaginaInmediata(NegocioId negocioId, LocalDate fecha, int limiteDiario,
             OffsetDateTime ahora) {
         return jdbcTemplate.update("""

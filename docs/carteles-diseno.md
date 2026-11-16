@@ -279,3 +279,15 @@ Moneda en pesos argentinos, mes de noviembre de 2026. Los números salen del sis
 - Un texto largo se achica hasta el tamaño mínimo del formato y después se corta con «…». Si las líneas no entran con
   altura legible (por ejemplo 10 productos en el cuadrado), se rechaza con un mensaje en vez de superponerlas.
 - Endpoint: `POST /api/carteles/opciones` devuelve las 3 composiciones con su dibujo, con la marca del negocio de la sesión.
+
+## Cómo quedaron los textos con IA (T-265 · ENS-364)
+
+- Puerto `RedaccionDeCartelIaPort`; por defecto es el proveedor simulado (`ensambla.carteles.ia.proveedor=simulado`) y con
+  `real` usa el proveedor y el modelo rápido de Sami. Prompt y esquema en `resources/ia/prompt-carteles.md` y
+  `esquema-carteles.json`.
+- `POST /api/carteles/textos` recibe las plantillas posibles, los productos y los números ya calculados; devuelve la
+  plantilla, el titular, la bajada y el texto del posteo, y si los redactó la IA.
+- El servidor descarta el texto de la IA (y usa el de reserva) si trae un número que no está en los datos, una
+  plantilla que no era posible, marcado o enlaces, o si pasa los largos máximos. Un texto descartado no descuenta del cupo.
+- A la IA sólo viaja el nombre y el rubro del negocio, el tono, las plantillas, los nombres de los productos y los
+  números permitidos; nunca clientes, deudas, ventas ni la dirección.

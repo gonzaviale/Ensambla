@@ -78,6 +78,20 @@ public class ControlPlanService {
         conNegocioBloqueado(negocioId, () -> exigirCupoDePaginasIa(negocioId, cantidad, ahora));
     }
 
+    /** Antes de redactar un cartel con IA: el acceso a la IA y el cupo mensual de carteles del plan. */
+    public void exigirCupoDeCartelesIa(NegocioId negocioId, OffsetDateTime ahora) {
+        exigirIa(negocioId);
+        conNegocioBloqueado(negocioId, () -> exigirCupoMensualDeCarteles(negocioId, ahora));
+    }
+
+    /** Se cobra cuando la IA ya redactó: un cartel que no salió no descuenta del cupo. */
+    public void registrarCartelIa(NegocioId negocioId, OffsetDateTime ahora) {
+        conNegocioBloqueado(negocioId, () -> {
+            exigirCupoMensualDeCarteles(negocioId, ahora);
+            usoPlanRepository.registrarCartelIa(negocioId, ZonaNegocio.primerDiaDelMes(ahora), ahora);
+        });
+    }
+
     public void validarFuncion(NegocioId negocioId, FuncionPlan funcion, OffsetDateTime ahora) {
         planVigente(negocioId, ahora).validarFuncion(funcion);
     }
@@ -151,6 +165,11 @@ public class ControlPlanService {
     private void exigirCupoDeRegistros(NegocioId negocioId, long cantidad, OffsetDateTime ahora) {
         Plan plan = planVigente(negocioId, ahora);
         plan.validarRegistros(usoPlanRepository.contarRegistros(negocioId), cantidad);
+    }
+
+    private void exigirCupoMensualDeCarteles(NegocioId negocioId, OffsetDateTime ahora) {
+        Plan plan = planVigente(negocioId, ahora);
+        plan.validarCartelesIa(usoPlanRepository.cartelesIaEnElMes(negocioId, ZonaNegocio.primerDiaDelMes(ahora)));
     }
 
     private boolean estaHabilitadaLaIa(NegocioId negocioId) {

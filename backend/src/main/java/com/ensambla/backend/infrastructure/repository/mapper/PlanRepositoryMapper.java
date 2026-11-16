@@ -21,6 +21,7 @@ public class PlanRepositoryMapper {
                 .limiteProyectos(origen.getLimiteProyectos())
                 .limiteRegistros(origen.getLimiteRegistros())
                 .limitePaginasIaMensuales(origen.getLimitePaginasIaMensuales())
+                .limiteCartelesIaMensuales(origen.getLimiteCartelesIaMensuales())
                 .funciones(origen.getFunciones())
                 .creadoEn(origen.getCreadoEn())
                 .actualizadoEn(origen.getActualizadoEn())

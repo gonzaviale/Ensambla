@@ -20,5 +20,10 @@ public interface UsoPlanRepository {
     /** Páginas procesadas y reservadas, desde inclusive y hasta exclusive, en días argentinos. */
     long paginasEnPeriodo(NegocioId negocioId, LocalDate desde, LocalDate hasta);
 
+    /** Carteles redactados con IA en el mes de calendario que empieza en {@code mes}. */
+    long cartelesIaEnElMes(NegocioId negocioId, LocalDate mes);
+
+    void registrarCartelIa(NegocioId negocioId, LocalDate mes, OffsetDateTime ahora);
+
     boolean registrarPaginaInmediata(NegocioId negocioId, LocalDate fecha, int limiteDiario, OffsetDateTime ahora);
 }

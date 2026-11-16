@@ -726,3 +726,11 @@ Ver [contratos y anulación](caja-contratos.md) y [aceptación](caja-validacion.
 - La FK del negocio borra en cascada. Sin kit guardado, la API devuelve la paleta de Ensambla sin escribir nada.
 - **API** (siempre del negocio de la sesión): `GET/PUT /api/marca`, `PUT /api/marca/logo` (multipart `logo`; devuelve el
   kit y los colores sugeridos desde el logo, calculados sin IA) y `GET /api/marca/logo`. Diseño: [carteles-diseno.md](carteles-diseno.md).
+
+## Cupo de carteles con IA (V35 · ENS-364 / T-265)
+
+- `plan.limite_carteles_ia_mensuales`: carteles redactados con IA por mes argentino, aparte del cupo de análisis de fotos
+  y del de objetivos. Provisorio: 10 en Gratuito y 40 en Premium; un límite nulo no limita.
+- `consumo_cartel_ia`: un contador por negocio y mes (`PRIMARY KEY (negocio_id, mes)`, `mes` es el día 1). Se suma
+  cuando la IA ya redactó; si el texto no sirve y se usa el de reserva, no se descuenta.
+- Al agotarse, `POST /api/carteles/textos` responde 403 con el código `LIMITE_CARTELES_IA`.

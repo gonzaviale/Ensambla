@@ -5,6 +5,9 @@ import com.ensambla.backend.domain.model.cartel.TipoDeCartel;
 import com.ensambla.backend.domain.model.cartel.VarianteDeComposicion;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.cartel.OpcionDeCartelItem;
+import com.ensambla.backend.domain.useCase.cartel.TextosDeCartelItem;
+import com.ensambla.backend.domain.useCase.cartel.redactarTextosDeCartel.RedactarTextosDeCartel;
+import com.ensambla.backend.domain.useCase.cartel.redactarTextosDeCartel.RedactarTextosDeCartelRequest;
 import com.ensambla.backend.domain.useCase.cartel.armarOpcionesDeCartel.ArmarOpcionesDeCartel;
 import com.ensambla.backend.domain.useCase.cartel.armarOpcionesDeCartel.ArmarOpcionesDeCartelRequest;
 import com.ensambla.backend.domain.useCase.cartel.armarOpcionesDeCartel.ArmarOpcionesDeCartelResponse;
@@ -18,6 +21,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -34,6 +38,7 @@ class CartelControllerTest {
     private static final UsuarioId USUARIO_ID = UsuarioId.de("b0000000-0000-4000-8000-000000000001");
 
     private final ArmarOpcionesDeCartel armarOpciones = mock(ArmarOpcionesDeCartel.class);
+    private final RedactarTextosDeCartel redactarTextos = mock(RedactarTextosDeCartel.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
     private MockMvc mockMvc;
@@ -41,7 +46,7 @@ class CartelControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcDePrueba.standalone(new CartelController(armarOpciones, new CartelPresentationMapper()))
+        mockMvc = MockMvcDePrueba.standalone(new CartelController(armarOpciones, redactarTextos, new CartelPresentationMapper()))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -89,5 +94,34 @@ class CartelControllerTest {
                 .contentType("application/json")
                 .content("{\"tipo\":\"PROMO_PRECIO\",\"formato\":\"A4\",\"titular\":\"Titular\",\"bajada\":\"Bajada\","
                         + "\"protagonista\":\"$1\",\"detalle\":\"Detalle\"," + extra + "}"));
+    }
+
+    @Test
+    @DisplayName("POST de textos redacta con el usuario de sesión y dice si lo hizo la IA")
+    void redactarTextosShouldReturnTheTexts() throws Exception {
+        when(redactarTextos.execute(any())).thenReturn(new TextosDeCartelItem(
+                TipoDeCartel.NOVEDAD, "Llegó la yerba", "Ya está", "Posteo", true));
+
+        respuesta = mockMvc.perform(post("/api/carteles/textos").principal(principal)
+                .contentType("application/json")
+                .content("{\"tiposPosibles\":[\"NOVEDAD\"],\"productos\":[\"Yerba\"],\"numeros\":[2500.5]}"));
+
+        respuesta.andExpect(status().isOk())
+                .andExpect(jsonPath("$.plantilla").value("NOVEDAD"))
+                .andExpect(jsonPath("$.titular").value("Llegó la yerba"))
+                .andExpect(jsonPath("$.redactadoConIa").value(true));
+        verify(redactarTextos).execute(new RedactarTextosDeCartelRequest(USUARIO_ID, List.of(TipoDeCartel.NOVEDAD),
+                List.of("Yerba"), List.of(new BigDecimal("2500.5"))));
+    }
+
+    @Test
+    @DisplayName("POST de textos rechaza un pedido sin tipos posibles")
+    void redactarTextosShouldRejectNoTypes() throws Exception {
+        respuesta = mockMvc.perform(post("/api/carteles/textos").principal(principal)
+                .contentType("application/json")
+                .content("{\"tiposPosibles\":[],\"productos\":[],\"numeros\":[]}"));
+
+        respuesta.andExpect(status().isBadRequest());
+        verifyNoInteractions(redactarTextos);
     }
 }

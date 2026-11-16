@@ -41,6 +41,8 @@ public class Plan {
 
     private Integer limitePaginasIaMensuales;
 
+    private Integer limiteCartelesIaMensuales;
+
     private List<String> funciones;
 
     private OffsetDateTime creadoEn;
@@ -70,6 +72,10 @@ public class Plan {
     public void validarPaginasIa(long usadasYReservadas, int nuevas) {
         validarCupo(usadasYReservadas, nuevas, limitePaginasIaMensuales, "LIMITE_IA_MENSUAL",
                 "análisis de foto por mes");
+    }
+
+    public void validarCartelesIa(long usadosEnElMes) {
+        validarCupo(usadosEnElMes, 1, limiteCartelesIaMensuales, "LIMITE_CARTELES_IA", "carteles con IA por mes");
     }
 
     public void validarFuncion(FuncionPlan funcion) {

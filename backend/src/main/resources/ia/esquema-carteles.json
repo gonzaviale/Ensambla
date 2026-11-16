@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["plantilla", "titular", "bajada", "textoPosteo"],
+  "properties": {
+    "plantilla": {"type": "string", "enum": ["PROMO_PRECIO", "DOS_POR_UNO", "COMBO", "NOVEDAD", "HORARIOS", "LISTA_PRECIOS"]},
+    "titular": {"type": "string", "minLength": 1, "maxLength": 40},
+    "bajada": {"type": "string", "minLength": 1, "maxLength": 90},
+    "textoPosteo": {"type": "string", "minLength": 1, "maxLength": 280}
+  }
+}

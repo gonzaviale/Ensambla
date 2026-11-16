@@ -2,8 +2,11 @@ package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.cartel.armarOpcionesDeCartel.ArmarOpcionesDeCartel;
+import com.ensambla.backend.domain.useCase.cartel.redactarTextosDeCartel.RedactarTextosDeCartel;
 import com.ensambla.backend.infrastructure.presentation.dto.cartel.OpcionesDeCartelResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.cartel.OpcionesDeCartelWebRequest;
+import com.ensambla.backend.infrastructure.presentation.dto.cartel.TextosDeCartelResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.cartel.TextosDeCartelWebRequest;
 import com.ensambla.backend.infrastructure.presentation.mapper.cartel.CartelPresentationMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,6 +27,8 @@ public class CartelController {
 
     private final ArmarOpcionesDeCartel armarOpcionesDeCartel;
 
+    private final RedactarTextosDeCartel redactarTextosDeCartel;
+
     private final CartelPresentationMapper cartelPresentationMapper;
 
     @PostMapping("/opciones")
@@ -32,5 +37,13 @@ public class CartelController {
             Authentication authentication, @Valid @RequestBody OpcionesDeCartelWebRequest request) {
         return ResponseEntity.ok(cartelPresentationMapper.toResponse(armarOpcionesDeCartel.execute(
                 cartelPresentationMapper.toArmarRequest(UsuarioId.de(authentication.getName()), request))));
+    }
+
+    @PostMapping("/textos")
+    @Operation(summary = "Redactar el titular, la bajada y el texto del posteo (con IA o con los textos de reserva)")
+    public ResponseEntity<TextosDeCartelResponse> redactarTextos(
+            Authentication authentication, @Valid @RequestBody TextosDeCartelWebRequest request) {
+        return ResponseEntity.ok(cartelPresentationMapper.toResponse(redactarTextosDeCartel.execute(
+                cartelPresentationMapper.toRedactarRequest(UsuarioId.de(authentication.getName()), request))));
     }
 }
