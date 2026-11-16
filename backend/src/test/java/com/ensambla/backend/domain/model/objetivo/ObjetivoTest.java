@@ -4,6 +4,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.Optional;
 
 import static com.ensambla.backend.support.ObjetivoTestData.AHORA;
 import static com.ensambla.backend.support.ObjetivoTestData.META;
@@ -15,104 +17,221 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ObjetivoTest {
 
+    private static final BigDecimal RESULTADO_ENORME = new BigDecimal("999999999");
+
+    private Objetivo objetivo;
+    private boolean llegaALaMeta;
+    private Optional<HitoObjetivo> hito;
+
     @Test
     @DisplayName("Un objetivo nuevo toma el negocio, la meta y la fecha, y todavía no tiene id")
     void nuevoShouldCopyEveryField() {
-        Objetivo result = Objetivo.nuevo(NEGOCIO_ID, TEXTO, META, AHORA);
+        whenSeCreaUnObjetivoNuevo();
 
-        assertThat(result.getId()).isNull();
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(result.getTexto()).isEqualTo(TEXTO);
-        assertThat(result.getMeta()).isEqualTo(META);
-        assertThat(result.getCreadoEn()).isEqualTo(AHORA);
+        thenElObjetivoNoTieneIdYCopiaLosDatos();
     }
 
     @Test
     @DisplayName("Un objetivo nuevo todavía no está alcanzado")
     void nuevoShouldNotBeReached() {
-        Objetivo result = Objetivo.nuevo(NEGOCIO_ID, TEXTO, META, AHORA);
+        whenSeCreaUnObjetivoNuevo();
 
-        assertThat(result.estaAlcanzado()).isFalse();
-        assertThat(result.getAlcanzadoEn()).isNull();
+        thenElObjetivoNoEstaAlcanzado();
     }
 
     @Test
     @DisplayName("Al marcarlo alcanzado se anota cuándo")
     void marcarAlcanzadoShouldRecordWhen() {
-        Objetivo objetivo = Objetivo.nuevo(NEGOCIO_ID, TEXTO, META, AHORA);
+        givenUnObjetivoNuevo();
 
-        objetivo.marcarAlcanzado(AHORA.plusDays(1));
+        whenSeMarcaAlcanzado(AHORA.plusDays(1));
 
-        assertThat(objetivo.estaAlcanzado()).isTrue();
-        assertThat(objetivo.getAlcanzadoEn()).isEqualTo(AHORA.plusDays(1));
+        thenElObjetivoEstaAlcanzadoDesde(AHORA.plusDays(1));
     }
 
     @Test
-    @DisplayName("Llega a la meta cuando el resultado es igual o mayor")
-    void llegaAShouldBeTrueWhenTheResultIsAtLeastTheGoal() {
-        Objetivo objetivo = Objetivo.nuevo(NEGOCIO_ID, TEXTO, META, AHORA);
+    @DisplayName("No llega a la meta cuando el resultado es menor")
+    void llegaAShouldBeFalseWhenTheResultIsBelowTheGoal() {
+        givenUnObjetivoNuevo();
 
-        assertThat(objetivo.llegaA(META.subtract(BigDecimal.ONE))).isFalse();
-        assertThat(objetivo.llegaA(META)).isTrue();
-        assertThat(objetivo.llegaA(META.add(BigDecimal.ONE))).isTrue();
+        whenSeConsultaSiLlegaA(META.subtract(BigDecimal.ONE));
+
+        thenNoLlegaALaMeta();
     }
 
     @Test
-    @DisplayName("Un objetivo alcanzado tiene el hito de alcanzado; uno que no, no tiene hito")
-    void hitoShouldBeAchievedOnlyWhenTheObjetivoWasAchieved() {
-        Objetivo objetivo = Objetivo.nuevo(NEGOCIO_ID, TEXTO, META, AHORA);
-        assertThat(objetivo.hito()).isEmpty();
+    @DisplayName("Llega a la meta cuando el resultado es igual")
+    void llegaAShouldBeTrueWhenTheResultIsTheGoal() {
+        givenUnObjetivoNuevo();
 
-        objetivo.marcarAlcanzado(AHORA);
+        whenSeConsultaSiLlegaA(META);
 
-        assertThat(objetivo.hito()).contains(HitoObjetivo.OBJETIVO_ALCANZADO);
+        thenLlegaALaMeta();
+    }
+
+    @Test
+    @DisplayName("Llega a la meta cuando el resultado es mayor")
+    void llegaAShouldBeTrueWhenTheResultIsAboveTheGoal() {
+        givenUnObjetivoNuevo();
+
+        whenSeConsultaSiLlegaA(META.add(BigDecimal.ONE));
+
+        thenLlegaALaMeta();
+    }
+
+    @Test
+    @DisplayName("Un objetivo que no fue alcanzado no tiene hito")
+    void hitoShouldBeEmptyWhenTheObjetivoWasNotAchieved() {
+        givenUnObjetivoNuevo();
+
+        whenSeConsultaElHito();
+
+        thenNoTieneHito();
+    }
+
+    @Test
+    @DisplayName("Un objetivo alcanzado tiene el hito de alcanzado")
+    void hitoShouldBeAchievedWhenTheObjetivoWasAchieved() {
+        givenUnObjetivoNuevo();
+
+        whenSeMarcaAlcanzado(AHORA);
+        whenSeConsultaElHito();
+
+        thenTieneElHitoDeAlcanzado();
     }
 
     @Test
     @DisplayName("Un objetivo nuevo guarda el texto sin espacios en los extremos")
     void nuevoShouldStripText() {
-        Objetivo result = Objetivo.nuevo(NEGOCIO_ID, "  " + TEXTO + " \n", META, AHORA);
+        whenSeCreaUnObjetivoConTexto("  " + TEXTO + " \n");
 
-        assertThat(result.getTexto()).isEqualTo(TEXTO);
+        thenElTextoEs(TEXTO);
     }
 
     @Test
     @DisplayName("Un objetivo nuevo es monetario y no lo armó Sami")
     void nuevoShouldBeMonetarioAndNotBuiltWithSami() {
-        Objetivo result = Objetivo.nuevo(NEGOCIO_ID, TEXTO, META, AHORA);
+        whenSeCreaUnObjetivoNuevo();
 
-        assertThat(result.getTipo()).isEqualTo(TipoObjetivo.MONETARIO);
-        assertThat(result.isArmadoConSami()).isFalse();
+        thenElObjetivoEsMonetarioYNoLoArmoSami();
     }
 
     @Test
     @DisplayName("Un objetivo sin meta en pesos nunca llega a la meta, por alto que sea el resultado")
     void llegaAShouldBeFalseWithoutGoal() {
-        Objetivo objetivo = objetivoSinMeta();
+        givenUnObjetivoSinMeta();
 
-        assertThat(objetivo.llegaA(new BigDecimal("999999999"))).isFalse();
+        whenSeConsultaSiLlegaA(RESULTADO_ENORME);
+
+        thenNoLlegaALaMeta();
     }
 
     @Test
     @DisplayName("Un objetivo armado con Sami no tiene meta, trae su tipo y el texto sin espacios en los extremos")
     void conSamiShouldBuildAnObjetivoWithoutGoal() {
-        Objetivo result = Objetivo.conSami(NEGOCIO_ID, "  " + TEXTO_SIN_META + " ", TipoObjetivo.HIBRIDO, true, AHORA);
+        whenSeArmaConSami(TipoObjetivo.HIBRIDO, true);
 
-        assertThat(result.getId()).isNull();
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(result.getTexto()).isEqualTo(TEXTO_SIN_META);
-        assertThat(result.getTipo()).isEqualTo(TipoObjetivo.HIBRIDO);
-        assertThat(result.getMeta()).isNull();
-        assertThat(result.isArmadoConSami()).isTrue();
-        assertThat(result.getCreadoEn()).isEqualTo(AHORA);
-        assertThat(result.estaAlcanzado()).isFalse();
+        thenElObjetivoDeSamiNoTieneMetaYTraeSuTipo();
     }
 
     @Test
     @DisplayName("El seguimiento manual no cuenta como armado con Sami")
     void conSamiShouldKeepTheFlagThatSamiDidNotBuildIt() {
-        Objetivo result = Objetivo.conSami(NEGOCIO_ID, TEXTO_SIN_META, TipoObjetivo.SIN_DATOS, false, AHORA);
+        whenSeArmaConSami(TipoObjetivo.SIN_DATOS, false);
 
-        assertThat(result.isArmadoConSami()).isFalse();
+        thenNoEstaArmadoConSami();
+    }
+
+    // --- arrange ---
+    private void givenUnObjetivoNuevo() {
+        whenSeCreaUnObjetivoNuevo();
+    }
+
+    private void givenUnObjetivoSinMeta() {
+        objetivo = objetivoSinMeta();
+    }
+
+    // --- act ---
+    private void whenSeCreaUnObjetivoNuevo() {
+        objetivo = Objetivo.nuevo(NEGOCIO_ID, TEXTO, META, AHORA);
+    }
+
+    private void whenSeCreaUnObjetivoConTexto(String texto) {
+        objetivo = Objetivo.nuevo(NEGOCIO_ID, texto, META, AHORA);
+    }
+
+    private void whenSeMarcaAlcanzado(OffsetDateTime cuando) {
+        objetivo.marcarAlcanzado(cuando);
+    }
+
+    private void whenSeConsultaSiLlegaA(BigDecimal resultado) {
+        llegaALaMeta = objetivo.llegaA(resultado);
+    }
+
+    private void whenSeConsultaElHito() {
+        hito = objetivo.hito();
+    }
+
+    private void whenSeArmaConSami(TipoObjetivo tipo, boolean armadoConSami) {
+        objetivo = Objetivo.conSami(NEGOCIO_ID, "  " + TEXTO_SIN_META + " ", tipo, armadoConSami, AHORA);
+    }
+
+    // --- assert ---
+    private void thenElObjetivoNoTieneIdYCopiaLosDatos() {
+        assertThat(objetivo.getId()).isNull();
+        assertThat(objetivo.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(objetivo.getTexto()).isEqualTo(TEXTO);
+        assertThat(objetivo.getMeta()).isEqualTo(META);
+        assertThat(objetivo.getCreadoEn()).isEqualTo(AHORA);
+    }
+
+    private void thenElObjetivoNoEstaAlcanzado() {
+        assertThat(objetivo.estaAlcanzado()).isFalse();
+        assertThat(objetivo.getAlcanzadoEn()).isNull();
+    }
+
+    private void thenElObjetivoEstaAlcanzadoDesde(OffsetDateTime cuando) {
+        assertThat(objetivo.estaAlcanzado()).isTrue();
+        assertThat(objetivo.getAlcanzadoEn()).isEqualTo(cuando);
+    }
+
+    private void thenLlegaALaMeta() {
+        assertThat(llegaALaMeta).isTrue();
+    }
+
+    private void thenNoLlegaALaMeta() {
+        assertThat(llegaALaMeta).isFalse();
+    }
+
+    private void thenNoTieneHito() {
+        assertThat(hito).isEmpty();
+    }
+
+    private void thenTieneElHitoDeAlcanzado() {
+        assertThat(hito).contains(HitoObjetivo.OBJETIVO_ALCANZADO);
+    }
+
+    private void thenElTextoEs(String esperado) {
+        assertThat(objetivo.getTexto()).isEqualTo(esperado);
+    }
+
+    private void thenElObjetivoEsMonetarioYNoLoArmoSami() {
+        assertThat(objetivo.getTipo()).isEqualTo(TipoObjetivo.MONETARIO);
+        thenNoEstaArmadoConSami();
+    }
+
+    private void thenNoEstaArmadoConSami() {
+        assertThat(objetivo.isArmadoConSami()).isFalse();
+    }
+
+    private void thenElObjetivoDeSamiNoTieneMetaYTraeSuTipo() {
+        assertThat(objetivo.getId()).isNull();
+        assertThat(objetivo.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(objetivo.getTexto()).isEqualTo(TEXTO_SIN_META);
+        assertThat(objetivo.getTipo()).isEqualTo(TipoObjetivo.HIBRIDO);
+        assertThat(objetivo.getMeta()).isNull();
+        assertThat(objetivo.isArmadoConSami()).isTrue();
+        assertThat(objetivo.getCreadoEn()).isEqualTo(AHORA);
+        assertThat(objetivo.estaAlcanzado()).isFalse();
     }
 }
