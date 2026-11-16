@@ -12,76 +12,130 @@ import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
 import static com.ensambla.backend.support.RespuestaMiniObjetivoTestData.COMENTARIO;
 import static com.ensambla.backend.support.RespuestaMiniObjetivoTestData.SEMANA_RESPUESTA;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class RespuestaMiniObjetivoTest {
+
+    private static final int LARGO_MAXIMO_DE_COMENTARIO = 300;
+
+    private RespuestaMiniObjetivo respuesta;
+    private Throwable error;
 
     @Test
     @DisplayName("Arma la respuesta con el mini-objetivo, lo que contó la persona y la semana en que respondió")
     void deShouldCopyEveryField() {
-        RespuestaMiniObjetivo result = RespuestaMiniObjetivo.de(
-                miniManual(), HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO, COMENTARIO, AHORA);
+        whenSeResponde(HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO, COMENTARIO);
 
-        assertThat(result.id()).isNotNull();
-        assertThat(result.negocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(result.objetivoId()).isEqualTo(OBJETIVO_ID);
-        assertThat(result.miniObjetivoId()).isEqualTo(OTRO_MINI_ID);
-        assertThat(result.hizo()).isEqualTo(HizoManual.EN_PARTE);
-        assertThat(result.quePaso()).isEqualTo(QuePaso.NO_TUVE_TIEMPO);
-        assertThat(result.comentario()).isEqualTo(COMENTARIO);
-        assertThat(result.semanaInicio()).isEqualTo(SEMANA_RESPUESTA);
-        assertThat(result.respondidaEn()).isEqualTo(AHORA);
+        thenLaRespuestaCopiaTodosLosDatos();
     }
 
     @Test
     @DisplayName("El comentario se guarda sin espacios en los extremos")
     void deShouldStripTheComment() {
-        RespuestaMiniObjetivo result = whenResponder(HizoManual.SI, QuePaso.FUNCIONO, "  Funcionó bien \n");
+        whenSeResponde(HizoManual.SI, QuePaso.FUNCIONO, "  Funcionó bien \n");
 
-        assertThat(result.comentario()).isEqualTo("Funcionó bien");
+        thenElComentarioEs("Funcionó bien");
     }
 
     @Test
-    @DisplayName("Un comentario vacío o en blanco queda sin comentario")
+    @DisplayName("Un comentario en blanco queda sin comentario")
     void deShouldDropABlankComment() {
-        assertThat(whenResponder(HizoManual.SI, QuePaso.FUNCIONO, "   ").comentario()).isNull();
-        assertThat(whenResponder(HizoManual.SI, QuePaso.FUNCIONO, null).comentario()).isNull();
+        whenSeResponde(HizoManual.SI, QuePaso.FUNCIONO, "   ");
+
+        thenNoHayComentario();
+    }
+
+    @Test
+    @DisplayName("Un comentario nulo queda sin comentario")
+    void deShouldDropANullComment() {
+        whenSeResponde(HizoManual.SI, QuePaso.FUNCIONO, null);
+
+        thenNoHayComentario();
     }
 
     @Test
     @DisplayName("Un comentario de justo 300 caracteres se acepta")
     void deShouldAcceptACommentOfTheMaximumLength() {
-        RespuestaMiniObjetivo result = whenResponder(HizoManual.NO, QuePaso.OTRA, "a".repeat(300));
+        whenSeResponde(HizoManual.NO, QuePaso.OTRA, "a".repeat(LARGO_MAXIMO_DE_COMENTARIO));
 
-        assertThat(result.comentario()).hasSize(300);
+        thenElComentarioTieneLargo(LARGO_MAXIMO_DE_COMENTARIO);
     }
 
     @Test
     @DisplayName("Un comentario de más de 300 caracteres se rechaza")
     void deShouldRejectACommentThatIsTooLong() {
-        assertThatThrownBy(() -> whenResponder(HizoManual.NO, QuePaso.OTRA, "a".repeat(301)))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("El comentario no puede tener más de 300 caracteres");
+        whenSeRespondeConError(HizoManual.NO, QuePaso.OTRA, "a".repeat(LARGO_MAXIMO_DE_COMENTARIO + 1));
+
+        thenSeRechazaConMensaje("El comentario no puede tener más de 300 caracteres");
     }
 
     @Test
     @DisplayName("Decir que lo hizo y que no tuvo tiempo es contradictorio")
     void deShouldRejectDoneWithoutTime() {
-        assertThatThrownBy(() -> whenResponder(HizoManual.SI, QuePaso.NO_TUVE_TIEMPO, null))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("Si lo hiciste, no puede ser que no hayas tenido tiempo");
+        whenSeRespondeConError(HizoManual.SI, QuePaso.NO_TUVE_TIEMPO, null);
+
+        thenSeRechazaConMensaje("Si lo hiciste, no puede ser que no hayas tenido tiempo");
     }
 
     @Test
-    @DisplayName("Lo hizo en parte o no lo hizo pero no tuvo tiempo es una respuesta válida")
-    void deShouldAcceptNoTimeWhenNotFullyDone() {
-        assertThat(whenResponder(HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO, null).quePaso())
-                .isEqualTo(QuePaso.NO_TUVE_TIEMPO);
-        assertThat(whenResponder(HizoManual.NO, QuePaso.NO_TUVE_TIEMPO, null).hizo()).isEqualTo(HizoManual.NO);
+    @DisplayName("Haberlo hecho en parte pero no tener tiempo es una respuesta válida")
+    void deShouldAcceptNoTimeWhenDoneInPart() {
+        whenSeResponde(HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO, null);
+
+        thenQuePasoEs(QuePaso.NO_TUVE_TIEMPO);
+    }
+
+    @Test
+    @DisplayName("No haberlo hecho y no tener tiempo es una respuesta válida")
+    void deShouldAcceptNoTimeWhenNotDone() {
+        whenSeResponde(HizoManual.NO, QuePaso.NO_TUVE_TIEMPO, null);
+
+        thenHizoEs(HizoManual.NO);
     }
 
     // --- act ---
-    private RespuestaMiniObjetivo whenResponder(HizoManual hizo, QuePaso quePaso, String comentario) {
-        return RespuestaMiniObjetivo.de(miniManual(), hizo, quePaso, comentario, AHORA);
+    private void whenSeResponde(HizoManual hizo, QuePaso quePaso, String comentario) {
+        respuesta = RespuestaMiniObjetivo.de(miniManual(), hizo, quePaso, comentario, AHORA);
+    }
+
+    private void whenSeRespondeConError(HizoManual hizo, QuePaso quePaso, String comentario) {
+        error = catchThrowable(() -> whenSeResponde(hizo, quePaso, comentario));
+    }
+
+    // --- assert ---
+    private void thenLaRespuestaCopiaTodosLosDatos() {
+        assertThat(respuesta.id()).isNotNull();
+        assertThat(respuesta.negocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(respuesta.objetivoId()).isEqualTo(OBJETIVO_ID);
+        assertThat(respuesta.miniObjetivoId()).isEqualTo(OTRO_MINI_ID);
+        assertThat(respuesta.hizo()).isEqualTo(HizoManual.EN_PARTE);
+        assertThat(respuesta.quePaso()).isEqualTo(QuePaso.NO_TUVE_TIEMPO);
+        assertThat(respuesta.comentario()).isEqualTo(COMENTARIO);
+        assertThat(respuesta.semanaInicio()).isEqualTo(SEMANA_RESPUESTA);
+        assertThat(respuesta.respondidaEn()).isEqualTo(AHORA);
+    }
+
+    private void thenElComentarioEs(String esperado) {
+        assertThat(respuesta.comentario()).isEqualTo(esperado);
+    }
+
+    private void thenNoHayComentario() {
+        assertThat(respuesta.comentario()).isNull();
+    }
+
+    private void thenElComentarioTieneLargo(int largo) {
+        assertThat(respuesta.comentario()).hasSize(largo);
+    }
+
+    private void thenQuePasoEs(QuePaso esperado) {
+        assertThat(respuesta.quePaso()).isEqualTo(esperado);
+    }
+
+    private void thenHizoEs(HizoManual esperado) {
+        assertThat(respuesta.hizo()).isEqualTo(esperado);
+    }
+
+    private void thenSeRechazaConMensaje(String mensaje) {
+        assertThat(error).isInstanceOf(BusinessRuleException.class).hasMessage(mensaje);
     }
 }
