@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.useCase.objetivo;
 
+import com.ensambla.backend.domain.model.objetivo.Objetivo;
 import com.ensambla.backend.domain.model.objetivo.TipoObjetivo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,26 +15,42 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ObjetivoItemTest {
 
+    private ObjetivoItem item;
+
     @Test
     @DisplayName("Copia todos los datos del objetivo")
     void deShouldCopyEveryField() {
-        ObjetivoItem result = ObjetivoItem.de(objetivo());
+        whenSeArmaElItemDe(objetivo());
 
-        assertThat(result.id()).isEqualTo(OBJETIVO_ID);
-        assertThat(result.texto()).isEqualTo(TEXTO);
-        assertThat(result.tipo()).isEqualTo(TipoObjetivo.MONETARIO);
-        assertThat(result.meta()).isEqualTo(META);
-        assertThat(result.armadoConSami()).isFalse();
-        assertThat(result.creadoEn()).isEqualTo(AHORA);
+        thenSeCopianTodosLosDatos();
     }
 
     @Test
     @DisplayName("Un objetivo armado con Sami no tiene meta y lo dice")
     void deShouldKeepTheMissingGoalOfAnObjetivoBuiltWithSami() {
-        ObjetivoItem result = ObjetivoItem.de(objetivoSinMeta());
+        whenSeArmaElItemDe(objetivoSinMeta());
 
-        assertThat(result.tipo()).isEqualTo(TipoObjetivo.SIN_DATOS);
-        assertThat(result.meta()).isNull();
-        assertThat(result.armadoConSami()).isTrue();
+        thenNoTieneMetaYLoArmoSami();
+    }
+
+    // --- act ---
+    private void whenSeArmaElItemDe(Objetivo objetivo) {
+        item = ObjetivoItem.de(objetivo);
+    }
+
+    // --- assert ---
+    private void thenSeCopianTodosLosDatos() {
+        assertThat(item.id()).isEqualTo(OBJETIVO_ID);
+        assertThat(item.texto()).isEqualTo(TEXTO);
+        assertThat(item.tipo()).isEqualTo(TipoObjetivo.MONETARIO);
+        assertThat(item.meta()).isEqualTo(META);
+        assertThat(item.armadoConSami()).isFalse();
+        assertThat(item.creadoEn()).isEqualTo(AHORA);
+    }
+
+    private void thenNoTieneMetaYLoArmoSami() {
+        assertThat(item.tipo()).isEqualTo(TipoObjetivo.SIN_DATOS);
+        assertThat(item.meta()).isNull();
+        assertThat(item.armadoConSami()).isTrue();
     }
 }

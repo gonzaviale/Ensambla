@@ -15,17 +15,29 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ResponderMiniObjetivoResponseTest {
 
+    private ResponderMiniObjetivoResponse resultado;
+
     @Test
     @DisplayName("Copia todos los datos de la respuesta")
     void deShouldCopyEveryField() {
-        ResponderMiniObjetivoResponse result = ResponderMiniObjetivoResponse.de(respuesta());
+        whenSeArmaLaRespuesta();
 
-        assertThat(result.id()).isEqualTo(RESPUESTA_ID);
-        assertThat(result.miniObjetivoId()).isEqualTo(OTRO_MINI_ID);
-        assertThat(result.hizo()).isEqualTo(HizoManual.EN_PARTE);
-        assertThat(result.quePaso()).isEqualTo(QuePaso.NO_TUVE_TIEMPO);
-        assertThat(result.comentario()).isEqualTo(COMENTARIO);
-        assertThat(result.semanaInicio()).isEqualTo(SEMANA_RESPUESTA);
-        assertThat(result.respondidaEn()).isEqualTo(AHORA);
+        thenSeCopianTodosLosDatos();
+    }
+
+    // --- act ---
+    private void whenSeArmaLaRespuesta() {
+        resultado = ResponderMiniObjetivoResponse.de(respuesta());
+    }
+
+    // --- assert ---
+    private void thenSeCopianTodosLosDatos() {
+        assertThat(resultado.id()).isEqualTo(RESPUESTA_ID);
+        assertThat(resultado.miniObjetivoId()).isEqualTo(OTRO_MINI_ID);
+        assertThat(resultado.hizo()).isEqualTo(HizoManual.EN_PARTE);
+        assertThat(resultado.quePaso()).isEqualTo(QuePaso.NO_TUVE_TIEMPO);
+        assertThat(resultado.comentario()).isEqualTo(COMENTARIO);
+        assertThat(resultado.semanaInicio()).isEqualTo(SEMANA_RESPUESTA);
+        assertThat(resultado.respondidaEn()).isEqualTo(AHORA);
     }
 }

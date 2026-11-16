@@ -28,55 +28,85 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class MiniObjetivoItemTest {
 
+    private static final BigDecimal VALOR_ACTUAL = new BigDecimal("13391.50");
+
+    private MiniObjetivo mini;
+    private MiniObjetivoItem item;
+
     @Test
     @DisplayName("Copia todos los datos del mini-objetivo y le suma su sentido y su avance")
     void deShouldCopyEveryFieldAndAddDirectionAndProgress() {
-        MiniObjetivo mini = miniObjetivo();
-        mini.setValorActual(new BigDecimal("13391.50"));
-        mini.setTextoConIa(true);
+        givenUnMedidoConIa();
 
-        MiniObjetivoItem result = MiniObjetivoItem.de(mini);
+        whenSeArmaElItem();
 
-        assertThat(result.id()).isEqualTo(MINI_ID);
-        assertThat(result.posicion()).isEqualTo(1);
-        assertThat(result.modo()).isEqualTo(ModoMiniObjetivo.MEDIDO);
-        assertThat(result.tipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
-        assertThat(result.sentido()).isEqualTo(SentidoMiniObjetivo.SUBE);
-        assertThat(result.estado()).isEqualTo(EstadoMiniObjetivo.EN_CURSO);
-        assertThat(result.titulo()).isEqualTo(TITULO);
-        assertThat(result.justificacion()).isEqualTo(JUSTIFICACION);
-        assertThat(result.referencia()).isEqualTo(PRODUCTO);
-        assertThat(result.registroId()).isEqualTo(PRODUCTO_ID);
-        assertThat(result.valorInicial()).isEqualTo(VALOR_INICIAL);
-        assertThat(result.valorActual()).isEqualTo(new BigDecimal("13391.50"));
-        assertThat(result.meta()).isEqualTo(META_MINI);
-        assertThat(result.avance()).isEqualByComparingTo("0.5");
-        assertThat(result.aporteEstimado()).isEqualTo(APORTE);
-        assertThat(result.semanaInicio()).isEqualTo(SEMANA);
-        assertThat(result.textoConIa()).isTrue();
+        thenSeCopianTodosLosDatosConSentidoYAvance();
     }
 
     @Test
     @DisplayName("Un mini-objetivo manual copia su texto y deja sin números todo lo medido")
     void deShouldLeaveTheNumbersEmptyForAManualMini() {
-        MiniObjetivoItem result = MiniObjetivoItem.de(miniManual());
+        givenUnManual();
 
-        assertThat(result.id()).isEqualTo(OTRO_MINI_ID);
-        assertThat(result.posicion()).isEqualTo(2);
-        assertThat(result.modo()).isEqualTo(ModoMiniObjetivo.MANUAL);
-        assertThat(result.estado()).isEqualTo(EstadoMiniObjetivo.EN_CURSO);
-        assertThat(result.titulo()).isEqualTo(TITULO_MANUAL);
-        assertThat(result.justificacion()).isEqualTo(JUSTIFICACION_MANUAL);
-        assertThat(result.semanaInicio()).isEqualTo(SEMANA);
-        assertThat(result.textoConIa()).isTrue();
-        assertThat(result.tipo()).isNull();
-        assertThat(result.sentido()).isNull();
-        assertThat(result.referencia()).isNull();
-        assertThat(result.registroId()).isNull();
-        assertThat(result.valorInicial()).isNull();
-        assertThat(result.valorActual()).isNull();
-        assertThat(result.meta()).isNull();
-        assertThat(result.avance()).isNull();
-        assertThat(result.aporteEstimado()).isNull();
+        whenSeArmaElItem();
+
+        thenSeCopiaElTextoYNoHayNumeros();
+    }
+
+    // --- arrange ---
+    private void givenUnMedidoConIa() {
+        mini = miniObjetivo();
+        mini.setValorActual(VALOR_ACTUAL);
+        mini.setTextoConIa(true);
+    }
+
+    private void givenUnManual() {
+        mini = miniManual();
+    }
+
+    // --- act ---
+    private void whenSeArmaElItem() {
+        item = MiniObjetivoItem.de(mini);
+    }
+
+    // --- assert ---
+    private void thenSeCopianTodosLosDatosConSentidoYAvance() {
+        assertThat(item.id()).isEqualTo(MINI_ID);
+        assertThat(item.posicion()).isEqualTo(1);
+        assertThat(item.modo()).isEqualTo(ModoMiniObjetivo.MEDIDO);
+        assertThat(item.tipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
+        assertThat(item.sentido()).isEqualTo(SentidoMiniObjetivo.SUBE);
+        assertThat(item.estado()).isEqualTo(EstadoMiniObjetivo.EN_CURSO);
+        assertThat(item.titulo()).isEqualTo(TITULO);
+        assertThat(item.justificacion()).isEqualTo(JUSTIFICACION);
+        assertThat(item.referencia()).isEqualTo(PRODUCTO);
+        assertThat(item.registroId()).isEqualTo(PRODUCTO_ID);
+        assertThat(item.valorInicial()).isEqualTo(VALOR_INICIAL);
+        assertThat(item.valorActual()).isEqualTo(VALOR_ACTUAL);
+        assertThat(item.meta()).isEqualTo(META_MINI);
+        assertThat(item.avance()).isEqualByComparingTo("0.5");
+        assertThat(item.aporteEstimado()).isEqualTo(APORTE);
+        assertThat(item.semanaInicio()).isEqualTo(SEMANA);
+        assertThat(item.textoConIa()).isTrue();
+    }
+
+    private void thenSeCopiaElTextoYNoHayNumeros() {
+        assertThat(item.id()).isEqualTo(OTRO_MINI_ID);
+        assertThat(item.posicion()).isEqualTo(2);
+        assertThat(item.modo()).isEqualTo(ModoMiniObjetivo.MANUAL);
+        assertThat(item.estado()).isEqualTo(EstadoMiniObjetivo.EN_CURSO);
+        assertThat(item.titulo()).isEqualTo(TITULO_MANUAL);
+        assertThat(item.justificacion()).isEqualTo(JUSTIFICACION_MANUAL);
+        assertThat(item.semanaInicio()).isEqualTo(SEMANA);
+        assertThat(item.textoConIa()).isTrue();
+        assertThat(item.tipo()).isNull();
+        assertThat(item.sentido()).isNull();
+        assertThat(item.referencia()).isNull();
+        assertThat(item.registroId()).isNull();
+        assertThat(item.valorInicial()).isNull();
+        assertThat(item.valorActual()).isNull();
+        assertThat(item.meta()).isNull();
+        assertThat(item.avance()).isNull();
+        assertThat(item.aporteEstimado()).isNull();
     }
 }
