@@ -242,14 +242,14 @@ body:has(.inicio) {
   font-size: 14px;
 }
 
-/* Cuadernos guardados: tapa de color con su lomo de espiral */
-.inicio-cuadernos {
+/* Secciones guardadas: tapa de color con su lomo de espiral */
+.inicio-sistemas {
   display: flex;
   flex-wrap: wrap;
   gap: 26px;
   padding: 6px 4px;
 }
-.inicio-cuaderno {
+.inicio-sistema {
   display: flex;
   width: 220px;
   min-height: 150px;
@@ -263,33 +263,33 @@ body:has(.inicio) {
   box-shadow: 0 14px 24px -18px color-mix(in srgb, var(--accent) 80%, #000);
   transition: transform 0.25s cubic-bezier(0.3, 1.4, 0.5, 1);
 }
-.inicio-cuaderno:hover,
-.inicio-cuaderno:focus-visible {
+.inicio-sistema:hover,
+.inicio-sistema:focus-visible {
   transform: translateY(-3px);
 }
-.inicio-cuaderno-lomo {
+.inicio-sistema-lomo {
   flex-shrink: 0;
   width: 22px;
   background:
     radial-gradient(circle, #fff 3.5px, transparent 4px) center 6px / 22px 18px repeat-y,
     color-mix(in srgb, var(--accent) 75%, #000);
 }
-.inicio-cuaderno-tapa {
+.inicio-sistema-tapa {
   display: flex;
   flex-direction: column;
   gap: 4px;
   padding: 18px 18px 16px;
 }
-.inicio-cuaderno-tapa .icon {
+.inicio-sistema-tapa .icon {
   width: 28px;
   height: 28px;
   margin-bottom: auto;
 }
-.inicio-cuaderno-tapa strong {
+.inicio-sistema-tapa strong {
   margin-top: 18px;
   font-size: 17px;
 }
-.inicio-cuaderno-tapa span {
+.inicio-sistema-tapa span {
   font-size: 12px;
   opacity: 0.9;
 }
@@ -442,7 +442,7 @@ body:has(.inicio) {
   .inicio-plantillas {
     grid-template-columns: 1fr;
   }
-  .inicio-cuaderno {
+  .inicio-sistema {
     width: calc(50% - 13px);
     min-width: 150px;
   }
@@ -451,32 +451,14 @@ body:has(.inicio) {
   .inicio-ficha,
   .inicio-ficha-flecha,
   .inicio-atajo-icono,
-  .inicio-cuaderno,
+  .inicio-sistema,
   .inicio-plantilla {
     transition: none;
   }
 }
 
-/* «Mis cuadernos»: su propia pantalla, con las tapas de color y las maneras de crear uno nuevo */
-.cuadernos-cabeza {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 28px;
-}
-.cuadernos-cabeza h1 {
-  margin: 8px 0 6px;
-  color: var(--petrol);
-  font-size: clamp(32px, 5vw, 46px);
-}
-.cuadernos-cabeza p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 16px;
-}
-.cuadernos-etiqueta {
+/* «Tu negocio» del Inicio: nombre y rubro, las secciones como tapas de color y la forma de crear una nueva */
+.tu-negocio-etiqueta {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -489,37 +471,11 @@ body:has(.inicio) {
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-.cuadernos-etiqueta .icon {
+.tu-negocio-etiqueta .icon {
   width: 14px;
   height: 14px;
 }
-.cuadernos-cifras {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.cuadernos-cifras span {
-  padding: 8px 16px;
-  border-radius: 999px;
-  background: var(--orange);
-  color: white;
-  font-size: 14px;
-}
-.cuadernos-cifras span[data-color='blue'] {
-  background: var(--blue);
-}
-.cuadernos-cifras strong {
-  font-size: 18px;
-}
-.cuadernos-lista {
-  display: grid;
-  gap: 18px;
-  margin-bottom: 44px;
-}
-.cuadernos-buscar {
-  max-width: 420px;
-}
-.cuadernos-grilla {
+.sistemas-grilla {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: 28px 24px;
@@ -527,69 +483,28 @@ body:has(.inicio) {
   padding: 6px 4px;
   list-style: none;
 }
-.cuadernos-item {
+.sistemas-item {
   display: grid;
   gap: 10px;
 }
-.cuadernos-item .inicio-cuaderno {
+.sistemas-item .inicio-sistema {
   width: 100%;
   min-height: 170px;
 }
-.cuadernos-ajustar {
-  display: inline-flex;
-  align-items: center;
-  justify-self: start;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 2px solid var(--orange);
-  border-radius: 999px;
-  background: white;
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 700;
+.sistemas-nueva {
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+  margin-top: 22px;
 }
-.cuadernos-ajustar:hover {
-  background: var(--orange);
-  color: white;
+.sistemas-nueva-opciones {
+  display: grid;
+  gap: 12px;
+  width: 100%;
 }
-.cuadernos-ajustar .icon {
-  width: 14px;
-  height: 14px;
-}
-.cuadernos-sin-resultados {
+.sistemas-nueva-opciones p {
   margin: 0;
   color: var(--muted);
-}
-.cuadernos-vacio {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  margin-bottom: 36px;
-  padding: 26px 30px;
-  border-radius: 28px;
-  background: var(--petrol);
-  color: white;
-}
-.cuadernos-vacio img {
-  flex: none;
-  width: 130px;
-  height: auto;
-}
-.cuadernos-vacio h2 {
-  margin: 0 0 6px;
-  color: white;
-  font-size: clamp(24px, 3.5vw, 32px);
-}
-.cuadernos-page .cuadernos-vacio p {
-  margin: 0;
-  color: white;
-  font-size: 17px;
-}
-@media (max-width: 600px) {
-  .cuadernos-vacio {
-    flex-direction: column;
-    text-align: center;
-  }
 }
 
 /* Panel del negocio: las métricas y el flujo de caja de los últimos días, arriba de todo */
@@ -990,7 +905,7 @@ body:has(.inicio) {
   }
 }
 
-/* Bienvenida compacta: para quien ya tiene un cuaderno y ve debajo el panel de su negocio */
+/* Bienvenida compacta: para quien ya tiene una sección y ve debajo el panel de su negocio */
 .inicio-bienvenida {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 2.1fr);

@@ -41,7 +41,7 @@ export function TablaCompleta({
   bloque,
   sistema,
   onRegistro,
-  textoVolver = 'Volver al cuaderno',
+  textoVolver = 'Volver a la sección',
   nuevas = SIN_NUEVAS,
 }: Props) {
   const verTablaCompleta = useSistemaStore((estado) => estado.verTablaCompleta);
@@ -219,7 +219,9 @@ export function TablaCompleta({
                           : ''
                       }
                     >
-                      {indice === 0 && nuevas.has(fila.id) && <em className="nuevo-badge">Nuevo</em>}
+                      {indice === 0 && nuevas.has(fila.id) && (
+                        <em className="nuevo-badge">Nuevo</em>
+                      )}
                       <ValorDeCampo sistema={sistema} campo={campo} valor={fila[campo.key]} />
                     </td>
                   ))}

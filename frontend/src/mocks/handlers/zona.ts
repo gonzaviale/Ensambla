@@ -128,10 +128,15 @@ export const handlersZona = [
     if (body.punto) {
       const { latitud, longitud } = body.punto;
       if (typeof latitud !== 'number' || typeof longitud !== 'number')
-        return errorResponse(400, 'El punto elegido tiene que tener latitud y longitud válidas', pathDe(request));
-      const cercana = ZONAS.map((zona) => ({ zona, km: distanciaEnKm({ latitud, longitud }, zona) })).sort(
-        (a, b) => a.km - b.km,
-      )[0];
+        return errorResponse(
+          400,
+          'El punto elegido tiene que tener latitud y longitud válidas',
+          pathDe(request),
+        );
+      const cercana = ZONAS.map((zona) => ({
+        zona,
+        km: distanciaEnKm({ latitud, longitud }, zona),
+      })).sort((a, b) => a.km - b.km)[0];
       if (!cercana || cercana.km > 8)
         return errorResponse(
           400,
@@ -148,7 +153,9 @@ export const handlersZona = [
     }
     const puntoPuntuado = zonaDelPunto ? puntuar(zonaDelPunto, filtros) : null;
     const rankingConPunto = puntoPuntuado
-      ? [...resultado.ranking, puntoPuntuado].sort((a, b) => b.puntaje - a.puntaje || a.distanciaKm - b.distanciaKm)
+      ? [...resultado.ranking, puntoPuntuado].sort(
+          (a, b) => b.puntaje - a.puntaje || a.distanciaKm - b.distanciaKm,
+        )
       : resultado.ranking;
     const idDe = (id: string) => {
       if (id === 'punto-elegido') return ID_DEL_PUNTO_ELEGIDO;

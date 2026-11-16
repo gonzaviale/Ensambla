@@ -22,7 +22,7 @@ import { useAccionesDeAvisos } from '@/hooks/avisos/useAccionesDeAvisos';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { useAnalisisDeOtraZona } from '@/hooks/zona/useAnalisisDeOtraZona';
 import { useZona, useZonaDeLoQueSeVende } from '@/hooks/zona/queries';
-import { useSistemaStore } from '@/stores/sistemaStore';
+import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
 
 type Vista = 'precios' | 'cerca' | 'otra';
 
@@ -88,48 +88,48 @@ function SinDatosSuficientes({ zona }: { zona: Zona }) {
 export function ZonaPage() {
   useTituloPagina('Mi zona');
   const zona = useZona();
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
+  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
   const [vista, setVista] = useState<Vista>('precios');
   const propios = useMemo(() => productosPropios(sistemas), [sistemas]);
   const { titulo, texto } = TITULOS[vista];
 
   return (
     <main id="main" tabIndex={-1} className="page-wrap zona-page reveal">
-        <Link className="text-link" to="/ubicacion">
-          Probar ubicación y rubro de mi comercio
-        </Link>
-        <div className="zona-cabeza">
-          <div className="page-title">
-            <div className="eyebrow">
-              DATOS DE {zona.nombre ? zona.nombre.toUpperCase() : 'TU ZONA'}
-            </div>
-            <h1>{titulo}</h1>
-            <p>{texto}</p>
+      <Link className="text-link" to="/ubicacion">
+        Probar ubicación y rubro de mi comercio
+      </Link>
+      <div className="zona-cabeza">
+        <div className="page-title">
+          <div className="eyebrow">
+            DATOS DE {zona.nombre ? zona.nombre.toUpperCase() : 'TU ZONA'}
           </div>
-          <div className="zona-vistas" role="tablist" aria-label="Qué querés ver">
-            {VISTAS.map(({ clave, etiqueta, icono }) => (
-              <button
-                key={clave}
-                type="button"
-                role="tab"
-                aria-selected={vista === clave}
-                className={vista === clave ? 'active' : ''}
-                onClick={() => setVista(clave)}
-              >
-                <Icon name={icono} /> {etiqueta}
-              </button>
-            ))}
-          </div>
+          <h1>{titulo}</h1>
+          <p>{texto}</p>
         </div>
-        {vista === 'precios' && (
-          <>
-            <VistaDePrecios zona={zona} propios={propios} titulo={`Precios en ${zona.nombre}`} />
-            <ContenidoPremium acceso={zona.acceso} recurso="recomendaciones" compacto />
-          </>
-        )}
-        {vista === 'cerca' && <VistaDeLoQueSeVende zona={zona} />}
-        {vista === 'otra' && <VistaDeOtraZona />}
-        <PageFooter />
+        <div className="zona-vistas" role="tablist" aria-label="Qué querés ver">
+          {VISTAS.map(({ clave, etiqueta, icono }) => (
+            <button
+              key={clave}
+              type="button"
+              role="tab"
+              aria-selected={vista === clave}
+              className={vista === clave ? 'active' : ''}
+              onClick={() => setVista(clave)}
+            >
+              <Icon name={icono} /> {etiqueta}
+            </button>
+          ))}
+        </div>
+      </div>
+      {vista === 'precios' && (
+        <>
+          <VistaDePrecios zona={zona} propios={propios} titulo={`Precios en ${zona.nombre}`} />
+          <ContenidoPremium acceso={zona.acceso} recurso="recomendaciones" compacto />
+        </>
+      )}
+      {vista === 'cerca' && <VistaDeLoQueSeVende zona={zona} />}
+      {vista === 'otra' && <VistaDeOtraZona />}
+      <PageFooter />
     </main>
   );
 }
@@ -201,7 +201,7 @@ function VistaDePrecios({
 // `zona` es la de «Precios» (primero lo que ya tenés): sirve para el resumen lateral, que compara tus precios. La lista
 // sale de la zona de esta pestaña, que prioriza lo que todavía no tenés y gasta su propio cupo del plan gratuito.
 function VistaDeLoQueSeVende({ zona }: { zona: Zona }) {
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
+  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
   const acciones = useAccionesDeAvisos();
   const propios = useMemo(() => productosPropios(sistemas), [sistemas]);
   const cerca = useZonaDeLoQueSeVende(!sinSuficientes(zona));
@@ -247,7 +247,7 @@ function VistaDeLoQueSeVende({ zona }: { zona: Zona }) {
         <section className="zona-panel">
           {!destino && (
             <div className="info-box">
-              Para sumar productos a tu inventario necesitás un cuaderno con un bloque de
+              Para sumar productos a tu inventario necesitás una sección con un bloque de
               Inventario.
             </div>
           )}
@@ -339,7 +339,7 @@ const TEXTOS_DEL_MARCADOR = {
 };
 
 function VistaDeOtraZona() {
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
+  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
   const propios = useMemo(() => productosPropios(sistemas), [sistemas]);
   const estado = useAnalisisDeOtraZona();
   const resultado = estado.resultado;

@@ -48,16 +48,22 @@ describe('inicio', () => {
     );
   });
 
-  it('«Mis cuadernos» lleva a su propia pantalla', async () => {
-    const { user, router } = await abrirInicio(true);
-    expect(screen.queryByRole('button', { name: /Mi almacén/ })).toBeNull();
+  it('el menú de arriba ya no tiene «Mis cuadernos»: el negocio y sus secciones están en el Inicio', async () => {
+    await abrirInicio(true);
 
-    await clickButton(user, 'Mis cuadernos');
+    const menu = screen.getByRole('navigation', { name: 'Principal' });
 
-    await verifyPathAsync(router, '/cuadernos');
-    expect(
-      await screen.findByRole('heading', { level: 1, name: 'Mis cuadernos' }, ESPERA),
-    ).toBeVisible();
+    expect(within(menu).queryByRole('button', { name: /Mis (cuadernos|secciones)/ })).toBeNull();
+    expect(within(menu).getByRole('button', { name: 'Inicio' })).toBeVisible();
+  });
+
+  it('un enlace viejo a /cuadernos lleva al Inicio', async () => {
+    setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+
+    const router = renderApp('/cuadernos');
+
+    await verifyPathAsync(router, '/inicio');
+    await verifyHeadingPresentAsync(/En qué puedo/);
   });
 
   it('el menú hamburguesa (celular) abre las secciones y se cierra al elegir una', async () => {
@@ -70,9 +76,9 @@ describe('inicio', () => {
       'aria-expanded',
       'true',
     );
-    await clickButton(user, 'Mis cuadernos');
+    await clickButton(user, 'Objetivos');
 
-    await verifyPathAsync(router, '/cuadernos');
+    await verifyPathAsync(router, '/objetivos');
     expect(screen.getByRole('button', { name: 'Abrir el menú' })).toHaveAttribute(
       'aria-expanded',
       'false',
@@ -98,7 +104,7 @@ describe('plantillas', () => {
     const tarjeta = document.querySelector<HTMLElement>('[data-template="business"]');
     if (!tarjeta) throw new Error('Falta la tarjeta de la plantilla');
 
-    await user.click(within(tarjeta).getByRole('button', { name: /Ver el cuaderno/ }));
+    await user.click(within(tarjeta).getByRole('button', { name: /Ver la sección/ }));
     const modal = await screen.findByRole('dialog');
     expect(
       within(modal).getByRole('heading', { name: /Pedidos y clientes, a tu manera/ }),

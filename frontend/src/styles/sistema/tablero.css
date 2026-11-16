@@ -39,12 +39,12 @@
   box-shadow: inset 0 0 0 2px #fff;
 }
 .selector-periodo button:focus-visible,
-.selector-cuaderno:focus-visible {
+.selector-sistema:focus-visible {
   outline: 3px solid var(--yellow);
   outline-offset: 2px;
 }
 
-.selector-cuaderno {
+.selector-sistema {
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
@@ -55,14 +55,14 @@
   font-weight: 800;
   border-bottom: 3px solid var(--orange);
 }
-/* Con varios cuadernos: un botón con el nombre y una lista propia, del mismo estilo que el resto. */
-.selector-cuaderno-caja {
+/* Con varios secciones: un botón con el nombre y una lista propia, del mismo estilo que el resto. */
+.selector-sistema-caja {
   position: relative;
   display: inline-block;
   min-width: 0;
   max-width: 100%;
 }
-.selector-cuaderno-boton {
+.selector-sistema-boton {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -72,24 +72,24 @@
   background: transparent;
   cursor: pointer;
 }
-.selector-cuaderno-boton span {
+.selector-sistema-boton span {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.selector-cuaderno-boton .icon {
+.selector-sistema-boton .icon {
   flex-shrink: 0;
   width: 18px;
   height: 18px;
   transition: transform 0.2s ease;
 }
-.selector-cuaderno-boton[aria-expanded='true'] .icon {
+.selector-sistema-boton[aria-expanded='true'] .icon {
   transform: rotate(180deg);
 }
-.selector-cuaderno-boton:hover {
+.selector-sistema-boton:hover {
   border-bottom-color: var(--blue);
 }
-.selector-cuaderno-lista {
+.selector-sistema-lista {
   position: absolute;
   top: calc(100% + 10px);
   left: 0;
@@ -110,10 +110,10 @@
     0 2px 6px rgb(0 80 106 / 0.08);
   animation: lista-aparece 0.16s ease both;
 }
-.selector-cuaderno-lista:focus {
+.selector-sistema-lista:focus {
   outline: none;
 }
-.selector-cuaderno-lista li {
+.selector-sistema-lista li {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -124,28 +124,28 @@
   font-weight: 600;
   cursor: pointer;
 }
-.selector-cuaderno-lista li[data-marcado='true'] {
+.selector-sistema-lista li[data-marcado='true'] {
   background: var(--soft);
 }
-.selector-cuaderno-lista li[aria-selected='true'] {
+.selector-sistema-lista li[aria-selected='true'] {
   color: var(--petrol);
   font-weight: 800;
 }
-.selector-cuaderno-punto {
+.selector-sistema-punto {
   flex-shrink: 0;
   width: 12px;
   height: 12px;
   border-radius: 50%;
   background: var(--accent);
 }
-.selector-cuaderno-nombre {
+.selector-sistema-nombre {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.selector-cuaderno-lista li .icon {
+.selector-sistema-lista li .icon {
   flex-shrink: 0;
   width: 18px;
   height: 18px;
@@ -289,7 +289,7 @@
   letter-spacing: -0.04em;
   color: var(--petrol);
 }
-.tablero-cuaderno {
+.tablero-sistema {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;

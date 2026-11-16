@@ -35,7 +35,7 @@ const abrirTaller = async () => {
 const conPropuesta = async () => {
   const taller = await abrirTaller();
   await clickButton(taller.user, /Almacén o kiosco/);
-  await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA);
+  await screen.findByLabelText('Nombre de tu sección', {}, ESPERA);
   return taller;
 };
 
@@ -52,7 +52,7 @@ const piezas = () =>
 
 const cantidadDePiezas = () => document.querySelectorAll('#draft-canvas > .block').length;
 
-// Las piezas, las secciones y la distribución se tocan desde los íconos desplegables, como en el cuaderno.
+// Las piezas, las pestañas y la distribución se tocan desde los íconos desplegables, como en la sección.
 const abrirAgregarYOrganizar = (user: ReturnType<typeof userEvent.setup>) =>
   user.click(screen.getByRole('button', { name: 'Agregar y organizar' }));
 
@@ -139,7 +139,7 @@ describe('el taller de Sami', () => {
   it('con un ejemplo Sami arma una base que se ve a la derecha', async () => {
     await conPropuesta();
 
-    expect(screen.getByLabelText('Nombre de tu cuaderno')).toHaveValue('Mi almacén');
+    expect(screen.getByLabelText('Nombre de tu sección')).toHaveValue('Mi almacén');
     expect(screen.queryByText(/sin guardar/i)).toBeNull();
     expect(screen.getByText(/^Te armé los productos/)).toBeVisible();
     expect(screen.getByText('Ya lo podés ver a la derecha.')).toBeVisible();
@@ -271,11 +271,11 @@ describe('el taller de Sami', () => {
 
   it('crear el sistema lo guarda sin los ejemplos y lo abre listo para usar', async () => {
     const { user, router } = await conPropuesta();
-    const nombre = screen.getByLabelText('Nombre de tu cuaderno');
+    const nombre = screen.getByLabelText('Nombre de tu sección');
     await user.clear(nombre);
     await user.type(nombre, 'Almacén Don Luis');
 
-    await clickButton(user, /Sí, crear mi cuaderno/);
+    await clickButton(user, /Sí, crear mi sección/);
 
     await waitFor(() => expect(useSistemaStore.getState().sistemas).toHaveLength(1), ESPERA);
     const [sistema] = useSistemaStore.getState().sistemas;

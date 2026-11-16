@@ -20,4 +20,3 @@ const environment: Environment = {
 };
 
 export default environment;
-

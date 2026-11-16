@@ -8,9 +8,9 @@ import { seleccionarSistemaActivo, useSistemaStore } from '@/stores/sistemaStore
 
 const registros = (cantidad: number) => (cantidad === 1 ? '1 registro' : `${cantidad} registros`);
 
-// Eliminar un cuaderno no tiene vuelta atrás: se muestran sus tablas y hay que escribir el nombre exacto
+// Eliminar una sección no tiene vuelta atrás: se muestran sus tablas y hay que escribir el nombre exacto
 // para habilitar el botón. El borrado en el servidor lo manda useSincronizarSistemas.
-export function ModalEliminarCuaderno() {
+export function ModalEliminarSistema() {
   const sistema = useSistemaStore(seleccionarSistemaActivo);
   const cerrarModal = useSistemaStore((estado) => estado.cerrarModal);
   const navegacion = useNavegacion();
@@ -24,8 +24,8 @@ export function ModalEliminarCuaderno() {
     evento.preventDefault();
     if (!coincide) return;
     const { id, name } = sistema;
-    // Primero se sale de la pantalla del cuaderno; si no, al desaparecer manda al inicio.
-    void navegacion.irAMisSistemas().then(() => {
+    // Primero se sale de la pantalla de la sección; si no, al desaparecer manda al inicio.
+    void navegacion.irAInicio().then(() => {
       const estado = useSistemaStore.getState();
       estado.eliminarSistema(id);
       estado.avisar(`Eliminamos «${name}».`);
@@ -33,35 +33,35 @@ export function ModalEliminarCuaderno() {
   };
 
   return (
-    <Modal clase="modal-eliminar-cuaderno">
+    <Modal clase="modal-eliminar-sistema">
       <div className="icon-tile large" style={varsDeColor('coral')}>
         <Icon name="trash" />
       </div>
       <h2 id="modal-title">¿Eliminar «{sistema.name}»?</h2>
       <p>
-        Se borra el cuaderno con todo lo que tiene adentro. <strong>No se puede deshacer.</strong>
+        Se borra la sección con todo lo que tiene adentro. <strong>No se puede deshacer.</strong>
       </p>
       {tablas.length > 0 ? (
         <>
-          <p className="eliminar-cuaderno-subtitulo">
+          <p className="eliminar-sistema-subtitulo">
             {tablas.length === 1
               ? 'Esta tabla se pierde:'
               : `Estas ${tablas.length} tablas se pierden:`}
           </p>
-          <ul className="eliminar-cuaderno-tablas" aria-label="Tablas que se eliminan">
+          <ul className="eliminar-sistema-tablas" aria-label="Tablas que se eliminan">
             {tablas.map((tabla) => (
               <li key={tabla.id}>
-                <span className="eliminar-cuaderno-punto" style={varsDeColor(tabla.color)} />
-                <span className="eliminar-cuaderno-nombre">{tabla.name}</span>
+                <span className="eliminar-sistema-punto" style={varsDeColor(tabla.color)} />
+                <span className="eliminar-sistema-nombre">{tabla.name}</span>
                 {tabla.fields.length > 0 && (
-                  <span className="eliminar-cuaderno-cantidad">{registros(tabla.rows.length)}</span>
+                  <span className="eliminar-sistema-cantidad">{registros(tabla.rows.length)}</span>
                 )}
               </li>
             ))}
           </ul>
         </>
       ) : (
-        <p className="eliminar-cuaderno-subtitulo">Este cuaderno no tiene tablas.</p>
+        <p className="eliminar-sistema-subtitulo">Esta sección no tiene tablas.</p>
       )}
       <form onSubmit={eliminar}>
         <div className="field">

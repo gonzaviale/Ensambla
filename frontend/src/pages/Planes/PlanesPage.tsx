@@ -126,7 +126,7 @@ export function PlanesPage() {
               </div>
               <dl className="plan-usage-grid">
                 <Uso
-                  titulo="Cuadernos"
+                  titulo="Negocios"
                   cantidad={datos.uso.proyectos}
                   limite={actual.limiteProyectos}
                 />
@@ -136,7 +136,9 @@ export function PlanesPage() {
                   limite={actual.limiteRegistros}
                 />
                 <Uso
-                  titulo={esPrueba ? 'Análisis de foto de la prueba' : 'Análisis de foto de este mes'}
+                  titulo={
+                    esPrueba ? 'Análisis de foto de la prueba' : 'Análisis de foto de este mes'
+                  }
                   cantidad={datos.uso.paginasIa}
                   limite={datos.uso.limitePaginasIa}
                 />
@@ -151,14 +153,14 @@ export function PlanesPage() {
               datos.uso.limitePaginasIa !== null &&
               datos.uso.paginasIa >= datos.uso.limitePaginasIa ? (
                 <p className="plan-quota-notice" role="status">
-                  Usaste los análisis de foto incluidos. Las demás funciones premium siguen disponibles
-                  hasta que termine la prueba.
+                  Usaste los análisis de foto incluidos. Las demás funciones premium siguen
+                  disponibles hasta que termine la prueba.
                 </p>
               ) : null}
             </section>
             <div className="plans-section-heading">
               <h2>Qué incluye cada plan</h2>
-              <p>Los límites son para todo tu negocio.</p>
+              <p>El plan es de tu cuenta y vale para todos tus negocios.</p>
             </div>
             <section className="plans-grid" aria-label="Comparación de planes">
               {datos.planes.map((plan) => (
@@ -179,7 +181,7 @@ export function PlanesPage() {
               <div>
                 <h2 id="plans-data-title">Tus datos tienen su lugar.</h2>
                 <p>
-                  Cuando termina la prueba conservás tus cuadernos, registros y recetas. Podés
+                  Cuando termina la prueba conservás tus secciones, registros y recetas. Podés
                   consultar y editar tus datos; las nuevas altas y las funciones premium respetan
                   los límites del plan gratuito.
                 </p>

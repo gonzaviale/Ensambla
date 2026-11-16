@@ -46,7 +46,6 @@ export function useNavegacion() {
   const irA = (
     to:
       | '/inicio'
-      | '/cuadernos'
       | '/plantillas'
       | '/taller'
       | '/zona'
@@ -100,7 +99,9 @@ export function useNavegacion() {
       );
       estado.actualizarTaller({ foto, enviarAlAbrir: MENSAJE_DE_LA_FOTO });
       limpiar();
-      return sistema ? navigate({ to: '/taller', search: { sistema: sistema.id } }) : navigate({ to: '/taller' });
+      return sistema
+        ? navigate({ to: '/taller', search: { sistema: sistema.id } })
+        : navigate({ to: '/taller' });
     },
     irAZona: () => irA('/zona'),
     /** El avatar: la configuración de la cuenta, en la sección que se pida (el perfil, si no). */
@@ -142,11 +143,9 @@ export function useNavegacion() {
           .avisar(
             error instanceof ApiError
               ? `${error.message}${error.status === 403 && error.codigo ? ' Revisá los beneficios de Premium en Planes.' : ''}`
-              : 'No pudimos crear tu cuaderno. Tus datos todavía no se guardaron. Probá de nuevo.',
+              : 'No pudimos crear tu sección. Tus datos todavía no se guardaron. Probá de nuevo.',
           );
       }
     },
-    /** «Mis cuadernos»: la pantalla con todos los cuadernos y las maneras de crear uno. */
-    irAMisSistemas: () => irA('/cuadernos'),
   };
 }

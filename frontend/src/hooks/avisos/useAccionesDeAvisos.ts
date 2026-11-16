@@ -25,7 +25,7 @@ export function useAccionesDeAvisos() {
   const navegacion = useNavegacion();
   const abrirAvisos = useAbrirAvisos();
 
-  // Abre el sistema, va a la sección del bloque y marca con el marco animado el registro (o la tabla, si no se
+  // Abre el sistema, va a la pestaña del bloque y marca con el marco animado el registro (o la tabla, si no se
   // sabe cuál). Si hace falta, abre el formulario de un registro nuevo.
   const irAlBloque = async (
     sistemaId: string,
@@ -46,13 +46,15 @@ export function useAccionesDeAvisos() {
       item.blocks.some((bloque) => bloque.id === bloqueId),
     );
     if (seccion && seccion.id !== store.sectionId) store.elegirSeccion(seccion.id);
-    // La tabla dibuja de a tandas: con la sección ya a la vista se le pide el registro y, cuando lo dibujó, se lo marca.
+    // La tabla dibuja de a tandas: con la pestaña ya a la vista se le pide el registro y, cuando lo dibujó, se lo marca.
     setTimeout(() => {
       if (filaId) pedirMostrarFila(bloqueId, filaId);
       setTimeout(
         () => {
           const bloque = document.querySelector(`[data-block="${CSS.escape(bloqueId)}"]`);
-          const fila = filaId ? bloque?.querySelector(`[data-record="${CSS.escape(filaId)}"]`) : null;
+          const fila = filaId
+            ? bloque?.querySelector(`[data-record="${CSS.escape(filaId)}"]`)
+            : null;
           const objetivo = fila ?? bloque;
           objetivo?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
           resaltar(objetivo);
@@ -148,7 +150,7 @@ export function useAccionesDeAvisos() {
       .avisar('Cargamos un almacén con muchos datos. Sami ya lo está mirando.');
   };
 
-  /** Lleva a un registro (o a una tabla) del cuaderno y lo marca. */
+  /** Lleva a un registro (o a una tabla) de la sección y lo marca. */
   const irAlObjeto = (destino: { sistemaId: string; bloqueId: string; filaId?: string }) =>
     irAlBloque(destino.sistemaId, destino.bloqueId, { filaId: destino.filaId });
 

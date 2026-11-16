@@ -13,11 +13,11 @@ import {
 const HOY = '2026-10-19';
 
 describe('sistemaDelPanel', () => {
-  it('sin cuadernos no hay panel', () => {
+  it('sin secciones no hay panel', () => {
     expect(sistemaDelPanel([])).toBeNull();
   });
 
-  it('elige el primer cuaderno con ventas aunque no sea el primero de la lista', () => {
+  it('elige la primera sección con ventas aunque no sea la primera de la lista', () => {
     const vacio = makeTemplate('shop', {}, true);
     const cargado = crearAlmacenCargado(HOY);
 
@@ -38,7 +38,7 @@ describe('sistemaDelPanel', () => {
 });
 
 describe('bloqueDeVentas', () => {
-  it('es la tabla de ventas del cuaderno, y nada si no tiene una', () => {
+  it('es la tabla de ventas de la sección, y nada si no tiene una', () => {
     expect(bloqueDeVentas(crearAlmacenCargado(HOY))?.type).toBe('sales');
     expect(bloqueDeVentas(makeTemplate('business', {}, true))).toBeUndefined();
   });
