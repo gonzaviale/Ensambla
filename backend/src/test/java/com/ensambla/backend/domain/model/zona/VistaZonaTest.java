@@ -17,89 +17,89 @@ class VistaZonaTest {
 
     @Test
     @DisplayName("Precios gasta el cupo de la zona")
-    void tipoDeContenidoShouldBeZonaWhenViewIsPrices() {
-        thenElCupoDe(VistaZona.PRECIOS, TipoContenidoPlan.ZONA);
+    void preciosGastaElCupoDeLaZona() {
+        entoncesElCupoDe(VistaZona.PRECIOS, TipoContenidoPlan.ZONA);
     }
 
     @Test
     @DisplayName("Qué se vende cerca gasta su propio cupo")
-    void tipoDeContenidoShouldBeZonaCercaWhenViewIsNearby() {
-        thenElCupoDe(VistaZona.CERCA, TipoContenidoPlan.ZONA_CERCA);
+    void queSeVendeCercaGastaSuPropioCupo() {
+        entoncesElCupoDe(VistaZona.CERCA, TipoContenidoPlan.ZONA_CERCA);
     }
 
     @Test
     @DisplayName("Otra zona gasta su propio cupo")
-    void tipoDeContenidoShouldBeZonaOtraWhenViewIsOtherZone() {
-        thenElCupoDe(VistaZona.OTRA, TipoContenidoPlan.ZONA_OTRA);
+    void otraZonaGastaSuPropioCupo() {
+        entoncesElCupoDe(VistaZona.OTRA, TipoContenidoPlan.ZONA_OTRA);
     }
 
     @Test
     @DisplayName("Precios ordena según el inventario del negocio")
-    void usaInventarioShouldBeTrueWhenViewIsPrices() {
-        thenUsaElInventario(VistaZona.PRECIOS, true);
+    void preciosOrdenaSegunElInventarioDelNegocio() {
+        entoncesUsaElInventario(VistaZona.PRECIOS, true);
     }
 
     @Test
     @DisplayName("Qué se vende cerca ordena según el inventario del negocio")
-    void usaInventarioShouldBeTrueWhenViewIsNearby() {
-        thenUsaElInventario(VistaZona.CERCA, true);
+    void queSeVendeCercaOrdenaSegunElInventarioDelNegocio() {
+        entoncesUsaElInventario(VistaZona.CERCA, true);
     }
 
     @Test
     @DisplayName("Otra zona no mira el inventario del negocio")
-    void usaInventarioShouldBeFalseWhenViewIsOtherZone() {
-        thenUsaElInventario(VistaZona.OTRA, false);
+    void otraZonaNoMiraElInventarioDelNegocio() {
+        entoncesUsaElInventario(VistaZona.OTRA, false);
     }
 
     @Test
     @DisplayName("Precios muestra primero lo que el negocio tiene")
-    void ordenarShouldPutOwnedFirstWhenViewIsPrices() {
-        whenSeOrdenaPara(VistaZona.PRECIOS);
+    void preciosMuestraPrimeroLoQueElNegocioTiene() {
+        cuandoSeOrdenaPara(VistaZona.PRECIOS);
 
-        thenElOrdenEs("Yerba Playadito 500 g", "Azúcar", "Fideos");
+        entoncesElOrdenEs("Yerba Playadito 500 g", "Azúcar", "Fideos");
     }
 
     @Test
     @DisplayName("Qué se vende cerca muestra primero lo más vendido que el negocio todavía no tiene")
-    void ordenarShouldPutBestSellersTheBusinessLacksFirstWhenViewIsNearby() {
-        whenSeOrdenaPara(VistaZona.CERCA);
+    void queSeVendeCercaMuestraPrimeroLoMasVendidoQueElNegocioNoTiene() {
+        cuandoSeOrdenaPara(VistaZona.CERCA);
 
-        thenElOrdenEs("Fideos", "Azúcar", "Yerba Playadito 500 g");
+        entoncesElOrdenEs("Fideos", "Azúcar", "Yerba Playadito 500 g");
     }
 
     @Test
     @DisplayName("Otra zona muestra lo más vendido sin mirar el inventario")
-    void ordenarShouldRankBySalesWhenViewIsOtherZone() {
-        whenSeOrdenaPara(VistaZona.OTRA);
+    void otraZonaMuestraLoMasVendidoSinMirarElInventario() {
+        cuandoSeOrdenaPara(VistaZona.OTRA);
 
-        thenElOrdenEs("Yerba Playadito 500 g", "Fideos", "Azúcar");
+        entoncesElOrdenEs("Yerba Playadito 500 g", "Fideos", "Azúcar");
     }
 
-    private void whenSeOrdenaPara(VistaZona vista) {
-        ordenada = vista.ordenar(givenAnalisis(), PROPIOS);
+    private void cuandoSeOrdenaPara(VistaZona vista) {
+        ordenada = vista.ordenar(dadoAnalisis(), PROPIOS);
     }
 
-    private void thenElCupoDe(VistaZona vista, TipoContenidoPlan esperado) {
+    private void entoncesElCupoDe(VistaZona vista, TipoContenidoPlan esperado) {
         assertThat(vista.tipoDeContenido()).isEqualTo(esperado);
     }
 
-    private void thenUsaElInventario(VistaZona vista, boolean esperado) {
+    private void entoncesUsaElInventario(VistaZona vista, boolean esperado) {
         assertThat(vista.usaInventario()).isEqualTo(esperado);
     }
 
-    private void thenElOrdenEs(String primero, String segundo, String tercero) {
+    private void entoncesElOrdenEs(String primero, String segundo, String tercero) {
         assertThat(ordenada.productos().stream().map(AgregadoZonaProducto::nombre).toList())
                 .containsExactly(primero, segundo, tercero);
     }
 
-    private static AnalisisZona givenAnalisis() {
+    private static AnalisisZona dadoAnalisis() {
         return new AnalisisZona("San Justo", 10, List.of(
-                givenProducto("Azúcar", 4, "20"),
-                givenProducto("Yerba Playadito 500 g", 9, "5"),
-                givenProducto("Fideos", 6, "30")));
+                dadoProducto("Azúcar", 4, "20"),
+                dadoProducto("Yerba Playadito 500 g", 9, "5"),
+                dadoProducto("Fideos", 6, "30")));
     }
 
-    private static AgregadoZonaProducto givenProducto(String nombre, int comerciosVenden, String unidadesSemana) {
+    private static AgregadoZonaProducto dadoProducto(String nombre, int comerciosVenden, String unidadesSemana) {
         return new AgregadoZonaProducto(nombre, 8, comerciosVenden, new BigDecimal("100.00"),
                 new BigDecimal("150.00"), new BigDecimal("200.00"), new BigDecimal(unidadesSemana));
     }

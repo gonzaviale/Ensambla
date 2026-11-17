@@ -17,58 +17,58 @@ class FrasesDeFactorTest {
     @ParameterizedTest
     @EnumSource(FactorDondeAbrir.class)
     @DisplayName("Todo factor sabe decir por qué juega a favor de la zona")
-    void aFavorShouldNotBeBlankWhenFactorIsAny(FactorDondeAbrir factor) {
-        whenSePideLaFraseAFavorDe(factor);
+    void todoFactorSabeDecirPorQueJuegaAFavorDeLaZona(FactorDondeAbrir factor) {
+        cuandoSePideLaFraseAFavorDe(factor);
 
-        thenLaFraseTieneTexto();
+        entoncesLaFraseTieneTexto();
     }
 
     @ParameterizedTest
     @EnumSource(FactorDondeAbrir.class)
     @DisplayName("Todo factor sabe decir por qué es un riesgo para la zona")
-    void enContraShouldNotBeBlankWhenFactorIsAny(FactorDondeAbrir factor) {
-        whenSePideLaFraseEnContraDe(factor);
+    void todoFactorSabeDecirPorQueEsUnRiesgoParaLaZona(FactorDondeAbrir factor) {
+        cuandoSePideLaFraseEnContraDe(factor);
 
-        thenLaFraseTieneTexto();
+        entoncesLaFraseTieneTexto();
     }
 
     @Test
     @DisplayName("La competencia nombra los comercios del rubro y la cantidad medida")
-    void aFavorShouldMentionCompetitorsWhenFactorIsCompetition() {
-        whenSePideLaFraseAFavorDe(FactorDondeAbrir.COMPETENCIA);
+    void laCompetenciaNombraLosComerciosDelRubroYLaCantidadMedida() {
+        cuandoSePideLaFraseAFavorDe(FactorDondeAbrir.COMPETENCIA);
 
-        thenLaFraseEs("Solo 3 kioscos a menos de 500 m");
+        entoncesLaFraseEs("Solo 3 kioscos a menos de 500 m");
     }
 
     @Test
     @DisplayName("La demanda de Ensambla muestra su unidad")
-    void aFavorShouldMentionUnitWhenFactorIsEnsamblaDemand() {
-        whenSePideLaFraseAFavorDe(FactorDondeAbrir.DEMANDA_ENSAMBLA);
+    void laDemandaDeEnsamblaMuestraSuUnidad() {
+        cuandoSePideLaFraseAFavorDe(FactorDondeAbrir.DEMANDA_ENSAMBLA);
 
-        thenLaFraseEs("Demanda observada en comercios de Ensambla (3 ARS)");
+        entoncesLaFraseEs("Demanda observada en comercios de Ensambla (3 ARS)");
     }
 
     @Test
     @DisplayName("Un riesgo de competencia advierte que es fuerte")
-    void enContraShouldWarnAboutStrongCompetitionWhenFactorIsCompetition() {
-        whenSePideLaFraseEnContraDe(FactorDondeAbrir.COMPETENCIA);
+    void unRiesgoDeCompetenciaAdvierteQueEsFuerte() {
+        cuandoSePideLaFraseEnContraDe(FactorDondeAbrir.COMPETENCIA);
 
-        thenLaFraseEs("Hay 3 kioscos a menos de 500 m: la competencia es fuerte");
+        entoncesLaFraseEs("Hay 3 kioscos a menos de 500 m: la competencia es fuerte");
     }
 
-    private void whenSePideLaFraseAFavorDe(FactorDondeAbrir factor) {
+    private void cuandoSePideLaFraseAFavorDe(FactorDondeAbrir factor) {
         frase = FrasesDeFactor.aFavor(factor, MEDIDA);
     }
 
-    private void whenSePideLaFraseEnContraDe(FactorDondeAbrir factor) {
+    private void cuandoSePideLaFraseEnContraDe(FactorDondeAbrir factor) {
         frase = FrasesDeFactor.enContra(factor, MEDIDA);
     }
 
-    private void thenLaFraseTieneTexto() {
+    private void entoncesLaFraseTieneTexto() {
         assertThat(frase).isNotBlank();
     }
 
-    private void thenLaFraseEs(String esperada) {
+    private void entoncesLaFraseEs(String esperada) {
         assertThat(frase).isEqualTo(esperada);
     }
 }
