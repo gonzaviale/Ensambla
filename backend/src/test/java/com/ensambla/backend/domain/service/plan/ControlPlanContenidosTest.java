@@ -29,8 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -45,6 +44,7 @@ class ControlPlanContenidosTest {
             "e0000000-0000-4000-8000-000000000001", "e0000000-0000-4000-8000-000000000002",
             "e0000000-0000-4000-8000-000000000003", "e0000000-0000-4000-8000-000000000004",
             "e0000000-0000-4000-8000-000000000005", "e0000000-0000-4000-8000-000000000006");
+    private static final Set<String> SEIS_CLAVES = Set.of("a", "b", "c", "d", "e", "f");
     private static final LocalDate PERIODO = LocalDate.of(2026, 11, 1);
 
     private final PlanRepository planes = mock(PlanRepository.class);
@@ -55,119 +55,202 @@ class ControlPlanContenidosTest {
             mock(PruebaPremiumRepository.class), new TransaccionDirecta(), mock(NegocioRepository.class),
             AccesoIa.LIBRE);
 
+    private AccesoContenidoItem seleccion;
+    private List<AvisoId> avisosAutorizados;
+    private Throwable rechazo;
+    private AvisoId avisoYaDesbloqueado;
+    private AvisoId avisoNuevo;
+
     @Test
-    @DisplayName("Gratuito admite seis claves distintas y conserva el orden sin cobrar duplicados")
-    void seleccionarShouldLimitUniqueNewContent() {
-        givenPlan(CodigoPlan.GRATUITO);
+    @DisplayName("El plan gratuito admite seis claves distintas en orden sin cobrar duplicados")
+    void elPlanGratuitoAdmiteSeisClavesDistintasEnOrdenSinCobrarDuplicados() {
+        dadoUnNegocioGratuitoSinContenidosDesbloqueados();
+
+        cuandoSeSeleccionanSieteAvisosConUnoRepetido();
+
+        entoncesSeAutorizanSeisAvisosEnOrdenYSeRegistraSuUso();
+    }
+
+    @Test
+    @DisplayName("Reconsultar lo desbloqueado no libera cupo para un séptimo contenido")
+    void reconsultarLoDesbloqueadoNoLiberaCupoParaUnSeptimoContenido() {
+        dadoUnNegocioGratuitoConSeisZonasDesbloqueadas();
+
+        cuandoSeReconsultaUnaZonaDesbloqueadaYSePideUnaNueva();
+
+        entoncesSoloQuedaAutorizadaLaZonaYaDesbloqueada();
+    }
+
+    @Test
+    @DisplayName("El plan premium entrega todo sin gastar los desbloqueos gratuitos")
+    void elPlanPremiumEntregaTodoSinGastarLosDesbloqueosGratuitos() {
+        dadoUnNegocioPremium();
+
+        cuandoSeSeleccionanCuatroAvisos();
+
+        entoncesSeAutorizanLosCuatroSinLimiteNiConsumirCupo();
+    }
+
+    @Test
+    @DisplayName("Una acción directa sobre el séptimo aviso se rechaza por restricción comercial")
+    void unaAccionDirectaSobreElSeptimoAvisoSeRechazaPorRestriccionComercial() {
+        dadoUnNegocioGratuitoConSeisClavesDeAvisosDesbloqueadas();
+
+        cuandoSeExigeAccesoAUnSeptimoAvisoPorClave();
+
+        entoncesSeRechazaPorElLimiteDeContenidosDeAvisos();
+    }
+
+    @Test
+    @DisplayName("Una acción sobre un aviso ya desbloqueado por clave sigue disponible")
+    void unaAccionSobreUnAvisoYaDesbloqueadoPorClaveSigueDisponible() {
+        dadoUnNegocioGratuitoConSeisClavesDeAvisosDesbloqueadas();
+
+        cuandoSeExigeAccesoAUnAvisoDesbloqueadoPorClave();
+
+        entoncesLaAccionSigueDisponible();
+    }
+
+    @Test
+    @DisplayName("Los avisos desbloqueados quedan autorizados y el resto no, en el orden pedido")
+    void losAvisosDesbloqueadosQuedanAutorizadosYElRestoNoEnElOrdenPedido() {
+        dadoUnNegocioGratuitoConSeisAvisosDesbloqueados();
+
+        cuandoSeConsultanUnAvisoNuevoYUnoYaDesbloqueado();
+
+        entoncesSoloQuedaAutorizadoElAvisoYaDesbloqueado();
+    }
+
+    @Test
+    @DisplayName("Una acción sobre un aviso ya desbloqueado sigue disponible sin la clave guardada")
+    void unaAccionSobreUnAvisoYaDesbloqueadoSigueDisponibleSinConocerLaClaveGuardada() {
+        dadoUnNegocioGratuitoConSeisAvisosDesbloqueados();
+
+        cuandoSeExigeAccesoAUnAvisoYaDesbloqueado();
+
+        entoncesLaAccionSigueDisponible();
+    }
+
+    @Test
+    @DisplayName("Una acción sobre un séptimo aviso se rechaza")
+    void unaAccionSobreUnSeptimoAvisoSeRechaza() {
+        dadoUnNegocioGratuitoConSeisAvisosDesbloqueados();
+
+        cuandoSeExigeAccesoAUnSeptimoAviso();
+
+        entoncesSeRechazaPorRestriccionDelPlan();
+    }
+
+    private void dadoUnNegocioGratuitoSinContenidosDesbloqueados() {
+        suscripcionVigenteAlPlan(CodigoPlan.GRATUITO);
         when(acceso.autorizadas(NEGOCIO, TipoContenidoPlan.AVISOS, PERIODO)).thenReturn(new HashSet<>());
+    }
 
-        AccesoContenidoItem resultado = servicio.seleccionar(NEGOCIO, TipoContenidoPlan.AVISOS,
+    private void dadoUnNegocioGratuitoConSeisZonasDesbloqueadas() {
+        suscripcionVigenteAlPlan(CodigoPlan.GRATUITO);
+        when(acceso.autorizadas(NEGOCIO, TipoContenidoPlan.ZONA, PERIODO)).thenReturn(new HashSet<>(SEIS_CLAVES));
+    }
+
+    private void dadoUnNegocioPremium() {
+        suscripcionVigenteAlPlan(CodigoPlan.PREMIUM);
+    }
+
+    private void dadoUnNegocioGratuitoConSeisClavesDeAvisosDesbloqueadas() {
+        suscripcionVigenteAlPlan(CodigoPlan.GRATUITO);
+        when(acceso.autorizadas(NEGOCIO, TipoContenidoPlan.AVISOS, PERIODO)).thenReturn(new HashSet<>(SEIS_CLAVES));
+    }
+
+    private void dadoUnNegocioGratuitoConSeisAvisosDesbloqueados() {
+        suscripcionVigenteAlPlan(CodigoPlan.GRATUITO);
+        when(acceso.autorizadas(NEGOCIO, TipoContenidoPlan.AVISOS, PERIODO))
+                .thenReturn(new HashSet<>(AVISOS_DESBLOQUEADOS));
+        avisoYaDesbloqueado = AvisoId.de(AVISOS_DESBLOQUEADOS.getFirst());
+        avisoNuevo = AvisoId.nuevo();
+    }
+
+    private void cuandoSeSeleccionanSieteAvisosConUnoRepetido() {
+        seleccion = servicio.seleccionar(NEGOCIO, TipoContenidoPlan.AVISOS,
                 List.of("a", "b", "a", "c", "d", "e", "f", "g"), AHORA);
+    }
 
-        assertThat(resultado.autorizadas()).containsExactly("a", "b", "c", "d", "e", "f");
-        assertThat(resultado.usadas()).isEqualTo(6);
-        assertThat(resultado.limite()).isEqualTo(6);
-        assertThat(resultado.total()).isEqualTo(7);
-        assertThat(resultado.bloqueadas()).isEqualTo(1);
-        assertThat(resultado.finPeriodo()).isEqualTo(OffsetDateTime.parse("2026-12-01T03:00:00Z"));
+    private void cuandoSeReconsultaUnaZonaDesbloqueadaYSePideUnaNueva() {
+        seleccion = servicio.seleccionar(NEGOCIO, TipoContenidoPlan.ZONA, List.of("a", "g"),
+                AHORA.withOffsetSameInstant(ZoneOffset.ofHours(-3)));
+    }
+
+    private void cuandoSeSeleccionanCuatroAvisos() {
+        seleccion = servicio.seleccionar(NEGOCIO, TipoContenidoPlan.AVISOS, List.of("a", "b", "c", "d"), AHORA);
+    }
+
+    private void cuandoSeExigeAccesoAUnSeptimoAvisoPorClave() {
+        rechazo = catchThrowable(() -> servicio.exigir(NEGOCIO, TipoContenidoPlan.AVISOS, "g", AHORA));
+    }
+
+    private void cuandoSeExigeAccesoAUnAvisoDesbloqueadoPorClave() {
+        rechazo = catchThrowable(() -> servicio.exigir(NEGOCIO, TipoContenidoPlan.AVISOS, "a", AHORA));
+    }
+
+    private void cuandoSeConsultanUnAvisoNuevoYUnoYaDesbloqueado() {
+        avisosAutorizados = servicio.avisosAutorizados(NEGOCIO, List.of(avisoNuevo, avisoYaDesbloqueado), AHORA);
+    }
+
+    private void cuandoSeExigeAccesoAUnAvisoYaDesbloqueado() {
+        rechazo = catchThrowable(() -> servicio.exigirAccesoAlAviso(NEGOCIO, avisoYaDesbloqueado, AHORA));
+    }
+
+    private void cuandoSeExigeAccesoAUnSeptimoAviso() {
+        rechazo = catchThrowable(() -> servicio.exigirAccesoAlAviso(NEGOCIO, AvisoId.nuevo(), AHORA));
+    }
+
+    private void entoncesSeAutorizanSeisAvisosEnOrdenYSeRegistraSuUso() {
+        entoncesElCupoGratuitoQuedaAgotadoConSeisAvisosEnOrden();
         verify(uso).bloquearNegocio(NEGOCIO);
         verify(acceso).registrar(NEGOCIO, TipoContenidoPlan.AVISOS, PERIODO, "a", AHORA);
     }
 
-    @Test
-    @DisplayName("Reconsultar lo desbloqueado no libera cupo para el séptimo contenido")
-    void seleccionarShouldKeepExistingKeysWithoutRotatingQuota() {
-        givenPlan(CodigoPlan.GRATUITO);
-        when(acceso.autorizadas(NEGOCIO, TipoContenidoPlan.ZONA, PERIODO))
-                .thenReturn(new HashSet<>(Set.of("a", "b", "c", "d", "e", "f")));
-
-        AccesoContenidoItem resultado = servicio.seleccionar(NEGOCIO, TipoContenidoPlan.ZONA,
-                List.of("a", "g"), AHORA.withOffsetSameInstant(ZoneOffset.ofHours(-3)));
-
-        assertThat(resultado.autorizadas()).containsExactly("a");
-        assertThat(resultado.bloqueadas()).isEqualTo(1);
-        assertThat(resultado.usadas()).isEqualTo(6);
+    private void entoncesElCupoGratuitoQuedaAgotadoConSeisAvisosEnOrden() {
+        assertThat(seleccion.autorizadas()).containsExactly("a", "b", "c", "d", "e", "f");
+        assertThat(seleccion.usadas()).isEqualTo(6);
+        assertThat(seleccion.limite()).isEqualTo(6);
+        assertThat(seleccion.total()).isEqualTo(7);
+        assertThat(seleccion.bloqueadas()).isEqualTo(1);
+        assertThat(seleccion.finPeriodo()).isEqualTo(OffsetDateTime.parse("2026-12-01T03:00:00Z"));
     }
 
-    @Test
-    @DisplayName("Premium entrega todo y no gasta los desbloqueos gratuitos")
-    void seleccionarShouldReturnAllForPremium() {
-        givenPlan(CodigoPlan.PREMIUM);
+    private void entoncesSoloQuedaAutorizadaLaZonaYaDesbloqueada() {
+        assertThat(seleccion.autorizadas()).containsExactly("a");
+        assertThat(seleccion.bloqueadas()).isEqualTo(1);
+        assertThat(seleccion.usadas()).isEqualTo(6);
+    }
 
-        AccesoContenidoItem resultado = servicio.seleccionar(NEGOCIO, TipoContenidoPlan.AVISOS,
-                List.of("a", "b", "c", "d"), AHORA);
-
-        assertThat(resultado.autorizadas()).hasSize(4);
-        assertThat(resultado.limite()).isNull();
-        assertThat(resultado.bloqueadas()).isZero();
+    private void entoncesSeAutorizanLosCuatroSinLimiteNiConsumirCupo() {
+        assertThat(seleccion.autorizadas()).hasSize(4);
+        assertThat(seleccion.limite()).isNull();
+        assertThat(seleccion.bloqueadas()).isZero();
         verifyNoInteractions(acceso);
     }
 
-    @Test
-    @DisplayName("Una acción directa sobre el séptimo aviso devuelve una restricción comercial")
-    void exigirShouldRejectSeventhContent() {
-        givenPlan(CodigoPlan.GRATUITO);
-        when(acceso.autorizadas(NEGOCIO, TipoContenidoPlan.AVISOS, PERIODO))
-                .thenReturn(new HashSet<>(Set.of("a", "b", "c", "d", "e", "f")));
-
-        assertThatThrownBy(() -> servicio.exigir(NEGOCIO, TipoContenidoPlan.AVISOS, "g", AHORA))
+    private void entoncesSeRechazaPorElLimiteDeContenidosDeAvisos() {
+        assertThat(rechazo)
                 .isInstanceOf(RestriccionPlanException.class)
                 .hasMessageContaining("6 contenidos")
                 .extracting("codigo").isEqualTo("LIMITE_CONTENIDO_AVISOS");
     }
 
-    @Test
-    @DisplayName("Una acción sobre un aviso ya desbloqueado sigue disponible")
-    void exigirShouldAllowPreviouslyUnlockedContent() {
-        givenPlan(CodigoPlan.GRATUITO);
-        when(acceso.autorizadas(NEGOCIO, TipoContenidoPlan.AVISOS, PERIODO))
-                .thenReturn(new HashSet<>(Set.of("a", "b", "c", "d", "e", "f")));
-
-        assertThatCode(() -> servicio.exigir(NEGOCIO, TipoContenidoPlan.AVISOS, "a", AHORA))
-                .doesNotThrowAnyException();
+    private void entoncesLaAccionSigueDisponible() {
+        assertThat(rechazo).isNull();
     }
 
-    @Test
-    @DisplayName("Los avisos desbloqueados quedan autorizados y el resto no, en el orden pedido")
-    void avisosAutorizadosShouldKeepOnlyTheUnlockedOnes() {
-        givenPlan(CodigoPlan.GRATUITO);
-        givenSeisAvisosDesbloqueados();
-        AvisoId yaDesbloqueado = AvisoId.de(AVISOS_DESBLOQUEADOS.getFirst());
-        AvisoId nuevo = AvisoId.nuevo();
-
-        List<AvisoId> autorizados = servicio.avisosAutorizados(NEGOCIO, List.of(nuevo, yaDesbloqueado), AHORA);
-
-        assertThat(autorizados).containsExactly(yaDesbloqueado);
+    private void entoncesSoloQuedaAutorizadoElAvisoYaDesbloqueado() {
+        assertThat(avisosAutorizados).containsExactly(avisoYaDesbloqueado);
     }
 
-    @Test
-    @DisplayName("Una acción sobre un aviso ya desbloqueado sigue disponible sin conocer la clave guardada")
-    void exigirAccesoAlAvisoShouldAllowAnUnlockedAviso() {
-        givenPlan(CodigoPlan.GRATUITO);
-        givenSeisAvisosDesbloqueados();
-
-        assertThatCode(() -> servicio.exigirAccesoAlAviso(
-                NEGOCIO, AvisoId.de(AVISOS_DESBLOQUEADOS.getFirst()), AHORA)).doesNotThrowAnyException();
-    }
-
-    @Test
-    @DisplayName("Una acción sobre un séptimo aviso se rechaza")
-    void exigirAccesoAlAvisoShouldRejectTheSeventhAviso() {
-        givenPlan(CodigoPlan.GRATUITO);
-        givenSeisAvisosDesbloqueados();
-
-        assertThatThrownBy(() -> servicio.exigirAccesoAlAviso(NEGOCIO, AvisoId.nuevo(), AHORA))
-                .isInstanceOf(RestriccionPlanException.class);
-    }
-
-    // --- arrange ---
-    private void givenSeisAvisosDesbloqueados() {
-        when(acceso.autorizadas(NEGOCIO, TipoContenidoPlan.AVISOS, PERIODO))
-                .thenReturn(new HashSet<>(AVISOS_DESBLOQUEADOS));
+    private void entoncesSeRechazaPorRestriccionDelPlan() {
+        assertThat(rechazo).isInstanceOf(RestriccionPlanException.class);
     }
 
     /** El negocio tiene una suscripción vigente al plan con ese código. */
-    private void givenPlan(CodigoPlan codigo) {
+    private void suscripcionVigenteAlPlan(CodigoPlan codigo) {
         Plan plan = PlanTestData.plan();
         plan.setCodigo(codigo);
         Suscripcion suscripcion = PlanTestData.suscripcion();
