@@ -2,22 +2,14 @@ package com.ensambla.backend.domain.useCase.aviso;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
-import com.ensambla.backend.domain.model.aviso.AccionCrearRegistro;
 import com.ensambla.backend.domain.model.aviso.AccionDeAviso;
-import com.ensambla.backend.domain.model.aviso.AccionEditarRegistro;
-import com.ensambla.backend.domain.model.aviso.AccionInvalida;
 import com.ensambla.backend.domain.model.aviso.AccionRegistrar;
 import com.ensambla.backend.domain.model.aviso.Aviso;
-import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.campo.CampoId;
-import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
-import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.objetivo.TipoDecision;
-import com.ensambla.backend.domain.model.registro.RegistroId;
-import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
@@ -31,8 +23,8 @@ import com.ensambla.backend.domain.useCase.aviso.contarAvisos.ContarAvisos;
 import com.ensambla.backend.domain.useCase.aviso.descartarAviso.DescartarAviso;
 import com.ensambla.backend.domain.useCase.aviso.listarAvisos.ListarAvisos;
 import com.ensambla.backend.domain.useCase.aviso.listarAvisos.ListarAvisosRequest;
-import com.ensambla.backend.domain.useCase.plan.AccesoContenidoItem;
 import com.ensambla.backend.support.AvisoTestData;
+import com.ensambla.backend.support.AvisosDePrueba;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -42,15 +34,19 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
 import java.time.Clock;
-import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.ensambla.backend.support.AvisosDePrueba.AHORA;
+import static com.ensambla.backend.support.AvisosDePrueba.AVISO_ID;
+import static com.ensambla.backend.support.AvisosDePrueba.CAMPO_PRECIO_ID;
+import static com.ensambla.backend.support.AvisosDePrueba.REGISTRO_ID;
+import static com.ensambla.backend.support.AvisosDePrueba.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doThrow;
@@ -66,15 +62,10 @@ class AvisoCasosDeUsoTest {
     private static final String SIN_TABLA = "La acción del aviso no indica en qué tabla crear la fila";
     private static final String SIN_REGISTRO = "La acción del aviso no indica qué registro cambiar";
     private static final String SIN_VALORES = "La acción del aviso no indica qué valores cambiar";
+    private static final String SIN_CAMPOS = "La tabla ya no tiene los campos que el aviso quería cambiar";
 
-    private static final UsuarioId USUARIO_ID = UsuarioId.de("00000000-0000-4000-8000-000000000001");
     private static final NegocioId NEGOCIO_ID = AvisoTestData.NEGOCIO_ID;
-    private static final AvisoId AVISO_ID = AvisoId.de("e0000000-0000-4000-8000-000000000001");
-    private static final RegistroId REGISTRO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
-    private static final CampoId CAMPO_PRECIO_ID = CampoId.de("f0000000-0000-4000-8000-000000000009");
-    private static final Instant INSTANTE = Instant.parse("2026-10-19T12:00:00Z");
-    private static final OffsetDateTime AHORA = OffsetDateTime.ofInstant(INSTANTE, ZoneOffset.UTC);
-    private static final Clock CLOCK = Clock.fixed(INSTANTE, ZoneOffset.UTC);
+    private static final Clock CLOCK = Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC);
 
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final AvisoRepository avisoRepository = mock(AvisoRepository.class, CALLS_REAL_METHODS);
@@ -98,8 +89,16 @@ class AvisoCasosDeUsoTest {
     private final DescartarAviso descartarAviso = new DescartarAviso(negocioRepository,
             controlPlanService, avisoRepository, decisionesObjetivoService, new TransaccionDirecta(), CLOCK);
 
+    private Aviso aviso;
+    private Registro registro;
+    private List<Campo> campos;
+    private List<AvisoItem> listado;
+    private ContadorAvisos contador;
+    private AvisoItem resultado;
+    private Throwable error;
+
     @BeforeEach
-    void givenNegocioDelUsuario() {
+    void dadoUnNegocioConUnaPersonaConectada() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(avisoRepository.save(any(Aviso.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
@@ -107,126 +106,402 @@ class AvisoCasosDeUsoTest {
     // --- listar ---
 
     @Test
-    @DisplayName("Listar pone primero los pendientes, del más urgente al menos urgente y del más nuevo al más viejo")
-    void listarShouldPutPendingFirstThenByPrioridadAndDate() {
-        Aviso descartado = givenAviso("descartado", 3, EstadoAviso.DESCARTADO, 5);
-        Aviso pocoUrgente = givenAviso("poco urgente", 1, EstadoAviso.PENDIENTE, 5);
-        Aviso viejoUrgente = givenAviso("viejo urgente", 3, EstadoAviso.PENDIENTE, 1);
-        Aviso nuevoUrgente = givenAviso("nuevo urgente", 3, EstadoAviso.PENDIENTE, 4);
-        givenAvisosDelNegocio(descartado, pocoUrgente, viejoUrgente, nuevoUrgente);
+    @DisplayName("Listar pone los pendientes primero, del más urgente al menos urgente y del más nuevo al más viejo")
+    void listarPoneLosPendientesPrimeroDelMasUrgenteAlMenosUrgenteYDelMasNuevoAlMasViejo() {
+        dadoAvisosDeDistintaUrgenciaYAntiguedadIncluidoUnoDescartado();
 
-        List<AvisoItem> result = listarAvisos.execute(new ListarAvisosRequest(USUARIO_ID, null));
+        cuandoLaPersonaListaTodosLosAvisos();
 
-        assertThat(result).extracting(AvisoItem::titulo)
-                .containsExactly("nuevo urgente", "viejo urgente", "poco urgente", "descartado");
+        entoncesLosAvisosSeVenEnOrden("nuevo urgente", "viejo urgente", "poco urgente", "descartado");
     }
 
     @Test
-    @DisplayName("Listar con estado devuelve sólo los avisos de ese estado del negocio del usuario")
-    void listarShouldFilterByEstado() {
-        Aviso pendiente = givenAviso("pendiente", 2, EstadoAviso.PENDIENTE, 1);
-        givenAvisosPendientes(pendiente);
+    @DisplayName("Listar con estado devuelve solo los avisos de ese estado del negocio de la persona")
+    void listarConEstadoDevuelveSoloLosAvisosDeEseEstadoDelNegocioDeLaPersona() {
+        dadoUnAvisoPendienteEnElNegocio();
 
-        List<AvisoItem> result = listarAvisos.execute(new ListarAvisosRequest(USUARIO_ID, EstadoAviso.PENDIENTE));
+        cuandoLaPersonaListaLosAvisosPendientes();
 
-        assertThat(result).extracting(AvisoItem::id).containsExactly(pendiente.getId());
-        thenNoSeConsultanTodosLosAvisos();
+        entoncesSoloVeElAvisoPendienteSinConsultarLosDemas();
     }
 
     // --- contar ---
 
     @Test
-    @DisplayName("Contar devuelve los pendientes y cuántos son urgentes del negocio del usuario")
-    void contarShouldCountPendingAndUrgent() {
-        givenAvisosPendientes(
-                givenAviso("a", 3, EstadoAviso.PENDIENTE, 1),
-                givenAviso("b", 2, EstadoAviso.PENDIENTE, 1),
-                givenAviso("c", 1, EstadoAviso.PENDIENTE, 1));
+    @DisplayName("Contar devuelve los pendientes y cuántos son urgentes")
+    void contarDevuelveLosPendientesYCuantosSonUrgentes() {
+        dadoTresAvisosPendientesDeLosQueDosSonUrgentes();
 
-        ContadorAvisos result = contarAvisos.execute(USUARIO_ID);
+        cuandoLaPersonaCuentaSusAvisos();
 
-        assertThat(result).isEqualTo(new ContadorAvisos(3, 2));
+        entoncesHayTresPendientesYDosUrgentes();
     }
 
     // --- aplicar ---
 
     @Test
-    @DisplayName("Aplicar busca el aviso en el negocio del usuario y lo guarda aplicado con la hora del reloj")
-    void aplicarShouldApplyAvisoOfUsersNegocio() {
-        Aviso aviso = givenGuardado(givenAvisoConAcciones());
+    @DisplayName("Aplicar un aviso lo guarda como aplicado con la hora del reloj")
+    void aplicarUnAvisoLoGuardaAplicadoConLaHoraDelReloj() {
+        dadoUnAvisoPendienteSinAcciones();
 
-        AvisoItem result = aplicar();
+        cuandoLaPersonaAplicaElAviso();
 
-        assertThat(result.id()).isEqualTo(AVISO_ID);
-        assertThat(aviso.getEstado()).isEqualTo(EstadoAviso.APLICADO);
-        assertThat(aviso.getResueltoEn()).isEqualTo(AHORA);
-        thenSeGuardaElAviso(aviso);
+        entoncesElAvisoQuedaAplicadoYGuardadoConLaHoraDelReloj();
     }
 
     @Test
-    @DisplayName("Aplicar anota la decisión de la persona en sus objetivos con el aviso ya guardado")
-    void aplicarShouldRecordTheDecisionInTheObjetivos() {
-        Aviso aviso = givenGuardado(givenAvisoConAcciones());
+    @DisplayName("Aplicar un aviso anota la decisión en los objetivos con el aviso ya guardado")
+    void aplicarUnAvisoAnotaLaDecisionEnLosObjetivosConElAvisoYaGuardado() {
+        dadoUnAvisoPendienteSinAcciones();
 
-        aplicar();
+        cuandoLaPersonaAplicaElAviso();
 
-        thenSeAnotaLaDecision(aviso, TipoDecision.AVISO_APLICADO);
+        entoncesSeAnotaLaDecision(TipoDecision.AVISO_APLICADO);
     }
 
     @Test
-    @DisplayName("Si no se puede anotar la decisión el aviso tampoco queda aplicado: es la misma transacción")
-    void aplicarShouldPropagateAFailureWhileRecordingTheDecision() {
-        givenGuardado(givenAvisoConAcciones());
-        givenQueAnotarLaDecisionFalla();
+    @DisplayName("Si no se puede anotar la decisión, el aviso tampoco queda aplicado")
+    void siNoSePuedeAnotarLaDecisionElAvisoTampocoQuedaAplicado() {
+        dadoUnAvisoPendienteCuyaDecisionNoSePuedeAnotar();
 
-        assertThatThrownBy(this::aplicar).isInstanceOf(IllegalStateException.class).hasMessage("falló");
+        cuandoLaPersonaIntentaAplicarElAviso();
+
+        entoncesSeRechazaPorque(IllegalStateException.class, "falló");
     }
 
     @Test
-    @DisplayName("Aplicar un aviso de otro negocio responde 'no existe' y no aplica nada")
-    void aplicarShouldNotApplyForeignAviso() {
-        givenAvisoAjeno();
+    @DisplayName("Aplicar un aviso de otro negocio responde que no existe y no aplica nada")
+    void aplicarUnAvisoDeOtroNegocioRespondeQueNoExisteYNoAplicaNada() {
+        dadoUnAvisoQueEsDeOtroNegocio();
 
-        assertThatThrownBy(this::aplicar)
-                .isInstanceOf(ResourceNotFoundException.class).hasMessage("El aviso no existe");
-        thenNoSeGuardaNingunAviso();
+        cuandoLaPersonaIntentaAplicarElAviso();
+
+        entoncesElAvisoNoExisteYNoSeGuardaNada();
     }
 
     @Test
-    @DisplayName("Aplicar un aviso que ya fue resuelto no ejecuta su acción ni lo guarda")
-    void aplicarShouldThrowWithoutRunningActionWhenAvisoWasResolved() {
-        Aviso aviso = givenGuardado(givenAvisoConAcciones(editarPrecio(Map.of("price", 4200))));
+    @DisplayName("Aplicar un aviso ya resuelto no ejecuta su acción ni lo guarda")
+    void aplicarUnAvisoYaResueltoNoEjecutaSuAccionNiLoGuarda() {
+        dadoUnAvisoYaDescartadoQueSugiereBajarElPrecioDeYerbaA(4200);
+
+        cuandoLaPersonaIntentaAplicarElAviso();
+
+        entoncesSeRechazaSinEjecutarLaAccionNiGuardarNada();
+    }
+
+    @Test
+    @DisplayName("Aplicar un aviso de cambio de precio actualiza el precio del producto antes de guardar el aviso")
+    void aplicarUnAvisoDeCambioDePrecioActualizaElPrecioDelProductoAntesDeGuardarElAviso() {
+        dadoUnAvisoQueSugiereBajarElPrecioDeYerbaA(4200);
+
+        cuandoLaPersonaAplicaElAviso();
+
+        entoncesElPrecioDeLaYerbaSeCambiaAntesDeGuardarElAviso(4200);
+    }
+
+    @Test
+    @DisplayName("Aplicar un aviso de crear un combo agrega la fila con origen de aviso antes de guardarlo")
+    void aplicarUnAvisoDeCrearUnComboAgregaLaFilaConOrigenDeAvisoAntesDeGuardarElAviso() {
+        dadoUnAvisoQueSugiereCrearUnComboEnUnInventarioConSusCampos();
+
+        cuandoLaPersonaAplicaElAviso();
+
+        entoncesSeCreaLaFilaDelComboConOrigenDeAvisoAntesDeGuardarElAviso();
+    }
+
+    @Test
+    @DisplayName("Un aviso para crear una fila sin tabla válida se rechaza")
+    void unAvisoParaCrearUnaFilaSinTablaValidaSeRechaza() {
+        dadoUnAvisoConUnaAccionIncompletaDe("CREAR_REGISTRO", SIN_TABLA);
+
+        cuandoLaPersonaIntentaAplicarElAviso();
+
+        entoncesSeRechazaPorque(BusinessRuleException.class, SIN_TABLA);
+    }
+
+    @Test
+    @DisplayName("Un aviso para crear una fila no la crea si la tabla ya no tiene los campos a cargar")
+    void unAvisoParaCrearUnaFilaNoLaCreaSiLaTablaYaNoTieneLosCamposQueQueriaCargar() {
+        dadoUnAvisoQueSugiereCrearUnComboEnUnaTablaSinCampos();
+
+        cuandoLaPersonaIntentaAplicarElAviso();
+
+        entoncesSeRechazaPorqueLaTablaPerdioSusCamposYNoSeGuardaNingunRegistro();
+    }
+
+    @Test
+    @DisplayName("Un aviso que solo abre una pantalla no cambia ningún dato")
+    void unAvisoQueSoloAbreUnaPantallaNoCambiaNingunDato() {
+        dadoUnAvisoQueSoloAbreLaPantallaDeRegistrarEntradas();
+
+        cuandoLaPersonaAplicaElAviso();
+
+        entoncesNoSeCambiaNingunDato();
+    }
+
+    @Test
+    @DisplayName("Un aviso para editar una fila que no es un id válido se rechaza")
+    void unAvisoParaEditarUnaFilaQueNoEsUnIdValidoSeRechaza() {
+        dadoUnAvisoConUnaAccionIncompletaDe("EDITAR_REGISTRO", SIN_REGISTRO);
+
+        cuandoLaPersonaIntentaAplicarElAviso();
+
+        entoncesSeRechazaPorque(BusinessRuleException.class, SIN_REGISTRO);
+    }
+
+    @Test
+    @DisplayName("Un aviso para editar una fila sin valores se rechaza")
+    void unAvisoParaEditarUnaFilaSinValoresSeRechaza() {
+        dadoUnAvisoConUnaAccionIncompletaDe("EDITAR_REGISTRO", SIN_VALORES);
+
+        cuandoLaPersonaIntentaAplicarElAviso();
+
+        entoncesSeRechazaPorque(BusinessRuleException.class, SIN_VALORES);
+    }
+
+    @Test
+    @DisplayName("Un aviso para editar una fila con valores vacíos se rechaza")
+    void unAvisoParaEditarUnaFilaConValoresVaciosSeRechaza() {
+        dadoUnAvisoQueEditaUnaFilaDeYerbaConValoresVacios();
+
+        cuandoLaPersonaIntentaAplicarElAviso();
+
+        entoncesSeRechazaPorque(BusinessRuleException.class);
+    }
+
+    @Test
+    @DisplayName("Un aviso que cambia un campo que ya no existe en la tabla se rechaza y no edita nada")
+    void unAvisoQueCambiaUnCampoQueYaNoExisteEnLaTablaSeRechazaYNoEditaNada() {
+        dadoUnAvisoQueCambiaElCostoDeYerbaPeroLaTablaNoTieneEseCampo();
+
+        cuandoLaPersonaIntentaAplicarElAviso();
+
+        entoncesSeRechazaPorqueLaTablaPerdioSusCamposYNoSeEditaNingunRegistro();
+    }
+
+    // --- descartar ---
+
+    @Test
+    @DisplayName("Descartar un aviso lo guarda como descartado con la hora del reloj")
+    void descartarUnAvisoLoGuardaDescartadoConLaHoraDelReloj() {
+        dadoUnAvisoPendienteSinAcciones();
+
+        cuandoLaPersonaDescartaElAviso();
+
+        entoncesElAvisoQuedaDescartadoYGuardadoConLaHoraDelReloj();
+    }
+
+    @Test
+    @DisplayName("Descartar un aviso anota la decisión en los objetivos con el aviso ya guardado")
+    void descartarUnAvisoAnotaLaDecisionEnLosObjetivosConElAvisoYaGuardado() {
+        dadoUnAvisoPendienteSinAcciones();
+
+        cuandoLaPersonaDescartaElAviso();
+
+        entoncesSeAnotaLaDecision(TipoDecision.AVISO_DESCARTADO);
+    }
+
+    @Test
+    @DisplayName("Descartar un aviso ya resuelto no anota ninguna decisión")
+    void descartarUnAvisoYaResueltoNoAnotaNingunaDecision() {
+        dadoUnAvisoYaAplicado();
+
+        cuandoLaPersonaIntentaDescartarElAviso();
+
+        entoncesSeRechazaSinAnotarNingunaDecision();
+    }
+
+    // --- dado ---
+
+    private void dadoAvisosDeDistintaUrgenciaYAntiguedadIncluidoUnoDescartado() {
+        when(avisoRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(List.of(
+                avisoDe("descartado", 3, EstadoAviso.DESCARTADO, 5),
+                avisoDe("poco urgente", 1, EstadoAviso.PENDIENTE, 5),
+                avisoDe("viejo urgente", 3, EstadoAviso.PENDIENTE, 1),
+                avisoDe("nuevo urgente", 3, EstadoAviso.PENDIENTE, 4)));
+    }
+
+    private void dadoUnAvisoPendienteEnElNegocio() {
+        aviso = avisoDe("pendiente", 2, EstadoAviso.PENDIENTE, 1);
+        avisosPendientesDelNegocio(aviso);
+    }
+
+    private void dadoTresAvisosPendientesDeLosQueDosSonUrgentes() {
+        avisosPendientesDelNegocio(
+                avisoDe("a", 3, EstadoAviso.PENDIENTE, 1),
+                avisoDe("b", 2, EstadoAviso.PENDIENTE, 1),
+                avisoDe("c", 1, EstadoAviso.PENDIENTE, 1));
+    }
+
+    private void dadoUnAvisoPendienteSinAcciones() {
+        aviso = elNegocioGuarda(AvisosDePrueba.avisoPendienteConAcciones());
+    }
+
+    private void dadoUnAvisoPendienteCuyaDecisionNoSePuedeAnotar() {
+        dadoUnAvisoPendienteSinAcciones();
+        doThrow(new IllegalStateException("falló")).when(decisionesObjetivoService)
+                .registrarAviso(any(Aviso.class), any(TipoDecision.class), any(OffsetDateTime.class));
+    }
+
+    private void dadoUnAvisoQueEsDeOtroNegocio() {
+        when(avisoRepository.findByIdAndNegocioId(AVISO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+    }
+
+    private void dadoUnAvisoYaDescartadoQueSugiereBajarElPrecioDeYerbaA(int precio) {
+        aviso = elNegocioGuarda(AvisosDePrueba.avisoPendienteConAcciones(cambiarPrecio(precio)));
         aviso.setEstado(EstadoAviso.DESCARTADO);
-
-        assertThatThrownBy(this::aplicar).isInstanceOf(BusinessRuleException.class);
-        thenNoSeEjecutaLaAccionNiSeAnotaLaDecision();
-        thenNoSeGuardaNingunAviso();
     }
 
-    @Test
-    @DisplayName("Editar registro cambia los valores del registro usando la clave del campo antes de guardar el aviso")
-    void aplicarShouldEditRegistroByCampoClave() {
-        Aviso aviso = givenGuardado(givenAvisoConAcciones(editarPrecio(Map.of("price", 4200))));
-        Registro registro = AvisoTestData.registro(REGISTRO_ID.valor(), "Yerba", 2, 5);
-        List<Campo> campos = List.of(AvisoTestData.campo(CAMPO_PRECIO_ID.valor(), "price"),
+    private void dadoUnAvisoYaAplicado() {
+        dadoUnAvisoPendienteSinAcciones();
+        aviso.setEstado(EstadoAviso.APLICADO);
+    }
+
+    private void dadoUnAvisoQueSugiereBajarElPrecioDeYerbaA(int precio) {
+        aviso = elNegocioGuarda(AvisosDePrueba.avisoPendienteConAcciones(cambiarPrecio(precio)));
+        registro = AvisoTestData.registro(REGISTRO_ID.valor(), "Yerba", 2, 5);
+        campos = List.of(AvisoTestData.campo(CAMPO_PRECIO_ID.valor(), "price"),
                 AvisoTestData.campo(AvisoTestData.CAMPO_NOMBRE_ID.valor(), "name"));
-        givenRegistroConCampos(registro, campos);
-
-        aplicar();
-
-        thenSeEditaElRegistroAntesDeGuardarElAviso(registro, campos, aviso);
+        laTablaDelInventarioTiene(registro, campos);
     }
 
-    @Test
-    @DisplayName("Crear registro valida los valores, controla el límite del plan y suma la fila con origen de aviso")
-    void aplicarShouldCreateRegistroByCampoClave() {
-        Aviso aviso = givenGuardado(givenAvisoConAcciones(crearCombo(Map.of("name", "Combo A + B", "quantity", 0,
-                "price", 1710))));
-        givenCamposDelInventarioEnElRepositorio();
+    private void dadoUnAvisoQueSugiereCrearUnComboEnUnInventarioConSusCampos() {
+        aviso = elNegocioGuarda(AvisosDePrueba.avisoPendienteConAcciones(crearCombo(
+                Map.of("name", "Combo A + B", "quantity", 0, "price", 1710))));
+        when(campoRepository.findByBloqueIdAndNegocioId(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID))
+                .thenReturn(AvisosDePrueba.camposDelInventario());
+    }
 
-        aplicar();
+    private void dadoUnAvisoQueSugiereCrearUnComboEnUnaTablaSinCampos() {
+        aviso = elNegocioGuarda(AvisosDePrueba.avisoPendienteConAcciones(crearCombo(Map.of("name", "Combo"))));
+    }
 
-        Registro creado = thenSeCreaLaFilaAntesDeGuardarElAviso(aviso);
+    private void dadoUnAvisoConUnaAccionIncompletaDe(String tipo, String motivo) {
+        aviso = elNegocioGuarda(AvisosDePrueba.avisoPendienteConAcciones(
+                AvisosDePrueba.accionIncompleta(tipo, motivo)));
+    }
+
+    private void dadoUnAvisoQueSoloAbreLaPantallaDeRegistrarEntradas() {
+        aviso = elNegocioGuarda(AvisosDePrueba.avisoPendienteConAcciones(new AccionRegistrar(
+                "Registrar entrada", AvisoTestData.PROYECTO_ID, AvisoTestData.ENTRADAS_ID)));
+    }
+
+    private void dadoUnAvisoQueEditaUnaFilaDeYerbaConValoresVacios() {
+        laTablaDelInventarioTieneUnaFilaDeYerbaConPrecio();
+        aviso = elNegocioGuarda(AvisosDePrueba.avisoPendienteConAcciones(AvisosDePrueba.editarPrecio(Map.of())));
+    }
+
+    private void dadoUnAvisoQueCambiaElCostoDeYerbaPeroLaTablaNoTieneEseCampo() {
+        laTablaDelInventarioTieneUnaFilaDeYerbaConPrecio();
+        aviso = elNegocioGuarda(AvisosDePrueba.avisoPendienteConAcciones(
+                AvisosDePrueba.editarPrecio(Map.of("costo-que-no-existe", 1))));
+    }
+
+    // --- cuando ---
+
+    private void cuandoLaPersonaListaTodosLosAvisos() {
+        listado = listarAvisos.execute(new ListarAvisosRequest(USUARIO_ID, null));
+    }
+
+    private void cuandoLaPersonaListaLosAvisosPendientes() {
+        listado = listarAvisos.execute(new ListarAvisosRequest(USUARIO_ID, EstadoAviso.PENDIENTE));
+    }
+
+    private void cuandoLaPersonaCuentaSusAvisos() {
+        contador = contarAvisos.execute(USUARIO_ID);
+    }
+
+    private void cuandoLaPersonaAplicaElAviso() {
+        resultado = aplicarAviso.execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID));
+    }
+
+    private void cuandoLaPersonaIntentaAplicarElAviso() {
+        error = catchThrowable(this::cuandoLaPersonaAplicaElAviso);
+    }
+
+    private void cuandoLaPersonaDescartaElAviso() {
+        resultado = descartarAviso.execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID));
+    }
+
+    private void cuandoLaPersonaIntentaDescartarElAviso() {
+        error = catchThrowable(this::cuandoLaPersonaDescartaElAviso);
+    }
+
+    // --- entonces ---
+
+    private void entoncesLosAvisosSeVenEnOrden(String... titulos) {
+        assertThat(listado).extracting(AvisoItem::titulo).containsExactly(titulos);
+    }
+
+    private void entoncesSoloVeElAvisoPendienteSinConsultarLosDemas() {
+        assertThat(listado).extracting(AvisoItem::id).containsExactly(aviso.getId());
+        verify(avisoRepository, never()).findByNegocioId(any());
+    }
+
+    private void entoncesHayTresPendientesYDosUrgentes() {
+        assertThat(contador).isEqualTo(new ContadorAvisos(3, 2));
+    }
+
+    private void entoncesElAvisoQuedaAplicadoYGuardadoConLaHoraDelReloj() {
+        entoncesElAvisoQuedaResueltoYGuardadoConLaHoraDelReloj(EstadoAviso.APLICADO);
+    }
+
+    private void entoncesElAvisoQuedaDescartadoYGuardadoConLaHoraDelReloj() {
+        entoncesElAvisoQuedaResueltoYGuardadoConLaHoraDelReloj(EstadoAviso.DESCARTADO);
+    }
+
+    private void entoncesElAvisoQuedaResueltoYGuardadoConLaHoraDelReloj(EstadoAviso estado) {
+        assertThat(resultado.id()).isEqualTo(AVISO_ID);
+        assertThat(aviso.getEstado()).isEqualTo(estado);
+        assertThat(aviso.getResueltoEn()).isEqualTo(AHORA);
+        verify(avisoRepository).save(aviso);
+    }
+
+    private void entoncesSeAnotaLaDecision(TipoDecision decision) {
+        verify(decisionesObjetivoService).registrarAviso(aviso, decision, AHORA);
+    }
+
+    private void entoncesSeRechazaPorque(Class<? extends Throwable> tipo, String mensaje) {
+        assertThat(error).isInstanceOf(tipo).hasMessage(mensaje);
+    }
+
+    private void entoncesSeRechazaPorque(Class<? extends Throwable> tipo) {
+        assertThat(error).isInstanceOf(tipo);
+    }
+
+    private void entoncesElAvisoNoExisteYNoSeGuardaNada() {
+        entoncesSeRechazaPorque(ResourceNotFoundException.class, "El aviso no existe");
+        verify(avisoRepository, never()).save(any());
+    }
+
+    private void entoncesSeRechazaSinEjecutarLaAccionNiGuardarNada() {
+        entoncesSeRechazaPorque(BusinessRuleException.class);
+        verifyNoInteractions(registroDatosService, decisionesObjetivoService);
+        verify(avisoRepository, never()).save(any());
+    }
+
+    private void entoncesSeRechazaSinAnotarNingunaDecision() {
+        entoncesSeRechazaPorque(BusinessRuleException.class);
+        verifyNoInteractions(decisionesObjetivoService);
+    }
+
+    private void entoncesElPrecioDeLaYerbaSeCambiaAntesDeGuardarElAviso(int precio) {
+        InOrder orden = inOrder(registroDatosService, avisoRepository);
+        orden.verify(registroDatosService).editar(registro, campos, Map.of(CAMPO_PRECIO_ID.toString(), precio), AHORA);
+        orden.verify(avisoRepository).save(aviso);
+    }
+
+    private void entoncesSeCreaLaFilaDelComboConOrigenDeAvisoAntesDeGuardarElAviso() {
+        ArgumentCaptor<Registro> captor = ArgumentCaptor.forClass(Registro.class);
+        InOrder orden = inOrder(controlPlanService, registroRepository, avisoRepository);
+        orden.verify(controlPlanService).validarAltaRegistros(NEGOCIO_ID, 1, AHORA);
+        orden.verify(registroRepository).save(captor.capture());
+        orden.verify(avisoRepository).save(aviso);
+        laFilaCreadaEsElCombo(captor.getValue());
+        verify(registroDatosService).validarConexiones(any(), any(), any());
+    }
+
+    private void laFilaCreadaEsElCombo(Registro creado) {
         assertThat(creado.getNegocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(creado.getBloqueId()).isEqualTo(AvisoTestData.INVENTARIO_ID);
         assertThat(creado.getOrigen()).isEqualTo(Registro.ORIGEN_AVISO);
@@ -234,257 +509,53 @@ class AvisoCasosDeUsoTest {
                 .containsEntry(AvisoTestData.CAMPO_NOMBRE_ID.toString(), "Combo A + B")
                 .containsEntry(AvisoTestData.CAMPO_CANTIDAD_ID.toString(), 0)
                 .containsEntry(CAMPO_PRECIO_ID.toString(), 1710);
-        thenSeValidanLasConexiones();
     }
 
-    @Test
-    @DisplayName("Rechaza una acción de creación sin una tabla válida")
-    void aplicarShouldThrowWhenBloqueIdIsInvalid() {
-        givenGuardado(givenAvisoConAcciones(accionIncompleta("CREAR_REGISTRO", SIN_TABLA)));
-
-        assertThatThrownBy(this::aplicar)
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("La acción del aviso no indica en qué tabla crear la fila");
-    }
-
-    @Test
-    @DisplayName("No crea la fila si la tabla ya no tiene los campos que el aviso quería cargar")
-    void aplicarShouldNotCreateWhenCamposNoLongerExist() {
-        givenGuardado(givenAvisoConAcciones(crearCombo(Map.of("name", "Combo"))));
-
-        assertThatThrownBy(this::aplicar)
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("La tabla ya no tiene los campos que el aviso quería cambiar");
-        thenNoSeGuardaNingunRegistro();
-    }
-
-    @Test
-    @DisplayName("Las acciones que sólo abren pantallas no tocan ningún dato")
-    void aplicarShouldDoNothingForNavigationActions() {
-        givenGuardado(givenAvisoConAcciones(registrarEntrada()));
-
-        aplicar();
-
-        thenNoSeTocaNingunDatoDelNegocio();
-    }
-
-    @Test
-    @DisplayName("Rechaza una acción de edición con un registro que no es un id")
-    void aplicarShouldThrowWhenRegistroIdIsInvalid() {
-        givenGuardado(givenAvisoConAcciones(accionIncompleta("EDITAR_REGISTRO", SIN_REGISTRO)));
-
-        assertThatThrownBy(this::aplicar)
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("La acción del aviso no indica qué registro cambiar");
-    }
-
-    @Test
-    @DisplayName("Rechaza una acción de edición sin valores")
-    void aplicarShouldThrowWhenValoresAreMissing() {
-        givenGuardado(givenAvisoConAcciones(accionIncompleta("EDITAR_REGISTRO", SIN_VALORES)));
-
-        assertThatThrownBy(this::aplicar)
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("La acción del aviso no indica qué valores cambiar");
-    }
-
-    @Test
-    @DisplayName("Rechaza una acción de edición con valores vacíos")
-    void aplicarShouldThrowWhenValoresAreEmpty() {
-        givenRegistroYCampos();
-        givenGuardado(givenAvisoConAcciones(editarPrecio(Map.of())));
-
-        assertThatThrownBy(this::aplicar).isInstanceOf(BusinessRuleException.class);
-    }
-
-    @Test
-    @DisplayName("Rechaza una acción cuyos campos ya no existen en la tabla")
-    void aplicarShouldThrowWhenCamposNoLongerExist() {
-        givenRegistroYCampos();
-        givenGuardado(givenAvisoConAcciones(editarPrecio(Map.of("costo-que-no-existe", 1))));
-
-        assertThatThrownBy(this::aplicar)
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("La tabla ya no tiene los campos que el aviso quería cambiar");
-        thenNoSeEditaNingunRegistro();
-    }
-
-    // --- descartar ---
-
-    @Test
-    @DisplayName("Descartar busca el aviso en el negocio del usuario y lo guarda descartado con la hora del reloj")
-    void descartarShouldDiscardAvisoOfUsersNegocio() {
-        Aviso aviso = givenGuardado(givenAvisoConAcciones());
-
-        AvisoItem result = descartarAviso.execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID));
-
-        assertThat(result.id()).isEqualTo(AVISO_ID);
-        assertThat(aviso.getEstado()).isEqualTo(EstadoAviso.DESCARTADO);
-        assertThat(aviso.getResueltoEn()).isEqualTo(AHORA);
-        thenSeGuardaElAviso(aviso);
-    }
-
-    @Test
-    @DisplayName("Descartar anota la decisión de la persona en sus objetivos con el aviso ya guardado")
-    void descartarShouldRecordTheDecisionInTheObjetivos() {
-        Aviso aviso = givenGuardado(givenAvisoConAcciones());
-
-        descartarAviso.execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID));
-
-        thenSeAnotaLaDecision(aviso, TipoDecision.AVISO_DESCARTADO);
-    }
-
-    @Test
-    @DisplayName("Descartar un aviso que ya fue resuelto no anota ninguna decisión")
-    void descartarShouldNotRecordADecisionWhenAvisoWasResolved() {
-        Aviso aviso = givenGuardado(givenAvisoConAcciones());
-        aviso.setEstado(EstadoAviso.APLICADO);
-
-        assertThatThrownBy(() -> descartarAviso.execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID)))
-                .isInstanceOf(BusinessRuleException.class);
-        thenNoSeAnotaNingunaDecision();
-    }
-
-    // --- arrange ---
-    private void givenAvisosDelNegocio(Aviso... avisos) {
-        when(avisoRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(List.of(avisos));
-    }
-
-    private void givenAvisosPendientes(Aviso... avisos) {
-        when(avisoRepository.findByNegocioIdAndEstado(NEGOCIO_ID, EstadoAviso.PENDIENTE)).thenReturn(List.of(avisos));
-    }
-
-    private void givenAvisoAjeno() {
-        when(avisoRepository.findByIdAndNegocioId(AVISO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
-    }
-
-    private void givenQueAnotarLaDecisionFalla() {
-        doThrow(new IllegalStateException("falló")).when(decisionesObjetivoService)
-                .registrarAviso(any(Aviso.class), any(TipoDecision.class), any(OffsetDateTime.class));
-    }
-
-    private void givenRegistroConCampos(Registro registro, List<Campo> campos) {
-        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(registro);
-        when(campoRepository.findByBloqueIdAndNegocioId(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID)).thenReturn(campos);
-    }
-
-    private void givenCamposDelInventarioEnElRepositorio() {
-        when(campoRepository.findByBloqueIdAndNegocioId(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID))
-                .thenReturn(camposDelInventario());
-    }
-
-    private Aviso givenGuardado(Aviso aviso) {
-        when(avisoRepository.findByIdAndNegocioId(AVISO_ID, NEGOCIO_ID)).thenReturn(Optional.of(aviso));
-        return aviso;
-    }
-
-    private void givenRegistroYCampos() {
-        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID))
-                .thenReturn(AvisoTestData.registro(REGISTRO_ID.valor(), "Yerba", 2, 5));
-        when(campoRepository.findByBloqueIdAndNegocioId(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID))
-                .thenReturn(List.of(AvisoTestData.campo(CAMPO_PRECIO_ID.valor(), "price")));
-    }
-
-    private static AccionDeAviso crearCombo(Map<String, Object> valores) {
-        return new AccionCrearRegistro("Crear el combo", AvisoTestData.PROYECTO_ID, AvisoTestData.INVENTARIO_ID,
-                valores);
-    }
-
-    private static AccionDeAviso registrarEntrada() {
-        return new AccionRegistrar("Registrar entrada", AvisoTestData.PROYECTO_ID, AvisoTestData.ENTRADAS_ID);
-    }
-
-    private static AccionDeAviso accionIncompleta(String tipo, String motivo) {
-        return new AccionInvalida(tipo, motivo, Map.of());
-    }
-
-    private static List<Campo> camposDelInventario() {
-        return List.of(
-                campoTipado(AvisoTestData.CAMPO_NOMBRE_ID, "name", TipoCampo.TEXTO, true),
-                campoTipado(AvisoTestData.CAMPO_CANTIDAD_ID, "quantity", TipoCampo.NUMERO, true),
-                campoTipado(CAMPO_PRECIO_ID, "price", TipoCampo.MONEDA, false));
-    }
-
-    private static Campo campoTipado(CampoId id, String clave, TipoCampo tipo, boolean obligatorio) {
-        return Campo.builder().id(id).negocioId(NEGOCIO_ID).bloqueId(AvisoTestData.INVENTARIO_ID).clave(clave)
-                .tipo(tipo).obligatorio(obligatorio).build();
-    }
-
-    private static AccionDeAviso editarPrecio(Map<String, Object> valores) {
-        return new AccionEditarRegistro("Cambiar precio", AvisoTestData.PROYECTO_ID, AvisoTestData.INVENTARIO_ID,
-                REGISTRO_ID, valores);
-    }
-
-    private static Aviso givenAvisoConAcciones(AccionDeAviso... acciones) {
-        return Aviso.builder().id(AVISO_ID).negocioId(NEGOCIO_ID).estado(EstadoAviso.PENDIENTE)
-                .prioridad((short) 2).acciones(List.of(acciones)).build();
-    }
-
-    private static Aviso givenAviso(String titulo, int prioridad, EstadoAviso estado, int hora) {
-        return Aviso.builder()
-                .id(AvisoId.nuevo()).negocioId(NEGOCIO_ID).titulo(titulo).prioridad((short) prioridad)
-                .estado(estado).creadoEn(AHORA.withHour(hora)).acciones(List.of())
-                .build();
-    }
-
-    // --- act ---
-    private AvisoItem aplicar() {
-        return aplicarAviso.execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID));
-    }
-
-    // --- assert ---
-    private void thenNoSeConsultanTodosLosAvisos() {
-        verify(avisoRepository, never()).findByNegocioId(any());
-    }
-
-    private void thenSeGuardaElAviso(Aviso aviso) {
-        verify(avisoRepository).save(aviso);
-    }
-
-    private void thenNoSeGuardaNingunAviso() {
-        verify(avisoRepository, never()).save(any());
-    }
-
-    private void thenSeAnotaLaDecision(Aviso aviso, TipoDecision decision) {
-        verify(decisionesObjetivoService).registrarAviso(aviso, decision, AHORA);
-    }
-
-    private void thenNoSeAnotaNingunaDecision() {
-        verifyNoInteractions(decisionesObjetivoService);
-    }
-
-    private void thenNoSeEjecutaLaAccionNiSeAnotaLaDecision() {
-        verifyNoInteractions(registroDatosService, decisionesObjetivoService);
-    }
-
-    private void thenNoSeTocaNingunDatoDelNegocio() {
-        verifyNoInteractions(registroDatosService, campoRepository);
-    }
-
-    private void thenNoSeEditaNingunRegistro() {
-        verify(registroDatosService, never()).editar(any(), any(), any(), any());
-    }
-
-    private void thenNoSeGuardaNingunRegistro() {
+    private void entoncesSeRechazaPorqueLaTablaPerdioSusCamposYNoSeGuardaNingunRegistro() {
+        entoncesSeRechazaPorque(BusinessRuleException.class, SIN_CAMPOS);
         verify(registroRepository, never()).save(any());
     }
 
-    private void thenSeValidanLasConexiones() {
-        verify(registroDatosService).validarConexiones(any(), any(), any());
+    private void entoncesSeRechazaPorqueLaTablaPerdioSusCamposYNoSeEditaNingunRegistro() {
+        entoncesSeRechazaPorque(BusinessRuleException.class, SIN_CAMPOS);
+        verify(registroDatosService, never()).editar(any(), any(), any(), any());
     }
 
-    private void thenSeEditaElRegistroAntesDeGuardarElAviso(Registro registro, List<Campo> campos, Aviso aviso) {
-        InOrder orden = inOrder(registroDatosService, avisoRepository);
-        orden.verify(registroDatosService).editar(registro, campos, Map.of(CAMPO_PRECIO_ID.toString(), 4200), AHORA);
-        orden.verify(avisoRepository).save(aviso);
+    private void entoncesNoSeCambiaNingunDato() {
+        verifyNoInteractions(registroDatosService, campoRepository);
     }
 
-    private Registro thenSeCreaLaFilaAntesDeGuardarElAviso(Aviso aviso) {
-        ArgumentCaptor<Registro> captor = ArgumentCaptor.forClass(Registro.class);
-        InOrder orden = inOrder(controlPlanService, registroRepository, avisoRepository);
-        orden.verify(controlPlanService).validarAltaRegistros(NEGOCIO_ID, 1, AHORA);
-        orden.verify(registroRepository).save(captor.capture());
-        orden.verify(avisoRepository).save(aviso);
-        return captor.getValue();
+    // --- apoyo del escenario ---
+
+    private Aviso elNegocioGuarda(Aviso unAviso) {
+        when(avisoRepository.findByIdAndNegocioId(AVISO_ID, NEGOCIO_ID)).thenReturn(Optional.of(unAviso));
+        return unAviso;
+    }
+
+    private void avisosPendientesDelNegocio(Aviso... avisos) {
+        when(avisoRepository.findByNegocioIdAndEstado(NEGOCIO_ID, EstadoAviso.PENDIENTE)).thenReturn(List.of(avisos));
+    }
+
+    private void laTablaDelInventarioTiene(Registro fila, List<Campo> camposDeLaTabla) {
+        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(fila);
+        when(campoRepository.findByBloqueIdAndNegocioId(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID))
+                .thenReturn(camposDeLaTabla);
+    }
+
+    private void laTablaDelInventarioTieneUnaFilaDeYerbaConPrecio() {
+        laTablaDelInventarioTiene(AvisoTestData.registro(REGISTRO_ID.valor(), "Yerba", 2, 5),
+                List.of(AvisoTestData.campo(CAMPO_PRECIO_ID.valor(), "price")));
+    }
+
+    private static AccionDeAviso cambiarPrecio(int precio) {
+        return AvisosDePrueba.editarPrecio(Map.of("price", precio));
+    }
+
+    private static AccionDeAviso crearCombo(Map<String, Object> valores) {
+        return AvisosDePrueba.crearEnElInventario(valores);
+    }
+
+    private static Aviso avisoDe(String titulo, int prioridad, EstadoAviso estado, int hora) {
+        return AvisosDePrueba.avisoDelNegocio(titulo, prioridad, estado, hora);
     }
 }

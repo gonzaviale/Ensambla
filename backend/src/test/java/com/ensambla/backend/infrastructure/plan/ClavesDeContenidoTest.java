@@ -11,37 +11,82 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ClavesDeContenidoTest {
 
+    private String clave;
+    private Map<String, String> origenes;
+
     @Test
-    @DisplayName("Los avisos se guardan con el prefijo del servidor")
-    void guardadaShouldPrefixAvisos() {
-        assertThat(ClavesDeContenido.guardada(TipoContenidoPlan.AVISOS, "a1")).isEqualTo("servidor:a1");
+    @DisplayName("Un aviso se guarda con el prefijo del servidor")
+    void unAvisoSeGuardaConElPrefijoDelServidor() {
+        cuandoSeGuardaLaClaveDelAviso("a1");
+
+        entoncesLaClaveEs("servidor:a1");
     }
 
     @Test
-    @DisplayName("Los contenidos de zona se guardan tal cual")
-    void guardadaShouldKeepZonaKeys() {
-        assertThat(ClavesDeContenido.guardada(TipoContenidoPlan.ZONA, "yerba")).isEqualTo("yerba");
+    @DisplayName("El contenido de zona se guarda con su clave tal cual")
+    void elContenidoDeZonaSeGuardaConSuClaveTalCual() {
+        cuandoSeGuardaLaClaveDeZona("yerba");
+
+        entoncesLaClaveEs("yerba");
     }
 
     @Test
     @DisplayName("Al leer un aviso se le quita el prefijo del servidor")
-    void delDominioShouldRemovePrefix() {
-        assertThat(ClavesDeContenido.delDominio(TipoContenidoPlan.AVISOS, "servidor:a1")).isEqualTo("a1");
+    void alLeerUnAvisoSeLeQuitaElPrefijoDelServidor() {
+        cuandoSeLeeLaClaveDelAviso("servidor:a1");
+
+        entoncesLaClaveEs("a1");
     }
 
     @Test
     @DisplayName("Una clave guardada sin prefijo se lee igual")
-    void delDominioShouldKeepKeysWithoutPrefix() {
-        assertThat(ClavesDeContenido.delDominio(TipoContenidoPlan.AVISOS, "demo:1")).isEqualTo("demo:1");
-        assertThat(ClavesDeContenido.delDominio(TipoContenidoPlan.ZONA, "yerba")).isEqualTo("yerba");
+    void unaClaveGuardadaSinPrefijoSeLeeIgual() {
+        cuandoSeLeeLaClaveDelAviso("demo:1");
+
+        entoncesLaClaveEs("demo:1");
+    }
+
+    @Test
+    @DisplayName("Una clave de zona se lee igual aunque no tenga prefijo")
+    void unaClaveDeZonaSeLeeIgualAunqueNoTengaPrefijo() {
+        cuandoSeLeeLaClaveDeZona("yerba");
+
+        entoncesLaClaveEs("yerba");
     }
 
     @Test
     @DisplayName("Cada clave del pedido se asocia a la clave del dominio en el mismo orden")
-    void origenesDelPedidoShouldMapDomainKeysToRequestedOnes() {
-        Map<String, String> origenes = ClavesDeContenido.origenesDelPedido(
-                TipoContenidoPlan.AVISOS, List.of("servidor:a1", "demo:1"));
+    void cadaClaveDelPedidoSeAsociaALaClaveDelDominioEnElMismoOrden() {
+        cuandoSePidenLosAvisos("servidor:a1", "demo:1");
 
-        assertThat(origenes).containsExactly(Map.entry("a1", "servidor:a1"), Map.entry("demo:1", "demo:1"));
+        entoncesLosOrigenesSonEnOrden("a1", "servidor:a1", "demo:1", "demo:1");
+    }
+
+    private void cuandoSeGuardaLaClaveDelAviso(String claveDelDominio) {
+        clave = ClavesDeContenido.guardada(TipoContenidoPlan.AVISOS, claveDelDominio);
+    }
+
+    private void cuandoSeGuardaLaClaveDeZona(String claveDelDominio) {
+        clave = ClavesDeContenido.guardada(TipoContenidoPlan.ZONA, claveDelDominio);
+    }
+
+    private void cuandoSeLeeLaClaveDelAviso(String claveGuardada) {
+        clave = ClavesDeContenido.delDominio(TipoContenidoPlan.AVISOS, claveGuardada);
+    }
+
+    private void cuandoSeLeeLaClaveDeZona(String claveGuardada) {
+        clave = ClavesDeContenido.delDominio(TipoContenidoPlan.ZONA, claveGuardada);
+    }
+
+    private void cuandoSePidenLosAvisos(String... clavesPedidas) {
+        origenes = ClavesDeContenido.origenesDelPedido(TipoContenidoPlan.AVISOS, List.of(clavesPedidas));
+    }
+
+    private void entoncesLaClaveEs(String esperada) {
+        assertThat(clave).isEqualTo(esperada);
+    }
+
+    private void entoncesLosOrigenesSonEnOrden(String dominio1, String pedida1, String dominio2, String pedida2) {
+        assertThat(origenes).containsExactly(Map.entry(dominio1, pedida1), Map.entry(dominio2, pedida2));
     }
 }
