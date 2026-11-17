@@ -127,4 +127,14 @@ class CampoFormulaTest extends CampoDeCualquierTipoTest {
     private void entoncesSeRechazaLaFormula() {
         assertThat(rechazo).isInstanceOf(CampoInvalidoException.class);
     }
+
+    @Override
+    protected List<String> textosLeidosQueAcepta() {
+        return List.of();
+    }
+
+    @Override
+    protected List<String> textosLeidosQueRechaza() {
+        return List.of("3");
+    }
 }

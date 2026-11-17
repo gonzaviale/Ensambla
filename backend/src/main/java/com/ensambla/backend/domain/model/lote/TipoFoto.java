@@ -1,24 +1,27 @@
 package com.ensambla.backend.domain.model.lote;
 
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * Formatos que acepta la subida del cuaderno (los mismos que permite {@code foto_cuaderno.tipo_contenido}). El tipo se
- * detecta por los primeros bytes del archivo, no por lo que declara el navegador.
+ * detecta por los primeros bytes del archivo, no por lo que declara el navegador: cada formato sabe reconocerse.
  */
 @Getter
 @RequiredArgsConstructor
 public enum TipoFoto {
-    JPEG("image/jpeg", "jpg"),
-    PNG("image/png", "png"),
-    WEBP("image/webp", "webp"),
-    HEIC("image/heic", "heic"),
-    PDF("application/pdf", "pdf");
+    JPEG("image/jpeg", "jpg", TipoFoto::empiezaComoJpeg),
+    PNG("image/png", "png", TipoFoto::empiezaComoPng),
+    WEBP("image/webp", "webp", TipoFoto::empiezaComoWebp),
+    HEIC("image/heic", "heic", TipoFoto::empiezaComoHeic),
+    PDF("application/pdf", "pdf", TipoFoto::empiezaComoPdf);
 
     /** Marcas del contenedor ISO (bytes 8 a 11) que usan las fotos HEIC/HEIF de los celulares. */
     private static final Set<String> MARCAS_HEIC = Set.of(
@@ -28,23 +31,37 @@ public enum TipoFoto {
 
     private final String extension;
 
+    @Getter(AccessLevel.NONE)
+    private final Predicate<byte[]> reconocedor;
+
     public static Optional<TipoFoto> detectar(byte[] contenido) {
-        if (texto(contenido, 0, 3).equals("\u00FF\u00D8\u00FF")) {
-            return Optional.of(JPEG);
-        }
-        if (texto(contenido, 0, 4).equals("\u0089PNG")) {
-            return Optional.of(PNG);
-        }
-        if (texto(contenido, 0, 4).equals("RIFF") && texto(contenido, 8, 4).equals("WEBP")) {
-            return Optional.of(WEBP);
-        }
-        if (texto(contenido, 4, 4).equals("ftyp") && MARCAS_HEIC.contains(texto(contenido, 8, 4))) {
-            return Optional.of(HEIC);
-        }
-        if (texto(contenido, 0, 5).equals("%PDF-")) {
-            return Optional.of(PDF);
-        }
-        return Optional.empty();
+        return Arrays.stream(values())
+                .filter(tipo -> tipo.reconoce(contenido))
+                .findFirst();
+    }
+
+    private boolean reconoce(byte[] contenido) {
+        return reconocedor.test(contenido);
+    }
+
+    private static boolean empiezaComoJpeg(byte[] contenido) {
+        return texto(contenido, 0, 3).equals("ÿØÿ");
+    }
+
+    private static boolean empiezaComoPng(byte[] contenido) {
+        return texto(contenido, 0, 4).equals("\u0089PNG");
+    }
+
+    private static boolean empiezaComoWebp(byte[] contenido) {
+        return texto(contenido, 0, 4).equals("RIFF") && texto(contenido, 8, 4).equals("WEBP");
+    }
+
+    private static boolean empiezaComoHeic(byte[] contenido) {
+        return texto(contenido, 4, 4).equals("ftyp") && MARCAS_HEIC.contains(texto(contenido, 8, 4));
+    }
+
+    private static boolean empiezaComoPdf(byte[] contenido) {
+        return texto(contenido, 0, 5).equals("%PDF-");
     }
 
     private static String texto(byte[] contenido, int desde, int largo) {

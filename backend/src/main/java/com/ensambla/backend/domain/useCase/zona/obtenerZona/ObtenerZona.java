@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.zona.obtenerZona;
 
 import com.ensambla.backend.domain.model.negocio.Negocio;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
 import com.ensambla.backend.domain.model.zona.VistaZona;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
@@ -36,21 +37,37 @@ public class ObtenerZona {
     private final Clock clock;
 
     public ZonaItem execute(ObtenerZonaRequest request) {
-        Negocio negocio = negocioRepository.obtenerNegocioDelUsuario(request.usuarioId());
-        AnalisisZona analisis = zonaRepository.findByIdSiTiene(negocio.getZonaId())
-                .map(agregadoZonaRepository::analizar)
-                .orElseGet(AnalisisZona::sinZona);
+        Negocio negocio = obtenerNegocioDelUsuario(request.usuarioId());
+        AnalisisZona analisis = analizarZonaDe(negocio);
         VistaZona vista = request.vista();
         ZonaItem zonaItem = ZonaItem.de(vista.ordenar(analisis, nombresPropios(vista, negocio, analisis)));
-        AccesoContenidoItem acceso = controlPlanService.seleccionar(
+        return zonaItem.filtrada(seleccionarAcceso(negocio, vista, zonaItem));
+    }
+
+    private Negocio obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerNegocioDelUsuario(usuarioId);
+    }
+
+    private AnalisisZona analizarZonaDe(Negocio negocio) {
+        return zonaRepository.findByIdSiTiene(negocio.getZonaId())
+                .map(agregadoZonaRepository::analizar)
+                .orElseGet(AnalisisZona::sinZona);
+    }
+
+    private AccesoContenidoItem seleccionarAcceso(Negocio negocio, VistaZona vista, ZonaItem zonaItem) {
+        return controlPlanService.seleccionar(
                 negocio.getId(), vista.tipoDeContenido(), zonaItem.clavesDeAcceso(), OffsetDateTime.now(clock));
-        return zonaItem.filtrada(acceso);
     }
 
     /** El inventario sólo se consulta si la pantalla lo usa para ordenar y hay productos que ordenar. */
     private List<String> nombresPropios(VistaZona vista, Negocio negocio, AnalisisZona analisis) {
-        return vista.usaInventario() && !analisis.productos().isEmpty()
-                ? productosPropiosService.nombresDelInventario(negocio.getId())
-                : List.of();
+        if (!vista.usaInventario() || analisis.productos().isEmpty()) {
+            return List.of();
+        }
+        return nombresDelInventario(negocio);
+    }
+
+    private List<String> nombresDelInventario(Negocio negocio) {
+        return productosPropiosService.nombresDelInventario(negocio.getId());
     }
 }

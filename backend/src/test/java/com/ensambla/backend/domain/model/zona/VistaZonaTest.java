@@ -4,66 +4,110 @@ import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
+import static com.ensambla.backend.support.ZonasDePrueba.nombresDe;
+import static com.ensambla.backend.support.ZonasDePrueba.unAnalisisDeZona;
+import static com.ensambla.backend.support.ZonasDePrueba.unProductoDeZona;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class VistaZonaTest {
 
     private static final List<String> PROPIOS = List.of("Yerba Playadito 1 kg");
 
+    private final Map<VistaZona, TipoContenidoPlan> cupos = new EnumMap<>(VistaZona.class);
+    private final Map<VistaZona, Boolean> usosDelInventario = new EnumMap<>(VistaZona.class);
+
+    private AnalisisZona analisis;
+    private AnalisisZona ordenado;
+
     @Test
     @DisplayName("Cada pantalla gasta su propio cupo gratuito")
-    void tipoDeContenidoShouldBeDifferentForEachView() {
-        assertThat(VistaZona.PRECIOS.tipoDeContenido()).isEqualTo(TipoContenidoPlan.ZONA);
-        assertThat(VistaZona.CERCA.tipoDeContenido()).isEqualTo(TipoContenidoPlan.ZONA_CERCA);
-        assertThat(VistaZona.OTRA.tipoDeContenido()).isEqualTo(TipoContenidoPlan.ZONA_OTRA);
+    void cadaPantallaGastaSuPropioCupoGratuito() {
+        cuandoSeConsultaElCupoDeCadaPantalla();
+
+        entoncesCadaPantallaTieneSuCupo();
     }
 
     @Test
     @DisplayName("Sólo Precios y Qué se vende cerca ordenan según el inventario del negocio")
-    void usaInventarioShouldBeTrueOnlyForMyZoneViews() {
-        assertThat(VistaZona.PRECIOS.usaInventario()).isTrue();
-        assertThat(VistaZona.CERCA.usaInventario()).isTrue();
-        assertThat(VistaZona.OTRA.usaInventario()).isFalse();
+    void soloPreciosYQueSeVendeCercaOrdenanSegunElInventarioDelNegocio() {
+        cuandoSePreguntaQuePantallasUsanElInventario();
+
+        entoncesSoloUsanElInventarioPreciosYQueSeVendeCerca();
     }
 
     @Test
     @DisplayName("Precios muestra primero lo que el negocio tiene")
-    void ordenarShouldPutOwnedFirstInPrices() {
-        assertThat(nombres(VistaZona.PRECIOS.ordenar(givenAnalisis(), PROPIOS)))
-                .containsExactly("Yerba Playadito 500 g", "Azúcar", "Fideos");
+    void preciosMuestraPrimeroLoQueElNegocioTiene() {
+        dadoUnaZonaConTresProductos();
+
+        cuandoSeOrdenaParaLaPantalla(VistaZona.PRECIOS);
+
+        entoncesLosProductosVanEnEsteOrden("Yerba Playadito 500 g", "Azúcar", "Fideos");
     }
 
     @Test
     @DisplayName("Qué se vende cerca muestra primero lo más vendido que el negocio todavía no tiene")
-    void ordenarShouldPutBestSellersTheBusinessLacksFirstInNearby() {
-        assertThat(nombres(VistaZona.CERCA.ordenar(givenAnalisis(), PROPIOS)))
-                .containsExactly("Fideos", "Azúcar", "Yerba Playadito 500 g");
+    void queSeVendeCercaMuestraPrimeroLoMasVendidoQueElNegocioTodaviaNoTiene() {
+        dadoUnaZonaConTresProductos();
+
+        cuandoSeOrdenaParaLaPantalla(VistaZona.CERCA);
+
+        entoncesLosProductosVanEnEsteOrden("Fideos", "Azúcar", "Yerba Playadito 500 g");
     }
 
     @Test
     @DisplayName("Otra zona muestra lo más vendido sin mirar el inventario")
-    void ordenarShouldRankBySalesInOtherZone() {
-        assertThat(nombres(VistaZona.OTRA.ordenar(givenAnalisis(), PROPIOS)))
-                .containsExactly("Yerba Playadito 500 g", "Fideos", "Azúcar");
+    void otraZonaMuestraLoMasVendidoSinMirarElInventario() {
+        dadoUnaZonaConTresProductos();
+
+        cuandoSeOrdenaParaLaPantalla(VistaZona.OTRA);
+
+        entoncesLosProductosVanEnEsteOrden("Yerba Playadito 500 g", "Fideos", "Azúcar");
     }
 
-    // --- helpers ---
-    private static List<String> nombres(AnalisisZona analisis) {
-        return analisis.productos().stream().map(AgregadoZonaProducto::nombre).toList();
+    // --- dado ---
+    private void dadoUnaZonaConTresProductos() {
+        analisis = unAnalisisDeZona(10,
+                unProductoDeZona("Azúcar", 4, "20"),
+                unProductoDeZona("Yerba Playadito 500 g", 9, "5"),
+                unProductoDeZona("Fideos", 6, "30"));
     }
 
-    private static AnalisisZona givenAnalisis() {
-        return new AnalisisZona("San Justo", 10, List.of(
-                givenProducto("Azúcar", 4, "20"),
-                givenProducto("Yerba Playadito 500 g", 9, "5"),
-                givenProducto("Fideos", 6, "30")));
+    // --- cuando ---
+    private void cuandoSeConsultaElCupoDeCadaPantalla() {
+        for (VistaZona vista : VistaZona.values()) {
+            cupos.put(vista, vista.tipoDeContenido());
+        }
     }
 
-    private static AgregadoZonaProducto givenProducto(String nombre, int comerciosVenden, String unidadesSemana) {
-        return new AgregadoZonaProducto(nombre, 8, comerciosVenden, new BigDecimal("100.00"),
-                new BigDecimal("150.00"), new BigDecimal("200.00"), new BigDecimal(unidadesSemana));
+    private void cuandoSePreguntaQuePantallasUsanElInventario() {
+        for (VistaZona vista : VistaZona.values()) {
+            usosDelInventario.put(vista, vista.usaInventario());
+        }
+    }
+
+    private void cuandoSeOrdenaParaLaPantalla(VistaZona vista) {
+        ordenado = vista.ordenar(analisis, PROPIOS);
+    }
+
+    // --- entonces ---
+    private void entoncesCadaPantallaTieneSuCupo() {
+        assertThat(cupos).containsEntry(VistaZona.PRECIOS, TipoContenidoPlan.ZONA)
+                .containsEntry(VistaZona.CERCA, TipoContenidoPlan.ZONA_CERCA)
+                .containsEntry(VistaZona.OTRA, TipoContenidoPlan.ZONA_OTRA);
+    }
+
+    private void entoncesSoloUsanElInventarioPreciosYQueSeVendeCerca() {
+        assertThat(usosDelInventario).containsEntry(VistaZona.PRECIOS, true)
+                .containsEntry(VistaZona.CERCA, true)
+                .containsEntry(VistaZona.OTRA, false);
+    }
+
+    private void entoncesLosProductosVanEnEsteOrden(String... nombres) {
+        assertThat(nombresDe(ordenado)).containsExactly(nombres);
     }
 }

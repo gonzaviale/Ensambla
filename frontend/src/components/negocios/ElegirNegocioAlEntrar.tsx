@@ -16,6 +16,22 @@ type Props = {
 
 const ENFOCABLES = 'button:not(:disabled)';
 
+function mantenerElFocoAdentro(evento: KeyboardEvent, dialogo: HTMLElement) {
+  const nodos = [...dialogo.querySelectorAll<HTMLElement>(ENFOCABLES)];
+  const inicio = nodos[0];
+  const fin = nodos.at(-1);
+  const actual = document.activeElement;
+  const saleHaciaAtras = evento.shiftKey && (actual === inicio || actual === dialogo);
+  const saleHaciaAdelante = !evento.shiftKey && actual === fin;
+  if (saleHaciaAtras) volverAlFoco(evento, fin);
+  if (saleHaciaAdelante) volverAlFoco(evento, inicio);
+}
+
+function volverAlFoco(evento: KeyboardEvent, destino: HTMLElement | undefined) {
+  evento.preventDefault();
+  destino?.focus();
+}
+
 // El pop-up de T-204: al iniciar sesión con más de un negocio se elige con cuál trabajar antes de entrar, así la app
 // carga de entrada los datos de ese negocio. Elegir el que ya estaba activo o «Seguir con…» entran sin cambiar nada.
 // Esc no hace nada: hay que elegir.
@@ -50,17 +66,7 @@ export function ElegirNegocioAlEntrar({ lista, onListo }: Props) {
     dialogo.current?.focus();
     const alTeclear = (evento: KeyboardEvent) => {
       if (evento.key !== 'Tab' || !dialogo.current) return;
-      const nodos = [...dialogo.current.querySelectorAll<HTMLElement>(ENFOCABLES)];
-      const inicio = nodos[0];
-      const fin = nodos.at(-1);
-      const actual = document.activeElement;
-      if (evento.shiftKey && (actual === inicio || actual === dialogo.current)) {
-        evento.preventDefault();
-        fin?.focus();
-      } else if (!evento.shiftKey && actual === fin) {
-        evento.preventDefault();
-        inicio?.focus();
-      }
+      mantenerElFocoAdentro(evento, dialogo.current);
     };
     document.addEventListener('keydown', alTeclear);
     return () => {

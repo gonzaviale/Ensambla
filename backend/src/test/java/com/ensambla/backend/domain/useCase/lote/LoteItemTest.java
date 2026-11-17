@@ -1,49 +1,74 @@
 package com.ensambla.backend.domain.useCase.lote;
 
-import com.ensambla.backend.domain.useCase.lote.LoteItem.FotoItem;
-import com.ensambla.backend.support.LoteTestData;
+import com.ensambla.backend.domain.model.lote.LoteSubida;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
 
 import static com.ensambla.backend.support.LoteTestData.AHORA;
 import static com.ensambla.backend.support.LoteTestData.FOTO_ID;
 import static com.ensambla.backend.support.LoteTestData.JPEG;
 import static com.ensambla.backend.support.LoteTestData.LOTE_ID;
+import static com.ensambla.backend.support.LotesDePrueba.unLoteConUnaFoto;
+import static com.ensambla.backend.support.LotesDePrueba.unLoteSinFotos;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class LoteItemTest {
 
-    @Test
-    @DisplayName("Mapea el lote y cada foto con todos sus datos")
-    void deShouldMapLoteAndFoto() {
-        LoteItem result = LoteItem.de(LoteTestData.lote(List.of(LoteTestData.foto())));
-
-        thenLoteIsMapped(result);
-        thenFotoIsMapped(result.fotos().getFirst());
-    }
+    private LoteSubida lote;
+    private LoteItem item;
 
     @Test
-    @DisplayName("Mapea un lote sin fotos a una lista vacía")
-    void deShouldMapEmptyFotos() {
-        LoteItem result = LoteItem.de(LoteTestData.lote(List.of()));
+    @DisplayName("El item copia el lote y cada foto con todos sus datos")
+    void elItemCopiaElLoteYCadaFotoConTodosSusDatos() {
+        dadoUnLoteConUnaFoto();
 
-        assertThat(result.fotos()).isEmpty();
+        cuandoSeArmaElItemDelLote();
+
+        entoncesElItemCopiaLosDatosDelLote();
+        entoncesElItemCopiaLosDatosDeLaFoto();
     }
 
-    // --- assert ---
-    private void thenLoteIsMapped(LoteItem result) {
-        assertThat(result.id()).isEqualTo(LOTE_ID);
-        assertThat(result.estado()).isEqualTo("PENDIENTE");
-        assertThat(result.creadoEn()).isEqualTo(AHORA);
-        assertThat(result.fotos()).hasSize(1);
+    @Test
+    @DisplayName("Un lote sin fotos se copia con una lista de fotos vacía")
+    void unLoteSinFotosSeCopiaConUnaListaDeFotosVacia() {
+        dadoUnLoteSinFotos();
+
+        cuandoSeArmaElItemDelLote();
+
+        entoncesElItemNoTieneFotos();
     }
 
-    private void thenFotoIsMapped(FotoItem foto) {
+    // --- dado ---
+    private void dadoUnLoteConUnaFoto() {
+        lote = unLoteConUnaFoto();
+    }
+
+    private void dadoUnLoteSinFotos() {
+        lote = unLoteSinFotos();
+    }
+
+    // --- cuando ---
+    private void cuandoSeArmaElItemDelLote() {
+        item = LoteItem.de(lote);
+    }
+
+    // --- entonces ---
+    private void entoncesElItemCopiaLosDatosDelLote() {
+        assertThat(item.id()).isEqualTo(LOTE_ID);
+        assertThat(item.estado()).isEqualTo("PENDIENTE");
+        assertThat(item.creadoEn()).isEqualTo(AHORA);
+        assertThat(item.fotos()).hasSize(1);
+    }
+
+    private void entoncesElItemCopiaLosDatosDeLaFoto() {
+        LoteItem.FotoItem foto = item.fotos().getFirst();
         assertThat(foto.id()).isEqualTo(FOTO_ID);
         assertThat(foto.posicion()).isZero();
         assertThat(foto.tipoContenido()).isEqualTo("image/jpeg");
         assertThat(foto.tamanioBytes()).isEqualTo(JPEG.length);
+    }
+
+    private void entoncesElItemNoTieneFotos() {
+        assertThat(item.fotos()).isEmpty();
     }
 }

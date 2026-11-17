@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 import static com.ensambla.backend.support.CamposDePrueba.unCampoNumerico;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -82,5 +83,20 @@ abstract class CampoNumericoTest extends CampoDeCualquierTipoTest {
 
     private void entoncesElCampoEsNumerico() {
         assertThat(unCampo().esNumerico()).isTrue();
+    }
+
+    @Override
+    protected List<String> textosLeidosQueAcepta() {
+        return List.of("12.5", "1e5", "-3");
+    }
+
+    @Override
+    protected List<String> textosLeidosQueRechaza() {
+        return List.of("mucho", "12,5");
+    }
+
+    @Override
+    protected Optional<ClaseDeDatoInterpretable> claseInterpretableEsperada() {
+        return Optional.of(ClaseDeDatoInterpretable.NUMERO);
     }
 }

@@ -85,34 +85,51 @@ public class Proyecto {
     public static Proyecto desdePlantilla(NegocioId negocioId, PlantillaProyecto plantilla, OffsetDateTime ahora) {
         Proyecto proyecto = enBlanco(negocioId, plantilla.nombre(), plantilla.descripcion(), ahora);
         proyecto.setPlantillaId(plantilla.id());
+        proyecto.setBloques(bloquesDe(plantilla, negocioId, ahora));
+        return proyecto;
+    }
+
+    private static List<Bloque> bloquesDe(PlantillaProyecto plantilla, NegocioId negocioId, OffsetDateTime ahora) {
         List<Bloque> bloques = new ArrayList<>();
         for (BloquePlantilla definicion : plantilla.estructura().bloques()) {
-            Bloque bloque = Bloque.builder()
-                    .negocioId(negocioId)
-                    .nombre(definicion.nombre())
-                    .posicion((short) bloques.size())
-                    .creadoEn(ahora)
-                    .actualizadoEn(ahora)
-                    .build();
-            List<Campo> campos = new ArrayList<>();
-            for (CampoPlantilla campo : definicion.campos()) {
-                campos.add(Campo.builder()
-                        .negocioId(negocioId)
-                        .nombre(campo.nombre())
-                        .tipo(campo.tipo())
-                        .obligatorio(campo.obligatorio())
-                        .valorInicial(campo.valorInicial())
-                        .opciones(campo.opciones())
-                        .posicion((short) campos.size())
-                        .creadoEn(ahora)
-                        .actualizadoEn(ahora)
-                        .build());
-            }
-            bloque.setCampos(campos);
-            bloques.add(bloque);
+            bloques.add(bloqueDe(definicion, negocioId, bloques.size(), ahora));
         }
-        proyecto.setBloques(bloques);
-        return proyecto;
+        return bloques;
+    }
+
+    private static Bloque bloqueDe(
+            BloquePlantilla definicion, NegocioId negocioId, int posicion, OffsetDateTime ahora) {
+        Bloque bloque = Bloque.builder()
+                .negocioId(negocioId)
+                .nombre(definicion.nombre())
+                .posicion((short) posicion)
+                .creadoEn(ahora)
+                .actualizadoEn(ahora)
+                .build();
+        bloque.setCampos(camposDe(definicion, negocioId, ahora));
+        return bloque;
+    }
+
+    private static List<Campo> camposDe(BloquePlantilla definicion, NegocioId negocioId, OffsetDateTime ahora) {
+        List<Campo> campos = new ArrayList<>();
+        for (CampoPlantilla campo : definicion.campos()) {
+            campos.add(campoDe(campo, negocioId, campos.size(), ahora));
+        }
+        return campos;
+    }
+
+    private static Campo campoDe(CampoPlantilla campo, NegocioId negocioId, int posicion, OffsetDateTime ahora) {
+        return Campo.builder()
+                .negocioId(negocioId)
+                .nombre(campo.nombre())
+                .tipo(campo.tipo())
+                .obligatorio(campo.obligatorio())
+                .valorInicial(campo.valorInicial())
+                .opciones(campo.opciones())
+                .posicion((short) posicion)
+                .creadoEn(ahora)
+                .actualizadoEn(ahora)
+                .build();
     }
 
     /**
@@ -124,35 +141,59 @@ public class Proyecto {
         if (columnas.isEmpty()) {
             return;
         }
+        Bloque destino = primerBloqueParaColumnas();
+        destino.setCampos(camposConLasColumnas(destino, columnas, ahora));
+    }
+
+    private Bloque primerBloqueParaColumnas() {
         if (bloques.isEmpty()) {
             throw new BusinessRuleException("La plantilla no tiene una tabla donde agregar columnas");
         }
-        Bloque destino = bloques.getFirst();
+        return bloques.getFirst();
+    }
+
+    private List<Campo> camposConLasColumnas(Bloque destino, List<ConfiguracionCampo> columnas, OffsetDateTime ahora) {
         List<Campo> campos = new ArrayList<>(destino.getCampos());
-        Set<String> nombres = campos.stream()
-                .map(campo -> campo.getNombre().strip().toLowerCase())
-                .collect(Collectors.toCollection(HashSet::new));
-        for (int i = 0; i < columnas.size(); i++) {
-            Campo columna = validarColumna(columnas.get(i), i);
-            if (!nombres.add(columna.getNombre().toLowerCase())) {
-                throw new DuplicateResourceException("Ya hay una columna llamada \"" + columna.getNombre() + "\"");
-            }
+        Set<String> nombres = nombresEnMinuscula(campos);
+        for (int indice = 0; indice < columnas.size(); indice++) {
+            Campo columna = validarColumna(columnas.get(indice), indice);
+            exigirNombreLibre(nombres, columna);
             campos.add(columna.ubicadoEn(negocioId, null, (short) campos.size(), ahora));
         }
-        destino.setCampos(campos);
+        return campos;
+    }
+
+    private Set<String> nombresEnMinuscula(List<Campo> campos) {
+        return campos.stream()
+                .map(campo -> campo.getNombre().strip().toLowerCase())
+                .collect(Collectors.toCollection(HashSet::new));
+    }
+
+    private void exigirNombreLibre(Set<String> nombres, Campo columna) {
+        if (!nombres.add(columna.getNombre().toLowerCase())) {
+            throw new DuplicateResourceException("Ya hay una columna llamada \"" + columna.getNombre() + "\"");
+        }
     }
 
     private Campo validarColumna(ConfiguracionCampo columna, int indice) {
-        if (TIPOS_NO_SUGERIBLES.contains(columna.tipo())) {
-            throw new CampoInvalidoException(Map.of("columnas[" + indice + "].tipo", TIPO_NO_SUGERIBLE));
-        }
+        exigirTipoSugerible(columna, indice);
         try {
             return columna.validar();
         } catch (CampoInvalidoException e) {
-            Map<String, String> errores = new LinkedHashMap<>();
-            e.getErrores().forEach((dato, error) -> errores.put("columnas[" + indice + "]." + dato, error));
-            throw new CampoInvalidoException(errores);
+            throw conPosicion(e, indice);
         }
+    }
+
+    private void exigirTipoSugerible(ConfiguracionCampo columna, int indice) {
+        if (TIPOS_NO_SUGERIBLES.contains(columna.tipo())) {
+            throw new CampoInvalidoException(Map.of("columnas[" + indice + "].tipo", TIPO_NO_SUGERIBLE));
+        }
+    }
+
+    private CampoInvalidoException conPosicion(CampoInvalidoException error, int indice) {
+        Map<String, String> errores = new LinkedHashMap<>();
+        error.getErrores().forEach((dato, mensaje) -> errores.put("columnas[" + indice + "]." + dato, mensaje));
+        return new CampoInvalidoException(errores);
     }
 
     public void renombrar(String nombre, OffsetDateTime ahora) {
@@ -172,12 +213,15 @@ public class Proyecto {
      */
     public void validarNombreDeBloqueLibre(String nombre, BloqueId bloqueId) {
         String buscado = nombre.strip();
-        boolean ocupado = bloques.stream()
-                .filter(bloque -> !bloque.getId().equals(bloqueId))
-                .anyMatch(bloque -> bloque.getNombre().equalsIgnoreCase(buscado));
-        if (ocupado) {
+        if (hayOtroBloqueLlamado(buscado, bloqueId)) {
             throw new DuplicateResourceException("Ya hay un bloque llamado \"" + buscado + "\" en este proyecto");
         }
+    }
+
+    private boolean hayOtroBloqueLlamado(String nombre, BloqueId bloqueId) {
+        return bloques.stream()
+                .filter(bloque -> !bloque.getId().equals(bloqueId))
+                .anyMatch(bloque -> bloque.getNombre().equalsIgnoreCase(nombre));
     }
 
     private short siguientePosicionDeBloque() {

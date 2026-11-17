@@ -1,6 +1,8 @@
 package com.ensambla.backend.domain.useCase.negocio.obtenerConfiguracionNegocio;
 
 import com.ensambla.backend.domain.model.negocio.Negocio;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.model.zona.Zona;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.useCase.negocio.ConfiguracionNegocioResponse;
@@ -13,8 +15,15 @@ public class ObtenerConfiguracionNegocio {
     private final ZonaRepository zonaRepository;
 
     public ConfiguracionNegocioResponse execute(ObtenerConfiguracionNegocioRequest request) {
-        Negocio negocio = negocioRepository.obtenerNegocioDelUsuario(request.usuarioId());
-        return ConfiguracionNegocioResponse.de(negocio,
-                zonaRepository.findByIdSiTiene(negocio.getZonaId()).orElse(null));
+        Negocio negocio = obtenerNegocioDelUsuario(request.usuarioId());
+        return ConfiguracionNegocioResponse.de(negocio, obtenerZonaDe(negocio));
+    }
+
+    private Negocio obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerNegocioDelUsuario(usuarioId);
+    }
+
+    private Zona obtenerZonaDe(Negocio negocio) {
+        return zonaRepository.findByIdSiTiene(negocio.getZonaId()).orElse(null);
     }
 }

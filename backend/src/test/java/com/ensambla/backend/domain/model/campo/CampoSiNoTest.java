@@ -70,4 +70,14 @@ class CampoSiNoTest extends CampoDeCualquierTipoTest {
 
         entoncesElResultadoEs("No");
     }
+
+    @Override
+    protected List<String> textosLeidosQueAcepta() {
+        return List.of("true", "false");
+    }
+
+    @Override
+    protected List<String> textosLeidosQueRechaza() {
+        return List.of("sí", "TRUE");
+    }
 }

@@ -12,47 +12,90 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ZonaNegocioTest {
 
+    private LocalDate dia;
+    private OffsetDateTime inicio;
+    private Constructor<ZonaNegocio> constructor;
+    private ZonaNegocio instancia;
+
     @Test
     @DisplayName("Antes de las 21:00 de Argentina el día argentino coincide con el de UTC")
-    void diaShouldMatchUtcBeforeArgentinaEvening() {
-        OffsetDateTime instante = OffsetDateTime.parse("2026-10-31T20:59:00-03:00");
+    void antesDeLas21DeArgentinaElDiaArgentinoCoincideConElDeUtc() {
+        cuandoSePideElDiaArgentinoDe("2026-10-31T20:59:00-03:00");
 
-        assertThat(ZonaNegocio.dia(instante)).isEqualTo(LocalDate.of(2026, 10, 31));
+        entoncesElDiaEs(2026, 10, 31);
     }
 
     @Test
     @DisplayName("A las 21:03 de Argentina todavía es el mismo día aunque en UTC ya sea el siguiente")
-    void diaShouldStayOnArgentinaDayWhenUtcAlreadyChanged() {
-        OffsetDateTime instante = OffsetDateTime.parse("2026-11-01T00:03:00Z");
+    void alas2103DeArgentinaTodaviaEsElMismoDiaAunqueEnUtcYaSeaElSiguiente() {
+        cuandoSePideElDiaArgentinoDe("2026-11-01T00:03:00Z");
 
-        assertThat(ZonaNegocio.dia(instante)).isEqualTo(LocalDate.of(2026, 10, 31));
+        entoncesElDiaEs(2026, 10, 31);
+    }
+
+    @Test
+    @DisplayName("Un instante justo antes de la medianoche argentina cae en el mes anterior")
+    void unInstanteJustoAntesDeLaMedianocheArgentinaCaeEnElMesAnterior() {
+        cuandoSePideElPrimerDiaDelMesDe("2026-11-01T02:59:59Z");
+
+        entoncesElDiaEs(2026, 10, 1);
     }
 
     @Test
     @DisplayName("El mes empieza a medianoche de Argentina, que son las 03:00 UTC")
-    void primerDiaDelMesShouldCutAtArgentinaMidnight() {
-        assertThat(ZonaNegocio.primerDiaDelMes(OffsetDateTime.parse("2026-11-01T02:59:59Z")))
-                .isEqualTo(LocalDate.of(2026, 10, 1));
-        assertThat(ZonaNegocio.primerDiaDelMes(OffsetDateTime.parse("2026-11-01T03:00:00Z")))
-                .isEqualTo(LocalDate.of(2026, 11, 1));
+    void elMesEmpiezaAMedianocheDeArgentinaQueSonLas0300Utc() {
+        cuandoSePideElPrimerDiaDelMesDe("2026-11-01T03:00:00Z");
+
+        entoncesElDiaEs(2026, 11, 1);
     }
 
     @Test
     @DisplayName("El inicio del día es su medianoche argentina, expresada en UTC")
-    void inicioDelDiaShouldBeArgentinaMidnightInUtc() {
-        OffsetDateTime inicio = ZonaNegocio.inicioDelDia(LocalDate.of(2026, 11, 1));
+    void elInicioDelDiaEsSuMedianocheArgentinaExpresadaEnUtc() {
+        cuandoSePideElInicioDelDia(LocalDate.of(2026, 11, 1));
 
-        assertThat(inicio).isEqualTo(OffsetDateTime.parse("2026-11-01T03:00:00Z"));
-        assertThat(inicio.getOffset().getTotalSeconds()).isZero();
+        entoncesEmpiezaALas0300DeUtc();
     }
 
     @Test
     @DisplayName("No se instancia: sólo tiene métodos estáticos")
-    void shouldNotBeInstantiable() throws Exception {
-        Constructor<ZonaNegocio> constructor = ZonaNegocio.class.getDeclaredConstructor();
+    void noSeInstanciaPorqueSoloTieneMetodosEstaticos() throws Exception {
+        cuandoSeInstanciaPorReflexion();
 
-        assertThat(Modifier.isPrivate(constructor.getModifiers())).isTrue();
+        entoncesElConstructorEsPrivado();
+    }
+
+    // --- cuando ---
+    private void cuandoSePideElDiaArgentinoDe(String instante) {
+        dia = ZonaNegocio.dia(OffsetDateTime.parse(instante));
+    }
+
+    private void cuandoSePideElPrimerDiaDelMesDe(String instante) {
+        dia = ZonaNegocio.primerDiaDelMes(OffsetDateTime.parse(instante));
+    }
+
+    private void cuandoSePideElInicioDelDia(LocalDate fecha) {
+        inicio = ZonaNegocio.inicioDelDia(fecha);
+    }
+
+    private void cuandoSeInstanciaPorReflexion() throws Exception {
+        constructor = ZonaNegocio.class.getDeclaredConstructor();
         constructor.setAccessible(true);
-        assertThat(constructor.newInstance()).isNotNull();
+        instancia = constructor.newInstance();
+    }
+
+    // --- entonces ---
+    private void entoncesElDiaEs(int anio, int mes, int diaDelMes) {
+        assertThat(dia).isEqualTo(LocalDate.of(anio, mes, diaDelMes));
+    }
+
+    private void entoncesEmpiezaALas0300DeUtc() {
+        assertThat(inicio).isEqualTo(OffsetDateTime.parse("2026-11-01T03:00:00Z"));
+        assertThat(inicio.getOffset().getTotalSeconds()).isZero();
+    }
+
+    private void entoncesElConstructorEsPrivado() {
+        assertThat(Modifier.isPrivate(constructor.getModifiers())).isTrue();
+        assertThat(instancia).isNotNull();
     }
 }

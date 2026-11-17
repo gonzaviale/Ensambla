@@ -112,10 +112,19 @@ export function SeccionPerfil() {
             type="button"
             className="btn danger"
             disabled={negocios.negocios.length === 1 || !comercio}
-            title={negocios.negocios.length === 1 ? 'No podés eliminar el único negocio de tu cuenta' : undefined}
+            title={
+              negocios.negocios.length === 1
+                ? 'No podés eliminar el único negocio de tu cuenta'
+                : undefined
+            }
             onClick={() => {
               const activo = negocios.negocios.find((item) => item.id === negocios.activoId);
-              if (activo) abrirModal({ tipo: 'eliminarNegocio', negocioId: activo.id, nombre: activo.nombre });
+              if (activo)
+                abrirModal({
+                  tipo: 'eliminarNegocio',
+                  negocioId: activo.id,
+                  nombre: activo.nombre,
+                });
             }}
           >
             Eliminar negocio

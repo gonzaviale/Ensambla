@@ -24,11 +24,22 @@ public class RecetaService {
         if (receta.esVacia()) {
             return RecetaCosteada.vacia();
         }
-        Campo precio = campoRepository.findByIdAndNegocioId(receta.getCampoPrecioId(), negocioId)
-                .orElseThrow(() -> new ResourceNotFoundException("La columna del precio no existe"));
-        List<Registro> insumos = registroRepository.findAllByIdsAndBloque(
-                receta.insumoIds(), precio.getBloqueId(), negocioId);
-        List<Campo> camposDeInsumos = campoRepository.findByBloqueIdAndNegocioId(precio.getBloqueId(), negocioId);
+        Campo precio = obtenerColumnaDelPrecio(receta, negocioId);
+        List<Registro> insumos = obtenerInsumos(receta, precio, negocioId);
+        List<Campo> camposDeInsumos = obtenerCamposDeLaTablaDeInsumos(precio, negocioId);
         return RecetaCosteada.de(receta, precio.getBloqueId(), insumos, camposDeInsumos);
+    }
+
+    private Campo obtenerColumnaDelPrecio(Receta receta, NegocioId negocioId) {
+        return campoRepository.findByIdAndNegocioId(receta.getCampoPrecioId(), negocioId)
+                .orElseThrow(() -> new ResourceNotFoundException("La columna del precio no existe"));
+    }
+
+    private List<Registro> obtenerInsumos(Receta receta, Campo precio, NegocioId negocioId) {
+        return registroRepository.findAllByIdsAndBloque(receta.insumoIds(), precio.getBloqueId(), negocioId);
+    }
+
+    private List<Campo> obtenerCamposDeLaTablaDeInsumos(Campo precio, NegocioId negocioId) {
+        return campoRepository.findByBloqueIdAndNegocioId(precio.getBloqueId(), negocioId);
     }
 }

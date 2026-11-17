@@ -25,6 +25,18 @@ abstract class CampoDeCualquierTipoTest {
 
     protected abstract String motivoDelRechazo();
 
+    protected List<String> textosLeidosQueAcepta() {
+        return List.of("cualquier texto");
+    }
+
+    protected List<String> textosLeidosQueRechaza() {
+        return List.of();
+    }
+
+    protected Optional<ClaseDeDatoInterpretable> claseInterpretableEsperada() {
+        return Optional.empty();
+    }
+
     protected Campo unCampo() {
         return unCampoDeTipo(tipoEsperado());
     }
@@ -45,6 +57,24 @@ abstract class CampoDeCualquierTipoTest {
     @DisplayName("Rechaza los valores que no son de su tipo con el motivo correspondiente")
     void rechazaLosValoresQueNoSonDeSuTipo() {
         entoncesTodosLosValoresSeRechazan(valoresQueRechaza());
+    }
+
+    @Test
+    @DisplayName("Acepta los textos que lee la IA y que sirven para su tipo")
+    void aceptaLosTextosQueLeeLaIaDeSuTipo() {
+        entoncesNingunTextoLeidoTieneError(textosLeidosQueAcepta());
+    }
+
+    @Test
+    @DisplayName("Rechaza los textos que lee la IA y que no sirven para su tipo")
+    void rechazaLosTextosQueLeeLaIaQueNoSonDeSuTipo() {
+        entoncesTodosLosTextosLeidosSeRechazan(textosLeidosQueRechaza());
+    }
+
+    @Test
+    @DisplayName("Sabe qué clase de dato de un mensaje libre lo completa")
+    void sabeQueClaseDeDatoDeUnMensajeLoCompleta() {
+        entoncesSuClaseInterpretableEs(claseInterpretableEsperada());
     }
 
     protected void cuandoSeValida(Object valor) {
@@ -74,6 +104,18 @@ abstract class CampoDeCualquierTipoTest {
     protected void entoncesElCampoEsDelTipoEsperado() {
         assertThat(unCampo().tipo()).isEqualTo(tipoEsperado());
         assertThat(unCampo().getTipo()).isEqualTo(tipoEsperado());
+    }
+
+    private void entoncesNingunTextoLeidoTieneError(List<String> textos) {
+        assertThat(textos).allSatisfy(texto -> assertThat(unCampo().errorDeValorLeido(texto)).isEmpty());
+    }
+
+    private void entoncesTodosLosTextosLeidosSeRechazan(List<String> textos) {
+        assertThat(textos).allSatisfy(texto -> assertThat(unCampo().errorDeValorLeido(texto)).isPresent());
+    }
+
+    private void entoncesSuClaseInterpretableEs(Optional<ClaseDeDatoInterpretable> esperada) {
+        assertThat(unCampo().claseInterpretable()).isEqualTo(esperada);
     }
 
     private void entoncesNingunValorTieneError(List<Object> valores) {

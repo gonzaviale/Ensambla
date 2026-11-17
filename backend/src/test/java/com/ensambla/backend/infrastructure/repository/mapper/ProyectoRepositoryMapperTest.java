@@ -3,13 +3,10 @@ package com.ensambla.backend.infrastructure.repository.mapper;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
-import com.ensambla.backend.infrastructure.repository.entity.BloqueEntity;
-import com.ensambla.backend.infrastructure.repository.entity.CampoEntity;
-import com.ensambla.backend.infrastructure.repository.entity.ProyectoEntity;
-import com.ensambla.backend.support.ProyectoTestData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import static com.ensambla.backend.support.ProyectoTestData.proyecto;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ProyectoRepositoryMapperTest {
@@ -18,58 +15,93 @@ class ProyectoRepositoryMapperTest {
 
     @Test
     @DisplayName("Mapea todos los campos de proyecto entre entidad y dominio")
-    void mappingShouldPreserveProyectoFields() {
-        Proyecto original = ProyectoTestData.proyecto();
+    void unProyectoGuardadoYLeidoConservaTodosSusDatos() {
+        Proyecto original = dadoUnProyecto();
 
-        ProyectoEntity entity = proyectoRepositoryMapper.toEntity(original);
-        Proyecto result = proyectoRepositoryMapper.toDomain(entity);
+        Proyecto resultado = cuandoSeGuardaYSeLeeElProyecto(original);
 
-        assertThat(result.getId()).isEqualTo(original.getId());
-        assertThat(result.getNegocioId()).isEqualTo(original.getNegocioId());
-        assertThat(result.getNombre()).isEqualTo(original.getNombre());
-        assertThat(result.getDescripcion()).isEqualTo(original.getDescripcion());
-        assertThat(result.getPlantillaId()).isEqualTo(original.getPlantillaId());
-        assertThat(result.getCreadoEn()).isEqualTo(original.getCreadoEn());
-        assertThat(result.getActualizadoEn()).isEqualTo(original.getActualizadoEn());
+        entoncesElProyectoConservaTodosSusDatos(resultado, original);
     }
 
     @Test
     @DisplayName("Mapea todos los campos de bloque entre entidad y dominio")
-    void mappingShouldPreserveBloqueFields() {
-        Bloque original = ProyectoTestData.proyecto().getBloques().getFirst();
+    void unBloqueGuardadoYLeidoConservaTodosSusDatos() {
+        Bloque original = dadoUnBloque();
 
-        BloqueEntity entity = proyectoRepositoryMapper.toEntity(original);
-        Bloque result = proyectoRepositoryMapper.toDomain(entity);
+        Bloque resultado = cuandoSeGuardaYSeLeeElBloque(original);
 
-        assertThat(result.getId()).isEqualTo(original.getId());
-        assertThat(result.getNegocioId()).isEqualTo(original.getNegocioId());
-        assertThat(result.getProyectoId()).isEqualTo(original.getProyectoId());
-        assertThat(result.getNombre()).isEqualTo(original.getNombre());
-        assertThat(result.getPosicion()).isEqualTo(original.getPosicion());
-        assertThat(result.getCreadoEn()).isEqualTo(original.getCreadoEn());
-        assertThat(result.getActualizadoEn()).isEqualTo(original.getActualizadoEn());
+        entoncesElBloqueConservaTodosSusDatos(resultado, original);
     }
 
     @Test
     @DisplayName("Mapea todos los campos de campo entre entidad y dominio")
-    void mappingShouldPreserveCampoFields() {
-        Campo original = ProyectoTestData.proyecto().getBloques().getFirst().getCampos().getFirst();
+    void unCampoGuardadoYLeidoConservaTodosSusDatos() {
+        Campo original = dadoUnCampo();
 
-        CampoEntity entity = proyectoRepositoryMapper.toEntity(original);
-        Campo result = proyectoRepositoryMapper.toDomain(entity);
+        Campo resultado = cuandoSeGuardaYSeLeeElCampo(original);
 
-        assertThat(result.getId()).isEqualTo(original.getId());
-        assertThat(result.getNegocioId()).isEqualTo(original.getNegocioId());
-        assertThat(result.getBloqueId()).isEqualTo(original.getBloqueId());
-        assertThat(result.getNombre()).isEqualTo(original.getNombre());
-        assertThat(result.getTipo()).isEqualTo(original.getTipo());
-        assertThat(result.getObligatorio()).isEqualTo(original.getObligatorio());
-        assertThat(result.getValorInicial()).isEqualTo(original.getValorInicial());
-        assertThat(result.getOpciones()).isEqualTo(original.getOpciones());
-        assertThat(result.getBloqueRelacionadoId()).isEqualTo(original.getBloqueRelacionadoId());
-        assertThat(result.getPosicion()).isEqualTo(original.getPosicion());
-        assertThat(result.getCreadoEn()).isEqualTo(original.getCreadoEn());
-        assertThat(result.getActualizadoEn()).isEqualTo(original.getActualizadoEn());
+        entoncesElCampoConservaTodosSusDatos(resultado, original);
+    }
+
+    // --- dado ---
+    private Proyecto dadoUnProyecto() {
+        return proyecto();
+    }
+
+    private Bloque dadoUnBloque() {
+        return proyecto().getBloques().getFirst();
+    }
+
+    private Campo dadoUnCampo() {
+        return dadoUnBloque().getCampos().getFirst();
+    }
+
+    // --- cuando ---
+    private Proyecto cuandoSeGuardaYSeLeeElProyecto(Proyecto proyecto) {
+        return proyectoRepositoryMapper.toDomain(proyectoRepositoryMapper.toEntity(proyecto));
+    }
+
+    private Bloque cuandoSeGuardaYSeLeeElBloque(Bloque bloque) {
+        return proyectoRepositoryMapper.toDomain(proyectoRepositoryMapper.toEntity(bloque));
+    }
+
+    private Campo cuandoSeGuardaYSeLeeElCampo(Campo campo) {
+        return proyectoRepositoryMapper.toDomain(proyectoRepositoryMapper.toEntity(campo));
+    }
+
+    // --- entonces ---
+    private void entoncesElProyectoConservaTodosSusDatos(Proyecto resultado, Proyecto original) {
+        assertThat(resultado.getId()).isEqualTo(original.getId());
+        assertThat(resultado.getNegocioId()).isEqualTo(original.getNegocioId());
+        assertThat(resultado.getNombre()).isEqualTo(original.getNombre());
+        assertThat(resultado.getDescripcion()).isEqualTo(original.getDescripcion());
+        assertThat(resultado.getPlantillaId()).isEqualTo(original.getPlantillaId());
+        assertThat(resultado.getCreadoEn()).isEqualTo(original.getCreadoEn());
+        assertThat(resultado.getActualizadoEn()).isEqualTo(original.getActualizadoEn());
+    }
+
+    private void entoncesElBloqueConservaTodosSusDatos(Bloque resultado, Bloque original) {
+        assertThat(resultado.getId()).isEqualTo(original.getId());
+        assertThat(resultado.getNegocioId()).isEqualTo(original.getNegocioId());
+        assertThat(resultado.getProyectoId()).isEqualTo(original.getProyectoId());
+        assertThat(resultado.getNombre()).isEqualTo(original.getNombre());
+        assertThat(resultado.getPosicion()).isEqualTo(original.getPosicion());
+        assertThat(resultado.getCreadoEn()).isEqualTo(original.getCreadoEn());
+        assertThat(resultado.getActualizadoEn()).isEqualTo(original.getActualizadoEn());
+    }
+
+    private void entoncesElCampoConservaTodosSusDatos(Campo resultado, Campo original) {
+        assertThat(resultado.getId()).isEqualTo(original.getId());
+        assertThat(resultado.getNegocioId()).isEqualTo(original.getNegocioId());
+        assertThat(resultado.getBloqueId()).isEqualTo(original.getBloqueId());
+        assertThat(resultado.getNombre()).isEqualTo(original.getNombre());
+        assertThat(resultado.getTipo()).isEqualTo(original.getTipo());
+        assertThat(resultado.getObligatorio()).isEqualTo(original.getObligatorio());
+        assertThat(resultado.getValorInicial()).isEqualTo(original.getValorInicial());
+        assertThat(resultado.getOpciones()).isEqualTo(original.getOpciones());
+        assertThat(resultado.getBloqueRelacionadoId()).isEqualTo(original.getBloqueRelacionadoId());
+        assertThat(resultado.getPosicion()).isEqualTo(original.getPosicion());
+        assertThat(resultado.getCreadoEn()).isEqualTo(original.getCreadoEn());
+        assertThat(resultado.getActualizadoEn()).isEqualTo(original.getActualizadoEn());
     }
 }
-
