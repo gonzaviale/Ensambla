@@ -8,7 +8,6 @@ import { useZona } from '@/hooks/zona/queries';
 import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
 import { Btn } from '../Btn';
 import { Icon } from '../Icon';
-import { Sami } from '../Sami';
 import { TarjetaDeAviso } from './TarjetaDeAviso';
 import { TarjetaDeGrupo } from './TarjetaDeGrupo';
 import { agruparAvisos } from './presentacion';
@@ -280,9 +279,7 @@ export function PanelDeAvisos() {
           )
         ) : (
           <div className={sinDatos ? 'alertas-vacio' : 'alertas-vacio ok'}>
-            {sinDatos ? (
-              <Sami />
-            ) : (
+            {!sinDatos && (
               <img className="alertas-vacio-img" src="/mockup/sami-guino.webp" alt="" />
             )}
             {sinDatos ? (

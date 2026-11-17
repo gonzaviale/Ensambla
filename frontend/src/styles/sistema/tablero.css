@@ -5,14 +5,18 @@
 /* --- Piezas comunes --- */
 .selector-periodo {
   display: inline-flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  max-width: 100%;
   gap: 4px;
   padding: 4px;
   border-radius: 99px;
   background: var(--soft);
 }
 .selector-periodo button {
+  flex: 0 1 auto;
+  min-width: 0;
   padding: 8px 16px;
+  white-space: nowrap;
   border: 0;
   border-radius: 99px;
   background: transparent;
@@ -879,7 +883,7 @@
   gap: 10px;
   align-items: center;
   height: 100%;
-  padding: 8px 38px 8px 12px;
+  padding: 8px 14px 8px 12px;
   border-radius: 16px;
   background: #fff;
   color: var(--petrol);
@@ -960,29 +964,6 @@
   font-size: 12.5px;
   font-weight: 700;
 }
-.rentabilidad-descartar {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border: 1.5px solid color-mix(in srgb, var(--petrol) 25%, #fff);
-  border-radius: 50%;
-  background: #fff;
-  color: var(--petrol);
-  cursor: pointer;
-}
-.rentabilidad-descartar .icon {
-  width: 12px;
-  height: 12px;
-}
-.rentabilidad-descartar:hover,
-.rentabilidad-descartar:focus-visible {
-  background: color-mix(in srgb, var(--petrol) 10%, #fff);
-}
-
 .rentabilidad-abrir {
   display: block;
   width: 100%;
@@ -1006,10 +987,49 @@
   margin-top: 2px;
   font-size: 12px;
 }
-.rentabilidad-tarjeta:has(.rentabilidad-abrir):hover {
-  box-shadow:
-    inset 6px 0 0 var(--tono),
-    inset 0 0 0 2px var(--c-accion);
+/* La única que se toca: llena de color, con flecha y mano; el resto son datos y quedan planas. */
+.rentabilidad-tarjeta[data-clickeable] {
+  padding-right: 40px; /* deja lugar a la flecha de deslizar, que se apoya sobre el borde */
+  background: var(--tono);
+  color: #fff;
+  box-shadow: 0 6px 14px -8px var(--tono);
+  transition: transform 0.15s ease;
+}
+.rentabilidad-tarjeta[data-clickeable]:hover {
+  transform: translateY(-2px);
+}
+.rentabilidad-tarjeta[data-clickeable] .rentabilidad-icono {
+  background: rgb(255 255 255 / 0.22);
+}
+.rentabilidad-tarjeta:not([data-clickeable]) {
+  cursor: default;
+}
+.rentabilidad-abrir {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 10px;
+}
+.rentabilidad-abrir > span {
+  grid-column: 1;
+}
+.rentabilidad-abrir > .icon {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  width: 20px;
+  height: 20px;
+}
+/* Toda la tarjeta es el botón. */
+.rentabilidad-abrir::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+.rentabilidad-abrir:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 4px;
+  border-radius: 12px;
 }
 
 /* La flecha de la comparación en «Cómo te va»: un flecha doble, verde si subió y roja si bajó */

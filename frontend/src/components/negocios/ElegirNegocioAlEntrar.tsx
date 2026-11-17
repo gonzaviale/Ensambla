@@ -1,12 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { ElegirNegocio, type EstadoDeLaEleccion } from '@/components/negocios/ElegirNegocio';
-import { IconSprite } from '@/components/sistema/IconSprite';
+import { Btn } from '@/components/sistema/Btn';
 import { useElegirNegocioAlEntrar } from '@/hooks/negocios/mutations';
 import { useResumenConjunto } from '@/hooks/negocios/resumenConjunto';
 import { paraElegir } from '@/lib/negocios/presentacion';
 import type { ListaDeNegocios } from '@/types/negocios';
-// El pop-up se abre afuera de la app (en /elegir-negocio): trae las hojas del sistema y el sprite de íconos para
-// verse como sus modales.
+// El pop-up se abre afuera de la app (en /elegir-negocio): trae las hojas del sistema para verse como sus modales.
 import '@/styles/sistema/index.css';
 
 type Props = {
@@ -18,12 +17,13 @@ type Props = {
 const ENFOCABLES = 'button:not(:disabled)';
 
 // El pop-up de T-204: al iniciar sesión con más de un negocio se elige con cuál trabajar antes de entrar, así la app
-// carga de entrada los datos de ese negocio. Tocar uno de la lista ya entra; si es el que estaba activo, sin cambiar
-// nada. Esc no hace nada: hay que elegir.
+// carga de entrada los datos de ese negocio. Elegir el que ya estaba activo o «Seguir con…» entran sin cambiar nada.
+// Esc no hace nada: hay que elegir.
 export function ElegirNegocioAlEntrar({ lista, onListo }: Props) {
   const resumen = useResumenConjunto(lista.negocios);
   const activar = useElegirNegocioAlEntrar();
   const dialogo = useRef<HTMLElement>(null);
+  const ultimo = lista.negocios.find((negocio) => negocio.id === lista.activoId);
   const abriendo = activar.isPending
     ? lista.negocios.find((negocio) => negocio.id === activar.variables)
     : undefined;
@@ -71,7 +71,6 @@ export function ElegirNegocioAlEntrar({ lista, onListo }: Props) {
 
   return (
     <div className="mk-root">
-      <IconSprite />
       <div className="overlay-backdrop elegir-negocio-al-entrar">
         <section
           ref={dialogo}
@@ -85,7 +84,7 @@ export function ElegirNegocioAlEntrar({ lista, onListo }: Props) {
         >
           <span className="eyebrow">Tenés {lista.negocios.length} negocios</span>
           <h2 id="elegir-negocio-titulo">¿Con qué negocio trabajás hoy?</h2>
-          <p id="elegir-negocio-ayuda">Tocá uno para entrar.</p>
+          <p id="elegir-negocio-ayuda">Seleccioná uno para entrar.</p>
           <ElegirNegocio estado={estado} onElegir={elegir} />
           {abriendo && (
             <p className="elegir-negocio-abriendo" role="status">
@@ -94,9 +93,14 @@ export function ElegirNegocioAlEntrar({ lista, onListo }: Props) {
           )}
           {activar.isError && (
             <p className="tablero-aviso" role="alert">
-              No pudimos abrir ese negocio. Probá de nuevo.
+              No pudimos abrir ese negocio. Probá de nuevo o seguí con el último que usaste.
             </p>
           )}
+          <div className="modal-footer">
+            <Btn cls="secondary" onClick={onListo} disabled={activar.isPending}>
+              {ultimo ? `Seguir con ${ultimo.nombre}` : 'Seguir con el último que usé'}
+            </Btn>
+          </div>
         </section>
       </div>
     </div>

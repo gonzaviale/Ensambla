@@ -668,19 +668,28 @@ body:has(.inicio) {
   font-weight: 800;
   color: var(--ink);
 }
+/* Los títulos «Cobraste», «Gastaste» y «Resultado» van una sola vez, arriba de cada columna */
+.panel-semanas-cabecera {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr) minmax(0, 1fr) 112px;
+  gap: 4px 18px;
+  padding: 4px 0 6px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--panel-suave);
+}
+.panel-semanas-cabecera span:last-child {
+  text-align: right;
+}
 .panel-semana-fila {
   display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: baseline;
-  gap: 2px 8px;
+  grid-template-columns: 1fr;
+  gap: 2px;
   font-size: 13px;
 }
-.panel-semana-etiqueta {
-  color: var(--panel-suave);
-  font-weight: 700;
-}
 .panel-semana-importe {
-  text-align: right;
   color: var(--ink);
 }
 .panel-semana-barra {
@@ -711,6 +720,13 @@ body:has(.inicio) {
   font-weight: 700;
   color: var(--panel-suave);
 }
+.panel-semana-saldo {
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+.panel-semana-saldo strong {
+  text-align: right;
+}
 .panel-semana-saldo strong {
   font-size: 14px;
   color: var(--ink);
@@ -721,12 +737,13 @@ body:has(.inicio) {
 .panel-semana-saldo[data-signo='-1'] strong {
   color: var(--bad);
 }
+/* El total va pegado a la derecha, al lado del número, sin caja: así no queda un hueco entre el texto y la cifra */
 .panel-flujo-total {
-  margin-top: 6px;
-  padding: 10px 14px;
-  border-radius: 14px;
-  border: 2px solid var(--c-estructura);
-  background: #fff;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: 8px;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--line);
   font-size: 15px;
   color: var(--petrol);
 }
@@ -893,6 +910,27 @@ body:has(.inicio) {
   }
   .panel-semana-saldo {
     grid-column: 1 / -1;
+    justify-content: space-between;
+  }
+  .panel-semana-saldo::before {
+    content: 'Resultado';
+  }
+  /* En el celular no hay columnas: cada título pasa a la fila de su importe */
+  .panel-semanas-cabecera {
+    display: none;
+  }
+  .panel-semana-fila {
+    grid-template-columns: auto 1fr;
+    align-items: baseline;
+    gap: 2px 8px;
+  }
+  .panel-semana-fila::before {
+    content: attr(data-etiqueta);
+    color: var(--panel-suave);
+    font-weight: 700;
+  }
+  .panel-semana-importe {
+    text-align: right;
   }
   .sugerencia {
     grid-template-columns: 40px minmax(0, 1fr);

@@ -354,6 +354,7 @@ describe('sin datos y con el almacén de ejemplo', () => {
     await verTodosDesdeLaCampana(user);
     const panel = await screen.findByRole('region', { name: /Tus avisos/ }, ESPERA);
     expect(within(panel).getByText('Todavía no tengo datos para mirar.')).toBeVisible();
+    expect(within(panel).queryByRole('img', { name: /Sami, el pulpito/ })).toBeNull();
     await user.click(
       within(panel).getByRole('button', { name: 'Probar con un almacén de ejemplo' }),
     );

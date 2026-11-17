@@ -1,6 +1,6 @@
 /* Elegir con qué negocio trabajar (T-204): el pop-up que aparece al iniciar sesión con más de un negocio. Sigue el
-   patrón del Inicio: cada negocio es una tarjeta blanca con borde petróleo a la izquierda, ícono de línea, nombre en
-   petróleo y la flecha de las acciones. Sin juicios sobre cómo viene: sólo lo que tiene pendiente. */
+   criterio de armonia.css: cada negocio es una opción blanca con borde fino, y el color del estado tiene
+   significado (petróleo si viene bien, coral si pide atención, gris si todavía no hay ventas). */
 
 .elegir-negocio {
   display: grid;
@@ -12,84 +12,80 @@
 
 .elegir-negocio-opcion {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 14px;
+  gap: 4px;
   width: 100%;
   padding: 14px 16px;
   border: 1px solid var(--c-borde);
-  border-left: 4px solid var(--c-estructura);
+  border-left: 4px solid var(--c-borde);
   border-radius: 14px;
   background: #fff;
-  color: var(--c-estructura);
   text-align: left;
   cursor: pointer;
   transition:
     border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.15s ease;
+    box-shadow 0.15s ease;
+}
+.elegir-negocio-opcion {
+  --color-del-negocio: var(--c-estructura);
+}
+/* Cada negocio tiene su color de la paleta según su lugar en la lista (el mismo que su inicial en la barra): al pasar
+   el mouse se prende la franja izquierda con ese color. */
+.elegir-negocio-opcion[data-color='orange'] {
+  --color-del-negocio: var(--orange);
+}
+.elegir-negocio-opcion[data-color='coral'] {
+  --color-del-negocio: var(--coral);
 }
 .elegir-negocio-opcion:hover,
 .elegir-negocio-opcion:focus-visible {
-  border-color: var(--c-estructura);
-  border-left-color: var(--c-accion);
-  box-shadow: var(--sombra-elevada);
-  transform: translateY(-1px);
+  border-left-color: var(--color-del-negocio);
+  box-shadow: var(--sombra-reposo);
 }
 .elegir-negocio-opcion:focus-visible {
   outline: 3px solid var(--c-estructura);
   outline-offset: 2px;
 }
 
-.elegir-negocio-icono {
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  background: var(--accent, var(--c-estructura));
-  color: #fff;
-  font-size: 18px;
-  font-weight: 800;
+.elegir-negocio-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
-.elegir-negocio-icono[data-color='yellow'] {
-  color: var(--c-estructura);
-}
-
-.elegir-negocio-texto {
-  display: grid;
-  gap: 2px;
-}
-.elegir-negocio-texto strong {
+.elegir-negocio-fila strong {
   font-size: 18px;
   line-height: 1.25;
-  color: var(--c-estructura);
+  color: var(--ink);
 }
 
-.elegir-negocio-flecha {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
+.negocio-estado {
+  flex-shrink: 0;
+  padding: 3px 10px;
   border-radius: 999px;
-  background: var(--c-accion);
-  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--c-estructura-100);
+  color: var(--c-estructura);
 }
-.elegir-negocio-flecha .icon {
-  width: 16px;
-  height: 16px;
+[data-estado='ATENCION'] .negocio-estado {
+  background: #ffe9e8;
+  color: #b3322e;
+}
+[data-estado='SIN_DATOS'] .negocio-estado {
+  background: var(--c-fondo-suave);
+  color: var(--muted);
 }
 
 .elegir-negocio-detalle {
-  font-size: 14px;
-  color: var(--c-estructura);
+  font-size: 15px;
+  color: var(--muted);
 }
 .elegir-negocio-detalle [data-hay] {
-  font-weight: 700;
-  color: var(--c-accion-texto);
+  font-weight: 600;
+  color: var(--yellow-dark);
 }
 .elegir-negocio-ultimo {
-  font-weight: 600;
+  color: var(--c-estructura);
 }
 
 .elegir-negocio-cargando {

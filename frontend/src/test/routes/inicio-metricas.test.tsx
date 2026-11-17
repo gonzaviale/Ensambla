@@ -112,7 +112,7 @@ describe('inicio: métricas', () => {
   it('dentro de «Tu negocio» muestra lo vendido, sin elegir sección', async () => {
     await whenAbreInicio([almacen('Almacén de barrio')]);
 
-    const negocio = within(screen.getByRole('region', { name: 'Almacén de barrio' }));
+    const negocio = within(screen.getByRole('region', { name: 'Tu negocio' }));
     const metricas = await negocio.findByRole('region', { name: 'Tus métricas' }, ESPERA);
     expect(
       await within(metricas).findByRole('heading', { name: 'Esta semana vendiste' }, ESPERA),
@@ -124,7 +124,7 @@ describe('inicio: métricas', () => {
   it('con un negocio sin ventas muestra qué se va a ver', async () => {
     await whenAbreInicio([givenNegocioSinVentas()]);
 
-    const negocio = within(await screen.findByRole('region', { name: 'Kiosco nuevo' }, ESPERA));
+    const negocio = within(await screen.findByRole('region', { name: 'Tu negocio' }, ESPERA));
     expect(
       await negocio.findByRole('heading', { name: 'Acá vas a ver tus ventas' }, ESPERA),
     ).toBeVisible();
@@ -151,7 +151,7 @@ describe('inicio: carrusel de rentabilidad', () => {
     await whenAbreInicio([almacen('Almacén de barrio')]);
 
     await thenTarjetas();
-    const negocio = screen.getByRole('heading', { level: 2, name: 'Almacén de barrio' });
+    const negocio = screen.getByRole('region', { name: 'Tu negocio' });
     const carrusel = screen.getByRole('region', { name: 'Avisos de rentabilidad' });
     expect(
       negocio.compareDocumentPosition(carrusel) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -214,19 +214,15 @@ describe('inicio: carrusel de rentabilidad', () => {
     await thenNoHayCarrusel();
   });
 
-  it('cada tarjeta se descarta sola y no vuelve a aparecer', async () => {
-    const user = await whenAbreInicio([almacen('Almacén de barrio')]);
-    const [ventas] = await thenTarjetas();
+  it('las tarjetas no se pueden descartar y sólo la de productos se toca', async () => {
+    await whenAbreInicio([almacen('Almacén de barrio')]);
+    const tarjetas = await thenTarjetas();
 
-    await user.click(
-      within(ventas as HTMLElement).getByRole('button', { name: 'Descartar aviso' }),
-    );
-
-    expect(await thenTarjetas()).toHaveLength(2);
-    expect(screen.queryByText('+12 %')).toBeNull();
-    expect(window.localStorage.getItem('ensambla.inicio.rentabilidadDescartada')).toContain(
-      ':ventas',
-    );
+    expect(screen.queryByRole('button', { name: 'Descartar aviso' })).toBeNull();
+    const tocables = tarjetas.filter((tarjeta) => within(tarjeta).queryByRole('button'));
+    expect(tocables).toHaveLength(1);
+    expect(tocables[0]).toHaveAttribute('data-clickeable');
+    expect(tarjetas.filter((tarjeta) => tarjeta.hasAttribute('data-clickeable'))).toHaveLength(1);
   });
 
   it('con varias secciones muestra solo las tarjetas de una', async () => {

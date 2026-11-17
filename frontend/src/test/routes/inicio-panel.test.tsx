@@ -32,23 +32,17 @@ const cifrasAsync = () =>
   screen.findByText(/Lo fiado no entra hasta que lo cobrás/, undefined, ESPERA);
 /** El flujo de caja arranca cerrado: se espera a que llegue y se abre como lo haría la persona. */
 const abrirFlujoAsync = async (user: ReturnType<typeof userEvent.setup>) => {
-  await user.click(
-    await screen.findByRole('heading', { name: 'Semana a semana' }, ESPERA),
-  );
+  await user.click(await screen.findByRole('heading', { name: 'Semana a semana' }, ESPERA));
 };
 
 describe('inicio: panel del negocio', () => {
   it('con ventas muestra el flujo de caja cerrado, con lo que te va quedando', async () => {
     const { user } = await abrirInicio([crearAlmacenCargado(hoy())]);
 
-    const titulo = await screen.findByRole(
-      'heading',
-      { name: 'Semana a semana' },
-      ESPERA,
-    );
+    const titulo = await screen.findByRole('heading', { name: 'Semana a semana' }, ESPERA);
     const flujo = titulo.closest('details') as HTMLElement;
     expect(flujo).not.toHaveAttribute('open');
-    expect(within(flujo).getByText(/^Te va quedando \$/)).toBeVisible();
+    expect(within(flujo).getByText(/^Te queda \$/)).toBeVisible();
     expect(within(flujo).getByText(/Lo fiado no entra hasta que lo cobrás/)).not.toBeVisible();
 
     await user.click(titulo);
@@ -70,10 +64,13 @@ describe('inicio: panel del negocio', () => {
     for (const fila of filas) {
       expect(within(fila).getByText('Cobraste')).toBeVisible();
       expect(within(fila).getByText('Gastaste')).toBeVisible();
-      expect(within(fila).getByText('Te quedó')).toBeVisible();
+      expect(within(fila).queryByText('Te quedó')).toBeNull();
       expect(fila).toHaveTextContent(/\$\d/);
     }
-    expect(screen.getByText('Te va quedando')).toBeVisible();
+    for (const titulo of ['Cobraste', 'Gastaste', 'Resultado']) {
+      expect(screen.getByText(titulo, { selector: '.panel-semanas-cabecera span' })).toBeVisible();
+    }
+    expect(screen.getByText('Te queda')).toBeVisible();
   });
 
   it('con panel el saludo sigue siendo el h1 y el título del panel es un h2', async () => {
@@ -207,9 +204,7 @@ describe('inicio: panel del negocio', () => {
     );
     await clickButton(user, 'Probar de nuevo');
 
-    expect(
-      await screen.findByRole('heading', { name: 'Semana a semana' }, ESPERA),
-    ).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Semana a semana' }, ESPERA)).toBeVisible();
     expect(screen.queryByRole('alert')).toBeNull();
   });
 });
