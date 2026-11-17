@@ -1,9 +1,19 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { sembrarDemoCargada } from '@/mocks/db/demoCargada';
 import { estado } from '@/mocks/db/estado';
 import { ID_OBJETIVO_SIN_DATOS_DE_EJEMPLO } from '@/mocks/db/objetivosAutogestionados';
+import {
+  givenQueHoyEsLunes,
+  givenQueHoyEsMiercoles,
+  seccionDeSami,
+  thenNoHayPreguntasDeSami,
+  thenSePreguntaPor,
+  volverAlTiempoReal,
+  whenSeDejaParaMasTarde,
+  whenSeVenLasOtrasPreguntas,
+} from '@/test/preguntasDeSami';
 import { renderApp } from '@/test/renderApp';
 import { ESPERA, setupServerError, setupUsuarioConSesion } from '@/test/testHelpers';
 
@@ -22,29 +32,67 @@ const formulario = (titulo: string) =>
   within(screen.getByRole('form', { name: `Contale a Sami cómo te fue con «${titulo}»` }));
 
 describe('mini-objetivos manuales', () => {
-  it('las respuestas pendientes se ven en Objetivos como un recordatorio, sin alarma', async () => {
+  afterEach(volverAlTiempoReal);
+
+  it('Sami pregunta una cosa por vez, sin contador ni alarma, y ofrece ver las otras', async () => {
+    givenQueHoyEsMiercoles();
     conObjetivoSinDatos();
     renderApp('/objetivos');
 
-    const seccion = within(
-      await screen.findByRole('region', { name: /Sami quiere saber cómo te fue/ }, ESPERA),
-    );
-    expect(seccion.getByText('(2)')).toBeVisible();
-    // Del más viejo al más nuevo, cada uno con el objetivo al que pertenece.
-    expect(
-      seccion.getAllByRole('heading', { level: 3 }).map((titulo) => titulo.textContent),
-    ).toEqual(['Anotá qué te piden y no tenés', 'Poné un cartel en la vereda con lo que ofrecés']);
-    expect(seccion.getAllByText('Que más gente conozca mi local')).toHaveLength(2);
+    const seccion = await seccionDeSami();
+
+    thenSePreguntaPor(seccion, ['Anotá qué te piden y no tenés']);
+    expect(seccion.getByRole('button', { name: 'Ver las otras 1' })).toBeVisible();
+    expect(seccion.queryByText(/\(\d+\)/)).not.toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    // El objetivo sin datos no muestra una meta ni lo que falta para llegar.
     expect(screen.queryByText(/Lo lograste/)).not.toBeInTheDocument();
   });
 
+  it('al ver las otras aparecen del más viejo al más nuevo, cada una con su objetivo', async () => {
+    givenQueHoyEsMiercoles();
+    conObjetivoSinDatos();
+    renderApp('/objetivos');
+    await seccionDeSami();
+
+    await whenSeVenLasOtrasPreguntas();
+
+    const seccion = await seccionDeSami();
+    thenSePreguntaPor(seccion, [
+      'Anotá qué te piden y no tenés',
+      'Poné un cartel en la vereda con lo que ofrecés',
+    ]);
+    expect(seccion.getAllByText('Que más gente conozca mi local')).toHaveLength(2);
+  });
+
+  it('el lunes no pregunta por lo de esta semana, solo por lo que quedó sin contar', async () => {
+    givenQueHoyEsLunes();
+    conObjetivoSinDatos();
+    renderApp('/objetivos');
+
+    const seccion = await seccionDeSami();
+
+    thenSePreguntaPor(seccion, ['Anotá qué te piden y no tenés']);
+    expect(seccion.queryByRole('button', { name: /Ver las otras/ })).not.toBeInTheDocument();
+  });
+
+  it('«Más tarde» deja la pregunta para mañana', async () => {
+    givenQueHoyEsLunes();
+    conObjetivoSinDatos();
+    renderApp('/objetivos');
+    await seccionDeSami();
+
+    await whenSeDejaParaMasTarde('Anotá qué te piden y no tenés');
+
+    await thenNoHayPreguntasDeSami();
+  });
+
   it('se responde en dos toques: ¿lo hiciste? y ¿qué pasó?, y la respuesta queda guardada', async () => {
+    givenQueHoyEsMiercoles();
     conObjetivoSinDatos();
     renderApp('/objetivos');
     const user = userEvent.setup();
-    await screen.findByRole('region', { name: /Sami quiere saber cómo te fue/ }, ESPERA);
+    await seccionDeSami();
+    await whenSeVenLasOtrasPreguntas();
     const tarjeta = formulario('Poné un cartel en la vereda con lo que ofrecés');
 
     expect(tarjeta.queryByText('¿Qué pasó?')).not.toBeInTheDocument();
@@ -67,10 +115,14 @@ describe('mini-objetivos manuales', () => {
     expect(estado.autogestion.get(ID_OBJETIVO_SIN_DATOS_DE_EJEMPLO)?.decisiones).toContainEqual(
       expect.objectContaining({ tipo: 'MINI_HECHO', miniObjetivoId: MINI_PENDIENTE }),
     );
-    await waitFor(() => expect(screen.getByText('(1)')).toBeVisible(), ESPERA);
+    await waitFor(
+      () => expect(screen.queryByRole('button', { name: /Ver las otras/ })).not.toBeInTheDocument(),
+      ESPERA,
+    );
   });
 
   it('en parte o no, deja elegir «no tuve tiempo» y la persona puede cambiar de idea antes de enviar', async () => {
+    givenQueHoyEsMiercoles();
     conObjetivoSinDatos();
     renderApp('/objetivos');
     const user = userEvent.setup();
@@ -94,6 +146,7 @@ describe('mini-objetivos manuales', () => {
   });
 
   it('si el servidor ya tenía la respuesta, lo dice y no pisa la primera', async () => {
+    givenQueHoyEsMiercoles();
     conObjetivoSinDatos();
     renderApp('/objetivos');
     const user = userEvent.setup();

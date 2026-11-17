@@ -2508,9 +2508,17 @@
   font-size: 18px;
   color: var(--petrol);
 }
-.objetivos-pendientes-cuenta {
+.objetivos-pendientes-calma {
   color: var(--muted);
-  font-weight: 700;
+  font-size: 14px;
+}
+.objetivos-pregunta {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+.objetivos-pregunta .mini-objetivo {
+  justify-self: stretch;
 }
 .objetivos-pendientes-lista {
   display: grid;
