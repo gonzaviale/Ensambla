@@ -1,6 +1,6 @@
 import { expect } from 'vitest';
 import { aplicarAcciones, sumarPendientes, type AccionDeSami } from '@/lib/sistema/acciones';
-import { allBlocks, upsertRow } from '@/lib/sistema/core';
+import { allBlocks, makeSystem, upsertRow } from '@/lib/sistema/core';
 import type { Fila, Sistema } from '@/lib/sistema/tipos';
 
 type Resultado = ReturnType<typeof aplicarAcciones>;
@@ -22,8 +22,13 @@ const registrosReales = (sistema: Sistema, nombre: string) =>
 const vinculosDeLasVentas = (sistema: Sistema) =>
   piezaLlamada(sistema, 'Ventas').rows.map((fila) => [fila.product, fila.customer]);
 
-export const dadoUnCuadernoConUnaVelaDeEjemploYUnaClientaReal = (sistema: Sistema): Fila => {
-  aplicarAcciones(sistema, [
+let cuaderno: Sistema;
+let rosa: Fila;
+let resultado: Resultado;
+
+export const dadoUnCuadernoConVelasDeEjemploYUnaClientaReal = () => {
+  cuaderno = makeSystem('Mi sistema', [], false);
+  aplicarAcciones(cuaderno, [
     accion('agregar_pieza', {
       tipo: 'inventory',
       nombre: 'Velas',
@@ -31,12 +36,13 @@ export const dadoUnCuadernoConUnaVelaDeEjemploYUnaClientaReal = (sistema: Sistem
     }),
     accion('agregar_pieza', { tipo: 'clients', nombre: 'Clientas', ejemplos: [] }),
   ]);
-  piezaLlamada(sistema, 'Clientas').rows = [];
-  return upsertRow(piezaLlamada(sistema, 'Clientas'), { name: 'Rosa' }, null, sistema).row as Fila;
+  piezaLlamada(cuaderno, 'Clientas').rows = [];
+  rosa = upsertRow(piezaLlamada(cuaderno, 'Clientas'), { name: 'Rosa' }, null, cuaderno)
+    .row as Fila;
 };
 
-export const cuandoSeCarganTresVentasPorNombre = (sistema: Sistema): Resultado =>
-  aplicarAcciones(sistema, [
+export const cuandoSeCarganTresVentasPorNombre = () => {
+  resultado = aplicarAcciones(cuaderno, [
     accion('agregar_pieza', { tipo: 'sales', ejemplos: [] }),
     accion('cargar_registros', {
       pieza: 'Ventas',
@@ -47,24 +53,26 @@ export const cuandoSeCarganTresVentasPorNombre = (sistema: Sistema): Resultado =
       ],
     }),
   ]);
+};
 
-export const cuandoSeSumanLosPendientes = (sistema: Sistema, resultado: Resultado) =>
-  sumarPendientes(sistema, resultado.pendientes);
+export const cuandoSeSumanLosPendientes = () => {
+  sumarPendientes(cuaderno, resultado.pendientes);
+};
 
-export const entoncesSoloRosaQuedaVinculada = (sistema: Sistema, rosa: Fila) => {
-  expect(vinculosDeLasVentas(sistema)).toEqual([
+export const entoncesSoloRosaQuedaVinculada = () => {
+  expect(vinculosDeLasVentas(cuaderno)).toEqual([
     ['', rosa.id],
     ['', ''],
     ['', ''],
   ]);
 };
 
-export const entoncesNoSeCreoNingunRegistroNuevo = (sistema: Sistema) => {
-  expect(registrosReales(sistema, 'Velas')).toEqual([]);
-  expect(registrosReales(sistema, 'Clientas').map((fila) => fila.name)).toEqual(['Rosa']);
+export const entoncesNoSeCreoNingunRegistroNuevo = () => {
+  expect(registrosReales(cuaderno, 'Velas')).toEqual([]);
+  expect(registrosReales(cuaderno, 'Clientas').map((fila) => fila.name)).toEqual(['Rosa']);
 };
 
-export const entoncesLosFaltantesQuedanPendientesUnaSolaVez = (resultado: Resultado) => {
+export const entoncesLosFaltantesQuedanPendientesUnaSolaVez = () => {
   const pendientes = resultado.pendientes.map((item) => [item.nombre, item.filas.length]);
   expect(pendientes).toEqual([
     ['Vela lavanda', 1],
@@ -73,14 +81,11 @@ export const entoncesLosFaltantesQuedanPendientesUnaSolaVez = (resultado: Result
   ]);
 };
 
-export const entoncesLasVentasQuedanVinculadasALosRegistrosNuevos = (
-  sistema: Sistema,
-  rosa: Fila,
-) => {
-  const velas = registrosReales(sistema, 'Velas');
-  const lucia = piezaLlamada(sistema, 'Clientas').rows.find((fila) => fila.name === 'Lucía');
+export const entoncesLasVentasQuedanVinculadasALosRegistrosNuevos = () => {
+  const velas = registrosReales(cuaderno, 'Velas');
+  const lucia = piezaLlamada(cuaderno, 'Clientas').rows.find((fila) => fila.name === 'Lucía');
   expect(velas.map((fila) => fila.name)).toEqual(['Vela lavanda', 'Vela vainilla']);
-  expect(vinculosDeLasVentas(sistema)).toEqual([
+  expect(vinculosDeLasVentas(cuaderno)).toEqual([
     [velas[0]?.id, rosa.id],
     [velas[1]?.id, lucia?.id],
     [velas[1]?.id, lucia?.id],

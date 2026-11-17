@@ -1,4 +1,3 @@
-import type { QueryClient } from '@tanstack/react-query';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
@@ -10,61 +9,23 @@ import { estado } from '@/mocks/db/estado';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { avisoDelServidor } from '@/test/avisosData';
 import {
+  abrirConDemo,
   cuandoBajaElStockDeLaGaseosa,
-  cuandoSeAbreElAvisoDeSami,
-  entoncesAparecePendienteElAviso,
-  entoncesElPanelResaltaElAvisoDeStock,
-  entoncesNoHayAvisoDeSami,
-  esperarQueSamiTomeSuLineaBase,
+  cuandoSeAbreElAvisoPendiente,
+  dadoUnAlmacenDeEjemploAbierto,
+  dadoUnAlmacenDeEjemploAbiertoConSamiAtenta,
+  entoncesAparecePendienteElAvisoDeStockDeLaGaseosa,
+  entoncesElPanelResaltaElAvisoDeStockDeLaGaseosa,
+  entoncesSamiTodaviaNoAvisaNada,
+  setupUsuarioConSesion,
 } from '@/test/avisosDeSami';
 import { renderApp } from '@/test/renderApp';
 import {
   ESPERA,
   setupServerError,
-  setupUsuarioConSesion as setupUsuarioBase,
   verifyHeadingPresentAsync,
   verifyToastAsync,
 } from '@/test/testHelpers';
-
-// Estos casos revisan todas las herramientas; los límites gratuitos tienen pruebas propias.
-const setupUsuarioConSesion = (...args: Parameters<typeof setupUsuarioBase>) => {
-  const usuario = setupUsuarioBase(...args);
-  estado.pruebasPremium.set(usuario.email, {
-    inicioEn: new Date(Date.now() - 1000).toISOString(),
-    finEn: new Date(Date.now() + 7 * 86400000).toISOString(),
-    paginasIaUtilizadas: 0,
-    limitePaginasIa: 10,
-  });
-  return usuario;
-};
-
-const abrirConDemo = async (ruta: 'usar' | 'construir' = 'usar', configurado = false) => {
-  const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
-  if (configurado)
-    estado.negocios.set(usuario.email, {
-      nombre: 'Mi almacén',
-      rubro: 'ALMACEN',
-      comparteDatosZona: true,
-      zona: null,
-      ubicacion: {
-        direccion: 'Calle 123',
-        localidad: 'San Justo',
-        latitud: -34.67,
-        longitud: -58.56,
-      },
-    });
-  const sistema = crearAlmacenDeEjemplo(hoy());
-  estado.sistemas.set(usuario.email, [sistema]);
-  const router = renderApp(`/sistemas/${sistema.id}?modo=${ruta}`);
-  await screen.findByRole('heading', { level: 1, name: /Almacén de ejemplo/ }, ESPERA);
-  await waitFor(() => expect(useSistemaStore.getState().avisos.length).toBeGreaterThan(0), ESPERA);
-  return {
-    user: userEvent.setup(),
-    sistema,
-    usuario,
-    cliente: router.options.context.queryClient as QueryClient,
-  };
-};
 
 const productoDe = (sistema: Sistema | undefined, nombre: string) =>
   sistema?.sections[0]?.blocks[0]?.rows.find((fila) => fila.name === nombre);
@@ -477,25 +438,27 @@ describe('sin datos y con el almacén de ejemplo', () => {
 });
 
 describe('«Sami vio un cambio»', () => {
-  it('avisa de un stock bajo mínimo recién después de abrir, no al abrir', async () => {
-    const { cliente } = await abrirConDemo();
-    entoncesNoHayAvisoDeSami();
-    await esperarQueSamiTomeSuLineaBase(cliente);
+  it('no avisa nada mientras el almacén recién se abre', async () => {
+    await dadoUnAlmacenDeEjemploAbierto();
 
-    cuandoBajaElStockDeLaGaseosa();
-
-    await entoncesAparecePendienteElAviso();
+    entoncesSamiTodaviaNoAvisaNada();
   });
 
-  it('el aviso de Sami lleva al panel con ese aviso resaltado', async () => {
-    const { cliente } = await abrirConDemo();
-    await esperarQueSamiTomeSuLineaBase(cliente);
+  it('una gaseosa que baja de su mínimo genera un aviso pendiente', async () => {
+    await dadoUnAlmacenDeEjemploAbiertoConSamiAtenta();
+
     cuandoBajaElStockDeLaGaseosa();
-    await entoncesAparecePendienteElAviso();
 
-    await cuandoSeAbreElAvisoDeSami();
+    await entoncesAparecePendienteElAvisoDeStockDeLaGaseosa();
+  });
 
-    await entoncesElPanelResaltaElAvisoDeStock();
+  it('el aviso pendiente lleva al panel con ese aviso resaltado', async () => {
+    await dadoUnAlmacenDeEjemploAbiertoConSamiAtenta();
+    cuandoBajaElStockDeLaGaseosa();
+
+    await cuandoSeAbreElAvisoPendiente();
+
+    await entoncesElPanelResaltaElAvisoDeStockDeLaGaseosa();
   });
 });
 
