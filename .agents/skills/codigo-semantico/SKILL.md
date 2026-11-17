@@ -1,6 +1,6 @@
 ---
 name: codigo-semantico
-description: OBLIGATORIO siempre que se escriba, modifique, mueva o revise código Java del backend de Ensambla o sus tests, sin excepción. Impone código semántico y orientado a objetos - métodos cortos (≈10 líneas, un solo nivel de abstracción), método público que se lee como una frase que entiende alguien que no programa, todo el detalle en métodos privados con nombre de intención, cláusulas de guarda en lugar de if anidados, sin comentarios que repitan lo que el código dice y SIEMPRE herencia y polimorfismo (clase base abstracta + subclases, enum con constructor o fábrica) en lugar de switch o cadenas de if/else if por tipo o estado. En tests exige dado/cuando/entonces con helpers givenX/whenX/thenX, un comportamiento por test, sin lógica ni ternarios y base abstracta cuando varios tipos comparten comportamiento. Incluye receta de switch a jerarquía con el antes/después de Campo, anti-patrones, checklist de revisión, greps de control y la deuda conocida. Usar al crear, tocar o revisar cualquier clase de backend/src (main o test), al refactorizar, al revisar un PR y antes de cerrar cualquier tarea del backend. Si tocás un archivo, lo dejás semántico.
+description: OBLIGATORIO siempre que se escriba, modifique, mueva o revise código Java del backend de Ensambla o sus tests, sin excepción. Impone código semántico y orientado a objetos - métodos cortos (≈10 líneas, un solo nivel de abstracción), método público que se lee como una frase que entiende alguien que no programa, todo el detalle en métodos privados con nombre de intención, cláusulas de guarda en lugar de if anidados, sin comentarios que repitan lo que el código dice y SIEMPRE herencia y polimorfismo (clase base abstracta + subclases, enum con constructor o fábrica) en lugar de switch o cadenas de if/else if por tipo o estado. En tests exige nombre en español sin tildes, @DisplayName obligatorio en español, bloques dadoX/cuandoX/entoncesX de una línea, un comportamiento por test, sin lógica ni ternarios y base abstracta cuando varios tipos comparten comportamiento. Incluye receta de switch a jerarquía con el antes/después de Campo, anti-patrones, checklist de revisión, greps de control y la deuda conocida. Usar al crear, tocar o revisar cualquier clase de backend/src (main o test), al refactorizar, al revisar un PR y antes de cerrar cualquier tarea del backend. Si tocás un archivo, lo dejás semántico.
 ---
 
 > Copia para Codex. La fuente es `.claude/skills/codigo-semantico/SKILL.md`: si cambiás uno, cambiá los dos.
@@ -341,14 +341,22 @@ En `domain/model/campo` el `switch (` está prohibido y `ArchitectureTest` falla
 de los greps o se convierte en polimorfismo o se justifica por escrito (por ejemplo, un `switch` sobre un tipo externo
 que no controlamos, como un código de respuesta de un proveedor). "Ya estaba así" no es una justificación.
 
+## Qué `instanceof`, `switch` y mapas sí valen
+
+La regla apunta a *quién decide el comportamiento por tipo*, no a toda comprobación de tipo:
+
+- **Válido:** chequear el tipo de un **valor** dentro de la clase del campo (`valor instanceof String texto` en
+  `CampoFecha`), y las **tablas de traducción de formato en la infraestructura o la presentación** (por ejemplo
+  `AccionDeAvisoJson`, `ClavesDeContenido`, `LecturaPresentationMapper`): un mapa `clave → fábrica` o `clave → enum` no
+  es polimorfismo faltante, es el borde donde se traduce un formato externo a objetos del dominio.
+- **Deuda:** preguntar por el tipo o el estado de un **objeto del dominio** para decidir qué hacer (`campo.getTipo() ==
+  TipoCampo.X`, `instanceof SubclaseDeDominio`, `switch (tipo)`): ese comportamiento va en la clase de ese tipo (ejemplos
+  ya resueltos: `Campo.errorDeValorLeido`, `Campo.claseInterpretable`, `TipoDeCampoEnPantalla`).
+
 ## Deuda conocida (todavía con `switch` o ramas por tipo)
 
 No es permiso para copiarlos: es la lista de lo que hay que convertir. Si tocás uno, lo dejás semántico (regla de oro).
 
-- `LecturaCuaderno.validarDato`
-- `InterpreteRegistrosSimulado`
-- `SistemaItem.TIPOS_DE_CAMPO`
-- `LecturaPresentationMapper`
 - `ConversarEnTaller`
 - `AtenderMensajeWhatsapp`
 
