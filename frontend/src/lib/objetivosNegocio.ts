@@ -1,5 +1,5 @@
 import { allBlocks } from './sistema/core';
-import type { Sistema } from './sistema/tipos';
+import type { Bloque, Sistema, TipoBloque } from './sistema/tipos';
 
 // Cómo viene el negocio, con lo que la persona anotó en sus secciones: los últimos 30 días, dicho en pesos y sin
 // términos contables. La pantalla usa lo que calcula el servidor (GET /objetivos/negocio); esta cuenta es la que
@@ -33,6 +33,9 @@ const esMercaderia = (categoria: unknown) =>
     .replace(/\p{M}/gu, '')
     .toLowerCase() === 'mercaderia';
 
+const filasDeBloques = (bloques: Bloque[], tipo: TipoBloque) =>
+  bloques.filter((bloque) => bloque.type === tipo).flatMap((bloque) => bloque.rows);
+
 export function negocioDe(sistemas: Sistema[], hoy: string): Negocio {
   const negocio: Negocio = {
     hayVentas: false,
@@ -45,14 +48,12 @@ export function negocioDe(sistemas: Sistema[], hoy: string): Negocio {
   for (const sistema of sistemas) {
     const bloques = allBlocks(sistema);
     const costos = new Map(
-      bloques
-        .filter((bloque) => bloque.type === 'inventory')
-        .flatMap((bloque) => bloque.rows)
-        .map((fila) => [fila.id, { costo: numero(fila.cost), precio: numero(fila.price) }]),
+      filasDeBloques(bloques, 'inventory').map((fila) => [
+        fila.id,
+        { costo: numero(fila.cost), precio: numero(fila.price) },
+      ]),
     );
-    for (const venta of bloques
-      .filter((bloque) => bloque.type === 'sales')
-      .flatMap((bloque) => bloque.rows)) {
+    for (const venta of filasDeBloques(bloques, 'sales')) {
       const producto = costos.get(String(venta.product ?? ''));
       const cantidad = numero(venta.quantity);
       const importe = (numero(venta.price) || producto?.precio || 0) * cantidad;
@@ -63,9 +64,7 @@ export function negocioDe(sistemas: Sistema[], hoy: string): Negocio {
       negocio.mercaderia += (producto?.costo ?? 0) * cantidad;
     }
     // La mercadería comprada ya se descuenta al venderla: sumarla otra vez como gasto la contaría dos veces.
-    for (const gasto of bloques
-      .filter((bloque) => bloque.type === 'expenses')
-      .flatMap((bloque) => bloque.rows)) {
+    for (const gasto of filasDeBloques(bloques, 'expenses')) {
       if (esMercaderia(gasto.category) || !gasto.date || !enLosUltimos30(hoy, String(gasto.date)))
         continue;
       negocio.gastos += numero(gasto.total);
