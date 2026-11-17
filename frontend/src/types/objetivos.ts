@@ -166,18 +166,26 @@ export const decisionesObjetivoSchema = z.object({
   ),
 });
 
-const miniDeReajusteSchema = z.object({ titulo: z.string(), meta: z.number() });
+const miniDeReajusteSchema = z.object({ titulo: z.string(), meta: z.number().nullable() });
 
 export const hizoSchema = z.enum(['SI', 'EN_PARTE', 'NO']);
 export const quePasoSchema = z.enum(['FUNCIONO', 'NO_TUVE_TIEMPO', 'NO_FUNCIONO', 'OTRA']);
 
-/** Cómo le fue a la persona con un mini-objetivo manual en una semana que ya cerró. */
+/** Un manual de una semana que ya cerró; si la persona no contó cómo le fue, el servidor manda `hizo` y `quePaso` vacíos. */
 const manualDeLaSemanaSchema = z.object({
   miniObjetivoId: z.string(),
   titulo: z.string(),
-  hizo: hizoSchema,
-  quePaso: quePasoSchema,
+  hizo: hizoSchema.nullable(),
+  quePaso: quePasoSchema.nullable(),
 });
+
+type ManualDeLaSemana = z.infer<typeof manualDeLaSemanaSchema>;
+type ManualContado = ManualDeLaSemana & { hizo: z.infer<typeof hizoSchema> };
+
+const estaContado = (manual: ManualDeLaSemana): manual is ManualContado => manual.hizo !== null;
+
+const soloLosContados = (manuales: ManualDeLaSemana[]): ManualContado[] =>
+  manuales.filter(estaContado);
 
 export const semanasObjetivoSchema = z.object({
   ultimoCierre: z.string().nullable(),
@@ -195,7 +203,7 @@ export const semanasObjetivoSchema = z.object({
       queFunciono: z.string(),
       textoConIa: z.boolean(),
       /** Lo que la persona contó de sus manuales esa semana; sin manuales (o sin respuestas) queda vacío. */
-      manuales: z.array(manualDeLaSemanaSchema).optional(),
+      manuales: z.array(manualDeLaSemanaSchema).transform(soloLosContados).optional(),
       reajustes: z.array(
         z.object({
           tipo: z.enum(['SUBIR_META', 'REEMPLAZAR', 'PROBAR_OTRO_CAMINO']),
