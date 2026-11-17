@@ -9,12 +9,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class FotoArchivoResponseTest {
 
-    @Test
-    @DisplayName("Conserva los bytes y el tipo de la foto")
-    void deShouldKeepBytesAndType() {
-        FotoArchivoResponse result = FotoArchivoResponse.de(new ArchivoFoto(JPEG, "image/jpeg"));
+    private FotoArchivoResponse respuesta;
 
-        assertThat(result.contenido()).isEqualTo(JPEG);
-        assertThat(result.tipoContenido()).isEqualTo("image/jpeg");
+    @Test
+    @DisplayName("La respuesta conserva los bytes y el tipo de la foto")
+    void laRespuestaConservaLosBytesYElTipoDeLaFoto() {
+        cuandoSeArmaLaRespuestaDeUnaFotoJpeg();
+
+        entoncesConservaLosBytesYElTipoDeLaFoto();
+    }
+
+    // --- cuando ---
+    private void cuandoSeArmaLaRespuestaDeUnaFotoJpeg() {
+        respuesta = FotoArchivoResponse.de(new ArchivoFoto(JPEG, "image/jpeg"));
+    }
+
+    // --- entonces ---
+    private void entoncesConservaLosBytesYElTipoDeLaFoto() {
+        assertThat(respuesta.contenido()).isEqualTo(JPEG);
+        assertThat(respuesta.tipoContenido()).isEqualTo("image/jpeg");
     }
 }
