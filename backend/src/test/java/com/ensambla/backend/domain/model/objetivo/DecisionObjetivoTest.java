@@ -29,99 +29,145 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class DecisionObjetivoTest {
 
+    private static final OffsetDateTime DOMINGO_A_LA_NOCHE = OffsetDateTime.parse("2026-11-09T01:30:00Z");
+    private static final LocalDate LUNES_ARGENTINO = LocalDate.of(2026, 11, 2);
+    private static final LocalDate SEMANA_DE_LA_RESPUESTA = LocalDate.of(2026, 11, 9);
+
+    private DecisionObjetivo decision;
+
     @Test
     @DisplayName("Una decisión sobre un aviso copia el aviso, el producto y el mini-objetivo vinculado")
     void deAvisoShouldCopyTheAvisoAndLinkTheMiniObjetivo() {
-        DecisionObjetivo result = DecisionObjetivo.deAviso(
-                objetivo(), aviso(TipoAviso.ESTANCADO, EstadoAviso.APLICADO), TipoDecision.AVISO_APLICADO,
+        whenSeDecideSobreUnAviso(aviso(TipoAviso.ESTANCADO, EstadoAviso.APLICADO), TipoDecision.AVISO_APLICADO,
                 miniObjetivo(), AHORA);
 
-        assertThat(result.id()).isNotNull();
-        assertThat(result.negocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(result.objetivoId()).isEqualTo(OBJETIVO_ID);
-        assertThat(result.miniObjetivoId()).isEqualTo(MINI_ID);
-        assertThat(result.tipo()).isEqualTo(TipoDecision.AVISO_APLICADO);
-        assertThat(result.avisoId()).isEqualTo(AVISO_ID);
-        assertThat(result.registroId()).isEqualTo(PRODUCTO_ID);
-        assertThat(result.descripcion()).isEqualTo(TITULO_AVISO);
-        assertThat(result.tomadaEn()).isEqualTo(AHORA);
-        assertThat(result.semanaInicio()).isEqualTo(SEMANA);
+        thenLaDecisionCopiaElAvisoYSeVinculaAlMini();
     }
 
     @Test
     @DisplayName("Sin mini-objetivo del producto la decisión queda sin vincular")
     void deAvisoShouldLeaveTheMiniObjetivoEmptyWhenThereIsNone() {
-        DecisionObjetivo result = DecisionObjetivo.deAviso(
-                objetivo(), aviso(TipoAviso.STOCK, EstadoAviso.DESCARTADO), TipoDecision.AVISO_DESCARTADO, null,
+        whenSeDecideSobreUnAviso(aviso(TipoAviso.STOCK, EstadoAviso.DESCARTADO), TipoDecision.AVISO_DESCARTADO, null,
                 AHORA);
 
-        assertThat(result.miniObjetivoId()).isNull();
-        assertThat(result.tipo()).isEqualTo(TipoDecision.AVISO_DESCARTADO);
+        thenLaDecisionNoTieneMini();
+        thenElTipoEs(TipoDecision.AVISO_DESCARTADO);
     }
 
     @Test
     @DisplayName("Un aviso que no es de un producto no trae producto")
     void deAvisoShouldHaveNoProductWhenTheAvisoIsNotAboutOne() {
-        Aviso deLaZona = aviso(TipoAviso.CONSUMO_ZONA, EstadoAviso.APLICADO);
-        deLaZona.setEntidad("zona");
+        whenSeDecideSobreUnAviso(avisoDeLaZona(), TipoDecision.AVISO_APLICADO, null, AHORA);
 
-        DecisionObjetivo result = DecisionObjetivo.deAviso(
-                objetivo(), deLaZona, TipoDecision.AVISO_APLICADO, null, AHORA);
-
-        assertThat(result.registroId()).isNull();
+        thenLaDecisionNoTieneProducto();
     }
 
     @Test
     @DisplayName("La semana es la del lunes en hora argentina, aunque en UTC ya sea otro día")
     void deAvisoShouldUseTheArgentineWeek() {
-        OffsetDateTime domingoALaNoche = OffsetDateTime.parse("2026-11-09T01:30:00Z");
+        whenSeDecideSobreUnAviso(aviso(TipoAviso.ESTANCADO, EstadoAviso.APLICADO), TipoDecision.AVISO_APLICADO, null,
+                DOMINGO_A_LA_NOCHE);
 
-        DecisionObjetivo result = DecisionObjetivo.deAviso(
-                objetivo(), aviso(TipoAviso.ESTANCADO, EstadoAviso.APLICADO), TipoDecision.AVISO_APLICADO, null,
-                domingoALaNoche);
-
-        assertThat(result.semanaInicio()).isEqualTo(LocalDate.of(2026, 11, 2));
+        thenLaSemanaEs(LUNES_ARGENTINO);
     }
 
     @Test
     @DisplayName("Una decisión sobre un paso copia el mini-objetivo, su producto y su título")
     void dePasoShouldCopyTheMiniObjetivo() {
-        DecisionObjetivo result = DecisionObjetivo.dePaso(miniObjetivo(), DecisionPaso.ACEPTADO, AHORA);
+        whenSeDecideSobreUnPaso(DecisionPaso.ACEPTADO);
 
-        assertThat(result.id()).isNotNull();
-        assertThat(result.negocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(result.objetivoId()).isEqualTo(OBJETIVO_ID);
-        assertThat(result.miniObjetivoId()).isEqualTo(MINI_ID);
-        assertThat(result.tipo()).isEqualTo(TipoDecision.PASO_ACEPTADO);
-        assertThat(result.avisoId()).isNull();
-        assertThat(result.registroId()).isEqualTo(PRODUCTO_ID);
-        assertThat(result.descripcion()).isEqualTo(TITULO);
-        assertThat(result.tomadaEn()).isEqualTo(AHORA);
-        assertThat(result.semanaInicio()).isEqualTo(SEMANA);
+        thenLaDecisionCopiaElPaso();
     }
 
     @Test
     @DisplayName("Ignorar el paso es otro tipo de decisión")
     void dePasoShouldBeIgnoredWhenThePersonSaysNotNow() {
-        DecisionObjetivo result = DecisionObjetivo.dePaso(miniObjetivo(), DecisionPaso.IGNORADO, AHORA);
+        whenSeDecideSobreUnPaso(DecisionPaso.IGNORADO);
 
-        assertThat(result.tipo()).isEqualTo(TipoDecision.PASO_IGNORADO);
+        thenElTipoEs(TipoDecision.PASO_IGNORADO);
     }
 
     @Test
     @DisplayName("La respuesta a un manual deja una decisión con el tipo de lo que contó, vinculada al mini-objetivo")
     void deRespuestaShouldRecordTheDecisionOfTheAnswer() {
-        DecisionObjetivo result = DecisionObjetivo.deRespuesta(miniManual(), respuesta(), AHORA);
+        whenSeDecideSobreUnaRespuesta();
 
-        assertThat(result.id()).isNotNull();
-        assertThat(result.negocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(result.objetivoId()).isEqualTo(OBJETIVO_ID);
-        assertThat(result.miniObjetivoId()).isEqualTo(OTRO_MINI_ID);
-        assertThat(result.tipo()).isEqualTo(TipoDecision.MINI_EN_PARTE);
-        assertThat(result.avisoId()).isNull();
-        assertThat(result.registroId()).isNull();
-        assertThat(result.descripcion()).isEqualTo(TITULO_MANUAL);
-        assertThat(result.tomadaEn()).isEqualTo(AHORA);
-        assertThat(result.semanaInicio()).isEqualTo(LocalDate.of(2026, 11, 9));
+        thenLaDecisionCopiaLaRespuesta();
+    }
+
+    // --- act ---
+    private void whenSeDecideSobreUnAviso(Aviso aviso, TipoDecision tipo, MiniObjetivo mini, OffsetDateTime cuando) {
+        decision = DecisionObjetivo.deAviso(objetivo(), aviso, tipo, mini, cuando);
+    }
+
+    private void whenSeDecideSobreUnPaso(DecisionPaso paso) {
+        decision = DecisionObjetivo.dePaso(miniObjetivo(), paso, AHORA);
+    }
+
+    private void whenSeDecideSobreUnaRespuesta() {
+        decision = DecisionObjetivo.deRespuesta(miniManual(), respuesta(), AHORA);
+    }
+
+    // --- assert ---
+    private void thenLaDecisionCopiaElAvisoYSeVinculaAlMini() {
+        assertThat(decision.id()).isNotNull();
+        assertThat(decision.negocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(decision.objetivoId()).isEqualTo(OBJETIVO_ID);
+        assertThat(decision.miniObjetivoId()).isEqualTo(MINI_ID);
+        assertThat(decision.tipo()).isEqualTo(TipoDecision.AVISO_APLICADO);
+        assertThat(decision.avisoId()).isEqualTo(AVISO_ID);
+        assertThat(decision.registroId()).isEqualTo(PRODUCTO_ID);
+        assertThat(decision.descripcion()).isEqualTo(TITULO_AVISO);
+        assertThat(decision.tomadaEn()).isEqualTo(AHORA);
+        assertThat(decision.semanaInicio()).isEqualTo(SEMANA);
+    }
+
+    private void thenLaDecisionNoTieneMini() {
+        assertThat(decision.miniObjetivoId()).isNull();
+    }
+
+    private void thenElTipoEs(TipoDecision esperado) {
+        assertThat(decision.tipo()).isEqualTo(esperado);
+    }
+
+    private void thenLaDecisionNoTieneProducto() {
+        assertThat(decision.registroId()).isNull();
+    }
+
+    private void thenLaSemanaEs(LocalDate esperada) {
+        assertThat(decision.semanaInicio()).isEqualTo(esperada);
+    }
+
+    private void thenLaDecisionCopiaElPaso() {
+        assertThat(decision.id()).isNotNull();
+        assertThat(decision.negocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(decision.objetivoId()).isEqualTo(OBJETIVO_ID);
+        assertThat(decision.miniObjetivoId()).isEqualTo(MINI_ID);
+        assertThat(decision.tipo()).isEqualTo(TipoDecision.PASO_ACEPTADO);
+        assertThat(decision.avisoId()).isNull();
+        assertThat(decision.registroId()).isEqualTo(PRODUCTO_ID);
+        assertThat(decision.descripcion()).isEqualTo(TITULO);
+        assertThat(decision.tomadaEn()).isEqualTo(AHORA);
+        assertThat(decision.semanaInicio()).isEqualTo(SEMANA);
+    }
+
+    private void thenLaDecisionCopiaLaRespuesta() {
+        assertThat(decision.id()).isNotNull();
+        assertThat(decision.negocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(decision.objetivoId()).isEqualTo(OBJETIVO_ID);
+        assertThat(decision.miniObjetivoId()).isEqualTo(OTRO_MINI_ID);
+        assertThat(decision.tipo()).isEqualTo(TipoDecision.MINI_EN_PARTE);
+        assertThat(decision.avisoId()).isNull();
+        assertThat(decision.registroId()).isNull();
+        assertThat(decision.descripcion()).isEqualTo(TITULO_MANUAL);
+        assertThat(decision.tomadaEn()).isEqualTo(AHORA);
+        assertThat(decision.semanaInicio()).isEqualTo(SEMANA_DE_LA_RESPUESTA);
+    }
+
+    // --- helpers ---
+    private static Aviso avisoDeLaZona() {
+        Aviso deLaZona = aviso(TipoAviso.CONSUMO_ZONA, EstadoAviso.APLICADO);
+        deLaZona.setEntidad("zona");
+        return deLaZona;
     }
 }

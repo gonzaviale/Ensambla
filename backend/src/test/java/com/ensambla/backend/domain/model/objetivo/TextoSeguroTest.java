@@ -2,43 +2,72 @@ package com.ensambla.backend.domain.model.objetivo;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class TextoSeguroTest {
 
+    private static final String TEXTO_SIN_DATOS_PERSONALES = "Quiero vender 20 budines por semana";
+
+    private String resultado;
+
     @Test
     @DisplayName("Oculta los correos electrónicos")
     void deShouldHideEmails() {
-        assertThat(TextoSeguro.de("Escribile a juan.perez+tienda@mail.com.ar hoy"))
-                .isEqualTo("Escribile a [dato oculto] hoy");
+        whenSeProtege("Escribile a juan.perez+tienda@mail.com.ar hoy");
+
+        thenElTextoEs("Escribile a [dato oculto] hoy");
     }
 
-    @Test
+    @ParameterizedTest(name = "{0}")
     @DisplayName("Oculta los teléfonos con espacios, guiones y prefijo")
-    void deShouldHidePhoneNumbers() {
-        assertThat(TextoSeguro.de("Llamalo al 11 5555 5555")).isEqualTo("Llamalo al [dato oculto]");
-        assertThat(TextoSeguro.de("o al +54 9 11 5555-5555")).isEqualTo("o al [dato oculto]");
+    @CsvSource(delimiter = '|', textBlock = """
+            Llamalo al 11 5555 5555 | Llamalo al [dato oculto]
+            o al +54 9 11 5555-5555 | o al [dato oculto]
+            """)
+    void deShouldHidePhoneNumbers(String texto, String esperado) {
+        whenSeProtege(texto);
+
+        thenElTextoEs(esperado);
     }
 
     @Test
     @DisplayName("Oculta un DNI con puntos")
     void deShouldHideDocumentNumbers() {
-        assertThat(TextoSeguro.de("Su DNI es 12.345.678")).isEqualTo("Su DNI es [dato oculto]");
+        whenSeProtege("Su DNI es 12.345.678");
+
+        thenElTextoEs("Su DNI es [dato oculto]");
     }
 
-    @Test
+    @ParameterizedTest(name = "{0}")
     @DisplayName("No toca un importe en pesos")
-    void deShouldKeepAmounts() {
-        assertThat(TextoSeguro.de("Quiero ganar $1.400.000 por mes")).isEqualTo("Quiero ganar $1.400.000 por mes");
-        assertThat(TextoSeguro.de("o $400.000")).isEqualTo("o $400.000");
+    @CsvSource(delimiter = '|', textBlock = """
+            Quiero ganar $1.400.000 por mes
+            o $400.000
+            """)
+    void deShouldKeepAmounts(String texto) {
+        whenSeProtege(texto);
+
+        thenElTextoEs(texto);
     }
 
     @Test
     @DisplayName("No toca un texto sin datos personales")
     void deShouldKeepPlainText() {
-        String texto = "Quiero vender 20 budines por semana";
+        whenSeProtege(TEXTO_SIN_DATOS_PERSONALES);
 
-        assertThat(TextoSeguro.de(texto)).isEqualTo(texto);
+        thenElTextoEs(TEXTO_SIN_DATOS_PERSONALES);
+    }
+
+    // --- act ---
+    private void whenSeProtege(String texto) {
+        resultado = TextoSeguro.de(texto);
+    }
+
+    // --- assert ---
+    private void thenElTextoEs(String esperado) {
+        assertThat(resultado).isEqualTo(esperado);
     }
 }

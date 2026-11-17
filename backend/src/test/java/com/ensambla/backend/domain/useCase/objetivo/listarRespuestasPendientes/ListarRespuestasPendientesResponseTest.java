@@ -21,21 +21,40 @@ class ListarRespuestasPendientesResponseTest {
 
     private static final ObjetivoId OTRO_OBJETIVO_ID = ObjetivoId.de("00000000-0000-4000-8000-0000000000b1");
 
+    private Objetivo otroObjetivo;
+    private MiniObjetivo miniDelOtro;
+    private ListarRespuestasPendientesResponse respuesta;
+
     @Test
     @DisplayName("Cada pendiente trae el texto del objetivo al que pertenece, en el orden recibido")
     void deShouldPairEachMiniObjetivoWithItsObjetivoInOrder() {
-        Objetivo otro = objetivoSinMeta();
-        otro.setId(OTRO_OBJETIVO_ID);
-        MiniObjetivo delOtro = miniManual();
-        delOtro.setObjetivoId(OTRO_OBJETIVO_ID);
+        givenUnOtroObjetivoConUnMiniManual();
 
-        ListarRespuestasPendientesResponse result = ListarRespuestasPendientesResponse.de(
-                List.of(objetivo(), otro), List.of(delOtro, miniManual()));
+        whenSeArmaLaRespuesta();
 
-        assertThat(result.pendientes()).extracting(ListarRespuestasPendientesResponse.Pendiente::objetivoTexto)
+        thenCadaPendienteTraeElTextoDeSuObjetivoEnOrden();
+    }
+
+    // --- arrange ---
+    private void givenUnOtroObjetivoConUnMiniManual() {
+        otroObjetivo = objetivoSinMeta();
+        otroObjetivo.setId(OTRO_OBJETIVO_ID);
+        miniDelOtro = miniManual();
+        miniDelOtro.setObjetivoId(OTRO_OBJETIVO_ID);
+    }
+
+    // --- act ---
+    private void whenSeArmaLaRespuesta() {
+        respuesta = ListarRespuestasPendientesResponse.de(
+                List.of(objetivo(), otroObjetivo), List.of(miniDelOtro, miniManual()));
+    }
+
+    // --- assert ---
+    private void thenCadaPendienteTraeElTextoDeSuObjetivoEnOrden() {
+        assertThat(respuesta.pendientes()).extracting(ListarRespuestasPendientesResponse.Pendiente::objetivoTexto)
                 .containsExactly(TEXTO_SIN_META, TEXTO);
-        assertThat(result.pendientes()).extracting(ListarRespuestasPendientesResponse.Pendiente::objetivoId)
+        assertThat(respuesta.pendientes()).extracting(ListarRespuestasPendientesResponse.Pendiente::objetivoId)
                 .containsExactly(OTRO_OBJETIVO_ID, OBJETIVO_ID);
-        assertThat(result.pendientes().getFirst().miniObjetivo().id()).isEqualTo(OTRO_MINI_ID);
+        assertThat(respuesta.pendientes().getFirst().miniObjetivo().id()).isEqualTo(OTRO_MINI_ID);
     }
 }

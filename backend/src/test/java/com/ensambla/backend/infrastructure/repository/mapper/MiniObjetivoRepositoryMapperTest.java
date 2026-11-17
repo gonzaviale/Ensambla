@@ -30,11 +30,72 @@ import static org.assertj.core.api.Assertions.assertThat;
 class MiniObjetivoRepositoryMapperTest {
 
     private final MiniObjetivoRepositoryMapper mapper = new MiniObjetivoRepositoryMapper();
+    private MiniObjetivoEntity entidad;
+    private MiniObjetivo mini;
 
     @Test
     @DisplayName("Mapea la entidad al dominio con todos sus campos")
     void toDomainShouldMapEveryField() {
-        MiniObjetivoEntity entity = MiniObjetivoEntity.builder()
+        givenUnaEntidadCompleta();
+
+        whenSeLeeLaEntidad();
+
+        thenElDominioTraeTodosLosCampos();
+    }
+
+    @Test
+    @DisplayName("Una entidad sin ids se mapea con ids nulos")
+    void toDomainShouldKeepMissingIdsNull() {
+        givenUnaEntidadSinIds();
+
+        whenSeLeeLaEntidad();
+
+        thenElDominioNoTieneIds();
+    }
+
+    @Test
+    @DisplayName("Mapea el dominio a la entidad con todos sus campos")
+    void toEntityShouldMapEveryField() {
+        givenUnMiniConReemplazoYSinAvance();
+
+        whenSePasaElMiniALaEntidad();
+
+        thenLaEntidadTraeTodosLosCampos();
+    }
+
+    @Test
+    @DisplayName("Un mini-objetivo sin producto ni reemplazo se mapea con esos ids nulos")
+    void toEntityShouldKeepMissingIdsNull() {
+        givenUnMiniSinProductoNiReemplazo();
+
+        whenSePasaElMiniALaEntidad();
+
+        thenLaEntidadNoTieneProductoNiReemplazo();
+    }
+
+    @Test
+    @DisplayName("Un mini-objetivo manual se mapea a la entidad sin métrica ni números")
+    void toEntityShouldKeepAManualMiniWithoutNumbers() {
+        mini = miniManual();
+
+        whenSePasaElMiniALaEntidad();
+
+        thenLaEntidadManualNoTieneMetricaNiNumeros();
+    }
+
+    @Test
+    @DisplayName("Una entidad manual se mapea al dominio como manual")
+    void toDomainShouldMapAManualEntity() {
+        givenUnaEntidadManual();
+
+        whenSeLeeLaEntidad();
+
+        thenElDominioEsManual();
+    }
+
+    // --- arrange ---
+    private void givenUnaEntidadCompleta() {
+        entidad = MiniObjetivoEntity.builder()
                 .id(MINI_ID.valor())
                 .objetivoId(OBJETIVO_ID.valor())
                 .negocioId(NEGOCIO_ID.valor())
@@ -57,113 +118,113 @@ class MiniObjetivoRepositoryMapperTest {
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA.plusDays(1))
                 .build();
-
-        MiniObjetivo result = mapper.toDomain(entity);
-
-        assertThat(result.getId()).isEqualTo(MINI_ID);
-        assertThat(result.getObjetivoId()).isEqualTo(OBJETIVO_ID);
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(result.getPosicion()).isEqualTo(3);
-        assertThat(result.getModo()).isEqualTo(ModoMiniObjetivo.MEDIDO);
-        assertThat(result.getTipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
-        assertThat(result.getRegistroId()).isEqualTo(PRODUCTO_ID);
-        assertThat(result.getReferencia()).isEqualTo(PRODUCTO);
-        assertThat(result.getMeta()).isEqualTo(META_MINI);
-        assertThat(result.getValorInicial()).isEqualTo(VALOR_INICIAL);
-        assertThat(result.getValorActual()).isEqualTo(VALOR_INICIAL.add(APORTE));
-        assertThat(result.getAporteEstimado()).isEqualTo(APORTE);
-        assertThat(result.getEstado()).isEqualTo(EstadoMiniObjetivo.REEMPLAZADO);
-        assertThat(result.getSemanaInicio()).isEqualTo(SEMANA);
-        assertThat(result.getTitulo()).isEqualTo(TITULO);
-        assertThat(result.getJustificacion()).isEqualTo(JUSTIFICACION);
-        assertThat(result.isTextoConIa()).isTrue();
-        assertThat(result.getSinAvanceDesde()).isEqualTo(SEMANA);
-        assertThat(result.getReemplazadoPor()).isEqualTo(OTRO_MINI_ID);
-        assertThat(result.getCreadoEn()).isEqualTo(AHORA);
-        assertThat(result.getActualizadoEn()).isEqualTo(AHORA.plusDays(1));
     }
 
-    @Test
-    @DisplayName("Una entidad sin ids se mapea con ids nulos")
-    void toDomainShouldKeepMissingIdsNull() {
-        MiniObjetivo result = mapper.toDomain(MiniObjetivoEntity.builder().build());
-
-        assertThat(result.getId()).isNull();
-        assertThat(result.getObjetivoId()).isNull();
-        assertThat(result.getNegocioId()).isNull();
-        assertThat(result.getRegistroId()).isNull();
-        assertThat(result.getReemplazadoPor()).isNull();
+    private void givenUnaEntidadSinIds() {
+        entidad = MiniObjetivoEntity.builder().build();
     }
 
-    @Test
-    @DisplayName("Mapea el dominio a la entidad con todos sus campos")
-    void toEntityShouldMapEveryField() {
-        MiniObjetivo mini = miniObjetivo();
+    private void givenUnMiniConReemplazoYSinAvance() {
+        mini = miniObjetivo();
         mini.setPosicion(2);
         mini.setTextoConIa(true);
         mini.setReemplazadoPor(OTRO_MINI_ID);
         mini.setSinAvanceDesde(SEMANA);
-
-        MiniObjetivoEntity result = mapper.toEntity(mini);
-
-        assertThat(result.getId()).isEqualTo(MINI_ID.valor());
-        assertThat(result.getObjetivoId()).isEqualTo(OBJETIVO_ID.valor());
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
-        assertThat(result.getPosicion()).isEqualTo((short) 2);
-        assertThat(result.getTipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
-        assertThat(result.getRegistroId()).isEqualTo(PRODUCTO_ID.valor());
-        assertThat(result.getReferencia()).isEqualTo(PRODUCTO);
-        assertThat(result.getMeta()).isEqualTo(META_MINI);
-        assertThat(result.getValorInicial()).isEqualTo(VALOR_INICIAL);
-        assertThat(result.getValorActual()).isEqualTo(VALOR_INICIAL);
-        assertThat(result.getAporteEstimado()).isEqualTo(APORTE);
-        assertThat(result.getSinAvanceDesde()).isEqualTo(SEMANA);
-        assertThat(result.getEstado()).isEqualTo(EstadoMiniObjetivo.EN_CURSO);
-        assertThat(result.getSemanaInicio()).isEqualTo(SEMANA);
-        assertThat(result.getTitulo()).isEqualTo(TITULO);
-        assertThat(result.getJustificacion()).isEqualTo(JUSTIFICACION);
-        assertThat(result.isTextoConIa()).isTrue();
-        assertThat(result.getReemplazadoPor()).isEqualTo(OTRO_MINI_ID.valor());
-        assertThat(result.getCreadoEn()).isEqualTo(AHORA);
-        assertThat(result.getActualizadoEn()).isEqualTo(AHORA);
     }
 
-    @Test
-    @DisplayName("Un mini-objetivo sin producto ni reemplazo se mapea con esos ids nulos")
-    void toEntityShouldKeepMissingIdsNull() {
-        MiniObjetivo mini = miniObjetivo();
+    private void givenUnMiniSinProductoNiReemplazo() {
+        mini = miniObjetivo();
         mini.setRegistroId(null);
         mini.setReemplazadoPor(null);
-
-        MiniObjetivoEntity result = mapper.toEntity(mini);
-
-        assertThat(result.getRegistroId()).isNull();
-        assertThat(result.getReemplazadoPor()).isNull();
     }
 
-    @Test
-    @DisplayName("Un mini-objetivo manual se mapea a la entidad sin métrica ni números")
-    void toEntityShouldKeepAManualMiniWithoutNumbers() {
-        MiniObjetivoEntity result = mapper.toEntity(miniManual());
-
-        assertThat(result.getModo()).isEqualTo(ModoMiniObjetivo.MANUAL);
-        assertThat(result.getTipo()).isNull();
-        assertThat(result.getMeta()).isNull();
-        assertThat(result.getValorInicial()).isNull();
-        assertThat(result.getValorActual()).isNull();
-        assertThat(result.getAporteEstimado()).isNull();
-        assertThat(result.getTitulo()).isEqualTo(TITULO_MANUAL);
+    private void givenUnaEntidadManual() {
+        entidad = mapper.toEntity(miniManual());
     }
 
-    @Test
-    @DisplayName("Una entidad manual se mapea al dominio como manual")
-    void toDomainShouldMapAManualEntity() {
-        MiniObjetivoEntity entity = mapper.toEntity(miniManual());
+    // --- act ---
+    private void whenSeLeeLaEntidad() {
+        mini = mapper.toDomain(entidad);
+    }
 
-        MiniObjetivo result = mapper.toDomain(entity);
+    private void whenSePasaElMiniALaEntidad() {
+        entidad = mapper.toEntity(mini);
+    }
 
-        assertThat(result.esManual()).isTrue();
-        assertThat(result.getTipo()).isNull();
-        assertThat(result.getJustificacion()).isEqualTo(JUSTIFICACION_MANUAL);
+    // --- assert ---
+    private void thenElDominioTraeTodosLosCampos() {
+        assertThat(mini.getId()).isEqualTo(MINI_ID);
+        assertThat(mini.getObjetivoId()).isEqualTo(OBJETIVO_ID);
+        assertThat(mini.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(mini.getPosicion()).isEqualTo(3);
+        assertThat(mini.getModo()).isEqualTo(ModoMiniObjetivo.MEDIDO);
+        assertThat(mini.getTipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
+        assertThat(mini.getRegistroId()).isEqualTo(PRODUCTO_ID);
+        assertThat(mini.getReferencia()).isEqualTo(PRODUCTO);
+        assertThat(mini.getMeta()).isEqualTo(META_MINI);
+        assertThat(mini.getValorInicial()).isEqualTo(VALOR_INICIAL);
+        assertThat(mini.getValorActual()).isEqualTo(VALOR_INICIAL.add(APORTE));
+        assertThat(mini.getAporteEstimado()).isEqualTo(APORTE);
+        assertThat(mini.getEstado()).isEqualTo(EstadoMiniObjetivo.REEMPLAZADO);
+        assertThat(mini.getSemanaInicio()).isEqualTo(SEMANA);
+        assertThat(mini.getTitulo()).isEqualTo(TITULO);
+        assertThat(mini.getJustificacion()).isEqualTo(JUSTIFICACION);
+        assertThat(mini.isTextoConIa()).isTrue();
+        assertThat(mini.getSinAvanceDesde()).isEqualTo(SEMANA);
+        assertThat(mini.getReemplazadoPor()).isEqualTo(OTRO_MINI_ID);
+        assertThat(mini.getCreadoEn()).isEqualTo(AHORA);
+        assertThat(mini.getActualizadoEn()).isEqualTo(AHORA.plusDays(1));
+    }
+
+    private void thenElDominioNoTieneIds() {
+        assertThat(mini.getId()).isNull();
+        assertThat(mini.getObjetivoId()).isNull();
+        assertThat(mini.getNegocioId()).isNull();
+        assertThat(mini.getRegistroId()).isNull();
+        assertThat(mini.getReemplazadoPor()).isNull();
+    }
+
+    private void thenLaEntidadTraeTodosLosCampos() {
+        assertThat(entidad.getId()).isEqualTo(MINI_ID.valor());
+        assertThat(entidad.getObjetivoId()).isEqualTo(OBJETIVO_ID.valor());
+        assertThat(entidad.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
+        assertThat(entidad.getPosicion()).isEqualTo((short) 2);
+        assertThat(entidad.getTipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
+        assertThat(entidad.getRegistroId()).isEqualTo(PRODUCTO_ID.valor());
+        assertThat(entidad.getReferencia()).isEqualTo(PRODUCTO);
+        assertThat(entidad.getMeta()).isEqualTo(META_MINI);
+        assertThat(entidad.getValorInicial()).isEqualTo(VALOR_INICIAL);
+        assertThat(entidad.getValorActual()).isEqualTo(VALOR_INICIAL);
+        assertThat(entidad.getAporteEstimado()).isEqualTo(APORTE);
+        assertThat(entidad.getSinAvanceDesde()).isEqualTo(SEMANA);
+        assertThat(entidad.getEstado()).isEqualTo(EstadoMiniObjetivo.EN_CURSO);
+        assertThat(entidad.getSemanaInicio()).isEqualTo(SEMANA);
+        assertThat(entidad.getTitulo()).isEqualTo(TITULO);
+        assertThat(entidad.getJustificacion()).isEqualTo(JUSTIFICACION);
+        assertThat(entidad.isTextoConIa()).isTrue();
+        assertThat(entidad.getReemplazadoPor()).isEqualTo(OTRO_MINI_ID.valor());
+        assertThat(entidad.getCreadoEn()).isEqualTo(AHORA);
+        assertThat(entidad.getActualizadoEn()).isEqualTo(AHORA);
+    }
+
+    private void thenLaEntidadNoTieneProductoNiReemplazo() {
+        assertThat(entidad.getRegistroId()).isNull();
+        assertThat(entidad.getReemplazadoPor()).isNull();
+    }
+
+    private void thenLaEntidadManualNoTieneMetricaNiNumeros() {
+        assertThat(entidad.getModo()).isEqualTo(ModoMiniObjetivo.MANUAL);
+        assertThat(entidad.getTipo()).isNull();
+        assertThat(entidad.getMeta()).isNull();
+        assertThat(entidad.getValorInicial()).isNull();
+        assertThat(entidad.getValorActual()).isNull();
+        assertThat(entidad.getAporteEstimado()).isNull();
+        assertThat(entidad.getTitulo()).isEqualTo(TITULO_MANUAL);
+    }
+
+    private void thenElDominioEsManual() {
+        assertThat(mini.esManual()).isTrue();
+        assertThat(mini.getTipo()).isNull();
+        assertThat(mini.getJustificacion()).isEqualTo(JUSTIFICACION_MANUAL);
     }
 }

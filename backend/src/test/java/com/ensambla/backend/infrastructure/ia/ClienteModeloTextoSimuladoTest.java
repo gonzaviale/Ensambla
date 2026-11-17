@@ -8,65 +8,84 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ClienteModeloTextoSimuladoTest {
 
     private final ClienteModeloTextoSimulado cliente = new ClienteModeloTextoSimulado();
+    private RespuestaModeloTexto respuesta;
 
     @Test
     @DisplayName("Elige la primera plantilla de la lista, sin costo")
     void completarShouldPickFirstTemplateWithoutCost() {
-        PeticionModeloTexto peticion = new PeticionModeloTexto("instrucciones",
-                "Plantillas disponibles:\n- Ventas: columnas Fecha (FECHA)\n- Gastos: columnas Monto (NUMERO)\n", "{}");
+        whenSeCompleta("Plantillas disponibles:\n- Ventas: columnas Fecha (FECHA)\n- Gastos: columnas Monto (NUMERO)\n");
 
-        RespuestaModeloTexto result = cliente.completar(peticion);
-
-        assertThat(result.json()).isEqualTo("{\"plantilla\":\"Ventas\",\"columnas\":[],\"confianza\":0.5}");
-        assertThat(result.proveedor()).isEqualTo("simulado");
-        assertThat(result.tokensEntrada()).isZero();
-        assertThat(result.tokensSalida()).isZero();
+        thenSeEligeLaPrimeraPlantillaSinCosto();
     }
 
     @Test
     @DisplayName("Sin plantillas en el contexto devuelve una plantilla vacía")
     void completarShouldReturnEmptyTemplateWhenThereAreNone() {
-        RespuestaModeloTexto result = cliente.completar(new PeticionModeloTexto("i", "nada", "{}"));
+        whenSeCompleta("nada");
 
-        assertThat(result.json()).contains("\"plantilla\":\"\"");
+        thenLaPlantillaEsVacia();
     }
 
     @Test
     @DisplayName("En la conversación de un objetivo elige la primera métrica del catálogo y suma una acción manual")
     void completarShouldAnswerAnObjectiveConversationWithTheFirstMetric() {
-        PeticionModeloTexto peticion = new PeticionModeloTexto("i", PromptConversacionObjetivos.CATALOGO
-                + "\nc1: tipo SUBIR_PRECIO, sobre Yerba.\nc2: tipo MEJORAR_MARGEN, sobre el negocio.", "{}");
+        whenSeCompleta(PromptConversacionObjetivos.CATALOGO
+                + "\nc1: tipo SUBIR_PRECIO, sobre Yerba.\nc2: tipo MEJORAR_MARGEN, sobre el negocio.");
 
-        RespuestaModeloTexto result = cliente.completar(peticion);
-
-        assertThat(result.json())
-                .contains("{\"modo\":\"MEDIDO\",\"codigo\":\"c1\"}", "{\"modo\":\"MANUAL\"", "\"esMonetario\":false")
-                .doesNotContain("\"c2\"");
-        assertThat(result.proveedor()).isEqualTo("simulado");
-        assertThat(result.tokensEntrada()).isZero();
+        thenSeEligeLaPrimeraMetricaYSeSumaUnaAccionManual();
     }
 
     @Test
     @DisplayName("Con el catálogo vacío la conversación de un objetivo sólo propone la acción manual")
     void completarShouldAnswerAnObjectiveConversationWithoutMetrics() {
-        PeticionModeloTexto peticion = new PeticionModeloTexto("i", PromptConversacionObjetivos.CATALOGO
-                + "\n(vacío: no hay métricas para proponer; armá acciones manuales)", "{}");
+        whenSeCompleta(PromptConversacionObjetivos.CATALOGO
+                + "\n(vacío: no hay métricas para proponer; armá acciones manuales)");
 
-        RespuestaModeloTexto result = cliente.completar(peticion);
-
-        assertThat(result.json()).doesNotContain("MEDIDO").contains("{\"modo\":\"MANUAL\"");
+        thenSoloSeProponeLaAccionManual();
     }
 
     @Test
     @DisplayName("En las renovaciones de manuales redacta un texto genérico por cada código del pedido")
     void completarShouldAnswerEveryRenewalWithAGenericText() {
-        PeticionModeloTexto peticion = new PeticionModeloTexto("i", PromptRenovacionManuales.RENOVACIONES
-                + "\nr1: qué hacer: SE_DIVIDE.\nr2: qué hacer: CAMBIA.", "{}");
+        whenSeCompleta(PromptRenovacionManuales.RENOVACIONES
+                + "\nr1: qué hacer: SE_DIVIDE.\nr2: qué hacer: CAMBIA.");
 
-        RespuestaModeloTexto result = cliente.completar(peticion);
+        thenSeRedactaUnTextoGenericoPorCadaCodigo();
+    }
 
-        assertThat(result.json()).contains("\"codigo\":\"r1\"", "\"codigo\":\"r2\"", "Seguí con tu objetivo esta semana");
-        assertThat(result.proveedor()).isEqualTo("simulado");
-        assertThat(result.tokensSalida()).isZero();
+    // --- act ---
+    private void whenSeCompleta(String contexto) {
+        respuesta = cliente.completar(new PeticionModeloTexto("i", contexto, "{}"));
+    }
+
+    // --- assert ---
+    private void thenSeEligeLaPrimeraPlantillaSinCosto() {
+        assertThat(respuesta.json()).isEqualTo("{\"plantilla\":\"Ventas\",\"columnas\":[],\"confianza\":0.5}");
+        assertThat(respuesta.proveedor()).isEqualTo("simulado");
+        assertThat(respuesta.tokensEntrada()).isZero();
+        assertThat(respuesta.tokensSalida()).isZero();
+    }
+
+    private void thenLaPlantillaEsVacia() {
+        assertThat(respuesta.json()).contains("\"plantilla\":\"\"");
+    }
+
+    private void thenSeEligeLaPrimeraMetricaYSeSumaUnaAccionManual() {
+        assertThat(respuesta.json())
+                .contains("{\"modo\":\"MEDIDO\",\"codigo\":\"c1\"}", "{\"modo\":\"MANUAL\"", "\"esMonetario\":false")
+                .doesNotContain("\"c2\"");
+        assertThat(respuesta.proveedor()).isEqualTo("simulado");
+        assertThat(respuesta.tokensEntrada()).isZero();
+    }
+
+    private void thenSoloSeProponeLaAccionManual() {
+        assertThat(respuesta.json()).doesNotContain("MEDIDO").contains("{\"modo\":\"MANUAL\"");
+    }
+
+    private void thenSeRedactaUnTextoGenericoPorCadaCodigo() {
+        assertThat(respuesta.json())
+                .contains("\"codigo\":\"r1\"", "\"codigo\":\"r2\"", "Seguí con tu objetivo esta semana");
+        assertThat(respuesta.proveedor()).isEqualTo("simulado");
+        assertThat(respuesta.tokensSalida()).isZero();
     }
 }

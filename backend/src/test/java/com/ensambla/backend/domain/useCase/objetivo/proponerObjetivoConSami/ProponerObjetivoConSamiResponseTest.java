@@ -32,79 +32,134 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ProponerObjetivoConSamiResponseTest {
 
+    private static final int MENSAJES_RESTANTES = 4;
+
+    private ProponerObjetivoConSamiResponse respuesta;
+    private MiniPropuestoItem mini;
+
     @Test
     @DisplayName("Copia la respuesta, lo entendido, el tipo, los datos y lo que queda por escribir")
     void deShouldCopyEveryField() {
-        PropuestaObjetivo propuesta = new PropuestaObjetivo(RESPUESTA_IA, ENTENDIDO, false,
-                List.of(MiniObjetivoPropuesto.medido(candidato())), OrigenPropuesta.IA);
+        whenSeRespondeConUnMedidoYDosDeCinco();
 
-        ProponerObjetivoConSamiResponse result = ProponerObjetivoConSamiResponse.de(
-                propuesta, List.of(new DatoUsado(FuenteDato.ZONA, false)), 4, new CuotaObjetivosIa(2, 5));
-
-        assertThat(result.respuesta()).isEqualTo(RESPUESTA_IA);
-        assertThat(result.entendido()).isEqualTo(ENTENDIDO);
-        assertThat(result.tipo()).isEqualTo(TipoObjetivo.CON_DATOS);
-        assertThat(result.esMonetario()).isFalse();
-        assertThat(result.origen()).isEqualTo(OrigenPropuesta.IA);
-        assertThat(result.mensajesRestantes()).isEqualTo(4);
-        assertThat(result.puedeGuardar()).isTrue();
-        assertThat(result.cuota().usadas()).isEqualTo(2);
-        assertThat(result.cuota().limite()).isEqualTo(5);
-        assertThat(result.cuota().restantes()).isEqualTo(3);
-        assertThat(result.datos()).singleElement().satisfies(dato -> {
-            assertThat(dato.fuente()).isEqualTo(FuenteDato.ZONA);
-            assertThat(dato.hay()).isFalse();
-        });
+        thenSeCopianLaRespuestaYLoEntendido();
+        thenSeCopianLosDatosYLaCuota();
     }
 
     @Test
     @DisplayName("Un mini-objetivo medido trae su métrica y todos sus números")
     void miniShouldCopyTheMeasuredMetric() {
-        MiniPropuestoItem result = MiniPropuestoItem.de(MiniObjetivoPropuesto.medido(candidato()));
+        whenSeArmaElItem(MiniObjetivoPropuesto.medido(candidato()));
 
-        assertThat(result.modo()).isEqualTo(ModoMiniObjetivo.MEDIDO);
-        assertThat(result.tipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
-        assertThat(result.registroId()).isEqualTo(PRODUCTO_ID);
-        assertThat(result.referencia()).isEqualTo(PRODUCTO);
-        assertThat(result.titulo()).isEqualTo(TITULO);
-        assertThat(result.justificacion()).isEqualTo(JUSTIFICACION);
-        assertThat(result.valorInicial()).isEqualTo(VALOR_INICIAL);
-        assertThat(result.meta()).isEqualTo(META_MINI);
-        assertThat(result.aporteEstimado()).isEqualTo(APORTE);
-        assertThat(result.textoConIa()).isFalse();
+        thenElItemTraeLaMetricaYSusNumeros();
     }
 
     @Test
     @DisplayName("Un mini-objetivo manual trae sólo su texto, sin métrica ni números")
     void miniShouldCopyOnlyTheTextOfAManualMini() {
-        MiniPropuestoItem result = MiniPropuestoItem.de(
-                MiniObjetivoPropuesto.manual(new AccionManual(TITULO_ACCION, JUSTIFICACION_ACCION), true));
+        whenSeArmaElItemDeUnManual();
 
-        assertThat(result.modo()).isEqualTo(ModoMiniObjetivo.MANUAL);
-        assertThat(result.titulo()).isEqualTo(TITULO_ACCION);
-        assertThat(result.justificacion()).isEqualTo(JUSTIFICACION_ACCION);
-        assertThat(result.textoConIa()).isTrue();
-        assertThat(result.tipo()).isNull();
-        assertThat(result.registroId()).isNull();
-        assertThat(result.referencia()).isNull();
-        assertThat(result.valorInicial()).isNull();
-        assertThat(result.meta()).isNull();
-        assertThat(result.aporteEstimado()).isNull();
+        thenElItemTraeSoloElTexto();
     }
 
     @Test
     @DisplayName("Una meta en pesos no tiene tipo y no se puede guardar")
     void deShouldHaveNoTypeForAMonetaryGoal() {
-        PropuestaObjetivo propuesta = new PropuestaObjetivo(RESPUESTA_IA, null, true, List.of(), OrigenPropuesta.IA);
+        whenSeRespondeUnaMetaEnPesosSinLimiteDeCuota();
 
-        ProponerObjetivoConSamiResponse result = ProponerObjetivoConSamiResponse.de(propuesta, List.of(), 5, new CuotaObjetivosIa(0, null));
+        thenNoHayTipoNiSePuedeGuardar();
+        thenLaCuotaNoTieneLimite();
+    }
 
-        assertThat(result.tipo()).isNull();
-        assertThat(result.entendido()).isNull();
-        assertThat(result.esMonetario()).isTrue();
-        assertThat(result.puedeGuardar()).isFalse();
-        assertThat(result.minis()).isEmpty();
-        assertThat(result.cuota().limite()).isNull();
-        assertThat(result.cuota().restantes()).isNull();
+    // --- act ---
+    private void whenSeResponde(PropuestaObjetivo propuesta, CuotaObjetivosIa cuota, int mensajesRestantes) {
+        respuesta = ProponerObjetivoConSamiResponse.de(
+                propuesta, List.of(new DatoUsado(FuenteDato.ZONA, false)), mensajesRestantes, cuota);
+    }
+
+    private void whenSeRespondeConUnMedidoYDosDeCinco() {
+        whenSeResponde(propuestaConUnMedido(), new CuotaObjetivosIa(2, 5), MENSAJES_RESTANTES);
+    }
+
+    private void whenSeRespondeUnaMetaEnPesosSinLimiteDeCuota() {
+        whenSeResponde(propuestaMonetaria(), new CuotaObjetivosIa(0, null), 5);
+    }
+
+    private void whenSeArmaElItemDeUnManual() {
+        whenSeArmaElItem(MiniObjetivoPropuesto.manual(new AccionManual(TITULO_ACCION, JUSTIFICACION_ACCION), true));
+    }
+
+    private void whenSeArmaElItem(MiniObjetivoPropuesto propuesto) {
+        mini = MiniPropuestoItem.de(propuesto);
+    }
+
+    // --- assert ---
+    private void thenSeCopianLaRespuestaYLoEntendido() {
+        assertThat(respuesta.respuesta()).isEqualTo(RESPUESTA_IA);
+        assertThat(respuesta.entendido()).isEqualTo(ENTENDIDO);
+        assertThat(respuesta.tipo()).isEqualTo(TipoObjetivo.CON_DATOS);
+        assertThat(respuesta.esMonetario()).isFalse();
+        assertThat(respuesta.origen()).isEqualTo(OrigenPropuesta.IA);
+        assertThat(respuesta.mensajesRestantes()).isEqualTo(MENSAJES_RESTANTES);
+        assertThat(respuesta.puedeGuardar()).isTrue();
+    }
+
+    private void thenSeCopianLosDatosYLaCuota() {
+        assertThat(respuesta.cuota().usadas()).isEqualTo(2);
+        assertThat(respuesta.cuota().limite()).isEqualTo(5);
+        assertThat(respuesta.cuota().restantes()).isEqualTo(3);
+        assertThat(respuesta.datos()).singleElement().satisfies(dato -> {
+            assertThat(dato.fuente()).isEqualTo(FuenteDato.ZONA);
+            assertThat(dato.hay()).isFalse();
+        });
+    }
+
+    private void thenElItemTraeLaMetricaYSusNumeros() {
+        assertThat(mini.modo()).isEqualTo(ModoMiniObjetivo.MEDIDO);
+        assertThat(mini.tipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
+        assertThat(mini.registroId()).isEqualTo(PRODUCTO_ID);
+        assertThat(mini.referencia()).isEqualTo(PRODUCTO);
+        assertThat(mini.titulo()).isEqualTo(TITULO);
+        assertThat(mini.justificacion()).isEqualTo(JUSTIFICACION);
+        assertThat(mini.valorInicial()).isEqualTo(VALOR_INICIAL);
+        assertThat(mini.meta()).isEqualTo(META_MINI);
+        assertThat(mini.aporteEstimado()).isEqualTo(APORTE);
+        assertThat(mini.textoConIa()).isFalse();
+    }
+
+    private void thenElItemTraeSoloElTexto() {
+        assertThat(mini.modo()).isEqualTo(ModoMiniObjetivo.MANUAL);
+        assertThat(mini.titulo()).isEqualTo(TITULO_ACCION);
+        assertThat(mini.justificacion()).isEqualTo(JUSTIFICACION_ACCION);
+        assertThat(mini.textoConIa()).isTrue();
+        assertThat(mini.tipo()).isNull();
+        assertThat(mini.registroId()).isNull();
+        assertThat(mini.referencia()).isNull();
+        assertThat(mini.valorInicial()).isNull();
+        assertThat(mini.meta()).isNull();
+        assertThat(mini.aporteEstimado()).isNull();
+    }
+
+    private void thenNoHayTipoNiSePuedeGuardar() {
+        assertThat(respuesta.tipo()).isNull();
+        assertThat(respuesta.entendido()).isNull();
+        assertThat(respuesta.esMonetario()).isTrue();
+        assertThat(respuesta.puedeGuardar()).isFalse();
+        assertThat(respuesta.minis()).isEmpty();
+    }
+
+    private void thenLaCuotaNoTieneLimite() {
+        assertThat(respuesta.cuota().limite()).isNull();
+        assertThat(respuesta.cuota().restantes()).isNull();
+    }
+
+    // --- helpers ---
+    private static PropuestaObjetivo propuestaConUnMedido() {
+        return new PropuestaObjetivo(RESPUESTA_IA, ENTENDIDO, false,
+                List.of(MiniObjetivoPropuesto.medido(candidato())), OrigenPropuesta.IA);
+    }
+
+    private static PropuestaObjetivo propuestaMonetaria() {
+        return new PropuestaObjetivo(RESPUESTA_IA, null, true, List.of(), OrigenPropuesta.IA);
     }
 }
