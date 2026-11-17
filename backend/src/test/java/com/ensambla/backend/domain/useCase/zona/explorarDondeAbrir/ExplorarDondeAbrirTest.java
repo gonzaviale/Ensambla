@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -30,10 +31,9 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -42,12 +42,14 @@ class ExplorarDondeAbrirTest {
     private static final UsuarioId USUARIO_ID = UsuarioId.de("b0000000-0000-4000-8000-000000000001");
     private static final ZonaId ZONA_A = ZonaId.de("c0000000-0000-4000-8000-000000000001");
     private static final ZonaId ZONA_B = ZonaId.de("c0000000-0000-4000-8000-000000000002");
-    private static final ZonaId ZONA_C = ZonaId.de("c0000000-0000-4000-8000-000000000003");
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-11-10T12:00:00Z"), ZoneOffset.UTC);
     private static final DatosZonaDondeAbrir.Fuente OSM = new DatosZonaDondeAbrir.Fuente(
             "OSM", "OpenStreetMap", "COMUNITARIA", "https://www.openstreetmap.org/", "ODbL 1.0");
     private static final DatosZonaDondeAbrir.Fuente ENSAMBLA = new DatosZonaDondeAbrir.Fuente(
             "ENSAMBLA", "Ensambla", "ENSAMBLA", null, null);
+    private static final Map<ZonaId, BigDecimal> ALQUILERES = Map.of(ZONA_A, BigDecimal.ONE, ZONA_B, BigDecimal.TEN);
+    private static final Negocio SIN_UBICACION =
+            Negocio.builder().nombre("Sin ubicación").rubro(RubroNegocio.ALMACEN).build();
 
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final DatosDondeAbrirRepository datosRepository = mock(DatosDondeAbrirRepository.class);
@@ -55,29 +57,419 @@ class ExplorarDondeAbrirTest {
     private final ExplorarDondeAbrir useCase =
             new ExplorarDondeAbrir(negocioRepository, datosRepository, entornoPort, CLOCK);
 
+    private ExplorarDondeAbrirResponse resultado;
+    private Throwable error;
+
     @BeforeEach
     void setUp() {
-        when(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID)).thenReturn(negocioConUbicacion());
+        givenNegocio(negocioConUbicacion());
     }
 
     @ParameterizedTest(name = "explica el factor {0}")
-    @EnumSource(FactorDondeAbrir.class)
-    @DisplayName("Normaliza, pondera y explica cada factor disponible")
-    void shouldScoreAndExplainEveryFactor(FactorDondeAbrir factor) {
-        DatosZonaDondeAbrir zonaA = zona(ZONA_A, "Zona A", valores(1));
-        DatosZonaDondeAbrir zonaB = zona(ZONA_B, "Zona B", valores(10));
-        when(datosRepository.buscar(RubroNegocio.ALMACEN)).thenReturn(List.of(zonaA, zonaB));
-        Map<FactorDondeAbrir, Integer> importancia = importanciaSolo(factor);
-        Map<ZonaId, BigDecimal> alquileres = Map.of(ZONA_A, BigDecimal.ONE, ZONA_B, BigDecimal.TEN);
+    @EnumSource(value = FactorDondeAbrir.class, names = {"COMPETENCIA", "ALQUILER"}, mode = EnumSource.Mode.EXCLUDE)
+    @DisplayName("Cuando más es mejor, la zona con el valor más alto encabeza el ranking")
+    void executeShouldRankHighestValueFirstWhenMoreIsBetter(FactorDondeAbrir factor) {
+        givenDosZonasQueMidenUnoYDiez();
 
-        var resultado = useCase.execute(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS,
-                importancia, null, alquileres));
+        whenSeExploraSoloPorConAlquileres(factor);
 
+        thenLaMejorZonaEs("Zona B", factor);
+    }
+
+    @ParameterizedTest(name = "explica el factor {0}")
+    @EnumSource(value = FactorDondeAbrir.class, names = {"COMPETENCIA", "ALQUILER"})
+    @DisplayName("Cuando menos es mejor, la zona con el valor más bajo encabeza el ranking")
+    void executeShouldRankLowestValueFirstWhenLessIsBetter(FactorDondeAbrir factor) {
+        givenDosZonasQueMidenUnoYDiez();
+
+        whenSeExploraSoloPorConAlquileres(factor);
+
+        thenLaMejorZonaEs("Zona A", factor);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"PAPELERIA,papelerías", "KIOSCO,kioscos"})
+    @DisplayName("Usa los pesos y nombres propios de papelería y kiosco")
+    void executeShouldNameTheTradeWhenItIsStationeryOrKiosk(RubroNegocio rubro, String plural) {
+        givenCompetenciaBajaYAltaPara(rubro);
+
+        whenSeExploraLaCompetenciaPara(rubro);
+
+        thenLasFrasesNombranA(plural);
+    }
+
+    @Test
+    @DisplayName("Aplica todos los límites antes de puntuar")
+    void executeShouldDiscardZoneBeforeScoringWhenEveryLimitIsExceeded() {
+        givenZonaQueExcedeTodosLosLimites();
+
+        whenSeExploraConTodosLosLimites();
+
+        thenSeDescartaLaZonaPorSeisMotivos();
+    }
+
+    @Test
+    @DisplayName("Informa cuando falta ubicación y tolera una zona sin métricas ni factores elegidos")
+    void executeShouldWarnAboutLocationWhenBusinessHasNoLocation() {
+        givenNegocio(SIN_UBICACION);
+        givenZonas(RubroNegocio.ALMACEN, List.of(zona(ZONA_A, "Sin datos", Map.of())));
+
+        whenSeExploraSinNingunaImportancia();
+
+        thenLaZonaQuedaNeutraYSeAvisaQueFaltaLaUbicacion();
+    }
+
+    @Test
+    @DisplayName("Penaliza una zona a menos de un kilómetro y avisa si una fuente está desactualizada")
+    void executeShouldPenalizeCannibalizationAndWarnWhenSourceIsStale() {
+        givenZonaCercanaConUnaFuenteVieja();
+
+        whenSeExploraConLosValoresPorDefecto();
+
+        thenSePenalizaLaZonaCercanaYSeAvisaDeLaFuenteVieja();
+    }
+
+    @Test
+    @DisplayName("Una zona con un único valor comparable obtiene un subpuntaje intermedio")
+    void executeShouldGiveMiddleScoreWhenRangeHasOneValue() {
+        givenUnaZonaConEscuelasMedidas(3);
+
+        whenSeExploraSoloPor(FactorDondeAbrir.ESCUELAS);
+
+        thenLaZonaQuedaIntermediaConUnRiesgoGenerico();
+    }
+
+    @Test
+    @DisplayName("Desempata por distancia cuando dos zonas tienen el mismo puntaje")
+    void executeShouldOrderScoreTiesByDistanceWhenZonesScoreTheSame() {
+        givenDosZonasConLasMismasEscuelasUnaLejosYUnaCerca();
+
+        whenSeExploraSoloPor(FactorDondeAbrir.ESCUELAS);
+
+        thenElRankingEs("Cerca", "Lejos");
+    }
+
+    @Test
+    @DisplayName("Descarta y ordena zonas sin distancia cuando faltan las métricas exigidas")
+    void executeShouldDiscardZonesWhenRequiredMetricsAreMissingAndThereIsNoLocation() {
+        givenNegocio(SIN_UBICACION);
+        givenDosZonasSinMetricas();
+
+        whenSeExploraConLimitesDeCompetenciaYEscuelas();
+
+        thenSeDescartanLasDosZonasPorFaltaDeDatos();
+    }
+
+    @Test
+    @DisplayName("Conserva el orden si hay empate y el negocio todavía no tiene ubicación")
+    void executeShouldKeepOrderWhenScoresTieAndBusinessHasNoLocation() {
+        givenNegocio(SIN_UBICACION);
+        givenDosZonasIgualesLlamadasPrimeraYSegunda();
+
+        whenSeExploraSoloPor(FactorDondeAbrir.ESCUELAS);
+
+        thenElRankingEs("Primera", "Segunda");
+    }
+
+    @Test
+    @DisplayName("Ordena las zonas descartadas desde la más cercana")
+    void executeShouldOrderDiscardedZonesFromTheNearestWhenSeveralAreDiscarded() {
+        givenDosZonasSinMetricasUnaLejanaYUnaCercana();
+
+        whenSeExploraConUnLimiteDeCompetencia();
+
+        thenLasDescartadasSon("Cercana", "Lejana");
+    }
+
+    @Test
+    @DisplayName("Conserva zonas que cumplen los límites, tengan o no una cotización de alquiler")
+    void executeShouldKeepZonesWhenTheyMeetEveryLimit() {
+        givenDosZonasQueCumplenLosLimites();
+
+        whenSeExploraConTodosLosLimitesYUnaSolaCotizacion();
+
+        thenNingunaZonaSeDescarta();
+    }
+
+    @Test
+    @DisplayName("Reparte el peso por igual si la persona desactiva todos los factores disponibles")
+    void executeShouldSplitWeightEquallyWhenEveryFactorIsDeactivated() {
+        givenUnaZonaConEscuelasMedidas(3);
+
+        whenSeExploraSinNingunaImportanciaNiLimites();
+
+        thenElUnicoFactorPesaTodo();
+    }
+
+    @Test
+    @DisplayName("Tolera mapas nulos, una coordenada incompleta y una fecha de medición desconocida")
+    void executeShouldTolerateNullMapsPartialCoordinatesAndUnknownDate() {
+        givenNegocioConCoordenadasIncompletas();
+        givenUnaZonaSinFechaDeMedicion();
+
+        whenSeExploraConMapasNulos();
+
+        thenNoHayDistanciaNiAvisoDeFuenteVieja();
+    }
+
+    @Test
+    @DisplayName("Ordena varios riesgos y omite los factores con peso insignificante")
+    void executeShouldKeepAtMostTwoRisksWhenSeveralFactorsAreWeak() {
+        givenDosZonasQueMidenUnoYDiez();
+
+        whenSeExploraConLosValoresPorDefecto();
+
+        thenCadaZonaTieneComoMuchoDosRiesgosYAlgunaTieneDos();
+    }
+
+    @Test
+    @DisplayName("Mide en vivo el punto elegido y lo compara con las zonas precargadas")
+    void executeShouldMeasureChosenPointLiveWhenARequestCarriesAPoint() {
+        givenDosZonasPrecargadasYUnEntornoMedible();
+
+        whenSeExploraUnPuntoElegidoPorEscuelas();
+
+        thenElPuntoElegidoSeMideYCompiteConLasZonas();
+    }
+
+    @Test
+    @DisplayName("El punto elegido cuenta cada categoría y sólo la competencia del rubro")
+    void executeShouldCountEveryCategoryWhenARequestCarriesAPoint() {
+        givenUnaZonaBaseYUnEntornoMedible();
+
+        whenSeExploraUnPuntoElegidoSinPreferencias();
+
+        thenElPuntoMideCadaCategoriaYSoloLaCompetenciaDelRubro();
+    }
+
+    @Test
+    @DisplayName("No mide un punto fuera de CABA y La Matanza")
+    void executeShouldRejectWhenChosenPointIsOutsideCoverage() {
+        givenUnaZonaBase();
+
+        whenSeExploraUnPuntoFueraDeCobertura();
+
+        thenSeRechazaPorFueraDeCoberturaSinConsultarElEntorno();
+    }
+
+    @Test
+    @DisplayName("Sin punto elegido no consulta la fuente en vivo ni agrega zonas")
+    void executeShouldNotQueryLiveSourceWhenThereIsNoChosenPoint() {
+        givenUnaZonaConEscuelasMedidas(3);
+
+        whenSeExploraConLosValoresPorDefecto();
+
+        thenNoSeConsultaElEntornoNiSeAgreganZonas();
+    }
+
+    @ParameterizedTest(name = "rechaza {0}")
+    @MethodSource("requestsInvalidos")
+    @DisplayName("Rechaza filtros incompletos o inválidos")
+    void executeShouldRejectWhenRequestIsIncompleteOrInvalid(String caso, ExplorarDondeAbrirRequest request) {
+        whenSeIntentaExplorarElPedido(request);
+
+        thenSeRechazaElPedido();
+    }
+
+    // --- given ---
+    private void givenZonas(RubroNegocio rubro, List<DatosZonaDondeAbrir> zonas) {
+        when(datosRepository.buscar(rubro)).thenReturn(zonas);
+    }
+
+    private void givenNegocio(Negocio negocio) {
+        when(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID)).thenReturn(negocio);
+    }
+
+    private void givenEntornoDelPunto() {
+        when(entornoPort.consultar(eq(new BigDecimal("-34.65100")), eq(new BigDecimal("-58.55100")),
+                eq(CLOCK.instant()))).thenReturn(entornoDelPunto());
+    }
+
+    private void givenDosZonasQueMidenUnoYDiez() {
+        givenZonas(RubroNegocio.ALMACEN, List.of(
+                zona(ZONA_A, "Zona A", valores(1)), zona(ZONA_B, "Zona B", valores(10))));
+    }
+
+    private void givenCompetenciaBajaYAltaPara(RubroNegocio rubro) {
+        givenZonas(rubro, List.of(
+                zona(ZONA_A, "Poca", Map.of(FactorDondeAbrir.COMPETENCIA, medicion(1))),
+                zona(ZONA_B, "Mucha", Map.of(FactorDondeAbrir.COMPETENCIA, medicion(10)))));
+    }
+
+    private void givenZonaQueExcedeTodosLosLimites() {
+        Map<FactorDondeAbrir, DatosZonaDondeAbrir.Medicion> metricas = new EnumMap<>(FactorDondeAbrir.class);
+        metricas.put(FactorDondeAbrir.COMPETENCIA, medicion(10));
+        metricas.put(FactorDondeAbrir.ESCUELAS, medicion(0));
+        metricas.put(FactorDondeAbrir.PARQUES, medicion(0));
+        metricas.put(FactorDondeAbrir.TRANSPORTE, medicion(0));
+        givenZonas(RubroNegocio.ALMACEN, List.of(zona(ZONA_A, "Lejana", metricas)));
+    }
+
+    private void givenZonaCercanaConUnaFuenteVieja() {
+        Map<FactorDondeAbrir, DatosZonaDondeAbrir.Medicion> metricas = Map.of(
+                FactorDondeAbrir.ACTIVIDAD_ACCESO,
+                new DatosZonaDondeAbrir.Medicion(BigDecimal.TEN, "indice", OSM, LocalDate.parse("2026-01-01")));
+        givenZonas(RubroNegocio.ALMACEN, List.of(new DatosZonaDondeAbrir(ZONA_A, "Cercana", "CABA", "CABA", "CABA",
+                new BigDecimal("-34.6001"), new BigDecimal("-58.4001"), metricas, List.of(punto()))));
+    }
+
+    private void givenUnaZonaConEscuelasMedidas(int escuelas) {
+        givenZonas(RubroNegocio.ALMACEN, List.of(
+                zona(ZONA_A, "Única", Map.of(FactorDondeAbrir.ESCUELAS, medicion(escuelas)))));
+    }
+
+    private void givenDosZonasConLasMismasEscuelasUnaLejosYUnaCerca() {
+        var escuelas = Map.of(FactorDondeAbrir.ESCUELAS, medicion(3));
+        givenZonas(RubroNegocio.ALMACEN, List.of(
+                zonaEn(ZONA_B, "Lejos", "-35.1", "-59.1", escuelas),
+                zonaEn(ZONA_A, "Cerca", "-34.61", "-58.41", escuelas)));
+    }
+
+    private void givenDosZonasSinMetricas() {
+        givenZonas(RubroNegocio.ALMACEN, List.of(
+                zona(ZONA_A, "Sin datos A", Map.of()), zona(ZONA_B, "Sin datos B", Map.of())));
+    }
+
+    private void givenDosZonasIgualesLlamadasPrimeraYSegunda() {
+        var escuelas = Map.of(FactorDondeAbrir.ESCUELAS, medicion(3));
+        givenZonas(RubroNegocio.ALMACEN, List.of(
+                zona(ZONA_A, "Primera", escuelas), zona(ZONA_B, "Segunda", escuelas)));
+    }
+
+    private void givenDosZonasSinMetricasUnaLejanaYUnaCercana() {
+        givenZonas(RubroNegocio.ALMACEN, List.of(
+                zonaEn(ZONA_B, "Lejana", "-35.1", "-59.1", Map.of()),
+                zonaEn(ZONA_A, "Cercana", "-34.61", "-58.41", Map.of())));
+    }
+
+    private void givenDosZonasQueCumplenLosLimites() {
+        Map<FactorDondeAbrir, DatosZonaDondeAbrir.Medicion> metricas = Map.of(
+                FactorDondeAbrir.COMPETENCIA, medicion(2), FactorDondeAbrir.ESCUELAS, medicion(2));
+        givenZonas(RubroNegocio.ALMACEN, List.of(
+                zona(ZONA_A, "Cotizada", metricas), zona(ZONA_B, "Sin cotizar", metricas)));
+    }
+
+    private void givenNegocioConCoordenadasIncompletas() {
+        givenNegocio(Negocio.builder().nombre("Coordenadas incompletas").rubro(RubroNegocio.ALMACEN)
+                .latitud(new BigDecimal("-34.6")).build());
+    }
+
+    private void givenUnaZonaSinFechaDeMedicion() {
+        var sinFecha = new DatosZonaDondeAbrir.Medicion(BigDecimal.ONE, "lugares_500m", OSM, null);
+        givenZonas(RubroNegocio.ALMACEN, List.of(
+                zona(ZONA_A, "Sin fecha", Map.of(FactorDondeAbrir.ESCUELAS, sinFecha))));
+    }
+
+    private void givenDosZonasPrecargadasYUnEntornoMedible() {
+        givenZonas(RubroNegocio.ALMACEN, List.of(
+                zonaEn(ZONA_A, "Base", "-34.65", "-58.55", Map.of(FactorDondeAbrir.ESCUELAS, medicion(1))),
+                zonaEn(ZONA_B, "Lejana", "-34.70", "-58.60", Map.of(FactorDondeAbrir.ESCUELAS, medicion(0)))));
+        givenEntornoDelPunto();
+    }
+
+    private void givenUnaZonaBaseYUnEntornoMedible() {
+        givenUnaZonaBase();
+        givenEntornoDelPunto();
+    }
+
+    private void givenUnaZonaBase() {
+        givenZonas(RubroNegocio.ALMACEN, List.of(zonaEn(ZONA_A, "Base", "-34.65", "-58.55", Map.of())));
+    }
+
+    // --- when ---
+    private void whenSeExploraElPedido(ExplorarDondeAbrirRequest pedido) {
+        resultado = useCase.execute(pedido);
+    }
+
+    private void whenSeIntentaExplorarElPedido(ExplorarDondeAbrirRequest pedido) {
+        error = catchThrowable(() -> useCase.execute(pedido));
+    }
+
+    private void whenSeExploraSoloPor(FactorDondeAbrir factor) {
+        whenSeExploraElPedido(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS,
+                importanciaSolo(factor), null, Map.of()));
+    }
+
+    private void whenSeExploraSoloPorConAlquileres(FactorDondeAbrir factor) {
+        whenSeExploraElPedido(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS,
+                importanciaSolo(factor), null, ALQUILERES));
+    }
+
+    private void whenSeExploraLaCompetenciaPara(RubroNegocio rubro) {
+        whenSeExploraElPedido(request(rubro, PublicoDondeAbrir.OFICINAS,
+                importanciaSolo(FactorDondeAbrir.COMPETENCIA), null, Map.of()));
+    }
+
+    private void whenSeExploraConTodosLosLimites() {
+        var limites = new ExplorarDondeAbrirRequest.Limites(BigDecimal.ONE, 1, 2, 2, 2, BigDecimal.valueOf(500));
+        whenSeExploraElPedido(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.ESTUDIANTES,
+                Map.of(), limites, Map.of(ZONA_A, BigDecimal.valueOf(1_000))));
+    }
+
+    private void whenSeExploraSinNingunaImportancia() {
+        var limites = new ExplorarDondeAbrirRequest.Limites(BigDecimal.ONE, null, 0, 0, 0, null);
+        whenSeExploraElPedido(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS,
+                importanciaNinguna(), limites, Map.of()));
+    }
+
+    private void whenSeExploraSinNingunaImportanciaNiLimites() {
+        whenSeExploraElPedido(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS,
+                importanciaNinguna(), null, Map.of()));
+    }
+
+    private void whenSeExploraConLosValoresPorDefecto() {
+        whenSeExploraElPedido(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS,
+                Map.of(), null, Map.of()));
+    }
+
+    private void whenSeExploraConLimitesDeCompetenciaYEscuelas() {
+        var limites = new ExplorarDondeAbrirRequest.Limites(null, 2, 1, null, null, null);
+        whenSeExploraElPedido(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS,
+                Map.of(), limites, Map.of()));
+    }
+
+    private void whenSeExploraConUnLimiteDeCompetencia() {
+        var limites = new ExplorarDondeAbrirRequest.Limites(null, 2, null, null, null, null);
+        whenSeExploraElPedido(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS,
+                Map.of(), limites, Map.of()));
+    }
+
+    private void whenSeExploraConTodosLosLimitesYUnaSolaCotizacion() {
+        var limites = new ExplorarDondeAbrirRequest.Limites(
+                BigDecimal.valueOf(500), 2, 2, null, null, BigDecimal.valueOf(500));
+        whenSeExploraElPedido(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS,
+                Map.of(), limites, Map.of(ZONA_A, BigDecimal.valueOf(500))));
+    }
+
+    private void whenSeExploraConMapasNulos() {
+        whenSeExploraElPedido(new ExplorarDondeAbrirRequest(
+                USUARIO_ID, RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS, null, null, null));
+    }
+
+    private void whenSeExploraUnPuntoElegidoPorEscuelas() {
+        whenSeExploraElPedido(new ExplorarDondeAbrirRequest(USUARIO_ID, RubroNegocio.ALMACEN,
+                PublicoDondeAbrir.ESTUDIANTES, importanciaSolo(FactorDondeAbrir.ESCUELAS), null, Map.of(),
+                new ExplorarDondeAbrirRequest.PuntoElegido(new BigDecimal("-34.651"), new BigDecimal("-58.551"))));
+    }
+
+    private void whenSeExploraUnPuntoElegidoSinPreferencias() {
+        whenSeExploraElPedido(new ExplorarDondeAbrirRequest(USUARIO_ID, RubroNegocio.ALMACEN,
+                PublicoDondeAbrir.VECINOS, Map.of(), null, Map.of(),
+                new ExplorarDondeAbrirRequest.PuntoElegido(new BigDecimal("-34.651"), new BigDecimal("-58.551"))));
+    }
+
+    private void whenSeExploraUnPuntoFueraDeCobertura() {
+        whenSeIntentaExplorarElPedido(new ExplorarDondeAbrirRequest(USUARIO_ID, RubroNegocio.ALMACEN,
+                PublicoDondeAbrir.VECINOS, Map.of(), null, Map.of(),
+                new ExplorarDondeAbrirRequest.PuntoElegido(new BigDecimal("-31.4"), new BigDecimal("-64.2"))));
+    }
+
+    // --- then ---
+    private void thenLaMejorZonaEs(String nombre, FactorDondeAbrir factor) {
         assertThat(resultado.ranking()).hasSize(2);
         var mejor = resultado.ranking().getFirst();
         var peor = resultado.ranking().getLast();
-        String nombreEsperado = factor.menosEsMejor() ? "Zona A" : "Zona B";
-        assertThat(mejor.nombre()).isEqualTo(nombreEsperado);
+        assertThat(mejor.nombre()).isEqualTo(nombre);
         assertThat(mejor.puntaje()).isEqualByComparingTo("10");
         assertThat(mejor.coincidencia()).isEqualTo("BUENA");
         assertThat(mejor.aportes()).singleElement().satisfies(aporte -> {
@@ -90,58 +482,18 @@ class ExplorarDondeAbrirTest {
         assertThat(peor.riesgos()).singleElement().asString().isNotBlank();
     }
 
-    @ParameterizedTest
-    @EnumSource(value = RubroNegocio.class, names = {"PAPELERIA", "KIOSCO"})
-    @DisplayName("Usa los pesos y nombres propios de papelería y kiosco")
-    void shouldSupportEveryWhereToOpenBusinessType(RubroNegocio rubro) {
-        when(datosRepository.buscar(rubro)).thenReturn(List.of(
-                zona(ZONA_A, "Poca", Map.of(FactorDondeAbrir.COMPETENCIA, medicion(1))),
-                zona(ZONA_B, "Mucha", Map.of(FactorDondeAbrir.COMPETENCIA, medicion(10)))));
-
-        var resultado = useCase.execute(request(rubro, PublicoDondeAbrir.OFICINAS,
-                importanciaSolo(FactorDondeAbrir.COMPETENCIA), null, Map.of()));
-
-        assertThat(resultado.ranking().getFirst().porQue().getFirst())
-                .contains(rubro == RubroNegocio.PAPELERIA ? "papelerías" : "kioscos");
-        assertThat(resultado.ranking().getLast().riesgos().getFirst())
-                .contains(rubro == RubroNegocio.PAPELERIA ? "papelerías" : "kioscos");
+    private void thenLasFrasesNombranA(String plural) {
+        assertThat(resultado.ranking().getFirst().porQue().getFirst()).contains(plural);
+        assertThat(resultado.ranking().getLast().riesgos().getFirst()).contains(plural);
     }
 
-    @Test
-    @DisplayName("Aplica todos los límites antes de puntuar")
-    void shouldDiscardBeforeScoring() {
-        Map<FactorDondeAbrir, DatosZonaDondeAbrir.Medicion> metricas = new EnumMap<>(FactorDondeAbrir.class);
-        metricas.put(FactorDondeAbrir.COMPETENCIA, medicion(10));
-        metricas.put(FactorDondeAbrir.ESCUELAS, medicion(0));
-        metricas.put(FactorDondeAbrir.PARQUES, medicion(0));
-        metricas.put(FactorDondeAbrir.TRANSPORTE, medicion(0));
-        when(datosRepository.buscar(RubroNegocio.ALMACEN)).thenReturn(List.of(zona(ZONA_A, "Lejana", metricas)));
-        var limites = new ExplorarDondeAbrirRequest.Limites(
-                BigDecimal.ONE, 1, 2, 2, 2, BigDecimal.valueOf(500));
-
-        var resultado = useCase.execute(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.ESTUDIANTES,
-                Map.of(), limites, Map.of(ZONA_A, BigDecimal.valueOf(1_000))));
-
+    private void thenSeDescartaLaZonaPorSeisMotivos() {
         assertThat(resultado.ranking()).isEmpty();
         assertThat(resultado.descartadas()).singleElement().satisfies(descartada ->
                 assertThat(descartada.motivos()).hasSize(6));
     }
 
-    @Test
-    @DisplayName("Informa cuando falta ubicación y tolera una zona sin métricas ni factores elegidos")
-    void shouldDegradeGracefullyWhenDataIsMissing() {
-        Negocio sinUbicacion = Negocio.builder().nombre("Sin ubicación").rubro(RubroNegocio.ALMACEN).build();
-        when(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID)).thenReturn(sinUbicacion);
-        when(datosRepository.buscar(RubroNegocio.ALMACEN)).thenReturn(List.of(zona(ZONA_A, "Sin datos", Map.of())));
-        Map<FactorDondeAbrir, Integer> ningunaImporta = new EnumMap<>(FactorDondeAbrir.class);
-        for (FactorDondeAbrir factor : FactorDondeAbrir.values()) {
-            ningunaImporta.put(factor, 0);
-        }
-
-        var resultado = useCase.execute(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS,
-                ningunaImporta, new ExplorarDondeAbrirRequest.Limites(BigDecimal.ONE, null, 0, 0, 0, null),
-                Map.of()));
-
+    private void thenLaZonaQuedaNeutraYSeAvisaQueFaltaLaUbicacion() {
         assertThat(resultado.ranking()).singleElement().satisfies(zona -> {
             assertThat(zona.distanciaKm()).isNull();
             assertThat(zona.puntaje()).isEqualByComparingTo("0");
@@ -152,20 +504,7 @@ class ExplorarDondeAbrirTest {
         assertThat(resultado.avisos()).anyMatch(aviso -> aviso.contains("ubicación"));
     }
 
-    @Test
-    @DisplayName("Penaliza una zona a menos de un kilómetro y avisa si una fuente está desactualizada")
-    void shouldPenalizeCannibalizationAndWarnAboutStaleData() {
-        Map<FactorDondeAbrir, DatosZonaDondeAbrir.Medicion> metricas = Map.of(
-                FactorDondeAbrir.ACTIVIDAD_ACCESO,
-                new DatosZonaDondeAbrir.Medicion(BigDecimal.TEN, "indice", OSM,
-                        LocalDate.parse("2026-01-01")));
-        DatosZonaDondeAbrir cercana = new DatosZonaDondeAbrir(ZONA_A, "Cercana", "CABA", "CABA", "CABA",
-                new BigDecimal("-34.6001"), new BigDecimal("-58.4001"), metricas, List.of(punto()));
-        when(datosRepository.buscar(RubroNegocio.ALMACEN)).thenReturn(List.of(cercana));
-
-        var resultado = useCase.execute(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS,
-                Map.of(), null, Map.of()));
-
+    private void thenSePenalizaLaZonaCercanaYSeAvisaDeLaFuenteVieja() {
         assertThat(resultado.ranking()).singleElement().satisfies(zona -> {
             assertThat(zona.puntaje()).isEqualByComparingTo("3.8");
             assertThat(zona.coincidencia()).isEqualTo("MALA");
@@ -176,49 +515,25 @@ class ExplorarDondeAbrirTest {
         assertThat(resultado.avisos()).anyMatch(aviso -> aviso.contains("90 días"));
     }
 
-    @Test
-    @DisplayName("Una zona con un único valor comparable obtiene un subpuntaje intermedio")
-    void shouldUseMiddleScoreWhenRangeHasOneValue() {
-        when(datosRepository.buscar(RubroNegocio.ALMACEN)).thenReturn(List.of(
-                zona(ZONA_A, "Única", Map.of(FactorDondeAbrir.ESCUELAS, medicion(3)))));
-
-        var resultado = useCase.execute(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.ESTUDIANTES,
-                importanciaSolo(FactorDondeAbrir.ESCUELAS), null, Map.of()));
-
-        assertThat(resultado.ranking().getFirst().puntaje()).isEqualByComparingTo("5");
-        assertThat(resultado.ranking().getFirst().coincidencia()).isEqualTo("INTERMEDIA");
-        assertThat(resultado.ranking().getFirst().riesgos())
+    private void thenLaZonaQuedaIntermediaConUnRiesgoGenerico() {
+        var zona = resultado.ranking().getFirst();
+        assertThat(zona.puntaje()).isEqualByComparingTo("5");
+        assertThat(zona.coincidencia()).isEqualTo("INTERMEDIA");
+        assertThat(zona.riesgos())
                 .containsExactly("Son datos estimados: confirmalos caminando la zona antes de decidir");
     }
 
-    @Test
-    @DisplayName("Desempata por distancia cuando dos zonas tienen el mismo puntaje")
-    void shouldOrderScoreTiesByDistance() {
-        var lejos = zonaEn(ZONA_B, "Lejos", "-35.1", "-59.1",
-                Map.of(FactorDondeAbrir.ESCUELAS, medicion(3)));
-        var cerca = zonaEn(ZONA_A, "Cerca", "-34.61", "-58.41",
-                Map.of(FactorDondeAbrir.ESCUELAS, medicion(3)));
-        when(datosRepository.buscar(RubroNegocio.ALMACEN)).thenReturn(List.of(lejos, cerca));
-
-        var resultado = useCase.execute(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.ESTUDIANTES,
-                importanciaSolo(FactorDondeAbrir.ESCUELAS), null, Map.of()));
-
+    private void thenElRankingEs(String primera, String segunda) {
         assertThat(resultado.ranking()).extracting(ExplorarDondeAbrirResponse.ZonaEvaluada::nombre)
-                .containsExactly("Cerca", "Lejos");
+                .containsExactly(primera, segunda);
     }
 
-    @Test
-    @DisplayName("Descarta y ordena zonas sin distancia cuando faltan las métricas exigidas")
-    void shouldDiscardMissingMetricsWithoutBusinessLocation() {
-        when(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID))
-                .thenReturn(Negocio.builder().nombre("Sin ubicación").rubro(RubroNegocio.ALMACEN).build());
-        when(datosRepository.buscar(RubroNegocio.ALMACEN)).thenReturn(List.of(
-                zona(ZONA_A, "Sin datos A", Map.of()), zona(ZONA_B, "Sin datos B", Map.of())));
-        var limites = new ExplorarDondeAbrirRequest.Limites(null, 2, 1, null, null, null);
+    private void thenLasDescartadasSon(String primera, String segunda) {
+        assertThat(resultado.descartadas()).extracting(ExplorarDondeAbrirResponse.ZonaDescartada::nombre)
+                .containsExactly(primera, segunda);
+    }
 
-        var resultado = useCase.execute(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS,
-                Map.of(), limites, Map.of()));
-
+    private void thenSeDescartanLasDosZonasPorFaltaDeDatos() {
         assertThat(resultado.ranking()).isEmpty();
         assertThat(resultado.descartadas()).hasSize(2).allSatisfy(descartada -> {
             assertThat(descartada.distanciaKm()).isNull();
@@ -227,116 +542,28 @@ class ExplorarDondeAbrirTest {
         });
     }
 
-    @Test
-    @DisplayName("Conserva el orden si hay empate y el negocio todavía no tiene ubicación")
-    void shouldKeepOrderForScoreTiesWithoutBusinessLocation() {
-        when(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID))
-                .thenReturn(Negocio.builder().nombre("Sin ubicación").rubro(RubroNegocio.ALMACEN).build());
-        var metricas = Map.of(FactorDondeAbrir.ESCUELAS, medicion(3));
-        when(datosRepository.buscar(RubroNegocio.ALMACEN)).thenReturn(List.of(
-                zona(ZONA_A, "Primera", metricas), zona(ZONA_B, "Segunda", metricas)));
-
-        var resultado = useCase.execute(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.ESTUDIANTES,
-                importanciaSolo(FactorDondeAbrir.ESCUELAS), null, Map.of()));
-
-        assertThat(resultado.ranking()).extracting(ExplorarDondeAbrirResponse.ZonaEvaluada::nombre)
-                .containsExactly("Primera", "Segunda");
-    }
-
-    @Test
-    @DisplayName("Ordena las zonas descartadas desde la más cercana")
-    void shouldOrderDiscardedZonesByDistance() {
-        when(datosRepository.buscar(RubroNegocio.ALMACEN)).thenReturn(List.of(
-                zonaEn(ZONA_B, "Lejana", "-35.1", "-59.1", Map.of()),
-                zonaEn(ZONA_A, "Cercana", "-34.61", "-58.41", Map.of())));
-        var limites = new ExplorarDondeAbrirRequest.Limites(null, 2, null, null, null, null);
-
-        var resultado = useCase.execute(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS,
-                Map.of(), limites, Map.of()));
-
-        assertThat(resultado.descartadas()).extracting(ExplorarDondeAbrirResponse.ZonaDescartada::nombre)
-                .containsExactly("Cercana", "Lejana");
-    }
-
-    @Test
-    @DisplayName("Conserva zonas que cumplen los límites, tengan o no una cotización de alquiler")
-    void shouldKeepZonesThatMeetEveryLimit() {
-        Map<FactorDondeAbrir, DatosZonaDondeAbrir.Medicion> metricas = Map.of(
-                FactorDondeAbrir.COMPETENCIA, medicion(2), FactorDondeAbrir.ESCUELAS, medicion(2));
-        when(datosRepository.buscar(RubroNegocio.ALMACEN)).thenReturn(List.of(
-                zona(ZONA_A, "Cotizada", metricas), zona(ZONA_B, "Sin cotizar", metricas)));
-        var limites = new ExplorarDondeAbrirRequest.Limites(
-                BigDecimal.valueOf(500), 2, 2, null, null, BigDecimal.valueOf(500));
-
-        var resultado = useCase.execute(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS,
-                Map.of(), limites, Map.of(ZONA_A, BigDecimal.valueOf(500))));
-
+    private void thenNingunaZonaSeDescarta() {
         assertThat(resultado.ranking()).hasSize(2);
         assertThat(resultado.descartadas()).isEmpty();
     }
 
-    @Test
-    @DisplayName("Reparte el peso por igual si la persona desactiva todos los factores disponibles")
-    void shouldUseEqualWeightsWhenEveryConfiguredWeightIsZero() {
-        when(datosRepository.buscar(RubroNegocio.ALMACEN)).thenReturn(List.of(
-                zona(ZONA_A, "Única", Map.of(FactorDondeAbrir.ESCUELAS, medicion(3)))));
-        Map<FactorDondeAbrir, Integer> ningunaImporta = new EnumMap<>(FactorDondeAbrir.class);
-        for (FactorDondeAbrir factor : FactorDondeAbrir.values()) {
-            ningunaImporta.put(factor, 0);
-        }
-
-        var resultado = useCase.execute(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS,
-                ningunaImporta, null, Map.of()));
-
+    private void thenElUnicoFactorPesaTodo() {
         assertThat(resultado.ranking().getFirst().aportes()).singleElement().satisfies(aporte ->
                 assertThat(aporte.peso()).isEqualByComparingTo("1"));
     }
 
-    @Test
-    @DisplayName("Tolera mapas nulos, una coordenada incompleta y una fecha de medición desconocida")
-    void shouldTolerateNullMapsPartialCoordinatesAndUnknownDate() {
-        when(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID)).thenReturn(Negocio.builder()
-                .nombre("Coordenadas incompletas").rubro(RubroNegocio.ALMACEN)
-                .latitud(new BigDecimal("-34.6")).build());
-        var sinFecha = new DatosZonaDondeAbrir.Medicion(BigDecimal.ONE, "lugares_500m", OSM, null);
-        when(datosRepository.buscar(RubroNegocio.ALMACEN)).thenReturn(List.of(
-                zona(ZONA_A, "Sin fecha", Map.of(FactorDondeAbrir.ESCUELAS, sinFecha))));
-        var pedido = new ExplorarDondeAbrirRequest(
-                USUARIO_ID, RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS, null, null, null);
-
-        var resultado = useCase.execute(pedido);
-
+    private void thenNoHayDistanciaNiAvisoDeFuenteVieja() {
         assertThat(resultado.ranking().getFirst().distanciaKm()).isNull();
         assertThat(resultado.avisos()).anyMatch(aviso -> aviso.contains("ubicación"))
                 .noneMatch(aviso -> aviso.contains("90 días"));
     }
 
-    @Test
-    @DisplayName("Ordena varios riesgos y omite los factores con peso insignificante")
-    void shouldOrderRelevantRisks() {
-        when(datosRepository.buscar(RubroNegocio.ALMACEN)).thenReturn(List.of(
-                zona(ZONA_A, "Baja", valores(1)), zona(ZONA_C, "Alta", valores(10))));
-
-        var resultado = useCase.execute(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS,
-                Map.of(), null, Map.of()));
-
+    private void thenCadaZonaTieneComoMuchoDosRiesgosYAlgunaTieneDos() {
         assertThat(resultado.ranking()).allSatisfy(zona -> assertThat(zona.riesgos()).hasSizeLessThanOrEqualTo(2));
         assertThat(resultado.ranking()).anySatisfy(zona -> assertThat(zona.riesgos()).hasSize(2));
     }
 
-    @Test
-    @DisplayName("Mide en vivo el punto elegido y lo compara con las zonas precargadas")
-    void shouldMeasureChosenPointLiveAndRankItWithPreloadedZones() {
-        when(datosRepository.buscar(RubroNegocio.ALMACEN)).thenReturn(List.of(
-                zonaEn(ZONA_A, "Base", "-34.65", "-58.55", Map.of(FactorDondeAbrir.ESCUELAS, medicion(1))),
-                zonaEn(ZONA_B, "Lejana", "-34.70", "-58.60", Map.of(FactorDondeAbrir.ESCUELAS, medicion(0)))));
-        when(entornoPort.consultar(eq(new BigDecimal("-34.65100")), eq(new BigDecimal("-58.55100")),
-                eq(CLOCK.instant()))).thenReturn(entornoDelPunto());
-
-        var resultado = useCase.execute(new ExplorarDondeAbrirRequest(USUARIO_ID, RubroNegocio.ALMACEN,
-                PublicoDondeAbrir.ESTUDIANTES, importanciaSolo(FactorDondeAbrir.ESCUELAS), null, Map.of(),
-                new ExplorarDondeAbrirRequest.PuntoElegido(new BigDecimal("-34.651"), new BigDecimal("-58.551"))));
-
+    private void thenElPuntoElegidoSeMideYCompiteConLasZonas() {
         assertThat(resultado.evaluadas()).isEqualTo(3);
         assertThat(resultado.puntoElegidoId()).isNotNull();
         var punto = resultado.ranking().getFirst();
@@ -349,23 +576,11 @@ class ExplorarDondeAbrirTest {
             assertThat(aporte.fuente().codigo()).isEqualTo("OSM");
             assertThat(aporte.observadaEn()).isEqualTo(LocalDate.parse("2026-11-10"));
         });
-        assertThat(punto.puntos()).hasSize(8)
-                .noneMatch(lugar -> "KIOSCO".equals(lugar.rubro()));
+        assertThat(punto.puntos()).hasSize(8).noneMatch(lugar -> "KIOSCO".equals(lugar.rubro()));
         assertThat(resultado.avisos().getFirst()).contains("OpenStreetMap");
     }
 
-    @Test
-    @DisplayName("El punto elegido cuenta cada categoría y sólo la competencia del rubro")
-    void shouldCountEveryCategoryOfTheChosenPoint() {
-        when(datosRepository.buscar(RubroNegocio.ALMACEN)).thenReturn(List.of(
-                zonaEn(ZONA_A, "Base", "-34.65", "-58.55", Map.of())));
-        when(entornoPort.consultar(eq(new BigDecimal("-34.65100")), eq(new BigDecimal("-58.55100")),
-                eq(CLOCK.instant()))).thenReturn(entornoDelPunto());
-
-        var resultado = useCase.execute(new ExplorarDondeAbrirRequest(USUARIO_ID, RubroNegocio.ALMACEN,
-                PublicoDondeAbrir.VECINOS, Map.of(), null, Map.of(),
-                new ExplorarDondeAbrirRequest.PuntoElegido(new BigDecimal("-34.651"), new BigDecimal("-58.551"))));
-
+    private void thenElPuntoMideCadaCategoriaYSoloLaCompetenciaDelRubro() {
         var aportes = resultado.ranking().stream()
                 .filter(zona -> zona.id().equals(resultado.puntoElegidoId())).findFirst().orElseThrow().aportes();
         assertThat(aportes).extracting(ExplorarDondeAbrirResponse.Aporte::factor).containsExactlyInAnyOrder(
@@ -376,43 +591,28 @@ class ExplorarDondeAbrirTest {
                 .singleElement().satisfies(aporte -> assertThat(aporte.valor()).isEqualByComparingTo("1"));
     }
 
-    @Test
-    @DisplayName("No mide un punto fuera de CABA y La Matanza")
-    void shouldRejectChosenPointOutsideCoverage() {
-        when(datosRepository.buscar(RubroNegocio.ALMACEN)).thenReturn(List.of(
-                zonaEn(ZONA_A, "Base", "-34.65", "-58.55", Map.of())));
-        var pedido = new ExplorarDondeAbrirRequest(USUARIO_ID, RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS,
-                Map.of(), null, Map.of(),
-                new ExplorarDondeAbrirRequest.PuntoElegido(new BigDecimal("-31.4"), new BigDecimal("-64.2")));
-
-        assertThatThrownBy(() -> useCase.execute(pedido))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining("CABA y La Matanza");
+    private void thenSeRechazaPorFueraDeCoberturaSinConsultarElEntorno() {
+        assertThat(error).isInstanceOf(BusinessRuleException.class).hasMessageContaining("CABA y La Matanza");
         verifyNoInteractions(entornoPort);
     }
 
-    @Test
-    @DisplayName("Sin punto elegido no consulta la fuente en vivo ni agrega zonas")
-    void shouldNotQueryLiveSourceWithoutChosenPoint() {
-        when(datosRepository.buscar(RubroNegocio.ALMACEN)).thenReturn(List.of(
-                zona(ZONA_A, "Única", Map.of(FactorDondeAbrir.ESCUELAS, medicion(3)))));
-
-        var resultado = useCase.execute(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS,
-                Map.of(), null, Map.of()));
-
+    private void thenNoSeConsultaElEntornoNiSeAgreganZonas() {
         assertThat(resultado.puntoElegidoId()).isNull();
         assertThat(resultado.evaluadas()).isEqualTo(1);
-        verify(entornoPort, org.mockito.Mockito.never()).consultar(
-                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.any());
+        verifyNoInteractions(entornoPort);
     }
 
-    @ParameterizedTest(name = "rechaza {0}")
-    @MethodSource("requestsInvalidos")
-    @DisplayName("Rechaza filtros incompletos o inválidos")
-    void shouldRejectInvalidRequests(String caso, ExplorarDondeAbrirRequest request) {
-        assertThatThrownBy(() -> useCase.execute(request))
-                .isInstanceOf(BusinessRuleException.class);
+    private void thenSeRechazaElPedido() {
+        assertThat(error).isInstanceOf(BusinessRuleException.class);
+    }
+
+    // --- fixtures ---
+    private static Map<FactorDondeAbrir, Integer> importanciaNinguna() {
+        Map<FactorDondeAbrir, Integer> importancia = new EnumMap<>(FactorDondeAbrir.class);
+        for (FactorDondeAbrir factor : FactorDondeAbrir.values()) {
+            importancia.put(factor, 0);
+        }
+        return importancia;
     }
 
     private static Stream<Object[]> requestsInvalidos() {
@@ -507,8 +707,9 @@ class ExplorarDondeAbrirTest {
     private static Map<FactorDondeAbrir, Integer> importanciaSolo(FactorDondeAbrir elegido) {
         Map<FactorDondeAbrir, Integer> importancia = new EnumMap<>(FactorDondeAbrir.class);
         for (FactorDondeAbrir factor : FactorDondeAbrir.values()) {
-            importancia.put(factor, factor == elegido ? 2 : 0);
+            importancia.put(factor, 0);
         }
+        importancia.put(elegido, 2);
         return importancia;
     }
 
@@ -516,7 +717,7 @@ class ExplorarDondeAbrirTest {
         Map<FactorDondeAbrir, DatosZonaDondeAbrir.Medicion> metricas = new EnumMap<>(FactorDondeAbrir.class);
         for (FactorDondeAbrir factor : FactorDondeAbrir.values()) {
             if (factor != FactorDondeAbrir.ALQUILER) {
-                DatosZonaDondeAbrir.Fuente fuente = factor == FactorDondeAbrir.DEMANDA_ENSAMBLA ? ENSAMBLA : OSM;
+                DatosZonaDondeAbrir.Fuente fuente = Map.of(FactorDondeAbrir.DEMANDA_ENSAMBLA, ENSAMBLA).getOrDefault(factor, OSM);
                 metricas.put(factor, new DatosZonaDondeAbrir.Medicion(BigDecimal.valueOf(valor), "unidad", fuente,
                         LocalDate.parse("2026-11-10")));
             }
