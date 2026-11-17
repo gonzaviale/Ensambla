@@ -1,16 +1,12 @@
 package com.ensambla.backend.domain.model.campo;
 
-import com.ensambla.backend.domain.exception.BusinessRuleException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static com.ensambla.backend.support.CamposDePrueba.unCampoDeMoneda;
+import static com.ensambla.backend.support.CamposDePrueba.unaFormulaQueUsa;
 
 class CampoMonedaTest extends CampoNumericoTest {
-
-    private static final CampoId PRECIO_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
 
     @Override
     protected TipoCampo tipoEsperado() {
@@ -19,24 +15,12 @@ class CampoMonedaTest extends CampoNumericoTest {
 
     @Test
     @DisplayName("Una moneda no puede cambiar de tipo si una fórmula la usa")
-    void validarCambioDeTipoShouldRejectWhenAFormulaUsesIt() {
-        Campo precio = givenPrecioEnMoneda();
-        List<Campo> camposDelBloque = List.of(precio, givenFormulaQueUsa(precio));
+    void unaMonedaNoPuedeCambiarDeTipoSiUnaFormulaLaUsa() {
+        Campo precio = unCampoDeMoneda("Precio");
+        dadoUnBloqueCon(precio, unaFormulaQueUsa(precio, "Total"));
 
-        assertThatThrownBy(() -> precio.validarCambioDeTipo(camposDelBloque))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining("la fórmula «Total» lo usa");
-    }
+        cuandoSeValidaElCambioDeTipoDe(precio);
 
-    private Campo givenPrecioEnMoneda() {
-        return Campo.builder().id(PRECIO_ID).tipo(TipoCampo.MONEDA).nombre("Precio").build();
-    }
-
-    private Campo givenFormulaQueUsa(Campo precio) {
-        return Campo.builder()
-                .tipo(TipoCampo.FORMULA)
-                .nombre("Total")
-                .formula("{" + precio.getId() + "} * 2")
-                .build();
+        entoncesSeRechazaPorque("No se puede cambiar el tipo de «Precio»: la fórmula «Total» lo usa");
     }
 }

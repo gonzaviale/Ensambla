@@ -7,9 +7,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-class CampoSiNoTest extends CampoPorTipoTest {
+class CampoSiNoTest extends CampoDeCualquierTipoTest {
 
     @Override
     protected TipoCampo tipoEsperado() {
@@ -17,44 +15,59 @@ class CampoSiNoTest extends CampoPorTipoTest {
     }
 
     @Override
-    protected List<Object> valoresValidos() {
+    protected List<Object> valoresQueAcepta() {
         return List.of(true, false);
     }
 
     @Override
-    protected List<Object> valoresInvalidos() {
+    protected List<Object> valoresQueRechaza() {
         return List.of("sí", 1);
     }
 
     @Override
-    protected String mensajeDeError() {
+    protected String motivoDelRechazo() {
         return "Tiene que ser sí o no";
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"true", "SI", "sí"})
-    @DisplayName("Entiende como sí las formas de decir sí")
-    void tiparShouldReadYes(String respuesta) {
-        assertThat(campo().tipar(respuesta)).isEqualTo(true);
+    @DisplayName("Las distintas formas de decir sí se entienden como sí")
+    void lasFormasDeDecirSiSeEntiendenComoSi(String respuesta) {
+        cuandoSeTipa(respuesta);
+
+        entoncesElResultadoEs(true);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"false", "No"})
-    @DisplayName("Entiende como no las formas de decir no")
-    void tiparShouldReadNo(String respuesta) {
-        assertThat(campo().tipar(respuesta)).isEqualTo(false);
+    @DisplayName("Las distintas formas de decir no se entienden como no")
+    void lasFormasDeDecirNoSeEntiendenComoNo(String respuesta) {
+        cuandoSeTipa(respuesta);
+
+        entoncesElResultadoEs(false);
     }
 
     @Test
-    @DisplayName("Deja como texto lo que no es ni sí ni no")
-    void tiparShouldKeepTheTextWhenItIsNeitherYesNorNo() {
-        assertThat(campo().tipar("quizás")).isEqualTo("quizás");
+    @DisplayName("Lo que no es ni sí ni no queda como texto")
+    void loQueNoEsNiSiNiNoQuedaComoTexto() {
+        cuandoSeTipa("quizás");
+
+        entoncesElResultadoEs("quizás");
     }
 
     @Test
-    @DisplayName("En el reporte va como Sí o No")
-    void celdaDeReporteShouldBeSiOrNo() {
-        assertThat(campo().celdaDeReporte(true, id -> "otra fila")).isEqualTo("Sí");
-        assertThat(campo().celdaDeReporte(false, id -> "otra fila")).isEqualTo("No");
+    @DisplayName("En el reporte un sí se escribe «Sí»")
+    void enElReporteUnSiSeEscribeSi() {
+        cuandoSePideLaCeldaDeReporte(true);
+
+        entoncesElResultadoEs("Sí");
+    }
+
+    @Test
+    @DisplayName("En el reporte un no se escribe «No»")
+    void enElReporteUnNoSeEscribeNo() {
+        cuandoSePideLaCeldaDeReporte(false);
+
+        entoncesElResultadoEs("No");
     }
 }

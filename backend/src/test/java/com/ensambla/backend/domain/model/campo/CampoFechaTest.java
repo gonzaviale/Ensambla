@@ -6,9 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDate;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-class CampoFechaTest extends CampoPorTipoTest {
+class CampoFechaTest extends CampoDeCualquierTipoTest {
 
     @Override
     protected TipoCampo tipoEsperado() {
@@ -16,23 +14,25 @@ class CampoFechaTest extends CampoPorTipoTest {
     }
 
     @Override
-    protected List<Object> valoresValidos() {
+    protected List<Object> valoresQueAcepta() {
         return List.of("2026-10-09");
     }
 
     @Override
-    protected List<Object> valoresInvalidos() {
+    protected List<Object> valoresQueRechaza() {
         return List.of("2026-02-31", "09/10/2026", 20261009);
     }
 
     @Override
-    protected String mensajeDeError() {
+    protected String motivoDelRechazo() {
         return "Tiene que ser una fecha válida";
     }
 
     @Test
-    @DisplayName("En el reporte va como fecha")
-    void celdaDeReporteShouldBeADate() {
-        assertThat(campo().celdaDeReporte("2026-10-09", id -> "otra fila")).isEqualTo(LocalDate.of(2026, 10, 9));
+    @DisplayName("En el reporte el valor va como fecha")
+    void enElReporteVaComoFecha() {
+        cuandoSePideLaCeldaDeReporte("2026-10-09");
+
+        entoncesElResultadoEs(LocalDate.of(2026, 10, 9));
     }
 }

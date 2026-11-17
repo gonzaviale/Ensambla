@@ -7,10 +7,12 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
+import static com.ensambla.backend.support.CamposDePrueba.unaConexion;
 import static org.assertj.core.api.Assertions.assertThat;
 
-class CampoRelacionTest extends CampoPorTipoTest {
+class CampoRelacionTest extends CampoDeCualquierTipoTest {
 
     private static final String FILA_ID = "d0000000-0000-4000-8000-000000000001";
     private static final BloqueId TABLA_RELACIONADA = BloqueId.de("b0000000-0000-4000-8000-000000000002");
@@ -21,40 +23,55 @@ class CampoRelacionTest extends CampoPorTipoTest {
     }
 
     @Override
-    protected List<Object> valoresValidos() {
+    protected List<Object> valoresQueAcepta() {
         return List.of(FILA_ID);
     }
 
     @Override
-    protected List<Object> valoresInvalidos() {
+    protected List<Object> valoresQueRechaza() {
         return List.of("Ana", "1-1-1-1-1", 12);
     }
 
     @Override
-    protected String mensajeDeError() {
+    protected String motivoDelRechazo() {
         return "Elegí una fila de la tabla relacionada";
     }
 
     @Test
     @DisplayName("Es una conexión y sabe con qué tabla se conecta")
-    void esRelacionShouldBeTrueAndKnowItsTable() {
-        Campo campo = Campo.builder().tipo(TipoCampo.RELACION).bloqueRelacionadoId(TABLA_RELACIONADA).build();
+    void esUnaConexionYSabeConQueTablaSeConecta() {
+        Campo cliente = unaConexion("Cliente", TABLA_RELACIONADA);
 
-        assertThat(campo.esRelacion()).isTrue();
-        assertThat(campo.getBloqueRelacionadoId()).isEqualTo(TABLA_RELACIONADA);
+        entoncesEsUnaConexionConLaTabla(cliente, TABLA_RELACIONADA);
     }
 
     @Test
     @DisplayName("En el reporte va el nombre de la fila a la que apunta")
-    void celdaDeReporteShouldBeTheLabelOfTheRow() {
-        Map<RegistroId, String> etiquetas = Map.of(RegistroId.de(FILA_ID), "Ana");
+    void enElReporteVaElNombreDeLaFilaALaQueApunta() {
+        cuandoSePideLaCeldaDeReporte(FILA_ID, unaFilaLlamada("Ana"));
 
-        assertThat(campo().celdaDeReporte(FILA_ID, etiquetas::get)).isEqualTo("Ana");
+        entoncesElResultadoEs("Ana");
     }
 
     @Test
-    @DisplayName("En el reporte avisa si la fila a la que apuntaba ya no existe")
-    void celdaDeReporteShouldSayTheRowWasDeleted() {
-        assertThat(campo().celdaDeReporte(FILA_ID, id -> null)).isEqualTo("Fila eliminada");
+    @DisplayName("En el reporte se avisa si la fila a la que apuntaba ya no existe")
+    void enElReporteSeAvisaSiLaFilaALaQueApuntabaYaNoExiste() {
+        cuandoSePideLaCeldaDeReporte(FILA_ID, unaFilaInexistente());
+
+        entoncesElResultadoEs("Fila eliminada");
+    }
+
+    private Function<RegistroId, String> unaFilaLlamada(String nombre) {
+        Map<RegistroId, String> etiquetas = Map.of(RegistroId.de(FILA_ID), nombre);
+        return etiquetas::get;
+    }
+
+    private Function<RegistroId, String> unaFilaInexistente() {
+        return id -> null;
+    }
+
+    private void entoncesEsUnaConexionConLaTabla(Campo campo, BloqueId tabla) {
+        assertThat(campo.esRelacion()).isTrue();
+        assertThat(campo.getBloqueRelacionadoId()).isEqualTo(tabla);
     }
 }

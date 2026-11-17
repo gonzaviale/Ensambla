@@ -26,69 +26,109 @@ class CampoDtosTest {
     private static final BloqueId RELACIONADO_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
     private static final List<String> TALLES = List.of("Chico", "Grande");
 
-    @Test
-    @DisplayName("Pasa todos los datos del campo a la respuesta, con el tipo como texto")
-    void campoItemShouldMapEveryField() {
-        CampoItem result = CampoItem.de(givenCampo("Talle", true));
+    private CampoItem item;
+    private ConfiguracionCampo configuracion;
 
-        assertThat(result.id()).isEqualTo(CAMPO_ID);
-        assertThat(result.bloqueId()).isEqualTo(BLOQUE_ID);
-        assertThat(result.nombre()).isEqualTo("Talle");
-        assertThat(result.tipo()).isEqualTo("OPCION");
-        assertThat(result.obligatorio()).isTrue();
-        assertThat(result.valorInicial()).isEqualTo("Chico");
-        assertThat(result.opciones()).containsExactly("Chico", "Grande");
-        assertThat(result.bloqueRelacionadoId()).isNull();
-        assertThat(result.posicion()).isEqualTo((short) 1);
-        assertThat(result.creadoEn()).isEqualTo(CREADO);
-        assertThat(result.actualizadoEn()).isEqualTo(ACTUALIZADO);
+    @Test
+    @DisplayName("La respuesta tiene todos los datos del campo, con el tipo como texto")
+    void laRespuestaTieneTodosLosDatosDelCampoConElTipoComoTexto() {
+        cuandoSeArmaLaRespuestaDe(unTalleObligatorio(true));
+
+        entoncesLaRespuestaTieneTodosLosDatosDelTalleObligatorio();
     }
 
     @Test
     @DisplayName("Una conexión pasa a la respuesta la tabla con la que se conecta")
-    void campoItemShouldMapBloqueRelacionadoOfAConexion() {
-        CampoItem result = CampoItem.de(givenConexion());
+    void unaConexionPasaALaRespuestaLaTablaConLaQueSeConecta() {
+        cuandoSeArmaLaRespuestaDe(unaConexionACliente());
 
-        assertThat(result.tipo()).isEqualTo("RELACION");
-        assertThat(result.bloqueRelacionadoId()).isEqualTo(RELACIONADO_ID);
+        entoncesLaRespuestaEsUnaConexionConLaTablaRelacionada();
     }
 
     @Test
     @DisplayName("Un campo sin la marca de obligatorio sale como no obligatorio")
-    void campoItemShouldMapNullObligatorioAsFalse() {
-        CampoItem result = CampoItem.de(givenCampo("Talle", null));
+    void unCampoSinLaMarcaDeObligatorioSaleComoNoObligatorio() {
+        cuandoSeArmaLaRespuestaDe(unTalleObligatorio(null));
 
-        assertThat(result.obligatorio()).isFalse();
+        entoncesLaRespuestaNoEsObligatoria();
     }
 
     @Test
     @DisplayName("Crear arma la configuración con todos los datos del pedido")
-    void crearCampoShouldBuildConfiguracion() {
-        CrearCampoRequest request =
-                new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Talle", "OPCION", true, "Chico", TALLES, RELACIONADO_ID, null);
+    void crearArmaLaConfiguracionConTodosLosDatosDelPedido() {
+        cuandoSeArmaLaConfiguracionDe(unPedidoParaCrearUnTalle());
 
-        ConfiguracionCampo result = request.aConfiguracionCampo();
-
-        assertThat(result).isEqualTo(new ConfiguracionCampo("Talle", "OPCION", true, "Chico", TALLES, RELACIONADO_ID, null));
+        entoncesLaConfiguracionEsLaDelTalleObligatorioConValorInicial();
     }
 
     @Test
     @DisplayName("Editar arma la configuración con todos los datos del pedido")
-    void editarCampoShouldBuildConfiguracion() {
-        EditarCampoRequest request =
-                new EditarCampoRequest(USUARIO_ID, CAMPO_ID, "Talle", "OPCION", false, null, TALLES, RELACIONADO_ID, null);
+    void editarArmaLaConfiguracionConTodosLosDatosDelPedido() {
+        cuandoSeArmaLaConfiguracionDe(unPedidoParaEditarUnTalle());
 
-        ConfiguracionCampo result = request.aConfiguracionCampo();
-
-        assertThat(result).isEqualTo(new ConfiguracionCampo("Talle", "OPCION", false, null, TALLES, RELACIONADO_ID, null));
+        entoncesLaConfiguracionEsLaDelTalleOpcionalSinValorInicial();
     }
 
-    // --- helpers ---
-    private Campo givenCampo(String nombre, Boolean obligatorio) {
+    private void cuandoSeArmaLaRespuestaDe(Campo campo) {
+        item = CampoItem.de(campo);
+    }
+
+    private void cuandoSeArmaLaConfiguracionDe(CrearCampoRequest pedido) {
+        configuracion = pedido.aConfiguracionCampo();
+    }
+
+    private void cuandoSeArmaLaConfiguracionDe(EditarCampoRequest pedido) {
+        configuracion = pedido.aConfiguracionCampo();
+    }
+
+    private void entoncesLaRespuestaTieneTodosLosDatosDelTalleObligatorio() {
+        assertThat(item.id()).isEqualTo(CAMPO_ID);
+        assertThat(item.bloqueId()).isEqualTo(BLOQUE_ID);
+        assertThat(item.nombre()).isEqualTo("Talle");
+        assertThat(item.tipo()).isEqualTo("OPCION");
+        assertThat(item.obligatorio()).isTrue();
+        assertThat(item.valorInicial()).isEqualTo("Chico");
+        assertThat(item.opciones()).containsExactly("Chico", "Grande");
+        assertThat(item.bloqueRelacionadoId()).isNull();
+        assertThat(item.posicion()).isEqualTo((short) 1);
+        assertThat(item.creadoEn()).isEqualTo(CREADO);
+        assertThat(item.actualizadoEn()).isEqualTo(ACTUALIZADO);
+    }
+
+    private void entoncesLaRespuestaEsUnaConexionConLaTablaRelacionada() {
+        assertThat(item.tipo()).isEqualTo("RELACION");
+        assertThat(item.bloqueRelacionadoId()).isEqualTo(RELACIONADO_ID);
+    }
+
+    private void entoncesLaRespuestaNoEsObligatoria() {
+        assertThat(item.obligatorio()).isFalse();
+    }
+
+    private void entoncesLaConfiguracionEsLaDelTalleObligatorioConValorInicial() {
+        assertThat(configuracion)
+                .isEqualTo(new ConfiguracionCampo("Talle", "OPCION", true, "Chico", TALLES, RELACIONADO_ID, null));
+    }
+
+    private void entoncesLaConfiguracionEsLaDelTalleOpcionalSinValorInicial() {
+        assertThat(configuracion)
+                .isEqualTo(new ConfiguracionCampo("Talle", "OPCION", false, null, TALLES, RELACIONADO_ID, null));
+    }
+
+    private CrearCampoRequest unPedidoParaCrearUnTalle() {
+        return new CrearCampoRequest(
+                USUARIO_ID, BLOQUE_ID, "Talle", "OPCION", true, "Chico", TALLES, RELACIONADO_ID, null);
+    }
+
+    private EditarCampoRequest unPedidoParaEditarUnTalle() {
+        return new EditarCampoRequest(
+                USUARIO_ID, CAMPO_ID, "Talle", "OPCION", false, null, TALLES, RELACIONADO_ID, null);
+    }
+
+    private Campo unTalleObligatorio(Boolean obligatorio) {
         return Campo.builder()
                 .id(CAMPO_ID)
                 .bloqueId(BLOQUE_ID)
-                .nombre(nombre)
+                .nombre("Talle")
                 .tipo(TipoCampo.OPCION)
                 .obligatorio(obligatorio)
                 .valorInicial("Chico")
@@ -99,7 +139,7 @@ class CampoDtosTest {
                 .build();
     }
 
-    private Campo givenConexion() {
+    private Campo unaConexionACliente() {
         return Campo.builder()
                 .id(CAMPO_ID)
                 .bloqueId(BLOQUE_ID)

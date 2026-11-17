@@ -7,14 +7,18 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.util.List;
 
+import static com.ensambla.backend.support.CamposDePrueba.referenciaA;
+import static com.ensambla.backend.support.CamposDePrueba.unCampoDeTexto;
+import static com.ensambla.backend.support.CamposDePrueba.unCampoNumerico;
+import static com.ensambla.backend.support.CamposDePrueba.unaFormulaQueSeCitaASiMisma;
+import static com.ensambla.backend.support.CamposDePrueba.unaFormulaQueUsa;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
-class CampoFormulaTest extends CampoPorTipoTest {
+class CampoFormulaTest extends CampoDeCualquierTipoTest {
 
-    private static final CampoId PRECIO_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
-    private static final CampoId TOTAL_ID = CampoId.de("c0000000-0000-4000-8000-000000000002");
+    private BigDecimal calculo;
+    private Throwable rechazo;
 
     @Override
     protected TipoCampo tipoEsperado() {
@@ -22,78 +26,105 @@ class CampoFormulaTest extends CampoPorTipoTest {
     }
 
     @Override
-    protected List<Object> valoresValidos() {
+    protected List<Object> valoresQueAcepta() {
         return List.of();
     }
 
     @Override
-    protected List<Object> valoresInvalidos() {
+    protected List<Object> valoresQueRechaza() {
         return List.of(3, "3");
     }
 
     @Override
-    protected String mensajeDeError() {
+    protected String motivoDelRechazo() {
         return "Este dato se calcula solo";
     }
 
     @Test
     @DisplayName("Es una fórmula y conoce su expresión")
-    void esFormulaShouldBeTrueAndKnowItsExpression() {
-        assertThat(formulaQueDuplica(PRECIO_ID).esFormula()).isTrue();
-        assertThat(formulaQueDuplica(PRECIO_ID).getFormula()).isEqualTo("{" + PRECIO_ID + "} * 2");
+    void esUnaFormulaYConoceSuExpresion() {
+        Campo precio = unCampoNumerico("Precio");
+        CampoFormula doble = unaFormulaQueUsa(precio, "Doble");
+
+        entoncesEsUnaFormulaConLaExpresion(doble, referenciaA(precio) + " * 2");
     }
 
     @Test
     @DisplayName("Calcula la fórmula con los valores que le da el registro")
-    void calcularShouldEvaluateWithTheGivenValues() {
-        CampoFormula formula = formulaQueDuplica(PRECIO_ID);
+    void calculaLaFormulaConLosValoresQueLeDaElRegistro() {
+        CampoFormula doble = unaFormulaQueUsa(unCampoNumerico("Precio"), "Doble");
 
-        assertThat(formula.calcular(id -> new BigDecimal("4"))).isEqualByComparingTo("8");
+        cuandoSeCalculaConElValor(doble, "4");
+
+        entoncesElCalculoEs("8");
     }
 
     @Test
-    @DisplayName("En el reporte va como número")
-    void celdaDeReporteShouldBeANumber() {
-        assertThat(campo().celdaDeReporte("8", id -> "otra fila")).isEqualTo(new BigDecimal("8"));
+    @DisplayName("En el reporte el resultado va como número")
+    void enElReporteVaComoNumero() {
+        cuandoSePideLaCeldaDeReporte("8");
+
+        entoncesElResultadoEs(new BigDecimal("8"));
     }
 
     @Test
     @DisplayName("Acepta una fórmula que usa campos numéricos de la tabla")
-    void validarReferenciasShouldAcceptNumericFields() {
-        CampoFormula formula = formulaQueDuplica(PRECIO_ID);
+    void aceptaUnaFormulaQueUsaCamposNumericosDeLaTabla() {
+        Campo precio = unCampoNumerico("Precio");
 
-        assertThatCode(() -> formula.validarReferenciasDeFormula(List.of(precioNumerico()))).doesNotThrowAnyException();
+        cuandoSeValidanLasReferencias(unaFormulaQueUsa(precio, "Doble"), precio);
+
+        entoncesNoSeRechazaNada();
     }
 
     @Test
     @DisplayName("Rechaza una fórmula que usa un campo que no es numérico")
-    void validarReferenciasShouldRejectNonNumericFields() {
-        CampoFormula formula = formulaQueDuplica(PRECIO_ID);
-        Campo precioEnTexto = Campo.builder().id(PRECIO_ID).tipo(TipoCampo.TEXTO).build();
+    void rechazaUnaFormulaQueUsaUnCampoQueNoEsNumerico() {
+        Campo precioEnTexto = unCampoDeTexto("Precio");
 
-        assertThatThrownBy(() -> formula.validarReferenciasDeFormula(List.of(precioEnTexto)))
-                .isInstanceOf(CampoInvalidoException.class);
+        cuandoSeValidanLasReferencias(unaFormulaQueUsa(precioEnTexto, "Doble"), precioEnTexto);
+
+        entoncesSeRechazaLaFormula();
     }
 
     @Test
     @DisplayName("Rechaza una fórmula que se cita a sí misma")
-    void validarReferenciasShouldRejectAFormulaThatQuotesItself() {
-        CampoFormula formula = formulaQueDuplica(TOTAL_ID);
-        Campo totalNumerico = Campo.builder().id(TOTAL_ID).tipo(TipoCampo.NUMERO).build();
+    void rechazaUnaFormulaQueSeCitaASiMisma() {
+        CampoFormula total = unaFormulaQueSeCitaASiMisma("Total");
 
-        assertThatThrownBy(() -> formula.validarReferenciasDeFormula(List.of(totalNumerico)))
-                .isInstanceOf(CampoInvalidoException.class);
+        cuandoSeValidanLasReferencias(total, unNumericoConElIdDe(total));
+
+        entoncesSeRechazaLaFormula();
     }
 
-    private CampoFormula formulaQueDuplica(CampoId campoId) {
-        return (CampoFormula) Campo.builder()
-                .id(TOTAL_ID)
-                .tipo(TipoCampo.FORMULA)
-                .formula("{" + campoId + "} * 2")
-                .build();
+    private Campo unNumericoConElIdDe(Campo otro) {
+        Campo numerico = unCampoNumerico("Total");
+        numerico.setId(otro.getId());
+        return numerico;
     }
 
-    private Campo precioNumerico() {
-        return Campo.builder().id(PRECIO_ID).tipo(TipoCampo.NUMERO).build();
+    private void cuandoSeCalculaConElValor(CampoFormula formula, String valor) {
+        calculo = formula.calcular(id -> new BigDecimal(valor));
+    }
+
+    private void cuandoSeValidanLasReferencias(CampoFormula formula, Campo... camposDelBloque) {
+        rechazo = catchThrowable(() -> formula.validarReferenciasDeFormula(List.of(camposDelBloque)));
+    }
+
+    private void entoncesEsUnaFormulaConLaExpresion(Campo campo, String expresion) {
+        assertThat(campo.esFormula()).isTrue();
+        assertThat(campo.getFormula()).isEqualTo(expresion);
+    }
+
+    private void entoncesElCalculoEs(String esperado) {
+        assertThat(calculo).isEqualByComparingTo(esperado);
+    }
+
+    private void entoncesNoSeRechazaNada() {
+        assertThat(rechazo).isNull();
+    }
+
+    private void entoncesSeRechazaLaFormula() {
+        assertThat(rechazo).isInstanceOf(CampoInvalidoException.class);
     }
 }

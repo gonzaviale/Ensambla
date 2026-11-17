@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -20,315 +21,382 @@ class ConfiguracionCampoTest {
     private static final String TIPO_INVALIDO =
             "Elegí un tipo válido: texto, número, fecha, opción, sí/no, conexión o fórmula";
 
+    private Campo campo;
+    private List<Campo> camposPorTipo;
+    private Map<String, String> errores;
+
     @Test
     @DisplayName("Un campo de texto queda con el nombre sin espacios, no obligatorio y sin valor inicial")
-    void validarShouldNormalizeTextoWithDefaults() {
-        Campo campo = validar(new ConfiguracionCampo("  Producto  ", "TEXTO", null, "  ", null, null, null));
+    void unCampoDeTextoQuedaConElNombreSinEspaciosNoObligatorioYSinValorInicial() {
+        cuandoSeValida(unTextoConBlancosAlrededor());
 
-        assertThat(campo.getNombre()).isEqualTo("Producto");
+        entoncesElCampoEsDeTextoNoObligatorioSinValorInicialLlamado("Producto");
+    }
+
+    @Test
+    @DisplayName("Se conserva la marca de obligatorio")
+    void seConservaLaMarcaDeObligatorio() {
+        cuandoSeValida(unTextoObligatorio());
+
+        entoncesElCampoEsObligatorio();
+    }
+
+    @Test
+    @DisplayName("Cada tipo elegido da el campo de su clase")
+    void cadaTipoElegidoDaElCampoDeSuClase() {
+        cuandoSeValidaUnaConfiguracionDeCadaTipo();
+
+        entoncesSeObtieneUnCampoDeCadaTipo();
+    }
+
+    @Test
+    @DisplayName("Un campo que no es de opción ignora las opciones que le mandan")
+    void unCampoQueNoEsDeOpcionIgnoraLasOpcionesQueLeMandan() {
+        cuandoSeValida(unNumeroConOpcionesDeMas());
+
+        entoncesElCampoNoTieneOpciones();
+    }
+
+    @Test
+    @DisplayName("Un campo de opción queda sin espacios en las opciones y en el valor inicial")
+    void unCampoDeOpcionQuedaSinEspaciosEnLasOpcionesYEnElValorInicial() {
+        cuandoSeValida(unaOpcionConEspacios());
+
+        entoncesLaOpcionInicialEsChicoEntreChicoYGrande();
+    }
+
+    @Test
+    @DisplayName("Un nombre de ciento veinte caracteres se acepta")
+    void unNombreDeCientoVeinteCaracteresSeAcepta() {
+        cuandoSeValida(unaConfiguracion("a".repeat(120), "TEXTO"));
+
+        entoncesElNombreTieneCaracteres(120);
+    }
+
+    @Test
+    @DisplayName("Un nombre vacío se rechaza")
+    void unNombreVacioSeRechaza() {
+        cuandoSeIntentaValidar(unaConfiguracion("   ", "TEXTO"));
+
+        entoncesSoloFallaElDato("nombre", "Escribí un nombre");
+    }
+
+    @Test
+    @DisplayName("Un campo sin nombre se rechaza")
+    void unCampoSinNombreSeRechaza() {
+        cuandoSeIntentaValidar(unaConfiguracion(null, "TEXTO"));
+
+        entoncesSoloFallaElDato("nombre");
+    }
+
+    @Test
+    @DisplayName("Un nombre de más de ciento veinte caracteres se rechaza")
+    void unNombreDeMasDeCientoVeinteCaracteresSeRechaza() {
+        cuandoSeIntentaValidar(unaConfiguracion("a".repeat(121), "TEXTO"));
+
+        entoncesSoloFallaElDato("nombre", "Máximo 120 caracteres");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ARCHIVO", "texto", "", "SI NO"})
+    @DisplayName("Un tipo fuera de la lista se rechaza")
+    void unTipoFueraDeLaListaSeRechaza(String tipo) {
+        cuandoSeIntentaValidar(unaConfiguracion("Dato", tipo));
+
+        entoncesSoloFallaElDato("tipo", TIPO_INVALIDO);
+    }
+
+    @Test
+    @DisplayName("Un campo sin tipo se rechaza")
+    void unCampoSinTipoSeRechaza() {
+        cuandoSeIntentaValidar(unaConfiguracion("Dato", null));
+
+        entoncesSoloFallaElDato("tipo");
+    }
+
+    @Test
+    @DisplayName("Se informan juntos el error del nombre y el del tipo")
+    void seInformanJuntosElErrorDelNombreYElDelTipo() {
+        cuandoSeIntentaValidar(unaConfiguracion("", "ARCHIVO"));
+
+        entoncesFallanLosDatos("nombre", "tipo");
+    }
+
+    @Test
+    @DisplayName("Un campo de opción sin opciones se rechaza")
+    void unCampoDeOpcionSinOpcionesSeRechaza() {
+        cuandoSeIntentaValidar(unaOpcion(null, null));
+
+        entoncesSoloFallaElDato("opciones", "Agregá al menos una opción");
+    }
+
+    @Test
+    @DisplayName("Un campo de opción con la lista vacía se rechaza")
+    void unCampoDeOpcionConLaListaVaciaSeRechaza() {
+        cuandoSeIntentaValidar(unaOpcion(null, List.of()));
+
+        entoncesSoloFallaElDato("opciones", "Agregá al menos una opción");
+    }
+
+    @Test
+    @DisplayName("Una opción en blanco se rechaza")
+    void unaOpcionEnBlancoSeRechaza() {
+        cuandoSeIntentaValidar(unaOpcion(null, List.of("Chico", "  ")));
+
+        entoncesSoloFallaElDato("opciones", "Las opciones no pueden quedar vacías");
+    }
+
+    @Test
+    @DisplayName("Una opción nula se rechaza")
+    void unaOpcionNulaSeRechaza() {
+        cuandoSeIntentaValidar(unaOpcion(null, Arrays.asList("Chico", null)));
+
+        entoncesSoloFallaElDato("opciones", "Las opciones no pueden quedar vacías");
+    }
+
+    @Test
+    @DisplayName("Las opciones repetidas se rechazan sin distinguir mayúsculas ni espacios")
+    void lasOpcionesRepetidasSeRechazanSinDistinguirMayusculasNiEspacios() {
+        cuandoSeIntentaValidar(unaOpcion(null, List.of("Chico", " CHICO")));
+
+        entoncesSoloFallaElDato("opciones", "Hay opciones repetidas");
+    }
+
+    @Test
+    @DisplayName("Un valor inicial que no está entre las opciones se rechaza")
+    void unValorInicialQueNoEstaEntreLasOpcionesSeRechaza() {
+        cuandoSeIntentaValidar(unaOpcion("Mediano", talles()));
+
+        entoncesSoloFallaElDato("valorInicial", "Tiene que ser una de las opciones");
+    }
+
+    @Test
+    @DisplayName("Un valor inicial de texto de mil caracteres se acepta")
+    void unValorInicialDeTextoDeMilCaracteresSeAcepta() {
+        cuandoSeValida(conValorInicial("TEXTO", "x".repeat(1000)));
+
+        entoncesElValorInicialTieneCaracteres(1000);
+    }
+
+    @Test
+    @DisplayName("Un valor inicial de texto de más de mil caracteres se rechaza")
+    void unValorInicialDeTextoDeMasDeMilCaracteresSeRechaza() {
+        cuandoSeIntentaValidar(conValorInicial("TEXTO", "x".repeat(1001)));
+
+        entoncesSoloFallaElDato("valorInicial", "Máximo 1000 caracteres");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"12", "12.5", "-3", "0.25"})
+    @DisplayName("Un número entero o decimal con punto se acepta como valor inicial")
+    void unNumeroEnteroODecimalConPuntoSeAceptaComoValorInicial(String valor) {
+        cuandoSeValida(conValorInicial("NUMERO", valor));
+
+        entoncesElValorInicialEs(valor);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"12,5", "doce", "1e5", ".5", "12.", "+3"})
+    @DisplayName("Un valor inicial que no es un número con punto decimal se rechaza")
+    void unValorInicialQueNoEsUnNumeroConPuntoDecimalSeRechaza(String valor) {
+        cuandoSeIntentaValidar(conValorInicial("NUMERO", valor));
+
+        entoncesSoloFallaElDato("valorInicial", "Tiene que ser un número, por ejemplo 12.5");
+    }
+
+    @Test
+    @DisplayName("Una fecha con formato año-mes-día se acepta como valor inicial")
+    void unaFechaConFormatoAnioMesDiaSeAceptaComoValorInicial() {
+        cuandoSeValida(conValorInicial("FECHA", "2026-10-09"));
+
+        entoncesElValorInicialEs("2026-10-09");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"2026-02-31", "09/10/2026", "2026-1-9", "+2026-10-09"})
+    @DisplayName("Una fecha inexistente o con otro formato se rechaza como valor inicial")
+    void unaFechaInexistenteOConOtroFormatoSeRechazaComoValorInicial(String valor) {
+        cuandoSeIntentaValidar(conValorInicial("FECHA", valor));
+
+        entoncesSoloFallaElDato("valorInicial", "Tiene que ser una fecha con el formato AAAA-MM-DD");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"true", "false"})
+    @DisplayName("Verdadero y falso se aceptan como valor inicial de un campo sí/no")
+    void trueYFalseSeAceptanComoValorInicialDeSiNo(String valor) {
+        cuandoSeValida(conValorInicial("SI_NO", valor));
+
+        entoncesElValorInicialEs(valor);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"sí", "TRUE", "1"})
+    @DisplayName("Cualquier otro valor inicial para un campo sí/no se rechaza")
+    void otroValorInicialParaSiNoSeRechaza(String valor) {
+        cuandoSeIntentaValidar(conValorInicial("SI_NO", valor));
+
+        entoncesSoloFallaElDato("valorInicial", "Tiene que ser true (sí) o false (no)");
+    }
+
+    @Test
+    @DisplayName("Un campo de conexión conserva la tabla con la que se conecta")
+    void unCampoDeConexionConservaLaTablaConLaQueSeConecta() {
+        cuandoSeValida(unaConexionAUnaTabla());
+
+        entoncesEsUnaConexionConLaTabla(TABLA_RELACIONADA);
+    }
+
+    @Test
+    @DisplayName("Un campo de conexión sin tabla se rechaza")
+    void unCampoDeConexionSinTablaSeRechaza() {
+        cuandoSeIntentaValidar(unaConfiguracion("Cliente", "RELACION"));
+
+        entoncesSoloFallaElDato("bloqueRelacionadoId", "Elegí la tabla con la que se conecta");
+    }
+
+    @Test
+    @DisplayName("Un campo de conexión no admite valor inicial")
+    void unCampoDeConexionNoAdmiteValorInicial() {
+        cuandoSeIntentaValidar(unaConexionConValorInicial());
+
+        entoncesSoloFallaElDato("valorInicial", "Una conexión no tiene valor inicial");
+    }
+
+    @Test
+    @DisplayName("Un campo que no es de conexión descarta la tabla conectada")
+    void unCampoQueNoEsDeConexionDescartaLaTablaConectada() {
+        cuandoSeValida(unTextoConTablaConectada());
+
+        entoncesNoTieneTablaConectada();
+    }
+
+    @Test
+    @DisplayName("Una fórmula bien armada se guarda sin espacios en los bordes")
+    void unaFormulaBienArmadaSeGuardaSinEspaciosEnLosBordes() {
+        cuandoSeValida(unaFormulaConEspaciosEnLosBordes());
+
+        entoncesEsUnaFormulaConLaExpresion("2 * (3 + 1)");
+    }
+
+    @Test
+    @DisplayName("Una fórmula vacía se rechaza con el mensaje de la expresión")
+    void unaFormulaVaciaSeRechazaConElMensajeDeLaExpresion() {
+        cuandoSeIntentaValidar(unaConfiguracion("Total", "FORMULA"));
+
+        entoncesFallaElDato("formula", "Armá la fórmula");
+    }
+
+    @Test
+    @DisplayName("Una fórmula incompleta se rechaza con el mensaje de la expresión")
+    void unaFormulaIncompletaSeRechazaConElMensajeDeLaExpresion() {
+        cuandoSeIntentaValidar(unaFormulaIncompleta());
+
+        entoncesFallaElDato("formula", "La fórmula está incompleta");
+    }
+
+    @Test
+    @DisplayName("Una fórmula no tiene valor inicial")
+    void unaFormulaNoTieneValorInicial() {
+        cuandoSeIntentaValidar(unaFormulaConValorInicial());
+
+        entoncesFallaElDato("valorInicial", "Una fórmula no tiene valor inicial");
+    }
+
+    @Test
+    @DisplayName("Un campo que no es fórmula descarta la expresión")
+    void unCampoQueNoEsFormulaDescartaLaExpresion() {
+        cuandoSeValida(unTextoConExpresion());
+
+        entoncesNoTieneExpresion();
+    }
+
+    private void cuandoSeValida(ConfiguracionCampo configuracion) {
+        campo = configuracion.validar();
+    }
+
+    private void cuandoSeIntentaValidar(ConfiguracionCampo configuracion) {
+        errores = catchThrowableOfType(CampoInvalidoException.class, configuracion::validar).getErrores();
+    }
+
+    private void cuandoSeValidaUnaConfiguracionDeCadaTipo() {
+        camposPorTipo = new ArrayList<>();
+        for (TipoCampo tipo : TipoCampo.values()) {
+            camposPorTipo.add(configuracionValidaDe(tipo).validar());
+        }
+    }
+
+    private void entoncesElCampoEsDeTextoNoObligatorioSinValorInicialLlamado(String nombre) {
+        assertThat(campo.getNombre()).isEqualTo(nombre);
         assertThat(campo.esObligatorio()).isFalse();
         assertThat(campo.getValorInicial()).isNull();
         assertThat(campo).isInstanceOf(CampoTexto.class);
     }
 
-    @Test
-    @DisplayName("Conserva la marca de obligatorio")
-    void validarShouldKeepObligatorio() {
-        Campo campo = validar(new ConfiguracionCampo("Producto", "TEXTO", true, null, null, null, null));
-
+    private void entoncesElCampoEsObligatorio() {
         assertThat(campo.esObligatorio()).isTrue();
     }
 
-    @Test
-    @DisplayName("Cada tipo elegido da el campo de su clase")
-    void validarShouldBuildTheCampoOfTheChosenTipo() {
-        for (TipoCampo tipo : TipoCampo.values()) {
-            assertThat(validar(configuracionValidaDe(tipo)).tipo()).isEqualTo(tipo);
-        }
+    private void entoncesSeObtieneUnCampoDeCadaTipo() {
+        assertThat(camposPorTipo).extracting(Campo::tipo).containsExactly(TipoCampo.values());
     }
 
-    @Test
-    @DisplayName("Un campo que no es de opción ignora las opciones que le mandan")
-    void validarShouldIgnoreOpcionesWhenTipoIsNotOpcion() {
-        Campo campo = validar(new ConfiguracionCampo("Precio", "NUMERO", false, null, talles(), null, null));
-
+    private void entoncesElCampoNoTieneOpciones() {
         assertThat(campo.getOpciones()).isEmpty();
     }
 
-    @Test
-    @DisplayName("Un campo de opción queda sin espacios en las opciones y en el valor inicial")
-    void validarShouldStripOpcionesAndValorInicial() {
-        Campo campo = validar(
-                new ConfiguracionCampo("Talle", "OPCION", false, " Chico ", List.of(" Chico ", "Grande "), null, null));
-
+    private void entoncesLaOpcionInicialEsChicoEntreChicoYGrande() {
         assertThat(campo.getOpciones()).containsExactly("Chico", "Grande");
         assertThat(campo.getValorInicial()).isEqualTo("Chico");
     }
 
-    @Test
-    @DisplayName("Acepta un nombre de 120 caracteres")
-    void validarShouldAcceptNombreAtTheLimit() {
-        Campo campo = validar(configuracion("a".repeat(120), "TEXTO"));
-
-        assertThat(campo.getNombre()).hasSize(120);
+    private void entoncesElNombreTieneCaracteres(int cantidad) {
+        assertThat(campo.getNombre()).hasSize(cantidad);
     }
 
-    @Test
-    @DisplayName("Rechaza un nombre vacío")
-    void validarShouldRejectBlankNombre() {
-        Map<String, String> errores = erroresAlValidar(configuracion("   ", "TEXTO"));
-
-        thenFallaSoloEl(errores, "nombre", "Escribí un nombre");
+    private void entoncesElValorInicialTieneCaracteres(int cantidad) {
+        assertThat(campo.getValorInicial()).hasSize(cantidad);
     }
 
-    @Test
-    @DisplayName("Rechaza un campo sin nombre")
-    void validarShouldRejectNullNombre() {
-        Map<String, String> errores = erroresAlValidar(configuracion(null, "TEXTO"));
-
-        assertThat(errores).containsOnlyKeys("nombre");
-    }
-
-    @Test
-    @DisplayName("Rechaza un nombre de más de 120 caracteres")
-    void validarShouldRejectTooLongNombre() {
-        Map<String, String> errores = erroresAlValidar(configuracion("a".repeat(121), "TEXTO"));
-
-        thenFallaSoloEl(errores, "nombre", "Máximo 120 caracteres");
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"ARCHIVO", "texto", "", "SI NO"})
-    @DisplayName("Rechaza un tipo fuera de la lista")
-    void validarShouldRejectUnknownTipo(String tipo) {
-        Map<String, String> errores = erroresAlValidar(configuracion("Dato", tipo));
-
-        thenFallaSoloEl(errores, "tipo", TIPO_INVALIDO);
-    }
-
-    @Test
-    @DisplayName("Rechaza un campo sin tipo")
-    void validarShouldRejectNullTipo() {
-        Map<String, String> errores = erroresAlValidar(configuracion("Dato", null));
-
-        assertThat(errores).containsOnlyKeys("tipo");
-    }
-
-    @Test
-    @DisplayName("Informa juntos el error del nombre y el del tipo")
-    void validarShouldReportNombreAndTipoTogether() {
-        Map<String, String> errores = erroresAlValidar(configuracion("", "ARCHIVO"));
-
-        assertThat(errores).containsOnlyKeys("nombre", "tipo");
-    }
-
-    @Test
-    @DisplayName("Un campo de opción sin opciones es inválido")
-    void validarShouldRejectOpcionWithoutOpciones() {
-        Map<String, String> errores = erroresAlValidar(opcion(null, null));
-
-        thenFallaSoloEl(errores, "opciones", "Agregá al menos una opción");
-    }
-
-    @Test
-    @DisplayName("Un campo de opción con la lista vacía es inválido")
-    void validarShouldRejectOpcionWithEmptyList() {
-        Map<String, String> errores = erroresAlValidar(opcion(null, List.of()));
-
-        thenFallaSoloEl(errores, "opciones", "Agregá al menos una opción");
-    }
-
-    @Test
-    @DisplayName("Rechaza una opción en blanco")
-    void validarShouldRejectBlankOpcion() {
-        Map<String, String> errores = erroresAlValidar(opcion(null, List.of("Chico", "  ")));
-
-        thenFallaSoloEl(errores, "opciones", "Las opciones no pueden quedar vacías");
-    }
-
-    @Test
-    @DisplayName("Rechaza una opción nula")
-    void validarShouldRejectNullOpcion() {
-        Map<String, String> errores = erroresAlValidar(opcion(null, Arrays.asList("Chico", null)));
-
-        thenFallaSoloEl(errores, "opciones", "Las opciones no pueden quedar vacías");
-    }
-
-    @Test
-    @DisplayName("Rechaza opciones repetidas sin distinguir mayúsculas ni espacios")
-    void validarShouldRejectRepeatedOpciones() {
-        Map<String, String> errores = erroresAlValidar(opcion(null, List.of("Chico", " CHICO")));
-
-        thenFallaSoloEl(errores, "opciones", "Hay opciones repetidas");
-    }
-
-    @Test
-    @DisplayName("Rechaza un valor inicial que no está entre las opciones")
-    void validarShouldRejectValorInicialOutsideOpciones() {
-        Map<String, String> errores = erroresAlValidar(opcion("Mediano", talles()));
-
-        thenFallaSoloEl(errores, "valorInicial", "Tiene que ser una de las opciones");
-    }
-
-    @Test
-    @DisplayName("Acepta un valor inicial de texto de hasta 1000 caracteres")
-    void validarShouldAcceptTextoAtTheLimit() {
-        Campo campo = validar(conValorInicial("TEXTO", "x".repeat(1000)));
-
-        assertThat(campo.getValorInicial()).hasSize(1000);
-    }
-
-    @Test
-    @DisplayName("Rechaza un valor inicial de texto de más de 1000 caracteres")
-    void validarShouldRejectTooLongTexto() {
-        Map<String, String> errores = erroresAlValidar(conValorInicial("TEXTO", "x".repeat(1001)));
-
-        thenFallaSoloEl(errores, "valorInicial", "Máximo 1000 caracteres");
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"12", "12.5", "-3", "0.25"})
-    @DisplayName("Acepta números enteros y decimales con punto como valor inicial")
-    void validarShouldAcceptNumero(String valor) {
-        Campo campo = validar(conValorInicial("NUMERO", valor));
-
+    private void entoncesElValorInicialEs(String valor) {
         assertThat(campo.getValorInicial()).isEqualTo(valor);
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"12,5", "doce", "1e5", ".5", "12.", "+3"})
-    @DisplayName("Rechaza un valor inicial que no es un número con punto decimal")
-    void validarShouldRejectInvalidNumero(String valor) {
-        Map<String, String> errores = erroresAlValidar(conValorInicial("NUMERO", valor));
-
-        thenFallaSoloEl(errores, "valorInicial", "Tiene que ser un número, por ejemplo 12.5");
-    }
-
-    @Test
-    @DisplayName("Acepta una fecha AAAA-MM-DD como valor inicial")
-    void validarShouldAcceptFecha() {
-        Campo campo = validar(conValorInicial("FECHA", "2026-10-09"));
-
-        assertThat(campo.getValorInicial()).isEqualTo("2026-10-09");
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"2026-02-31", "09/10/2026", "2026-1-9", "+2026-10-09"})
-    @DisplayName("Rechaza una fecha inexistente o con otro formato como valor inicial")
-    void validarShouldRejectInvalidFecha(String valor) {
-        Map<String, String> errores = erroresAlValidar(conValorInicial("FECHA", valor));
-
-        thenFallaSoloEl(errores, "valorInicial", "Tiene que ser una fecha con el formato AAAA-MM-DD");
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"true", "false"})
-    @DisplayName("Acepta true y false como valor inicial de sí/no")
-    void validarShouldAcceptSiNo(String valor) {
-        Campo campo = validar(conValorInicial("SI_NO", valor));
-
-        assertThat(campo.getValorInicial()).isEqualTo(valor);
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"sí", "TRUE", "1"})
-    @DisplayName("Rechaza otro valor inicial para sí/no")
-    void validarShouldRejectInvalidSiNo(String valor) {
-        Map<String, String> errores = erroresAlValidar(conValorInicial("SI_NO", valor));
-
-        thenFallaSoloEl(errores, "valorInicial", "Tiene que ser true (sí) o false (no)");
-    }
-
-    @Test
-    @DisplayName("Un campo de conexión conserva la tabla con la que se conecta")
-    void validarShouldKeepBloqueRelacionadoWhenTipoIsRelacion() {
-        Campo campo = validar(new ConfiguracionCampo("Cliente", "RELACION", true, null, null, TABLA_RELACIONADA, null));
-
+    private void entoncesEsUnaConexionConLaTabla(BloqueId tabla) {
         assertThat(campo.esRelacion()).isTrue();
-        assertThat(campo.getBloqueRelacionadoId()).isEqualTo(TABLA_RELACIONADA);
+        assertThat(campo.getBloqueRelacionadoId()).isEqualTo(tabla);
     }
 
-    @Test
-    @DisplayName("Un campo de conexión sin tabla es inválido")
-    void validarShouldRejectRelacionWithoutBloque() {
-        Map<String, String> errores = erroresAlValidar(configuracion("Cliente", "RELACION"));
-
-        thenFallaSoloEl(errores, "bloqueRelacionadoId", "Elegí la tabla con la que se conecta");
-    }
-
-    @Test
-    @DisplayName("Un campo de conexión no admite valor inicial")
-    void validarShouldRejectRelacionWithValorInicial() {
-        Map<String, String> errores = erroresAlValidar(
-                new ConfiguracionCampo("Cliente", "RELACION", null, "x", null, TABLA_RELACIONADA, null));
-
-        thenFallaSoloEl(errores, "valorInicial", "Una conexión no tiene valor inicial");
-    }
-
-    @Test
-    @DisplayName("Un campo que no es de conexión descarta la tabla conectada")
-    void validarShouldDropBloqueRelacionadoWhenTipoIsNotRelacion() {
-        Campo campo = validar(new ConfiguracionCampo("Cliente", "TEXTO", null, null, null, TABLA_RELACIONADA, null));
-
+    private void entoncesNoTieneTablaConectada() {
         assertThat(campo.getBloqueRelacionadoId()).isNull();
     }
 
-    @Test
-    @DisplayName("Una fórmula bien armada se guarda sin espacios en los bordes")
-    void validarShouldAcceptFormula() {
-        Campo campo = validar(new ConfiguracionCampo("Total", "FORMULA", true, null, null, null, " 2 * (3 + 1) "));
-
+    private void entoncesEsUnaFormulaConLaExpresion(String expresion) {
         assertThat(campo.esFormula()).isTrue();
-        assertThat(campo.getFormula()).isEqualTo("2 * (3 + 1)");
+        assertThat(campo.getFormula()).isEqualTo(expresion);
     }
 
-    @Test
-    @DisplayName("Rechaza una fórmula vacía con el mensaje de la expresión")
-    void validarShouldRejectEmptyFormula() {
-        Map<String, String> errores = erroresAlValidar(configuracion("Total", "FORMULA"));
-
-        assertThat(errores).containsEntry("formula", "Armá la fórmula");
-    }
-
-    @Test
-    @DisplayName("Rechaza una fórmula incompleta con el mensaje de la expresión")
-    void validarShouldRejectIncompleteFormula() {
-        Map<String, String> errores = erroresAlValidar(
-                new ConfiguracionCampo("Total", "FORMULA", null, null, null, null, "2 +"));
-
-        assertThat(errores).containsEntry("formula", "La fórmula está incompleta");
-    }
-
-    @Test
-    @DisplayName("Una fórmula no tiene valor inicial")
-    void validarShouldRejectInitialValueOfFormula() {
-        Map<String, String> errores = erroresAlValidar(
-                new ConfiguracionCampo("Total", "FORMULA", null, "3", null, null, "1 + 1"));
-
-        assertThat(errores).containsEntry("valorInicial", "Una fórmula no tiene valor inicial");
-    }
-
-    @Test
-    @DisplayName("Un campo que no es fórmula descarta la expresión")
-    void validarShouldDropFormulaOfOtherTypes() {
-        Campo campo = validar(new ConfiguracionCampo("Dato", "TEXTO", null, null, null, null, "1 + 1"));
-
+    private void entoncesNoTieneExpresion() {
         assertThat(campo.getFormula()).isNull();
     }
 
-    private Campo validar(ConfiguracionCampo configuracion) {
-        return configuracion.validar();
-    }
-
-    private Map<String, String> erroresAlValidar(ConfiguracionCampo configuracion) {
-        return catchThrowableOfType(CampoInvalidoException.class, configuracion::validar).getErrores();
-    }
-
-    private void thenFallaSoloEl(Map<String, String> errores, String dato, String mensaje) {
+    private void entoncesSoloFallaElDato(String dato, String mensaje) {
         assertThat(errores).containsExactly(Map.entry(dato, mensaje));
     }
 
-    private ConfiguracionCampo configuracion(String nombre, String tipo) {
+    private void entoncesSoloFallaElDato(String dato) {
+        assertThat(errores).containsOnlyKeys(dato);
+    }
+
+    private void entoncesFallanLosDatos(String... datos) {
+        assertThat(errores).containsOnlyKeys(datos);
+    }
+
+    private void entoncesFallaElDato(String dato, String mensaje) {
+        assertThat(errores).containsEntry(dato, mensaje);
+    }
+
+    private ConfiguracionCampo unaConfiguracion(String nombre, String tipo) {
         return new ConfiguracionCampo(nombre, tipo, null, null, null, null, null);
     }
 
@@ -336,8 +404,52 @@ class ConfiguracionCampoTest {
         return new ConfiguracionCampo("Dato", tipo, null, valorInicial, null, null, null);
     }
 
-    private ConfiguracionCampo opcion(String valorInicial, List<String> opciones) {
+    private ConfiguracionCampo unaOpcion(String valorInicial, List<String> opciones) {
         return new ConfiguracionCampo("Talle", "OPCION", null, valorInicial, opciones, null, null);
+    }
+
+    private ConfiguracionCampo unTextoConBlancosAlrededor() {
+        return new ConfiguracionCampo("  Producto  ", "TEXTO", null, "  ", null, null, null);
+    }
+
+    private ConfiguracionCampo unTextoObligatorio() {
+        return new ConfiguracionCampo("Producto", "TEXTO", true, null, null, null, null);
+    }
+
+    private ConfiguracionCampo unNumeroConOpcionesDeMas() {
+        return new ConfiguracionCampo("Precio", "NUMERO", false, null, talles(), null, null);
+    }
+
+    private ConfiguracionCampo unaOpcionConEspacios() {
+        return new ConfiguracionCampo("Talle", "OPCION", false, " Chico ", List.of(" Chico ", "Grande "), null, null);
+    }
+
+    private ConfiguracionCampo unaConexionAUnaTabla() {
+        return new ConfiguracionCampo("Cliente", "RELACION", true, null, null, TABLA_RELACIONADA, null);
+    }
+
+    private ConfiguracionCampo unaConexionConValorInicial() {
+        return new ConfiguracionCampo("Cliente", "RELACION", null, "x", null, TABLA_RELACIONADA, null);
+    }
+
+    private ConfiguracionCampo unTextoConTablaConectada() {
+        return new ConfiguracionCampo("Cliente", "TEXTO", null, null, null, TABLA_RELACIONADA, null);
+    }
+
+    private ConfiguracionCampo unaFormulaConEspaciosEnLosBordes() {
+        return new ConfiguracionCampo("Total", "FORMULA", true, null, null, null, " 2 * (3 + 1) ");
+    }
+
+    private ConfiguracionCampo unaFormulaIncompleta() {
+        return new ConfiguracionCampo("Total", "FORMULA", null, null, null, null, "2 +");
+    }
+
+    private ConfiguracionCampo unaFormulaConValorInicial() {
+        return new ConfiguracionCampo("Total", "FORMULA", null, "3", null, null, "1 + 1");
+    }
+
+    private ConfiguracionCampo unTextoConExpresion() {
+        return new ConfiguracionCampo("Dato", "TEXTO", null, null, null, null, "1 + 1");
     }
 
     private ConfiguracionCampo configuracionValidaDe(TipoCampo tipo) {

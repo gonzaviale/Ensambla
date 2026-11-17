@@ -5,40 +5,44 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-abstract class CampoDeTextoTest extends CampoPorTipoTest {
+abstract class CampoDeTextoTest extends CampoDeCualquierTipoTest {
 
     @Override
-    protected List<Object> valoresValidos() {
+    protected List<Object> valoresQueAcepta() {
         return List.of("Ana", "x".repeat(1000));
     }
 
     @Override
-    protected List<Object> valoresInvalidos() {
+    protected List<Object> valoresQueRechaza() {
         return List.of(12, true);
     }
 
     @Override
-    protected String mensajeDeError() {
+    protected String motivoDelRechazo() {
         return "Tiene que ser un texto";
     }
 
     @Test
-    @DisplayName("Rechaza un texto que supera los 1000 caracteres")
-    void errorDeShouldReportWhenTextoIsTooLong() {
-        assertThat(campo().errorDe("x".repeat(1001))).contains("Máximo 1000 caracteres");
+    @DisplayName("Un texto de más de mil caracteres se rechaza")
+    void unTextoDeMasDeMilCaracteresSeRechaza() {
+        cuandoSeValida("x".repeat(1001));
+
+        entoncesElErrorEs("Máximo 1000 caracteres");
     }
 
     @Test
-    @DisplayName("Guarda el texto tal cual, sin convertirlo")
-    void tiparShouldKeepTheText() {
-        assertThat(campo().tipar("Ana")).isEqualTo("Ana");
+    @DisplayName("El texto se guarda tal cual, sin convertirlo")
+    void elTextoSeGuardaTalCualSinConvertirlo() {
+        cuandoSeTipa("Ana");
+
+        entoncesElResultadoEs("Ana");
     }
 
     @Test
-    @DisplayName("En el reporte va como texto")
-    void celdaDeReporteShouldBeTheText() {
-        assertThat(campo().celdaDeReporte("Ana", id -> "otra fila")).isEqualTo("Ana");
+    @DisplayName("En el reporte el valor va como texto")
+    void enElReporteVaComoTexto() {
+        cuandoSePideLaCeldaDeReporte("Ana");
+
+        entoncesElResultadoEs("Ana");
     }
 }
