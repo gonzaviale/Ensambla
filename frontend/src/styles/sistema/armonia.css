@@ -402,7 +402,7 @@
   background: #fff;
 }
 
-/* ===== Bloques de la sección: cabecera blanca, el color sólo en el ícono y la línea de arriba ===== */
+/* ===== Bloques de la sección: cabecera de color sólido (el color propio de cada bloque) ===== */
 
 .block {
   border: 1px solid var(--c-borde);
@@ -415,23 +415,23 @@
   box-shadow: 0 0 0 2px var(--c-estructura);
 }
 .block .block-head {
-  background: #fff;
-  border-bottom: 1px solid var(--c-borde);
-  color: var(--ink);
+  background: var(--accent);
+  border-bottom: 0;
+  color: #fff;
 }
 .block-head .icon-tile {
-  background: var(--tint);
-  color: var(--accent);
+  background: rgb(255 255 255 / 0.22);
+  color: #fff;
 }
-.block-title h2 {
-  color: var(--c-estructura);
+.block-title h2,
+.block-title p {
+  color: inherit;
 }
 .block-title p {
-  color: var(--muted);
-  opacity: 1;
+  opacity: 0.9;
 }
 .block-tools .icon-btn {
-  color: var(--muted);
+  color: #fff;
 }
 .block-tools .icon-btn:hover:not(:disabled) {
   background: var(--c-estructura-100);
@@ -911,11 +911,6 @@
 }
 .foto-redonda:hover {
   background: var(--c-estructura-700);
-  color: #fff;
-}
-/* El ícono de cada bloque va con el color propio del bloque, lleno. */
-.block-head .icon-tile {
-  background: var(--accent);
   color: #fff;
 }
 
