@@ -8,18 +8,21 @@ const ALMACEN: NegocioParaElegir = {
   id: 'almacen',
   nombre: 'Almacén Don Pepe',
   avisosPendientes: 3,
+  estado: 'BIEN',
 };
 
 const KIOSCO: NegocioParaElegir = {
   id: 'kiosco',
   nombre: 'Kiosco de la esquina',
   avisosPendientes: 1,
+  estado: 'ATENCION',
 };
 
 const FERIA: NegocioParaElegir = {
   id: 'feria',
   nombre: 'Puesto de la feria',
   avisosPendientes: 0,
+  estado: 'SIN_DATOS',
 };
 
 const listo = (
@@ -46,21 +49,30 @@ describe('ElegirNegocio', () => {
     ]);
   });
 
-  it('dice de cada negocio sus avisos, sin montos ni juicios sobre cómo viene', () => {
+  it('dice de cada negocio cómo viene y sus avisos, sin montos', () => {
     montar(listo());
 
     const kiosco = opcion('Kiosco de la esquina');
-    expect(kiosco).not.toHaveTextContent(/Atención|Viene bien|Sin ventas/);
+    expect(kiosco).toHaveTextContent('Atención');
     expect(kiosco).toHaveAccessibleDescription('1 aviso pendiente');
     expect(kiosco).not.toHaveTextContent('$');
-    expect(opcion('Almacén Don Pepe')).not.toHaveTextContent(/Viene bien/);
+    expect(opcion('Almacén Don Pepe')).toHaveTextContent('Viene bien');
     expect(opcion('Puesto de la feria')).toHaveAccessibleDescription('Sin avisos pendientes');
   });
 
-  it('marca los avisos pendientes para que se vean', () => {
+  it('le da a cada negocio su color de la paleta según su lugar en la lista', () => {
+    montar(listo());
+
+    expect(opcion('Almacén Don Pepe')).toHaveAttribute('data-color', 'petrol');
+    expect(opcion('Kiosco de la esquina')).toHaveAttribute('data-color', 'orange');
+    expect(opcion('Puesto de la feria')).toHaveAttribute('data-color', 'coral');
+  });
+
+  it('marca los avisos pendientes y el estado para que se vean', () => {
     montar(listo());
 
     const kiosco = opcion('Kiosco de la esquina');
+    expect(kiosco).toHaveAttribute('data-estado', 'ATENCION');
     expect(within(kiosco).getByText('1 aviso pendiente')).toHaveAttribute('data-hay', 'true');
     expect(
       within(opcion('Puesto de la feria')).getByText('Sin avisos pendientes'),

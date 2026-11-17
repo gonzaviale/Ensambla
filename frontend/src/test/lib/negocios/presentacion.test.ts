@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   colorDelNegocio,
   detalleDelNegocio,
+  estadoDelNegocio,
   inicialDelNegocio,
   paraElegir,
   rubroLegible,
@@ -21,12 +22,25 @@ const KIOSCO: ResumenDeNegocio = {
   avisosPendientes: 2,
 };
 
+describe('estadoDelNegocio', () => {
+  it('sin ventas en el período no lo juzga', () => {
+    expect(estadoDelNegocio({ hayDatos: false, queda: null })).toBe('SIN_DATOS');
+  });
+
+  it('pide atención si lo que queda es negativo y si no, viene bien', () => {
+    expect(estadoDelNegocio({ hayDatos: true, queda: -1 })).toBe('ATENCION');
+    expect(estadoDelNegocio({ hayDatos: true, queda: 0 })).toBe('BIEN');
+    expect(estadoDelNegocio({ hayDatos: true, queda: null })).toBe('BIEN');
+  });
+});
+
 describe('paraElegir', () => {
   it('toma del resumen lo justo para elegir, sin montos', () => {
     expect(paraElegir(KIOSCO)).toEqual({
       id: 'kiosco',
       nombre: 'Kiosco de la esquina',
       avisosPendientes: 2,
+      estado: 'ATENCION',
     });
   });
 });

@@ -1,6 +1,9 @@
-import { InicialDelNegocio } from '@/components/negocios/InicialDelNegocio';
-import { Icon } from '@/components/sistema/Icon';
-import { textoDeAvisos, type NegocioParaElegir } from '@/lib/negocios/presentacion';
+import {
+  colorDelNegocio,
+  ESTADO_DEL_NEGOCIO,
+  textoDeAvisos,
+  type NegocioParaElegir,
+} from '@/lib/negocios/presentacion';
 
 export type EstadoDeLaEleccion =
   | { tipo: 'cargando' }
@@ -13,7 +16,8 @@ type Props = {
 };
 
 // Lo que se ve en el pop-up que aparece al iniciar sesión con más de un negocio (T-204): con qué negocio se va a
-// trabajar. Sólo lo justo para decidir (nombre y, si se saben, sus avisos), sin montos ni juicios sobre cómo viene. No sabe de consultas ni del diálogo: recibe el estado y avisa cuál se eligió.
+// trabajar. Sólo lo justo para decidir (nombre, cómo viene y, si se saben, sus avisos), sin montos, así el Inicio sigue
+// siendo el de un negocio. No sabe de consultas ni del diálogo: recibe el estado y avisa cuál se eligió.
 export function ElegirNegocio({ estado, onElegir }: Props) {
   if (estado.tipo === 'cargando') {
     return (
@@ -49,32 +53,27 @@ export function ElegirNegocio({ estado, onElegir }: Props) {
             <button
               type="button"
               className="elegir-negocio-opcion"
+              data-estado={negocio.estado}
+              data-color={colorDelNegocio(posicion)}
               aria-labelledby={nombreId}
               aria-describedby={detalleId}
               onClick={() => onElegir(negocio.id)}
             >
-              <InicialDelNegocio
-                className="elegir-negocio-icono"
-                nombre={negocio.nombre}
-                posicion={posicion}
-              />
-              <span className="elegir-negocio-texto">
+              <span className="elegir-negocio-fila">
                 <strong id={nombreId}>{negocio.nombre}</strong>
-                <span id={detalleId} className="elegir-negocio-detalle">
-                  {negocio.avisosPendientes !== null && (
-                    <span data-hay={negocio.avisosPendientes > 0 || undefined}>
-                      {textoDeAvisos(negocio.avisosPendientes)}
-                    </span>
-                  )}
-                  {esElActivo && (
-                    <span className="elegir-negocio-ultimo">
-                      {negocio.avisosPendientes !== null && ' · '}El último que usaste
-                    </span>
-                  )}
-                </span>
+                <span className="negocio-estado">{ESTADO_DEL_NEGOCIO[negocio.estado]}</span>
               </span>
-              <span className="elegir-negocio-flecha" aria-hidden="true">
-                <Icon name="arrow" />
+              <span id={detalleId} className="elegir-negocio-detalle">
+                {negocio.avisosPendientes !== null && (
+                  <span data-hay={negocio.avisosPendientes > 0 || undefined}>
+                    {textoDeAvisos(negocio.avisosPendientes)}
+                  </span>
+                )}
+                {esElActivo && (
+                  <span className="elegir-negocio-ultimo">
+                    {negocio.avisosPendientes !== null && ' · '}El último que usaste
+                  </span>
+                )}
               </span>
             </button>
           </li>
