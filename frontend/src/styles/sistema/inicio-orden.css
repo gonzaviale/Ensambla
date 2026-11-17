@@ -13,7 +13,8 @@
   margin-bottom: 32px;
 }
 .inicio .tablero-ventas {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  /* La columna del texto nunca baja del ancho de los tres botones del período: el gráfico cede, no el selector. */
+  grid-template-columns: minmax(min-content, 1fr) minmax(0, 1.4fr);
   align-items: center;
   gap: 16px 32px;
   padding: 18px 22px;
@@ -62,7 +63,14 @@
 /* El gráfico baja de alto para no comerse la pantalla; se sigue leyendo día por día. */
 .inicio .tablero-ventas .grafico-barras-area {
   height: 120px;
-  padding-bottom: 22px;
+  padding-bottom: 32px;
+}
+/* El día va en dos líneas («mar» y «10»): en la columna angosta del gráfico, una sola línea se pisaba con la vecina. */
+.inicio .tablero-ventas .grafico-barra-etiqueta {
+  width: min-content;
+  text-align: center;
+  line-height: 1.2;
+  white-space: normal;
 }
 .inicio .tablero-ventas .grafico-barra-relleno {
   background: var(--c-estructura);
@@ -150,17 +158,6 @@
 }
 
 /* El nombre del negocio y, en la misma línea, el rubro y las tablas en chico. En el celular baja si no entra. */
-.inicio .tu-negocio-nombre {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 2px 12px;
-}
-.inicio .tu-negocio-nombre p {
-  margin: 0;
-  font-size: 14px;
-  color: var(--c-estructura);
-}
 
 /* Sin ventas todavía: la misma tarjeta blanca de las ventas, con un ícono de línea, qué se va a ver y el atajo. */
 .inicio .tablero-vacio {

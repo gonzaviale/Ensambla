@@ -7,9 +7,10 @@ import type { AvisoEconomico } from '@/types/avisoEconomico';
 
 // Las señales de rentabilidad del negocio, arriba de todo en el Inicio y en poco espacio: una tarjeta corta para lo que
 // cambió en las ventas, otra para la ganancia y otra para los productos que lo explican. Se desliza con las flechas
-// o, en el celular, con el dedo. Sin señales no ocupa lugar. Cada una se puede descartar.
+// o, en el celular, con el dedo. Sin señales no ocupa lugar. Sólo la de productos se toca (abre el detalle) y se ve
+// distinta: llena de color y con flecha; las otras son datos y quedan planas.
 export function CarruselDeRentabilidad({ sistemaId }: { sistemaId: string }) {
-  const { diapositivas, aviso, descartar } = useRentabilidad(sistemaId);
+  const { diapositivas, aviso } = useRentabilidad(sistemaId);
   const pista = useRef<HTMLUListElement>(null);
   const [desborda, setDesborda] = useState(false);
 
@@ -47,11 +48,7 @@ export function CarruselDeRentabilidad({ sistemaId }: { sistemaId: string }) {
       <ul ref={pista} className="inicio-carrusel-pista">
         {diapositivas.map((diapositiva) => (
           <li key={diapositiva.clave}>
-            <TarjetaCorta
-              diapositiva={diapositiva}
-              aviso={aviso}
-              onDescartar={() => descartar(diapositiva.clave)}
-            />
+            <TarjetaCorta diapositiva={diapositiva} aviso={aviso} />
           </li>
         ))}
       </ul>
@@ -69,15 +66,7 @@ export function CarruselDeRentabilidad({ sistemaId }: { sistemaId: string }) {
   );
 }
 
-function TarjetaCorta({
-  diapositiva,
-  aviso,
-  onDescartar,
-}: {
-  diapositiva: Diapositiva;
-  aviso: AvisoEconomico;
-  onDescartar: () => void;
-}) {
+function TarjetaCorta({ diapositiva, aviso }: { diapositiva: Diapositiva; aviso: AvisoEconomico }) {
   const tono =
     diapositiva.tipo === 'ventas' || diapositiva.tipo === 'ganancia'
       ? diapositiva.cambio > 0
@@ -103,7 +92,12 @@ function TarjetaCorta({
         : 'wallet';
 
   return (
-    <article className="rentabilidad-tarjeta" data-tono={tono} aria-label="Aviso económico">
+    <article
+      className="rentabilidad-tarjeta"
+      data-tono={tono}
+      data-clickeable={diapositiva.tipo === 'productos' || undefined}
+      aria-label="Aviso económico"
+    >
       <span className="rentabilidad-icono">
         <Icon name={icono} />
       </span>
@@ -123,6 +117,7 @@ function TarjetaCorta({
           >
             <span className="rentabilidad-titulo">{diapositiva.titulo}</span>
             <span className="rentabilidad-detalle">Tocá para ver cuáles</span>
+            <Icon name="arrow" />
           </button>
         ) : diapositiva.tipo === 'costos' ? (
           <>
@@ -144,15 +139,6 @@ function TarjetaCorta({
           </>
         )}
       </div>
-      <button
-        type="button"
-        className="rentabilidad-descartar"
-        aria-label="Descartar aviso"
-        title="Descartar"
-        onClick={onDescartar}
-      >
-        <Icon name="close" />
-      </button>
     </article>
   );
 }
