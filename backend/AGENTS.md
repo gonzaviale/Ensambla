@@ -21,10 +21,11 @@ Antes de tocar código leé [ARQUITECTURA.md](ARQUITECTURA.md), [README.md](READ
   línea son métodos `default` del puerto) y ningún caso de uso llama a otro.
 - **Código semántico y polimórfico (obligatorio, skill `codigo-semantico`):** métodos de ≈10 líneas que se leen como una
   frase, detalle en privados con nombre de intención, sin comentarios que repitan el código, y **nunca `switch` ni
-  `if/else if` por tipo o estado**: herencia (clase base abstracta + subclases). Tests dado/cuando/entonces sin lógica
+  `if/else if` por tipo o estado**: herencia (clase base abstracta + subclases). Tests con `@DisplayName` en español en todo `@Test` (frase con tildes), nombre de método en español sin tildes que se lee solo y tres bloques de una línea
+  `dadoX/cuandoX/entoncesX`, sin lógica
   ni ternarios. Si tocás un archivo, lo dejás semántico.
 - **Los métodos públicos no llaman a repositorios, puertos ni servicios:** `execute()` y los públicos de un servicio
-  llaman a privados con nombre de intención (`obtenerCampo(...)`); un `@Test` no usa `when/verify` ni arma datos inline.
+  llaman a privados con nombre de intención (`obtenerCampo(...)`); el cuerpo del `@Test` no nombra repositorios, mocks, `when/verify` ni builders (fábricas de dominio en `support/`).
 - **El dominio no conoce formatos de persistencia ni de transporte** (`"servidor:"`, JSON, `Map<?, ?>` con claves de
   texto): la infraestructura convierte a objetos tipados; el dominio habla de `AvisoId`, `AccionDeAviso`.
 - El `Clock` sólo vive en los use cases; los servicios reciben el instante por parámetro.

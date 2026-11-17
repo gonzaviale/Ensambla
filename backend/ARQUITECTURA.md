@@ -212,9 +212,13 @@ dejás semántico.
 - **Los métodos públicos no llaman a repositorios, puertos ni servicios:** el `execute()` de un caso de uso y los
   públicos de un servicio solo llaman a métodos privados con nombre de intención; cada llamada al puerto se extrae a un
   privado (`obtenerCampo(...)`).
-- **Tests:** dado/cuando/entonces con helpers `givenX/whenX/thenX`, un comportamiento por test, sin lógica ni ternarios y
-  con una clase base abstracta cuando varios tipos comparten comportamiento. Un `@Test` no usa `when(...)`, `verify(...)`
-  ni arma datos inline: todo va a los helpers.
+- **Tests:** nombre de método en español, sin tildes, como una frase del negocio que se lee sola
+  (`unCampoUsadoPorUnaFormulaNoPuedeCambiarDeTipo`; prohibidos `executeShouldXWhenY` y los nombres en inglés) y
+  **`@DisplayName` en español obligatorio en todo `@Test` y `@ParameterizedTest`** (frase con tildes que explica el
+  comportamiento: `@DisplayName("Un campo usado por una fórmula no puede cambiar de tipo")`). Tres bloques de una línea con `dadoX(...)`, `cuandoX(...)`, `entoncesX(...)`; el
+  cuerpo nunca nombra repositorios, mocks, `when(...)`, `verify(...)`, builders ni UUID sueltos. Los datos salen de
+  fábricas de dominio en `src/test/.../support/` (`CamposDePrueba`…). Un comportamiento por test, sin lógica ni
+  ternarios, y clase base abstracta cuando varios tipos comparten comportamiento.
 
 ```java
 // ✅ cada tipo sabe validarse; agregar un tipo es agregar una clase
@@ -252,6 +256,29 @@ public CampoItem execute(EditarCampoRequest request) {
     Campo campo = obtenerCampo(request.campoId(), negocioId);
     Bloque bloque = obtenerBloqueDelCampo(campo, negocioId);
     return CampoItem.de(editarGuardando(bloque, campo, request));
+}
+```
+
+```java
+// ✅ test que se lee solo
+@Test
+@DisplayName("Un campo usado por una fórmula no puede cambiar de tipo")
+void unCampoUsadoPorUnaFormulaNoPuedeCambiarDeTipo() {
+    Campo cantidad = unCampoNumerico("Cantidad");
+    dadoUnBloqueCon(cantidad, unaFormulaQueUsa(cantidad, "Doble"));
+
+    cuandoSeIntentaConvertirEnTexto(cantidad);
+
+    entoncesSeRechazaPorque("No se puede cambiar el tipo de «Cantidad»: la fórmula «Doble» lo usa");
+    entoncesNoSeGuardaNingunCampo();
+}
+
+// ❌ nombre en inglés y mecánica dentro del @Test
+@Test
+void executeShouldRejectChangingTypeOfFieldUsedByFormula() {
+    givenCamposDelBloque();
+    …
+    verify(campoRepository, never()).save(any());
 }
 ```
 
@@ -317,6 +344,9 @@ grep -rn "switch (" src/main/java/com/ensambla/backend/domain/model/campo
 Y estos se revisan a mano (cada resultado se convierte en polimorfismo o se justifica por escrito):
 
 ```bash
+grep -rn "Should[A-Z]" src/test        # solo código legado, ningún test nuevo
+grep -rL "@DisplayName" --include=*Test.java src/test   # archivos de test sin ningún @DisplayName: revisar
+grep -rA1 -E "@(Test|ParameterizedTest)\b" src/test | grep -vE "@(Test|ParameterizedTest)\b|@DisplayName|^--"   # vacío: ningún @Test sin su @DisplayName justo debajo
 grep -rn "switch (" src/main/java/com/ensambla/backend/domain
 grep -rn "else if" src/main/java/com/ensambla/backend/domain
 grep -rnE "== TipoCampo\.|instanceof " src/main/java/com/ensambla/backend/domain

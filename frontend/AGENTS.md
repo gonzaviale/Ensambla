@@ -15,11 +15,11 @@ código o tests de `src/`. Resumen:
 - Sin comentarios que expliquen lo que el código ya dice (solo el porqué no obvio).
 - **Nunca `switch` ni cadenas de ternarios/`if` por tipo de campo** (`campo.type`): una clase base
   `ComportamientoDeCampo` con una subclase por tipo y el registro `comportamientoDe(tipo)`.
-- Tests: `it` en español como frase de comportamiento, helpers `given/when/then` compartidos en `src/test/`, sin
+- Tests: `it` en español como frase de comportamiento, helpers `dadoX/cuandoX/entoncesX` compartidos en `src/test/`, sin
   `setTimeout` ni `getElementById`.
 - Las funciones públicas no llaman a `api/` ni al store directo: cada llamada va a una función con nombre de
   intención; la UI recibe objetos tipados (sin armar claves ni parsear JSON). En los tests, el `it` no usa mocks ni
-  arma datos inline: todo en helpers `given/when/then`.
+  arma datos inline: todo en helpers `dadoX/cuandoX/entoncesX`.
 - Si tocás un archivo, lo dejás semántico.
 - Capas `routes > pages > layouts > components > hooks > api/stores > types/lib` (ESLint) y llamadas a la API solo desde
   `api/`, consumidas desde `hooks/`.
