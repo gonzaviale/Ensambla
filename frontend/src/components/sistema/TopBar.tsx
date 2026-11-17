@@ -5,7 +5,7 @@ import { MenuDePerfil } from './MenuDePerfil';
 import { SelectorDeNegocio } from './SelectorDeNegocio';
 
 export type SeccionActiva =
-  'home' | 'caja' | 'templates' | 'zone' | 'avisos' | 'goals' | 'plans' | 'account';
+  'home' | 'negocio' | 'caja' | 'templates' | 'zone' | 'avisos' | 'goals' | 'plans' | 'account';
 
 type TopBarProps = {
   active?: SeccionActiva;
@@ -13,8 +13,8 @@ type TopBarProps = {
   /** La campana de avisos, que vive en el encabezado. */
   campana?: ReactNode;
   onInicio: () => void;
+  onMiNegocio: () => void;
   onCaja: () => void;
-  onPlantillas: () => void;
   onZona: () => void;
   onAvisos: () => void;
   onObjetivos: () => void;
@@ -32,8 +32,8 @@ export function TopBar({
   nombre,
   campana,
   onInicio,
+  onMiNegocio,
   onCaja,
-  onPlantillas,
   onZona,
   onAvisos,
   onObjetivos,
@@ -73,6 +73,14 @@ export function TopBar({
         </button>
         <button
           type="button"
+          className={active === 'negocio' ? 'active' : ''}
+          aria-current={active === 'negocio' ? 'page' : undefined}
+          onClick={ir(onMiNegocio)}
+        >
+          Mi negocio
+        </button>
+        <button
+          type="button"
           className={active === 'caja' ? 'active' : ''}
           aria-current={active === 'caja' ? 'page' : undefined}
           onClick={ir(onCaja)}
@@ -94,13 +102,6 @@ export function TopBar({
           onClick={ir(onObjetivos)}
         >
           Objetivos
-        </button>
-        <button
-          type="button"
-          className={active === 'templates' ? 'active' : ''}
-          onClick={ir(onPlantillas)}
-        >
-          Plantillas
         </button>
         <button type="button" className={active === 'zone' ? 'active' : ''} onClick={ir(onZona)}>
           Zona

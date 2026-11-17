@@ -31,7 +31,7 @@ describe('inicio · tu negocio', () => {
   it('sin negocios no muestra el bloque: la bienvenida invita a crear el primero', async () => {
     await whenAbreInicio();
 
-    expect(screen.queryByRole('button', { name: /^Abrir .*\d+ tablas?$/ })).toBeNull();
+    expect(screen.queryByRole('region', { name: /Kiosco|Almacén/ })).toBeNull();
     expect(screen.getByRole('button', { name: /Crear con Sami/ })).toBeVisible();
   });
 
@@ -49,15 +49,15 @@ describe('inicio · tu negocio', () => {
 
     const bloque = await bloqueDe('Kiosco Centro');
 
-    expect(bloque.getByRole('button', { name: /Abrir Kiosco Centro/ })).toBeVisible();
-    expect(screen.queryByRole('button', { name: /Abrir Almacén Norte/ })).toBeNull();
+    expect(bloque.getByRole('heading', { level: 2, name: 'Kiosco Centro' })).toBeVisible();
+    expect(screen.queryByRole('heading', { level: 2, name: 'Almacén Norte' })).toBeNull();
   });
 
-  it('el acceso abre el cuaderno del negocio', async () => {
+  it('«Mi negocio», en la barra, abre las tablas del negocio', async () => {
     const { router, user } = await whenAbreInicio(['Kiosco Centro']);
-    const bloque = await bloqueDe('Kiosco Centro');
+    await bloqueDe('Kiosco Centro');
 
-    await user.click(bloque.getByRole('button', { name: /Abrir Kiosco Centro/ }));
+    await user.click(screen.getByRole('button', { name: 'Mi negocio' }));
 
     await waitFor(() => expect(router.state.location.pathname).toMatch(/^\/sistemas\//), ESPERA);
   });

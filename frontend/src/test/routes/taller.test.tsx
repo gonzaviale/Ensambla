@@ -142,7 +142,7 @@ describe('el taller de Sami', () => {
     expect(screen.getByLabelText('Nombre de tu sección')).toHaveValue('Mi almacén');
     expect(screen.queryByText(/sin guardar/i)).toBeNull();
     expect(screen.getByText(/^Te armé los productos/)).toBeVisible();
-    expect(screen.getByText(/Ya lo podés ver a la derecha\./)).toBeVisible();
+    expect(await screen.findByText(/Ya lo podés ver a la derecha\./, {}, ESPERA)).toBeVisible();
     expect(cantidadDePiezas()).toBe(3);
     expect(screen.getByLabelText('¿Qué le falta? ¿Qué cambiarías?')).toBeVisible();
   });

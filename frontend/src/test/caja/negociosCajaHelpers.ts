@@ -70,9 +70,9 @@ export function thenNavegacionConservaCajaYNegocios() {
       .getAllByRole('button')
       .slice(0, 3)
       .map((boton) => boton.textContent),
-  ).toEqual(['Inicio', 'Caja', 'Avisos']);
+  ).toEqual(['Inicio', 'Mi negocio', 'Caja']);
   expect(menu.getByRole('button', { name: 'Caja' })).toHaveAttribute('aria-current', 'page');
-  expect(menu.queryByRole('button', { name: /^(Mi Negocio|Mis cuadernos)$/ })).toBeNull();
+  expect(menu.queryByRole('button', { name: /^Mis cuadernos$/ })).toBeNull();
   expect(
     screen.getByRole('button', { name: new RegExp(`Negocio activo: ${ALMACEN}`) }),
   ).toBeVisible();

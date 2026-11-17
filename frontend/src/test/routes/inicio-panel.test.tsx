@@ -136,20 +136,21 @@ describe('inicio: panel del negocio', () => {
     await verifyPathAsync(router, '/zona');
   });
 
-  it('quien recién empieza ve los mismos atajos compactos en la bienvenida', async () => {
+  it('quien recién empieza ve los atajos completos debajo de la bienvenida grande', async () => {
     await abrirInicio([]);
 
-    const bienvenida = within(screen.getByRole('region', { name: 'Empezar algo nuevo' }));
-    expect(bienvenida.getByRole('button', { name: /Cargar desde una foto/ })).toBeVisible();
-    expect(bienvenida.getByRole('button', { name: /Ver mi zona/ })).toBeVisible();
-    expect(document.querySelector('.inicio-atajos.compactos')).not.toBeNull();
+    const atajos = within(screen.getByRole('region', { name: 'Más para tu negocio' }));
+    expect(atajos.getByRole('button', { name: /Cargar desde una foto/ })).toBeVisible();
+    expect(atajos.getByRole('button', { name: /Ver mi zona/ })).toBeVisible();
+    expect(document.querySelector('.inicio-atajos')).not.toBeNull();
+    expect(document.querySelector('.inicio-atajos.compactos')).toBeNull();
   });
 
-  it('quien recién empieza ve la misma bienvenida compacta, sin panel', async () => {
+  it('quien recién empieza ve la bienvenida grande, sin panel', async () => {
     await abrirInicio([]);
 
     expect(screen.getByRole('region', { name: 'Empezar algo nuevo' })).toBeVisible();
-    expect(screen.queryByText(/Tocá una ficha para arrancar/)).toBeNull();
+    expect(screen.getByText(/Tocá una ficha para arrancar/)).toBeVisible();
     expect(titulo()).toBeNull();
   });
 

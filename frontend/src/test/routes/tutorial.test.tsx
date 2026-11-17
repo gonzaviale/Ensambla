@@ -97,7 +97,7 @@ describe('el tutorial', () => {
     const { user } = await abrirConBienvenida();
     await empezarLaGuia(user);
 
-    await user.click(screen.getByRole('button', { name: 'Plantillas' }));
+    await user.click(screen.getByRole('button', { name: 'Zona' }));
 
     await verifyToastAsync('Tocá una de las tres opciones.');
     expect(pasoActual()).toBe('choose');

@@ -26,8 +26,9 @@ export function InicioPage() {
     <>
       <CabeceraComun />
       <main id="main" tabIndex={-1} className="home inicio reveal">
-        <Bienvenida />
+        {sistema ? <Bienvenida /> : <BienvenidaSinNegocio />}
         <TuNegocio />
+        {!sistema && <Atajos />}
         {sistema && <CarruselDeRentabilidad sistemaId={sistema.id} />}
         {hayPanel && <PanelDelNegocio />}
 
@@ -85,6 +86,31 @@ function useHayPanel(sistema: Sistema | null) {
   return panel.data ? panel.data.hayDatos : !panel.isPending || tieneVentas(sistema);
 }
 
+// Sin ningún negocio con secciones (una cuenta nueva): la bienvenida grande, con las tres maneras de empezar explicadas
+// y los atajos debajo. Cuando ya hay datos, la bienvenida es la corta de arriba.
+function BienvenidaSinNegocio() {
+  const nombre = useNombre();
+  const tutorial = useAccionesDelTutorial();
+  return (
+    <section className="inicio-portada" aria-label="Empezar algo nuevo">
+      <div className="inicio-saludo">
+        <p className="inicio-hola">Hola, {nombre}.</p>
+        <h1>¿En qué puedo ayudarte hoy?</h1>
+        <p className="inicio-bajada">
+          Tocá una ficha para arrancar. Lo que armes, después lo podés cambiar.
+        </p>
+        <button type="button" className="inicio-guia" onClick={tutorial.empezar}>
+          <span className="inicio-guia-icono">
+            <Icon name="help" />
+          </span>
+          ¿Primera vez? Mostrarme cómo empezar
+        </button>
+      </div>
+      <FichasParaEmpezar guia />
+    </section>
+  );
+}
+
 function Bienvenida() {
   const nombre = useNombre();
   const tutorial = useAccionesDelTutorial();
@@ -99,18 +125,21 @@ function Bienvenida() {
       </div>
       <div className="inicio-bienvenida-acciones">
         <FichasParaEmpezar guia compacto />
-        <Atajos />
+        <Atajos compactos />
       </div>
     </section>
   );
 }
 
 // «Cargar desde una foto» y «Ver mi zona»: dos botones chicos en la bienvenida, debajo de las formas de empezar.
-function Atajos() {
+function Atajos({ compactos = false }: { compactos?: boolean }) {
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const navegacion = useNavegacion();
   return (
-    <section className="inicio-atajos compactos" aria-label="Más para tu negocio">
+    <section
+      className={compactos ? 'inicio-atajos compactos' : 'inicio-atajos'}
+      aria-label="Más para tu negocio"
+    >
       <Atajo
         color="petrol"
         icono="camera"

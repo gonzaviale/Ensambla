@@ -86,14 +86,16 @@ export function TarjetaPlan({
           ? 'Más espacio para tus datos. Más herramientas para decidir.'
           : 'Lo esencial para empezar a organizar tu negocio.'}
       </p>
-      <p className="plan-price">{precio(plan)}</p>
-      <p className="plan-price-detail">
-        {premium
-          ? plan.precioConfigurado
-            ? 'Cada 30 días · renovación automática'
-            : 'La contratación estará disponible próximamente.'
-          : 'Para tu negocio, sin vencimiento.'}
-      </p>
+      {premium ? (
+        <>
+          <p className="plan-price">{precio(plan)}</p>
+          <p className="plan-price-detail">
+            {plan.precioConfigurado
+              ? 'Cada 30 días · renovación automática'
+              : 'La contratación estará disponible próximamente.'}
+          </p>
+        </>
+      ) : null}
       <dl className="plan-limits">
         {limites.map((fila) => (
           <div key={fila.titulo}>
