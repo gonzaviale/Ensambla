@@ -98,6 +98,16 @@ public abstract class Campo {
         return false;
     }
 
+    /** Si el texto que leyó la IA no sirve para este tipo de campo; vacío si sirve. */
+    public Optional<String> errorDeValorLeido(String valor) {
+        return Optional.empty();
+    }
+
+    /** Qué clase de dato de un mensaje libre puede completar este campo; vacío si ninguna. */
+    public Optional<ClaseDeDatoInterpretable> claseInterpretable() {
+        return Optional.empty();
+    }
+
     /** El valor como se guarda en un registro; lo que no se puede convertir queda como texto. */
     public Object tipar(String valor) {
         return valor;

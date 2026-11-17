@@ -36,6 +36,16 @@ public abstract class CampoNumerico extends Campo {
     }
 
     @Override
+    public Optional<String> errorDeValorLeido(String valor) {
+        return errorSi(!esNumeroLeido(valor), "Tiene que ser un número");
+    }
+
+    @Override
+    public Optional<ClaseDeDatoInterpretable> claseInterpretable() {
+        return Optional.of(ClaseDeDatoInterpretable.NUMERO);
+    }
+
+    @Override
     public Object tipar(String valor) {
         return interpretar(valor);
     }
@@ -48,6 +58,15 @@ public abstract class CampoNumerico extends Campo {
     @Override
     protected Optional<String> errorDeValorInicial(String valor) {
         return errorSi(!NUMERO.matcher(valor).matches(), "Tiene que ser un número, por ejemplo 12.5");
+    }
+
+    private static boolean esNumeroLeido(String valor) {
+        try {
+            new BigDecimal(valor);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     private static boolean esNumeroFinito(Object valor) {

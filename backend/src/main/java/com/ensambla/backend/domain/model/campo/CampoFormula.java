@@ -46,6 +46,11 @@ public class CampoFormula extends Campo {
         return new BigDecimal(valor.toString());
     }
 
+    @Override
+    public Optional<String> errorDeValorLeido(String valor) {
+        return Optional.of("La lectura no propone fórmulas");
+    }
+
     /** Valor con los datos de un registro; {@code null} si falta algún dato. */
     public BigDecimal calcular(Function<CampoId, BigDecimal> valorDe) {
         return Formula.parsear(formula).evaluar(valorDe);

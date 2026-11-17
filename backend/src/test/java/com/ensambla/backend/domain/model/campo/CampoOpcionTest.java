@@ -38,4 +38,14 @@ class CampoOpcionTest extends CampoDeCualquierTipoTest {
     private void entoncesLasOpcionesSonMinoristaYMayorista() {
         assertThat(unCampo().getOpciones()).containsExactly("Minorista", "Mayorista");
     }
+
+    @Override
+    protected List<String> textosLeidosQueAcepta() {
+        return List.of("Minorista");
+    }
+
+    @Override
+    protected List<String> textosLeidosQueRechaza() {
+        return List.of("Otra");
+    }
 }
