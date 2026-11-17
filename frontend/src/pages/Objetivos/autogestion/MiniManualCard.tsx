@@ -42,8 +42,7 @@ export function MiniManualCard({ mini, objetivoId, pendiente, objetivoTexto }: P
           <RespuestaRapida objetivoId={objetivoId} mini={mini} />
         ) : (
           <p className="mini-objetivo-decidido si" role="status">
-            <CheckCircleIcon aria-hidden size={16} weight="bold" /> Ya se lo contaste a Sami. El
-            domingo arma el próximo.
+            <CheckCircleIcon aria-hidden size={16} weight="bold" /> Ya se lo contaste a Sami
           </p>
         ))}
     </article>

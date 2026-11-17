@@ -1,5 +1,4 @@
 import { screen, waitFor, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { sembrarDemoCargada } from '@/mocks/db/demoCargada';
 import { estado } from '@/mocks/db/estado';
@@ -8,11 +7,22 @@ import {
   givenQueHoyEsLunes,
   givenQueHoyEsMiercoles,
   seccionDeSami,
+  thenElPaginadorDice,
+  thenLaOpcionEsta,
+  thenLaOpcionNoSePuedeElegir,
+  thenNoHayBotonDeEnviar,
+  thenNoHayPaginador,
   thenNoHayPreguntasDeSami,
+  thenNoSePideTodavia,
+  thenSePideElPaso,
   thenSePreguntaPor,
   volverAlTiempoReal,
   whenSeDejaParaMasTarde,
-  whenSeVenLasOtrasPreguntas,
+  whenSeElige,
+  whenSePasaALaSiguientePregunta,
+  whenSeResponde,
+  whenSeVuelveALaPreguntaAnterior,
+  whenSeVuelveUnPaso,
 } from '@/test/preguntasDeSami';
 import { renderApp } from '@/test/renderApp';
 import { ESPERA, setupServerError, setupUsuarioConSesion } from '@/test/testHelpers';
@@ -21,6 +31,8 @@ const DETALLE = `/objetivos/${ID_OBJETIVO_SIN_DATOS_DE_EJEMPLO}`;
 const MINI_SIN_CONTAR = `${ID_OBJETIVO_SIN_DATOS_DE_EJEMPLO}-sin-contar`;
 const MINI_PENDIENTE = `${ID_OBJETIVO_SIN_DATOS_DE_EJEMPLO}-pendiente`;
 const MINI_RESPONDIDA = `${ID_OBJETIVO_SIN_DATOS_DE_EJEMPLO}-respondida`;
+const PRIMERA = 'Anotá qué te piden y no tenés';
+const SEGUNDA = 'Poné un cartel en la vereda con lo que ofrecés';
 
 const conObjetivoSinDatos = () => {
   const usuario = setupUsuarioConSesion();
@@ -28,82 +40,95 @@ const conObjetivoSinDatos = () => {
   return usuario;
 };
 
-const formulario = (titulo: string) =>
-  within(screen.getByRole('form', { name: `Contale a Sami cómo te fue con «${titulo}»` }));
+const givenQueSamiPreguntaUnMiercoles = async () => {
+  givenQueHoyEsMiercoles();
+  conObjetivoSinDatos();
+  renderApp('/objetivos');
+  return seccionDeSami();
+};
+
+const givenQueSamiPreguntaUnLunes = async () => {
+  givenQueHoyEsLunes();
+  conObjetivoSinDatos();
+  renderApp('/objetivos');
+  return seccionDeSami();
+};
+
+const givenQueElServidorYaTeniaLaRespuesta = () =>
+  setupServerError(
+    'post',
+    `/objetivos/${ID_OBJETIVO_SIN_DATOS_DE_EJEMPLO}/mini-objetivos/${MINI_SIN_CONTAR}/respuesta`,
+    409,
+    'Ya le contaste a Sami cómo te fue esta semana.',
+  );
 
 describe('mini-objetivos manuales', () => {
   afterEach(volverAlTiempoReal);
 
-  it('Sami pregunta una cosa por vez, sin contador ni alarma, y ofrece ver las otras', async () => {
-    givenQueHoyEsMiercoles();
-    conObjetivoSinDatos();
-    renderApp('/objetivos');
+  it('Sami pregunta una cosa por vez, sin contador ni alarma', async () => {
+    const seccion = await givenQueSamiPreguntaUnMiercoles();
 
-    const seccion = await seccionDeSami();
-
-    thenSePreguntaPor(seccion, ['Anotá qué te piden y no tenés']);
-    expect(seccion.getByRole('button', { name: 'Ver las otras 1' })).toBeVisible();
+    thenSePreguntaPor(seccion, [PRIMERA]);
+    thenElPaginadorDice(seccion, '1 de 2');
     expect(seccion.queryByText(/\(\d+\)/)).not.toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.queryByText(/Lo lograste/)).not.toBeInTheDocument();
   });
 
-  it('al ver las otras aparecen del más viejo al más nuevo, cada una con su objetivo', async () => {
-    givenQueHoyEsMiercoles();
-    conObjetivoSinDatos();
-    renderApp('/objetivos');
-    await seccionDeSami();
+  it('con las flechas se pasa de una pregunta a la otra, del más viejo al más nuevo', async () => {
+    await givenQueSamiPreguntaUnMiercoles();
 
-    await whenSeVenLasOtrasPreguntas();
+    await whenSePasaALaSiguientePregunta();
 
     const seccion = await seccionDeSami();
-    thenSePreguntaPor(seccion, [
-      'Anotá qué te piden y no tenés',
-      'Poné un cartel en la vereda con lo que ofrecés',
-    ]);
-    expect(seccion.getAllByText('Que más gente conozca mi local')).toHaveLength(2);
+    thenSePreguntaPor(seccion, [SEGUNDA]);
+    thenElPaginadorDice(seccion, '2 de 2');
+    expect(seccion.getByText('Que más gente conozca mi local')).toBeVisible();
+  });
+
+  it('se puede volver a la pregunta anterior', async () => {
+    await givenQueSamiPreguntaUnMiercoles();
+    await whenSePasaALaSiguientePregunta();
+
+    await whenSeVuelveALaPreguntaAnterior();
+
+    thenSePreguntaPor(await seccionDeSami(), [PRIMERA]);
   });
 
   it('el lunes no pregunta por lo de esta semana, solo por lo que quedó sin contar', async () => {
-    givenQueHoyEsLunes();
-    conObjetivoSinDatos();
-    renderApp('/objetivos');
+    const seccion = await givenQueSamiPreguntaUnLunes();
 
-    const seccion = await seccionDeSami();
-
-    thenSePreguntaPor(seccion, ['Anotá qué te piden y no tenés']);
-    expect(seccion.queryByRole('button', { name: /Ver las otras/ })).not.toBeInTheDocument();
+    thenSePreguntaPor(seccion, [PRIMERA]);
+    thenNoHayPaginador(seccion);
   });
 
   it('«Más tarde» deja la pregunta para mañana', async () => {
-    givenQueHoyEsLunes();
-    conObjetivoSinDatos();
-    renderApp('/objetivos');
-    await seccionDeSami();
+    await givenQueSamiPreguntaUnLunes();
 
-    await whenSeDejaParaMasTarde('Anotá qué te piden y no tenés');
+    await whenSeDejaParaMasTarde(PRIMERA);
 
     await thenNoHayPreguntasDeSami();
   });
 
-  it('se responde en dos toques: ¿lo hiciste? y ¿qué pasó?, y la respuesta queda guardada', async () => {
-    givenQueHoyEsMiercoles();
-    conObjetivoSinDatos();
-    renderApp('/objetivos');
-    const user = userEvent.setup();
-    await seccionDeSami();
-    await whenSeVenLasOtrasPreguntas();
-    const tarjeta = formulario('Poné un cartel en la vereda con lo que ofrecés');
+  it('cada pregunta aparece en su propia página, siempre en el mismo lugar', async () => {
+    await givenQueSamiPreguntaUnMiercoles();
+    thenSePideElPaso(PRIMERA, '¿Lo hiciste?');
+    thenNoSePideTodavia(PRIMERA, '¿Qué pasó?');
+    thenNoHayBotonDeEnviar(PRIMERA);
 
-    expect(tarjeta.queryByText('¿Qué pasó?')).not.toBeInTheDocument();
-    expect(tarjeta.getByRole('button', { name: 'Contarle a Sami' })).toBeDisabled();
-    await user.click(tarjeta.getByRole('button', { name: 'Sí' }));
-    expect(tarjeta.getByRole('button', { name: 'Sí' })).toHaveAttribute('aria-pressed', 'true');
+    await whenSeElige(PRIMERA, 'Sí');
+
+    thenSePideElPaso(PRIMERA, '¿Qué pasó?');
+    thenNoSePideTodavia(PRIMERA, '¿Lo hiciste?');
     // Si lo hiciste, tuviste tiempo.
-    expect(tarjeta.getByRole('button', { name: 'No tuve tiempo' })).toBeDisabled();
-    await user.click(tarjeta.getByRole('button', { name: 'Funcionó' }));
-    await user.type(tarjeta.getByLabelText('Contale un poco más (opcional)'), 'Vino gente nueva');
-    await user.click(tarjeta.getByRole('button', { name: 'Contarle a Sami' }));
+    thenLaOpcionNoSePuedeElegir(PRIMERA, 'No tuve tiempo');
+  });
+
+  it('se responde en dos toques y la respuesta queda guardada', async () => {
+    await givenQueSamiPreguntaUnMiercoles();
+    await whenSePasaALaSiguientePregunta();
+
+    await whenSeResponde(SEGUNDA, { hizo: 'Sí', quePaso: 'Funcionó', comentario: 'Vino gente nueva' });
 
     await waitFor(() => expect(estado.respuestasDeMinis.get(MINI_PENDIENTE)).toBeDefined(), ESPERA);
     expect(estado.respuestasDeMinis.get(MINI_PENDIENTE)).toMatchObject({
@@ -115,53 +140,40 @@ describe('mini-objetivos manuales', () => {
     expect(estado.autogestion.get(ID_OBJETIVO_SIN_DATOS_DE_EJEMPLO)?.decisiones).toContainEqual(
       expect.objectContaining({ tipo: 'MINI_HECHO', miniObjetivoId: MINI_PENDIENTE }),
     );
-    await waitFor(
-      () => expect(screen.queryByRole('button', { name: /Ver las otras/ })).not.toBeInTheDocument(),
-      ESPERA,
-    );
   });
 
-  it('en parte o no, deja elegir «no tuve tiempo» y la persona puede cambiar de idea antes de enviar', async () => {
-    givenQueHoyEsMiercoles();
-    conObjetivoSinDatos();
-    renderApp('/objetivos');
-    const user = userEvent.setup();
-    await screen.findByRole('region', { name: /Sami quiere saber cómo te fue/ }, ESPERA);
-    const tarjeta = formulario('Anotá qué te piden y no tenés');
+  it('al responder una aparece la otra que faltaba', async () => {
+    await givenQueSamiPreguntaUnMiercoles();
 
-    await user.click(tarjeta.getByRole('button', { name: 'No' }));
-    await user.click(tarjeta.getByRole('button', { name: 'No tuve tiempo' }));
-    expect(tarjeta.getByRole('button', { name: 'No tuve tiempo' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    await whenSeResponde(PRIMERA, { hizo: 'Sí', quePaso: 'Funcionó' });
+
+    const seccion = await seccionDeSami();
+    await waitFor(() => thenSePreguntaPor(seccion, [SEGUNDA]), ESPERA);
+    thenNoHayPaginador(seccion);
+  });
+
+  it('en parte o no, deja elegir «no tuve tiempo» y la persona puede volver y cambiar de idea', async () => {
+    await givenQueSamiPreguntaUnMiercoles();
+    await whenSeElige(PRIMERA, 'No');
+    await whenSeElige(PRIMERA, 'No tuve tiempo');
+
+    await whenSeVuelveUnPaso(PRIMERA);
+    thenLaOpcionEsta(PRIMERA, 'No tuve tiempo', 'elegida');
+    await whenSeVuelveUnPaso(PRIMERA);
+    thenLaOpcionEsta(PRIMERA, 'No', 'elegida');
     // Cambia a «sí»: «no tuve tiempo» ya no vale y hay que elegir de nuevo.
-    await user.click(tarjeta.getByRole('button', { name: 'Sí' }));
-    expect(tarjeta.getByRole('button', { name: 'No tuve tiempo' })).toBeDisabled();
-    expect(tarjeta.getByRole('button', { name: 'No tuve tiempo' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
-    expect(tarjeta.getByRole('button', { name: 'Contarle a Sami' })).toBeDisabled();
+    await whenSeElige(PRIMERA, 'Sí');
+
+    thenLaOpcionNoSePuedeElegir(PRIMERA, 'No tuve tiempo');
+    thenLaOpcionEsta(PRIMERA, 'No tuve tiempo', 'sinElegir');
+    thenNoHayBotonDeEnviar(PRIMERA);
   });
 
   it('si el servidor ya tenía la respuesta, lo dice y no pisa la primera', async () => {
-    givenQueHoyEsMiercoles();
-    conObjetivoSinDatos();
-    renderApp('/objetivos');
-    const user = userEvent.setup();
-    await screen.findByRole('region', { name: /Sami quiere saber cómo te fue/ }, ESPERA);
-    setupServerError(
-      'post',
-      `/objetivos/${ID_OBJETIVO_SIN_DATOS_DE_EJEMPLO}/mini-objetivos/${MINI_SIN_CONTAR}/respuesta`,
-      409,
-      'Ya le contaste a Sami cómo te fue esta semana.',
-    );
-    const tarjeta = formulario('Anotá qué te piden y no tenés');
+    await givenQueSamiPreguntaUnMiercoles();
+    givenQueElServidorYaTeniaLaRespuesta();
 
-    await user.click(tarjeta.getByRole('button', { name: 'Sí' }));
-    await user.click(tarjeta.getByRole('button', { name: 'Funcionó' }));
-    await user.click(tarjeta.getByRole('button', { name: 'Contarle a Sami' }));
+    await whenSeResponde(PRIMERA, { hizo: 'Sí', quePaso: 'Funcionó' });
 
     expect(await screen.findByRole('alert', {}, ESPERA)).toHaveTextContent(
       'Ya le contaste a Sami cómo te fue esta semana.',

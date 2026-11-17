@@ -1,107 +1,90 @@
-import { useId, useState } from 'react';
 import { CheckCircleIcon } from '@phosphor-icons/react';
-import { leerErrorServidor } from '@/hooks/errores';
-import { useResponderMiniObjetivo } from '@/hooks/objetivos/mutations';
-import { HIZO, QUE_PASO, quePasoPosible } from '@/lib/respuestaManual';
-import type { Hizo, MiniManual, QuePaso } from '@/types/objetivos';
-
-const MAXIMO_DEL_COMENTARIO = 300;
+import {
+  PASOS,
+  useRespuestaPorPasos,
+  type Paso,
+  type RespuestaPorPasos,
+} from '@/hooks/objetivos/useRespuestaPorPasos';
+import type { MiniManual } from '@/types/objetivos';
+import type { ComponentType } from 'react';
+import { PaginaComentario, PaginaHizo, PaginaQuePaso } from './PaginasDeRespuesta';
 
 type Props = { objetivoId: string; mini: MiniManual };
 
-// «¿Lo hiciste?» y «¿Qué pasó?»: dos toques y, si quiere, una línea. Botones grandes para usar con el pulgar.
+const PAGINAS_DE_RESPUESTA: Record<Paso, ComponentType<{ respuesta: RespuestaPorPasos }>> = {
+  hizo: PaginaHizo,
+  quePaso: PaginaQuePaso,
+  comentario: PaginaComentario,
+};
+
+// «¿Lo hiciste?», «¿Qué pasó?» y, si quiere, una línea: una pregunta por página, siempre en el mismo espacio para que
+// la tarjeta no cambie de tamaño, y con «Volver» para corregir. Botones grandes para usar con el pulgar.
 export function RespuestaRapida({ objetivoId, mini }: Props) {
-  const responder = useResponderMiniObjetivo(objetivoId);
-  const idComentario = useId();
-  const [hizo, setHizo] = useState<Hizo | null>(null);
-  const [quePaso, setQuePaso] = useState<QuePaso | null>(null);
-  const [comentario, setComentario] = useState('');
-  const error = leerErrorServidor(responder.error);
-
-  if (responder.isSuccess) {
-    return (
-      <p className="mini-objetivo-decidido si" role="status">
-        <CheckCircleIcon aria-hidden size={16} weight="bold" /> Listo, ya se lo contaste a Sami.
-      </p>
-    );
-  }
-
-  const elegirHizo = (nuevo: Hizo) => {
-    setHizo(nuevo);
-    // «No tuve tiempo» no combina con «lo hice»: si lo hiciste, tuviste tiempo.
-    if (quePaso && !quePasoPosible(nuevo, quePaso)) setQuePaso(null);
-  };
-
+  const respuesta = useRespuestaPorPasos(objetivoId, mini);
+  if (respuesta.enviada) return <YaSeLoContaste />;
+  const Pagina = PAGINAS_DE_RESPUESTA[respuesta.paso];
   return (
     <form
       className="respuesta-rapida"
       aria-label={`Contale a Sami cómo te fue con «${mini.titulo}»`}
       onSubmit={(evento) => {
         evento.preventDefault();
-        if (!hizo || !quePaso || responder.isPending) return;
-        responder.mutate({ miniId: mini.id, respuesta: { hizo, quePaso, comentario } });
+        respuesta.enviar();
       }}
     >
-      <fieldset>
-        <legend>¿Lo hiciste?</legend>
-        <div className="respuesta-opciones">
-          {HIZO.map((opcion) => (
-            <button
-              key={opcion.valor}
-              type="button"
-              aria-pressed={hizo === opcion.valor}
-              onClick={() => elegirHizo(opcion.valor)}
-            >
-              {opcion.etiqueta}
-            </button>
-          ))}
-        </div>
-      </fieldset>
-
-      {hizo && (
-        <fieldset>
-          <legend>¿Qué pasó?</legend>
-          <div className="respuesta-opciones">
-            {QUE_PASO.map((opcion) => (
-              <button
-                key={opcion.valor}
-                type="button"
-                aria-pressed={quePaso === opcion.valor}
-                disabled={!quePasoPosible(hizo, opcion.valor)}
-                onClick={() => setQuePaso(opcion.valor)}
-              >
-                {opcion.etiqueta}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-      )}
-
-      {quePaso && (
-        <div className="field">
-          <label htmlFor={idComentario}>Contale un poco más (opcional)</label>
-          <textarea
-            id={idComentario}
-            rows={2}
-            maxLength={MAXIMO_DEL_COMENTARIO}
-            value={comentario}
-            onChange={(evento) => setComentario(evento.target.value)}
-          />
-        </div>
-      )}
-
-      {error && (
-        <p className="input-hint" role="alert">
-          {error.campos.comentario ?? error.mensaje}
-        </p>
-      )}
-      <button
-        type="submit"
-        className="btn primary"
-        disabled={!hizo || !quePaso || responder.isPending}
-      >
-        {responder.isPending ? 'Enviando…' : 'Contarle a Sami'}
-      </button>
+      <div className="respuesta-pagina">
+        <Pagina respuesta={respuesta} />
+        <ErrorDeRespuesta respuesta={respuesta} />
+      </div>
+      <PieDeRespuesta respuesta={respuesta} />
     </form>
+  );
+}
+
+function YaSeLoContaste() {
+  return (
+    <p className="mini-objetivo-decidido si" role="status">
+      <CheckCircleIcon aria-hidden size={16} weight="bold" /> Ya se lo contaste a Sami
+    </p>
+  );
+}
+
+function ErrorDeRespuesta({ respuesta }: { respuesta: RespuestaPorPasos }) {
+  const { error } = respuesta;
+  if (!error) return null;
+  return (
+    <p className="input-hint" role="alert">
+      {error.campos.comentario ?? error.mensaje}
+    </p>
+  );
+}
+
+function PieDeRespuesta({ respuesta }: { respuesta: RespuestaPorPasos }) {
+  return (
+    <footer className="respuesta-pie">
+      <BotonVolver respuesta={respuesta} />
+      <span className="respuesta-progreso">
+        Paso {respuesta.indice + 1} de {PASOS.length}
+      </span>
+      <BotonEnviar respuesta={respuesta} />
+    </footer>
+  );
+}
+
+function BotonVolver({ respuesta }: { respuesta: RespuestaPorPasos }) {
+  if (respuesta.indice === 0) return null;
+  return (
+    <button type="button" className="objetivos-textual" onClick={respuesta.volver}>
+      Volver
+    </button>
+  );
+}
+
+function BotonEnviar({ respuesta }: { respuesta: RespuestaPorPasos }) {
+  if (respuesta.paso !== 'comentario') return null;
+  return (
+    <button type="submit" className="btn primary" disabled={!respuesta.sePuedeEnviar}>
+      {respuesta.enviando ? 'Enviando…' : 'Contarle a Sami'}
+    </button>
   );
 }

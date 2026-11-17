@@ -9,14 +9,13 @@ export function usePreguntasDeSami() {
   const { pendientes } = useRespuestasPendientes();
   const [, repintar] = useReducer((vez: number) => vez + 1, 0);
   const dia = hoy();
-  const paraHoy = pendientes.filter((pendiente) => sePreguntaHoy(pendiente, dia));
 
   const posponer = (miniId: string) => {
     posponerHastaManana(miniId, dia);
     repintar();
   };
 
-  return { primera: paraHoy[0], otras: paraHoy.slice(1), posponer };
+  return { preguntas: pendientes.filter((pendiente) => sePreguntaHoy(pendiente, dia)), posponer };
 }
 
 function sePreguntaHoy({ miniObjetivo }: RespuestaPendiente, dia: string): boolean {
