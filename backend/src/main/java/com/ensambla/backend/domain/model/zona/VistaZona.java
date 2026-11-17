@@ -11,14 +11,31 @@ import java.util.List;
  */
 public enum VistaZona {
 
-    PRECIOS(TipoContenidoPlan.ZONA),
-    CERCA(TipoContenidoPlan.ZONA_CERCA),
-    OTRA(TipoContenidoPlan.ZONA_OTRA);
+    PRECIOS(TipoContenidoPlan.ZONA, true) {
+        @Override
+        public AnalisisZona ordenar(AnalisisZona analisis, List<String> nombresPropios) {
+            return analisis.conLosPropiosPrimero(nombresPropios);
+        }
+    },
+    CERCA(TipoContenidoPlan.ZONA_CERCA, true) {
+        @Override
+        public AnalisisZona ordenar(AnalisisZona analisis, List<String> nombresPropios) {
+            return analisis.ordenadoPorVentas().conLosQueFaltanPrimero(nombresPropios);
+        }
+    },
+    OTRA(TipoContenidoPlan.ZONA_OTRA, false) {
+        @Override
+        public AnalisisZona ordenar(AnalisisZona analisis, List<String> nombresPropios) {
+            return analisis.ordenadoPorVentas();
+        }
+    };
 
     private final TipoContenidoPlan tipoDeContenido;
+    private final boolean usaInventario;
 
-    VistaZona(TipoContenidoPlan tipoDeContenido) {
+    VistaZona(TipoContenidoPlan tipoDeContenido, boolean usaInventario) {
         this.tipoDeContenido = tipoDeContenido;
+        this.usaInventario = usaInventario;
     }
 
     /** El cupo gratuito que gasta esta pantalla. */
@@ -28,15 +45,9 @@ public enum VistaZona {
 
     /** Si el orden depende de los productos del negocio (hace falta mirar su inventario). */
     public boolean usaInventario() {
-        return this != OTRA;
+        return usaInventario;
     }
 
     /** La zona con los productos en el orden en que esta pantalla los quiere ver (y desbloquear). */
-    public AnalisisZona ordenar(AnalisisZona analisis, List<String> nombresPropios) {
-        return switch (this) {
-            case PRECIOS -> analisis.conLosPropiosPrimero(nombresPropios);
-            case CERCA -> analisis.ordenadoPorVentas().conLosQueFaltanPrimero(nombresPropios);
-            case OTRA -> analisis.ordenadoPorVentas();
-        };
-    }
+    public abstract AnalisisZona ordenar(AnalisisZona analisis, List<String> nombresPropios);
 }
