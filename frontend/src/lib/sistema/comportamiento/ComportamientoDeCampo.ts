@@ -6,6 +6,10 @@ export const LARGO_DE_VALOR = 200;
 export abstract class ComportamientoDeCampo {
   protected abstract valorPorDefecto(campo: Campo, indice: number): Valor;
 
+  esVinculo(): boolean {
+    return false;
+  }
+
   falta(valor: Valor): boolean {
     return valor == null || (typeof valor === 'string' && !valor.trim());
   }

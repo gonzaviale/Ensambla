@@ -17,6 +17,10 @@ export class ComportamientoDeSeleccion extends ComportamientoDeCampo {
 }
 
 export class ComportamientoDeRelacion extends ComportamientoDeCampo {
+  esVinculo(): boolean {
+    return true;
+  }
+
   valorDeEjemplo(_campo: Campo, indice: number, _muestra: Valor, vinculos: string[]): Valor {
     return vinculos.length ? (vinculos[indice % vinculos.length] ?? '') : '';
   }
