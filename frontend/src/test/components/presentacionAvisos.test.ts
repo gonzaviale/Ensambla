@@ -9,6 +9,7 @@ import {
   restoDelAviso,
   resumenDelAviso,
   suavizarTexto,
+  tieneDetalle,
   tituloDeGrupo,
 } from '@/components/sistema/avisos/presentacion';
 
@@ -126,5 +127,53 @@ describe('avisos de lectura rápida', () => {
         'Una frase larga sin comas que sigue y sigue hasta pasar el límite de caracteres',
       ),
     ).toBe('Una frase larga sin comas que sigue y sigue hasta pasar el límite de caracteres');
+  });
+});
+
+describe('el orden de las secciones y cuándo hay detalle', () => {
+  const givenUnAvisoDe = (prioridad: 1 | 2 | 3, id: string): Aviso => ({
+    ...avisoDeRevisarPrecio(),
+    id,
+    prioridad,
+  });
+  const givenUnAvisoSinMasQueContar = (): Aviso => ({
+    ...avisoDeRevisarPrecio(),
+    detalle: 'Vendiste 0 en 30 días.',
+    porque: [],
+    acciones: [{ tipo: 'zona', texto: 'Ver en Mi zona' }],
+  });
+  const givenUnAvisoConRazon = (): Aviso => ({
+    ...givenUnAvisoSinMasQueContar(),
+    porque: ['Subiste el precio hace una semana.'],
+  });
+  const givenUnAvisoConOtraAccion = (): Aviso => ({
+    ...givenUnAvisoSinMasQueContar(),
+    acciones: [
+      { tipo: 'zona', texto: 'Ver en Mi zona' },
+      { tipo: 'zona', texto: 'Ver más' },
+    ],
+  });
+  const whenSeAgrupan = (...avisos: Aviso[]) => agruparAvisos(avisos).map((grupo) => grupo.clave);
+
+  it('pone primero las secciones más urgentes', () => {
+    const claves = whenSeAgrupan(
+      givenUnAvisoDe(1, 'a'),
+      givenUnAvisoDe(3, 'b'),
+      givenUnAvisoDe(2, 'c'),
+    );
+
+    expect(claves).toEqual(['revisar_precio:3', 'revisar_precio:2', 'revisar_precio:1']);
+  });
+
+  it('no ofrece el porqué si no hay nada más que contar', () => {
+    expect(tieneDetalle(givenUnAvisoSinMasQueContar())).toBe(false);
+  });
+
+  it('ofrece el porqué si el aviso trae una razón', () => {
+    expect(tieneDetalle(givenUnAvisoConRazon())).toBe(true);
+  });
+
+  it('ofrece el porqué si hay otra acción para elegir', () => {
+    expect(tieneDetalle(givenUnAvisoConOtraAccion())).toBe(true);
   });
 });

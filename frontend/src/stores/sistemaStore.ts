@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import type { AvisoEconomico } from '@/types/avisoEconomico';
 import type { AccesoContenido } from '@/types/contenidoPlan';
 import { clone } from '@/lib/sistema/core';
-import type { Aviso } from '@/lib/sistema/alertas';
+import type { AccionDeAviso, Aviso } from '@/lib/sistema/alertas';
 import type { VinculoPendiente } from '@/lib/sistema/acciones';
 import type { Bloque, ClavePlantilla, Seccion, Sistema } from '@/lib/sistema/tipos';
 import { TUTORIAL_INICIAL, type EstadoDelTutorial } from '@/lib/sistema/tutorial';
@@ -47,6 +47,8 @@ export type Modal =
       categoria: string;
       titulo: string;
     }
+  /** El porqué de un aviso: `onAccion` viene de la pantalla de avisos, que sigue montada mientras la acción termina. */
+  | { tipo: 'detalleDeAviso'; avisoId: string; onAccion: (accion: AccionDeAviso) => void }
   /** Con `enBorrador` trabajan sobre la propuesta de Sami en vez de sobre la sección abierta. */
   | { tipo: 'secciones'; enBorrador?: boolean }
   | { tipo: 'agregarSeccion'; enBorrador?: boolean }

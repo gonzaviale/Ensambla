@@ -38,6 +38,8 @@
 @import './escaneo.css';
 /* Último: el criterio único de color, botones y tarjetas (ver el comentario de la hoja). */
 @import './armonia.css';
+/* Avisos: secciones, filas y el modal con el porqué (después de armonia para que el color de nivel mande). */
+@import './avisos-lista.css';
 /* T-213: las métricas del Inicio. */
 @import './inicio-orden.css';
 /* T-216: el pie de todas las pantallas. */

@@ -16,6 +16,7 @@ import { ModalPlantilla } from './modales/ModalPlantilla';
 import { ModalRenombrar } from './modales/ModalRenombrar';
 import { ModalRegistro } from './modales/ModalRegistro';
 import { ModalResumen } from './modales/ModalResumen';
+import { ModalDetalleDeAviso } from './modales/ModalDetalleDeAviso';
 import { ModalProductosDelAviso } from './modales/ModalProductosDelAviso';
 import { ModalRenombrarPieza } from './modales/ModalRenombrarPieza';
 import { ModalSecciones } from './modales/ModalSecciones';
@@ -89,6 +90,8 @@ function ContenidoDelModal() {
           titulo={modal.titulo}
         />
       );
+    case 'detalleDeAviso':
+      return <ModalDetalleDeAviso avisoId={modal.avisoId} onAccion={modal.onAccion} />;
     case 'confirmar':
       return <ModalConfirmar {...modal} />;
   }

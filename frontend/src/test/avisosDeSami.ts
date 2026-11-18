@@ -44,5 +44,5 @@ export const cuandoSeAbreElAvisoDeSami = () => clickButton(userEvent.setup(), 'V
 
 export const entoncesElPanelResaltaElAvisoDeStock = async () => {
   expect(await screen.findByRole('region', { name: /Lo que encontré/ }, ESPERA)).toBeVisible();
-  expect(document.querySelector('.alerta.foco')).toHaveTextContent(AVISO_DE_STOCK);
+  expect(document.querySelector('.aviso-fila.foco')).toHaveTextContent(AVISO_DE_STOCK);
 };

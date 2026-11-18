@@ -17,6 +17,15 @@ import {
   entoncesNoHayAvisoDeSami,
   esperarQueSamiTomeSuLineaBase,
 } from '@/test/avisosDeSami';
+import {
+  cuandoSeAbreElPorQue,
+  cuandoSeAplicaDesdeElPorQue,
+  entoncesElAvisoEstaEnSuSeccion,
+  entoncesElPorQueMuestra,
+  entoncesHayFilasDeAviso,
+  entoncesLaFilaNoOfreceElPorQue,
+  entoncesNoHayPorQueAbierto,
+} from '@/test/avisosEnPantalla';
 import { renderApp } from '@/test/renderApp';
 import {
   ESPERA,
@@ -182,9 +191,9 @@ describe('la campana y la pantalla de avisos', () => {
     expect(within(panel).getByText(/9 en total/)).toBeVisible();
     expect(within(panel).getByText(/12 comercios, sin nombres/)).toBeVisible();
     await user.click(within(panel).getByRole('button', { name: /Tu zona/ }));
-    expect(panel.querySelectorAll('.alerta')).toHaveLength(2);
+    entoncesHayFilasDeAviso(panel, 2);
     await user.click(within(panel).getByRole('button', { name: /Urgentes/ }));
-    expect(panel.querySelectorAll('.alerta.p1')).toHaveLength(0);
+    entoncesHayFilasDeAviso(panel, 0, '.aviso-fila.p1');
   });
 
   it('la pestaña «Avisos» de arriba abre la misma pantalla', async () => {
@@ -208,8 +217,11 @@ describe('la campana y la pantalla de avisos', () => {
 
     const aviso = tarjeta('Te quedaste sin Aceite Natura 900 ml');
     expect(within(aviso).queryByText(/Vendiste 10 en los últimos 30 días/)).toBeNull();
-    await user.click(within(aviso).getByRole('button', { name: /Ver por qué/ }));
-    expect(within(aviso).getByText(/Vendiste 10 en los últimos 30 días/)).toBeVisible();
+    await cuandoSeAbreElPorQue(user, aviso);
+    await entoncesElPorQueMuestra(
+      'Te quedaste sin Aceite Natura 900 ml',
+      /Vendiste 10 en los últimos 30 días/,
+    );
     expect(within(aviso).getByRole('button', { name: 'Cargar entrada' })).toBeVisible();
     expect(within(aviso).getByRole('button', { name: 'Descartar' })).toBeVisible();
 
@@ -532,7 +544,7 @@ describe('los avisos del motor del servidor', () => {
     ).toBeVisible();
   });
 
-  it('cada tipo tiene su color y el detalle abre los números y el contexto del aviso', async () => {
+  it('cada tipo tiene su ícono y el ojo abre en un modal los números y el contexto del aviso', async () => {
     const { user } = await abrirConAvisosDelServidor(
       avisoDelServidor({ datos: { cantidad: 0, minimo: 10 } }),
       avisoDelServidor({
@@ -557,14 +569,52 @@ describe('los avisos del motor del servidor', () => {
     expect(within(estancado).getByText(/Bajar el precio de \$ 2\.600 a \$ 1\.900/)).toBeVisible();
 
     expect(within(estancado).queryByText('Precio sugerido')).toBeNull();
-    const ver = within(estancado).getByRole('button', { name: /Ver por qué/ });
-    expect(ver).toHaveAttribute('aria-expanded', 'false');
-    await user.click(ver);
-    expect(ver).toHaveAttribute('aria-expanded', 'true');
-    expect(within(estancado).getByText('Precio sugerido')).toBeVisible();
-    expect(within(estancado).getByText('$ 1.900')).toBeVisible();
-    expect(within(estancado).getByText(/En tu zona, 6 comercios/)).toBeVisible();
-    expect(within(estancado).getByText(/Hace \d+ días/)).toBeVisible();
+    await cuandoSeAbreElPorQue(user, estancado);
+    await entoncesElPorQueMuestra(
+      'Mermelada está cara y no se mueve',
+      'Precio sugerido',
+      '$ 1.900',
+      /En tu zona, 6 comercios/,
+      /Hace \d+ días/,
+    );
+  });
+
+  describe('la sección y el porqué de cada aviso', () => {
+    const TITULO = 'Te quedaste sin Yerba Playadito 1 kg';
+    const givenUnSoloAvisoDeStock = () => abrirConAvisosDelServidor(avisoDelServidor());
+    const givenUnAvisoSinMasQueContar = () =>
+      abrirConAvisosDelServidor(
+        avisoDelServidor({ detalle: 'Vendiste 0 en 30 días.', motivos: [] }),
+      );
+    const givenUnAvisoConAccionDeDatos = () =>
+      abrirConAvisosDelServidor(
+        avisoDelServidor({
+          acciones: [{ tipo: 'EDITAR_REGISTRO', texto: 'Subir a $ 4.200', registroId: 'fila-1' }],
+        }),
+      );
+    const whenSeAbreLaPantalla = ({ user }: { user: ReturnType<typeof userEvent.setup> }) =>
+      abrirPanel(user);
+
+    it('un aviso solo se muestra en su sección igual que varios', async () => {
+      const abierta = await givenUnSoloAvisoDeStock();
+      await whenSeAbreLaPantalla(abierta);
+      entoncesElAvisoEstaEnSuSeccion('1 producto sin stock', TITULO);
+    });
+
+    it('la fila que no tiene más para contar no ofrece el ojo', async () => {
+      const abierta = await givenUnAvisoSinMasQueContar();
+      await whenSeAbreLaPantalla(abierta);
+      entoncesLaFilaNoOfreceElPorQue(tarjeta(TITULO));
+    });
+
+    it('aplicar desde el porqué ejecuta la acción y cierra el modal', async () => {
+      const abierta = await givenUnAvisoConAccionDeDatos();
+      await whenSeAbreLaPantalla(abierta);
+      await cuandoSeAbreElPorQue(abierta.user, tarjeta(TITULO));
+      await cuandoSeAplicaDesdeElPorQue(abierta.user, TITULO, 'Subir a $ 4.200');
+      await verifyToastAsync('Listo, aplicamos el cambio.');
+      entoncesNoHayPorQueAbierto();
+    });
   });
 
   it('se filtra por sección y la franja resume lo que no puede esperar', async () => {
