@@ -25,50 +25,90 @@ class ResumenSemanalPresentationMapperTest {
     private static final LocalDate SEMANA = LocalDate.of(2026, 11, 9);
 
     private final ResumenSemanalPresentationMapper mapper = new ResumenSemanalPresentationMapper();
+    private SemanasObjetivoResponse semanas;
 
     @Test
     @DisplayName("Arma el pedido con el usuario de la sesión y el objetivo")
-    void toRequestShouldCarryTheUserAndTheObjetivo() {
-        ListarSemanasRequest result = mapper.toRequest(USUARIO_ID, OBJETIVO_ID);
-
-        assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(result.objetivoId()).isEqualTo(OBJETIVO_ID);
+    void armaElPedidoConElUsuarioYElObjetivo() {
+        entoncesElPedidoEs(new ListarSemanasRequest(USUARIO_ID, OBJETIVO_ID));
     }
 
     @Test
-    @DisplayName("Copia cada semana con sus decisiones y reajustes; un reajuste sin nuevo queda sin «a»")
-    void toResponseShouldCopyEveryWeek() {
-        SemanasObjetivoResponse result = mapper.toResponse(new ListarSemanasResponse(SEMANA, List.of(new SemanaItem(
-                SEMANA, BigDecimal.TEN, BigDecimal.ONE, new DecisionesItem(1, 2, 3, 4), "Bien", true, List.of(
-                        new ReajusteItem(TipoReajuste.REEMPLAZAR, "Sin avance", new MiniItem("Viejo", BigDecimal.ONE),
-                                null))))));
+    @DisplayName("Copia cada semana con su resultado, sus decisiones y lo que funcionó")
+    void copiaCadaSemanaConSusDecisiones() {
+        cuandoSeRespondeConUnaSemanaReajustada();
 
-        assertThat(result.ultimoCierre()).isEqualTo(SEMANA);
-        SemanaResponse semana = result.semanas().get(0);
-        assertThat(semana.semana()).isEqualTo(SEMANA);
-        assertThat(semana.resultado()).isEqualTo(BigDecimal.TEN);
-        assertThat(semana.avance()).isEqualTo(BigDecimal.ONE);
-        assertThat(semana.decisiones().aplicadas()).isEqualTo(1);
-        assertThat(semana.decisiones().descartadas()).isEqualTo(2);
-        assertThat(semana.decisiones().aceptadas()).isEqualTo(3);
-        assertThat(semana.decisiones().ignoradas()).isEqualTo(4);
-        assertThat(semana.queFunciono()).isEqualTo("Bien");
-        assertThat(semana.textoConIa()).isTrue();
-        assertThat(semana.reajustes()).singleElement().satisfies(reajuste -> {
-            assertThat(reajuste.tipo()).isEqualTo(TipoReajuste.REEMPLAZAR);
-            assertThat(reajuste.motivo()).isEqualTo("Sin avance");
-            assertThat(reajuste.de().titulo()).isEqualTo("Viejo");
-            assertThat(reajuste.de().meta()).isEqualTo(BigDecimal.ONE);
-            assertThat(reajuste.a()).isNull();
-        });
+        entoncesElUltimoCierreEs(SEMANA);
+        entoncesLaSemanaEs(SEMANA, BigDecimal.TEN, BigDecimal.ONE, "Bien");
+        entoncesLasDecisionesSon(1, 2, 3, 4);
+    }
+
+    @Test
+    @DisplayName("Copia los reajustes de la semana; un reajuste sin nuevo queda sin «a»")
+    void copiaLosReajustesDeLaSemana() {
+        cuandoSeRespondeConUnaSemanaReajustada();
+
+        entoncesElUnicoReajusteReemplazaA("Viejo", BigDecimal.ONE, "Sin avance");
     }
 
     @Test
     @DisplayName("Sin semanas devuelve una lista vacía")
-    void toResponseShouldReturnAnEmptyListWhenThereAreNoWeeks() {
-        SemanasObjetivoResponse result = mapper.toResponse(new ListarSemanasResponse(null, List.of()));
+    void sinSemanasDevuelveUnaListaVacia() {
+        cuandoSeRespondeSinSemanas();
 
-        assertThat(result.ultimoCierre()).isNull();
-        assertThat(result.semanas()).isEmpty();
+        entoncesNoHaySemanas();
+    }
+
+    private void cuandoSeRespondeConUnaSemanaReajustada() {
+        semanas = mapper.toResponse(new ListarSemanasResponse(SEMANA, List.of(new SemanaItem(
+                SEMANA, BigDecimal.TEN, BigDecimal.ONE, new DecisionesItem(1, 2, 3, 4), "Bien", true, List.of(
+                        new ReajusteItem(TipoReajuste.REEMPLAZAR, "Sin avance", new MiniItem("Viejo", BigDecimal.ONE),
+                                null))))));
+    }
+
+    private void cuandoSeRespondeSinSemanas() {
+        semanas = mapper.toResponse(new ListarSemanasResponse(null, List.of()));
+    }
+
+    private SemanaResponse laSemana() {
+        return semanas.semanas().getFirst();
+    }
+
+    private void entoncesElPedidoEs(ListarSemanasRequest esperado) {
+        assertThat(mapper.toRequest(USUARIO_ID, OBJETIVO_ID)).isEqualTo(esperado);
+    }
+
+    private void entoncesElUltimoCierreEs(LocalDate cierre) {
+        assertThat(semanas.ultimoCierre()).isEqualTo(cierre);
+    }
+
+    private void entoncesLaSemanaEs(LocalDate semana, BigDecimal resultado, BigDecimal avance, String queFunciono) {
+        assertThat(laSemana().semana()).isEqualTo(semana);
+        assertThat(laSemana().resultado()).isEqualTo(resultado);
+        assertThat(laSemana().avance()).isEqualTo(avance);
+        assertThat(laSemana().queFunciono()).isEqualTo(queFunciono);
+        assertThat(laSemana().textoConIa()).isTrue();
+    }
+
+    private void entoncesLasDecisionesSon(int aplicadas, int descartadas, int aceptadas, int ignoradas) {
+        assertThat(laSemana().decisiones().aplicadas()).isEqualTo(aplicadas);
+        assertThat(laSemana().decisiones().descartadas()).isEqualTo(descartadas);
+        assertThat(laSemana().decisiones().aceptadas()).isEqualTo(aceptadas);
+        assertThat(laSemana().decisiones().ignoradas()).isEqualTo(ignoradas);
+    }
+
+    private void entoncesElUnicoReajusteReemplazaA(String titulo, BigDecimal meta, String motivo) {
+        assertThat(laSemana().reajustes()).singleElement().satisfies(reajuste -> {
+            assertThat(reajuste.tipo()).isEqualTo(TipoReajuste.REEMPLAZAR);
+            assertThat(reajuste.motivo()).isEqualTo(motivo);
+            assertThat(reajuste.de().titulo()).isEqualTo(titulo);
+            assertThat(reajuste.de().meta()).isEqualTo(meta);
+            assertThat(reajuste.a()).isNull();
+        });
+    }
+
+    private void entoncesNoHaySemanas() {
+        assertThat(semanas.ultimoCierre()).isNull();
+        assertThat(semanas.semanas()).isEmpty();
     }
 }

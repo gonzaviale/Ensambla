@@ -33,67 +33,76 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DecisionObjetivoPresentationMapperTest {
 
     private final DecisionObjetivoPresentationMapper mapper = new DecisionObjetivoPresentationMapper();
+    private DecisionesObjetivoResponse decisiones;
 
     @Test
     @DisplayName("Arma el pedido de decidir un paso con el usuario, el objetivo, el mini-objetivo y la respuesta")
-    void toRegistrarRequestShouldCarryEverything() {
-        RegistrarDecisionPasoRequest result = mapper.toRegistrarRequest(
-                USUARIO_ID, OBJETIVO_ID, MINI_ID, new DecidirPasoWebRequest(DecisionPaso.IGNORADO));
-
-        assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(result.objetivoId()).isEqualTo(OBJETIVO_ID);
-        assertThat(result.miniObjetivoId()).isEqualTo(MINI_ID);
-        assertThat(result.decision()).isEqualTo(DecisionPaso.IGNORADO);
+    void armaElPedidoDeDecidirUnPaso() {
+        entoncesElPedidoEs(mapper.toRegistrarRequest(USUARIO_ID, OBJETIVO_ID, MINI_ID,
+                        new DecidirPasoWebRequest(DecisionPaso.IGNORADO)),
+                new RegistrarDecisionPasoRequest(USUARIO_ID, OBJETIVO_ID, MINI_ID, DecisionPaso.IGNORADO));
     }
 
     @Test
     @DisplayName("Arma el pedido de listar con el usuario de la sesión y el objetivo de la ruta")
-    void toListarRequestShouldCarryTheUserAndTheObjetivo() {
-        ListarDecisionesRequest result = mapper.toListarRequest(USUARIO_ID, OBJETIVO_ID);
-
-        assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(result.objetivoId()).isEqualTo(OBJETIVO_ID);
+    void armaElPedidoDeListar() {
+        entoncesElPedidoEs(mapper.toListarRequest(USUARIO_ID, OBJETIVO_ID), new ListarDecisionesRequest(USUARIO_ID, OBJETIVO_ID));
     }
 
     @Test
     @DisplayName("Copia todos los datos de la decisión")
-    void toResponseShouldCopyEveryFieldOfTheDecision() {
-        DecisionItem item = DecisionItem.de(decision(TipoDecision.AVISO_APLICADO, AVISO_ID),
-                new EfectoDecision(EstadoEfecto.MEDIDO, new BigDecimal("350.00")));
-
-        DecisionObjetivoResponse result = mapper.toResponse(item);
-
-        assertThat(result.id()).isEqualTo(DECISION_ID);
-        assertThat(result.tipo()).isEqualTo(TipoDecision.AVISO_APLICADO);
-        assertThat(result.miniObjetivoId()).isEqualTo(MINI_ID);
-        assertThat(result.avisoId()).isEqualTo(AVISO_ID);
-        assertThat(result.registroId()).isEqualTo(PRODUCTO_ID);
-        assertThat(result.descripcion()).isEqualTo(TITULO_AVISO);
-        assertThat(result.tomadaEn()).isEqualTo(AHORA);
-        assertThat(result.semanaInicio()).isEqualTo(SEMANA);
-        assertThat(result.efecto()).isEqualTo(EstadoEfecto.MEDIDO);
-        assertThat(result.deltaIngresoSemanal()).isEqualByComparingTo("350.00");
+    void copiaTodosLosDatosDeLaDecision() {
+        entoncesLaDecisionSeRespondeComo(unAvisoAplicadoYMedido(), new DecisionObjetivoResponse(DECISION_ID,
+                TipoDecision.AVISO_APLICADO, MINI_ID, AVISO_ID, PRODUCTO_ID, TITULO_AVISO, AHORA, SEMANA,
+                EstadoEfecto.MEDIDO, new BigDecimal("350.00")));
     }
 
     @Test
     @DisplayName("Conserva las semanas y el orden de las decisiones")
-    void toResponseShouldKeepTheWeeksAndTheirOrder() {
-        DecisionItem item = DecisionItem.de(decision(TipoDecision.PASO_ACEPTADO, null), EfectoDecision.SIN_MEDICION);
+    void conservaLasSemanasYElOrden() {
+        cuandoSeRespondenLasSemanas(new SemanaDecisiones(SEMANA, List.of(unPasoAceptado(), unPasoAceptado())));
 
-        DecisionesObjetivoResponse result = mapper.toResponse(
-                new ListarDecisionesResponse(List.of(new SemanaDecisiones(SEMANA, List.of(item, item)))));
-
-        assertThat(result.semanas()).singleElement().satisfies(semana -> {
-            assertThat(semana.semanaInicio()).isEqualTo(SEMANA);
-            assertThat(semana.decisiones()).hasSize(2);
-        });
+        entoncesLaUnicaSemanaTieneDecisiones(SEMANA, 2);
     }
 
     @Test
     @DisplayName("Sin decisiones devuelve una lista vacía")
-    void toResponseShouldReturnEmptyWeeks() {
-        DecisionesObjetivoResponse result = mapper.toResponse(new ListarDecisionesResponse(List.of()));
+    void sinDecisionesDevuelveUnaListaVacia() {
+        cuandoSeRespondenLasSemanas();
 
-        assertThat(result.semanas()).isEmpty();
+        entoncesNoHaySemanas();
+    }
+
+    private static DecisionItem unAvisoAplicadoYMedido() {
+        return DecisionItem.de(decision(TipoDecision.AVISO_APLICADO, AVISO_ID),
+                new EfectoDecision(EstadoEfecto.MEDIDO, new BigDecimal("350.00")));
+    }
+
+    private static DecisionItem unPasoAceptado() {
+        return DecisionItem.de(decision(TipoDecision.PASO_ACEPTADO, null), EfectoDecision.SIN_MEDICION);
+    }
+
+    private void cuandoSeRespondenLasSemanas(SemanaDecisiones... semanas) {
+        decisiones = mapper.toResponse(new ListarDecisionesResponse(List.of(semanas)));
+    }
+
+    private static void entoncesElPedidoEs(Object armado, Object esperado) {
+        assertThat(armado).isEqualTo(esperado);
+    }
+
+    private void entoncesLaDecisionSeRespondeComo(DecisionItem decision, DecisionObjetivoResponse esperada) {
+        assertThat(mapper.toResponse(decision)).usingRecursiveComparison()
+                .withComparatorForType(BigDecimal::compareTo, BigDecimal.class).isEqualTo(esperada);
+    }
+
+    private void entoncesLaUnicaSemanaTieneDecisiones(Object semana, int cantidad) {
+        assertThat(decisiones.semanas()).singleElement().satisfies(unaSemana -> {
+            assertThat(unaSemana.semanaInicio()).isEqualTo(semana);
+            assertThat(unaSemana.decisiones()).hasSize(cantidad);
+        });
+    }
+
+    private void entoncesNoHaySemanas() {
+        assertThat(decisiones.semanas()).isEmpty();
     }
 }
