@@ -36,48 +36,59 @@ class RecetaUseCaseConfigTest {
     private static final RegistroId PRODUCTO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
 
     private final RecetaUseCaseConfig config = new RecetaUseCaseConfig();
-
-    private NegocioRepository negocioRepository;
-    private RegistroRepository registroRepository;
-    private RecetaService recetaService;
-    private RecetaRepository recetaRepository;
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
+    private final RegistroRepository registroRepository = mock(RegistroRepository.class);
+    private final RecetaService recetaService = mock(RecetaService.class);
+    private final RecetaRepository recetaRepository = mock(RecetaRepository.class);
+    private RecetaItem receta;
 
     @BeforeEach
-    void setUp() {
-        negocioRepository = mock(NegocioRepository.class);
-        registroRepository = mock(RegistroRepository.class);
-        recetaService = mock(RecetaService.class);
-        recetaRepository = mock(RecetaRepository.class);
+    void dadoUnProductoSinCostos() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(registroRepository.obtener(PRODUCTO_ID, NEGOCIO_ID))
-                .thenReturn(Registro.builder().id(PRODUCTO_ID).build());
+        when(registroRepository.obtener(PRODUCTO_ID, NEGOCIO_ID)).thenReturn(Registro.builder().id(PRODUCTO_ID).build());
         when(recetaService.costear(any(), any())).thenReturn(RecetaCosteada.vacia());
     }
 
     @Test
     @DisplayName("El wiring de obtener conecta los servicios")
-    void obtenerRecetaUseCaseShouldWireCollaborators() {
-        when(recetaRepository.findByProductoIdAndNegocioId(PRODUCTO_ID, NEGOCIO_ID))
-                .thenReturn(Optional.of(Receta.builder().lineas(List.of()).build()));
+    void elWiringDeObtenerConectaLosServicios() {
+        dadaUnaRecetaVaciaGuardada();
 
-        RecetaItem response = config.obtenerReceta(
-                        negocioRepository, mock(ControlPlanService.class), Clock.systemUTC(),
-                        registroRepository, recetaService, recetaRepository)
-                .execute(new ObtenerRecetaRequest(USUARIO_ID, PRODUCTO_ID));
+        cuandoSeObtieneLaReceta();
 
-        assertThat(response.lineas()).isEmpty();
-        assertThat(response.costo()).isEqualByComparingTo("0");
+        entoncesLaRecetaNoTieneLineasNiCosto();
     }
 
     @Test
     @DisplayName("El wiring de guardar conecta los servicios y el reloj")
-    void guardarRecetaUseCaseShouldWireCollaborators() {
-        RecetaItem response = config.guardarReceta(
-                        negocioRepository, mock(ControlPlanService.class), recetaService,
-                        recetaRepository, mock(CampoRepository.class), registroRepository,
-                        new TransaccionDirecta(), Clock.systemUTC())
-                .execute(new GuardarRecetaRequest(USUARIO_ID, PRODUCTO_ID, null, List.of()));
+    void elWiringDeGuardarConectaLosServiciosYElReloj() {
+        cuandoSeGuardaUnaRecetaVacia();
 
-        assertThat(response.lineas()).isEmpty();
+        entoncesLaRecetaNoTieneLineas();
+    }
+
+    private void dadaUnaRecetaVaciaGuardada() {
+        when(recetaRepository.findByProductoIdAndNegocioId(PRODUCTO_ID, NEGOCIO_ID))
+                .thenReturn(Optional.of(Receta.builder().lineas(List.of()).build()));
+    }
+
+    private void cuandoSeObtieneLaReceta() {
+        receta = config.obtenerReceta(negocioRepository, mock(ControlPlanService.class), Clock.systemUTC(),
+                registroRepository, recetaService, recetaRepository).execute(new ObtenerRecetaRequest(USUARIO_ID, PRODUCTO_ID));
+    }
+
+    private void cuandoSeGuardaUnaRecetaVacia() {
+        receta = config.guardarReceta(negocioRepository, mock(ControlPlanService.class), recetaService, recetaRepository,
+                        mock(CampoRepository.class), registroRepository, new TransaccionDirecta(), Clock.systemUTC())
+                .execute(new GuardarRecetaRequest(USUARIO_ID, PRODUCTO_ID, null, List.of()));
+    }
+
+    private void entoncesLaRecetaNoTieneLineasNiCosto() {
+        entoncesLaRecetaNoTieneLineas();
+        assertThat(receta.costo()).isEqualByComparingTo("0");
+    }
+
+    private void entoncesLaRecetaNoTieneLineas() {
+        assertThat(receta.lineas()).isEmpty();
     }
 }

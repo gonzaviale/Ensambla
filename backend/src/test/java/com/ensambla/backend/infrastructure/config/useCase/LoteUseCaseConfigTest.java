@@ -29,41 +29,58 @@ import static org.mockito.Mockito.when;
 
 class LoteUseCaseConfigTest {
 
-    private static final List<byte[]> FOTOS = List.of(JPEG);
-
     private final LoteUseCaseConfig config = new LoteUseCaseConfig();
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final BloqueRepository bloqueRepository = mock(BloqueRepository.class);
     private final LoteSubidaRepository loteSubidaRepository = mock(LoteSubidaRepository.class);
+    private LoteItem lote;
 
     @Test
     @DisplayName("El wiring de la subida conecta negocio, repositorio, almacenamiento y reloj")
-    void subirLoteUseCaseShouldWireDependencies() {
-        givenNegocio();
-        when(loteSubidaRepository.saveConFotos(any())).thenReturn(LoteTestData.lote(List.of()));
+    void elWiringDeLaSubidaConectaSusDependencias() {
+        dadoUnNegocio();
+        dadoQueGuardarDevuelveElLote();
 
-        LoteItem result = config.subirLote(negocioRepository, loteSubidaRepository, mock(ArchivoCuadernoPort.class),
-                mock(ControlPlanService.class), new TransaccionDirecta(), bloqueRepository,
-                Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC))
-                .execute(new SubirLoteRequest(USUARIO_ID, FOTOS, null));
+        cuandoSeSubeUnaFoto();
 
-        assertThat(result.id()).isEqualTo(LOTE_ID);
+        entoncesSeObtuvoElLote();
     }
 
     @Test
     @DisplayName("El wiring de la consulta conecta negocio y servicio")
-    void obtenerLoteUseCaseShouldWireDependencies() {
-        givenNegocio();
-        when(loteSubidaRepository.obtener(NEGOCIO_ID, LOTE_ID)).thenReturn(LoteTestData.lote(List.of()));
+    void elWiringDeLaConsultaConectaNegocioYServicio() {
+        dadoUnNegocio();
+        dadoQueElLoteExiste();
 
-        LoteItem result = config.obtenerLote(negocioRepository, loteSubidaRepository)
-                .execute(new ObtenerLoteRequest(USUARIO_ID, LOTE_ID));
+        cuandoSeConsultaElLote();
 
-        assertThat(result.id()).isEqualTo(LOTE_ID);
+        entoncesSeObtuvoElLote();
     }
 
-    // --- arrange ---
-    private void givenNegocio() {
+    private void dadoUnNegocio() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+    }
+
+    private void dadoQueGuardarDevuelveElLote() {
+        when(loteSubidaRepository.saveConFotos(any())).thenReturn(LoteTestData.lote(List.of()));
+    }
+
+    private void dadoQueElLoteExiste() {
+        when(loteSubidaRepository.obtener(NEGOCIO_ID, LOTE_ID)).thenReturn(LoteTestData.lote(List.of()));
+    }
+
+    private void cuandoSeSubeUnaFoto() {
+        lote = config.subirLote(negocioRepository, loteSubidaRepository, mock(ArchivoCuadernoPort.class),
+                        mock(ControlPlanService.class), new TransaccionDirecta(), bloqueRepository,
+                        Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC))
+                .execute(new SubirLoteRequest(USUARIO_ID, List.of(JPEG), null));
+    }
+
+    private void cuandoSeConsultaElLote() {
+        lote = config.obtenerLote(negocioRepository, loteSubidaRepository).execute(new ObtenerLoteRequest(USUARIO_ID, LOTE_ID));
+    }
+
+    private void entoncesSeObtuvoElLote() {
+        assertThat(lote.id()).isEqualTo(LOTE_ID);
     }
 }

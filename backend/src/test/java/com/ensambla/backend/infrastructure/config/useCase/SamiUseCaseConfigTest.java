@@ -43,89 +43,127 @@ import static org.mockito.Mockito.when;
 class SamiUseCaseConfigTest {
 
     private static final UsuarioId USUARIO_ID = UsuarioId.nuevo();
+    private static final NegocioId NEGOCIO_DEL_TALLER = NegocioId.nuevo();
     private static final ConsumoIaSami CONSUMO = new ConsumoIaSami("simulado", "rapido", 1, 1);
 
     private final SamiUseCaseConfig config = new SamiUseCaseConfig();
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final ConsumoSamiRepository consumoSamiRepository = mock(ConsumoSamiRepository.class);
+    private final PlantillaRepository plantillaRepository = mock(PlantillaRepository.class);
+    private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
+    private final SamiIaPort samiIaPort = mock(SamiIaPort.class);
+    private final TallerIaPort tallerIaPort = mock(TallerIaPort.class);
+    private final ControlPlanService controlPlanService = mock(ControlPlanService.class);
+    private ConversarConSamiResponse conversacion;
+    private ProyectoItem proyecto;
+    private ConversarEnTallerResponse taller;
 
     @Test
     @DisplayName("El wiring de la conversación usa el umbral y el máximo de preguntas configurados")
-    void conversarConSamiUseCaseShouldWireDictionaryAndProperties() {
-        ConversarConSamiResponse response = whenConversing(propiedades(3), mock(SamiIaPort.class));
+    void laConversacionUsaElMaximoDePreguntasConfigurado() {
+        dadasLasPlantillasActivas();
 
-        assertThat(response.tipo()).isEqualTo("PREGUNTA");
+        cuandoSeConversaConMaximoDePreguntas(3);
+
+        entoncesSamiPregunta();
     }
 
     @Test
     @DisplayName("Con el máximo de preguntas en cero consulta a la IA con el límite diario configurado")
-    void conversarConSamiUseCaseShouldUseConfiguredMaxQuestionsAndLimit() {
-        SamiIaPort samiIaPort = mock(SamiIaPort.class);
-        when(samiIaPort.proponer(any())).thenReturn(new PropuestaIaSami("Ventas", List.of(), 0.9, CONSUMO));
-        when(consumoSamiRepository.reservar(any(), any(), eq(7), any())).thenReturn(true);
+    void sinPreguntasConsultaALaIaConElLimiteDiarioConfigurado() {
+        dadasLasPlantillasActivas();
+        dadoQueLaIaProponeConLimiteDiario(7);
 
-        ConversarConSamiResponse response = whenConversing(propiedades(0), samiIaPort);
+        cuandoSeConversaConMaximoDePreguntas(0);
 
-        assertThat(response.propuesta().origen()).isEqualTo("IA");
+        entoncesLaPropuestaVieneDeLaIa();
     }
 
     @Test
     @DisplayName("El wiring de crear proyecto conecta negocio, plantilla y proyecto con el mapper")
-    void crearProyectoDesdeSamiUseCaseShouldWireServicesAndMapper() {
-        PlantillaRepository plantillaRepository = mock(PlantillaRepository.class);
-        ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(ProyectoTestData.NEGOCIO_ID);
-        when(plantillaRepository.obtenerParaProyecto(ProyectoTestData.PLANTILLA_ID))
-                .thenReturn(ProyectoTestData.plantilla());
-        when(proyectoRepository.saveConEstructura(any()))
-                .thenReturn(ProyectoTestData.proyecto());
+    void crearProyectoConectaNegocioPlantillaYProyecto() {
+        dadaUnaPlantillaQueCreaElProyecto();
 
-        ProyectoItem result = config.crearProyectoDesdeSami(
-                        negocioRepository, plantillaRepository, proyectoRepository, mock(ControlPlanService.class),
-                        new TransaccionDirecta(), Clock.systemUTC())
-                .execute(new CrearProyectoDesdeSamiRequest(
-                        USUARIO_ID, ProyectoTestData.PLANTILLA_ID, null, List.of()));
+        cuandoSeCreaElProyectoDesdeSami();
 
-        assertThat(result.id()).isEqualTo(ProyectoTestData.PROYECTO_ID);
+        entoncesSeCreoElProyecto();
     }
 
     @Test
     @DisplayName("El wiring del taller usa el límite diario propio del taller y el de análisis de foto del plan")
-    void conversarEnTallerUseCaseShouldWireTallerAndPhotoLimits() {
-        TallerIaPort tallerIaPort = mock(TallerIaPort.class);
-        ControlPlanService controlPlanService = mock(ControlPlanService.class);
-        NegocioId negocioId = NegocioId.nuevo();
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(negocioId);
-        when(consumoSamiRepository.reservar(any(), any(), eq(11), any())).thenReturn(true);
-        when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa("Hola, ¿qué querés armar?", List.of(), CONSUMO));
+    void elTallerUsaSusLimitesDiarioYDeFoto() {
+        dadoQueElTallerRespondeConLimiteDiario(11);
 
-        ConversarEnTallerResponse response = config.conversarEnTaller(negocioRepository, tallerIaPort,
-                        consumoSamiRepository, SamiPruebas.catalogoReal(), SamiPruebas.kitsReales(),
-                        controlPlanService, politicaProcesamiento(13), Clock.systemUTC(), propiedades(3))
-                .execute(new ConversarEnTallerRequest(
-                        USUARIO_ID, "hola", new EstadoTallerItem("", "mosaic", List.of()), List.of(),
-                        new ImagenTallerItem("image/png", new byte[]{1, 2, 3})));
+        cuandoSeConversaEnElTallerConLimiteDeFoto(13);
 
-        assertThat(response.respuesta()).startsWith("Hola");
-        verify(controlPlanService).reservarPaginaIaInmediata(eq(negocioId), eq(13), any());
+        entoncesElTallerSaludaYReservaLaFotoConLimite(13);
     }
 
-    private PoliticaProcesamiento politicaProcesamiento(int limiteDiario) {
+    private void dadasLasPlantillasActivas() {
+        when(plantillaRepository.findAllParaProyectoActivas()).thenReturn(SamiPruebas.plantillas());
+    }
+
+    private void dadoQueLaIaProponeConLimiteDiario(int limite) {
+        when(samiIaPort.proponer(any())).thenReturn(new PropuestaIaSami("Ventas", List.of(), 0.9, CONSUMO));
+        when(consumoSamiRepository.reservar(any(), any(), eq(limite), any())).thenReturn(true);
+    }
+
+    private void dadaUnaPlantillaQueCreaElProyecto() {
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(ProyectoTestData.NEGOCIO_ID);
+        when(plantillaRepository.obtenerParaProyecto(ProyectoTestData.PLANTILLA_ID)).thenReturn(ProyectoTestData.plantilla());
+        when(proyectoRepository.saveConEstructura(any())).thenReturn(ProyectoTestData.proyecto());
+    }
+
+    private void dadoQueElTallerRespondeConLimiteDiario(int limite) {
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_DEL_TALLER);
+        when(consumoSamiRepository.reservar(any(), any(), eq(limite), any())).thenReturn(true);
+        when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa("Hola, ¿qué querés armar?", List.of(), CONSUMO));
+    }
+
+    private void cuandoSeConversaConMaximoDePreguntas(int maxPreguntas) {
+        conversacion = config.conversarConSami(negocioRepository, plantillaRepository, SamiPruebas.diccionarioReal(),
+                        samiIaPort, consumoSamiRepository, controlPlanService, Clock.systemUTC(), propiedades(maxPreguntas))
+                .execute(new ConversarConSamiRequest(UsuarioId.nuevo(), "vendo velas", List.of()));
+    }
+
+    private void cuandoSeCreaElProyectoDesdeSami() {
+        proyecto = config.crearProyectoDesdeSami(negocioRepository, plantillaRepository, proyectoRepository,
+                        controlPlanService, new TransaccionDirecta(), Clock.systemUTC())
+                .execute(new CrearProyectoDesdeSamiRequest(USUARIO_ID, ProyectoTestData.PLANTILLA_ID, null, List.of()));
+    }
+
+    private void cuandoSeConversaEnElTallerConLimiteDeFoto(int limiteDeFoto) {
+        taller = config.conversarEnTaller(negocioRepository, tallerIaPort, consumoSamiRepository,
+                        SamiPruebas.catalogoReal(), SamiPruebas.kitsReales(), controlPlanService,
+                        politicaProcesamiento(limiteDeFoto), Clock.systemUTC(), propiedades(3))
+                .execute(new ConversarEnTallerRequest(USUARIO_ID, "hola", new EstadoTallerItem("", "mosaic", List.of()),
+                        List.of(), new ImagenTallerItem("image/png", new byte[]{1, 2, 3})));
+    }
+
+    private void entoncesSamiPregunta() {
+        assertThat(conversacion.tipo()).isEqualTo("PREGUNTA");
+    }
+
+    private void entoncesLaPropuestaVieneDeLaIa() {
+        assertThat(conversacion.propuesta().origen()).isEqualTo("IA");
+    }
+
+    private void entoncesSeCreoElProyecto() {
+        assertThat(proyecto.id()).isEqualTo(ProyectoTestData.PROYECTO_ID);
+    }
+
+    private void entoncesElTallerSaludaYReservaLaFotoConLimite(int limiteDeFoto) {
+        assertThat(taller.respuesta()).startsWith("Hola");
+        verify(controlPlanService).reservarPaginaIaInmediata(eq(NEGOCIO_DEL_TALLER), eq(limiteDeFoto), any());
+    }
+
+    private static PoliticaProcesamiento politicaProcesamiento(int limiteDiario) {
         return new PoliticaProcesamiento(3, 10, limiteDiario, Duration.ofMinutes(5), Duration.ofSeconds(30),
                 BigDecimal.ONE, BigDecimal.ONE);
     }
 
-    private SamiProperties propiedades(int maxPreguntas) {
+    private static SamiProperties propiedades(int maxPreguntas) {
         return new SamiProperties(0.7, maxPreguntas, 7, 11, new SamiProperties.Ia(
                 "simulado", "us-east-1", null, "rapido", "avanzado", Duration.ofSeconds(30), 700, 0.6, 400));
-    }
-
-    private ConversarConSamiResponse whenConversing(SamiProperties properties, SamiIaPort samiIaPort) {
-        PlantillaRepository plantillaRepository = mock(PlantillaRepository.class);
-        when(plantillaRepository.findAllParaProyectoActivas()).thenReturn(SamiPruebas.plantillas());
-        return config.conversarConSami(negocioRepository, plantillaRepository, SamiPruebas.diccionarioReal(),
-                samiIaPort,
-                        consumoSamiRepository, mock(ControlPlanService.class), Clock.systemUTC(), properties)
-                .execute(new ConversarConSamiRequest(UsuarioId.nuevo(), "vendo velas", List.of()));
     }
 }
