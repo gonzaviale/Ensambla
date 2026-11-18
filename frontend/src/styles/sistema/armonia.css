@@ -404,9 +404,11 @@
 
 /* ===== Bloques de la sección: cabecera de color sólido (el color propio de cada bloque) ===== */
 
+/* El borde es de 1 px parejo (arriba, del color del bloque): con la cabecera llena, un borde de arriba más grueso y una
+   cabecera con otro radio dejaban una rendija en las esquinas, que se veía como un doble borde. */
 .block {
   border: 1px solid var(--c-borde);
-  border-top: 4px solid var(--accent);
+  border-top: 1px solid var(--accent);
   box-shadow: var(--sombra-reposo);
 }
 .block.selected {
@@ -417,6 +419,7 @@
 .block .block-head {
   background: var(--accent);
   border-bottom: 0;
+  border-radius: 12px 12px 0 0;
   color: #fff;
 }
 .block-head .icon-tile {
