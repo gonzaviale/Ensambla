@@ -46,10 +46,12 @@ export function PanelDeFiltros({ filtros, activos, onCambiar }: Props) {
         <button
           type="button"
           className="donde-filtros-restablecer"
+          aria-label="Restablecer"
+          title="Restablecer"
           disabled={activos === 0}
           onClick={restablecer}
         >
-          <ArrowCounterClockwiseIcon aria-hidden size={14} /> Restablecer
+          <ArrowCounterClockwiseIcon aria-hidden size={20} />
         </button>
       </header>
 

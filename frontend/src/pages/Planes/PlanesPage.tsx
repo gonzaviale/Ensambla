@@ -100,13 +100,13 @@ export function PlanesPage() {
         ) : null}
         {datos && actual ? (
           <>
+            <p className="plan-vigente">Tu plan vigente</p>
             <section
               className={`plan-current ${esPrueba ? 'plan-current-trial' : ''}`}
               aria-labelledby="plan-current-title"
             >
               <div className="plan-current-heading">
                 <div>
-                  <span className="eyebrow">Tu plan hoy</span>
                   <h2 id="plan-current-title">
                     {esPrueba
                       ? 'Tu prueba Premium está activa'
@@ -118,12 +118,11 @@ export function PlanesPage() {
                   {pruebaFinalizada ? (
                     <p>Tu prueba terminó. Seguís con el gratuito y todos tus datos se conservan.</p>
                   ) : null}
-                  {!esPrueba && !pruebaFinalizada ? (
-                    <p>
-                      {actual.codigo === 'PREMIUM' && datos.suscripcion.finEn
-                        ? `Tu período pago llega hasta el ${fecha(datos.suscripcion.finEn)}.`
-                        : 'Acá podés ver lo que llevás usado en tu negocio.'}
-                    </p>
+                  {!esPrueba &&
+                  !pruebaFinalizada &&
+                  actual.codigo === 'PREMIUM' &&
+                  datos.suscripcion.finEn ? (
+                    <p>Tu período pago llega hasta el {fecha(datos.suscripcion.finEn)}.</p>
                   ) : null}
                 </div>
                 <Btn

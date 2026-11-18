@@ -34,7 +34,7 @@ describe('planes y activación de prueba', () => {
     const premium = screen.getByRole('article', { name: 'Plan Premium' });
     const gratuito = screen.getByRole('article', { name: 'Plan Gratuito' });
     expect(within(gratuito).getByText('1.000')).toBeVisible();
-    expect(within(gratuito).getByText('Sin costo')).toBeVisible();
+    expect(within(gratuito).queryByText('Sin costo')).toBeNull();
     expect(within(premium).getByText('100')).toBeVisible();
     expect(within(premium).getByText(/14\.900/)).toBeVisible();
     expect(within(premium).getByText('Cada 30 días · renovación automática')).toBeVisible();

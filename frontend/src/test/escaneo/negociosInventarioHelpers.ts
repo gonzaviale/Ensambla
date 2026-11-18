@@ -30,7 +30,7 @@ export async function whenAbreLectorDesdeInicio(inventario: { name: string }) {
   const router = renderApp('/inicio');
   const user = userEvent.setup();
   await screen.findByRole('heading', { name: /En qué puedo/ }, ESPERA);
-  await user.click(screen.getByRole('button', { name: /^Abrir .* tablas?$/ }));
+  await user.click(screen.getByRole('button', { name: 'Mi negocio' }));
   await user.click(
     within(await screen.findByRole('region', { name: inventario.name }, ESPERA)).getByRole(
       'button',

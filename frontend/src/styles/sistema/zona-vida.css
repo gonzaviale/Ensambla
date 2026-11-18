@@ -660,3 +660,754 @@
     height: 78px;
   }
 }
+
+/* ===== Secciones con color sólido y letra blanca (pocas y variadas), sin sobrebordes ===== */
+/* Mi zona: los tres conteos del resumen. */
+.zona-ref .zona-ref-nums div,
+.zona-ref .zona-ref-nums div[data-posicion='justo'],
+.zona-ref .zona-ref-nums div[data-posicion='alto'] {
+  border: 0;
+  box-shadow: none;
+  background: var(--blue);
+}
+.zona-ref .zona-ref-nums div[data-posicion='justo'] {
+  background: var(--orange);
+}
+.zona-ref .zona-ref-nums div[data-posicion='alto'] {
+  background: var(--coral);
+}
+.zona-ref .zona-ref-nums div strong,
+.zona-ref .zona-ref-nums div span {
+  color: #fff;
+}
+/* «Tu precio…»: sin fondo; la tarjeta ya marca la posición con su color. */
+.zona-tarjeta .zona-etiqueta,
+.zona-tarjeta .zona-etiqueta.bajo,
+.zona-tarjeta .zona-etiqueta.justo,
+.zona-tarjeta .zona-etiqueta.alto {
+  padding: 0;
+  background: none;
+  color: var(--petrol);
+}
+
+/* Tu próximo negocio: un solo borde por tarjeta, sin raya de color arriba. */
+.donde-paso {
+  border: 0;
+  box-shadow: var(--sombra-elevada, 0 8px 24px #00506a1f);
+}
+.donde-comparacion,
+.donde-ranking-completo,
+.donde-detalle,
+.donde-radio-busqueda,
+.donde-explorador-controles {
+  border-width: 2px;
+  border-style: solid;
+}
+.donde-comparacion,
+.donde-radio-busqueda,
+.donde-explorador-controles {
+  border-color: var(--blue);
+}
+.donde-ranking-completo {
+  border-color: var(--orange);
+}
+.donde-detalle {
+  border-color: var(--petrol);
+}
+/* Sección sólida 1: la recomendación de Sami, en naranja. */
+.donde-recomienda {
+  border: 0;
+  background: var(--orange);
+}
+.donde-recomienda-cabeza h2,
+.donde-recomienda-cabeza p,
+.donde-recomienda .objetivos-etiqueta {
+  color: #fff;
+}
+/* Secciones sólidas 2 y 3: por qué la recomiendo (celeste) y riesgos (coral). */
+.donde-columnas > section {
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: var(--blue);
+}
+.donde-columnas > section:last-child {
+  background: var(--coral);
+}
+.donde-columnas h4,
+.donde-columnas > div:last-child h4,
+.donde-columnas > section:last-child h4 {
+  display: block;
+  padding: 0;
+  background: none;
+  color: #fff;
+  font-size: 12px;
+}
+.donde-columnas li,
+.donde-columnas .positivo svg,
+.donde-columnas .riesgo svg {
+  padding: 0;
+  background: none;
+  color: #fff;
+}
+/* «Pregunta 2 de 4»: sin fondo. */
+.donde-pregunta-actual .donde-globo small {
+  padding: 0;
+  background: none;
+  color: var(--petrol);
+}
+
+/* Sin líneas celestes: las listas desplegables son cajas con borde gris claro, para que se note que se abren. */
+.donde-plegable {
+  margin-top: 12px;
+  padding: 0 16px;
+  border: 1.5px solid #d9dcd6;
+  border-radius: 14px;
+}
+.donde-plegable summary {
+  justify-content: space-between;
+  cursor: pointer;
+}
+.donde-plegable summary::after {
+  content: '\25BE';
+  color: var(--orange);
+  font-size: 16px;
+}
+.donde-plegable[open] summary::after {
+  content: '\25B4';
+}
+.donde-calculo {
+  border-top: 0;
+}
+.donde-pestanias {
+  border-bottom: 1.5px solid #d9dcd6;
+}
+.donde-factor {
+  border-bottom: 1.5px solid #d9dcd6;
+}
+.donde-tabla th,
+.donde-tabla td {
+  border-bottom: 1.5px solid #d9dcd6;
+}
+.donde-capas {
+  border-top: 1.5px solid #d9dcd6;
+}
+
+/* La recomendación de Sami vuelve a ser una tarjeta blanca, con un solo borde. */
+.donde-recomienda {
+  border: 2px solid var(--orange);
+  background: #fff;
+}
+.donde-recomienda-cabeza h2,
+.donde-recomienda-cabeza p {
+  color: var(--petrol);
+}
+
+/* ===== Tu próximo negocio: texto legible, botones que parecen botones y secciones sólidas ===== */
+.donde-barra-de-control > p {
+  color: var(--petrol);
+  font-size: 15px;
+  font-weight: 700;
+}
+.donde-acciones .btn.ghost {
+  min-height: 42px;
+  padding: 8px 18px;
+  border: 2px solid var(--petrol);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--petrol);
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: var(--sombra-reposo, none);
+}
+.donde-acciones .btn.ghost:hover {
+  border-color: var(--orange);
+  transform: translateY(-2px);
+}
+
+/* Sami: sección naranja; ella sobre un círculo blanco y las zonas como botones blancos que se destacan. */
+.donde-recomienda {
+  border: 0;
+  background: var(--orange);
+}
+.donde-recomienda-cabeza h2,
+.donde-recomienda-cabeza p {
+  color: #fff;
+}
+.donde-recomienda-cabeza h2 {
+  font-size: 24px;
+}
+.donde-recomienda-cabeza p {
+  font-size: 15px;
+  font-weight: 600;
+}
+.donde-recomienda .donde-sami-cara {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: #fff;
+}
+.donde-recomienda .donde-mejores button {
+  min-height: 44px;
+  padding: 8px 18px;
+  border: 0;
+  background: #fff;
+  color: var(--petrol);
+  font-size: 15px;
+  font-weight: 800;
+  box-shadow: 0 3px 10px #00000026;
+}
+.donde-recomienda .donde-mejores button:hover {
+  transform: translateY(-2px);
+}
+.donde-recomienda .donde-mejores button.activa {
+  background: var(--petrol);
+  color: #fff;
+}
+
+/* Ajustes del mapa: panel petróleo con letra blanca y opciones bien marcadas. */
+.donde-explorador-controles {
+  border: 0;
+  background: var(--petrol);
+  scrollbar-width: thin;
+  scrollbar-color: var(--orange) #ffffff33;
+}
+.donde-explorador-controles::-webkit-scrollbar {
+  width: 10px;
+}
+.donde-explorador-controles::-webkit-scrollbar-track {
+  margin: 10px 0;
+  border-radius: 999px;
+  background: #ffffff33;
+}
+.donde-explorador-controles::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--orange);
+}
+.donde-explorador-controles .donde-filtros {
+  background: none;
+}
+.donde-filtros-cabeza h2,
+.donde-filtros-cabeza p,
+.donde-filtros-restablecer,
+.donde-factor-nombre,
+.donde-capas summary {
+  color: #fff;
+}
+.donde-filtros-restablecer {
+  border: 2px solid #fff;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-weight: 800;
+}
+.donde-modos button,
+.donde-modo-personalizado {
+  border: 0;
+  background: #fff;
+  color: var(--petrol);
+  font-weight: 800;
+}
+.donde-modos button[aria-pressed='true'] {
+  background: var(--orange);
+  color: #fff;
+}
+.donde-modo-personalizado[aria-current='true'] {
+  background: var(--orange);
+  color: #fff;
+}
+.donde-factor {
+  border-bottom: 1.5px solid #ffffff4d;
+}
+.donde-niveles {
+  border: 0;
+  background: #fff;
+}
+.donde-niveles label + label {
+  border-left: 0;
+}
+.donde-niveles label.marcada[data-nivel='0'] span {
+  background: var(--coral);
+  color: #fff;
+}
+.donde-niveles label.marcada[data-nivel='1'] span {
+  background: var(--blue);
+  color: #fff;
+}
+.donde-niveles label.marcada[data-nivel='2'] span {
+  background: var(--orange);
+  color: #fff;
+}
+.donde-capas {
+  border-top: 1.5px solid #ffffff4d;
+}
+.donde-capas-lista label,
+.donde-donde label {
+  color: #fff;
+}
+
+/* Radio de búsqueda: franja coral con una barra que se ve y se agarra bien. */
+.donde-radio-busqueda {
+  border: 0;
+  background: var(--coral);
+}
+.donde-radio-icono {
+  background: #fff;
+  color: var(--coral);
+}
+.donde-radio-busqueda label,
+.donde-radio-busqueda output {
+  color: #fff;
+  font-size: 14px;
+}
+.donde-radio-busqueda input[type='range'] {
+  height: 24px;
+  background: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.donde-radio-busqueda input[type='range']::-webkit-slider-runnable-track {
+  height: 10px;
+  border-radius: 999px;
+  background: #fff;
+}
+.donde-radio-busqueda input[type='range']::-moz-range-track {
+  height: 10px;
+  border-radius: 999px;
+  background: #fff;
+}
+.donde-radio-busqueda input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -6px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--petrol);
+  box-shadow: 0 2px 6px #00000040;
+}
+.donde-radio-busqueda input[type='range']::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--petrol);
+}
+
+/* ===== Ajustes del mapa, segunda pasada: sin sombras, opciones con animación y lista de capas legible ===== */
+.donde-acciones .btn.ghost,
+.donde-recomienda,
+.donde-recomienda .donde-mejores button,
+.donde-explorador-controles,
+.donde-radio-busqueda,
+.donde-mapa,
+.donde-comparacion,
+.donde-ranking-completo,
+.donde-detalle,
+.donde-radio-busqueda input[type='range']::-webkit-slider-thumb {
+  box-shadow: none;
+}
+
+/* El panel de prioridades: un solo borde alrededor. */
+.donde-explorador-controles {
+  border: 2px solid var(--blue);
+  border-radius: 18px;
+  scrollbar-color: #fff transparent;
+}
+.donde-explorador-controles::-webkit-scrollbar {
+  width: 8px;
+}
+.donde-explorador-controles::-webkit-scrollbar-track {
+  margin: 14px 0;
+  background: transparent;
+}
+.donde-explorador-controles::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #fff;
+}
+
+/* Restablecer: botón naranja, letra más grande. */
+.donde-explorador-controles .donde-filtros-restablecer {
+  padding: 8px 16px;
+  border: 2px solid var(--orange);
+  border-radius: 999px;
+  background: var(--orange);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    transform 0.2s;
+}
+.donde-explorador-controles .donde-filtros-restablecer:hover {
+  background: #fff;
+  color: var(--orange);
+  transform: translateY(-2px);
+}
+
+/* Modos rápidos y Nada / Algo / Mucho: píldoras que cambian de color con una transición. */
+.donde-explorador-controles .donde-modos button,
+.donde-explorador-controles .donde-modo-personalizado {
+  padding: 8px 14px;
+  font-size: 13px;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    transform 0.2s;
+}
+.donde-explorador-controles .donde-modos button:hover {
+  color: var(--orange);
+  transform: translateY(-2px);
+}
+.donde-explorador-controles .donde-modos button[aria-pressed='true']:hover {
+  color: #fff;
+}
+.donde-explorador-controles .donde-niveles {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 999px;
+  background: #fff;
+}
+.donde-explorador-controles .donde-niveles label + label {
+  border-left: 0;
+}
+.donde-explorador-controles .donde-niveles span {
+  display: block;
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    transform 0.2s;
+}
+.donde-explorador-controles .donde-niveles label:not(.marcada):hover span {
+  color: var(--orange);
+  transform: scale(1.06);
+}
+
+/* Qué mostrar en el mapa: opciones blancas sobre el panel; la activa se rellena. */
+.donde-explorador-controles .donde-capas summary {
+  font-size: 15px;
+  font-weight: 800;
+}
+.donde-explorador-controles .donde-capas-lista,
+.donde-explorador-controles .donde-donde {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 14px;
+}
+.donde-explorador-controles .donde-capas-lista label,
+.donde-explorador-controles .donde-donde label {
+  gap: 8px;
+  padding: 6px 14px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: none;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    transform 0.2s;
+}
+.donde-explorador-controles .donde-capas-lista label:hover,
+.donde-explorador-controles .donde-donde label:hover {
+  transform: translateY(-2px);
+}
+.donde-explorador-controles .donde-capas-lista label.marcada,
+.donde-explorador-controles .donde-donde label.marcada {
+  border-color: #fff;
+  background: #fff;
+  color: var(--petrol);
+}
+.donde-explorador-controles .donde-capas-lista i {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fff;
+}
+.donde-explorador-controles .donde-capas-lista label.marcada i {
+  border-color: var(--petrol);
+}
+
+/* ===== Ajustes del mapa, tercera pasada ===== */
+/* Cabecera: el ícono y el título con aire; Restablecer es solo el símbolo, en un botón redondo. */
+.donde-explorador-controles .donde-filtros-cabeza {
+  align-items: center;
+  gap: 12px;
+}
+.donde-explorador-controles .donde-filtros-cabeza > div {
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.donde-explorador-controles .donde-filtros-icono {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+}
+.donde-explorador-controles .donde-filtros-icono svg {
+  width: 24px;
+  height: 24px;
+}
+.donde-explorador-controles .donde-filtros-cabeza h2 {
+  font-size: 20px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.donde-explorador-controles .donde-filtros-cabeza p {
+  font-size: 13px;
+}
+.donde-explorador-controles .donde-filtros-cabeza .donde-filtros-restablecer {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+/* Sami: cuadrado blanco de esquinas redondeadas, con ella al centro. */
+.donde-recomienda .donde-sami-cara {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  padding: 8px;
+  box-sizing: border-box;
+  border-radius: 22px;
+}
+.donde-recomienda .donde-sami-cara .sami {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Prioridades: sin líneas, títulos y opciones del mismo tamaño y todas del mismo ancho, con la píldora centrada sobre la letra. */
+.donde-explorador-controles .donde-factor {
+  border-bottom: 0;
+}
+.donde-explorador-controles .donde-factor-nombre {
+  font-size: 15px;
+  font-weight: 800;
+}
+.donde-explorador-controles .donde-niveles label {
+  flex: 1;
+}
+.donde-explorador-controles .donde-niveles span {
+  padding: 7px 0;
+  font-size: 15px;
+  text-align: center;
+}
+
+/* «Qué mostrar en el mapa»: una caja que se abre, con flecha. */
+.donde-explorador-controles .donde-capas {
+  margin-top: 14px;
+  padding: 0 14px;
+  border: 2px solid #fff;
+  border-radius: 14px;
+}
+.donde-explorador-controles .donde-capas summary {
+  justify-content: space-between;
+  min-height: 48px;
+  font-size: 15px;
+}
+.donde-explorador-controles .donde-capas summary::after {
+  content: '\25BE';
+  color: var(--orange);
+  font-size: 20px;
+}
+.donde-explorador-controles .donde-capas[open] summary::after {
+  content: '\25B4';
+}
+
+/* Un toque más chico, para que Nada / Algo / Mucho entren sin cortarse. */
+.donde-explorador-controles .donde-factor-nombre {
+  min-width: 0;
+  font-size: 14px;
+}
+.donde-explorador-controles .donde-niveles {
+  flex: none;
+  width: 172px;
+  gap: 2px;
+}
+.donde-explorador-controles .donde-niveles label {
+  min-width: 0;
+}
+.donde-explorador-controles .donde-niveles span {
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+/* Sin scroll horizontal en el panel de prioridades. */
+.donde-explorador-controles {
+  overflow-x: hidden;
+}
+
+/* Más alto el explorador: las siete prioridades se ven de una, sin scrollear. */
+.donde-explorador {
+  --alto-mapa: 640px;
+}
+.donde-explorador-controles .donde-modos {
+  margin-bottom: 8px;
+}
+.donde-explorador-controles .donde-factor {
+  padding-block: 6px;
+}
+
+/* ===== Planes ===== */
+/* «Tu plan vigente»: título destacado, fuera de la sección. */
+.plan-vigente {
+  margin: 0 0 10px;
+  color: var(--petrol);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+}
+/* La sección del plan actual: color sólido y letra blanca. */
+.plan-current,
+.plan-current-trial {
+  border: 0;
+  background: var(--petrol);
+  box-shadow: none;
+}
+.plan-current h2,
+.plan-current-heading p,
+.plan-usage dt,
+.plan-usage dd,
+.plan-usage dd strong,
+.plan-usage dd span,
+.plan-usage-note {
+  color: #fff;
+}
+.plan-usage + .plan-usage {
+  border-left-color: #ffffff59;
+}
+.plan-usage progress,
+.plan-usage progress::-webkit-progress-bar {
+  background: #fff;
+}
+.plan-usage progress::-webkit-progress-value {
+  background: var(--orange);
+}
+.plan-usage progress::-moz-progress-bar {
+  background: var(--orange);
+}
+.plan-current .btn.ghost {
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--petrol);
+  font-weight: 800;
+  box-shadow: none;
+}
+
+/* Las dos tarjetas con los mismos tamaños de título, subtítulo y texto. */
+.plan-card h2,
+.plan-card-premium h2 {
+  font-size: 28px;
+}
+.plan-card-description {
+  font-size: 15px;
+}
+.plan-card-premium .plan-card-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+}
+.plan-card-premium .plan-price {
+  font-size: 34px;
+}
+/* Los íconos de arriba, del mismo color que los de la lista de su plan. */
+.plan-card[data-color='blue'] .plan-card-icon {
+  background: var(--petrol);
+  color: #fff;
+}
+.plan-card[data-color='petrol'] .plan-card-icon {
+  background: var(--orange);
+  color: #fff;
+}
+/* Premium: sin borde de arriba, solo la franja de colores. */
+.plan-card-premium {
+  border-top: 0;
+}
+
+/* Planes, segunda pasada: sección celeste, sin líneas, subtítulo en una línea y más aire. */
+.plan-current,
+.plan-current-trial {
+  background: var(--blue);
+}
+.plan-usage + .plan-usage {
+  border-left: 0;
+}
+.plan-limits,
+.plan-features,
+.plan-renewal {
+  border-top: 0;
+}
+.plan-card-description {
+  max-width: none;
+  margin-bottom: 20px;
+}
+@media (min-width: 961px) {
+  .plan-card-description {
+    white-space: nowrap;
+  }
+}
+
+/* Barras de uso: relleno petróleo sobre fondo blanco, un poco más gruesas. */
+.plan-usage progress {
+  height: 12px;
+}
+.plan-usage progress::-webkit-progress-value {
+  background: var(--petrol);
+}
+.plan-usage progress::-moz-progress-bar {
+  background: var(--petrol);
+}
+
+/* Bordes de los planes: Gratuito en petróleo y Premium en naranja, parejos por todos lados. */
+.plan-card[data-color='blue'] {
+  border: 2px solid var(--petrol);
+}
+.plan-card.plan-card-premium {
+  border: 3px solid var(--orange);
+  border-top: 0;
+}
+
+/* Gratuito: el borde de arriba más grueso, todo en petróleo. */
+.plan-card[data-color='blue'],
+.plan-card[data-color='blue'][data-actual='true'] {
+  border-top-width: 8px;
+}
+
+/* Sección del plan vigente en coral y todos los renglones de los planes con el mismo tamaño de letra. */
+.plan-current,
+.plan-current-trial {
+  background: var(--coral);
+}
+.plan-limits > div,
+.plan-limits dt,
+.plan-limits dd,
+.plan-features,
+.plan-features li {
+  font-size: 15px;
+}
+
+/* Textos de abajo de las tarjetas y «Tus datos tienen su lugar»: mismo tamaño que los renglones. */
+.plan-card-bottom p,
+.plan-renewal p,
+.plan-renewal h3,
+.plans-reassurance h2,
+.plans-reassurance p {
+  font-size: 15px;
+}

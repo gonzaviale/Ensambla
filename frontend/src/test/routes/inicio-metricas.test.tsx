@@ -109,7 +109,7 @@ describe('inicio: sin tablero ni decisiones', () => {
 describe('inicio: métricas', () => {
   beforeEach(() => window.localStorage.clear());
 
-  it('dentro de «Tu negocio» muestra lo vendido junto al cuaderno, sin elegir sección', async () => {
+  it('dentro de «Tu negocio» muestra lo vendido, sin elegir sección', async () => {
     await whenAbreInicio([almacen('Almacén de barrio')]);
 
     const negocio = within(screen.getByRole('region', { name: 'Tu negocio' }));
@@ -117,19 +117,17 @@ describe('inicio: métricas', () => {
     expect(
       await within(metricas).findByRole('heading', { name: 'Esta semana vendiste' }, ESPERA),
     ).toBeVisible();
-    expect(negocio.getByRole('button', { name: /Abrir Almacén de barrio/ })).toBeVisible();
     expect(screen.queryByText('Así viene')).toBeNull();
     expect(screen.queryByText('Cómo te va')).toBeNull();
   });
 
-  it('con un negocio sin ventas muestra qué se va a ver, junto al cuaderno', async () => {
+  it('con un negocio sin ventas muestra qué se va a ver', async () => {
     await whenAbreInicio([givenNegocioSinVentas()]);
 
     const negocio = within(await screen.findByRole('region', { name: 'Tu negocio' }, ESPERA));
     expect(
       await negocio.findByRole('heading', { name: 'Acá vas a ver tus ventas' }, ESPERA),
     ).toBeVisible();
-    expect(negocio.getByRole('button', { name: /Abrir Kiosco nuevo/ })).toBeVisible();
   });
 
   it('sin ventas, «Cargar mis primeras ventas» lleva al negocio para anotarlas', async () => {

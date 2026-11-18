@@ -124,7 +124,7 @@ describe('plantillas', () => {
   it('abre la vista previa, elige opciones y crea el sistema con ejemplos', async () => {
     const { user, router } = await abrirInicio();
     // Las plantillas viven en su pantalla: la home sólo tiene la ficha «Elegir una plantilla».
-    await clickButton(user, 'Plantillas');
+    await clickButton(user, /Elegir una plantilla/);
     await verifyHeadingPresentAsync(/Elegí una base/);
     const tarjeta = document.querySelector<HTMLElement>('[data-template="business"]');
     if (!tarjeta) throw new Error('Falta la tarjeta de la plantilla');
@@ -147,7 +147,7 @@ describe('plantillas', () => {
 
   it('filtra por tipo y busca por texto', async () => {
     const { user } = await abrirInicio();
-    await clickButton(user, 'Plantillas');
+    await clickButton(user, /Elegir una plantilla/);
     await verifyHeadingPresentAsync(/Elegí una base/);
     const visibles = () => document.querySelectorAll('[data-template]:not([hidden])').length;
     expect(visibles()).toBe(3);

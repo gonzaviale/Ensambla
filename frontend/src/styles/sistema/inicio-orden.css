@@ -122,7 +122,7 @@
    columna con el cuaderno primero. */
 .inicio .tu-negocio-cuerpo {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: stretch;
   gap: 24px 32px;
   margin-bottom: 64px; /* El mismo espacio que separa las secciones del inicio (.inicio-bloque). */

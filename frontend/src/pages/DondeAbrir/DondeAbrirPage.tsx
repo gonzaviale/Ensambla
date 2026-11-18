@@ -157,7 +157,6 @@ export function DondeAbrirPage() {
       </button>
       <header className="donde-encabezado">
         <div>
-          <p className="objetivos-etiqueta">Zona</p>
           <h1>Tu próximo negocio</h1>
           <p className="donde-bajada">
             Compará zonas y entendé qué necesitás para abrir un nuevo local.
