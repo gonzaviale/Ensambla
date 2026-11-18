@@ -17,7 +17,7 @@ import static com.ensambla.backend.support.UsuarioTestData.HASH;
 import static com.ensambla.backend.support.UsuarioTestData.NOMBRE;
 import static com.ensambla.backend.support.UsuarioTestData.usuario;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -27,61 +27,88 @@ class IniciarSesionTest {
     private final UsuarioRepository usuarioRepository = mock(UsuarioRepository.class);
     private final ContraseniaPort contraseniaPort = mock(ContraseniaPort.class);
     private final IniciarSesion iniciarSesion = new IniciarSesion(usuarioRepository, contraseniaPort);
+    private UsuarioResponse sesion;
+    private Throwable error;
 
     @Test
     @DisplayName("Autentica con email normalizado y contraseña correcta y devuelve la identidad")
-    void executeShouldReturnIdentityWhenPasswordMatches() {
-        givenUsuario(EstadoUsuario.ACTIVO);
-        when(contraseniaPort.coincide(CONTRASENIA, HASH)).thenReturn(true);
+    void autenticaConEmailNormalizadoYContraseniaCorrecta() {
+        dadoUnaCuenta(EstadoUsuario.ACTIVO);
+        dadoQueLaContraseniaCoincide();
 
-        UsuarioResponse result = iniciarSesion();
+        cuandoIniciaSesion();
 
-        assertThat(result).isEqualTo(new UsuarioResponse(usuario().getId(), NOMBRE, EMAIL));
+        entoncesLaSesionEsDeLaPersona();
     }
 
     @Test
-    @DisplayName("Rechaza un email inexistente")
-    void executeShouldRejectUnknownEmail() {
-        when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
+    @DisplayName("Rechaza un email inexistente sin mirar ninguna contraseña")
+    void rechazaUnEmailInexistente() {
+        dadoQueNoHayCuentaConEseEmail();
 
-        thenCredentialsRejected();
+        cuandoIntentaIniciarSesion();
 
-        verifyNoInteractions(contraseniaPort);
+        entoncesSeRechazanLasCredenciales();
+        entoncesNoSeComparoLaContrasenia();
     }
 
     @Test
     @DisplayName("Rechaza un usuario suspendido sin validar la contraseña")
-    void executeShouldRejectSuspendedUsuario() {
-        givenUsuario(EstadoUsuario.SUSPENDIDO);
+    void rechazaUnUsuarioSuspendido() {
+        dadoUnaCuenta(EstadoUsuario.SUSPENDIDO);
 
-        thenCredentialsRejected();
+        cuandoIntentaIniciarSesion();
 
-        verifyNoInteractions(contraseniaPort);
+        entoncesSeRechazanLasCredenciales();
+        entoncesNoSeComparoLaContrasenia();
     }
 
     @Test
     @DisplayName("Rechaza una contraseña incorrecta")
-    void executeShouldRejectWrongPassword() {
-        givenUsuario(EstadoUsuario.ACTIVO);
-        when(contraseniaPort.coincide(CONTRASENIA, HASH)).thenReturn(false);
+    void rechazaUnaContraseniaIncorrecta() {
+        dadoUnaCuenta(EstadoUsuario.ACTIVO);
+        dadoQueLaContraseniaNoCoincide();
 
-        thenCredentialsRejected();
+        cuandoIntentaIniciarSesion();
+
+        entoncesSeRechazanLasCredenciales();
     }
 
-    // --- arrange ---
-    private void givenUsuario(EstadoUsuario estado) {
+    private void dadoUnaCuenta(EstadoUsuario estado) {
         Usuario usuario = usuario();
         usuario.setEstado(estado);
         when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.of(usuario));
     }
 
-    // --- act ---
-    private UsuarioResponse iniciarSesion() {
-        return iniciarSesion.execute(new IniciarSesionRequest(" PERSONA@EXAMPLE.COM ", CONTRASENIA));
+    private void dadoQueNoHayCuentaConEseEmail() {
+        when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
     }
 
-    // --- assert ---
-    private void thenCredentialsRejected() {
-        assertThatThrownBy(this::iniciarSesion).isInstanceOf(CredencialesInvalidasException.class);
+    private void dadoQueLaContraseniaCoincide() {
+        when(contraseniaPort.coincide(CONTRASENIA, HASH)).thenReturn(true);
+    }
+
+    private void dadoQueLaContraseniaNoCoincide() {
+        when(contraseniaPort.coincide(CONTRASENIA, HASH)).thenReturn(false);
+    }
+
+    private void cuandoIniciaSesion() {
+        sesion = iniciarSesion.execute(new IniciarSesionRequest(" PERSONA@EXAMPLE.COM ", CONTRASENIA));
+    }
+
+    private void cuandoIntentaIniciarSesion() {
+        error = catchThrowable(this::cuandoIniciaSesion);
+    }
+
+    private void entoncesLaSesionEsDeLaPersona() {
+        assertThat(sesion).isEqualTo(new UsuarioResponse(usuario().getId(), NOMBRE, EMAIL));
+    }
+
+    private void entoncesSeRechazanLasCredenciales() {
+        assertThat(error).isInstanceOf(CredencialesInvalidasException.class);
+    }
+
+    private void entoncesNoSeComparoLaContrasenia() {
+        verifyNoInteractions(contraseniaPort);
     }
 }

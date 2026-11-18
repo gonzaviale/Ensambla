@@ -7,33 +7,55 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class UsuarioTest {
 
+    private Usuario usuario;
+
     @Test
     @DisplayName("Un usuario ACTIVO está activo")
-    void estaActivoShouldBeTrueWhenEstadoIsActivo() {
-        Usuario usuario = Usuario.builder().estado(EstadoUsuario.ACTIVO).build();
+    void unUsuarioActivoEstaActivo() {
+        dadoUnUsuario(EstadoUsuario.ACTIVO);
 
-        assertThat(usuario.estaActivo()).isTrue();
+        entoncesEstaActivo();
     }
 
     @Test
     @DisplayName("Un usuario SUSPENDIDO no está activo")
-    void estaActivoShouldBeFalseWhenEstadoIsSuspendido() {
-        Usuario usuario = Usuario.builder().estado(EstadoUsuario.SUSPENDIDO).build();
+    void unUsuarioSuspendidoNoEstaActivo() {
+        dadoUnUsuario(EstadoUsuario.SUSPENDIDO);
 
-        assertThat(usuario.estaActivo()).isFalse();
+        entoncesNoEstaActivo();
     }
 
     @Test
     @DisplayName("Un usuario sin estado no está activo")
-    void estaActivoShouldBeFalseWhenEstadoIsNull() {
-        assertThat(new Usuario().estaActivo()).isFalse();
+    void unUsuarioSinEstadoNoEstaActivo() {
+        dadoUnUsuarioSinEstado();
+
+        entoncesNoEstaActivo();
     }
 
     @Test
     @DisplayName("Normaliza el email recortando espacios y pasando a minúsculas")
-    void normalizarEmailShouldTrimAndLowerCase() {
-        String result = Usuario.normalizarEmail("  Persona@Example.COM ");
+    void normalizaElEmailRecortandoEspaciosYPasandoAMinusculas() {
+        entoncesElEmailNormalizadoQueda("  Persona@Example.COM ", "persona@example.com");
+    }
 
-        assertThat(result).isEqualTo("persona@example.com");
+    private void dadoUnUsuario(EstadoUsuario estado) {
+        usuario = Usuario.builder().estado(estado).build();
+    }
+
+    private void dadoUnUsuarioSinEstado() {
+        usuario = new Usuario();
+    }
+
+    private void entoncesEstaActivo() {
+        assertThat(usuario.estaActivo()).isTrue();
+    }
+
+    private void entoncesNoEstaActivo() {
+        assertThat(usuario.estaActivo()).isFalse();
+    }
+
+    private static void entoncesElEmailNormalizadoQueda(String email, String esperado) {
+        assertThat(Usuario.normalizarEmail(email)).isEqualTo(esperado);
     }
 }

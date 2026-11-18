@@ -41,8 +41,15 @@ public class RegistrarUsuario {
     private final Clock clock;
 
     public UsuarioResponse execute(RegistrarUsuarioRequest request) {
-        OffsetDateTime ahora = OffsetDateTime.now(clock);
-        return UsuarioResponse.de(transaccionPort.ejecutar(() -> registrar(request, ahora)));
+        return UsuarioResponse.de(registrarEnTransaccion(request, ahora()));
+    }
+
+    private OffsetDateTime ahora() {
+        return OffsetDateTime.now(clock);
+    }
+
+    private Usuario registrarEnTransaccion(RegistrarUsuarioRequest request, OffsetDateTime ahora) {
+        return transaccionPort.ejecutar(() -> registrar(request, ahora));
     }
 
     private Usuario registrar(RegistrarUsuarioRequest request, OffsetDateTime ahora) {
@@ -61,14 +68,18 @@ public class RegistrarUsuario {
     }
 
     private Usuario crearUsuario(RegistrarUsuarioRequest request, String email, OffsetDateTime ahora) {
-        return usuarioRepository.save(Usuario.builder()
+        return usuarioRepository.save(nuevoUsuario(request, email, ahora));
+    }
+
+    private Usuario nuevoUsuario(RegistrarUsuarioRequest request, String email, OffsetDateTime ahora) {
+        return Usuario.builder()
                 .nombre(request.nombre().trim())
                 .email(email)
                 .hashContrasenia(contraseniaPort.hashear(request.contrasenia()))
                 .estado(EstadoUsuario.ACTIVO)
                 .creadoEn(ahora)
                 .actualizadoEn(ahora)
-                .build());
+                .build();
     }
 
     private Negocio crearNegocio(RegistrarUsuarioRequest request, Usuario usuario, OffsetDateTime ahora) {
@@ -81,15 +92,22 @@ public class RegistrarUsuario {
     }
 
     private void asignarPlanGratuito(NegocioId negocioId, OffsetDateTime ahora) {
-        Plan plan = planRepository.findByCodigo(CodigoPlan.GRATUITO)
+        suscripcionRepository.save(suscripcionGratuita(negocioId, planGratuito(), ahora));
+    }
+
+    private Plan planGratuito() {
+        return planRepository.findByCodigo(CodigoPlan.GRATUITO)
                 .orElseThrow(() -> new ResourceNotFoundException("Plan gratuito no encontrado"));
-        suscripcionRepository.save(Suscripcion.builder()
+    }
+
+    private static Suscripcion suscripcionGratuita(NegocioId negocioId, Plan plan, OffsetDateTime ahora) {
+        return Suscripcion.builder()
                 .negocioId(negocioId)
                 .planId(plan.getId())
                 .estado(EstadoSuscripcion.ACTIVA)
                 .inicioEn(ahora)
                 .creadoEn(ahora)
                 .actualizadoEn(ahora)
-                .build());
+                .build();
     }
 }
