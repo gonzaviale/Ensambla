@@ -46,7 +46,7 @@ export function CuentaVentaCaja({
           <>
             {(actual.saldo ?? 0) > 0 && actual.clienteId && (
               <button type="button" className="btn primary" onClick={() => setCobrando(true)}>
-                Registrar pago
+                Guardar pago
               </button>
             )}
             <HistorialCobrosCaja

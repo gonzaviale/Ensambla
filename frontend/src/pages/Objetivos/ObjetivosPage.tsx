@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { PlusIcon } from '@phosphor-icons/react';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
+import { PageFooter } from '@/components/sistema/PageFooter';
 import { useEliminarObjetivo } from '@/hooks/objetivos/mutations';
 import { useObjetivos } from '@/hooks/objetivos/queries';
 import { useMedirObjetivos } from '@/hooks/objetivos/useMedirObjetivos';
@@ -121,6 +122,7 @@ export function ObjetivosPage() {
       <main id="main" tabIndex={-1} className="page-wrap objetivos-page reveal">
         <ContenidoDeObjetivos objetivos={objetivos} cargando={cargando} />
         <EntradaDondeAbrir />
+        <PageFooter />
       </main>
     </>
   );

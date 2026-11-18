@@ -50,11 +50,12 @@ describe('MiniObjetivoCard', () => {
     render(<MiniObjetivoCard mini={mini} onDecidir={onDecidir} onRestaurar={vi.fn()} />);
 
     const tarjeta = screen.getByRole('article', { name: 'Vendé $90.000 por semana' });
+    expect(within(tarjeta).queryByText('Hoy vendés unos $78.000 por semana.')).toBeNull();
+    await user.click(within(tarjeta).getByRole('button', { name: /Por qué de este paso/ }));
     expect(within(tarjeta).getByText('Hoy vendés unos $78.000 por semana.')).toBeVisible();
     expect(within(tarjeta).getByText('$84.000')).toBeVisible();
     expect(within(tarjeta).getByText('$90.000')).toBeVisible();
     expect(within(tarjeta).getByText('Te faltan $6.000 por semana')).toBeVisible();
-    expect(within(tarjeta).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
 
     await user.click(screen.getByRole('button', { name: 'Lo hago' }));
     await user.click(screen.getByRole('button', { name: 'Dejarlo para después' }));
@@ -89,10 +90,8 @@ describe('MiniObjetivoCard', () => {
 
     expect(screen.getByRole('article')).toHaveClass('mini-objetivo');
     expect(screen.getByText('Meta alcanzada')).toBeVisible();
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Meta alcanzada: el domingo Sami te sube la meta o te propone otro',
-    );
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Meta alcanzada: el domingo Sami la sube');
+    expect(screen.queryByRole('button', { name: /Lo hago|Dejarlo para después/ })).toBeNull();
   });
 
   it('lo que dejó para después se puede restaurar para volver a decidir', async () => {
@@ -120,7 +119,10 @@ describe('MiniObjetivoCard', () => {
   it('mientras guarda no deja tocar los botones', () => {
     render(<MiniObjetivoCard mini={mini} ocupado onDecidir={vi.fn()} onRestaurar={vi.fn()} />);
 
-    screen.getAllByRole('button').forEach((boton) => expect(boton).toBeDisabled());
+    // «Por qué de este paso» sólo despliega texto: sigue disponible mientras guarda.
+    screen
+      .getAllByRole('button', { name: /^(?!Por qué de este paso)/ })
+      .forEach((boton) => expect(boton).toBeDisabled());
   });
 });
 

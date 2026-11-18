@@ -121,28 +121,28 @@ async function abrir({ respuestaPerdida = false, recuperar = false } = {}) {
   return { user, ventas, cobros, solicitudes, clave };
 }
 
-describe('cuenta y cobros de deudas de clientes', () => {
+describe('cuenta y cobros de fiado de clientes', () => {
   it('registra una entrega y después salda las ventas pendientes sin perder el historial', async () => {
     const { user, solicitudes, cobros } = await abrir();
     const cuenta = screen.getByRole('dialog', { name: 'Cuenta de Ana López' });
-    await user.click(within(cuenta).getByRole('button', { name: 'Registrar pago' }));
-    const formulario = within(screen.getByRole('dialog', { name: 'Registrar pago de deuda' }));
+    await user.click(within(cuenta).getByRole('button', { name: 'Guardar pago' }));
+    const formulario = within(screen.getByRole('dialog', { name: 'Guardar pago del fiado' }));
     await user.clear(formulario.getByLabelText('Importe del pago ($)'));
     await user.type(formulario.getByLabelText('Importe del pago ($)'), '1500');
     await user.click(formulario.getByRole('button', { name: 'Transferencia' }));
     await user.click(formulario.getByRole('button', { name: 'Confirmar pago' }));
-    await screen.findByRole('dialog', { name: 'Pago registrado' }, ESPERA);
+    await screen.findByRole('dialog', { name: 'Pago guardado' }, ESPERA);
     await user.click(screen.getByRole('button', { name: 'Listo' }));
     await waitFor(
       () => expect(within(cuenta).getByText('7.500,00', { exact: false })).toBeVisible(),
       ESPERA,
     );
-    await user.click(within(cuenta).getByRole('button', { name: 'Registrar pago' }));
+    await user.click(within(cuenta).getByRole('button', { name: 'Guardar pago' }));
     await user.click(screen.getByRole('button', { name: 'Confirmar pago' }));
-    await screen.findByRole('dialog', { name: 'Pago registrado' }, ESPERA);
+    await screen.findByRole('dialog', { name: 'Pago guardado' }, ESPERA);
     await user.click(screen.getByRole('button', { name: 'Listo' }));
 
-    expect(await within(cuenta).findByText('Sin deuda')).toBeVisible();
+    expect(await within(cuenta).findByText('No debe nada')).toBeVisible();
     expect(solicitudes).toHaveLength(2);
     expect(solicitudes[1]?.aplicaciones.map((a) => a.pagos[0]?.importe)).toEqual([4500, 3000]);
     expect(cobros).toHaveLength(2);
@@ -153,10 +153,10 @@ describe('cuenta y cobros de deudas de clientes', () => {
     const { user, solicitudes } = await abrir();
     await user.click(
       within(screen.getByRole('dialog', { name: 'Cuenta de Ana López' })).getByRole('button', {
-        name: 'Registrar pago',
+        name: 'Guardar pago',
       }),
     );
-    const formulario = within(screen.getByRole('dialog', { name: 'Registrar pago de deuda' }));
+    const formulario = within(screen.getByRole('dialog', { name: 'Guardar pago del fiado' }));
     await user.clear(formulario.getByLabelText('Importe del pago ($)'));
     await user.type(formulario.getByLabelText('Importe del pago ($)'), '7000');
     await user.click(formulario.getByRole('button', { name: 'Dividir pago' }));
@@ -166,7 +166,7 @@ describe('cuenta y cobros de deudas de clientes', () => {
     );
     await user.click(formulario.getByRole('button', { name: 'Confirmar pago' }));
 
-    await screen.findByRole('dialog', { name: 'Pago registrado' }, ESPERA);
+    await screen.findByRole('dialog', { name: 'Pago guardado' }, ESPERA);
     expect(solicitudes[0]?.aplicaciones.map((a) => a.pagos)).toEqual([
       [
         { medio: 'EFECTIVO', importe: 2000 },
@@ -180,7 +180,7 @@ describe('cuenta y cobros de deudas de clientes', () => {
     const { user, solicitudes, cobros } = await abrir({ respuestaPerdida: true });
     await user.click(
       within(screen.getByRole('dialog', { name: 'Cuenta de Ana López' })).getByRole('button', {
-        name: 'Registrar pago',
+        name: 'Guardar pago',
       }),
     );
     await user.click(screen.getByRole('button', { name: 'Confirmar pago' }));
@@ -188,7 +188,7 @@ describe('cuenta y cobros de deudas de clientes', () => {
       await screen.findByRole('button', { name: 'Verificar misma operación' }, ESPERA),
     );
 
-    await screen.findByRole('dialog', { name: 'Pago registrado' }, ESPERA);
+    await screen.findByRole('dialog', { name: 'Pago guardado' }, ESPERA);
     expect(solicitudes).toHaveLength(2);
     expect(solicitudes[0]).toEqual(solicitudes[1]);
     expect(cobros).toHaveLength(1);
@@ -200,7 +200,7 @@ describe('cuenta y cobros de deudas de clientes', () => {
     expect(screen.getByRole('region', { name: 'Pago pendiente de verificar' })).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Verificar misma operación' }));
 
-    await screen.findByRole('dialog', { name: 'Pago registrado' }, ESPERA);
+    await screen.findByRole('dialog', { name: 'Pago guardado' }, ESPERA);
     expect(sessionStorage.getItem(clave)).toBeNull();
     expect(cobros).toHaveLength(1);
   });
@@ -209,7 +209,7 @@ describe('cuenta y cobros de deudas de clientes', () => {
     const { user, solicitudes } = await abrir();
     await user.click(
       within(screen.getByRole('dialog', { name: 'Cuenta de Ana López' })).getByRole('button', {
-        name: 'Registrar pago',
+        name: 'Guardar pago',
       }),
     );
     await user.clear(screen.getByLabelText('Importe del pago ($)'));

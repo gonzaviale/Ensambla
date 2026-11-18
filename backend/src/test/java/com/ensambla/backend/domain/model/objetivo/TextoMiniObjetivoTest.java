@@ -26,7 +26,7 @@ class TextoMiniObjetivoTest {
     void moverParadoShouldWriteTheNumbers() {
         whenSeEscribeMoverParado();
 
-        thenElTextoEs("Mové «Fideos 500 g»",
+        thenElTextoEs("Volvé a vender «Fideos 500 g»",
                 "En el último mes no se vendió y tenés 40 guardados ($32.000 en mercadería). Bajale $10 y apuntá a 3 "
                         + "por semana.");
     }

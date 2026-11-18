@@ -1,3 +1,4 @@
+import { TargetIcon } from '@phosphor-icons/react';
 import { useRef, useState } from 'react';
 import { useDecidirPaso } from '@/hooks/objetivos/mutations';
 import {
@@ -106,7 +107,7 @@ export function SeguimientoDelObjetivo({
   if (minis.isError) {
     return (
       <p role="alert" className="objetivos-pasos-error">
-        No pudimos traer tus mini-objetivos. Tu objetivo sigue guardado: probá de nuevo en un rato.
+        No pudimos traer tus mini-objetivos. Tu objetivo sigue guardado.
       </p>
     );
   }
@@ -131,8 +132,7 @@ export function SeguimientoDelObjetivo({
         </h2>
         {minis.data.faltanDatos === 'OBJETIVO_ALCANZADO' ? (
           <p className="objetivos-pasos-vacio">
-            Ya llegaste a tu meta: no hace falta seguir con mini-objetivos. Podés definir un
-            objetivo más alto.
+            ¡Llegaste a tu meta! Podés definir un objetivo más alto.
           </p>
         ) : minis.data.minis.length === 0 ? (
           <p className="objetivos-pasos-vacio">
@@ -141,7 +141,12 @@ export function SeguimientoDelObjetivo({
           </p>
         ) : (
           <>
-            {cuanto && <p className="mini-objetivos-cubren">{cuanto}</p>}
+            {cuanto && (
+              <p className="mini-objetivos-cubren">
+                <TargetIcon aria-hidden size={26} weight="bold" />
+                <span>{cuanto}</span>
+              </p>
+            )}
             <div className="mini-objetivos">
               {minis.data.minis.map((mini) =>
                 mini.modo === 'MANUAL' ? (
@@ -178,7 +183,7 @@ export function SeguimientoDelObjetivo({
         )}
         {falloAlgo && (
           <p role="alert" className="objetivos-pasos-error">
-            No pudimos guardar el cambio. Revisá tu conexión y volvé a intentar.
+            No pudimos guardar el cambio. Probá de nuevo.
           </p>
         )}
       </section>

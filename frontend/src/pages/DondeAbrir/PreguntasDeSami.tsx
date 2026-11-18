@@ -7,6 +7,7 @@ import type { RespuestasDeSami } from '@/lib/respuestasDeSami';
 type Opcion = { valor: string; titulo: string; ayuda: string };
 type Pregunta = {
   clave: keyof RespuestasDeSami;
+  etiqueta: string;
   texto: string;
   opciones: Opcion[];
 };
@@ -14,6 +15,7 @@ type Pregunta = {
 const PREGUNTAS: Pregunta[] = [
   {
     clave: 'alcance',
+    etiqueta: 'Zona',
     texto: '¿En qué zona querés llegar a nuevos clientes?',
     opciones: [
       {
@@ -30,6 +32,7 @@ const PREGUNTAS: Pregunta[] = [
   },
   {
     clave: 'prioridad',
+    etiqueta: 'Lugares',
     texto: '¿Qué combinación de lugares puede atraer mejor a tu público?',
     opciones: [
       { valor: 'equilibrado', titulo: 'Un equilibrio', ayuda: 'Un poco de cada cosa' },
@@ -42,6 +45,7 @@ const PREGUNTAS: Pregunta[] = [
   },
   {
     clave: 'publico',
+    etiqueta: 'Entorno',
     texto: '¿En qué entorno suele moverse el público al que querés llegar?',
     opciones: [
       {
@@ -63,6 +67,7 @@ const PREGUNTAS: Pregunta[] = [
   },
   {
     clave: 'tamano',
+    etiqueta: 'Tamaño',
     texto: '¿Qué tamaño tendría el local?',
     opciones: [
       { valor: 'chico', titulo: 'Chico', ayuda: 'Hasta 70 m²' },
@@ -82,7 +87,7 @@ type Props = {
   onTerminar: () => void;
 };
 
-// Sami pregunta de a una. Lo ya respondido queda arriba como una charla; al contestar la última, muestra las zonas.
+// Sami pregunta de a una. Lo ya respondido queda arriba como fichas con lo que elegiste; al contestar la última, muestra las zonas.
 export function PreguntasDeSami({ respuestas, onResponder, onTerminar }: Props) {
   const [indice, setIndice] = useState(0);
   const negocio = useConfiguracionNegocio().data;
@@ -100,8 +105,8 @@ export function PreguntasDeSami({ respuestas, onResponder, onTerminar }: Props) 
       <ol className="donde-charla" aria-label="Lo que ya me contaste">
         {PREGUNTAS.slice(0, indice).map((pregunta) => (
           <li key={pregunta.clave}>
-            <span className="sami-dice">{pregunta.texto}</span>
-            <span className="vos-dijiste">
+            <span className="charla-etiqueta">{pregunta.etiqueta}</span>
+            <span className="charla-respuesta">
               {tituloDeLaRespuesta(pregunta, respuestas[pregunta.clave])}
             </span>
           </li>

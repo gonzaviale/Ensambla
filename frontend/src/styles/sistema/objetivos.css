@@ -778,24 +778,41 @@
 }
 .objetivos-tarjeta-avance {
   display: grid;
-  grid-template-columns: 1fr minmax(220px, 0.8fr);
-  gap: 26px;
-  align-items: end;
-  margin-top: 18px;
+  grid-template-columns: auto minmax(0, 520px);
+  align-items: center;
+  justify-content: start;
+  gap: 18px 40px;
+  margin-top: 14px;
 }
 .objetivos-avance-cifras {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 8px;
+  display: grid;
+  gap: 2px;
 }
 .objetivos-avance-cifras strong {
-  font-size: 30px;
   color: var(--petrol);
+  font-size: 34px;
+  line-height: 1.1;
 }
 .objetivos-avance-cifras span {
-  color: var(--muted);
-  font-size: 12px;
+  color: var(--petrol);
+  font-size: 13px;
+  font-weight: 700;
+}
+.objetivos-avance-meta {
+  display: grid;
+  gap: 6px;
+}
+.objetivos-avance-meta > p:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  color: var(--petrol);
+  font-size: 13px;
+  font-weight: 700;
+}
+.objetivos-avance-meta > p:first-child strong {
+  color: var(--orange);
 }
 .objetivos-progreso {
   height: 12px;
@@ -810,45 +827,8 @@
   background: var(--orange);
 }
 .objetivos-tendencia-texto {
-  margin-top: 10px;
-  color: var(--muted);
+  color: var(--petrol);
   font-size: 12px;
-}
-.objetivos-tendencia {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  height: 96px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--line);
-}
-.objetivos-tendencia figure {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  flex: 1;
-  height: 100%;
-  margin: 0;
-}
-.objetivos-tendencia i {
-  display: block;
-  min-height: 6px;
-  border-radius: 6px 6px 0 0;
-  background: var(--blue);
-}
-.objetivos-tendencia figure:last-child i {
-  background: var(--orange);
-}
-.objetivos-tendencia figcaption {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -19px;
-  color: var(--muted);
-  font-size: 9px;
-  text-align: center;
-  white-space: nowrap;
 }
 .objetivos-tarjeta-acciones {
   display: flex;
@@ -1172,7 +1152,7 @@
 }
 @media (max-width: 900px) {
   .objetivos-tarjeta-avance {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .objetivos-tarjeta > header {
     flex-direction: column;
@@ -1557,39 +1537,104 @@
 }
 
 /* Avance del objetivo: una franja, no un bloque */
-.objetivo-avance-franja {
+/* El avance hacia la meta, lo primero que se quiere ver: todo en una pieza, con hoy y meta en los extremos de la barra. */
+.objetivo-tablero {
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: 24px;
-  align-items: center;
+  grid-template-areas:
+    'hoy porcentaje meta'
+    'barra barra barra'
+    'falta falta falta';
+  gap: 8px 24px;
+  align-items: end;
   margin-top: 18px;
-  padding: 14px 20px;
-  border: 1px solid var(--line);
-  border-left: 5px solid var(--petrol);
-  border-radius: 16px;
-  background: var(--paper);
-  box-shadow: var(--shadow);
+  padding: 20px 28px 22px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow:
+    inset 8px 0 0 var(--petrol),
+    inset 0 0 0 1.5px color-mix(in srgb, var(--petrol) 22%, #fff);
 }
-.objetivo-avance-franja span {
-  display: block;
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: 700;
+.objetivo-tablero-extremo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
-.objetivo-avance-franja strong {
-  color: var(--petrol);
-  font-size: 24px;
+.objetivo-tablero-extremo.hoy {
+  grid-area: hoy;
+  padding-left: 6px;
 }
-.objetivo-avance-falta {
+.objetivo-tablero-extremo.meta {
+  grid-area: meta;
+  align-items: flex-end;
   text-align: right;
 }
-.objetivo-avance-falta strong {
+.objetivo-tablero-etiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--petrol);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.objetivo-tablero-extremo.meta .objetivo-tablero-etiqueta {
   color: var(--orange);
 }
-.objetivo-avance-barra p {
-  margin: 6px 0 0;
-  color: var(--ink);
-  font-size: 12px;
+.objetivo-tablero-extremo strong {
+  color: var(--petrol);
+  font-size: 34px;
+  line-height: 1.1;
+}
+.objetivo-tablero-extremo.meta strong {
+  color: var(--orange);
+}
+.objetivo-tablero-extremo small {
+  color: var(--petrol);
+  font-size: 14px;
+  font-weight: 700;
+}
+.objetivo-tablero-porcentaje {
+  grid-area: porcentaje;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  color: var(--petrol);
+  text-align: center;
+}
+.objetivo-tablero-porcentaje strong {
+  font-size: 34px;
+  line-height: 1;
+}
+.objetivo-tablero-porcentaje span {
+  font-size: 14px;
+  font-weight: 700;
+}
+.objetivo-tablero-barra {
+  grid-area: barra;
+  margin-top: 6px;
+}
+.objetivo-tablero .objetivos-progreso {
+  height: 22px;
+  border: 0;
+  background: var(--line);
+}
+.objetivo-tablero .objetivos-progreso i {
+  min-width: 22px;
+  background: var(--petrol);
+}
+.objetivo-tablero-falta {
+  grid-area: falta;
+  justify-self: center;
+  margin: 4px 0 0;
+  padding: 5px 18px;
+  border: 2px solid var(--orange);
+  border-radius: 99px;
+  color: var(--orange);
+  font-size: 17px;
+  font-weight: 800;
 }
 
 .resumen-listo {
@@ -1647,17 +1692,6 @@
   font-size: 17px;
   line-height: 1.25;
 }
-.mini-objetivo-numero {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--petrol);
-  color: white;
-  font-weight: 800;
-}
 .mini-objetivo-porque {
   margin: 0;
   color: var(--ink);
@@ -1694,13 +1728,13 @@
   font-size: 12px;
 }
 .mini-objetivo-medida .hoy strong {
-  color: var(--orange);
+  color: var(--petrol);
 }
 .mini-objetivo-medida .meta {
   text-align: right;
 }
 .mini-objetivo-medida .meta strong {
-  color: var(--petrol);
+  color: var(--orange);
 }
 .mini-objetivo-falta {
   margin: 8px 0 0;
@@ -2155,13 +2189,17 @@
   }
 }
 @media (max-width: 600px) {
-  .objetivo-avance-franja {
+  .objetivo-tablero {
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    grid-template-areas:
+      'hoy meta'
+      'porcentaje porcentaje'
+      'barra barra'
+      'falta falta';
+    padding: 16px 18px 18px 22px;
   }
-  .objetivo-avance-barra {
-    grid-column: 1 / -1;
-    grid-row: 2;
+  .objetivo-tablero-extremo strong {
+    font-size: 26px;
   }
   .mini-objetivos,
   .reajustes {
@@ -2279,10 +2317,78 @@
   color: var(--ink);
   font-size: 14px;
 }
-/* Cuánto suman los mini-objetivos frente a lo que falta para la meta. */
+/* Cuánto suman los mini-objetivos frente a lo que falta para la meta: una pieza con peso, no una línea suelta. */
 .mini-objetivos-cubren {
-  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 16px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow:
+    inset 6px 0 0 var(--orange),
+    inset 0 0 0 1.5px color-mix(in srgb, var(--petrol) 22%, #fff);
   color: var(--petrol);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+.mini-objetivos-cubren svg {
+  flex: none;
+  margin-left: 6px;
+  color: var(--orange);
+}
+
+/* «Por qué de este paso»: un botón que despliega la explicación. */
+.mini-objetivo-porque-boton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px 14px;
+  border: 1.5px solid var(--petrol);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--petrol);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.mini-objetivo-porque-boton:hover,
+.mini-objetivo-porque-boton:focus-visible {
+  border-color: var(--orange);
+}
+.mini-objetivo-porque-boton svg {
+  transition: transform 0.2s ease;
+}
+.mini-objetivo-porque-boton[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+.mini-objetivo-medida .mini-objetivo-porque {
+  margin: 10px 0 0;
+  font-size: 14px;
+}
+
+/* El avance hacia la meta, arriba del gráfico de semanas. */
+.grafico-semanal-avance {
+  margin-bottom: 10px;
+}
+.grafico-semanal-avance p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 0 0 6px;
+  color: var(--petrol);
+}
+.grafico-semanal-avance strong {
+  font-size: 26px;
+  line-height: 1.1;
+}
+.grafico-semanal-avance span {
   font-size: 14px;
   font-weight: 700;
 }
@@ -2842,4 +2948,8 @@
   .tarjeta-mini-modo {
     grid-column: 2;
   }
+}
+/* Todos los títulos de Objetivos van en petróleo, nunca en negro. */
+.objetivos-page :is(h1, h2, h3, h4) {
+  color: var(--petrol);
 }

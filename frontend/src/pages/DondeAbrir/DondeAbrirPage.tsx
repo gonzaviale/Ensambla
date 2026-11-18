@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeftIcon, CopyIcon } from '@phosphor-icons/react';
+import { PageFooter } from '@/components/sistema/PageFooter';
 import { Sami } from '@/components/sistema/Sami';
 import { COLOR_DE_PUNTO } from '@/hooks/dondeAbrir/useMapaDeZonas';
 import { useDondeAbrir, type PuntoElegido } from '@/hooks/dondeAbrir/queries';
@@ -156,7 +157,6 @@ export function DondeAbrirPage() {
       </button>
       <header className="donde-encabezado">
         <div>
-          <p className="objetivos-etiqueta">Zona</p>
           <h1>Tu próximo negocio</h1>
           <p className="donde-bajada">
             Compará zonas y entendé qué necesitás para abrir un nuevo local.
@@ -340,7 +340,7 @@ export function DondeAbrirPage() {
               />
               <div className="donde-punto" role="status">
                 {punto && consulta.isFetching ? (
-                  <p>Midiendo ese lugar con datos de OpenStreetMap…</p>
+                  <p>Estamos midiendo ese lugar con datos de OpenStreetMap…</p>
                 ) : punto && !consulta.isError ? (
                   <p>
                     Mediste un lugar a mano: se cuenta lo que hay a 500 m, ahora mismo.{' '}
@@ -393,6 +393,7 @@ export function DondeAbrirPage() {
           </p>
         </div>
       )}
+      <PageFooter />
     </main>
   );
 }

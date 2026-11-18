@@ -58,7 +58,7 @@ export function CajaPage() {
           <button
             type="button"
             className="caja-negocio"
-            aria-label="Elegir negocio e inventario"
+            aria-label="Elegir negocio y sección"
             onClick={() => setConfigurando(true)}
           >
             <Icon name="box" />
@@ -67,9 +67,9 @@ export function CajaPage() {
           </button>
         </header>
         {configurando && (
-          <DialogoCaja titulo="Negocio e inventario" onCerrar={() => setConfigurando(false)}>
+          <DialogoCaja titulo="Negocio y sección" onCerrar={() => setConfigurando(false)}>
             <p className="caja-ayuda">
-              {sistema?.name ?? 'Tu negocio'} · {inventario?.name ?? 'Sin inventario'}
+              {sistema?.name ?? 'Tu negocio'} · {inventario?.name ?? 'Sin sección de stock'}
             </p>
             {sistemas.length > 1 && (
               <div className="caja-opciones" aria-label="Elegir negocio de caja">
@@ -89,7 +89,7 @@ export function CajaPage() {
               </div>
             )}
             {inventarios.length > 1 && (
-              <div className="caja-opciones" aria-label="Elegir inventario">
+              <div className="caja-opciones" aria-label="Elegir sección">
                 {inventarios.map((b) => (
                   <button
                     type="button"
@@ -128,7 +128,7 @@ export function CajaPage() {
             <Icon name="orders" />
             <h2>Dejemos tu caja lista</h2>
             <p>
-              Usaremos {inventario?.name ?? 'un inventario nuevo'} de {sistema.name}. Se habilitan
+              Usaremos {inventario?.name ?? 'una sección de stock nueva'} de {sistema.name}. Se habilitan
               favoritos y venta por unidad o peso, y se prepara una tabla de ventas conectada.
             </p>
             <button type="button" className="btn primary" onClick={preparar}>

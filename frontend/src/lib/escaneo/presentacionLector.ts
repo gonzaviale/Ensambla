@@ -26,6 +26,6 @@ export function guiaDelLector(lector: LectorInventario) {
     ? 'Alejá un poco el teléfono y evitá reflejos.'
     : 'Alineá todas las barras dentro del marco horizontal.';
   return lector.errorCamara
-    ? 'La cámara necesita atención. Abrí Ajustes o ingresá el código.'
+    ? 'La cámara necesita atención. Abrí Ajustes o escribí el código.'
     : guiaDeLectura;
 }

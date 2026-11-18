@@ -6,7 +6,6 @@ import { useUsuario } from '@/hooks/auth/queries';
 import { objetivosKeys } from '@/hooks/objetivos/queries';
 import { usePreferencias } from '@/hooks/preferencias/queries';
 import type { SeccionDeCuenta } from '@/lib/cuenta';
-import type { LeccionDeSami } from '@/lib/ensenanza';
 import type { Sistema } from '@/lib/sistema/tipos';
 import { useSistemaStore, type ModoDelEditor } from '@/stores/sistemaStore';
 import type { ImagenParaSami } from '@/types/samiTaller';
@@ -55,8 +54,7 @@ export function useNavegacion() {
       | '/planes'
       | '/sami'
       | '/avisos'
-      | '/objetivos'
-      | '/sami-te-ensena',
+      | '/objetivos',
   ) => {
     limpiar();
     return navigate({ to });
@@ -151,11 +149,6 @@ export function useNavegacion() {
     irAObjetivo: (objetivoId: string) => {
       limpiar();
       return navigate({ to: '/objetivos/$objetivoId', params: { objetivoId } });
-    },
-    /** Sami te enseña: lecciones de contabilidad; con `objetivoId`, aplicadas a ese objetivo. */
-    irASamiTeEnsena: (leccion?: LeccionDeSami, objetivoId?: string) => {
-      limpiar();
-      return navigate({ to: '/sami-te-ensena', search: { leccion, objetivo: objetivoId } });
     },
     irAPlanes: () => irA('/planes'),
     /** «Armalo con Sami»: la conversación que crea un proyecto real en el backend. */

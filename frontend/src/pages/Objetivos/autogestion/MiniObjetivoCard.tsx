@@ -1,4 +1,10 @@
-import { ArrowCounterClockwiseIcon, CheckIcon, ClockIcon } from '@phosphor-icons/react';
+import {
+  ArrowCounterClockwiseIcon,
+  CaretDownIcon,
+  CheckIcon,
+  ClockIcon,
+} from '@phosphor-icons/react';
+import { useState } from 'react';
 import {
   ESTADO_DE_MINI,
   QUE_SE_MIDE,
@@ -21,8 +27,8 @@ type Props = {
 // Un mini-objetivo en curso: qué hacer, por qué, dónde está hoy frente a su meta y qué puede decidir la persona.
 // Uno logrado queda en su lugar hasta el cierre del domingo, cuando Sami le sube la meta o propone otro.
 export function MiniObjetivoCard({ mini, decidido, ocupado, onDecidir, onRestaurar }: Props) {
+  const [conPorque, setConPorque] = useState(false);
   const logrado = mini.estado === 'LOGRADO';
-  const porcentaje = Math.round(mini.avance * 100);
   const idTitulo = `mini-${mini.id}`;
   const hoy = partesDeMini(mini.tipo, mini.valorActual);
   const meta = partesDeMini(mini.tipo, mini.meta);
@@ -30,20 +36,16 @@ export function MiniObjetivoCard({ mini, decidido, ocupado, onDecidir, onRestaur
   return (
     <article className="mini-objetivo" aria-labelledby={idTitulo}>
       <header>
-        <span className="mini-objetivo-numero" aria-hidden>
-          {mini.posicion}
-        </span>
         <div>
           <p className="objetivos-etiqueta">{ESTADO_DE_MINI[mini.estado]}</p>
           <h3 id={idTitulo}>{mini.titulo}</h3>
         </div>
       </header>
-      <p className="mini-objetivo-porque">{mini.justificacion}</p>
 
       <div className="mini-objetivo-medida">
         <dl>
           <div className="hoy">
-            <dt>{QUE_SE_MIDE[mini.tipo]} hoy</dt>
+            <dt>{QUE_SE_MIDE[mini.tipo]}</dt>
             <dd>
               <strong>{hoy.numero}</strong> <span>{hoy.unidad}</span>
             </dd>
@@ -55,17 +57,30 @@ export function MiniObjetivoCard({ mini, decidido, ocupado, onDecidir, onRestaur
             </dd>
           </div>
         </dl>
-        <Progreso valor={mini.avance} etiqueta={`Avance de «${mini.titulo}»: ${porcentaje} %`} />
         <p className="mini-objetivo-falta">
           {falta ? `Te faltan ${falta}` : '¡Llegaste a la meta!'}
         </p>
+        <button
+          type="button"
+          className="mini-objetivo-porque-boton"
+          aria-expanded={conPorque}
+          aria-controls={`${idTitulo}-porque`}
+          onClick={() => setConPorque(!conPorque)}
+        >
+          Por qué de este paso <CaretDownIcon aria-hidden size={16} weight="bold" />
+        </button>
+        {conPorque && (
+          <p id={`${idTitulo}-porque`} className="mini-objetivo-porque">
+            {mini.justificacion}
+          </p>
+        )}
       </div>
 
       <div className="mini-objetivo-decision">
         {logrado ? (
           <p className="mini-objetivo-decidido si" role="status">
-            <CheckIcon aria-hidden size={16} weight="bold" /> Meta alcanzada: el domingo Sami te
-            sube la meta o te propone otro
+            <CheckIcon aria-hidden size={16} weight="bold" /> Meta alcanzada: el domingo Sami la
+            sube
           </p>
         ) : decidido ? (
           <p
@@ -95,19 +110,19 @@ export function MiniObjetivoCard({ mini, decidido, ocupado, onDecidir, onRestaur
           <>
             <button
               type="button"
-              className="btn primary"
-              disabled={ocupado}
-              onClick={() => onDecidir('ACEPTADO')}
-            >
-              <CheckIcon aria-hidden size={16} /> Lo hago
-            </button>
-            <button
-              type="button"
               className="btn secondary"
               disabled={ocupado}
               onClick={() => onDecidir('IGNORADO')}
             >
               <ClockIcon aria-hidden size={16} /> Dejarlo para después
+            </button>
+            <button
+              type="button"
+              className="btn primary"
+              disabled={ocupado}
+              onClick={() => onDecidir('ACEPTADO')}
+            >
+              <CheckIcon aria-hidden size={16} /> Lo hago
             </button>
           </>
         )}

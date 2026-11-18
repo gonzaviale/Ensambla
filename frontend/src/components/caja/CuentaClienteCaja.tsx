@@ -36,7 +36,7 @@ export function CuentaClienteCaja({
         <div className="caja-total-resumen">
           <span>Saldo pendiente</span>
           <strong>{dineroCaja(saldo)}</strong>
-          <span>{saldo ? `${pendientes.length} ventas pendientes` : 'Sin deuda'}</span>
+          <span>{saldo ? `${pendientes.length} ventas pendientes` : 'No debe nada'}</span>
         </div>
         {(!!saldo || incierto) && (
           <button
@@ -44,12 +44,12 @@ export function CuentaClienteCaja({
             className="btn primary full"
             onClick={() => setCobrando((incierto ? ventas : pendientes).map((v) => v.id))}
           >
-            {incierto ? 'Verificar pago pendiente' : 'Registrar pago'}
+            {incierto ? 'Verificar pago pendiente' : 'Guardar pago'}
           </button>
         )}
         <h3>Ventas del cliente</h3>
         {!ventas.length && (
-          <p className="caja-vacio">Todavía no tiene ventas registradas en esta caja.</p>
+          <p className="caja-vacio">Todavía no tiene ventas guardadas en esta caja.</p>
         )}
         <ul className="caja-clientes-lista">
           {[...ventas]
@@ -73,10 +73,10 @@ export function CuentaClienteCaja({
                   <button
                     type="button"
                     className="btn secondary"
-                    aria-label={`Registrar pago de la venta ${v.id.slice(0, 8)}`}
+                    aria-label={`Guardar pago de la venta ${v.id.slice(0, 8)}`}
                     onClick={() => setCobrando([v.id])}
                   >
-                    Registrar pago
+                    Guardar pago
                   </button>
                 )}
               </li>

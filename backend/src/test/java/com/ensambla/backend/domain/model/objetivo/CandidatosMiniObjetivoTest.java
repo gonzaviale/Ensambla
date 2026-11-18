@@ -453,7 +453,7 @@ class CandidatosMiniObjetivoTest {
         assertThat(moverParado.valorInicial()).isEqualByComparingTo("0");
         assertThat(moverParado.meta()).isEqualByComparingTo("3");
         assertThat(moverParado.aporteEstimado()).isEqualByComparingTo("3728.57");
-        assertThat(moverParado.titulo()).isEqualTo("Mové «Fideos 500 g»");
+        assertThat(moverParado.titulo()).isEqualTo("Volvé a vender «Fideos 500 g»");
     }
 
     private void thenPonerALaVistaLaYerbaEstaArmado() {

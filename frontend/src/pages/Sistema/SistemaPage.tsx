@@ -133,7 +133,7 @@ export function SistemaPage() {
 
   return (
     <>
-      <CabeceraComun />
+      <CabeceraComun active="negocio" />
       <main
         id="main"
         tabIndex={-1}

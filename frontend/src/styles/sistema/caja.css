@@ -199,13 +199,13 @@
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: #ee800018;
+  background: #fff;
   color: var(--orange);
   display: grid;
   place-items: center;
 }
 .caja-simbolo.peso {
-  background: #00506a12;
+  background: #fff;
   color: var(--petrol);
 }
 .caja-tarjeta-acciones {
@@ -339,7 +339,7 @@
 .caja-error {
   padding: 12px 16px;
   border-radius: 12px;
-  background: #c42b2b0a;
+  background: #fff;
   color: var(--bad);
   font-size: 13px;
   line-height: 1.7;
@@ -348,7 +348,7 @@
 .caja-mensaje {
   font-size: 12px;
   color: var(--petrol);
-  background: #00506a08;
+  background: #fff;
   padding: 10px 14px;
   border-radius: 10px;
   margin: 12px 0;
@@ -463,7 +463,7 @@
   padding: 12px;
 }
 .caja-elegir-favoritos button[aria-pressed='true'] {
-  background: #00506a0a;
+  background: #fff;
   color: var(--petrol);
 }
 .caja-confirmada {
@@ -495,8 +495,8 @@
   font-size: 13px;
 }
 .caja-dialogo .btn.danger {
-  background: #a63c30;
-  border: 2px solid #a63c30;
+  background: var(--color-bad);
+  border: 2px solid var(--color-bad);
   color: #fff;
   box-shadow: 0 2px 0 #67261f25;
 }
@@ -509,14 +509,14 @@
 .caja-pagina .btn.secondary,
 .caja-pagina .btn.soft,
 .caja-dialogo .btn.secondary {
-  background: #e8f2f5;
+  background: #fff;
   border: 2px solid #38748a;
   color: #08495e;
   box-shadow: 0 2px 0 #154e6218;
   font-weight: 750;
 }
 .caja-pagina .btn.ghost {
-  background: #eef4f6;
+  background: #fff;
   border: 1px solid #527787;
   color: #124c60;
 }
@@ -535,7 +535,7 @@
 .caja-pagina .caja-opciones button,
 .caja-dialogo .caja-opciones button {
   border: 2px solid #6a8996;
-  background: #edf4f6;
+  background: #fff;
   color: #124c60;
   box-shadow: 0 2px 0 #154e6212;
 }
@@ -550,29 +550,29 @@
   box-shadow: 0 3px 0 #154e620b;
 }
 .caja-elegir-producto {
-  background: #f5fafb;
+  background: #fff;
   color: var(--ink);
 }
 .caja-tarjeta-acciones .icon-btn,
 .caja-cantidad button {
   border: 1px solid #6a8996;
-  background: #e3eff3;
+  background: #fff;
   color: #00506a;
 }
 .caja-quitar {
-  background: #fff0ed;
-  border: 1px solid #be6a5b;
+  background: #fff;
+  border: 1px solid #f85f5a;
   border-radius: 8px;
   padding: 5px 9px;
-  color: #8a3428;
+  color: var(--c-estructura);
   font-weight: 700;
 }
 .caja-pagina button:disabled,
 .caja-dialogo button:disabled {
   cursor: not-allowed;
-  opacity: 1;
-  background: #e7eaec !important;
-  color: #727b80 !important;
+  opacity: 0.5;
+  background: #fff !important;
+  color: var(--c-estructura) !important;
   border-color: #c4cbd0 !important;
   box-shadow: none !important;
   filter: none;
@@ -583,7 +583,7 @@
   gap: 8px;
   margin: 20px 0 24px;
   padding: 8px;
-  background: #eaf1f3;
+  background: #fff;
   border: 1px solid #c3d3d9;
   border-radius: 16px;
 }
@@ -644,13 +644,13 @@
   gap: 8px;
   border: 2px solid #8daab6;
   border-radius: 14px;
-  background: #eff6f8;
+  background: #fff;
   color: #154e62;
 }
 .caja-medios-resumen button[aria-pressed='true'] {
   border-color: #00506a;
   box-shadow: 0 0 0 2px #00506a;
-  background: #ddecf1;
+  background: #fff;
 }
 .caja-medios-resumen strong {
   font-size: 22px;
@@ -685,7 +685,7 @@
 .caja-estado-periodo {
   padding: 14px 18px;
   border-left: 4px solid #00506a;
-  background: #eef5f7;
+  background: #fff;
   border-radius: 8px;
   font-size: 13px;
   line-height: 1.7;
@@ -704,7 +704,7 @@
   gap: 14px;
   justify-content: space-between;
   padding: 16px;
-  background: #f1f6f8;
+  background: #fff;
   font-size: 13px;
 }
 .caja-ventas-detalle summary::-webkit-details-marker {
@@ -713,7 +713,7 @@
 .caja-ventas-detalle summary small {
   display: block;
   margin-top: 6px;
-  color: #45636f;
+  color: var(--c-estructura);
 }
 .caja-ventas-detalle summary > span:first-child {
   flex: 1;
@@ -754,7 +754,7 @@
   padding: 20px;
   border: 2px solid #91abb5;
   border-radius: 14px;
-  background: #f1f7f9;
+  background: #fff;
   color: #154e62;
   text-align: left;
 }
@@ -804,7 +804,7 @@
   margin-top: 16px;
   padding: 16px;
   border: 1px solid #8daab6;
-  background: #f3f8fa;
+  background: #fff;
   border-radius: 14px;
 }
 .caja-pago-dividido fieldset {
@@ -812,10 +812,10 @@
 }
 .caja-restante,
 .caja-diferencia {
-  background: #e5f1ed;
+  background: #fff;
   padding: 12px;
   border-radius: 10px;
-  color: #14533d;
+  color: var(--color-ok);
   font-size: 14px;
   font-weight: 650;
   margin: 14px 0;

@@ -24,9 +24,9 @@ import {
 
 // El color de cada zona dice qué tan bien coincide con lo que la persona busca.
 export const COLOR_DE_COINCIDENCIA: Record<Coincidencia, string> = {
-  buena: '#2f7a55',
-  intermedia: '#c99a00',
-  mala: '#c42b2b',
+  buena: '#00506a',
+  intermedia: '#ebce32',
+  mala: '#f85f5a',
 };
 export const COLOR_SIN_PODIO = '#69777c';
 /** El lugar que la persona tocó en el mapa: el naranja de la marca, aparte de los colores del ranking. */
@@ -36,8 +36,8 @@ const COLOR_DEL_ELEGIDO = '#ee8000';
 const redondear = (valor: number) => Math.round(valor * 1e5) / 1e5;
 
 export const COLOR_DE_PUNTO: Record<TipoDePunto, string> = {
-  competencia: '#c42b2b',
-  escuela: '#2f7a55',
+  competencia: '#f85f5a',
+  escuela: '#00506a',
   parque: '#6aa84f',
   transporte: '#1f6f8f',
   oficina: '#7a5f00',

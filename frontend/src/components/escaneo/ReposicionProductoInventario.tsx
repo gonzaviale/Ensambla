@@ -29,10 +29,10 @@ export function ReposicionProductoInventario({
   return (
     <section className="escaneo-panel escaneo-reposicion" aria-label="Sumar al stock">
       <span className="escaneo-reposicion-aviso">
-        <Icon name="box" /> Este producto ya está en tu inventario
+        <Icon name="box" /> Este producto ya está en tu stock
       </span>
       <h2>¿Querés sumar al stock?</h2>
-      <p>Ingresá cuántas unidades querés agregar. Los demás datos del producto se conservan.</p>
+      <p>Escribí cuántas unidades querés agregar. Los demás datos del producto se conservan.</p>
       <form
         ref={formulario}
         noValidate

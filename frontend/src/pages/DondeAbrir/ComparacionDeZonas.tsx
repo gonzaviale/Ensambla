@@ -14,7 +14,7 @@ export function ComparacionDeZonas({ zonas, filtros }: Props) {
           <p className="objetivos-etiqueta">Comparación rápida</p>
           <h2 id="donde-comparacion-titulo">Qué cambia entre las mejores zonas</h2>
         </div>
-        <p>Los valores permiten comparar estas zonas entre sí; no son una predicción de ventas.</p>
+        <p>Sirven para comparar estas zonas entre sí; no predicen ventas.</p>
       </div>
       <div className="donde-comparacion-tabla">
         <table aria-label="Comparación de las mejores zonas">

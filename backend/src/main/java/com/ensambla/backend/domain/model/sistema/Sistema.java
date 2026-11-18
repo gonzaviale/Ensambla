@@ -1,6 +1,8 @@
 package com.ensambla.backend.domain.model.sistema;
 
+import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.registro.Registro;
@@ -19,5 +21,11 @@ public record Sistema(Proyecto proyecto, List<Seccion> secciones, Map<BloqueId, 
 
     public ProyectoId id() {
         return proyecto.getId();
+    }
+
+    /** Las columnas del bloque; ninguna si el sistema ya no tiene ese bloque. */
+    public List<Campo> columnasDe(BloqueId bloqueId) {
+        return proyecto.getBloques().stream().filter(bloque -> bloque.getId().equals(bloqueId))
+                .map(Bloque::getCampos).findFirst().orElse(List.of());
     }
 }

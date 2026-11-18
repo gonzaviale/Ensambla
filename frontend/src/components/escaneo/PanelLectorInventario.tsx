@@ -5,7 +5,7 @@ import { CodigoManualInventario } from './CodigoManualInventario';
 import { AjustesLectorInventario } from './AjustesLectorInventario';
 
 const paneles = {
-  codigo: { titulo: 'Ingresar código', Contenido: CodigoManualInventario },
+  codigo: { titulo: 'Escribir código', Contenido: CodigoManualInventario },
   ajustes: { titulo: 'Ajustes del lector', Contenido: AjustesLectorInventario },
 };
 

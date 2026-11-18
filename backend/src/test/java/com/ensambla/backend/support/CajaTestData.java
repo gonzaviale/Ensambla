@@ -114,11 +114,26 @@ public final class CajaTestData {
     }
 
     private static void agregarCamposDeCliente(Sistema sistema) {
-        Bloque ventas = sistema.proyecto().getBloques().stream().filter(bloque -> bloque.getId().equals(VENTAS))
-                .findFirst().orElseThrow();
+        Bloque ventas = ventasDe(sistema);
         ventas.getCampos().add(datosDeCampo(VENTAS, "customer", TipoCampo.RELACION)
                 .bloqueRelacionadoId(CLIENTES).build());
         ventas.getCampos().add(campo(VENTAS, "credit", TipoCampo.SI_NO));
+    }
+
+    public static Registro agregarVentaDeCaja(Sistema sistema) {
+        Bloque ventas = ventasDe(sistema);
+        Registro venta = Registro.nuevo(NEGOCIO, VENTAS, new LinkedHashMap<>(), AHORA);
+        venta.setId(RegistroId.nuevo());
+        venta.setOrigen("Caja " + OPERACION);
+        poner(ventas, venta, "quantity", 3);
+        poner(ventas, venta, "price", 1650);
+        sistema.registrosPorBloque().get(VENTAS).add(venta);
+        return venta;
+    }
+
+    public static Bloque ventasDe(Sistema sistema) {
+        return sistema.proyecto().getBloques().stream().filter(bloque -> bloque.getId().equals(VENTAS))
+                .findFirst().orElseThrow();
     }
 
     public static void poner(Bloque bloque, Registro registro, String clave, Object valor) {

@@ -23,7 +23,7 @@ async function abrir(escanear = false) {
   const usuario = setupUsuarioConSesion();
   const sistema = makeTemplate('shop', {}, false);
   const inventario = allBlocks(sistema).find((b) => b.type === 'inventory');
-  if (!inventario) throw new Error('Falta inventario');
+  if (!inventario) throw new Error('Falta la sección de stock');
   inventario.rows = [
     {
       id: crypto.randomUUID(),
@@ -95,7 +95,7 @@ describe('caja integrada con el cliente HTTP', () => {
     await user.click(screen.getByRole('tab', { name: 'Escanear' }));
     await user.keyboard('{ArrowRight}');
     expect(screen.getByRole('tab', { name: 'Buscar' })).toHaveAttribute('aria-selected', 'true');
-    await user.type(screen.getByLabelText('Buscar artículo en el inventario'), 'Coca');
+    await user.type(screen.getByLabelText('Buscar producto en tu stock'), 'Coca');
     await user.click(screen.getByRole('button', { name: /Coca-Cola.*2.700/ }));
     await user.click(screen.getByRole('button', { name: 'Revisar compra' }));
     expect(screen.getByRole('button', { name: 'Continuar al cobro' })).toBeEnabled();
@@ -104,14 +104,14 @@ describe('caja integrada con el cliente HTTP', () => {
     expect(screen.getByLabelText('Cantidad de Coca-Cola')).toHaveValue('1');
     await user.click(screen.getByRole('button', { name: 'Seguir agregando' }));
     expect(screen.getByRole('tab', { name: 'Buscar' })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByLabelText('Buscar artículo en el inventario')).toHaveValue('Coca');
+    expect(screen.getByLabelText('Buscar producto en tu stock')).toHaveValue('Coca');
   });
   it('emite un solo aviso por lectura aunque agregue varias unidades y distingue códigos desconocidos', async () => {
     const sonar = vi.spyOn(sonidos, 'sonarEscaneo');
     try {
       const { user } = await abrir(true);
       await user.click(screen.getByRole('button', { name: '×2' }));
-      await user.click(screen.getByRole('button', { name: 'Ingresar código · lector USB' }));
+      await user.click(screen.getByRole('button', { name: 'Escribir código · lector USB' }));
       await user.type(screen.getByLabelText('Código de barras'), '7790895000997{Enter}');
       expect(screen.getByLabelText('Cantidad de Coca-Cola')).toHaveValue('2');
       await user.type(screen.getByLabelText('Código de barras'), '77903754{Enter}');
@@ -144,14 +144,14 @@ describe('caja integrada con el cliente HTTP', () => {
     await user.click(screen.getByRole('button', { name: '×3' }));
     expect(screen.getByRole('button', { name: '×3' })).toHaveAttribute('aria-pressed', 'false');
     await user.click(screen.getByRole('button', { name: '×5' }));
-    await user.click(screen.getByRole('button', { name: 'Ingresar código · lector USB' }));
+    await user.click(screen.getByRole('button', { name: 'Escribir código · lector USB' }));
     await user.type(screen.getByLabelText('Código de barras'), '7790895000997{Enter}');
     expect(screen.getByLabelText('Cantidad de Coca-Cola')).toHaveValue('5');
     await user.type(screen.getByLabelText('Código de barras'), '7790895000997{Enter}');
     expect(screen.getByLabelText('Cantidad de Coca-Cola')).toHaveValue('6');
     await user.click(screen.getByRole('button', { name: 'Listo' }));
     await user.click(screen.getByRole('button', { name: '×3' }));
-    await user.click(screen.getByRole('button', { name: 'Ingresar código · lector USB' }));
+    await user.click(screen.getByRole('button', { name: 'Escribir código · lector USB' }));
     await user.type(screen.getByLabelText('Código de barras'), '77903754{Enter}');
     const dialogo = await screen.findByRole('dialog', { name: 'Agregar artículo' });
     expect(within(dialogo).getByLabelText('Cantidad')).toHaveValue('3');
@@ -159,7 +159,7 @@ describe('caja integrada con el cliente HTTP', () => {
     await user.type(within(dialogo).getByLabelText('Precio por unidad ($)'), '850');
     await user.click(within(dialogo).getByRole('button', { name: 'Agregar a la compra' }));
     expect(screen.getByLabelText('Cantidad de Alfajor')).toHaveValue('3');
-    await screen.findByRole('dialog', { name: 'Ingresar código' });
+    await screen.findByRole('dialog', { name: 'Escribir código' });
     await user.type(screen.getByLabelText('Código de barras'), '7790895000997{Enter}');
     expect(screen.getByLabelText('Cantidad de Coca-Cola')).toHaveValue('7');
   });
@@ -192,14 +192,14 @@ describe('caja integrada con el cliente HTTP', () => {
 
   it('un código desconocido permite un alta rápida y continuar la venta', async () => {
     const { user } = await abrir(true);
-    await user.click(screen.getByRole('button', { name: 'Ingresar código · lector USB' }));
+    await user.click(screen.getByRole('button', { name: 'Escribir código · lector USB' }));
     await user.type(screen.getByLabelText('Código de barras'), '77903754{Enter}');
     const dialogo = await screen.findByRole('dialog');
     expect(within(dialogo).getByText(/Artículo no reconocido/)).toBeVisible();
     await user.type(within(dialogo).getByLabelText('Nombre del artículo'), 'Alfajor');
     await user.type(within(dialogo).getByLabelText('Precio por unidad ($)'), '850');
     await user.click(within(dialogo).getByRole('button', { name: 'Agregar a la compra' }));
-    await screen.findByRole('dialog', { name: 'Ingresar código' });
+    await screen.findByRole('dialog', { name: 'Escribir código' });
     expect(screen.queryByRole('dialog', { name: 'Agregar artículo' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Cantidad de Alfajor')).toHaveValue('1');
     expect(screen.getByLabelText('Código de barras')).toHaveValue('');
@@ -218,7 +218,7 @@ describe('caja integrada con el cliente HTTP', () => {
     await user.click(screen.getByRole('button', { name: /Coca-Cola.*2.700/ }));
     await user.click(screen.getByRole('button', { name: /Cobrar.*2.700/ }));
     await user.click(screen.getByRole('button', { name: 'Confirmar cobro' }));
-    await screen.findByRole('heading', { name: 'Venta registrada' }, ESPERA);
+    await screen.findByRole('heading', { name: 'Venta guardada' }, ESPERA);
     expect(solicitudes).toHaveLength(1);
     expect(solicitudes[0]?.lineas[0]).toMatchObject({ cantidad: 1, precio: 2700, modo: 'UNIDAD' });
   });
@@ -241,7 +241,7 @@ describe('caja integrada con el cliente HTTP', () => {
     await user.click(
       await screen.findByRole('button', { name: 'Verificar misma operación' }, ESPERA),
     );
-    await screen.findByRole('heading', { name: 'Venta registrada' }, ESPERA);
+    await screen.findByRole('heading', { name: 'Venta guardada' }, ESPERA);
     expect(solicitudes).toHaveLength(2);
     expect(solicitudes[1]?.id).toBe(solicitudes[0]?.id);
   });

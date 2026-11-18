@@ -44,7 +44,7 @@ describe('objetivos', () => {
     await user.click(screen.getByRole('button', { name: 'Definir objetivo' }));
 
     expect(await screen.findByRole('heading', { name: 'Cómo van tus objetivos' })).toBeVisible();
-    expect(screen.getByText(/ganás por mes · te faltan \$400\.000/)).toBeVisible();
+    expect(screen.getByText(/Te faltan \$400\.000/)).toBeVisible();
     expect(screen.getByText(/Todavía no hay semanas para comparar/)).toBeVisible();
     expect(screen.queryByText(/%/)).not.toBeInTheDocument();
   });
@@ -66,7 +66,7 @@ describe('objetivos', () => {
 
     await screen.findByRole('heading', { name: 'Cómo van tus objetivos' }, ESPERA);
     expect(screen.getByText(/Todavía no hay semanas para comparar/)).toBeVisible();
-    expect(screen.getByText(/ganás por mes · te faltan \$500\.000/)).toBeVisible();
+    expect(screen.getByText(/Te faltan \$500\.000/)).toBeVisible();
     expect(
       screen.queryByRole('heading', { name: 'Cómo viene tu negocio' }),
     ).not.toBeInTheDocument();
@@ -95,7 +95,7 @@ describe('objetivos', () => {
     expect(
       await screen.findByText(/Subió \$40\.000 en las últimas 2 semanas/, {}, ESPERA),
     ).toBeVisible();
-    expect(screen.getByText(/ganás por mes · te faltan \$380\.000/)).toBeVisible();
+    expect(screen.getByText(/Te faltan \$380\.000/)).toBeVisible();
     expect(screen.getByText(/Te deben \(fiado\)/)).toBeVisible();
   });
 

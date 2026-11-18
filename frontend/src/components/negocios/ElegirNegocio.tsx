@@ -1,4 +1,5 @@
 import {
+  colorDelNegocio,
   ESTADO_DEL_NEGOCIO,
   textoDeAvisos,
   type NegocioParaElegir,
@@ -43,7 +44,7 @@ export function ElegirNegocio({ estado, onElegir }: Props) {
 
   return (
     <ul className="elegir-negocio">
-      {estado.negocios.map((negocio) => {
+      {estado.negocios.map((negocio, posicion) => {
         const nombreId = `elegir-negocio-${negocio.id}`;
         const detalleId = `${nombreId}-detalle`;
         const esElActivo = negocio.id === estado.activoId;
@@ -53,6 +54,7 @@ export function ElegirNegocio({ estado, onElegir }: Props) {
               type="button"
               className="elegir-negocio-opcion"
               data-estado={negocio.estado}
+              data-color={colorDelNegocio(posicion)}
               aria-labelledby={nombreId}
               aria-describedby={detalleId}
               onClick={() => onElegir(negocio.id)}

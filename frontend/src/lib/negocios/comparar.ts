@@ -13,7 +13,7 @@ export type Orden = { metrica: MetricaComparable; sentido: Sentido };
 /** Las columnas de la tabla, en el orden en que se muestran. */
 export const METRICAS: ReadonlyArray<{ clave: MetricaComparable; titulo: string }> = [
   { clave: 'vendiste', titulo: 'Vendiste' },
-  { clave: 'gastos', titulo: 'Gastos' },
+  { clave: 'gastos', titulo: 'Gastaste' },
   { clave: 'queda', titulo: 'Te queda' },
   { clave: 'teDeben', titulo: 'Te deben' },
 ];

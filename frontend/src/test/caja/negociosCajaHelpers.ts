@@ -16,7 +16,7 @@ function crearNegocio(nombre: string, producto: string) {
   const sistema = makeTemplate('shop', {}, false);
   sistema.name = nombre;
   const inventario = allBlocks(sistema).find((bloque) => bloque.type === 'inventory');
-  if (!inventario) throw new Error('Falta el inventario del escenario');
+  if (!inventario) throw new Error('Falta la sección de stock del escenario');
   inventario.rows = [
     { id: crypto.randomUUID(), name: producto, quantity: 10, price: 1000, favorite: true },
   ];
@@ -70,9 +70,9 @@ export function thenNavegacionConservaCajaYNegocios() {
       .getAllByRole('button')
       .slice(0, 3)
       .map((boton) => boton.textContent),
-  ).toEqual(['Inicio', 'Caja', 'Avisos']);
+  ).toEqual(['Inicio', 'Mi negocio', 'Caja']);
   expect(menu.getByRole('button', { name: 'Caja' })).toHaveAttribute('aria-current', 'page');
-  expect(menu.queryByRole('button', { name: /^(Mi Negocio|Mis cuadernos)$/ })).toBeNull();
+  expect(menu.queryByRole('button', { name: /^Mis cuadernos$/ })).toBeNull();
   expect(
     screen.getByRole('button', { name: new RegExp(`Negocio activo: ${ALMACEN}`) }),
   ).toBeVisible();

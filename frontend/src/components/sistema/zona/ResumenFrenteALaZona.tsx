@@ -25,7 +25,7 @@ export function ResumenFrenteALaZona({
   return (
     <>
       <div className="zona-ref">
-        <span className="eyebrow">TU INVENTARIO FRENTE A {zona.toUpperCase() || 'LA ZONA'}</span>
+        <span className="eyebrow">Tu stock frente a {zona || 'la zona'}</span>
         <h2>
           {comparados === 0
             ? 'Todavía no hay productos para comparar'
@@ -34,15 +34,15 @@ export function ResumenFrenteALaZona({
               : `${comparados} productos comparados`}
         </h2>
         <div className="zona-ref-nums">
-          <div>
+          <div data-posicion="bajo">
             <strong>{cuenta.bajo}</strong>
             <span>más baratos</span>
           </div>
-          <div>
+          <div data-posicion="justo">
             <strong>{cuenta.justo}</strong>
             <span>en línea</span>
           </div>
-          <div>
+          <div data-posicion="alto">
             <strong>{cuenta.alto}</strong>
             <span>más caros</span>
           </div>

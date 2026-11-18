@@ -3,7 +3,7 @@ import { CheckIcon } from '@phosphor-icons/react';
 import { Link } from '@tanstack/react-router';
 import { Sami } from '@/components/sistema/Sami';
 import { useConfiguracionNegocio } from '@/hooks/negocio/queries';
-import { NOMBRE_DE_RUBRO, UN_RUBRO, type Rubro } from '@/lib/dondeAbrir';
+import { UN_RUBRO, type Rubro } from '@/lib/dondeAbrir';
 
 const RUBROS: { valor: Rubro; etiqueta: string }[] = [
   { valor: 'almacen', etiqueta: 'Un almacén' },
@@ -111,10 +111,6 @@ export function ConfirmarNegocio({ rubro, onConfirmar }: Props) {
           </button>
         </div>
       )}
-      <p className="donde-nota-chica">
-        Voy a mirar zonas para {UN_RUBRO[rubro]}. Si cambiás de {NOMBRE_DE_RUBRO[rubro]} a otro
-        rubro, recalculo todo.
-      </p>
     </section>
   );
 }

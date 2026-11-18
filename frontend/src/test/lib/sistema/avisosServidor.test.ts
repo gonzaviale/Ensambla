@@ -46,7 +46,7 @@ describe('aAvisoDeSami', () => {
     expect(aviso.acciones).toEqual([
       {
         tipo: 'registrar',
-        texto: 'Registrar entrada',
+        texto: 'Cargar entrada',
         sistemaId: PROYECTO_ID,
         bloqueId: 'entradas',
         avisoId: 'e0000000-0000-4000-8000-000000000001',

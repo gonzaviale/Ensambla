@@ -273,8 +273,8 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
         claves: ['quantity', 'cost', 'price', 'minimum'],
       },
       {
-        titulo: 'Otros datos de tu inventario',
-        ayuda: 'Son los campos que configuraste en esta tabla.',
+        titulo: 'Otros datos de tu stock',
+        ayuda: 'Son los datos que configuraste en esta sección.',
         claves: null,
       },
     ]
@@ -310,7 +310,7 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
     cancelar: async () => {
       if (
         borrador &&
-        !(await cambios.confirmar('Esta carga todavía no se guardó en el inventario.'))
+        !(await cambios.confirmar('Esta carga todavía no se guardó en el stock.'))
       )
         return;
       detener();
@@ -318,7 +318,7 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
       setUltimo(null);
       setUnidadesAgregadas(null);
       setRetomarLectura((revision) => revision + 1);
-      setMensaje('Carga descartada. El inventario conserva sus datos.');
+      setMensaje('Carga descartada. El stock conserva sus datos.');
     },
     otraLectura: async () => {
       if (

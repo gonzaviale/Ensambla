@@ -2,10 +2,14 @@ name: CI frontend (lint, tipos, tests y build)
 
 on:
   push:
-    branches: [dev, stg, main]
+    # dev desactivado temporalmente por consumo de minutos de Actions
+    # branches: [dev, stg, main]
+    branches: [stg, main]
     paths: ["frontend/**", ".github/workflows/ci-frontend.yml"]
   pull_request:
-    branches: [dev, stg, main]
+    # dev desactivado temporalmente por consumo de minutos de Actions
+    # branches: [dev, stg, main]
+    branches: [stg, main]
     paths: ["frontend/**", ".github/workflows/ci-frontend.yml"]
 
 jobs:

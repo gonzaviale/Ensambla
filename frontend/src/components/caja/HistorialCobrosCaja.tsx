@@ -37,7 +37,7 @@ export function HistorialCobrosCaja({
       {
         id: cobro.id,
         fecha: cobro.creadoEn,
-        titulo: `Pago de deuda · ${cobro.clienteNombre}`,
+        titulo: `Pago de fiado · ${cobro.clienteNombre}`,
         importe: aplicaciones.reduce((sum, a) => sum + a.importe, 0),
         pagos: aplicaciones.flatMap((a) => a.pagos),
         referencia: aplicaciones.map((a) => `Venta ${a.ventaId.slice(0, 8)}`).join(' · '),
@@ -49,8 +49,8 @@ export function HistorialCobrosCaja({
   );
   return (
     <section aria-label="Historial de cobros">
-      <h3>Cobros registrados</h3>
-      {!movimientos.length && <p className="caja-vacio">Todavía no se registraron cobros.</p>}
+      <h3>Cobros guardados</h3>
+      {!movimientos.length && <p className="caja-vacio">Todavía no guardaste cobros.</p>}
       <ul className="caja-clientes-lista caja-cobros-lista">
         {movimientos.map((m) => (
           <li key={m.id}>

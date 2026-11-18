@@ -47,6 +47,9 @@ class AvisoEconomicoTest {
         assertThat(aviso.variacionVentas()).isEqualByComparingTo("20");
         assertThat(aviso.variacionResultadoBruto()).isEqualByComparingTo("-10");
         assertThat(aviso.productos()).containsExactly("Yerba");
+        assertThat(aviso.cambios()).hasSize(1);
+        assertThat(aviso.cambios().get(0).nombre()).isEqualTo("Yerba");
+        assertThat(aviso.cambios().get(0).monto()).isEqualByComparingTo("-500");
         assertThat(aviso.confianza()).isEqualTo(Nivel.ALTA);
     }
 
