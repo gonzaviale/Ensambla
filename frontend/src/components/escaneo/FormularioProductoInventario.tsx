@@ -39,10 +39,10 @@ export function FormularioProductoInventario({
         <span className="escaneo-numero-paso">2</span>
         <div>
           <h2>Revisá el producto</h2>
-          <p>Completá los campos antes de confirmar.</p>
+          <p>Completá los datos antes de confirmar.</p>
         </div>
         <span className="escaneo-tipo-producto">
-          {borrador.productoId ? 'Ya registrado' : 'Nuevo producto'}
+          {borrador.productoId ? 'Ya cargado' : 'Nuevo producto'}
         </span>
       </div>
       <div className="escaneo-codigo-leido">
@@ -121,7 +121,7 @@ export function FormularioProductoInventario({
               <Icon name="check-circle" />{' '}
               {borrador.productoId
                 ? 'Guardar cambios del producto'
-                : 'Agregar producto al inventario'}
+                : 'Agregar producto al stock'}
             </button>
           </div>
         </fieldset>

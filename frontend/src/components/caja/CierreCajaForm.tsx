@@ -84,7 +84,7 @@ export function CierreCajaForm({
               Math.round((resumen.efectivo + resumen.transferencia + resumen.tarjeta) * 100),
             )}
           </span>
-          {!!resumen.cobros?.length && <span>{resumen.cobros.length} cobros de deudas</span>}
+          {!!resumen.cobros?.length && <span>{resumen.cobros.length} cobros de fiado</span>}
         </div>
         <p className="caja-nota">
           El resumen quedará guardado. El próximo cobro abrirá un nuevo período, incluso si vendés
@@ -158,7 +158,7 @@ export function CierreCajaForm({
           )}
         </section>
         <label className="caja-nota-label">
-          {requiereMotivo ? 'Motivo de la diferencia (obligatorio)' : 'Nota del cierre (opcional)'}
+          {requiereMotivo ? 'Motivo de la diferencia (lo necesitamos para cerrar)' : 'Nota del cierre (opcional)'}
           <textarea
             value={nota}
             required={requiereMotivo}

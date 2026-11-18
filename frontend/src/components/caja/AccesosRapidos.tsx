@@ -29,7 +29,7 @@ export function AccesosRapidos() {
         <nav
           ref={panel}
           id={id}
-          aria-label="Acciones de venta e inventario"
+          aria-label="Acciones de venta y stock"
           className="acciones-rapidas-panel"
         >
           <button type="button" onClick={accesos.vender}>
@@ -62,7 +62,7 @@ export function AccesosRapidos() {
 }
 
 function InventariosRapidos({ accesos }: { accesos: ReturnType<typeof useAccesosRapidos> }) {
-  if (!accesos.inventarios.length) return <p>Este negocio todavía no tiene inventario.</p>;
+  if (!accesos.inventarios.length) return <p>Este negocio todavía no tiene stock cargado.</p>;
   return (
     <div className="acciones-rapidas-inventarios">
       {accesos.inventarios.map((inventario) => (

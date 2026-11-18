@@ -1,4 +1,5 @@
 import { CompararNegocios } from '@/components/negocios/CompararNegocios';
+import { MapPinIcon } from '@phosphor-icons/react';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { useNegociosDeLaCuenta } from '@/hooks/negocios/queries';
 import { useResumenConjunto } from '@/hooks/negocios/resumenConjunto';
@@ -18,7 +19,7 @@ export function CompararNegociosPage() {
         <header className="comparar-cabecera">
           <span className="eyebrow">MIS NEGOCIOS</span>
           <h1>Comparar mis negocios</h1>
-          <p>Los últimos 30 días, negocio por negocio.</p>
+          <p>Cómo vienen tus negocios en los últimos 30 días.</p>
         </header>
         {consulta.isPending ? (
           <p className="comparar-cargando" role="status">
@@ -32,10 +33,14 @@ export function CompararNegociosPage() {
             </button>
           </p>
         ) : (
-          <CompararNegocios resumen={consulta.data} />
+          <CompararNegocios
+            resumen={consulta.data}
+            ordenDeLaCuenta={cuenta.negocios.map((negocio) => negocio.id)}
+          />
         )}
         <p className="comparar-nota">
-          Los análisis de zona, como Mi zona y Dónde abrir, se miran dentro de cada negocio.
+          <MapPinIcon aria-hidden size={22} weight="regular" />
+          Mi zona y Dónde abrir los mirás entrando a cada negocio.
         </p>
       </main>
     </>

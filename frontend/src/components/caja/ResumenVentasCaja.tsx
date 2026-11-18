@@ -35,7 +35,7 @@ export function ResumenVentasCaja({
         <strong>{dineroCaja(Math.round(resumen.total * 100))}</strong>
         <span>
           {resumen.ventas.length}{' '}
-          {resumen.ventas.length === 1 ? 'venta registrada' : 'ventas registradas'}
+          {resumen.ventas.length === 1 ? 'venta guardada' : 'ventas guardadas'}
         </span>
         <span>
           Cobrado en este período:{' '}
@@ -158,7 +158,7 @@ export function ResumenVentasCaja({
             </p>
             {onVerCuenta && (
               <button type="button" className="btn secondary" onClick={() => onVerCuenta(v)}>
-                Ver pagos{(v.saldo ?? 0) > 0 ? ' y registrar cobro' : ''}
+                Ver pagos{(v.saldo ?? 0) > 0 ? ' y guardar cobro' : ''}
               </button>
             )}
           </details>

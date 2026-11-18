@@ -20,6 +20,7 @@ import java.util.Objects;
  * @param variacionResultadoBruto   cuánto cambió la ganancia (ventas menos costo), en %; {@code null} si alguna de las
  *                                  dos semanas no tiene costos cargados o la semana anterior no dejó ganancia
  * @param productos                 los productos que más explican el cambio, hasta {@value #MAXIMO_PRODUCTOS}
+ * @param cambios                   lo mismo, con cuánto cambió cada uno
  */
 public record AvisoEconomico(
         Nivel prioridad,
@@ -30,6 +31,7 @@ public record AvisoEconomico(
         BigDecimal variacionVentas,
         BigDecimal variacionResultadoBruto,
         List<String> productos,
+        List<Cambio> cambios,
         Nivel confianza) {
 
     static final int MAXIMO_PRODUCTOS = 3;
@@ -37,6 +39,13 @@ public record AvisoEconomico(
     private static final BigDecimal CIEN = BigDecimal.valueOf(100);
     private static final long CONFIANZA_ALTA = 80;
     private static final long CONFIANZA_MEDIA = 50;
+
+    /**
+     * Cuánto cambió un producto frente a la semana anterior, en pesos: su ganancia o, si no tiene costo cargado, lo que
+     * vendió. Negativo si bajó.
+     */
+    public record Cambio(String nombre, BigDecimal monto) {
+    }
 
     public enum Nivel {
         ALTA, MEDIA, BAJA
@@ -62,6 +71,7 @@ public record AvisoEconomico(
         boolean vendioMas = ventas.signum() >= 0;
         boolean ganoMas = resultado == null ? vendioMas : resultado.signum() >= 0;
         Tendencia tendencia = ganoMas ? Tendencia.MEJORA : Tendencia.EMPEORA;
+        List<Cambio> cambios = cambios(actual.masVendidos(), anterior.masVendidos(), tendencia);
         return new AvisoEconomico(
                 prioridad(vendioMas, ganoMas),
                 tendencia,
@@ -70,7 +80,8 @@ public record AvisoEconomico(
                 explicacion(resultado, vendioMas, ganoMas),
                 ventas,
                 resultado,
-                productos(actual.masVendidos(), anterior.masVendidos(), tendencia),
+                cambios.stream().map(Cambio::nombre).toList(),
+                cambios,
                 confianza(actual.masVendidos()));
     }
 
@@ -120,7 +131,7 @@ public record AvisoEconomico(
      * Los productos cuya ganancia (o venta, si no tienen costo) más cambió en la dirección del aviso: los que más bajaron
      * cuando empeora, los que más subieron cuando mejora.
      */
-    private static List<String> productos(List<ProductoVendido> actual, List<ProductoVendido> anterior,
+    private static List<Cambio> cambios(List<ProductoVendido> actual, List<ProductoVendido> anterior,
                                           Tendencia tendencia) {
         Map<String, BigDecimal> cambio = new HashMap<>();
         actual.forEach(producto -> cambio.merge(producto.nombre(), aporte(producto), BigDecimal::add));
@@ -132,7 +143,7 @@ public record AvisoEconomico(
                 .filter(entrada -> entrada.getValue().signum() == signo)
                 .sorted(porCambio.reversed().thenComparing(Map.Entry::getKey))
                 .limit(MAXIMO_PRODUCTOS)
-                .map(Map.Entry::getKey)
+                .map(entrada -> new Cambio(entrada.getKey(), entrada.getValue()))
                 .toList();
     }
 

@@ -23,8 +23,8 @@ export function AccionesLectorInventario({ lector }: { lector: LectorInventario 
         type="button"
         className="escaneo-accion-secundaria"
         disabled={lector.buscando}
-        aria-label="Ingresar código · lector USB"
-        title="Ingresar código o usar lector USB"
+        aria-label="Escribir código · lector USB"
+        title="Escribir código o usar lector USB"
         onClick={panel.abrirCodigo}
       >
         <span aria-hidden="true">123</span>

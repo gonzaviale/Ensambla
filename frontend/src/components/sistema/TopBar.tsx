@@ -1,12 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { GraduationCapIcon } from '@phosphor-icons/react';
 import { Icon } from './Icon';
 import { Logo } from './Logo';
 import { MenuDePerfil } from './MenuDePerfil';
 import { SelectorDeNegocio } from './SelectorDeNegocio';
 
 export type SeccionActiva =
-  'home' | 'caja' | 'templates' | 'zone' | 'avisos' | 'goals' | 'learn' | 'plans' | 'account';
+  'home' | 'negocio' | 'caja' | 'templates' | 'zone' | 'avisos' | 'goals' | 'plans' | 'account';
 
 type TopBarProps = {
   active?: SeccionActiva;
@@ -14,12 +13,11 @@ type TopBarProps = {
   /** La campana de avisos, que vive en el encabezado. */
   campana?: ReactNode;
   onInicio: () => void;
+  onMiNegocio: () => void;
   onCaja: () => void;
-  onPlantillas: () => void;
   onZona: () => void;
   onAvisos: () => void;
   onObjetivos: () => void;
-  onEnsenanza: () => void;
   onPlanes: () => void;
   onAyuda: () => void;
   /** «Configuración», en el menú del avatar. */
@@ -34,12 +32,11 @@ export function TopBar({
   nombre,
   campana,
   onInicio,
+  onMiNegocio,
   onCaja,
-  onPlantillas,
   onZona,
   onAvisos,
   onObjetivos,
-  onEnsenanza,
   onPlanes,
   onAyuda,
   onCuenta,
@@ -76,6 +73,14 @@ export function TopBar({
         </button>
         <button
           type="button"
+          className={active === 'negocio' ? 'active' : ''}
+          aria-current={active === 'negocio' ? 'page' : undefined}
+          onClick={ir(onMiNegocio)}
+        >
+          Mi negocio
+        </button>
+        <button
+          type="button"
           className={active === 'caja' ? 'active' : ''}
           aria-current={active === 'caja' ? 'page' : undefined}
           onClick={ir(onCaja)}
@@ -98,13 +103,6 @@ export function TopBar({
         >
           Objetivos
         </button>
-        <button
-          type="button"
-          className={active === 'templates' ? 'active' : ''}
-          onClick={ir(onPlantillas)}
-        >
-          Plantillas
-        </button>
         <button type="button" className={active === 'zone' ? 'active' : ''} onClick={ir(onZona)}>
           Zona
         </button>
@@ -122,16 +120,6 @@ export function TopBar({
       </nav>
       <div className="row topbar-right">
         {campana}
-        <button
-          type="button"
-          className={`boton-ensenanza ${active === 'learn' ? 'active' : ''}`.trim()}
-          aria-label="Sami te enseña"
-          aria-current={active === 'learn' ? 'page' : undefined}
-          title="Sami te enseña"
-          onClick={onEnsenanza}
-        >
-          <GraduationCapIcon aria-hidden size={20} />
-        </button>
         <button
           type="button"
           className="help-trigger"

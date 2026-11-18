@@ -140,7 +140,7 @@ export function datosDeEjemplo(objetivo: ObjetivoDelServidor, hoy: string): Dato
   });
   const fernet = mini(id('mini-fernet'), 3, {
     tipo: 'MOVER_PARADO',
-    titulo: 'Mové 6 Fernet por semana',
+    titulo: 'Volvé a vender 6 Fernet por semana',
     justificacion: 'Tenés 18 en el estante y hace 3 semanas que casi no sale.',
     referencia: 'Fernet 750 ml',
     valorInicial: 1,
@@ -169,7 +169,7 @@ export function datosDeEjemplo(objetivo: ObjetivoDelServidor, hoy: string): Dato
       'Poné en oferta el alfajor triple',
       ventas.id,
     ),
-    decision(id('d5'), 'PASO_ACEPTADO', semana(1), 'Mové 6 Fernet por semana', fernet.id),
+    decision(id('d5'), 'PASO_ACEPTADO', semana(1), 'Volvé a vender 6 Fernet por semana', fernet.id),
     decision(
       id('d6'),
       'AVISO_APLICADO',
@@ -288,7 +288,7 @@ const CANDIDATOS: CandidatoMiniObjetivo[] = [
   {
     tipo: 'MOVER_PARADO',
     sentido: 'SUBE',
-    titulo: 'Mové 4 aceites por semana',
+    titulo: 'Volvé a vender 4 aceites por semana',
     justificacion: 'Tenés 12 en el depósito y se vencen en dos meses.',
     referencia: 'Aceite 1,5 l',
     registroId: 'registro-aceite',

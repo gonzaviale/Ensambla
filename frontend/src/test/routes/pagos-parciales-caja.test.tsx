@@ -59,12 +59,12 @@ describe('ventas con saldo pendiente', () => {
   it('exige cliente para fiar y envía una venta sin cobros', async () => {
     const { user, clienteId, solicitudes } = await abrir();
     await user.click(screen.getByRole('button', { name: 'Fiada' }));
-    expect(screen.getByRole('button', { name: 'Registrar fiado' })).toBeDisabled();
-    await user.click(screen.getByRole('button', { name: 'Elegir cliente para la deuda' }));
+    expect(screen.getByRole('button', { name: 'Guardar fiado' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Elegir quién debe' }));
     await user.click(screen.getByRole('button', { name: 'Ana López' }));
-    await user.click(screen.getByRole('button', { name: 'Registrar fiado' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar fiado' }));
 
-    await screen.findByRole('heading', { name: 'Venta registrada' }, ESPERA);
+    await screen.findByRole('heading', { name: 'Venta guardada' }, ESPERA);
     expect(solicitudes).toHaveLength(1);
     expect(solicitudes[0]).toMatchObject({
       clienteId: clienteId.slice(1),
@@ -78,13 +78,13 @@ describe('ventas con saldo pendiente', () => {
     const { user, solicitudes } = await abrir();
     await user.click(screen.getByRole('button', { name: 'A medias' }));
     await user.type(screen.getByLabelText('Paga ahora ($)'), '4000');
-    await user.click(screen.getByRole('button', { name: 'Elegir cliente para la deuda' }));
+    await user.click(screen.getByRole('button', { name: 'Elegir quién debe' }));
     await user.click(screen.getByRole('button', { name: 'Ana López' }));
     await user.click(screen.getByRole('button', { name: 'Dividir pago' }));
     await user.type(screen.getByLabelText('Importe en efectivo ($)'), '1500');
-    await user.click(screen.getByRole('button', { name: 'Registrar venta y pago' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar venta y pago' }));
 
-    await screen.findByRole('heading', { name: 'Venta registrada' }, ESPERA);
+    await screen.findByRole('heading', { name: 'Venta guardada' }, ESPERA);
     expect(solicitudes[0]?.pagos).toEqual([
       { medio: 'EFECTIVO', importe: 1500 },
       { medio: 'TRANSFERENCIA', importe: 2500 },
@@ -95,28 +95,28 @@ describe('ventas con saldo pendiente', () => {
   it('rechaza un importe parcial que alcanza o supera el total', async () => {
     const { user, solicitudes } = await abrir();
     await user.click(screen.getByRole('button', { name: 'A medias' }));
-    await user.click(screen.getByRole('button', { name: 'Elegir cliente para la deuda' }));
+    await user.click(screen.getByRole('button', { name: 'Elegir quién debe' }));
     await user.click(screen.getByRole('button', { name: 'Ana López' }));
     await user.type(screen.getByLabelText('Paga ahora ($)'), '10001');
 
-    expect(screen.getByRole('button', { name: 'Registrar venta y pago' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Guardar venta y pago' })).toBeDisabled();
     expect(solicitudes).toHaveLength(0);
   });
 
   it('permite crear al cliente durante el cobro y espera a que se guarde', async () => {
     const { user, solicitudes } = await abrir();
     await user.click(screen.getByRole('button', { name: 'Fiada' }));
-    await user.click(screen.getByRole('button', { name: 'Elegir cliente para la deuda' }));
+    await user.click(screen.getByRole('button', { name: 'Elegir quién debe' }));
     await user.click(screen.getByRole('button', { name: 'Crear cliente' }));
     await user.type(screen.getByLabelText(/^Nombre/), 'Pedro');
     await user.click(screen.getByRole('button', { name: 'Guardar cliente' }));
     await waitFor(
-      () => expect(screen.getByRole('button', { name: 'Registrar fiado' })).toBeEnabled(),
+      () => expect(screen.getByRole('button', { name: 'Guardar fiado' })).toBeEnabled(),
       ESPERA,
     );
-    await user.click(screen.getByRole('button', { name: 'Registrar fiado' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar fiado' }));
 
-    await screen.findByRole('heading', { name: 'Venta registrada' }, ESPERA);
+    await screen.findByRole('heading', { name: 'Venta guardada' }, ESPERA);
     expect(solicitudes[0]?.clienteId).toBeTruthy();
     expect(solicitudes[0]?.pagos).toEqual([]);
   });

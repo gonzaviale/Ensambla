@@ -72,7 +72,7 @@ describe('CompararNegocios', () => {
   it('muestra los totales de toda la cuenta', () => {
     montar();
 
-    const totales = screen.getByRole('region', { name: 'Toda la cuenta' });
+    const totales = screen.getByRole('region', { name: 'Todos tus negocios juntos' });
     expect(totales).toHaveTextContent('3 negocios');
     expect(within(totales).getByText('Vendiste').nextElementSibling).toHaveTextContent(
       '$1.530.000',
@@ -131,7 +131,7 @@ describe('CompararNegocios', () => {
     montar();
 
     const feria = fila('Puesto de la feria');
-    expect(feria).toHaveTextContent('Sin ventas en el período');
+    expect(feria).toHaveTextContent('Sin ventas en estos 30 días');
     expect(within(feria).getAllByText('—')).toHaveLength(4);
     expect(feria).not.toHaveTextContent('$0');
   });

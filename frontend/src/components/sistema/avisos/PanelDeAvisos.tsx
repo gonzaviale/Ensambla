@@ -1,15 +1,13 @@
 import { ContenidoPremium } from '@/components/planes/ContenidoPremium';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { GRUPOS, type GrupoDeAviso } from '@/lib/sistema/alertas';
+import { GRUPOS, type Aviso, type GrupoDeAviso } from '@/lib/sistema/alertas';
 import { MINIMO_DE_COMERCIOS } from '@/lib/sistema/zona';
 import { useAccionesDeAvisos } from '@/hooks/avisos/useAccionesDeAvisos';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useZona } from '@/hooks/zona/queries';
 import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
-import { Btn } from '../Btn';
 import { Icon } from '../Icon';
-import { Sami } from '../Sami';
-import { TarjetaDeAviso } from './TarjetaDeAviso';
+import { ListaDeAvisos } from './ListaDeAvisos';
 import { InvitacionConfigurarComercio } from '../ubicacion/InvitacionConfigurarComercio';
 import { useFaltaConfiguracionNegocio } from '@/hooks/negocio/queries';
 
@@ -99,6 +97,18 @@ export function PanelDeAvisos() {
       panel.filtro === 'todas' ||
       (panel.filtro === 'urgentes' ? aviso.prioridad >= 2 : aviso.grupo === panel.filtro),
   );
+  // Al descartar, la pantalla se queda donde estaba aunque la lista se achique o se vuelva a pedir.
+  const posicion = useRef<{ y: number; hasta: number } | null>(null);
+  const descartarSinSaltar = (aviso: Aviso) => {
+    posicion.current = { y: window.scrollY, hasta: Date.now() + 2000 };
+    acciones.descartar(aviso);
+  };
+  useLayoutEffect(() => {
+    const guardada = posicion.current;
+    if (guardada && Date.now() < guardada.hasta && window.scrollY !== guardada.y) {
+      window.scrollTo({ top: guardada.y });
+    }
+  }, [avisos]);
   const hayDemo = sistemas.some((sistema) => sistema.demoAlmacen);
   const sinDatos = !sistemas.some((sistema) =>
     sistema.sections.some((seccion) => seccion.blocks.some((bloque) => bloque.rows.length)),
@@ -176,15 +186,15 @@ export function PanelDeAvisos() {
       <ul className="alertas-leyenda" aria-label="Qué significa cada color">
         <li data-nivel="3">
           <i aria-hidden="true" />
-          <strong>Rojo · Urgente</strong> no puede esperar
+          <strong>Urgente</strong>
         </li>
         <li data-nivel="2">
           <i aria-hidden="true" />
-          <strong>Amarillo · Advertencia</strong> conviene mirarlo hoy
+          <strong>Advertencia</strong>
         </li>
         <li data-nivel="1">
           <i aria-hidden="true" />
-          <strong>Azul · Normal</strong> para mirar con calma
+          <strong>Normal</strong>
         </li>
       </ul>
       {conAvisos.size > 1 && (
@@ -225,49 +235,19 @@ export function PanelDeAvisos() {
           </ul>
         </aside>
       )}
-      <div className="alertas-lista">
-        {lista.length ? (
-          lista.map((aviso) => (
-            <TarjetaDeAviso
-              key={aviso.id}
-              aviso={aviso}
-              enfocado={panel.foco === aviso.id}
-              onAccion={acciones.ejecutar}
-              onDescartar={acciones.descartar}
-            />
-          ))
-        ) : (
-          <div className={sinDatos ? 'alertas-vacio' : 'alertas-vacio ok'}>
-            {sinDatos ? (
-              <Sami />
-            ) : (
-              <img className="alertas-vacio-img" src="/mockup/sami-guino.webp" alt="" />
-            )}
-            {sinDatos ? (
-              <>
-                <h3>Todavía no tengo datos para mirar.</h3>
-                <p>
-                  Cuando cargues stock, ventas o precios, te aviso lo que necesita atención y lo
-                  comparo con los datos de tu zona.
-                </p>
-                {!hayDemo && (
-                  <Btn cls="primary" onClick={acciones.crearDemo}>
-                    Probar con un almacén de ejemplo
-                  </Btn>
-                )}
-              </>
-            ) : (
-              <>
-                <h3>{panel.filtro === 'todas' ? 'Todo en orden.' : 'Nada en esta categoría.'}</h3>
-                <p>
-                  Sigo mirando tu stock, tus ventas y los precios de tu zona. Si algo cambia, te
-                  aviso.
-                </p>
-              </>
-            )}
-          </div>
-        )}
-      </div>
+      <ListaDeAvisos
+        avisos={lista}
+        foco={panel.foco}
+        filtro={panel.filtro}
+        sinDatos={sinDatos}
+        hayDemo={hayDemo}
+        onAccion={acciones.ejecutar}
+        onDescartar={descartarSinSaltar}
+        onCrearDemo={acciones.crearDemo}
+      />
+      <p className="alertas-aclaracion">
+        Los datos de tu zona vienen de varios comercios juntos: nadie queda identificado.
+      </p>
       <div className="alertas-pie">
         <button
           type="button"

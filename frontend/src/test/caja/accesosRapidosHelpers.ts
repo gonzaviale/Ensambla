@@ -26,7 +26,7 @@ export const thenPrimeraAccionEnfocada = () =>
   expect(screen.getByRole('button', { name: 'Nueva venta' })).toHaveFocus();
 export const whenEligeInventario = (caso: Caso) =>
   caso.user.click(
-    within(screen.getByRole('navigation', { name: 'Acciones de venta e inventario' })).getByRole(
+    within(screen.getByRole('navigation', { name: 'Acciones de venta y stock' })).getByRole(
       'button',
       { name: /Escanear Inventario/ },
     ),

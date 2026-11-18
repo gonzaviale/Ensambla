@@ -160,7 +160,7 @@ describe('contratación y renovación automática', () => {
       await screen.findByText('La renovación automática está cancelada.', {}, ESPERA),
     ).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Premium, tu espacio actual' })).toBeVisible();
-    expect(screen.getByText(/Tu período pago está disponible hasta/)).toBeVisible();
+    expect(screen.getByText(/Tu período pago llega hasta/)).toBeVisible();
     expect(cancelaciones).toBe(1);
   });
 

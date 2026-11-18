@@ -34,7 +34,7 @@ describe('planes y activación de prueba', () => {
     const premium = screen.getByRole('article', { name: 'Plan Premium' });
     const gratuito = screen.getByRole('article', { name: 'Plan Gratuito' });
     expect(within(gratuito).getByText('1.000')).toBeVisible();
-    expect(within(gratuito).getByText('Sin costo')).toBeVisible();
+    expect(within(gratuito).queryByText('Sin costo')).toBeNull();
     expect(within(premium).getByText('100')).toBeVisible();
     expect(within(premium).getByText(/14\.900/)).toBeVisible();
     expect(within(premium).getByText('Cada 30 días · renovación automática')).toBeVisible();
@@ -121,7 +121,7 @@ describe('planes y activación de prueba', () => {
     expect(csrf).toBe('csrf-token-de-prueba');
     expect(cuerpo).toBe('');
     expect(screen.getByRole('button', { name: 'Prueba activa' })).toBeDisabled();
-    expect(screen.getByText(/Los diez análisis de foto son para toda la prueba/)).toBeVisible();
+    expect(screen.getByText(/Los 10 análisis de foto valen para toda la prueba/)).toBeVisible();
     expect(document.getElementById('main')).toHaveFocus();
   });
 

@@ -159,14 +159,14 @@ export function ClientesCaja({
         />
       </label>
       <p className="caja-ayuda" role="status">
-        {pendiente ? 'Guardando cambios de clientes…' : 'Clientes sincronizados'}
+        {pendiente ? 'Guardando cambios de clientes…' : 'Clientes guardados'}
       </p>
       {!clientes.length && (
         <p className="caja-vacio">
           {consulta
             ? 'No encontramos clientes con esa búsqueda.'
             : !mostrarTodos
-              ? 'No hay clientes con deuda para mostrar. Podés consultar Todos.'
+              ? 'No hay clientes con fiado para mostrar. Podés mirar Todos.'
               : 'Todavía no cargaste clientes.'}
         </p>
       )}
@@ -184,7 +184,7 @@ export function ClientesCaja({
                 {cuentas.data
                   ? saldoDe(cuenta) > 0
                     ? `Debe ${dineroCaja(saldoDe(cuenta))}`
-                    : 'Sin deuda'
+                    : 'No debe nada'
                   : 'Saldo sin actualizar'}
               </span>
               {saldoDe(cuenta) > 0 && (

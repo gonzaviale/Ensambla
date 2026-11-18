@@ -60,6 +60,14 @@ describe('ElegirNegocio', () => {
     expect(opcion('Puesto de la feria')).toHaveAccessibleDescription('Sin avisos pendientes');
   });
 
+  it('le da a cada negocio su color de la paleta según su lugar en la lista', () => {
+    montar(listo());
+
+    expect(opcion('Almacén Don Pepe')).toHaveAttribute('data-color', 'petrol');
+    expect(opcion('Kiosco de la esquina')).toHaveAttribute('data-color', 'orange');
+    expect(opcion('Puesto de la feria')).toHaveAttribute('data-color', 'coral');
+  });
+
   it('marca los avisos pendientes y el estado para que se vean', () => {
     montar(listo());
 

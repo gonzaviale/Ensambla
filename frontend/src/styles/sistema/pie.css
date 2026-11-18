@@ -1,0 +1,242 @@
+/* T-216 · El pie de todas las pantallas de la app. Para que no se confunda con una sección más: bastante aire arriba,
+   una escalera de bloques de la marca que lo separa, el logo y Sami saludando como despedida. Fondo blanco y letra
+   petróleo (sin grises); el naranja sólo al pasar el mouse. Se carga último. */
+.page-footer.pie {
+  display: block;
+  margin-top: 88px;
+  padding: 0;
+  border-top: 0;
+  font-size: 14px;
+  color: var(--c-estructura);
+}
+
+/* La escalera: cinco bloques sólidos, cada uno un escalón más alto, y una línea petróleo que los apoya. */
+.pie-bloques {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 34px;
+  border-bottom: 3px solid var(--c-estructura);
+}
+.pie-bloques span {
+  width: 34px;
+  border-radius: 7px 7px 0 0;
+}
+.pie-bloques span:nth-child(1) {
+  height: 10px;
+  background: var(--orange);
+}
+.pie-bloques span:nth-child(2) {
+  height: 16px;
+  background: var(--yellow);
+}
+.pie-bloques span:nth-child(3) {
+  height: 22px;
+  background: var(--blue);
+}
+.pie-bloques span:nth-child(4) {
+  height: 28px;
+  background: var(--petrol);
+}
+.pie-bloques span:nth-child(5) {
+  height: 34px;
+  background: var(--coral);
+}
+
+.pie-cuerpo {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+  gap: 24px 40px;
+  align-items: start;
+  padding: 28px 0 32px;
+}
+.pie-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+.pie-logo .brand-mark {
+  width: 30px;
+  height: 32px;
+}
+.pie-logo strong {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  color: var(--c-estructura);
+}
+.pie-frase {
+  margin: 10px 0 0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--c-estructura);
+}
+
+.pie-enlaces {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px 24px;
+}
+.pie-grupo-titulo {
+  display: inline-block;
+  margin: 0 0 10px;
+  padding-bottom: 3px;
+  border-bottom: 3px solid var(--orange);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c-estructura);
+}
+.pie-grupo:nth-child(2) .pie-grupo-titulo {
+  border-bottom-color: var(--blue);
+}
+.pie-grupo:nth-child(3) .pie-grupo-titulo {
+  border-bottom-color: var(--coral);
+}
+.pie-grupo ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.page-footer.pie a {
+  color: var(--c-estructura);
+  font-weight: 600;
+  text-decoration: none;
+}
+.page-footer.pie a:hover {
+  color: var(--c-accion-texto);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.page-footer.pie a:focus-visible {
+  outline: 3px solid var(--c-estructura);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Sami despide, abajo a la derecha, con un globo de diálogo arriba. */
+.pie-sami {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  align-self: end;
+}
+.pie-sami img {
+  width: 110px;
+  height: auto;
+}
+.pie-sami-globo {
+  position: relative;
+  max-width: 190px;
+  margin: 0;
+  padding: 10px 14px;
+  border: 2px solid var(--c-estructura);
+  border-radius: 16px 16px 4px 16px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--c-estructura);
+  box-shadow: 3px 3px 0 var(--orange);
+}
+/* La colita del globo, apuntando a Sami. */
+.pie-sami-globo::after {
+  content: '';
+  position: absolute;
+  right: 26px;
+  bottom: -9px;
+  width: 14px;
+  height: 14px;
+  border-right: 2px solid var(--c-estructura);
+  border-bottom: 2px solid var(--c-estructura);
+  background: #fff;
+  transform: rotate(45deg);
+}
+
+@media (max-width: 900px) {
+  .pie-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* En pantallas angostas Sami va al final, en una fila: el globo a la izquierda y Sami a la derecha. */
+  .pie-sami {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 14px;
+  }
+  .pie-sami img {
+    width: 86px;
+  }
+  .pie-sami-globo {
+    border-radius: 16px 4px 16px 16px;
+  }
+  .pie-sami-globo::after {
+    top: 14px;
+    right: -9px;
+    bottom: auto;
+    border-bottom: 0;
+    border-top: 2px solid var(--c-estructura);
+    transform: rotate(45deg);
+  }
+}
+@media (max-width: 760px) {
+  .page-footer.pie {
+    margin-top: 64px;
+    font-size: 15px;
+  }
+  .pie-enlaces {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  /* En el celular cada atajo es fácil de tocar con el dedo. */
+  .pie-grupo ul {
+    gap: 2px;
+  }
+  .page-footer.pie a {
+    display: inline-block;
+    padding: 6px 0;
+  }
+  .page-footer.pie > div:first-child {
+    max-width: none;
+  }
+}
+
+/* Celular: Sami ya no queda sola en una fila al final con un espacio en blanco enorme; se acomoda en el hueco
+   que dejan los atajos, abajo a la derecha, con su globo arriba. */
+@media (max-width: 760px) {
+  .page-footer.pie { margin-top: 48px; }
+  .pie-cuerpo { gap: 18px; padding: 22px 0 24px; }
+  .pie-sami {
+    position: absolute;
+    left: calc(50% + 12px); /* justo debajo de la columna de la derecha de los atajos */
+    right: auto;
+    bottom: 24px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .pie-sami img { width: 72px; }
+  .pie-sami-globo { max-width: 150px; padding: 8px 12px; font-size: 13px; border-radius: 16px 16px 4px 16px; }
+  .pie-sami-globo::after {
+    top: auto;
+    right: auto;
+    left: 22px;
+    bottom: -9px;
+    border-top: 0;
+    border-bottom: 2px solid var(--c-estructura);
+  }
+}
+
+/* Accesos rápidos reserva 88 px abajo para no tapar el contenido; en pantallas grandes, con el pie, ese
+   espacio sobraba (una banda en blanco debajo). En el celular se mantiene para que el botón no tape los atajos. */
+@media (min-width: 801px) {
+  #app:has(.acciones-rapidas):has(.pie) {
+    padding-bottom: 0;
+  }
+}

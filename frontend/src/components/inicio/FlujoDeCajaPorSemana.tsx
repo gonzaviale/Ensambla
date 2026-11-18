@@ -17,23 +17,39 @@ export function FlujoDeCajaPorSemana({ semanas }: { semanas: SemanaDeCaja[] }) {
 
   return (
     <>
+      <div className="panel-semanas-cabecera" aria-hidden="true">
+        <span />
+        <span>Cobraste</span>
+        <span>Gastaste</span>
+        <span>Resultado</span>
+      </div>
       <ol className="panel-semanas" aria-label="Flujo de caja por semana">
         {semanas.map((semana) => (
           <li key={semana.desde} className="panel-semana">
             <h4>
               {diaYMes(semana.desde)} al {diaYMes(semana.hasta)}
             </h4>
-            <FilaDeSemana tipo="entra" etiqueta="Entró" importe={semana.entradas} maximo={maximo} />
-            <FilaDeSemana tipo="sale" etiqueta="Salió" importe={semana.salidas} maximo={maximo} />
+            <FilaDeSemana
+              tipo="entra"
+              etiqueta="Cobraste"
+              importe={semana.entradas}
+              maximo={maximo}
+            />
+            <FilaDeSemana
+              tipo="sale"
+              etiqueta="Gastaste"
+              importe={semana.salidas}
+              maximo={maximo}
+            />
             <p className="panel-semana-saldo" data-signo={Math.sign(semana.saldo)}>
-              <span>Saldo</span>
+              <span className="sr-only">Resultado</span>
               <strong>{pesosConSigno(semana.saldo)}</strong>
             </p>
           </li>
         ))}
       </ol>
       <p className="panel-flujo-total" data-signo={Math.sign(queda)}>
-        <span>Te va quedando</span>
+        <span>Te queda</span>
         <strong>{pesos(queda)}</strong>
       </p>
     </>
@@ -44,8 +60,8 @@ type PropsDeFila = { tipo: 'entra' | 'sale'; etiqueta: string; importe: number; 
 
 function FilaDeSemana({ tipo, etiqueta, importe, maximo }: PropsDeFila) {
   return (
-    <div className="panel-semana-fila" data-tipo={tipo}>
-      <span className="panel-semana-etiqueta">{etiqueta}</span>
+    <div className="panel-semana-fila" data-tipo={tipo} data-etiqueta={etiqueta}>
+      <span className="sr-only">{etiqueta}</span>
       <strong className="panel-semana-importe">{pesos(importe)}</strong>
       <span className="panel-semana-barra" aria-hidden="true">
         <i style={{ width: `${ancho(importe, maximo)}%` }} />

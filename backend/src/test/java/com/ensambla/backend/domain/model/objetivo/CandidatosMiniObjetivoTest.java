@@ -79,7 +79,7 @@ class CandidatosMiniObjetivoTest {
         assertThat(result.valorInicial()).isEqualByComparingTo("0");
         assertThat(result.meta()).isEqualByComparingTo("3");
         assertThat(result.aporteEstimado()).isEqualByComparingTo("3728.57");
-        assertThat(result.titulo()).isEqualTo("Mové «Fideos 500 g»");
+        assertThat(result.titulo()).isEqualTo("Volvé a vender «Fideos 500 g»");
     }
 
     @Test

@@ -12,5 +12,10 @@ export const AVISO_ECONOMICO_DE_EJEMPLO: AvisoEconomico = {
   variacionVentas: 12,
   variacionResultadoBruto: -4,
   productos: ['Aceite', 'Leche', 'Yerba'],
+  cambios: [
+    { nombre: 'Aceite', monto: -4200 },
+    { nombre: 'Leche', monto: -2600 },
+    { nombre: 'Yerba', monto: -1500 },
+  ],
   confianza: 'ALTA',
 };

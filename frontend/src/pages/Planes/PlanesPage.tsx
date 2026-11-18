@@ -8,10 +8,23 @@ import { usePlanes } from '@/hooks/planes/queries';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
-const fecha = (valor: string) =>
-  new Intl.DateTimeFormat('es-AR', { dateStyle: 'long', timeStyle: 'short', hour12: false }).format(
-    new Date(valor),
-  );
+// «21 nov, 22:51 h»; el año solo si no es el actual (guía de lenguaje, fechas y horas).
+const fecha = (valor: string) => {
+  const dia = new Date(valor);
+  const diaYMes = new Intl.DateTimeFormat('es-AR', {
+    day: 'numeric',
+    month: 'short',
+    year: dia.getFullYear() === new Date().getFullYear() ? undefined : 'numeric',
+  })
+    .format(dia)
+    .replace(/\./g, '');
+  const hora = new Intl.DateTimeFormat('es-AR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(dia);
+  return `${diaYMes}, ${hora} h`;
+};
 
 function Uso({
   titulo,
@@ -32,7 +45,9 @@ function Uso({
         {limite !== null ? (
           <progress aria-label={titulo} value={Math.min(cantidad, limite)} max={limite || 1} />
         ) : null}
-        {superado ? <p>Superás el límite de nuevas altas. Tus datos siguen disponibles.</p> : null}
+        {superado ? (
+          <p>Pasaste el límite para cargar datos nuevos. Los que ya tenés siguen ahí.</p>
+        ) : null}
       </dd>
     </div>
   );
@@ -58,17 +73,12 @@ export function PlanesPage() {
       <main id="main" tabIndex={-1} className="plans-page reveal">
         <header className="plans-heading">
           <div>
-            <span className="eyebrow">CADA ETAPA DE TU NEGOCIO CUENTA</span>
             <h1>
               Un plan para seguir
-              <br />
               dándole forma.
             </h1>
-            <p>Conocé lo que incluye tu espacio y elegí cuándo probar más herramientas.</p>
+            <p>Mirá qué incluye cada plan y elegí la que más se ajuste a vos.</p>
           </div>
-          <span className="plans-heading-piece" aria-hidden="true">
-            <Icon name="spark" />
-          </span>
         </header>
         {consulta.isPending ? (
           <div role="status" className="plan-loading">
@@ -90,30 +100,29 @@ export function PlanesPage() {
         ) : null}
         {datos && actual ? (
           <>
+            <p className="plan-vigente">Tu plan vigente</p>
             <section
               className={`plan-current ${esPrueba ? 'plan-current-trial' : ''}`}
               aria-labelledby="plan-current-title"
             >
               <div className="plan-current-heading">
                 <div>
-                  <span className="eyebrow">TU PLAN HOY</span>
                   <h2 id="plan-current-title">
                     {esPrueba
                       ? 'Tu prueba Premium está activa'
                       : `${actual.nombre}, tu espacio actual`}
                   </h2>
                   {esPrueba && datos.prueba ? (
-                    <p>Disfrutá las funciones premium hasta el {fecha(datos.prueba.finEn)}.</p>
+                    <p>Tenés las funciones premium hasta el {fecha(datos.prueba.finEn)}.</p>
                   ) : null}
                   {pruebaFinalizada ? (
                     <p>Tu prueba terminó. Seguís con el gratuito y todos tus datos se conservan.</p>
                   ) : null}
-                  {!esPrueba && !pruebaFinalizada ? (
-                    <p>
-                      {actual.codigo === 'PREMIUM' && datos.suscripcion.finEn
-                        ? `Tu período pago está disponible hasta el ${fecha(datos.suscripcion.finEn)}.`
-                        : 'Acá podés ver lo que llevás usado en tu negocio.'}
-                    </p>
+                  {!esPrueba &&
+                  !pruebaFinalizada &&
+                  actual.codigo === 'PREMIUM' &&
+                  datos.suscripcion.finEn ? (
+                    <p>Tu período pago llega hasta el {fecha(datos.suscripcion.finEn)}.</p>
                   ) : null}
                 </div>
                 <Btn
@@ -131,7 +140,7 @@ export function PlanesPage() {
                   limite={actual.limiteProyectos}
                 />
                 <Uso
-                  titulo="Registros guardados"
+                  titulo="Datos guardados"
                   cantidad={datos.uso.registros}
                   limite={actual.limiteRegistros}
                 />
@@ -145,9 +154,9 @@ export function PlanesPage() {
               </dl>
               <p className="plan-usage-note">
                 {esPrueba
-                  ? 'Los diez análisis de foto son para toda la prueba: cambiar de mes no renueva el cupo.'
+                  ? 'Los 10 análisis de foto valen para toda la prueba, aunque cambie el mes.'
                   : `El cupo mensual de IA se renueva el ${fecha(datos.uso.finPeriodoIa)}.`}{' '}
-                Los intentos admitidos y los reintentos también consumen páginas.
+                Los reintentos también cuentan.
               </p>
               {esPrueba &&
               datos.uso.limitePaginasIa !== null &&

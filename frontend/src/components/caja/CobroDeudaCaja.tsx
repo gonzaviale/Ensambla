@@ -64,10 +64,10 @@ export function CobroDeudaCaja({
       <DialogoCaja
         titulo={
           pago.confirmado
-            ? 'Pago registrado'
+            ? 'Pago guardado'
             : pago.solicitud
               ? 'Verificar el pago'
-              : 'Registrar pago de deuda'
+              : 'Guardar pago del fiado'
         }
         bloqueado={bloqueado}
         onCerrar={() => void cerrar()}
@@ -78,7 +78,7 @@ export function CobroDeudaCaja({
         {pago.confirmado ? (
           <>
             <p className="caja-saldo" role="status">
-              Se registraron{' '}
+              Se guardaron{' '}
               <strong>{dineroCaja(Math.round(pago.confirmado.importe * 100))}</strong>.
             </p>
             <p>Fecha: {fechaCaja(pago.confirmado.creadoEn)}</p>
@@ -118,7 +118,7 @@ export function CobroDeudaCaja({
                     }}
                   />
                 </label>
-                <div className="caja-opciones" aria-label="Medio del pago de deuda">
+                <div className="caja-opciones" aria-label="Medio del pago del fiado">
                   {medios.map((valor) => (
                     <button
                       key={valor}

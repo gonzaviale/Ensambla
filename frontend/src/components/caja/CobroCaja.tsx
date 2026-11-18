@@ -107,7 +107,7 @@ export function CobroCaja({
   return (
     <>
       <DialogoCaja
-        titulo={incierta ? 'Verificar la venta' : 'Registrar el cobro'}
+        titulo={incierta ? 'Verificar la venta' : 'Guardar el cobro'}
         clase="caja-dialogo-cobro"
         onCerrar={() => void solicitarCierre()}
         bloqueado={bloqueado}
@@ -160,7 +160,7 @@ export function CobroCaja({
                   ? 'Cliente: ' + String(cliente.fila.name)
                   : tipo === 'pagada'
                     ? 'Agregar cliente (opcional)'
-                    : 'Elegir cliente para la deuda'
+                    : 'Elegir quién debe'
               }
               title={cliente ? String(cliente.fila.name) : undefined}
               onClick={() => setEligiendoCliente(true)}
@@ -294,7 +294,7 @@ export function CobroCaja({
                 ? efectivo > 0
                   ? 'Vuelto: ' + dineroCaja(entregado - efectivo)
                   : tipo === 'fiada'
-                    ? 'Deuda a nombre del cliente.'
+                    ? 'Queda fiado a nombre del cliente.'
                     : 'Confirmá que recibiste el pago.'
                 : 'Revisá los importes y el cliente.'}
             </span>
@@ -331,9 +331,9 @@ export function CobroCaja({
               : incierta
                 ? 'Verificar misma operación'
                 : tipo === 'fiada'
-                  ? 'Registrar fiado'
+                  ? 'Guardar fiado'
                   : tipo === 'parcial'
-                    ? 'Registrar venta y pago'
+                    ? 'Guardar venta y pago'
                     : 'Confirmar cobro'}
           </button>
         </div>

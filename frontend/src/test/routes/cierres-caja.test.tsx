@@ -67,7 +67,7 @@ async function abrir() {
   const usuario = setupUsuarioConSesion();
   const sistema = makeTemplate('shop', {}, false),
     inventario = allBlocks(sistema).find((b) => b.type === 'inventory');
-  if (!inventario) throw new Error('Falta inventario');
+  if (!inventario) throw new Error('Falta la sección de stock');
   inventario.rows = [
     { id: crypto.randomUUID(), name: 'Coca-Cola', quantity: 10, price: 2700, favorite: true },
   ];
@@ -104,7 +104,7 @@ describe('cierres y pagos mixtos de caja', () => {
     expect(screen.getByText(/Transferencia:.*1.700/)).toBeVisible();
     expect(screen.getByText(/Vuelto:.*500/)).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Confirmar cobro' }));
-    await screen.findByRole('heading', { name: 'Venta registrada' }, ESPERA);
+    await screen.findByRole('heading', { name: 'Venta guardada' }, ESPERA);
     expect(solicitud).toMatchObject({
       medio: 'MIXTO',
       recibido: 1500,

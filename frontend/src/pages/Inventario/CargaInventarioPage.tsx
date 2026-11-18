@@ -30,12 +30,12 @@ export function CargaInventarioPage({
   });
   const detalle = useDetalleCatalogos(carga.resultado);
   const navegacion = useNavegacion();
-  useTituloPagina('Cargar productos al inventario');
+  useTituloPagina('Cargar productos al stock');
   return (
     <>
       <CabeceraComun />
       <main id="main" tabIndex={-1} className="escaneo-pagina" data-lectura={!carga.borrador}>
-        <nav className="escaneo-migas" aria-label="Ubicación en el inventario">
+        <nav className="escaneo-migas" aria-label="Ubicación en el stock">
           <button type="button" onClick={() => void navegacion.irAInicio()}>
             Inicio
           </button>
@@ -44,7 +44,7 @@ export function CargaInventarioPage({
             {carga.sistema?.name}
           </button>
           <span aria-hidden="true">/</span>
-          <span>{carga.inventario?.name ?? 'Inventario'}</span>
+          <span>{carga.inventario?.name ?? 'Stock'}</span>
         </nav>
         <header className="escaneo-cabecera">
           <div>
@@ -60,12 +60,12 @@ export function CargaInventarioPage({
             cls="secondary"
             onClick={() => void navegacion.volverAlInventario(sistemaId, inventarioId)}
           >
-            <Icon name="back" /> Volver al inventario
+            <Icon name="back" /> Volver al stock
           </Btn>
         </header>
         {!carga.sistema || carga.inventario?.type !== 'inventory' ? (
           <p className="escaneo-error" role="alert">
-            Este inventario ya no está disponible. Volvé al negocio para elegir una tabla de
+            Esta sección ya no está disponible. Volvé al negocio para elegir una tabla de
             Inventario.
           </p>
         ) : (

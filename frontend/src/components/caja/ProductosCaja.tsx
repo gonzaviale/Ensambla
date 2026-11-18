@@ -36,7 +36,7 @@ export function ProductosCaja({
     >
       <div className="caja-entre caja-productos-cabecera">
         <div>
-          <h3>{favoritos ? 'Tus favoritos' : 'Buscar en el inventario'}</h3>
+          <h3>{favoritos ? 'Tus favoritos' : 'Buscar en tu stock'}</h3>
           <p className="caja-ayuda">
             {favoritos
               ? 'Los artículos de todos los días, a un toque.'
@@ -57,7 +57,7 @@ export function ProductosCaja({
       <label className="caja-buscador">
         <Icon name="search" />
         <input
-          aria-label="Buscar artículo en el inventario"
+          aria-label="Buscar producto en tu stock"
           placeholder={favoritos ? 'Buscar entre tus favoritos' : 'Nombre o código del artículo'}
           value={consulta}
           onChange={(e) => onConsulta(e.target.value)}

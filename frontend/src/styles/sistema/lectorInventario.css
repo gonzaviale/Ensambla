@@ -23,7 +23,7 @@
   font-size: 14px;
 }
 .escaneo-lector-titulo .escaneo-icono {
-  background: #dcecf1;
+  background: #fff;
   color: var(--petrol);
 }
 .escaneo-visor {
@@ -94,7 +94,7 @@
   min-height: 40px;
   font-size: 14px;
   line-height: 1.4;
-  color: #344c59;
+  color: var(--c-estructura);
 }
 .escaneo-lector-inventario .escaneo-guia-codigo[role='alert'] {
   color: #9b382d;
@@ -111,7 +111,7 @@
 .escaneo-accion-secundaria {
   display: grid;
   place-items: center;
-  background: #dcecf1;
+  background: #fff;
   color: #08495e;
   border: 2px solid #38748a;
   border-radius: 10px;
@@ -185,7 +185,7 @@
   font-size: 14px;
 }
 .escaneo-dialogo-lector .btn.secondary {
-  background: #dcecf1;
+  background: #fff;
   color: #08495e;
   border: 2px solid #38748a;
 }
