@@ -63,3 +63,28 @@
     display: none;
   }
 }
+
+/* Taller de Sami: el chat flotante y su botón van fijos abajo a la izquierda, igual que «Accesos rápidos». Para que no
+   se pisen, el chat y el botón de Sami se apoyan arriba de «Accesos rápidos», y su panel, que abre hacia arriba, queda
+   por encima del chat. */
+body:has(.acciones-rapidas) .sami-conversation.flotante {
+  bottom: 88px;
+}
+body:has(.acciones-rapidas) button.chat-abrir {
+  bottom: 88px;
+}
+body:has(.acciones-rapidas .acciones-rapidas-panel) .acciones-rapidas {
+  z-index: 45;
+}
+@media (max-width: 760px) {
+  /* En el celular el chat es una hoja de lado a lado hasta abajo: mientras está abierta tapa a «Accesos rápidos». */
+  body:has(.acciones-rapidas) .sami-conversation.flotante {
+    bottom: 0;
+  }
+  .mk-root:has(.sami-conversation.flotante:not([hidden])) .acciones-rapidas {
+    display: none;
+  }
+  body:has(.acciones-rapidas) button.chat-abrir {
+    bottom: 80px;
+  }
+}
