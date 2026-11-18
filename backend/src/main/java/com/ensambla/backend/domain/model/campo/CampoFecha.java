@@ -27,6 +27,16 @@ public class CampoFecha extends Campo {
     }
 
     @Override
+    public Optional<String> errorDeValorLeido(String valor) {
+        return errorSi(!esFechaIso(valor), "Tiene que ser una fecha");
+    }
+
+    @Override
+    public Optional<ClaseDeDatoInterpretable> claseInterpretable() {
+        return Optional.of(ClaseDeDatoInterpretable.FECHA);
+    }
+
+    @Override
     public Object celdaDeReporte(Object valor, Function<RegistroId, String> etiquetaDe) {
         return LocalDate.parse(valor.toString());
     }

@@ -22,26 +22,60 @@ class HistorialPrecioRepositoryMapperTest {
 
     @Test
     @DisplayName("Pasa el cambio de precio de la entidad al dominio sin perder datos")
-    void toDomainShouldMapEveryField() {
-        CambioPrecio result = mapper.toDomain(HistorialPrecioEntity.builder()
-                .negocioId(NEGOCIO_ID.valor()).registroId(REGISTRO_ID.valor()).precioAnterior(new BigDecimal("1000"))
-                .precioNuevo(new BigDecimal("1200")).cambiadoEn(AHORA).build());
+    void unCambioDePrecioGuardadoSePasaAlDominioSinPerderDatos() {
+        HistorialPrecioEntity entidad = dadoUnaEntidadDeCambioDePrecio();
 
-        assertThat(result).isEqualTo(new CambioPrecio(NEGOCIO_ID, REGISTRO_ID, new BigDecimal("1000"),
-                new BigDecimal("1200"), AHORA));
+        CambioPrecio cambio = cuandoSePasaAlDominio(entidad);
+
+        entoncesEsElCambioDeMilAMilDoscientos(cambio);
     }
 
     @Test
     @DisplayName("Pasa el cambio de precio del dominio a la entidad sin perder datos")
-    void toEntityShouldMapEveryField() {
-        HistorialPrecioEntity result = mapper.toEntity(new CambioPrecio(NEGOCIO_ID, REGISTRO_ID, null,
-                new BigDecimal("1200"), AHORA));
+    void unCambioDePrecioSinPrecioAnteriorSePasaALaEntidadSinPerderDatos() {
+        CambioPrecio cambio = dadoUnPrimerPrecioDeMilDoscientos();
 
-        assertThat(result.getId()).isNull();
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
-        assertThat(result.getRegistroId()).isEqualTo(REGISTRO_ID.valor());
-        assertThat(result.getPrecioAnterior()).isNull();
-        assertThat(result.getPrecioNuevo()).isEqualByComparingTo("1200");
-        assertThat(result.getCambiadoEn()).isEqualTo(AHORA);
+        HistorialPrecioEntity entidad = cuandoSePasaALaEntidad(cambio);
+
+        entoncesTieneTodosLosDatosDelPrimerPrecio(entidad);
+    }
+
+    // --- dado ---
+    private HistorialPrecioEntity dadoUnaEntidadDeCambioDePrecio() {
+        return HistorialPrecioEntity.builder()
+                .negocioId(NEGOCIO_ID.valor())
+                .registroId(REGISTRO_ID.valor())
+                .precioAnterior(new BigDecimal("1000"))
+                .precioNuevo(new BigDecimal("1200"))
+                .cambiadoEn(AHORA)
+                .build();
+    }
+
+    private CambioPrecio dadoUnPrimerPrecioDeMilDoscientos() {
+        return new CambioPrecio(NEGOCIO_ID, REGISTRO_ID, null, new BigDecimal("1200"), AHORA);
+    }
+
+    // --- cuando ---
+    private CambioPrecio cuandoSePasaAlDominio(HistorialPrecioEntity entidad) {
+        return mapper.toDomain(entidad);
+    }
+
+    private HistorialPrecioEntity cuandoSePasaALaEntidad(CambioPrecio cambio) {
+        return mapper.toEntity(cambio);
+    }
+
+    // --- entonces ---
+    private void entoncesEsElCambioDeMilAMilDoscientos(CambioPrecio cambio) {
+        assertThat(cambio).isEqualTo(
+                new CambioPrecio(NEGOCIO_ID, REGISTRO_ID, new BigDecimal("1000"), new BigDecimal("1200"), AHORA));
+    }
+
+    private void entoncesTieneTodosLosDatosDelPrimerPrecio(HistorialPrecioEntity entidad) {
+        assertThat(entidad.getId()).isNull();
+        assertThat(entidad.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
+        assertThat(entidad.getRegistroId()).isEqualTo(REGISTRO_ID.valor());
+        assertThat(entidad.getPrecioAnterior()).isNull();
+        assertThat(entidad.getPrecioNuevo()).isEqualByComparingTo("1200");
+        assertThat(entidad.getCambiadoEn()).isEqualTo(AHORA);
     }
 }

@@ -24,22 +24,35 @@ class AvisoItemTest {
     private static final AccionDeAviso ACCION = new AccionVerZona("Ver en Mi zona", "yerba");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-19T12:00:00Z");
 
-    @Test
-    @DisplayName("Pasa el aviso al item con todos sus datos")
-    void deShouldMapEveryField() {
-        AvisoItem result = AvisoItem.de(givenAviso());
+    private Aviso aviso;
+    private AvisoItem item;
 
-        assertThat(result).isEqualTo(new AvisoItem(ID, PROYECTO_ID, TipoAviso.STOCK, GrupoAviso.STOCK, (short) 3,
-                EstadoAviso.PENDIENTE, "registro:1", "Te quedaste sin yerba", "No te quedan unidades",
-                List.of("motivo"), List.of(ACCION), Map.of("cantidad", 0), AHORA, null));
+    @Test
+    @DisplayName("Un aviso pendiente de stock se pasa al ítem con todos sus datos")
+    void unAvisoPendienteDeStockSePasaAlItemConTodosSusDatos() {
+        dadoUnAvisoPendienteDeStockPorQuedarseSinYerba();
+
+        cuandoSePasaElAvisoAlItem();
+
+        entoncesElItemTieneTodosLosDatosDelAviso();
     }
 
-    private static Aviso givenAviso() {
-        return Aviso.builder()
+    private void dadoUnAvisoPendienteDeStockPorQuedarseSinYerba() {
+        aviso = Aviso.builder()
                 .id(ID).proyectoId(PROYECTO_ID).tipo(TipoAviso.STOCK).grupo(GrupoAviso.STOCK).prioridad((short) 3)
                 .estado(EstadoAviso.PENDIENTE).entidad("registro:1").titulo("Te quedaste sin yerba")
                 .detalle("No te quedan unidades").motivos(List.of("motivo"))
                 .acciones(List.of(ACCION)).datos(Map.of("cantidad", 0)).creadoEn(AHORA)
                 .build();
+    }
+
+    private void cuandoSePasaElAvisoAlItem() {
+        item = AvisoItem.de(aviso);
+    }
+
+    private void entoncesElItemTieneTodosLosDatosDelAviso() {
+        assertThat(item).isEqualTo(new AvisoItem(ID, PROYECTO_ID, TipoAviso.STOCK, GrupoAviso.STOCK, (short) 3,
+                EstadoAviso.PENDIENTE, "registro:1", "Te quedaste sin yerba", "No te quedan unidades",
+                List.of("motivo"), List.of(ACCION), Map.of("cantidad", 0), AHORA, null));
     }
 }

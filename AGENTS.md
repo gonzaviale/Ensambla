@@ -34,10 +34,12 @@ fuente; si cambiás uno, cambiá los dos):
 8. **Calidad de código (obligatoria, skills `codigo-semantico` y `codigo-frontend`):** métodos cortos (≈10 líneas) que
    se leen como una frase, detalle en métodos privados con nombre de intención, sin comentarios que repitan el código,
    cláusulas de guarda, y **siempre herencia y polimorfismo, nunca `switch` ni cadenas de `if/else if` por tipo o
-   estado**. Tests dado/cuando/entonces (`givenX/whenX/thenX`), sin lógica ni ternarios. Si tocás un archivo, lo dejás
+   estado**. Tests con `@DisplayName` en español en todo `@Test` (frase con tildes), nombre de método en español sin tildes que se lee solo, tres bloques de una línea
+   `dadoX/cuandoX/entoncesX`, sin lógica ni ternarios. Si tocás un archivo, lo dejás
    semántico. Vale igual para el frontend (`frontend/AGENTS.md`). **Los métodos públicos (`execute()`, servicios) no
    llaman a repositorios, puertos ni servicios: cada llamada va a un método privado con nombre de intención**, y en los
-   tests un `@Test` no usa `when/verify` ni arma datos inline (todo a `givenX/whenX/thenX`).
+   tests el cuerpo del `@Test` no nombra repositorios, mocks, `when/verify` ni builders (todo a `dadoX/cuandoX/entoncesX`
+   y a fábricas de dominio en `support/`).
 9. **El dominio no conoce formatos de persistencia ni de transporte** (prefijos de clave como `"servidor:"`, JSON,
    `Map<?, ?>` con claves de texto): la infraestructura convierte a objetos tipados (interfaz sellada + records) y el
    dominio habla de ids y tipos propios (`AvisoId`, `AccionDeAviso`).

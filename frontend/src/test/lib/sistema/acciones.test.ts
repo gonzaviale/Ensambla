@@ -14,7 +14,7 @@ import type { Fila, Sistema } from '@/lib/sistema/tipos';
 import {
   cuandoSeCarganTresVentasPorNombre,
   cuandoSeSumanLosPendientes,
-  dadoUnCuadernoConUnaVelaDeEjemploYUnaClientaReal,
+  dadoUnCuadernoConVelasDeEjemploYUnaClientaReal,
   entoncesLasVentasQuedanVinculadasALosRegistrosNuevos,
   entoncesLosFaltantesQuedanPendientesUnaSolaVez,
   entoncesNoSeCreoNingunRegistroNuevo,
@@ -1035,32 +1035,37 @@ describe('Sami ensambla el sistema desde cero', () => {
       expect(mismoSistema(sistema, antes)).toBe(true);
     });
 
-    describe('con vínculos por nombre', () => {
-      let rosa: Fila;
-      let resultado: ReturnType<typeof aplicarAcciones>;
+    it('una venta se vincula con la clienta real que ya está cargada', () => {
+      dadoUnCuadernoConVelasDeEjemploYUnaClientaReal();
 
-      beforeEach(() => {
-        rosa = dadoUnCuadernoConUnaVelaDeEjemploYUnaClientaReal(sistema);
-        resultado = cuandoSeCarganTresVentasPorNombre(sistema);
-      });
+      cuandoSeCarganTresVentasPorNombre();
 
-      it('vincula solo con el registro real que ya está', () => {
-        entoncesSoloRosaQuedaVinculada(sistema, rosa);
-      });
+      entoncesSoloRosaQuedaVinculada();
+    });
 
-      it('no crea los registros que faltan', () => {
-        entoncesNoSeCreoNingunRegistroNuevo(sistema);
-      });
+    it('un nombre que no existe no crea ningún registro nuevo', () => {
+      dadoUnCuadernoConVelasDeEjemploYUnaClientaReal();
 
-      it('deja los faltantes pendientes, una sola vez cada uno', () => {
-        entoncesLosFaltantesQuedanPendientesUnaSolaVez(resultado);
-      });
+      cuandoSeCarganTresVentasPorNombre();
 
-      it('al sumar los pendientes vincula las ventas con los registros nuevos', () => {
-        cuandoSeSumanLosPendientes(sistema, resultado);
+      entoncesNoSeCreoNingunRegistroNuevo();
+    });
 
-        entoncesLasVentasQuedanVinculadasALosRegistrosNuevos(sistema, rosa);
-      });
+    it('los nombres que faltan quedan pendientes una sola vez cada uno', () => {
+      dadoUnCuadernoConVelasDeEjemploYUnaClientaReal();
+
+      cuandoSeCarganTresVentasPorNombre();
+
+      entoncesLosFaltantesQuedanPendientesUnaSolaVez();
+    });
+
+    it('al sumar los pendientes las ventas quedan vinculadas a los registros nuevos', () => {
+      dadoUnCuadernoConVelasDeEjemploYUnaClientaReal();
+      cuandoSeCarganTresVentasPorNombre();
+
+      cuandoSeSumanLosPendientes();
+
+      entoncesLasVentasQuedanVinculadasALosRegistrosNuevos();
     });
 
     it('sumar los pendientes usa un registro que se cargó mientras tanto e ignora las filas que ya no están', () => {

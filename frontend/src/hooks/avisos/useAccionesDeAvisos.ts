@@ -1,4 +1,5 @@
 import type { AccionDeAviso, Aviso } from '@/lib/sistema/alertas';
+import type { Sistema } from '@/lib/sistema/tipos';
 import { findBlock, id as nuevoId } from '@/lib/sistema/core';
 import { crearAlmacenCargado, crearAlmacenDeEjemplo } from '@/lib/sistema/demo';
 import { hoy } from '@/lib/sistema/formato';
@@ -12,9 +13,43 @@ import { useAbrirAvisos } from '@/hooks/avisos/useAbrirAvisos';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
+type AccionDeTipo<T extends AccionDeAviso['tipo']> = Extract<AccionDeAviso, { tipo: T }>;
+type AccionDelServidor = AccionDeTipo<'servidor'>;
+type ManejadoresDeAccion = {
+  [T in AccionDeAviso['tipo']]: (accion: AccionDeTipo<T>) => void;
+};
+
 const MAXIMO_DE_DESCARTADOS = 200;
 /** Lo que se espera a que la tabla dibuje el registro pedido antes de marcarlo. */
 const ESPERA_DE_LA_TANDA = 60;
+
+const ocultarElAvisoNuevo = () => useSistemaStore.getState().ocultarAvisoNuevo();
+
+const avisarAlUsuario = (mensaje: string) => useSistemaStore.getState().avisar(mensaje);
+
+const actualizarElSistema = (sistemaId: string, cambio: (sistema: Sistema) => void) =>
+  useSistemaStore.getState().actualizarSistema(sistemaId, cambio);
+
+function aplicarElCambioDelAviso(accion: AccionDeTipo<'aplicar'>) {
+  actualizarElSistema(accion.sistemaId, (sistema) => {
+    const fila = findBlock(sistema, accion.bloqueId)?.rows.find(
+      (item) => item.id === accion.filaId,
+    );
+    if (fila) Object.assign(fila, accion.valores);
+  });
+  avisarAlUsuario(accion.confirmacion);
+}
+
+function crearElRegistroDelAviso(accion: AccionDeTipo<'crear'>) {
+  actualizarElSistema(accion.sistemaId, (sistema) => {
+    findBlock(sistema, accion.bloqueId)?.rows.push({
+      id: nuevoId(),
+      ...accion.valores,
+      __source: 'Aviso de Sami',
+    });
+  });
+  avisarAlUsuario(accion.confirmacion);
+}
 
 // Lo que se puede hacer con un aviso: aplicarlo, abrirlo, descartarlo o apagar un grupo.
 export function useAccionesDeAvisos() {
@@ -65,50 +100,36 @@ export function useAccionesDeAvisos() {
     }, 120);
   };
 
+  const manejadores: ManejadoresDeAccion = {
+    aplicar: (accion) => aplicarElCambioDelAviso(accion),
+    crear: (accion) => crearElRegistroDelAviso(accion),
+    registrar: (accion) => {
+      ocultarElAvisoNuevo();
+      void irAlBloque(accion.sistemaId, accion.bloqueId, {
+        nuevoRegistro: true,
+        avisoId: accion.avisoId,
+      });
+    },
+    abrir: (accion) => {
+      ocultarElAvisoNuevo();
+      void irAlBloque(accion.sistemaId, accion.bloqueId, { filaId: accion.filaId });
+    },
+    zona: () => {
+      ocultarElAvisoNuevo();
+      void navegacion.irAZona();
+    },
+    servidor: (accion) => aplicarEnElServidor(accion),
+  };
+
+  const aplicarEnElServidor = (accion: AccionDelServidor) =>
+    aplicarEnServidor.mutate(accion.avisoId, {
+      onSuccess: () => avisarAlUsuario(accion.confirmacion),
+      onError: () => avisarAlUsuario('No pudimos aplicar el cambio. Probá de nuevo.'),
+    });
+
   const ejecutar = (accion: AccionDeAviso) => {
-    const store = useSistemaStore.getState();
-    switch (accion.tipo) {
-      case 'aplicar':
-        store.actualizarSistema(accion.sistemaId, (sistema) => {
-          const fila = findBlock(sistema, accion.bloqueId)?.rows.find(
-            (item) => item.id === accion.filaId,
-          );
-          if (fila) Object.assign(fila, accion.valores);
-        });
-        store.avisar(accion.confirmacion);
-        break;
-      case 'crear':
-        store.actualizarSistema(accion.sistemaId, (sistema) => {
-          findBlock(sistema, accion.bloqueId)?.rows.push({
-            id: nuevoId(),
-            ...accion.valores,
-            __source: 'Aviso de Sami',
-          });
-        });
-        store.avisar(accion.confirmacion);
-        break;
-      case 'registrar':
-        store.ocultarAvisoNuevo();
-        void irAlBloque(accion.sistemaId, accion.bloqueId, {
-          nuevoRegistro: true,
-          avisoId: accion.avisoId,
-        });
-        break;
-      case 'abrir':
-        store.ocultarAvisoNuevo();
-        void irAlBloque(accion.sistemaId, accion.bloqueId, { filaId: accion.filaId });
-        break;
-      case 'zona':
-        store.ocultarAvisoNuevo();
-        void navegacion.irAZona();
-        break;
-      case 'servidor':
-        aplicarEnServidor.mutate(accion.avisoId, {
-          onSuccess: () => store.avisar(accion.confirmacion),
-          onError: () => store.avisar('No pudimos aplicar el cambio. Probá de nuevo.'),
-        });
-        break;
-    }
+    const manejar = manejadores[accion.tipo] as (accion: AccionDeAviso) => void;
+    manejar(accion);
   };
 
   const descartar = (aviso: Aviso) => {

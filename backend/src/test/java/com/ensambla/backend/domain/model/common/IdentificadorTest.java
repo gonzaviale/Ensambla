@@ -43,83 +43,173 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class IdentificadorTest {
 
     private static final UUID UUID_FIJO = UUID.fromString("a0000000-0000-4000-8000-000000000001");
+    private static final UUID OTRO_UUID = UUID.fromString("a0000000-0000-4000-8000-000000000002");
+
+    private Identificador desdeUuid;
+    private Identificador desdeTexto;
+    private Object nuevo;
+    private Object otroNuevo;
+    private Throwable rechazo;
+    private UUID valor;
+    private BloqueId opcionalPresente;
+    private BloqueId opcionalAusente;
+    private List<UUID> valores;
 
     static Stream<Class<?>> tipos() {
-        return Stream.of(CobroCajaId.class, CierreCajaId.class, VentaCajaId.class, AvisoId.class, BloqueId.class, CampoId.class, MovimientoStockId.class, FotoId.class,
-                LoteId.class, NegocioId.class, RenovacionId.class, PlanId.class, SuscripcionId.class,
-                PlantillaId.class, ReclamoId.class, ProyectoId.class, RecetaId.class, RegistroId.class,
-                SeccionId.class, UsuarioId.class, ZonaId.class, VinculoWhatsappId.class, CodigoVinculacionId.class, PropuestaWhatsappId.class,
-                VerificacionWhatsappId.class,
-                MensajeWhatsappId.class, ObjetivoId.class, MiniObjetivoId.class, ProgresoObjetivoId.class,
-                DecisionObjetivoId.class, ResumenSemanalId.class, ReajusteMiniObjetivoId.class);
+        return Stream.of(CobroCajaId.class, CierreCajaId.class, VentaCajaId.class, AvisoId.class, BloqueId.class,
+                CampoId.class, MovimientoStockId.class, FotoId.class, LoteId.class, NegocioId.class,
+                RenovacionId.class, PlanId.class, SuscripcionId.class, PlantillaId.class, ReclamoId.class,
+                ProyectoId.class, RecetaId.class, RegistroId.class, SeccionId.class, UsuarioId.class, ZonaId.class,
+                VinculoWhatsappId.class, CodigoVinculacionId.class, PropuestaWhatsappId.class,
+                VerificacionWhatsappId.class, MensajeWhatsappId.class, ObjetivoId.class, MiniObjetivoId.class,
+                ProgresoObjetivoId.class, DecisionObjetivoId.class, ResumenSemanalId.class,
+                ReajusteMiniObjetivoId.class);
     }
 
     @ParameterizedTest
     @MethodSource("tipos")
     @DisplayName("Cada id envuelve su UUID, se arma desde UUID o texto y se lee como el UUID")
-    void idShouldWrapUuid(Class<?> tipo) throws Exception {
-        Identificador desdeUuid = (Identificador) tipo.getMethod("de", UUID.class).invoke(null, UUID_FIJO);
-        Identificador desdeTexto = (Identificador) tipo.getMethod("de", String.class).invoke(null, UUID_FIJO.toString());
+    void cadaIdEnvuelveSuUuidSeArmaDesdeUuidOTextoYSeLeeComoElUuid(Class<?> tipo) throws Exception {
+        cuandoSeArmaElIdDesdeUuidYDesdeTexto(tipo);
 
-        assertThat(desdeUuid.valor()).isEqualTo(UUID_FIJO);
-        assertThat(desdeTexto).isEqualTo(desdeUuid);
-        assertThat(desdeUuid).hasToString(UUID_FIJO.toString());
+        entoncesAmbosIdsEnvuelvenElUuidYSeLeenComoEl();
     }
 
     @ParameterizedTest
     @MethodSource("tipos")
     @DisplayName("Un id nuevo es distinto cada vez")
-    void nuevoShouldCreateDifferentIds(Class<?> tipo) throws Exception {
-        Object uno = tipo.getMethod("nuevo").invoke(null);
-        Object otro = tipo.getMethod("nuevo").invoke(null);
+    void unIdNuevoEsDistintoCadaVez(Class<?> tipo) throws Exception {
+        cuandoSeCreanDosIdsNuevos(tipo);
 
-        assertThat(uno).isNotEqualTo(otro);
+        entoncesLosIdsNuevosSonDistintos();
     }
 
     @ParameterizedTest
     @MethodSource("tipos")
     @DisplayName("Un id sin UUID no se puede armar")
-    void idShouldRejectNull(Class<?> tipo) {
-        assertThatThrownBy(() -> tipo.getMethod("de", UUID.class).invoke(null, (Object) null))
-                .isInstanceOf(InvocationTargetException.class)
-                .cause().isInstanceOf(NullPointerException.class).hasMessageContaining("obligatorio");
+    void unIdSinUuidNoSePuedeArmar(Class<?> tipo) {
+        cuandoSeIntentaArmarElIdSinUuid(tipo);
+
+        entoncesSeRechazaPorqueElUuidEsObligatorio();
     }
 
     @Test
     @DisplayName("Dos ids de tipo distinto con el mismo UUID no son iguales")
-    void idsOfDifferentTypesShouldNotBeEqual() {
-        assertThat((Object) BloqueId.de(UUID_FIJO)).isNotEqualTo(CampoId.de(UUID_FIJO));
+    void dosIdsDeTipoDistintoConElMismoUuidNoSonIguales() {
+        cuandoSeArmanUnBloqueIdYUnCampoIdConElMismoUuid();
+
+        entoncesLosIdsDeDistintoTipoNoSonIguales();
     }
 
     @Test
-    @DisplayName("El valor de un id que puede faltar es nulo si falta")
-    void valorDeShouldBeNullForMissingId() {
-        assertThat(Identificador.valorDe(null)).isNull();
-        assertThat(Identificador.valorDe(BloqueId.de(UUID_FIJO))).isEqualTo(UUID_FIJO);
+    @DisplayName("El valor de un id que falta es nulo")
+    void elValorDeUnIdQueFaltaEsNulo() {
+        cuandoSePideElValorDeUnIdAusente();
+
+        entoncesElValorEsNulo();
+    }
+
+    @Test
+    @DisplayName("El valor de un id presente es su UUID")
+    void elValorDeUnIdPresenteEsSuUuid() {
+        cuandoSePideElValorDeUnIdPresente();
+
+        entoncesElValorEsElUuid();
     }
 
     @Test
     @DisplayName("Un UUID que puede faltar da un id sólo si está")
-    void opcionalShouldWrapOnlyPresentUuid() {
-        BloqueId presente = Identificador.opcional(UUID_FIJO, BloqueId::de);
-        BloqueId ausente = Identificador.opcional(null, BloqueId::de);
+    void unUuidQuePuedeFaltarDaUnIdSoloSiEsta() {
+        cuandoSeEnvuelvenUnUuidPresenteYUnoAusente();
 
-        assertThat(presente).isEqualTo(BloqueId.de(UUID_FIJO));
-        assertThat(ausente).isNull();
+        entoncesSoloElPresenteDaUnId();
     }
 
     @Test
     @DisplayName("Los UUID de varios ids conservan el orden")
-    void valoresShouldKeepOrder() {
-        UUID otro = UUID.fromString("a0000000-0000-4000-8000-000000000002");
+    void losUuidDeVariosIdsConservanElOrden() {
+        cuandoSePidenLosValoresDeDosIds();
 
-        List<UUID> result = Identificador.valores(List.of(BloqueId.de(otro), BloqueId.de(UUID_FIJO)));
+        entoncesLosValoresConservanElOrden();
+    }
 
-        assertThat(result).containsExactly(otro, UUID_FIJO);
+    // --- cuando ---
+    private void cuandoSeArmaElIdDesdeUuidYDesdeTexto(Class<?> tipo) throws Exception {
+        desdeUuid = (Identificador) tipo.getMethod("de", UUID.class).invoke(null, UUID_FIJO);
+        desdeTexto = (Identificador) tipo.getMethod("de", String.class).invoke(null, UUID_FIJO.toString());
+    }
+
+    private void cuandoSeCreanDosIdsNuevos(Class<?> tipo) throws Exception {
+        nuevo = tipo.getMethod("nuevo").invoke(null);
+        otroNuevo = tipo.getMethod("nuevo").invoke(null);
+    }
+
+    private void cuandoSeIntentaArmarElIdSinUuid(Class<?> tipo) {
+        rechazo = catchThrowable(() -> tipo.getMethod("de", UUID.class).invoke(null, (Object) null));
+    }
+
+    private void cuandoSeArmanUnBloqueIdYUnCampoIdConElMismoUuid() {
+        desdeUuid = BloqueId.de(UUID_FIJO);
+        desdeTexto = CampoId.de(UUID_FIJO);
+    }
+
+    private void cuandoSePideElValorDeUnIdAusente() {
+        valor = Identificador.valorDe(null);
+    }
+
+    private void cuandoSePideElValorDeUnIdPresente() {
+        valor = Identificador.valorDe(BloqueId.de(UUID_FIJO));
+    }
+
+    private void cuandoSeEnvuelvenUnUuidPresenteYUnoAusente() {
+        opcionalPresente = Identificador.opcional(UUID_FIJO, BloqueId::de);
+        opcionalAusente = Identificador.opcional(null, BloqueId::de);
+    }
+
+    private void cuandoSePidenLosValoresDeDosIds() {
+        valores = Identificador.valores(List.of(BloqueId.de(OTRO_UUID), BloqueId.de(UUID_FIJO)));
+    }
+
+    // --- entonces ---
+    private void entoncesAmbosIdsEnvuelvenElUuidYSeLeenComoEl() {
+        assertThat(desdeUuid.valor()).isEqualTo(UUID_FIJO);
+        assertThat(desdeTexto).isEqualTo(desdeUuid);
+        assertThat(desdeUuid).hasToString(UUID_FIJO.toString());
+    }
+
+    private void entoncesLosIdsNuevosSonDistintos() {
+        assertThat(nuevo).isNotEqualTo(otroNuevo);
+    }
+
+    private void entoncesSeRechazaPorqueElUuidEsObligatorio() {
+        assertThat(rechazo)
+                .isInstanceOf(InvocationTargetException.class)
+                .cause().isInstanceOf(NullPointerException.class).hasMessageContaining("obligatorio");
+    }
+
+    private void entoncesLosIdsDeDistintoTipoNoSonIguales() {
+        assertThat((Object) desdeUuid).isNotEqualTo(desdeTexto);
+    }
+
+    private void entoncesElValorEsNulo() {
+        assertThat(valor).isNull();
+    }
+
+    private void entoncesElValorEsElUuid() {
+        assertThat(valor).isEqualTo(UUID_FIJO);
+    }
+
+    private void entoncesSoloElPresenteDaUnId() {
+        assertThat(opcionalPresente).isEqualTo(BloqueId.de(UUID_FIJO));
+        assertThat(opcionalAusente).isNull();
+    }
+
+    private void entoncesLosValoresConservanElOrden() {
+        assertThat(valores).containsExactly(OTRO_UUID, UUID_FIJO);
     }
 }

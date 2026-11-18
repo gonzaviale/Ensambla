@@ -11,22 +11,21 @@ import type {
 
 const numero = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 });
 
+const enPesos = (valor: number) => formatoPesos(valor);
+const porSemana = (valor: number) => `${numero.format(valor)} por semana`;
+
+const FORMATO_DE_VALOR: Record<TipoMiniObjetivo, (valor: number) => string> = {
+  SUBIR_PRECIO: enPesos,
+  VENTAS_SEMANALES: (valor) => `${formatoPesos(valor)} por semana`,
+  RECORTAR_GASTO: (valor) => `${formatoPesos(valor)} en el mes`,
+  MEJORAR_MARGEN: (valor) => `${numero.format(valor)} %`,
+  MOVER_PARADO: porSemana,
+  PONER_A_LA_VISTA: porSemana,
+};
+
 /** El valor de un mini-objetivo en su unidad: pesos, unidades por semana o porcentaje. */
-export function valorDeMini(tipo: TipoMiniObjetivo, valor: number): string {
-  switch (tipo) {
-    case 'SUBIR_PRECIO':
-      return formatoPesos(valor);
-    case 'VENTAS_SEMANALES':
-      return `${formatoPesos(valor)} por semana`;
-    case 'RECORTAR_GASTO':
-      return `${formatoPesos(valor)} en el mes`;
-    case 'MEJORAR_MARGEN':
-      return `${numero.format(valor)} %`;
-    case 'MOVER_PARADO':
-    case 'PONER_A_LA_VISTA':
-      return `${numero.format(valor)} por semana`;
-  }
-}
+export const valorDeMini = (tipo: TipoMiniObjetivo, valor: number): string =>
+  FORMATO_DE_VALOR[tipo](valor);
 
 /** Qué se mide en cada tipo, para leer «hoy / meta» sin ambigüedad. */
 export const QUE_SE_MIDE: Record<TipoMiniObjetivo, string> = {

@@ -7,7 +7,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class CampoOpcionTest extends CampoPorTipoTest {
+class CampoOpcionTest extends CampoDeCualquierTipoTest {
 
     @Override
     protected TipoCampo tipoEsperado() {
@@ -15,23 +15,37 @@ class CampoOpcionTest extends CampoPorTipoTest {
     }
 
     @Override
-    protected List<Object> valoresValidos() {
+    protected List<Object> valoresQueAcepta() {
         return List.of("Minorista", "Mayorista");
     }
 
     @Override
-    protected List<Object> valoresInvalidos() {
+    protected List<Object> valoresQueRechaza() {
         return List.of("Otra", true);
     }
 
     @Override
-    protected String mensajeDeError() {
+    protected String motivoDelRechazo() {
         return "Elegí una de las opciones";
     }
 
     @Test
     @DisplayName("Conoce las opciones entre las que se elige")
-    void getOpcionesShouldBeTheOnesOfTheCampo() {
-        assertThat(campo().getOpciones()).containsExactly("Minorista", "Mayorista");
+    void conoceLasOpcionesEntreLasQueSeElige() {
+        entoncesLasOpcionesSonMinoristaYMayorista();
+    }
+
+    private void entoncesLasOpcionesSonMinoristaYMayorista() {
+        assertThat(unCampo().getOpciones()).containsExactly("Minorista", "Mayorista");
+    }
+
+    @Override
+    protected List<String> textosLeidosQueAcepta() {
+        return List.of("Minorista");
+    }
+
+    @Override
+    protected List<String> textosLeidosQueRechaza() {
+        return List.of("Otra");
     }
 }

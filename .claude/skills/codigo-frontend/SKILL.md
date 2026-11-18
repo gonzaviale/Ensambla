@@ -1,6 +1,6 @@
 ---
 name: codigo-frontend
-description: OBLIGATORIO siempre que se escriba, modifique o revise código del frontend de Ensambla (React 19, TypeScript, Vitest, carpeta frontend/src), componentes, hooks, funciones de lib y tests, sin excepción. Impone código semántico - componentes y funciones cortos (≈10 líneas, un solo nivel de abstracción), hooks con nombre de intención, JSX sin lógica inline, sin comentarios que repitan el código, cláusulas de guarda y SIEMPRE polimorfismo en lugar de switch o cadenas de if/ternarios por tipo de campo (campo.type - text, number, currency, date, time, email, tel, select, checkbox, relation, textarea) usando una clase base ComportamientoDeCampo con una subclase por tipo y un registro comportamientoDe(tipo). En tests exige it en español como frase de comportamiento, helpers given/when/then compartidos en src/test, sin setTimeout ni getElementById y describe.each con una base compartida por tipo. Usar al crear, tocar o revisar cualquier archivo de frontend/src y antes de cerrar una tarea del frontend. Si tocás un archivo, lo dejás semántico.
+description: OBLIGATORIO siempre que se escriba, modifique o revise código del frontend de Ensambla (React 19, TypeScript, Vitest, carpeta frontend/src), componentes, hooks, funciones de lib y tests, sin excepción. Impone código semántico - componentes y funciones cortos (≈10 líneas, un solo nivel de abstracción), hooks con nombre de intención, JSX sin lógica inline, sin comentarios que repitan el código, cláusulas de guarda y SIEMPRE polimorfismo en lugar de switch o cadenas de if/ternarios por tipo de campo (campo.type - text, number, currency, date, time, email, tel, select, checkbox, relation, textarea) usando una clase base ComportamientoDeCampo con una subclase por tipo y un registro comportamientoDe(tipo). En tests exige it en español como frase de comportamiento, helpers dado/cuando/entonces (dadoX, cuandoX, entoncesX) compartidos en src/test, sin setTimeout ni getElementById y describe.each con una base compartida por tipo. Usar al crear, tocar o revisar cualquier archivo de frontend/src y antes de cerrar una tarea del frontend. Si tocás un archivo, lo dejás semántico.
 ---
 
 # Código semántico en el frontend (React/TypeScript y Vitest)
@@ -162,12 +162,12 @@ return <ListaDeAvisos avisos={avisosPendientes} />;
 ## Tests (Vitest y Testing Library)
 
 1. **`it` en español como frase de comportamiento:** `it('avisa cuando el stock de gaseosa baja del mínimo')`, no
-   `it('works')` ni `it('test 1')`. Un comportamiento por `it`.
-2. **Helpers given/when/then compartidos en `src/test/`**, nombrados por intención y no redefinidos por archivo:
-   `abrirConStockDeGaseosa()` / `givenStockDeGaseosa()`, `cuandoBajaElStock()` / `whenBajaElStock()`,
-   `entoncesAparecePendienteElAviso()` / `thenApareceElAviso()`. Dentro del `it`, solo la secuencia
-   dado → cuando → entonces; el detalle va al helper. Referencia de estilo:
-   `src/test/components/PreviewBoard.test.tsx`.
+   `it('works')` ni `it('test 1')`. Un comportamiento por `it`. En el frontend el título del `it('…')` cumple el rol del
+   `@DisplayName` del backend (frase completa en español, con tildes y puntuación normal): es obligatorio y nunca vacío.
+2. **Helpers `dado/cuando/entonces` compartidos en `src/test/`**, con prefijos en español, nombrados por intención y
+   no redefinidos por archivo: `dadoUnNegocioConStockDe(...)`, `cuandoBajaElStockA(...)`,
+   `entoncesApareceUnAvisoPendienteDe(...)`. Dentro del `it`, **una línea por bloque** (dado → cuando → entonces); el
+   detalle va al helper. Referencia de estilo: `src/test/components/PreviewBoard.test.tsx`.
 3. **Cortos:** un `it` de ≈10 líneas; si encadena acciones y tiene muchos `expect`, son tests distintos o falta un helper
    `then…` que agrupe las aserciones.
 4. **Sin `setTimeout` ni `getElementById`.** Se espera con `await screen.findBy…`/`waitFor` de **un solo nivel** y se
@@ -175,7 +175,7 @@ return <ListaDeAvisos avisos={avisosPendientes} />;
    anidados.
 5. **Sin lógica en el test:** ni `if`, ni `for` con `expect`, ni ternarios.
 5b. **El `it` no arma datos ni llama a mocks inline:** nada de `vi.mock`/`mockResolvedValue`, `render(...)` con
-    props armadas a mano ni `expect` sueltos; todo va a helpers `given/when/then`:
+    props armadas a mano ni `expect` sueltos; todo va a helpers `dado/cuando/entonces`:
 
 ```ts
 // ❌ mecánica dentro del it
@@ -187,11 +187,11 @@ it('guarda', async () => {
 
 // ✅ dado / cuando / entonces
 it('guarda el registro con el nombre nuevo', async () => {
-  givenUnRegistroLlamadoCoca();
+  dadoUnRegistroLlamadoCoca();
 
-  await whenSeRenombraASprite();
+  await cuandoSeRenombraASprite();
 
-  thenSeGuardoConNombreSprite();
+  entoncesSeGuardaConNombreSprite();
 });
 ```
 6. **Tests por tipo con base compartida:** `describe.each` con los datos de cada tipo (`valorValido`, `valorInvalido`,

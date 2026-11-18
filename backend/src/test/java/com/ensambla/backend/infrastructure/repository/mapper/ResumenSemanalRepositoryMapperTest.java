@@ -37,79 +37,84 @@ class ResumenSemanalRepositoryMapperTest {
 
     @Test
     @DisplayName("Pasa el resumen a la entidad con los mini-objetivos como JSON y el valor como texto")
-    void toEntityShouldMapEveryFieldAndTheMinisAsJson() {
-        ResumenSemanalEntity result = mapper.toEntity(resumen());
+    void unResumenSeGuardaConLosMinisComoJsonYElValorComoTexto() {
+        ResumenSemanal resumen = dadoUnResumenSemanal();
 
-        assertThat(result.getId()).isEqualTo(RESUMEN_ID.valor());
-        assertThat(result.getObjetivoId()).isEqualTo(OBJETIVO_ID.valor());
-        assertThat(result.getSemanaInicio()).isEqualTo(SEMANA);
-        assertThat(result.getResultado()).isEqualTo(RESULTADO);
-        assertThat(result.getAvance()).isEqualTo(AVANCE);
-        assertThat(result.getDecisionesAplicadas()).isEqualTo(1);
-        assertThat(result.getDecisionesDescartadas()).isEqualTo(2);
-        assertThat(result.getDecisionesAceptadas()).isEqualTo(3);
-        assertThat(result.getDecisionesIgnoradas()).isEqualTo(4);
-        assertThat(result.getMinis()).containsExactly(
-                Map.of("miniObjetivoId", MINI_ID.toString(), "valor", "12600.50"));
-        assertThat(result.getQueFunciono()).isEqualTo("Bien");
-        assertThat(result.isTextoConIa()).isFalse();
-        assertThat(result.getCerradoEn()).isEqualTo(AHORA);
+        ResumenSemanalEntity entidad = cuandoSeGuardaElResumen(resumen);
+
+        entoncesLaEntidadTieneTodosLosDatosDelResumen(entidad);
+        entoncesLosMinisQuedanComoJsonConElValorComoTexto(entidad);
     }
 
     @Test
     @DisplayName("Lee el resumen de la entidad con sus mini-objetivos y sus reajustes")
-    void toDomainShouldMapEveryFieldWithTheMinisAndReajustes() {
-        ResumenSemanalEntity entity = mapper.toEntity(resumen());
+    void unResumenSeLeeConSusMinisYSusReajustes() {
+        ResumenSemanalEntity entidad = dadoUnaEntidadDeResumen();
 
-        ResumenSemanal result = mapper.toDomain(entity, List.of(reajusteEntity(OTRO_MINI_ID.valor())));
+        ResumenSemanal resumen = cuandoSeLeeElResumenConUnReajuste(entidad);
 
-        assertThat(result).usingRecursiveComparison().ignoringFields("reajustes").isEqualTo(resumen());
-        assertThat(result.valorDe(MINI_ID)).contains(VALOR);
-        assertThat(result.reajustes()).singleElement()
-                .satisfies(reajuste -> assertThat(reajuste.miniNuevoId()).isEqualTo(OTRO_MINI_ID));
+        entoncesElResumenTieneTodosLosDatosDeLaEntidad(resumen);
+        entoncesElResumenRecuerdaElValorDelMini(resumen);
+        entoncesElResumenTieneElReajusteLeido(resumen);
     }
 
     @Test
     @DisplayName("Pasa el reajuste a la entidad colgado de su resumen")
-    void toEntityShouldMapTheReajusteWithItsResumen() {
-        ReajusteMiniObjetivoEntity result = mapper.toEntity(RESUMEN_ID, reajuste());
+    void unReajusteSeGuardaColgadoDeSuResumen() {
+        ReajusteMiniObjetivo reajuste = dadoUnReajusteQueSubeLaMeta();
 
-        assertThat(result).usingRecursiveComparison().isEqualTo(reajusteEntity(OTRO_MINI_ID.valor()));
+        ReajusteMiniObjetivoEntity entidad = cuandoSeGuardaElReajusteDelResumen(reajuste);
+
+        entoncesLaEntidadDelReajusteTieneTodosLosDatos(entidad);
     }
 
     @Test
     @DisplayName("Un reajuste sin mini-objetivo nuevo se guarda y se lee con el nuevo vacío")
-    void reajusteShouldKeepTheNewMiniEmptyWhenThereIsNone() {
-        ReajusteMiniObjetivo sinNuevo = new ReajusteMiniObjetivo(REAJUSTE_ID, MINI_ID, null, TipoReajuste.REEMPLAZAR,
-                "Sin reemplazo", "Subile", BigDecimal.TEN, null, null, AHORA);
+    void unReajusteSinMiniNuevoSeGuardaYSeLeeConElNuevoVacio() {
+        ReajusteMiniObjetivo sinNuevo = dadoUnReajusteSinMiniNuevo();
 
-        ReajusteMiniObjetivoEntity entity = mapper.toEntity(RESUMEN_ID, sinNuevo);
+        ReajusteMiniObjetivoEntity entidad = cuandoSeGuardaElReajusteDelResumen(sinNuevo);
 
-        assertThat(entity.getMiniNuevoId()).isNull();
-        assertThat(mapper.toDomain(entity)).isEqualTo(sinNuevo);
+        entoncesLaEntidadNoTieneMiniNuevo(entidad);
+        entoncesAlLeerloSeRecuperaElMismoReajuste(entidad, sinNuevo);
     }
 
     @Test
     @DisplayName("Lee el reajuste de la entidad con todos sus campos")
-    void toDomainShouldMapEveryFieldOfTheReajuste() {
-        ReajusteMiniObjetivo result = mapper.toDomain(reajusteEntity(OTRO_MINI_ID.valor()));
+    void unReajusteSeLeeConTodosSusDatos() {
+        ReajusteMiniObjetivoEntity entidad = dadoUnaEntidadDeReajuste();
 
-        assertThat(result).isEqualTo(reajuste());
+        ReajusteMiniObjetivo reajuste = cuandoSeLeeElReajuste(entidad);
+
+        entoncesElReajusteEsElQueSubeLaMeta(reajuste);
     }
 
-    // --- helpers ---
-    private static ResumenSemanal resumen() {
+    // --- dado ---
+    private ResumenSemanal dadoUnResumenSemanal() {
         return new ResumenSemanal(RESUMEN_ID, OBJETIVO_ID, SEMANA, RESULTADO, AVANCE,
                 new ConteoDecisiones(1, 2, 3, 4), List.of(new CierreMini(MINI_ID, VALOR)), "Bien", false, AHORA,
-                List.of(reajuste()));
+                List.of(dadoUnReajusteQueSubeLaMeta()));
     }
 
-    private static ReajusteMiniObjetivo reajuste() {
+    private ResumenSemanalEntity dadoUnaEntidadDeResumen() {
+        return mapper.toEntity(dadoUnResumenSemanal());
+    }
+
+    private ReajusteMiniObjetivo dadoUnReajusteQueSubeLaMeta() {
         return new ReajusteMiniObjetivo(REAJUSTE_ID, MINI_ID, OTRO_MINI_ID, TipoReajuste.SUBIR_META, "Lo lograste",
                 "Subile $250", new BigDecimal("14183.00"), "Subile $500", new BigDecimal("15000.00"), AHORA);
     }
 
-    private static ReajusteMiniObjetivoEntity reajusteEntity(UUID miniNuevoId) {
+    private ReajusteMiniObjetivo dadoUnReajusteSinMiniNuevo() {
+        return new ReajusteMiniObjetivo(REAJUSTE_ID, MINI_ID, null, TipoReajuste.REEMPLAZAR, "Sin reemplazo",
+                "Subile", BigDecimal.TEN, null, null, AHORA);
+    }
+
+    private ReajusteMiniObjetivoEntity dadoUnaEntidadDeReajuste() {
+        return unaEntidadDeReajusteHacia(OTRO_MINI_ID.valor());
+    }
+
+    private ReajusteMiniObjetivoEntity unaEntidadDeReajusteHacia(UUID miniNuevoId) {
         return ReajusteMiniObjetivoEntity.builder()
                 .id(REAJUSTE_ID.valor())
                 .resumenId(RESUMEN_ID.valor())
@@ -123,5 +128,73 @@ class ResumenSemanalRepositoryMapperTest {
                 .metaNueva(new BigDecimal("15000.00"))
                 .creadoEn(AHORA)
                 .build();
+    }
+
+    // --- cuando ---
+    private ResumenSemanalEntity cuandoSeGuardaElResumen(ResumenSemanal resumen) {
+        return mapper.toEntity(resumen);
+    }
+
+    private ResumenSemanal cuandoSeLeeElResumenConUnReajuste(ResumenSemanalEntity entidad) {
+        return mapper.toDomain(entidad, List.of(unaEntidadDeReajusteHacia(OTRO_MINI_ID.valor())));
+    }
+
+    private ReajusteMiniObjetivoEntity cuandoSeGuardaElReajusteDelResumen(ReajusteMiniObjetivo reajuste) {
+        return mapper.toEntity(RESUMEN_ID, reajuste);
+    }
+
+    private ReajusteMiniObjetivo cuandoSeLeeElReajuste(ReajusteMiniObjetivoEntity entidad) {
+        return mapper.toDomain(entidad);
+    }
+
+    // --- entonces ---
+    private void entoncesLaEntidadTieneTodosLosDatosDelResumen(ResumenSemanalEntity entidad) {
+        assertThat(entidad.getId()).isEqualTo(RESUMEN_ID.valor());
+        assertThat(entidad.getObjetivoId()).isEqualTo(OBJETIVO_ID.valor());
+        assertThat(entidad.getSemanaInicio()).isEqualTo(SEMANA);
+        assertThat(entidad.getResultado()).isEqualTo(RESULTADO);
+        assertThat(entidad.getAvance()).isEqualTo(AVANCE);
+        assertThat(entidad.getDecisionesAplicadas()).isEqualTo(1);
+        assertThat(entidad.getDecisionesDescartadas()).isEqualTo(2);
+        assertThat(entidad.getDecisionesAceptadas()).isEqualTo(3);
+        assertThat(entidad.getDecisionesIgnoradas()).isEqualTo(4);
+        assertThat(entidad.getQueFunciono()).isEqualTo("Bien");
+        assertThat(entidad.isTextoConIa()).isFalse();
+        assertThat(entidad.getCerradoEn()).isEqualTo(AHORA);
+    }
+
+    private void entoncesLosMinisQuedanComoJsonConElValorComoTexto(ResumenSemanalEntity entidad) {
+        assertThat(entidad.getMinis()).containsExactly(
+                Map.of("miniObjetivoId", MINI_ID.toString(), "valor", "12600.50"));
+    }
+
+    private void entoncesElResumenTieneTodosLosDatosDeLaEntidad(ResumenSemanal resumen) {
+        assertThat(resumen).usingRecursiveComparison().ignoringFields("reajustes").isEqualTo(dadoUnResumenSemanal());
+    }
+
+    private void entoncesElResumenRecuerdaElValorDelMini(ResumenSemanal resumen) {
+        assertThat(resumen.valorDe(MINI_ID)).contains(VALOR);
+    }
+
+    private void entoncesElResumenTieneElReajusteLeido(ResumenSemanal resumen) {
+        assertThat(resumen.reajustes()).singleElement()
+                .satisfies(reajuste -> assertThat(reajuste.miniNuevoId()).isEqualTo(OTRO_MINI_ID));
+    }
+
+    private void entoncesLaEntidadDelReajusteTieneTodosLosDatos(ReajusteMiniObjetivoEntity entidad) {
+        assertThat(entidad).usingRecursiveComparison().isEqualTo(unaEntidadDeReajusteHacia(OTRO_MINI_ID.valor()));
+    }
+
+    private void entoncesLaEntidadNoTieneMiniNuevo(ReajusteMiniObjetivoEntity entidad) {
+        assertThat(entidad.getMiniNuevoId()).isNull();
+    }
+
+    private void entoncesAlLeerloSeRecuperaElMismoReajuste(ReajusteMiniObjetivoEntity entidad,
+                                                          ReajusteMiniObjetivo original) {
+        assertThat(mapper.toDomain(entidad)).isEqualTo(original);
+    }
+
+    private void entoncesElReajusteEsElQueSubeLaMeta(ReajusteMiniObjetivo reajuste) {
+        assertThat(reajuste).isEqualTo(dadoUnReajusteQueSubeLaMeta());
     }
 }

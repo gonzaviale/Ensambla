@@ -7,11 +7,13 @@ import { estado } from '@/mocks/db/estado';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { renderApp } from '@/test/renderApp';
 import {
+  abrirEditor,
   activo,
   bloquePorNombre,
-  cuandoSeCorrigeLaCantidadA,
+  cuandoSeCorrigeLaCantidadDelProductoA,
   cuandoSeEliminaElProducto,
-  cuandoSeRegistraElProducto,
+  cuandoSeRegistraUnProductoNuevo,
+  dadoUnCuadernoDeTiendaEnElEditor,
   dadoUnProductoRegistrado,
   entoncesElInventarioMuestraElProducto,
   entoncesElInventarioYaNoMuestraElProducto,
@@ -25,17 +27,6 @@ import {
   verifyPathAsync,
   verifyToastAsync,
 } from '@/test/testHelpers';
-
-const abrirEditor = async (
-  sistema: Sistema = makeTemplate('shop', {}, true),
-  modo: 'construir' | 'usar' = 'construir',
-) => {
-  const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
-  estado.sistemas.set(usuario.email, [sistema]);
-  const router = renderApp(`/sistemas/${sistema.id}?modo=${modo}`);
-  await screen.findByRole('heading', { level: 1, name: new RegExp(sistema.name) }, ESPERA);
-  return { router, user: userEvent.setup(), sistema, usuario };
-};
 
 const tipoDeBloqueDe = (sistema: Sistema, tipo: string) => {
   const bloque = sistema.sections
@@ -502,28 +493,28 @@ describe('bloques', () => {
 });
 
 describe('registros', () => {
-  it('registra un producto nuevo en el inventario', async () => {
-    const { user } = await abrirEditor();
+  it('un producto nuevo aparece en el inventario', async () => {
+    await dadoUnCuadernoDeTiendaEnElEditor();
 
-    await cuandoSeRegistraElProducto(user);
+    await cuandoSeRegistraUnProductoNuevo();
 
     await entoncesElInventarioMuestraElProducto();
   });
 
-  it('corrige la cantidad de un producto registrado', async () => {
-    const { user } = await abrirEditor();
-    await dadoUnProductoRegistrado(user);
+  it('la cantidad de un producto registrado se puede corregir', async () => {
+    await dadoUnCuadernoDeTiendaEnElEditor();
+    await dadoUnProductoRegistrado();
 
-    await cuandoSeCorrigeLaCantidadA(user, '5');
+    await cuandoSeCorrigeLaCantidadDelProductoA('5');
 
     await entoncesLaCantidadDelProductoEs(5);
   });
 
-  it('elimina un producto registrado', async () => {
-    const { user } = await abrirEditor();
-    await dadoUnProductoRegistrado(user);
+  it('un producto eliminado desaparece del inventario', async () => {
+    await dadoUnCuadernoDeTiendaEnElEditor();
+    await dadoUnProductoRegistrado();
 
-    await cuandoSeEliminaElProducto(user);
+    await cuandoSeEliminaElProducto();
 
     await entoncesElInventarioYaNoMuestraElProducto();
   });

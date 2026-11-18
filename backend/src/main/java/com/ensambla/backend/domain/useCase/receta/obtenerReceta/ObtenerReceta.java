@@ -6,6 +6,7 @@ import com.ensambla.backend.domain.model.receta.Receta;
 import com.ensambla.backend.domain.model.receta.RecetaCosteada;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.receta.RecetaRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
@@ -16,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.util.List;
 
 @RequiredArgsConstructor
 public class ObtenerReceta {
@@ -34,21 +34,32 @@ public class ObtenerReceta {
     private final RecetaRepository recetaRepository;
 
     public RecetaItem execute(ObtenerRecetaRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        Registro producto = registroRepository.obtener(request.registroId(), negocioId);
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+        Registro producto = obtenerProducto(request.registroId(), negocioId);
+        validarQueElPlanIncluyaRecetas(negocioId);
+        Receta receta = obtenerRecetaDelProducto(producto.getId(), negocioId);
+        return RecetaItem.de(costear(receta, negocioId));
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private Registro obtenerProducto(RegistroId registroId, NegocioId negocioId) {
+        return registroRepository.obtener(registroId, negocioId);
+    }
+
+    private void validarQueElPlanIncluyaRecetas(NegocioId negocioId) {
         controlPlanService.validarFuncion(negocioId, FuncionPlan.RECETAS_COSTOS, OffsetDateTime.now(clock));
-        Receta receta = obtener(producto.getId(), negocioId);
-        RecetaCosteada costeada = recetaService.costear(receta, negocioId);
-        return RecetaItem.de(costeada);
     }
 
     /** La receta del producto; si todavía no tiene, una receta vacía. */
-    private Receta obtener(RegistroId productoId, NegocioId negocioId) {
+    private Receta obtenerRecetaDelProducto(RegistroId productoId, NegocioId negocioId) {
         return recetaRepository.findByProductoIdAndNegocioId(productoId, negocioId)
-                .orElseGet(() -> Receta.builder()
-                        .negocioId(negocioId)
-                        .productoId(productoId)
-                        .lineas(List.of())
-                        .build());
+                .orElseGet(() -> Receta.vacia(negocioId, productoId));
+    }
+
+    private RecetaCosteada costear(Receta receta, NegocioId negocioId) {
+        return recetaService.costear(receta, negocioId);
     }
 }

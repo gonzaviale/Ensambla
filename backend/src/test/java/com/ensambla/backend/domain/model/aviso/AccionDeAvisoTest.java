@@ -9,56 +9,99 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class AccionDeAvisoTest {
 
     private final AplicadorQueAnota aplicador = new AplicadorQueAnota();
 
+    private AccionDeAviso accion;
+    private List<AccionDeAviso> atajos;
+    private Throwable error;
+
     @Test
     @DisplayName("Editar una fila cambia datos y le pide al aplicador que la edite")
-    void editarShouldChangeDataThroughTheApplier() {
-        AccionEditarRegistro accion = new AccionEditarRegistro("Bajar", null, null, null, Map.of("price", 1));
+    void editarUnaFilaCambiaDatosYLePideAlAplicadorQueLaEdite() {
+        dadoUnaAccionDeEditarElPrecioDeUnaFila();
 
-        accion.aplicarEn(aplicador);
+        cuandoSeAplicaLaAccion();
 
-        assertThat(accion.modificaDatos()).isTrue();
-        assertThat(aplicador.anotado).containsExactly("editar");
+        entoncesCambiaDatosYElAplicadorAnota("editar");
     }
 
     @Test
     @DisplayName("Crear una fila cambia datos y le pide al aplicador que la cree")
-    void crearShouldChangeDataThroughTheApplier() {
-        AccionCrearRegistro accion = new AccionCrearRegistro("Crear", null, null, Map.of("name", "Combo"));
+    void crearUnaFilaCambiaDatosYLePideAlAplicadorQueLaCree() {
+        dadoUnaAccionDeCrearUnCombo();
 
-        accion.aplicarEn(aplicador);
+        cuandoSeAplicaLaAccion();
 
-        assertThat(accion.modificaDatos()).isTrue();
-        assertThat(aplicador.anotado).containsExactly("crear");
+        entoncesCambiaDatosYElAplicadorAnota("crear");
     }
 
     @Test
-    @DisplayName("Una acción incompleta cambia datos pero al aplicarla dice qué le falta")
-    void invalidShouldExplainWhatIsMissing() {
-        AccionInvalida accion = new AccionInvalida("EDITAR_REGISTRO", "No indica la fila", Map.of());
+    @DisplayName("Una acción incompleta cambia datos pero, al aplicarla, dice qué le falta")
+    void unaAccionIncompletaCambiaDatosPeroAlAplicarlaDiceQueLeFalta() {
+        dadoUnaAccionDeEditarQueNoIndicaLaFila();
 
-        assertThat(accion.modificaDatos()).isTrue();
-        assertThatThrownBy(() -> accion.aplicarEn(aplicador))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("No indica la fila");
+        cuandoSeIntentaAplicarLaAccion();
+
+        entoncesCambiaDatosPeroSeRechazaPorque("No indica la fila");
     }
 
     @Test
     @DisplayName("Las acciones que solo llevan a una pantalla no cambian datos ni piden nada al aplicador")
-    void shortcutsShouldNotChangeAnything() {
-        List<AccionDeAviso> atajos = List.of(
+    void lasAccionesQueSoloLlevanAUnaPantallaNoCambianDatosNiLePidenNadaAlAplicador() {
+        dadoLasAccionesQueSoloLlevanAUnaPantalla();
+
+        cuandoSeAplicanTodasLasAcciones();
+
+        entoncesNingunaCambiaDatosYElAplicadorNoAnotaNada();
+    }
+
+    private void dadoUnaAccionDeEditarElPrecioDeUnaFila() {
+        accion = new AccionEditarRegistro("Bajar", null, null, null, Map.of("price", 1));
+    }
+
+    private void dadoUnaAccionDeCrearUnCombo() {
+        accion = new AccionCrearRegistro("Crear", null, null, Map.of("name", "Combo"));
+    }
+
+    private void dadoUnaAccionDeEditarQueNoIndicaLaFila() {
+        accion = new AccionInvalida("EDITAR_REGISTRO", "No indica la fila", Map.of());
+    }
+
+    private void dadoLasAccionesQueSoloLlevanAUnaPantalla() {
+        atajos = List.of(
                 new AccionAbrirRegistro("Ver producto", null, null, null),
                 new AccionRegistrar("Registrar entrada", null, null),
                 new AccionVerZona("Ver en Mi zona", "yerba"),
                 new AccionDesconocida("NUEVA", Map.of()));
+    }
 
+    private void cuandoSeAplicaLaAccion() {
+        accion.aplicarEn(aplicador);
+    }
+
+    private void cuandoSeIntentaAplicarLaAccion() {
+        error = catchThrowable(this::cuandoSeAplicaLaAccion);
+    }
+
+    private void cuandoSeAplicanTodasLasAcciones() {
         atajos.forEach(atajo -> atajo.aplicarEn(aplicador));
+    }
 
+    private void entoncesCambiaDatosYElAplicadorAnota(String anotacion) {
+        assertThat(accion.modificaDatos()).isTrue();
+        assertThat(aplicador.anotado).containsExactly(anotacion);
+    }
+
+    private void entoncesCambiaDatosPeroSeRechazaPorque(String motivo) {
+        assertThat(accion.modificaDatos()).isTrue();
+        assertThat(error).isInstanceOf(BusinessRuleException.class).hasMessage(motivo);
+    }
+
+    private void entoncesNingunaCambiaDatosYElAplicadorNoAnotaNada() {
         assertThat(atajos).noneMatch(AccionDeAviso::modificaDatos);
         assertThat(aplicador.anotado).isEmpty();
     }

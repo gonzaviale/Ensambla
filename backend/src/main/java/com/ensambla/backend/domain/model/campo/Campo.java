@@ -86,6 +86,11 @@ public abstract class Campo {
         return Boolean.TRUE.equals(obligatorio);
     }
 
+    /** La clave con la que la pantalla conoce al campo; los que no la tienen (columnas de Sami o de una plantilla) usan su id. */
+    public String claveDePantalla() {
+        return clave == null ? id.toString() : clave;
+    }
+
     public boolean esNumerico() {
         return false;
     }
@@ -96,6 +101,16 @@ public abstract class Campo {
 
     public boolean esFormula() {
         return false;
+    }
+
+    /** Si el texto que leyó la IA no sirve para este tipo de campo; vacío si sirve. */
+    public Optional<String> errorDeValorLeido(String valor) {
+        return Optional.empty();
+    }
+
+    /** Qué clase de dato de un mensaje libre puede completar este campo; vacío si ninguna. */
+    public Optional<ClaseDeDatoInterpretable> claseInterpretable() {
+        return Optional.empty();
     }
 
     /** El valor como se guarda en un registro; lo que no se puede convertir queda como texto. */

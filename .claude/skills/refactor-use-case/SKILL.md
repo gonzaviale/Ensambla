@@ -1,6 +1,6 @@
 ---
 name: refactor-use-case
-description: Refactoriza un caso de uso del backend de Ensambla (com.ensambla.backend.domain.useCase.*) a la estructura objetivo del proyecto, dejando execute() como una lista de pasos, moviendo las reglas puras al model, la lógica de un solo caso de uso a métodos privados y a servicios de dominio solo lo que comparten dos o más casos de uso; con sus DTOs en el subpaquete del caso, fábricas de() en lugar de mappers, ids tipados, sin sufijo UseCase y sin Spring en el dominio; y sus tests al estilo Arrange-Act-Assert con helpers privados, nombres camelCase y @DisplayName en español; sin cambiar el comportamiento y manteniendo los tests verdes. Aplica siempre el skill codigo-semantico (obligatorio) y pasa de switch/if por tipo a polimorfismo. Usar cuando se pida "refactorizar este caso de uso", "dejar SOLID", "extraer a private methods/al model/al service", "eliminar este servicio/mapper", limpiar un execute() con lógica inline, o "refactorizar/limpiar los tests" (extraer when/then y validaciones a métodos privados, camelCase, DisplayName).
+description: Refactoriza un caso de uso del backend de Ensambla (com.ensambla.backend.domain.useCase.*) a la estructura objetivo del proyecto, dejando execute() como una lista de pasos, moviendo las reglas puras al model, la lógica de un solo caso de uso a métodos privados y a servicios de dominio solo lo que comparten dos o más casos de uso; con sus DTOs en el subpaquete del caso, fábricas de() en lugar de mappers, ids tipados, sin sufijo UseCase y sin Spring en el dominio; y sus tests con nombre de negocio en español sin tildes, @DisplayName obligatorio en español y tres bloques dadoX/cuandoX/entoncesX; sin cambiar el comportamiento y manteniendo los tests verdes. Aplica siempre el skill codigo-semantico (obligatorio) y pasa de switch/if por tipo a polimorfismo. Usar cuando se pida "refactorizar este caso de uso", "dejar SOLID", "extraer a private methods/al model/al service", "eliminar este servicio/mapper", limpiar un execute() con lógica inline, o "refactorizar/limpiar los tests" (extraer dado/cuando/entonces y validaciones a métodos privados, nombre en español que se lee solo).
 ---
 
 # Refactor de casos de uso (estilo Ensambla)
@@ -181,20 +181,24 @@ pero un método largo que mezcla niveles también está mal. `execute()` se lee 
 - Nombres de dominio en inglés (`Project`, `create`).
 - Sacar el filtro por `negocio_id` "para simplificar": el aislamiento no se negocia.
 
-## Refactor de los tests del caso de uso (estilo Arrange-Act-Assert)
+## Refactor de los tests del caso de uso (dado / cuando / entonces)
 
-Cada `@Test` queda en tres bloques (dado / cuando / entonces) de pocas líneas; toda la mecánica (stubs, ejecución,
-asserts y verifies) se extrae a **métodos privados** agrupados al final de la clase, bajo `// --- arrange ---`,
-`// --- act ---`, `// --- assert ---`. Sin lógica ni ternarios en el test (un `@ParameterizedTest` que decide qué esperar
-según el caso se convierte en un test por escenario) y, si varios tipos comparten el comportamiento, con una base
-abstracta de test. Ver los skills `escribir-tests` y `codigo-semantico`.
+Cada `@Test` queda en tres bloques de **una línea** (`dadoX(...)`, `cuandoX(...)`, `entoncesX(...)`); toda la mecánica
+(stubs, ejecución, asserts, verifies, builders) se extrae a **métodos privados** agrupados al final de la clase, bajo
+`// --- dado ---`, `// --- cuando ---`, `// --- entonces ---`. El cuerpo nunca nombra repositorios, mocks, `when(...)`,
+`verify(...)` ni builders; los datos salen de fábricas de dominio en `support/` (`CamposDePrueba`…). Sin lógica ni
+ternarios (un `@ParameterizedTest` que decide qué esperar según el caso se convierte en un test por escenario) y, si
+varios tipos comparten el comportamiento, con una base abstracta de test. Antes/después real y todas las reglas en los
+skills `escribir-tests` y `codigo-semantico`.
 
-- **Arrange (dado)** → métodos `givenX(...)` con los `when(...).thenReturn(...)` y builders de fixtures.
-- **Act (cuando)** → un método `whenX()` o con el verbo del caso (`listar()`, `crear()`).
-- **Assert (entonces)** → métodos `thenX(...)` que agrupan los `assertThat` y `verify`.
+- **Dado** → métodos `dadoX(...)` con los `when(...).thenReturn(...)` y las fábricas de fixtures.
+- **Cuando** → un método `cuandoX(...)` que ejecuta el caso de uso con el verbo del negocio.
+- **Entonces** → métodos `entoncesX(...)` que agrupan los `assertThat` y `verify` (uno por cosa verificada).
 
-Convenciones obligatorias: nombres en **camelCase** sin guiones bajos (`executeShouldReturnPlantillasActivas`),
-`@DisplayName` en **español**, comentarios solo en los casos no obvios y cuidado con el **strict stubbing** de Mockito.
+Convenciones obligatorias: nombre **en español, sin tildes, como frase del negocio** que se lee sola
+(`unCampoUsadoPorUnaFormulaNoPuedeCambiarDeTipo`), **más `@DisplayName("…")` en español en todo `@Test` y
+`@ParameterizedTest`** (frase con tildes que explica el comportamiento), prohibido `executeShouldXWhenY` y los nombres
+en inglés, comentarios solo en los casos no obvios y cuidado con el **strict stubbing** de Mockito.
 
 Plantillas ya hechas: `ListarPlantillasTest`, `ListarPlantillasResponseTest`, `PlantillaRepositoryTest`.
 

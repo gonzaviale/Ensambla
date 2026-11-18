@@ -10,9 +10,11 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 
+import static com.ensambla.backend.support.CamposDePrueba.unCampoDeTexto;
+import static com.ensambla.backend.support.CamposDePrueba.unCampoNumerico;
+import static com.ensambla.backend.support.CamposDePrueba.unaFormulaQueUsa;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class CampoTest {
 
@@ -21,109 +23,108 @@ class CampoTest {
     private static final CampoId CAMPO_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T12:00:00Z");
 
+    private Campo campoResultante;
+    private Throwable rechazo;
+
     @Test
     @DisplayName("Un campo marcado como obligatorio es obligatorio")
-    void esObligatorioShouldBeTrueWhenMarked() {
-        assertThat(campoObligatorio(true).esObligatorio()).isTrue();
+    void unCampoMarcadoComoObligatorioEsObligatorio() {
+        Campo campo = unCampoObligatorio(true);
+
+        entoncesElCampoEsObligatorio(campo);
     }
 
     @Test
-    @DisplayName("Un campo sin marcar o sin dato no es obligatorio")
-    void esObligatorioShouldBeFalseWhenNotMarkedOrNull() {
-        assertThat(campoObligatorio(false).esObligatorio()).isFalse();
-        assertThat(campoObligatorio(null).esObligatorio()).isFalse();
+    @DisplayName("Un campo sin marcar como obligatorio no es obligatorio")
+    void unCampoSinMarcarNoEsObligatorio() {
+        Campo campo = unCampoObligatorio(false);
+
+        entoncesElCampoNoEsObligatorio(campo);
     }
 
     @Test
-    @DisplayName("Sin indicar tipo, el campo es de texto")
-    void builderShouldBuildTextoByDefault() {
-        assertThat(Campo.builder().build()).isInstanceOf(CampoTexto.class);
+    @DisplayName("Un campo sin dato de obligatoriedad no es obligatorio")
+    void unCampoSinDatoDeObligatorioNoEsObligatorio() {
+        Campo campo = unCampoObligatorio(null);
+
+        entoncesElCampoNoEsObligatorio(campo);
     }
 
     @Test
-    @DisplayName("Un campo de texto no es número, conexión ni fórmula, y no tiene datos de otros tipos")
-    void aTextoCampoShouldHaveNoDataOfOtherTypes() {
-        Campo texto = Campo.builder().tipo(TipoCampo.TEXTO).build();
+    @DisplayName("Si no se indica el tipo, el campo es de texto")
+    void sinIndicarTipoElCampoEsDeTexto() {
+        cuandoSeArmaUnCampoSinIndicarTipo();
 
-        assertThat(texto.esNumerico()).isFalse();
-        assertThat(texto.esRelacion()).isFalse();
-        assertThat(texto.esFormula()).isFalse();
-        assertThat(texto.getOpciones()).isEmpty();
-        assertThat(texto.getBloqueRelacionadoId()).isNull();
-        assertThat(texto.getFormula()).isNull();
+        entoncesElCampoEsDeTexto();
     }
 
     @Test
-    @DisplayName("Un campo nuevo queda en el lugar del bloque con las dos fechas iguales")
-    void ubicadoEnShouldPlaceTheCampoInTheBloque() {
-        Campo campo = Campo.builder().nombre("Talle").build();
+    @DisplayName("Un campo de texto no tiene datos de otros tipos")
+    void unCampoDeTextoNoTieneDatosDeOtrosTipos() {
+        Campo texto = unCampoDeTexto("Producto");
 
-        Campo ubicado = campo.ubicadoEn(NEGOCIO_ID, BLOQUE_ID, (short) 2, AHORA);
+        entoncesNoTieneDatosDeOtrosTipos(texto);
+    }
 
-        assertThat(ubicado).isSameAs(campo);
-        assertThat(ubicado.getId()).isNull();
-        assertThat(ubicado.getNegocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(ubicado.getBloqueId()).isEqualTo(BLOQUE_ID);
-        assertThat(ubicado.getPosicion()).isEqualTo((short) 2);
-        assertThat(ubicado.getCreadoEn()).isEqualTo(AHORA);
-        assertThat(ubicado.getActualizadoEn()).isEqualTo(AHORA);
+    @Test
+    @DisplayName("Un campo nuevo queda ubicado en el bloque con las dos fechas iguales")
+    void unCampoNuevoQuedaEnElLugarDelBloqueConLasDosFechasIguales() {
+        Campo campo = unCampoSinUbicar();
+
+        cuandoSeUbicaEnElBloque(campo);
+
+        entoncesElCampoQuedaUbicadoEnElBloqueEnLaPosicionDos();
     }
 
     @Test
     @DisplayName("El campo que reemplaza a otro conserva su id, su lugar y su fecha de creación")
-    void reemplazandoAShouldKeepIdentityAndPlace() {
-        Campo anterior = campoGuardado();
-        Campo nuevo = Campo.builder().nombre("Precio").tipo(TipoCampo.NUMERO).build();
+    void elCampoQueReemplazaAOtroConservaSuIdSuLugarYSuFechaDeCreacion() {
+        Campo anterior = unCampoGuardado();
 
-        Campo reemplazo = nuevo.reemplazandoA(anterior, AHORA.plusHours(1));
+        cuandoUnCampoNuevoReemplazaA(anterior);
 
-        assertThat(reemplazo.getNombre()).isEqualTo("Precio");
-        assertThat(reemplazo.getTipo()).isEqualTo(TipoCampo.NUMERO);
-        assertThat(reemplazo.getId()).isEqualTo(CAMPO_ID);
-        assertThat(reemplazo.getBloqueId()).isEqualTo(BLOQUE_ID);
-        assertThat(reemplazo.getPosicion()).isEqualTo((short) 3);
-        assertThat(reemplazo.getClave()).isEqualTo("price");
-        assertThat(reemplazo.getMinimo()).isEqualByComparingTo(BigDecimal.TEN);
-        assertThat(reemplazo.getCreadoEn()).isEqualTo(AHORA);
-        assertThat(reemplazo.getActualizadoEn()).isEqualTo(AHORA.plusHours(1));
+        entoncesElReemplazoConservaLaIdentidadDelAnterior();
     }
 
     @Test
     @DisplayName("Un campo que ninguna fórmula usa se puede eliminar")
-    void validarSinFormulasQueLoUsenShouldPassWhenNoFormulaUsesIt() {
-        Campo precio = precioNumerico();
+    void unCampoQueNingunaFormulaUsaSePuedeEliminar() {
+        Campo precio = unCampoNumerico("Precio");
 
-        assertThatCode(() -> precio.validarSinFormulasQueLoUsen(List.of(precio), "eliminar"))
-                .doesNotThrowAnyException();
+        cuandoSeValidaEliminarlo(precio, precio);
+
+        entoncesNoSeRechazaNada();
     }
 
     @Test
     @DisplayName("Un campo del que depende una fórmula no se puede eliminar")
-    void validarSinFormulasQueLoUsenShouldRejectWhenAFormulaUsesIt() {
-        Campo precio = precioNumerico();
-        Campo total = formulaQueUsa(precio);
+    void unCampoDelQueDependeUnaFormulaNoSePuedeEliminar() {
+        Campo precio = unCampoNumerico("Precio");
 
-        assertThatThrownBy(() -> precio.validarSinFormulasQueLoUsen(List.of(precio, total), "eliminar"))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("No se puede eliminar «Precio»: la fórmula «Total» lo usa");
+        cuandoSeValidaEliminarlo(precio, precio, unaFormulaQueUsa(precio, "Total"));
+
+        entoncesSeRechazaPorque("No se puede eliminar «Precio»: la fórmula «Total» lo usa");
     }
 
     @Test
     @DisplayName("Un campo de texto no puede cambiar de tipo si una fórmula lo usa")
-    void validarCambioDeTipoShouldRejectWhenAFormulaUsesIt() {
-        Campo precio = Campo.builder().id(CAMPO_ID).tipo(TipoCampo.TEXTO).nombre("Precio").build();
-        Campo total = formulaQueUsa(precio);
+    void unCampoDeTextoNoPuedeCambiarDeTipoSiUnaFormulaLoUsa() {
+        Campo precio = unCampoDeTexto("Precio");
 
-        assertThatThrownBy(() -> precio.validarCambioDeTipo(List.of(precio, total)))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining("cambiar el tipo de");
+        cuandoSeValidaCambiarleElTipo(precio, precio, unaFormulaQueUsa(precio, "Total"));
+
+        entoncesSeRechazaPorque("No se puede cambiar el tipo de «Precio»: la fórmula «Total» lo usa");
     }
 
-    private Campo campoObligatorio(Boolean obligatorio) {
+    private Campo unCampoObligatorio(Boolean obligatorio) {
         return Campo.builder().obligatorio(obligatorio).build();
     }
 
-    private Campo campoGuardado() {
+    private Campo unCampoSinUbicar() {
+        return Campo.builder().nombre("Talle").build();
+    }
+
+    private Campo unCampoGuardado() {
         return Campo.builder()
                 .id(CAMPO_ID)
                 .negocioId(NEGOCIO_ID)
@@ -135,15 +136,74 @@ class CampoTest {
                 .build();
     }
 
-    private Campo precioNumerico() {
-        return Campo.builder().id(CAMPO_ID).tipo(TipoCampo.NUMERO).nombre("Precio").build();
+    private void cuandoSeArmaUnCampoSinIndicarTipo() {
+        campoResultante = Campo.builder().build();
     }
 
-    private Campo formulaQueUsa(Campo campo) {
-        return Campo.builder()
-                .tipo(TipoCampo.FORMULA)
-                .nombre("Total")
-                .formula("{" + campo.getId() + "} * 2")
-                .build();
+    private void cuandoSeUbicaEnElBloque(Campo campo) {
+        campoResultante = campo.ubicadoEn(NEGOCIO_ID, BLOQUE_ID, (short) 2, AHORA);
+    }
+
+    private void cuandoUnCampoNuevoReemplazaA(Campo anterior) {
+        Campo nuevo = Campo.builder().nombre("Precio").tipo(TipoCampo.NUMERO).build();
+        campoResultante = nuevo.reemplazandoA(anterior, AHORA.plusHours(1));
+    }
+
+    private void cuandoSeValidaEliminarlo(Campo campo, Campo... camposDelBloque) {
+        rechazo = catchThrowable(() -> campo.validarSinFormulasQueLoUsen(List.of(camposDelBloque), "eliminar"));
+    }
+
+    private void cuandoSeValidaCambiarleElTipo(Campo campo, Campo... camposDelBloque) {
+        rechazo = catchThrowable(() -> campo.validarCambioDeTipo(List.of(camposDelBloque)));
+    }
+
+    private void entoncesElCampoEsObligatorio(Campo campo) {
+        assertThat(campo.esObligatorio()).isTrue();
+    }
+
+    private void entoncesElCampoNoEsObligatorio(Campo campo) {
+        assertThat(campo.esObligatorio()).isFalse();
+    }
+
+    private void entoncesElCampoEsDeTexto() {
+        assertThat(campoResultante).isInstanceOf(CampoTexto.class);
+    }
+
+    private void entoncesNoTieneDatosDeOtrosTipos(Campo texto) {
+        assertThat(texto.esNumerico()).isFalse();
+        assertThat(texto.esRelacion()).isFalse();
+        assertThat(texto.esFormula()).isFalse();
+        assertThat(texto.getOpciones()).isEmpty();
+        assertThat(texto.getBloqueRelacionadoId()).isNull();
+        assertThat(texto.getFormula()).isNull();
+    }
+
+    private void entoncesElCampoQuedaUbicadoEnElBloqueEnLaPosicionDos() {
+        assertThat(campoResultante.getId()).isNull();
+        assertThat(campoResultante.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(campoResultante.getBloqueId()).isEqualTo(BLOQUE_ID);
+        assertThat(campoResultante.getPosicion()).isEqualTo((short) 2);
+        assertThat(campoResultante.getCreadoEn()).isEqualTo(AHORA);
+        assertThat(campoResultante.getActualizadoEn()).isEqualTo(AHORA);
+    }
+
+    private void entoncesElReemplazoConservaLaIdentidadDelAnterior() {
+        assertThat(campoResultante.getNombre()).isEqualTo("Precio");
+        assertThat(campoResultante.getTipo()).isEqualTo(TipoCampo.NUMERO);
+        assertThat(campoResultante.getId()).isEqualTo(CAMPO_ID);
+        assertThat(campoResultante.getBloqueId()).isEqualTo(BLOQUE_ID);
+        assertThat(campoResultante.getPosicion()).isEqualTo((short) 3);
+        assertThat(campoResultante.getClave()).isEqualTo("price");
+        assertThat(campoResultante.getMinimo()).isEqualByComparingTo(BigDecimal.TEN);
+        assertThat(campoResultante.getCreadoEn()).isEqualTo(AHORA);
+        assertThat(campoResultante.getActualizadoEn()).isEqualTo(AHORA.plusHours(1));
+    }
+
+    private void entoncesNoSeRechazaNada() {
+        assertThat(rechazo).isNull();
+    }
+
+    private void entoncesSeRechazaPorque(String motivo) {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class).hasMessage(motivo);
     }
 }

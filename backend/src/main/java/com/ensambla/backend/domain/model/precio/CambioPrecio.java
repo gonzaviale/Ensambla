@@ -33,8 +33,14 @@ public record CambioPrecio(
         if (anterior != null && anterior.compareTo(nuevo) == 0) {
             return null;
         }
-        return new CambioPrecio(negocioId, registroId, anterior != null && anterior.signum() > 0 ? anterior : null,
-                nuevo, ahora);
+        return new CambioPrecio(negocioId, registroId, precioAnteriorValido(anterior), nuevo, ahora);
+    }
+
+    private static BigDecimal precioAnteriorValido(BigDecimal anterior) {
+        if (anterior == null || anterior.signum() <= 0) {
+            return null;
+        }
+        return anterior;
     }
 
     /** {@code true} si el precio subió: el primer precio que se carga no es un aumento. */

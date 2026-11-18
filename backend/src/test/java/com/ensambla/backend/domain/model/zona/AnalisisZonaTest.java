@@ -3,167 +3,271 @@ package com.ensambla.backend.domain.model.zona;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
+import static com.ensambla.backend.support.ZonasDePrueba.NOMBRE_ZONA;
+import static com.ensambla.backend.support.ZonasDePrueba.nombresDe;
+import static com.ensambla.backend.support.ZonasDePrueba.unAnalisisDeZona;
+import static com.ensambla.backend.support.ZonasDePrueba.unProductoDeZona;
+import static com.ensambla.backend.support.ZonasDePrueba.unProductoDeZonaCobradoPor;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class AnalisisZonaTest {
 
-    private static final String NOMBRE = "San Justo - UNLaM";
     private static final int MINIMO = 3;
+    private static final List<String> PROPIOS = List.of("Aceite Natura 1 L", "Yerba Playadito 1 kg");
+
+    private AnalisisZona analisis;
+    private AnalisisZona resultado;
+    private Optional<AgregadoZonaProducto> rango;
+    private List<AgregadoZonaProducto> ranking;
 
     @Test
     @DisplayName("Sin zona no tiene nombre, comercios ni productos")
-    void sinZonaShouldBeEmpty() {
-        AnalisisZona analisis = AnalisisZona.sinZona();
+    void sinZonaNoTieneNombreComerciosNiProductos() {
+        cuandoSeArmaUnAnalisisSinZona();
 
-        assertThat(analisis.nombre()).isEmpty();
-        assertThat(analisis.comercios()).isZero();
-        assertThat(analisis.productos()).isEmpty();
+        entoncesNoTieneNombreNiComerciosNiProductos();
     }
 
     @Test
     @DisplayName("Quita los productos cuando hay menos comercios que el mínimo")
-    void sinProductosSiHayMenosDeShouldDropProductsBelowMinimum() {
-        AnalisisZona analisis = givenAnalisis(2, givenProducto("Yerba", 2, "5"));
+    void quitaLosProductosCuandoHayMenosComerciosQueElMinimo() {
+        dadoUnAnalisisDeComerciosConUnaYerba(2);
 
-        AnalisisZona result = analisis.sinProductosSiHayMenosDe(MINIMO);
+        cuandoSeQuitanLosProductosPorDebajoDelMinimo();
 
-        assertThat(result.nombre()).isEqualTo(NOMBRE);
-        assertThat(result.comercios()).isEqualTo(2);
-        assertThat(result.productos()).isEmpty();
+        entoncesQuedanElNombreYLosComerciosSinProductos();
     }
 
     @Test
     @DisplayName("Conserva los productos cuando los comercios alcanzan el mínimo")
-    void sinProductosSiHayMenosDeShouldKeepProductsAtMinimum() {
-        AnalisisZona analisis = givenAnalisis(MINIMO, givenProducto("Yerba", 2, "5"));
+    void conservaLosProductosCuandoLosComerciosAlcanzanElMinimo() {
+        dadoUnAnalisisDeComerciosConUnaYerba(MINIMO);
 
-        AnalisisZona result = analisis.sinProductosSiHayMenosDe(MINIMO);
+        cuandoSeQuitanLosProductosPorDebajoDelMinimo();
 
-        assertThat(result).isSameAs(analisis);
+        entoncesSeConservaElMismoAnalisis();
     }
 
     @Test
     @DisplayName("Ordena por comercios que venden y desempata por unidades por semana")
-    void ordenadoPorVentasShouldSortByCommercesThenUnits() {
-        AnalisisZona analisis = givenAnalisis(10,
-                givenProducto("Azúcar", 4, "20"),
-                givenProducto("Yerba", 9, "5"),
-                givenProducto("Fideos", 4, "30"));
+    void ordenaPorComerciosQueVendenYDesempataPorUnidadesPorSemana() {
+        dadoUnAnalisisDeDiezComerciosConAzucarYerbaYFideos();
 
-        AnalisisZona result = analisis.ordenadoPorVentas();
+        cuandoSeOrdenaPorVentas();
 
-        assertThat(result.productos()).extracting(AgregadoZonaProducto::nombre)
-                .containsExactly("Yerba", "Fideos", "Azúcar");
-        assertThat(result.nombre()).isEqualTo(NOMBRE);
-        assertThat(result.comercios()).isEqualTo(10);
+        entoncesLosProductosVanEnEsteOrden("Yerba", "Fideos", "Azúcar");
+        entoncesSeConservanElNombreYLosDiezComercios();
     }
 
     @Test
     @DisplayName("Encuentra el producto de la zona sin importar tildes ni mayúsculas")
-    void productoConRangoShouldFindProductIgnoringAccentsAndCase() {
-        AnalisisZona analisis = givenAnalisis(10, givenProducto("Azúcar Ledesma 1 kg", 8, "5"));
+    void encuentraElProductoDeLaZonaSinImportarTildesNiMayusculas() {
+        dadoUnAnalisisDeDiezComerciosConUnProducto(unProductoDeZona("Azúcar Ledesma 1 kg", 8, "5"));
 
-        assertThat(analisis.productoConRango("AZUCAR ledesma 1 KG")).isPresent();
-        assertThat(analisis.productoConRango("Yerba")).isEmpty();
+        cuandoSeBuscaElRangoDe("AZUCAR ledesma 1 KG");
+
+        entoncesSeEncuentraElProducto();
+    }
+
+    @Test
+    @DisplayName("No da rango de un producto que la zona no tiene")
+    void noDaRangoDeUnProductoQueLaZonaNoTiene() {
+        dadoUnAnalisisDeDiezComerciosConUnProducto(unProductoDeZona("Azúcar Ledesma 1 kg", 8, "5"));
+
+        cuandoSeBuscaElRangoDe("Yerba");
+
+        entoncesNoSeEncuentraElProducto();
     }
 
     @Test
     @DisplayName("No da rango si la zona tiene menos comercios que el mínimo")
-    void productoConRangoShouldBeEmptyWhenZoneHasFewerStoresThanMinimum() {
-        AnalisisZona analisis = givenAnalisis(2, givenProducto("Yerba", 8, "5"));
+    void noDaRangoSiLaZonaTieneMenosComerciosQueElMinimo() {
+        dadoUnAnalisisConUnaYerbaVendidaPor(2, 8);
 
-        assertThat(analisis.productoConRango("Yerba")).isEmpty();
+        cuandoSeBuscaElRangoDe("Yerba");
+
+        entoncesNoSeEncuentraElProducto();
     }
 
     @Test
     @DisplayName("No da rango si el producto lo cobran menos comercios que el mínimo")
-    void productoConRangoShouldBeEmptyWhenProductHasFewerStoresThanMinimum() {
-        AnalisisZona analisis = givenAnalisis(10, new AgregadoZonaProducto("Yerba", 2, 2, new BigDecimal("100"),
-                new BigDecimal("150"), new BigDecimal("200"), new BigDecimal("5")));
+    void noDaRangoSiElProductoLoCobranMenosComerciosQueElMinimo() {
+        dadoUnAnalisisDeDiezComerciosConUnProducto(unProductoDeZonaCobradoPor("Yerba", 2, 2, "5"));
 
-        assertThat(analisis.productoConRango("Yerba")).isEmpty();
+        cuandoSeBuscaElRangoDe("Yerba");
+
+        entoncesNoSeEncuentraElProducto();
     }
 
     @Test
     @DisplayName("El ranking de más vendidos va por comercios que venden y desempata por unidades por semana")
-    void masVendidosShouldRankByCommercesThenUnits() {
-        AnalisisZona analisis = givenAnalisis(10,
-                givenProducto("Azúcar", 4, "20"),
-                givenProducto("Yerba", 9, "5"),
-                givenProducto("Fideos", 4, "30"));
+    void elRankingDeMasVendidosVaPorComerciosQueVendenYDesempataPorUnidadesPorSemana() {
+        dadoUnAnalisisDeDiezComerciosConAzucarYerbaYFideos();
 
-        assertThat(analisis.masVendidos()).extracting(AgregadoZonaProducto::nombre)
-                .containsExactly("Yerba", "Fideos", "Azúcar");
+        cuandoSePideElRankingDeMasVendidos();
+
+        entoncesElRankingVaEnEsteOrden("Yerba", "Fideos", "Azúcar");
     }
 
     @Test
     @DisplayName("El ranking deja afuera lo que venden menos comercios que el mínimo")
-    void masVendidosShouldLeaveOutProductsSoldByFewerStoresThanMinimum() {
-        AnalisisZona analisis = givenAnalisis(10, givenProducto("Yerba", 9, "5"), givenProducto("Sal", 2, "50"));
+    void elRankingDejaAfueraLoQueVendenMenosComerciosQueElMinimo() {
+        dadoUnAnalisisDeDiezComerciosConUnaYerbaYUnaSalPocoVendida();
 
-        assertThat(analisis.masVendidos()).extracting(AgregadoZonaProducto::nombre).containsExactly("Yerba");
+        cuandoSePideElRankingDeMasVendidos();
+
+        entoncesElRankingVaEnEsteOrden("Yerba");
     }
 
     @Test
     @DisplayName("No hay ranking cuando la zona tiene menos comercios que el mínimo")
-    void masVendidosShouldBeEmptyWhenZoneHasFewerStoresThanMinimum() {
-        AnalisisZona analisis = givenAnalisis(2, givenProducto("Yerba", 9, "5"));
+    void noHayRankingCuandoLaZonaTieneMenosComerciosQueElMinimo() {
+        dadoUnAnalisisDeComerciosConUnaYerba(2);
 
-        assertThat(analisis.masVendidos()).isEmpty();
+        cuandoSePideElRankingDeMasVendidos();
+
+        entoncesNoHayRanking();
     }
 
     @Test
     @DisplayName("Pone primero los productos que el negocio tiene y deja cada grupo en su orden")
-    void conLosPropiosPrimeroShouldPutOwnedProductsFirstKeepingOrder() {
-        AnalisisZona analisis = givenAnalisis(10,
-                givenProducto("Azúcar Ledesma 1 kg", 9, "5"),
-                givenProducto("Yerba Playadito 500 g", 8, "5"),
-                givenProducto("Fideos Matarazzo 500 g", 7, "5"),
-                givenProducto("Aceite Natura 900 ml", 6, "5"));
+    void ponePrimeroLosProductosQueElNegocioTieneYDejaCadaGrupoEnSuOrden() {
+        dadoUnAnalisisDeCuatroProductosDeMarca();
 
-        AnalisisZona result = analisis.conLosPropiosPrimero(List.of("Aceite Natura 1 L", "Yerba Playadito 1 kg"));
+        cuandoSePonenPrimeroLosPropios();
 
-        assertThat(result.productos()).extracting(AgregadoZonaProducto::nombre).containsExactly(
-                "Yerba Playadito 500 g", "Aceite Natura 900 ml", "Azúcar Ledesma 1 kg", "Fideos Matarazzo 500 g");
-        assertThat(result.nombre()).isEqualTo(NOMBRE);
-        assertThat(result.comercios()).isEqualTo(10);
+        entoncesLosProductosVanEnEsteOrden("Yerba Playadito 500 g", "Aceite Natura 900 ml",
+                "Azúcar Ledesma 1 kg", "Fideos Matarazzo 500 g");
+        entoncesSeConservanElNombreYLosDiezComercios();
     }
 
     @Test
-    @DisplayName("Pone primero los productos que el negocio no tiene y deja los propios al final, cada grupo en su orden")
-    void conLosQueFaltanPrimeroShouldPutMissingProductsFirstKeepingOrder() {
-        AnalisisZona analisis = givenAnalisis(10,
-                givenProducto("Azúcar Ledesma 1 kg", 9, "5"),
-                givenProducto("Yerba Playadito 500 g", 8, "5"),
-                givenProducto("Fideos Matarazzo 500 g", 7, "5"),
-                givenProducto("Aceite Natura 900 ml", 6, "5"));
+    @DisplayName("Pone primero los productos que el negocio no tiene y deja los propios al final")
+    void ponePrimeroLosProductosQueElNegocioNoTieneYDejaLosPropiosAlFinal() {
+        dadoUnAnalisisDeCuatroProductosDeMarca();
 
-        AnalisisZona result = analisis.conLosQueFaltanPrimero(List.of("Aceite Natura 1 L", "Yerba Playadito 1 kg"));
+        cuandoSePonenPrimeroLosQueFaltan();
 
-        assertThat(result.productos()).extracting(AgregadoZonaProducto::nombre).containsExactly(
-                "Azúcar Ledesma 1 kg", "Fideos Matarazzo 500 g", "Yerba Playadito 500 g", "Aceite Natura 900 ml");
+        entoncesLosProductosVanEnEsteOrden("Azúcar Ledesma 1 kg", "Fideos Matarazzo 500 g",
+                "Yerba Playadito 500 g", "Aceite Natura 900 ml");
     }
 
     @Test
     @DisplayName("Sin productos propios deja los de la zona como estaban")
-    void conLosPropiosPrimeroShouldKeepOrderWhenNegocioHasNoProducts() {
-        AnalisisZona analisis = givenAnalisis(10, givenProducto("Yerba", 9, "5"), givenProducto("Azúcar", 8, "5"));
+    void sinProductosPropiosDejaLosDeLaZonaComoEstaban() {
+        dadoUnAnalisisDeDiezComerciosConUnProducto(unProductoDeZona("Yerba", 9, "5"),
+                unProductoDeZona("Azúcar", 8, "5"));
 
-        AnalisisZona result = analisis.conLosPropiosPrimero(List.of());
+        cuandoSePonenPrimeroLosPropiosSinNingunoCargado();
 
-        assertThat(result.productos()).extracting(AgregadoZonaProducto::nombre).containsExactly("Yerba", "Azúcar");
+        entoncesLosProductosVanEnEsteOrden("Yerba", "Azúcar");
     }
 
-    // --- helpers ---
-    private AnalisisZona givenAnalisis(long comercios, AgregadoZonaProducto... productos) {
-        return new AnalisisZona(NOMBRE, comercios, List.of(productos));
+    // --- dado ---
+    private void dadoUnAnalisisDeComerciosConUnaYerba(long comercios) {
+        analisis = unAnalisisDeZona(comercios, unProductoDeZona("Yerba", 2, "5"));
     }
 
-    private AgregadoZonaProducto givenProducto(String nombre, int comerciosVenden, String unidadesSemana) {
-        return new AgregadoZonaProducto(nombre, 8, comerciosVenden, new BigDecimal("100.00"),
-                new BigDecimal("150.00"), new BigDecimal("200.00"), new BigDecimal(unidadesSemana));
+    private void dadoUnAnalisisConUnaYerbaVendidaPor(long comercios, int comerciosVenden) {
+        analisis = unAnalisisDeZona(comercios, unProductoDeZona("Yerba", comerciosVenden, "5"));
+    }
+
+    private void dadoUnAnalisisDeDiezComerciosConUnProducto(AgregadoZonaProducto... productos) {
+        analisis = unAnalisisDeZona(10, productos);
+    }
+
+    private void dadoUnAnalisisDeDiezComerciosConAzucarYerbaYFideos() {
+        dadoUnAnalisisDeDiezComerciosConUnProducto(unProductoDeZona("Azúcar", 4, "20"),
+                unProductoDeZona("Yerba", 9, "5"), unProductoDeZona("Fideos", 4, "30"));
+    }
+
+    private void dadoUnAnalisisDeDiezComerciosConUnaYerbaYUnaSalPocoVendida() {
+        dadoUnAnalisisDeDiezComerciosConUnProducto(unProductoDeZona("Yerba", 9, "5"), unProductoDeZona("Sal", 2, "50"));
+    }
+
+    private void dadoUnAnalisisDeCuatroProductosDeMarca() {
+        dadoUnAnalisisDeDiezComerciosConUnProducto(
+                unProductoDeZona("Azúcar Ledesma 1 kg", 9, "5"),
+                unProductoDeZona("Yerba Playadito 500 g", 8, "5"),
+                unProductoDeZona("Fideos Matarazzo 500 g", 7, "5"),
+                unProductoDeZona("Aceite Natura 900 ml", 6, "5"));
+    }
+
+    // --- cuando ---
+    private void cuandoSeArmaUnAnalisisSinZona() {
+        resultado = AnalisisZona.sinZona();
+    }
+
+    private void cuandoSeQuitanLosProductosPorDebajoDelMinimo() {
+        resultado = analisis.sinProductosSiHayMenosDe(MINIMO);
+    }
+
+    private void cuandoSeOrdenaPorVentas() {
+        resultado = analisis.ordenadoPorVentas();
+    }
+
+    private void cuandoSeBuscaElRangoDe(String producto) {
+        rango = analisis.productoConRango(producto);
+    }
+
+    private void cuandoSePideElRankingDeMasVendidos() {
+        ranking = analisis.masVendidos();
+    }
+
+    private void cuandoSePonenPrimeroLosPropios() {
+        resultado = analisis.conLosPropiosPrimero(PROPIOS);
+    }
+
+    private void cuandoSePonenPrimeroLosQueFaltan() {
+        resultado = analisis.conLosQueFaltanPrimero(PROPIOS);
+    }
+
+    private void cuandoSePonenPrimeroLosPropiosSinNingunoCargado() {
+        resultado = analisis.conLosPropiosPrimero(List.of());
+    }
+
+    // --- entonces ---
+    private void entoncesNoTieneNombreNiComerciosNiProductos() {
+        assertThat(resultado.nombre()).isEmpty();
+        assertThat(resultado.comercios()).isZero();
+        assertThat(resultado.productos()).isEmpty();
+    }
+
+    private void entoncesQuedanElNombreYLosComerciosSinProductos() {
+        assertThat(resultado.nombre()).isEqualTo(NOMBRE_ZONA);
+        assertThat(resultado.comercios()).isEqualTo(2);
+        assertThat(resultado.productos()).isEmpty();
+    }
+
+    private void entoncesSeConservaElMismoAnalisis() {
+        assertThat(resultado).isSameAs(analisis);
+    }
+
+    private void entoncesSeConservanElNombreYLosDiezComercios() {
+        assertThat(resultado.nombre()).isEqualTo(NOMBRE_ZONA);
+        assertThat(resultado.comercios()).isEqualTo(10);
+    }
+
+    private void entoncesLosProductosVanEnEsteOrden(String... nombres) {
+        assertThat(nombresDe(resultado)).containsExactly(nombres);
+    }
+
+    private void entoncesSeEncuentraElProducto() {
+        assertThat(rango).isPresent();
+    }
+
+    private void entoncesNoSeEncuentraElProducto() {
+        assertThat(rango).isEmpty();
+    }
+
+    private void entoncesElRankingVaEnEsteOrden(String... nombres) {
+        assertThat(ranking).extracting(AgregadoZonaProducto::nombre).containsExactly(nombres);
+    }
+
+    private void entoncesNoHayRanking() {
+        assertThat(ranking).isEmpty();
     }
 }
