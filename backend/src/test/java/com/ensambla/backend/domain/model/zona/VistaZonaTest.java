@@ -4,103 +4,110 @@ import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
+import static com.ensambla.backend.support.ZonasDePrueba.nombresDe;
+import static com.ensambla.backend.support.ZonasDePrueba.unAnalisisDeZona;
+import static com.ensambla.backend.support.ZonasDePrueba.unProductoDeZona;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class VistaZonaTest {
 
     private static final List<String> PROPIOS = List.of("Yerba Playadito 1 kg");
 
-    private AnalisisZona ordenada;
+    private final Map<VistaZona, TipoContenidoPlan> cupos = new EnumMap<>(VistaZona.class);
+    private final Map<VistaZona, Boolean> usosDelInventario = new EnumMap<>(VistaZona.class);
+
+    private AnalisisZona analisis;
+    private AnalisisZona ordenado;
 
     @Test
-    @DisplayName("Precios gasta el cupo de la zona")
-    void preciosGastaElCupoDeLaZona() {
-        entoncesElCupoDe(VistaZona.PRECIOS, TipoContenidoPlan.ZONA);
+    @DisplayName("Cada pantalla gasta su propio cupo gratuito")
+    void cadaPantallaGastaSuPropioCupoGratuito() {
+        cuandoSeConsultaElCupoDeCadaPantalla();
+
+        entoncesCadaPantallaTieneSuCupo();
     }
 
     @Test
-    @DisplayName("Qué se vende cerca gasta su propio cupo")
-    void queSeVendeCercaGastaSuPropioCupo() {
-        entoncesElCupoDe(VistaZona.CERCA, TipoContenidoPlan.ZONA_CERCA);
-    }
+    @DisplayName("Sólo Precios y Qué se vende cerca ordenan según el inventario del negocio")
+    void soloPreciosYQueSeVendeCercaOrdenanSegunElInventarioDelNegocio() {
+        cuandoSePreguntaQuePantallasUsanElInventario();
 
-    @Test
-    @DisplayName("Otra zona gasta su propio cupo")
-    void otraZonaGastaSuPropioCupo() {
-        entoncesElCupoDe(VistaZona.OTRA, TipoContenidoPlan.ZONA_OTRA);
-    }
-
-    @Test
-    @DisplayName("Precios ordena según el inventario del negocio")
-    void preciosOrdenaSegunElInventarioDelNegocio() {
-        entoncesUsaElInventario(VistaZona.PRECIOS, true);
-    }
-
-    @Test
-    @DisplayName("Qué se vende cerca ordena según el inventario del negocio")
-    void queSeVendeCercaOrdenaSegunElInventarioDelNegocio() {
-        entoncesUsaElInventario(VistaZona.CERCA, true);
-    }
-
-    @Test
-    @DisplayName("Otra zona no mira el inventario del negocio")
-    void otraZonaNoMiraElInventarioDelNegocio() {
-        entoncesUsaElInventario(VistaZona.OTRA, false);
+        entoncesSoloUsanElInventarioPreciosYQueSeVendeCerca();
     }
 
     @Test
     @DisplayName("Precios muestra primero lo que el negocio tiene")
     void preciosMuestraPrimeroLoQueElNegocioTiene() {
-        cuandoSeOrdenaPara(VistaZona.PRECIOS);
+        dadoUnaZonaConTresProductos();
 
-        entoncesElOrdenEs("Yerba Playadito 500 g", "Azúcar", "Fideos");
+        cuandoSeOrdenaParaLaPantalla(VistaZona.PRECIOS);
+
+        entoncesLosProductosVanEnEsteOrden("Yerba Playadito 500 g", "Azúcar", "Fideos");
     }
 
     @Test
     @DisplayName("Qué se vende cerca muestra primero lo más vendido que el negocio todavía no tiene")
-    void queSeVendeCercaMuestraPrimeroLoMasVendidoQueElNegocioNoTiene() {
-        cuandoSeOrdenaPara(VistaZona.CERCA);
+    void queSeVendeCercaMuestraPrimeroLoMasVendidoQueElNegocioTodaviaNoTiene() {
+        dadoUnaZonaConTresProductos();
 
-        entoncesElOrdenEs("Fideos", "Azúcar", "Yerba Playadito 500 g");
+        cuandoSeOrdenaParaLaPantalla(VistaZona.CERCA);
+
+        entoncesLosProductosVanEnEsteOrden("Fideos", "Azúcar", "Yerba Playadito 500 g");
     }
 
     @Test
     @DisplayName("Otra zona muestra lo más vendido sin mirar el inventario")
     void otraZonaMuestraLoMasVendidoSinMirarElInventario() {
-        cuandoSeOrdenaPara(VistaZona.OTRA);
+        dadoUnaZonaConTresProductos();
 
-        entoncesElOrdenEs("Yerba Playadito 500 g", "Fideos", "Azúcar");
+        cuandoSeOrdenaParaLaPantalla(VistaZona.OTRA);
+
+        entoncesLosProductosVanEnEsteOrden("Yerba Playadito 500 g", "Fideos", "Azúcar");
     }
 
-    private void cuandoSeOrdenaPara(VistaZona vista) {
-        ordenada = vista.ordenar(dadoAnalisis(), PROPIOS);
+    // --- dado ---
+    private void dadoUnaZonaConTresProductos() {
+        analisis = unAnalisisDeZona(10,
+                unProductoDeZona("Azúcar", 4, "20"),
+                unProductoDeZona("Yerba Playadito 500 g", 9, "5"),
+                unProductoDeZona("Fideos", 6, "30"));
     }
 
-    private void entoncesElCupoDe(VistaZona vista, TipoContenidoPlan esperado) {
-        assertThat(vista.tipoDeContenido()).isEqualTo(esperado);
+    // --- cuando ---
+    private void cuandoSeConsultaElCupoDeCadaPantalla() {
+        for (VistaZona vista : VistaZona.values()) {
+            cupos.put(vista, vista.tipoDeContenido());
+        }
     }
 
-    private void entoncesUsaElInventario(VistaZona vista, boolean esperado) {
-        assertThat(vista.usaInventario()).isEqualTo(esperado);
+    private void cuandoSePreguntaQuePantallasUsanElInventario() {
+        for (VistaZona vista : VistaZona.values()) {
+            usosDelInventario.put(vista, vista.usaInventario());
+        }
     }
 
-    private void entoncesElOrdenEs(String primero, String segundo, String tercero) {
-        assertThat(ordenada.productos().stream().map(AgregadoZonaProducto::nombre).toList())
-                .containsExactly(primero, segundo, tercero);
+    private void cuandoSeOrdenaParaLaPantalla(VistaZona vista) {
+        ordenado = vista.ordenar(analisis, PROPIOS);
     }
 
-    private static AnalisisZona dadoAnalisis() {
-        return new AnalisisZona("San Justo", 10, List.of(
-                dadoProducto("Azúcar", 4, "20"),
-                dadoProducto("Yerba Playadito 500 g", 9, "5"),
-                dadoProducto("Fideos", 6, "30")));
+    // --- entonces ---
+    private void entoncesCadaPantallaTieneSuCupo() {
+        assertThat(cupos).containsEntry(VistaZona.PRECIOS, TipoContenidoPlan.ZONA)
+                .containsEntry(VistaZona.CERCA, TipoContenidoPlan.ZONA_CERCA)
+                .containsEntry(VistaZona.OTRA, TipoContenidoPlan.ZONA_OTRA);
     }
 
-    private static AgregadoZonaProducto dadoProducto(String nombre, int comerciosVenden, String unidadesSemana) {
-        return new AgregadoZonaProducto(nombre, 8, comerciosVenden, new BigDecimal("100.00"),
-                new BigDecimal("150.00"), new BigDecimal("200.00"), new BigDecimal(unidadesSemana));
+    private void entoncesSoloUsanElInventarioPreciosYQueSeVendeCerca() {
+        assertThat(usosDelInventario).containsEntry(VistaZona.PRECIOS, true)
+                .containsEntry(VistaZona.CERCA, true)
+                .containsEntry(VistaZona.OTRA, false);
+    }
+
+    private void entoncesLosProductosVanEnEsteOrden(String... nombres) {
+        assertThat(nombresDe(ordenado)).containsExactly(nombres);
     }
 }

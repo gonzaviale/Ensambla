@@ -31,6 +31,11 @@ public class CampoSiNo extends Campo {
     }
 
     @Override
+    public Optional<String> errorDeValorLeido(String valor) {
+        return errorDeValorInicial(valor);
+    }
+
+    @Override
     public Object tipar(String valor) {
         return RESPUESTAS.getOrDefault(valor.toLowerCase(Locale.ROOT), valor);
     }

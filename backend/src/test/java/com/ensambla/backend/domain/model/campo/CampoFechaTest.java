@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 class CampoFechaTest extends CampoDeCualquierTipoTest {
 
@@ -34,5 +35,20 @@ class CampoFechaTest extends CampoDeCualquierTipoTest {
         cuandoSePideLaCeldaDeReporte("2026-10-09");
 
         entoncesElResultadoEs(LocalDate.of(2026, 10, 9));
+    }
+
+    @Override
+    protected List<String> textosLeidosQueAcepta() {
+        return List.of("2026-10-09");
+    }
+
+    @Override
+    protected List<String> textosLeidosQueRechaza() {
+        return List.of("09/10/2026", "2026-02-31");
+    }
+
+    @Override
+    protected Optional<ClaseDeDatoInterpretable> claseInterpretableEsperada() {
+        return Optional.of(ClaseDeDatoInterpretable.FECHA);
     }
 }

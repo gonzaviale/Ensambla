@@ -52,35 +52,63 @@ public class Negocio {
     /** Los campos ausentes conservan su valor; una ubicación se reemplaza de forma completa. */
     public void configurar(String nombre, RubroNegocio rubro, UbicacionNegocio ubicacion,
                            Boolean comparteDatosZona, OffsetDateTime ahora) {
+        cambiarNombreSiViene(nombre);
+        cambiarRubroSiViene(rubro);
+        reubicarSiViene(ubicacion);
+        cambiarPrivacidadSiViene(comparteDatosZona);
+        actualizadoEn = ahora;
+    }
+
+    private void cambiarNombreSiViene(String nombre) {
         if (nombre != null) {
-            String limpio = nombre.strip();
-            if (limpio.isBlank() || limpio.length() > 120) {
-                throw new BusinessRuleException("El nombre debe tener entre 1 y 120 caracteres");
-            }
-            this.nombre = limpio;
+            this.nombre = nombreValido(nombre);
         }
+    }
+
+    private String nombreValido(String nombre) {
+        String limpio = nombre.strip();
+        if (limpio.isBlank() || limpio.length() > 120) {
+            throw new BusinessRuleException("El nombre debe tener entre 1 y 120 caracteres");
+        }
+        return limpio;
+    }
+
+    private void cambiarRubroSiViene(RubroNegocio rubro) {
         if (rubro != null) {
             this.rubro = rubro;
         }
-        if (ubicacion != null) {
-            if (!Objects.equals(latitud, ubicacion.latitud()) || !Objects.equals(longitud, ubicacion.longitud())) {
-                zonaId = null;
-            }
-            direccion = ubicacion.direccion();
-            localidad = ubicacion.localidad();
-            latitud = ubicacion.latitud();
-            longitud = ubicacion.longitud();
+    }
+
+    private void reubicarSiViene(UbicacionNegocio ubicacion) {
+        if (ubicacion == null) {
+            return;
         }
+        quitarZonaSiCambiaElPunto(ubicacion);
+        direccion = ubicacion.direccion();
+        localidad = ubicacion.localidad();
+        latitud = ubicacion.latitud();
+        longitud = ubicacion.longitud();
+    }
+
+    private void quitarZonaSiCambiaElPunto(UbicacionNegocio ubicacion) {
+        if (cambiaElPunto(ubicacion)) {
+            zonaId = null;
+        }
+    }
+
+    private void cambiarPrivacidadSiViene(Boolean comparteDatosZona) {
         if (comparteDatosZona != null) {
             this.comparteDatosZona = comparteDatosZona;
         }
-        actualizadoEn = ahora;
     }
 
     /** Si la ubicación recibida cambia el punto o la localidad guardados. */
     public boolean cambiaUbicacion(UbicacionNegocio ubicacion) {
-        return !Objects.equals(latitud, ubicacion.latitud()) || !Objects.equals(longitud, ubicacion.longitud())
-                || !Objects.equals(localidad, ubicacion.localidad());
+        return cambiaElPunto(ubicacion) || !Objects.equals(localidad, ubicacion.localidad());
+    }
+
+    private boolean cambiaElPunto(UbicacionNegocio ubicacion) {
+        return !Objects.equals(latitud, ubicacion.latitud()) || !Objects.equals(longitud, ubicacion.longitud());
     }
 
     /** Un negocio con punto y sin zona necesita que se la resuelvan; un punto nuevo la invalida. */

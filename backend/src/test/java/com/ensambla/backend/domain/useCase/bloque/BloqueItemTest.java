@@ -17,28 +17,43 @@ class BloqueItemTest {
     private static final OffsetDateTime CREADO = OffsetDateTime.parse("2026-10-09T12:00:00Z");
     private static final OffsetDateTime ACTUALIZADO = OffsetDateTime.parse("2026-10-10T12:00:00Z");
 
+    private Bloque bloque;
+    private BloqueItem respuesta;
+
     @Test
     @DisplayName("Pasa todos los datos del bloque a la respuesta")
-    void bloqueItemShouldMapEveryField() {
-        BloqueItem result = BloqueItem.de(givenBloque("Productos"));
+    void laRespuestaCopiaTodosLosDatosDelBloque() {
+        dadoUnBloqueDeProductos();
 
-        assertThat(result.id()).isEqualTo(BLOQUE_ID);
-        assertThat(result.proyectoId()).isEqualTo(PROYECTO_ID);
-        assertThat(result.nombre()).isEqualTo("Productos");
-        assertThat(result.posicion()).isEqualTo((short) 1);
-        assertThat(result.creadoEn()).isEqualTo(CREADO);
-        assertThat(result.actualizadoEn()).isEqualTo(ACTUALIZADO);
+        cuandoSeArmaLaRespuestaDelBloque();
+
+        entoncesLaRespuestaTieneTodosLosDatosDelBloque();
     }
 
-    // --- helpers ---
-    private Bloque givenBloque(String nombre) {
-        return Bloque.builder()
+    // --- dado ---
+    private void dadoUnBloqueDeProductos() {
+        bloque = Bloque.builder()
                 .id(BLOQUE_ID)
                 .proyectoId(PROYECTO_ID)
-                .nombre(nombre)
+                .nombre("Productos")
                 .posicion((short) 1)
                 .creadoEn(CREADO)
                 .actualizadoEn(ACTUALIZADO)
                 .build();
+    }
+
+    // --- cuando ---
+    private void cuandoSeArmaLaRespuestaDelBloque() {
+        respuesta = BloqueItem.de(bloque);
+    }
+
+    // --- entonces ---
+    private void entoncesLaRespuestaTieneTodosLosDatosDelBloque() {
+        assertThat(respuesta.id()).isEqualTo(BLOQUE_ID);
+        assertThat(respuesta.proyectoId()).isEqualTo(PROYECTO_ID);
+        assertThat(respuesta.nombre()).isEqualTo("Productos");
+        assertThat(respuesta.posicion()).isEqualTo((short) 1);
+        assertThat(respuesta.creadoEn()).isEqualTo(CREADO);
+        assertThat(respuesta.actualizadoEn()).isEqualTo(ACTUALIZADO);
     }
 }

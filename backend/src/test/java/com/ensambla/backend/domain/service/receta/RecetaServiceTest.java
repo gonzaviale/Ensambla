@@ -1,16 +1,9 @@
 package com.ensambla.backend.domain.service.receta;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
-import com.ensambla.backend.domain.model.bloque.BloqueId;
-import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
-import com.ensambla.backend.domain.model.negocio.NegocioId;
-import com.ensambla.backend.domain.model.receta.LineaReceta;
 import com.ensambla.backend.domain.model.receta.Receta;
 import com.ensambla.backend.domain.model.receta.RecetaCosteada;
-import com.ensambla.backend.domain.model.registro.Registro;
-import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -22,21 +15,22 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
+import static com.ensambla.backend.support.RecetasDePrueba.BLOQUE_INSUMOS_ID;
+import static com.ensambla.backend.support.RecetasDePrueba.HARINA_ID;
+import static com.ensambla.backend.support.RecetasDePrueba.NEGOCIO_ID;
+import static com.ensambla.backend.support.RecetasDePrueba.PRECIO_ID;
+import static com.ensambla.backend.support.RecetasDePrueba.unInsumoConPrecio;
+import static com.ensambla.backend.support.RecetasDePrueba.unaColumnaDelPrecioDeTipo;
+import static com.ensambla.backend.support.RecetasDePrueba.unaRecetaDelProductoCon;
+import static com.ensambla.backend.support.RecetasDePrueba.unaRecetaVacia;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class RecetaServiceTest {
-
-    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
-    private static final BloqueId BLOQUE_INSUMOS_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
-    private static final RegistroId PRODUCTO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
-    private static final RegistroId HARINA_ID = RegistroId.de("d0000000-0000-4000-8000-000000000002");
-    private static final CampoId PRECIO_ID = CampoId.de("c0000000-0000-4000-8000-000000000002");
 
     @Mock
     private CampoRepository campoRepository;
@@ -47,58 +41,84 @@ class RecetaServiceTest {
     @InjectMocks
     private RecetaService recetaService;
 
+    private RecetaCosteada costeada;
+    private Throwable rechazo;
+
     @Test
     @DisplayName("Costear calcula el costo con los insumos y los campos de su tabla")
-    void costearShouldPriceTheInsumos() {
-        Receta receta = givenReceta(HARINA_ID);
-        givenColumnaDelPrecio(TipoCampo.NUMERO);
-        when(registroRepository.findAllByIdsAndBloque(List.of(HARINA_ID), BLOQUE_INSUMOS_ID, NEGOCIO_ID))
-                .thenReturn(List.of(Registro.builder().id(HARINA_ID)
-                        .valores(Map.of(PRECIO_ID.toString(), 10)).build()));
-        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_INSUMOS_ID, NEGOCIO_ID)).thenReturn(List.of());
+    void costearCalculaElCostoConLosInsumosYLosCamposDeSuTabla() {
+        dadoUnaColumnaNumericaDelPrecio();
+        dadoUnInsumoDeHarinaConPrecioDiez();
+        dadoQueLaTablaDeInsumosNoTieneOtrosCampos();
 
-        RecetaCosteada result = recetaService.costear(receta, NEGOCIO_ID);
+        cuandoSeCosteaUnaRecetaDeHarina();
 
-        assertThat(result.costo()).isEqualByComparingTo(new BigDecimal("20"));
-        assertThat(result.bloqueInsumosId()).isEqualTo(BLOQUE_INSUMOS_ID);
+        entoncesElCostoEsElDeLaHarinaYSeIndicaLaTablaDeInsumos();
     }
 
     @Test
     @DisplayName("Costear una receta vacía no consulta nada y cuesta cero")
-    void costearShouldReturnEmptyForEmptyReceta() {
-        RecetaCosteada result = recetaService.costear(Receta.builder().lineas(List.of()).build(), NEGOCIO_ID);
+    void costearUnaRecetaVaciaNoConsultaNadaYCuestaCero() {
+        cuandoSeCosteaUnaRecetaVacia();
 
-        assertThat(result.lineas()).isEmpty();
-        assertThat(result.costo()).isEqualByComparingTo("0");
+        entoncesLaRecetaNoTieneLineasYCuestaCero();
     }
 
     @Test
-    @DisplayName("Costear responde 'no existe' si la columna del precio ya no está")
-    void costearShouldFailWhenPriceColumnIsGone() {
+    @DisplayName("Costear responde que no existe si la columna del precio ya no está")
+    void costearRespondeQueNoExisteSiLaColumnaDelPrecioYaNoEsta() {
+        dadoQueLaColumnaDelPrecioYaNoExiste();
+
+        cuandoSeIntentaCostearUnaRecetaDeHarina();
+
+        entoncesSeRechazaPorqueLaColumnaDelPrecioNoExiste();
+    }
+
+    // --- dado ---
+    private void dadoUnaColumnaNumericaDelPrecio() {
+        when(campoRepository.findByIdAndNegocioId(PRECIO_ID, NEGOCIO_ID))
+                .thenReturn(Optional.of(unaColumnaDelPrecioDeTipo(TipoCampo.NUMERO)));
+    }
+
+    private void dadoUnInsumoDeHarinaConPrecioDiez() {
+        when(registroRepository.findAllByIdsAndBloque(List.of(HARINA_ID), BLOQUE_INSUMOS_ID, NEGOCIO_ID))
+                .thenReturn(List.of(unInsumoConPrecio(HARINA_ID, "Harina", 10)));
+    }
+
+    private void dadoQueLaTablaDeInsumosNoTieneOtrosCampos() {
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_INSUMOS_ID, NEGOCIO_ID)).thenReturn(List.of());
+    }
+
+    private void dadoQueLaColumnaDelPrecioYaNoExiste() {
         when(campoRepository.findByIdAndNegocioId(PRECIO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
-        Receta receta = givenReceta(HARINA_ID);
-
-        assertThatThrownBy(() -> recetaService.costear(receta, NEGOCIO_ID))
-                .isInstanceOf(ResourceNotFoundException.class);
     }
 
-    private void givenColumnaDelPrecio(TipoCampo tipo) {
-        when(campoRepository.findByIdAndNegocioId(PRECIO_ID, NEGOCIO_ID)).thenReturn(Optional.of(
-                Campo.builder().id(PRECIO_ID).bloqueId(BLOQUE_INSUMOS_ID).tipo(tipo).build()));
+    // --- cuando ---
+    private void cuandoSeCosteaUnaRecetaDeHarina() {
+        costeada = recetaService.costear(unaRecetaDelProductoCon(HARINA_ID), NEGOCIO_ID);
     }
 
-    private static Registro givenInsumo(RegistroId id) {
-        return Registro.builder().id(id).valores(Map.of()).build();
+    private void cuandoSeCosteaUnaRecetaVacia() {
+        costeada = recetaService.costear(unaRecetaVacia(), NEGOCIO_ID);
     }
 
-    private static Receta givenReceta(RegistroId... insumos) {
-        return Receta.builder()
-                .negocioId(NEGOCIO_ID)
-                .productoId(PRODUCTO_ID)
-                .campoPrecioId(PRECIO_ID)
-                .lineas(java.util.Arrays.stream(insumos)
-                        .map(insumo -> new LineaReceta(insumo, new BigDecimal("2"), null))
-                        .toList())
-                .build();
+    private void cuandoSeIntentaCostearUnaRecetaDeHarina() {
+        Receta receta = unaRecetaDelProductoCon(HARINA_ID);
+        rechazo = catchThrowable(() -> recetaService.costear(receta, NEGOCIO_ID));
+    }
+
+    // --- entonces ---
+    private void entoncesElCostoEsElDeLaHarinaYSeIndicaLaTablaDeInsumos() {
+        assertThat(costeada.costo()).isEqualByComparingTo(new BigDecimal("20"));
+        assertThat(costeada.bloqueInsumosId()).isEqualTo(BLOQUE_INSUMOS_ID);
+    }
+
+    private void entoncesLaRecetaNoTieneLineasYCuestaCero() {
+        assertThat(costeada.lineas()).isEmpty();
+        assertThat(costeada.costo()).isEqualByComparingTo("0");
+    }
+
+    private void entoncesSeRechazaPorqueLaColumnaDelPrecioNoExiste() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class);
     }
 }

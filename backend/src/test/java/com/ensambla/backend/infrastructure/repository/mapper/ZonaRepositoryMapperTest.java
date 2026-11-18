@@ -13,22 +13,46 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ZonaRepositoryMapperTest {
 
+    private static final UUID ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
+    private static final int RADIO_METROS = 1500;
+
     private final ZonaRepositoryMapper zonaRepositoryMapper = new ZonaRepositoryMapper();
 
     @Test
     @DisplayName("Mapea centro, radio y nombre de la entidad al dominio")
-    void toDomainShouldMapEveryField() {
-        ZonaEntity entity = ZonaEntity.builder().id(UUID.randomUUID()).nombre("San Justo - UNLaM")
-                .localidad("San Justo").partido("La Matanza").provincia("Buenos Aires")
-                .latitud(new BigDecimal("-34.670300")).longitud(new BigDecimal("-58.562800"))
-                .radioMetros(1500).build();
+    void unaEntidadSeLeeComoZonaConSuCentroSuRadioYSuNombre() {
+        ZonaEntity entidad = dadoUnaEntidadDeLaZonaSanJustoUnlam();
 
-        Zona result = zonaRepositoryMapper.toDomain(entity);
+        Zona zona = cuandoSeConvierteEnZona(entidad);
 
-        assertThat(result.getId()).isEqualTo(ZonaId.de(entity.getId()));
-        assertThat(result.getNombre()).isEqualTo("San Justo - UNLaM");
-        assertThat(result.getLatitud()).isEqualByComparingTo("-34.670300");
-        assertThat(result.getLongitud()).isEqualByComparingTo("-58.562800");
-        assertThat(result.getRadioMetros()).isEqualTo(1500);
+        entoncesLaZonaTieneElCentroElRadioYElNombreDeLaEntidad(zona);
+    }
+
+    // --- dado ---
+    private ZonaEntity dadoUnaEntidadDeLaZonaSanJustoUnlam() {
+        return ZonaEntity.builder()
+                .id(ID)
+                .nombre("San Justo - UNLaM")
+                .localidad("San Justo")
+                .partido("La Matanza")
+                .provincia("Buenos Aires")
+                .latitud(new BigDecimal("-34.670300"))
+                .longitud(new BigDecimal("-58.562800"))
+                .radioMetros(RADIO_METROS)
+                .build();
+    }
+
+    // --- cuando ---
+    private Zona cuandoSeConvierteEnZona(ZonaEntity entidad) {
+        return zonaRepositoryMapper.toDomain(entidad);
+    }
+
+    // --- entonces ---
+    private void entoncesLaZonaTieneElCentroElRadioYElNombreDeLaEntidad(Zona zona) {
+        assertThat(zona.getId()).isEqualTo(ZonaId.de(ID));
+        assertThat(zona.getNombre()).isEqualTo("San Justo - UNLaM");
+        assertThat(zona.getLatitud()).isEqualByComparingTo("-34.670300");
+        assertThat(zona.getLongitud()).isEqualByComparingTo("-58.562800");
+        assertThat(zona.getRadioMetros()).isEqualTo(RADIO_METROS);
     }
 }

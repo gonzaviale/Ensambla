@@ -25,10 +25,15 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
-import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
+import static com.ensambla.backend.support.NegociosDePrueba.unNegocioConPuntoSinZona;
+import static com.ensambla.backend.support.NegociosDePrueba.unNegocioConPuntoYZona;
+import static com.ensambla.backend.support.NegociosDePrueba.unNegocioLlamado;
+import static com.ensambla.backend.support.NegociosDePrueba.unNegocioSinUbicacion;
+import static com.ensambla.backend.support.NegociosDePrueba.unNegocioSinUbicacionEnUnaZonaAnterior;
+import static com.ensambla.backend.support.NegociosDePrueba.unaZonaLlamada;
 import static com.ensambla.backend.support.ProyectoTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -50,156 +55,269 @@ class ActualizarNegocioTest {
     private final ActualizarNegocio actualizarNegocio = new ActualizarNegocio(negocioRepository, zonaRepository,
             geocodificadorPort, new TransaccionDirecta(), Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
 
+    private Zona zona;
+    private Negocio negocio;
+    private ConfiguracionNegocioResponse respuesta;
+    private Throwable rechazo;
+
     @Test
     @DisplayName("Asigna la zona que contiene el punto al guardar la ubicación y la devuelve en la configuración")
-    void executeShouldAssignZoneForNewPoint() {
-        Zona zona = givenZona();
-        givenNegocioParaActualizar(Negocio.builder().id(NEGOCIO_ID).build());
-        givenLocalidadDelMapa("San Justo");
-        when(zonaRepository.resolver(LATITUD, LONGITUD)).thenReturn(Optional.of(zona));
-        when(zonaRepository.findByIdSiTiene(zona.getId())).thenReturn(Optional.of(zona));
+    void asignaLaZonaQueContieneElPuntoAlGuardarLaUbicacionYLaDevuelveEnLaConfiguracion() {
+        dadoUnNegocioSinUbicacionQueSeUbicaEnUnaZonaConocida();
 
-        ConfiguracionNegocioResponse result = whenActualizaUbicacion();
+        cuandoSeActualizaLaUbicacion();
 
-        assertThat(negocioGuardado().getZonaId()).isEqualTo(zona.getId());
-        assertThat(result.zona()).isEqualTo("San Justo - UNLaM");
+        entoncesElNegocioGuardadoQuedaEnLaZona();
+        entoncesSeRespondeConLaZona("San Justo - UNLaM");
     }
 
     @Test
     @DisplayName("Deja el negocio sin zona si ninguna contiene el punto")
-    void executeShouldLeaveZoneEmptyWhenNoneMatches() {
-        givenNegocioParaActualizar(Negocio.builder().id(NEGOCIO_ID).zonaId(ZonaId.nuevo()).build());
-        givenLocalidadDelMapa("San Justo");
-        when(zonaRepository.resolver(LATITUD, LONGITUD)).thenReturn(Optional.empty());
+    void dejaElNegocioSinZonaSiNingunaContieneElPunto() {
+        dadoUnNegocioConZonaAnteriorYUnPuntoFueraDeTodaZona();
 
-        ConfiguracionNegocioResponse result = whenActualizaUbicacion();
+        cuandoSeActualizaLaUbicacion();
 
-        assertThat(negocioGuardado().getZonaId()).isNull();
-        assertThat(result.zona()).isNull();
+        entoncesElNegocioGuardadoQuedaSinZona();
+        entoncesLaRespuestaNoTieneZona();
     }
 
     @Test
     @DisplayName("Completa la zona de un negocio con punto y sin zona aunque el punto no cambie")
-    void executeShouldFillMissingZoneForSamePoint() {
-        Zona zona = givenZona();
-        givenNegocioParaActualizar(Negocio.builder().id(NEGOCIO_ID).latitud(LATITUD).longitud(LONGITUD).build());
-        givenLocalidadDelMapa("San Justo");
-        when(zonaRepository.resolver(LATITUD, LONGITUD)).thenReturn(Optional.of(zona));
+    void completaLaZonaDeUnNegocioConPuntoYSinZonaAunqueElPuntoNoCambie() {
+        dadoUnNegocioConElMismoPuntoSinZonaEnUnaZonaConocida();
 
-        whenActualizaUbicacion();
+        cuandoSeActualizaLaUbicacion();
 
-        assertThat(negocioGuardado().getZonaId()).isEqualTo(zona.getId());
+        entoncesElNegocioGuardadoQuedaEnLaZona();
     }
 
     @Test
     @DisplayName("Conserva la zona y no la vuelve a resolver si el punto no cambió")
-    void executeShouldKeepZoneForSamePoint() {
-        ZonaId zonaId = ZonaId.nuevo();
-        givenNegocioParaActualizar(Negocio.builder().id(NEGOCIO_ID).latitud(LATITUD).longitud(LONGITUD)
-                .localidad("San Justo").zonaId(zonaId).build());
+    void conservaLaZonaYNoLaVuelveAResolverSiElPuntoNoCambio() {
+        dadoUnNegocioConElMismoPuntoYSuZona();
 
-        whenActualizaUbicacion();
+        cuandoSeActualizaLaUbicacion();
 
-        assertThat(negocioGuardado().getZonaId()).isEqualTo(zonaId);
-        verify(zonaRepository, never()).resolver(any(), any());
+        entoncesElNegocioGuardadoConservaSuZona();
+        entoncesNoSeResuelveNingunaZona();
     }
 
     @Test
     @DisplayName("Acepta la localidad que coincide con la del mapa aunque cambie mayúsculas")
-    void executeShouldAcceptMatchingLocality() {
-        givenNegocioParaActualizar(Negocio.builder().id(NEGOCIO_ID).build());
-        givenLocalidadDelMapa("San Justo");
+    void aceptaLaLocalidadQueCoincideConLaDelMapaAunqueCambienMayusculas() {
+        dadoUnNegocioSinUbicacionYUnMapaQueReconoceSanJusto();
 
-        actualizarNegocio.execute(new ActualizarNegocioRequest(USUARIO_ID, null, null,
-                new UbicacionNegocioItem("Calle 123", "san justo", LATITUD, LONGITUD), null));
+        cuandoSeActualizaLaLocalidadEscritaComo("san justo");
 
-        verify(geocodificadorPort).resolverLocalidades(LATITUD, LONGITUD, AHORA.toInstant());
-        verify(negocioRepository).save(any());
+        entoncesSeConsultoElMapaYSeGuardoElNegocio();
     }
 
     @Test
     @DisplayName("No guarda nada si la localidad no coincide con la del mapa y dice cuál es")
-    void executeShouldRejectLocalityOutsideMap() {
-        Negocio negocio = Negocio.builder().id(NEGOCIO_ID).nombre("Mi negocio").build();
-        givenNegocioParaActualizar(negocio);
-        givenLocalidadDelMapa("Ramos Mejía");
+    void noGuardaNadaSiLaLocalidadNoCoincideConLaDelMapaYDiceCualEs() {
+        dadoUnNegocioSinPuntoYUnMapaQueReconoceRamosMejia();
 
-        assertThatThrownBy(this::whenActualizaUbicacion)
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("La localidad no coincide con la del mapa (Ramos Mejía)");
+        cuandoSeIntentaActualizarLaUbicacion();
 
-        assertThat(negocio.getLatitud()).isNull();
-        verify(negocioRepository, never()).save(any());
+        entoncesSeRechazaPorque("La localidad no coincide con la del mapa (Ramos Mejía)");
+        entoncesElNegocioNoRecibioElPunto();
+        entoncesNoSeGuardaNingunNegocio();
     }
 
     @Test
     @DisplayName("Propaga la indisponibilidad del mapa al verificar la localidad")
-    void executeShouldPropagateMapFailure() {
-        givenNegocioParaActualizar(Negocio.builder().id(NEGOCIO_ID).build());
-        when(geocodificadorPort.resolverLocalidades(LATITUD, LONGITUD, AHORA.toInstant()))
-                .thenThrow(new ServicioUbicacionException("Sin servicio"));
+    void propagaLaIndisponibilidadDelMapaAlVerificarLaLocalidad() {
+        dadoUnMapaCaido();
 
-        assertThatThrownBy(this::whenActualizaUbicacion).isInstanceOf(ServicioUbicacionException.class);
+        cuandoSeIntentaActualizarLaUbicacion();
+
+        entoncesSeRechazaPorqueElMapaNoEstaDisponible();
     }
 
     @Test
     @DisplayName("No consulta al mapa si la ubicación enviada es la ya guardada")
-    void executeShouldSkipLocalityCheckForSameLocation() {
-        givenNegocioParaActualizar(Negocio.builder().id(NEGOCIO_ID).latitud(LATITUD).longitud(LONGITUD)
-                .localidad("San Justo").zonaId(ZonaId.nuevo()).build());
+    void noConsultaAlMapaSiLaUbicacionEnviadaEsLaYaGuardada() {
+        dadoUnNegocioConLaMismaUbicacionYSuZona();
 
-        whenActualizaUbicacion();
+        cuandoSeActualizaLaUbicacion();
 
-        verifyNoInteractions(geocodificadorPort);
+        entoncesNoSeConsultaElMapa();
     }
 
     @Test
     @DisplayName("Sin ubicación no verifica la localidad ni resuelve zona")
-    void executeShouldSkipLocalityAndZoneWithoutLocation() {
-        givenNegocioParaActualizar(Negocio.builder().id(NEGOCIO_ID).build());
+    void sinUbicacionNoVerificaLaLocalidadNiResuelveZona() {
+        dadoUnNegocioSinUbicacion();
 
-        ConfiguracionNegocioResponse result = actualizarNegocio.execute(
-                new ActualizarNegocioRequest(USUARIO_ID, "Nuevo nombre", RubroNegocio.KIOSCO, null, null));
+        cuandoSeActualizaSoloElNombreYElRubro();
 
-        assertThat(result.nombre()).isEqualTo("Nuevo nombre");
-        assertThat(result.rubro()).isEqualTo(RubroNegocio.KIOSCO);
-        assertThat(negocioGuardado().getZonaId()).isNull();
-        verifyNoInteractions(geocodificadorPort);
-        verify(zonaRepository, never()).resolver(any(), any());
+        entoncesLaRespuestaTieneElNombreYElRubroNuevos();
+        entoncesElNegocioGuardadoQuedaSinZona();
+        entoncesNoSeConsultaElMapa();
+        entoncesNoSeResuelveNingunaZona();
     }
 
     @Test
     @DisplayName("Responde no encontrado al actualizar la configuración de un usuario sin negocio")
-    void executeShouldRejectMissingNegocio() {
+    void respondeNoEncontradoAlActualizarLaConfiguracionDeUnUsuarioSinNegocio() {
+        dadoUnUsuarioSinNegocio();
+
+        cuandoSeIntentaActualizarSinCambios();
+
+        entoncesSeRechazaPorqueNoHayNegocio();
+    }
+
+    // --- dado ---
+    private void dadoUnNegocioSinUbicacionQueSeUbicaEnUnaZonaConocida() {
+        zona = unaZonaLlamada("San Justo - UNLaM");
+        dadoUnNegocioParaActualizar(unNegocioSinUbicacion());
+        dadoQueElMapaReconoce("San Justo");
+        when(zonaRepository.resolver(LATITUD, LONGITUD)).thenReturn(Optional.of(zona));
+        when(zonaRepository.findByIdSiTiene(zona.getId())).thenReturn(Optional.of(zona));
+    }
+
+    private void dadoUnNegocioConZonaAnteriorYUnPuntoFueraDeTodaZona() {
+        dadoUnNegocioParaActualizar(unNegocioSinUbicacionEnUnaZonaAnterior());
+        dadoQueElMapaReconoce("San Justo");
+        when(zonaRepository.resolver(LATITUD, LONGITUD)).thenReturn(Optional.empty());
+    }
+
+    private void dadoUnNegocioConElMismoPuntoSinZonaEnUnaZonaConocida() {
+        zona = unaZonaLlamada("San Justo - UNLaM");
+        dadoUnNegocioParaActualizar(unNegocioConPuntoSinZona(LATITUD, LONGITUD));
+        dadoQueElMapaReconoce("San Justo");
+        when(zonaRepository.resolver(LATITUD, LONGITUD)).thenReturn(Optional.of(zona));
+    }
+
+    private void dadoUnNegocioConElMismoPuntoYSuZona() {
+        zona = unaZonaLlamada("San Justo - UNLaM");
+        dadoUnNegocioParaActualizar(unNegocioConPuntoYZona(LATITUD, LONGITUD, "San Justo", zona.getId()));
+    }
+
+    private void dadoUnNegocioSinUbicacionYUnMapaQueReconoceSanJusto() {
+        dadoUnNegocioParaActualizar(unNegocioSinUbicacion());
+        dadoQueElMapaReconoce("San Justo");
+    }
+
+    private void dadoUnNegocioSinPuntoYUnMapaQueReconoceRamosMejia() {
+        dadoUnNegocioParaActualizar(unNegocioLlamado("Mi negocio"));
+        dadoQueElMapaReconoce("Ramos Mejía");
+    }
+
+    private void dadoUnMapaCaido() {
+        dadoUnNegocioParaActualizar(unNegocioSinUbicacion());
+        when(geocodificadorPort.resolverLocalidades(LATITUD, LONGITUD, AHORA.toInstant()))
+                .thenThrow(new ServicioUbicacionException("Sin servicio"));
+    }
+
+    private void dadoUnNegocioConLaMismaUbicacionYSuZona() {
+        dadoUnNegocioParaActualizar(unNegocioConPuntoYZona(LATITUD, LONGITUD, "San Justo", ZonaId.nuevo()));
+    }
+
+    private void dadoUnNegocioSinUbicacion() {
+        dadoUnNegocioParaActualizar(unNegocioSinUbicacion());
+    }
+
+    private void dadoUnUsuarioSinNegocio() {
         when(negocioRepository.findByDuenioIdParaActualizar(USUARIO_ID)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> actualizarNegocio.execute(
-                new ActualizarNegocioRequest(USUARIO_ID, null, null, null, null)))
-                .isInstanceOf(ResourceNotFoundException.class);
     }
 
-    // --- arrange ---
-    private Zona givenZona() {
-        return Zona.builder().id(ZonaId.nuevo()).nombre("San Justo - UNLaM").build();
-    }
-
-    private void givenNegocioParaActualizar(Negocio negocio) {
+    private void dadoUnNegocioParaActualizar(Negocio paraActualizar) {
+        negocio = paraActualizar;
         when(negocioRepository.findByDuenioIdParaActualizar(USUARIO_ID)).thenReturn(Optional.of(negocio));
         when(negocioRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(zonaRepository.findByIdSiTiene(any())).thenReturn(Optional.empty());
     }
 
-    private void givenLocalidadDelMapa(String localidad) {
+    private void dadoQueElMapaReconoce(String localidad) {
         when(geocodificadorPort.resolverLocalidades(LATITUD, LONGITUD, AHORA.toInstant()))
                 .thenReturn(new LocalidadesDelPunto(List.of(localidad)));
     }
 
-    // --- act ---
-    private ConfiguracionNegocioResponse whenActualizaUbicacion() {
-        return actualizarNegocio.execute(new ActualizarNegocioRequest(USUARIO_ID, null, null, UBICACION, null));
+    // --- cuando ---
+    private void cuandoSeActualizaLaUbicacion() {
+        respuesta = actualizarNegocio.execute(new ActualizarNegocioRequest(USUARIO_ID, null, null, UBICACION, null));
     }
 
-    // --- assert ---
+    private void cuandoSeIntentaActualizarLaUbicacion() {
+        rechazo = catchThrowable(this::cuandoSeActualizaLaUbicacion);
+    }
+
+    private void cuandoSeActualizaLaLocalidadEscritaComo(String localidad) {
+        respuesta = actualizarNegocio.execute(new ActualizarNegocioRequest(USUARIO_ID, null, null,
+                new UbicacionNegocioItem("Calle 123", localidad, LATITUD, LONGITUD), null));
+    }
+
+    private void cuandoSeActualizaSoloElNombreYElRubro() {
+        respuesta = actualizarNegocio.execute(
+                new ActualizarNegocioRequest(USUARIO_ID, "Nuevo nombre", RubroNegocio.KIOSCO, null, null));
+    }
+
+    private void cuandoSeIntentaActualizarSinCambios() {
+        rechazo = catchThrowable(() -> actualizarNegocio.execute(
+                new ActualizarNegocioRequest(USUARIO_ID, null, null, null, null)));
+    }
+
+    // --- entonces ---
+    private void entoncesElNegocioGuardadoQuedaEnLaZona() {
+        assertThat(negocioGuardado().getZonaId()).isEqualTo(zona.getId());
+    }
+
+    private void entoncesElNegocioGuardadoQuedaSinZona() {
+        assertThat(negocioGuardado().getZonaId()).isNull();
+    }
+
+    private void entoncesElNegocioGuardadoConservaSuZona() {
+        assertThat(negocioGuardado().getZonaId()).isEqualTo(zona.getId());
+    }
+
+    private void entoncesSeRespondeConLaZona(String nombre) {
+        assertThat(respuesta.zona()).isEqualTo(nombre);
+    }
+
+    private void entoncesLaRespuestaNoTieneZona() {
+        assertThat(respuesta.zona()).isNull();
+    }
+
+    private void entoncesLaRespuestaTieneElNombreYElRubroNuevos() {
+        assertThat(respuesta.nombre()).isEqualTo("Nuevo nombre");
+        assertThat(respuesta.rubro()).isEqualTo(RubroNegocio.KIOSCO);
+    }
+
+    private void entoncesSeConsultoElMapaYSeGuardoElNegocio() {
+        verify(geocodificadorPort).resolverLocalidades(LATITUD, LONGITUD, AHORA.toInstant());
+        verify(negocioRepository).save(any());
+    }
+
+    private void entoncesNoSeConsultaElMapa() {
+        verifyNoInteractions(geocodificadorPort);
+    }
+
+    private void entoncesNoSeResuelveNingunaZona() {
+        verify(zonaRepository, never()).resolver(any(), any());
+    }
+
+    private void entoncesElNegocioNoRecibioElPunto() {
+        assertThat(negocio.getLatitud()).isNull();
+    }
+
+    private void entoncesNoSeGuardaNingunNegocio() {
+        verify(negocioRepository, never()).save(any());
+    }
+
+    private void entoncesSeRechazaPorque(String motivo) {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class).hasMessage(motivo);
+    }
+
+    private void entoncesSeRechazaPorqueElMapaNoEstaDisponible() {
+        assertThat(rechazo).isInstanceOf(ServicioUbicacionException.class);
+    }
+
+    private void entoncesSeRechazaPorqueNoHayNegocio() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class);
+    }
+
     private Negocio negocioGuardado() {
         ArgumentCaptor<Negocio> captor = ArgumentCaptor.forClass(Negocio.class);
         verify(negocioRepository).save(captor.capture());
