@@ -1,7 +1,7 @@
 import { ArrowLeftIcon, FlagCheckeredIcon, TrendUpIcon } from '@phosphor-icons/react';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { PageFooter } from '@/components/sistema/PageFooter';
-import { useObjetivos } from '@/hooks/objetivos/queries';
+import { useMiniObjetivos, useObjetivos, useSemanasObjetivo } from '@/hooks/objetivos/queries';
 import { useMedirObjetivos } from '@/hooks/objetivos/useMedirObjetivos';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
@@ -107,9 +107,11 @@ function Detalle({ objetivo }: { objetivo: Objetivo }) {
 function FranjaDeAvance({ objetivo, cumplido }: { objetivo: ObjetivoConMeta; cumplido: boolean }) {
   return (
     <>
-      <section className="objetivo-avance-franja" aria-label="Avance hacia tu meta">
-        <div>
-          <span>Ganás por mes</span>
+      <section className="objetivo-tablero" aria-label="Avance hacia tu meta">
+        <div className="objetivo-tablero-extremo hoy">
+          <span className="objetivo-tablero-etiqueta">
+            <TrendUpIcon aria-hidden size={20} weight="bold" /> Hoy
+          </span>
           <strong>{formatoPesos(ultimoValor(objetivo))}</strong>
           <small>ganás por mes</small>
         </div>

@@ -12,7 +12,6 @@ import {
   partesDeMini,
 } from '@/lib/objetivosAutogestion';
 import type { DecisionDePaso, MiniMedido } from '@/types/objetivos';
-import { Progreso } from '../piezas';
 
 type Props = {
   mini: MiniMedido;
