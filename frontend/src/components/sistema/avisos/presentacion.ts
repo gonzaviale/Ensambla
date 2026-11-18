@@ -1,3 +1,4 @@
+import { diasDeCalendarioEntre } from '@/lib/diaDelNegocio';
 import type { AccionDeAviso, Aviso, TipoDeAviso } from '@/lib/sistema/alertas';
 import type { NombreDeIcono } from '@/lib/sistema/iconos';
 import { comportamientoDeAviso, type DatoDelAviso } from './comportamientoDeAviso';
@@ -54,12 +55,15 @@ export function tieneDetalle(aviso: Aviso) {
   );
 }
 
-/** «hoy», «ayer» o «hace N días», para saber cuánto hace que el motor lo detectó. */
+/** «hoy», «ayer» o «hace N días» según los días de calendario argentino, no las horas transcurridas. */
 export function haceCuanto(creadoEn: string | undefined, ahora = new Date()): string | undefined {
   if (!creadoEn) return undefined;
   const fecha = new Date(creadoEn);
   if (Number.isNaN(fecha.getTime())) return undefined;
-  const dias = Math.floor((ahora.getTime() - fecha.getTime()) / 86_400_000);
+  return antiguedadEnPalabras(diasDeCalendarioEntre(fecha, ahora));
+}
+
+function antiguedadEnPalabras(dias: number) {
   if (dias <= 0) return 'hoy';
   if (dias === 1) return 'ayer';
   return `hace ${dias} días`;
