@@ -1,5 +1,17 @@
 import { id, makeSystem, wireSystem } from './core';
-import type { Fila, Sistema } from './tipos';
+import type { Bloque, Fila, Sistema, TipoBloque } from './tipos';
+
+const BLOQUES_DEL_ALMACEN: TipoBloque[] = ['inventory', 'sales', 'clients', 'entries'];
+
+type BloquesDelAlmacen = { inventario: Bloque; ventas: Bloque; clientes: Bloque };
+
+type ProductoDeDemo = {
+  nombre: string;
+  stock: number;
+  precio: number;
+  costo: number;
+  minimo: number;
+};
 
 const sumarDias = (iso: string, dias: number) => {
   const fecha = new Date(`${iso}T12:00:00`);
@@ -7,89 +19,140 @@ const sumarDias = (iso: string, dias: number) => {
   return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`;
 };
 
-// Un almacén chico con 60 días de ventas, pensado para que Sami tenga algo que decir: stock bajo, un
-// producto que se vende mucho y barato, otro caro que no se mueve, productos que se llevan juntos y
-// cosas que se venden en la zona y no están. Se cruza con los datos de ejemplo de la zona.
-export function crearAlmacenDeEjemplo(hoy: string): Sistema {
-  const sistema = makeSystem(
-    'Almacén de ejemplo',
-    ['inventory', 'sales', 'clients', 'entries'],
-    false,
-  );
+function almacenVacio(nombre: string): Sistema {
+  const sistema = makeSystem(nombre, BLOQUES_DEL_ALMACEN, false);
   wireSystem(sistema);
   sistema.demoAlmacen = true;
+  return sistema;
+}
+
+function bloquesDelAlmacen(sistema: Sistema): BloquesDelAlmacen | undefined {
   const [inventario, ventas, clientes] = sistema.sections[0]?.blocks ?? [];
-  if (!inventario || !ventas || !clientes) return sistema;
+  return inventario && ventas && clientes ? { inventario, ventas, clientes } : undefined;
+}
 
-  const productos = [
-    ['Yerba Playadito 1 kg', 4, 3600, 2700, 10],
-    ['Aceite Natura 900 ml', 0, 2600, 1900, 6],
-    ['Coca-Cola 2,25 L', 18, 2700, 1950, 12],
-    ['Azúcar Ledesma 1 kg', 25, 1500, 900, 10],
-    ['Fideos Matarazzo 500 g', 30, 1100, 800, 10],
-    ['Lavandina Ayudín 1 L', 2, 1350, 950, 6],
-    ['Alfajor Jorgito', 40, 800, 520, 12],
-    ['Galletitas Criollitas 3 U', 25, 1250, 880, 10],
-  ] as const;
-  inventario.rows = productos.map(([name, quantity, price, cost, minimum]) => ({
+function cargarProductosYClientes(
+  { inventario, clientes }: BloquesDelAlmacen,
+  productos: ProductoDeDemo[],
+  conocidos: string[][],
+) {
+  inventario.rows = productos.map((producto) => ({
     id: id(),
-    name,
-    quantity,
-    price,
-    cost,
-    minimum,
+    name: producto.nombre,
+    quantity: producto.stock,
+    price: producto.precio,
+    cost: producto.costo,
+    minimum: producto.minimo,
   }));
-  const producto = (indice: number) => inventario.rows[indice]?.id ?? '';
-
-  clientes.rows = [
-    ['Doña Rosa', '11 5555-0111'],
-    ['Bar La Esquina', '11 5555-0122'],
-    ['Club Social', '11 5555-0133'],
-  ].map(([name, phone]) => ({
+  clientes.rows = conocidos.map(([name, phone]) => ({
     id: id(),
     name: name ?? '',
     phone: phone ?? '',
     email: '',
     notes: '',
   }));
-  const cliente = (indice: number) => clientes.rows[indice % clientes.rows.length]?.id ?? '';
+}
 
-  const filas: Fila[] = [];
-  const vender = (indiceDeProducto: number, dias: number, cantidad: number, quien = -1) => {
-    const origen = productos[indiceDeProducto];
-    if (!origen) return;
-    filas.push({
+/** Anota las ventas de la demo: cada una apunta al producto y, si tiene, al cliente que se la llevó. */
+class Mostrador {
+  readonly filas: Fila[] = [];
+
+  constructor(
+    private readonly bloques: BloquesDelAlmacen,
+    private readonly productos: ProductoDeDemo[],
+    private readonly hoy: string,
+  ) {}
+
+  vender(indice: number, dias: number, cantidad: number, quien = -1, fiado = false) {
+    const producto = this.productos[indice];
+    if (!producto) return;
+    this.filas.push({
       id: id(),
-      product: producto(indiceDeProducto),
+      product: this.bloques.inventario.rows[indice]?.id ?? '',
       quantity: cantidad,
-      price: origen[2],
-      date: sumarDias(hoy, -dias),
-      customer: quien >= 0 ? cliente(quien) : '',
-      credit: false,
+      price: producto.precio,
+      date: sumarDias(this.hoy, -dias),
+      customer: quien >= 0 ? this.cliente(quien) : '',
+      credit: fiado,
     });
-  };
+  }
 
-  for (let dia = 0; dia < 30; dia++) vender(0, dia, 2); // la yerba vuela
-  for (let dia = 0; dia < 30; dia += 2) vender(2, dia, 1); // la gaseosa, un día por medio
-  for (let dia = 1; dia < 30; dia += 3) vender(1, dia, 1); // el aceite
-  for (const dia of [4, 11, 17, 24]) vender(4, dia, 1); // los fideos, poco
-  for (const dia of [1, 5, 9, 14, 19, 26]) vender(5, dia, 1); // la lavandina
-  for (const dia of [45, 52, 58]) vender(3, dia, 2); // el azúcar: hace más de un mes que no sale
-  // El alfajor y las galletitas salen poco, pero siempre juntos para el mismo cliente.
-  [3, 9, 15, 22].forEach((dia, indice) => {
-    vender(6, dia, 1, indice);
-    vender(7, dia, 1, indice);
-  });
-  ventas.rows = filas;
+  private cliente(indice: number) {
+    const { rows } = this.bloques.clientes;
+    return rows[indice % rows.length]?.id ?? '';
+  }
+}
+
+type Almacen = {
+  nombre: string;
+  productos: ProductoDeDemo[];
+  clientes: string[][];
+  anotarVentas: (mostrador: Mostrador) => void;
+};
+
+function armarAlmacen(
+  { nombre, productos, clientes, anotarVentas }: Almacen,
+  hoy: string,
+): Sistema {
+  const sistema = almacenVacio(nombre);
+  const bloques = bloquesDelAlmacen(sistema);
+  if (!bloques) return sistema;
+  cargarProductosYClientes(bloques, productos, clientes);
+  const mostrador = new Mostrador(bloques, productos, hoy);
+  anotarVentas(mostrador);
+  bloques.ventas.rows = mostrador.filas;
   return sistema;
 }
 
-type ProductoCargado = {
-  nombre: string;
-  stock: number;
-  precio: number;
-  costo: number;
-  minimo: number;
+const productoDeDemo = (
+  nombre: string,
+  stock: number,
+  precio: number,
+  costo: number,
+  minimo: number,
+): ProductoDeDemo => ({ nombre, stock, precio, costo, minimo });
+
+function anotarVentasDeEjemplo(mostrador: Mostrador) {
+  for (let dia = 0; dia < 30; dia++) mostrador.vender(0, dia, 2); // la yerba vuela
+  for (let dia = 0; dia < 30; dia += 2) mostrador.vender(2, dia, 1); // la gaseosa, un día por medio
+  for (let dia = 1; dia < 30; dia += 3) mostrador.vender(1, dia, 1); // el aceite
+  for (const dia of [4, 11, 17, 24]) mostrador.vender(4, dia, 1); // los fideos, poco
+  for (const dia of [1, 5, 9, 14, 19, 26]) mostrador.vender(5, dia, 1); // la lavandina
+  for (const dia of [45, 52, 58]) mostrador.vender(3, dia, 2); // el azúcar: hace más de un mes que no sale
+  // El alfajor y las galletitas salen poco, pero siempre juntos para el mismo cliente.
+  [3, 9, 15, 22].forEach((dia, indice) => {
+    mostrador.vender(6, dia, 1, indice);
+    mostrador.vender(7, dia, 1, indice);
+  });
+}
+
+// Un almacén chico con 60 días de ventas, pensado para que Sami tenga algo que decir: stock bajo, un
+// producto que se vende mucho y barato, otro caro que no se mueve, productos que se llevan juntos y
+// cosas que se venden en la zona y no están. Se cruza con los datos de ejemplo de la zona.
+const ALMACEN_DE_EJEMPLO: Almacen = {
+  nombre: 'Almacén de ejemplo',
+  productos: [
+    productoDeDemo('Yerba Playadito 1 kg', 4, 3600, 2700, 10),
+    productoDeDemo('Aceite Natura 900 ml', 0, 2600, 1900, 6),
+    productoDeDemo('Coca-Cola 2,25 L', 18, 2700, 1950, 12),
+    productoDeDemo('Azúcar Ledesma 1 kg', 25, 1500, 900, 10),
+    productoDeDemo('Fideos Matarazzo 500 g', 30, 1100, 800, 10),
+    productoDeDemo('Lavandina Ayudín 1 L', 2, 1350, 950, 6),
+    productoDeDemo('Alfajor Jorgito', 40, 800, 520, 12),
+    productoDeDemo('Galletitas Criollitas 3 U', 25, 1250, 880, 10),
+  ],
+  clientes: [
+    ['Doña Rosa', '11 5555-0111'],
+    ['Bar La Esquina', '11 5555-0122'],
+    ['Club Social', '11 5555-0133'],
+  ],
+  anotarVentas: anotarVentasDeEjemplo,
+};
+
+export const crearAlmacenDeEjemplo = (hoy: string): Sistema =>
+  armarAlmacen(ALMACEN_DE_EJEMPLO, hoy);
+
+type ProductoCargado = ProductoDeDemo & {
   /** Cada cuántos días hay una venta, cuántas unidades y desde qué día hacia atrás (0 = hoy). */
   cada: number;
   unidades: number;
@@ -379,68 +442,48 @@ const CLIENTES_CARGADOS = [
   ['Sociedad de Fomento', '11 5555-0232'],
 ];
 
-/** Un almacén de barrio completo para ver cómo se siente con muchos datos: 90 días de ventas y avisos de todos los tipos. */
-export function crearAlmacenCargado(hoy: string): Sistema {
-  const sistema = makeSystem(
-    'Almacén de barrio',
-    ['inventory', 'sales', 'clients', 'entries'],
-    false,
-  );
-  wireSystem(sistema);
-  sistema.demoAlmacen = true;
-  const [inventario, ventas, clientes] = sistema.sections[0]?.blocks ?? [];
-  if (!inventario || !ventas || !clientes) return sistema;
-
-  inventario.rows = PRODUCTOS_CARGADOS.map((origen) => ({
-    id: id(),
-    name: origen.nombre,
-    quantity: origen.stock,
-    price: origen.precio,
-    cost: origen.costo,
-    minimum: origen.minimo,
-  }));
-  clientes.rows = CLIENTES_CARGADOS.map(([name, phone]) => ({
-    id: id(),
-    name: name ?? '',
-    phone: phone ?? '',
-    email: '',
-    notes: '',
-  }));
-  const cliente = (indice: number) => clientes.rows[indice % clientes.rows.length]?.id ?? '';
-
-  const filas: Fila[] = [];
-  const vender = (indice: number, dias: number, cantidad: number, quien: number) => {
-    const origen = PRODUCTOS_CARGADOS[indice];
-    if (!origen) return;
-    filas.push({
-      id: id(),
-      product: inventario.rows[indice]?.id ?? '',
-      quantity: cantidad,
-      price: origen.precio,
-      date: sumarDias(hoy, -dias),
-      customer: quien >= 0 ? cliente(quien) : '',
-      credit: quien >= 0 && (dias + indice) % 7 === 0,
-    });
-  };
-
-  PRODUCTOS_CARGADOS.forEach((origen, indice) => {
-    for (let dia = origen.desde ?? 0; dia < 90; dia += origen.cada) {
-      // Un cliente de cada tres; el resto, venta de mostrador.
-      vender(indice, dia, origen.unidades, (dia + indice) % 3 === 0 ? dia + indice : -1);
-    }
-  });
+function anotarVentasCargadas(mostrador: Mostrador) {
+  PRODUCTOS_CARGADOS.forEach((producto, indice) => anotarLaRutina(mostrador, producto, indice));
   // Dos pares que se llevan siempre juntos para el mismo cliente: Sami propone armar un combo.
-  const juntos = (a: string, b: string, dias: number[]) => {
-    const indiceA = PRODUCTOS_CARGADOS.findIndex((producto) => producto.nombre === a);
-    const indiceB = PRODUCTOS_CARGADOS.findIndex((producto) => producto.nombre === b);
-    dias.forEach((dia, quien) => {
-      vender(indiceA, dia, 1, quien + 2);
-      vender(indiceB, dia, 1, quien + 2);
-    });
-  };
-  juntos('Alfajor Jorgito', 'Galletitas Criollitas 3 U', [3, 10, 17, 25]);
-  juntos('Salsa de tomate Arcor 340 g', 'Fideos Matarazzo 500 g', [2, 8, 15, 22]);
-
-  ventas.rows = filas;
-  return sistema;
+  venderJuntos(mostrador, 'Alfajor Jorgito', 'Galletitas Criollitas 3 U', [3, 10, 17, 25]);
+  venderJuntos(mostrador, 'Salsa de tomate Arcor 340 g', 'Fideos Matarazzo 500 g', [2, 8, 15, 22]);
 }
+
+const seLlevaFiado = (dia: number, indice: number) => (dia + indice) % 7 === 0;
+
+function anotarLaRutina(mostrador: Mostrador, producto: ProductoCargado, indice: number) {
+  for (let dia = producto.desde ?? 0; dia < 90; dia += producto.cada) {
+    // Un cliente de cada tres; el resto, venta de mostrador.
+    const quien = (dia + indice) % 3 === 0 ? dia + indice : -1;
+    mostrador.vender(
+      indice,
+      dia,
+      producto.unidades,
+      quien,
+      quien >= 0 && seLlevaFiado(dia, indice),
+    );
+  }
+}
+
+const indiceDelProducto = (nombre: string) =>
+  PRODUCTOS_CARGADOS.findIndex((producto) => producto.nombre === nombre);
+
+function venderJuntos(mostrador: Mostrador, a: string, b: string, dias: number[]) {
+  const indices = [indiceDelProducto(a), indiceDelProducto(b)];
+  dias.forEach((dia, quien) => {
+    for (const indice of indices)
+      mostrador.vender(indice, dia, 1, quien + 2, seLlevaFiado(dia, indice));
+  });
+}
+
+/** Un almacén de barrio completo para ver cómo se siente con muchos datos: 90 días de ventas y avisos de todos los tipos. */
+export const crearAlmacenCargado = (hoy: string): Sistema =>
+  armarAlmacen(
+    {
+      nombre: 'Almacén de barrio',
+      productos: PRODUCTOS_CARGADOS,
+      clientes: CLIENTES_CARGADOS,
+      anotarVentas: anotarVentasCargadas,
+    },
+    hoy,
+  );
