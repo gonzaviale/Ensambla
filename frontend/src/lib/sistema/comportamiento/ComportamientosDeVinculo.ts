@@ -3,6 +3,10 @@ import type { Campo, Sistema, Valor } from '../tipos';
 import { ComportamientoDeCampo } from './ComportamientoDeCampo';
 
 export class ComportamientoDeSeleccion extends ComportamientoDeCampo {
+  llevaOpciones(): boolean {
+    return true;
+  }
+
   interpretar(campo: Campo, crudo: unknown): Valor {
     return campo.options?.find((opcion) => normalize(opcion) === normalize(crudo));
   }

@@ -4,6 +4,14 @@ import type { Campo, Sistema, Valor } from '../tipos';
 export const LARGO_DE_VALOR = 200;
 
 export abstract class ComportamientoDeCampo {
+  llevaOpciones(): boolean {
+    return false;
+  }
+
+  admiteMinimo(): boolean {
+    return false;
+  }
+
   protected abstract valorPorDefecto(campo: Campo, indice: number): Valor;
 
   esVinculo(): boolean {
