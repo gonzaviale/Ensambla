@@ -179,7 +179,7 @@ describe('inicio: carrusel de rentabilidad', () => {
 
     await user.click(
       within(productos as HTMLElement).getByRole('button', {
-        name: /Productos que te dejaron menos/,
+        name: /Productos con menos ganancia/,
       }),
     );
     const lista = await screen.findByRole('list', { name: 'Productos involucrados' });

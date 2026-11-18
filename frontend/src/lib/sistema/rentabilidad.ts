@@ -43,12 +43,12 @@ export function diapositivasDelAviso(aviso: AvisoEconomico, negocioId: string): 
   ];
 }
 
-/** Qué son esos productos, dicho simple: los que te dejaron menos (o más) ganancia, o los que vendiste menos (o más). */
+/** Qué son esos productos, dicho simple: los que tienen menos (o más) ganancia, o los que vendiste menos (o más). */
 export function tituloDeProductos(aviso: Pick<AvisoEconomico, 'categoria' | 'tendencia'>) {
   const menos = aviso.tendencia === 'EMPEORA';
   return aviso.categoria === 'Ventas'
     ? `Productos que vendiste ${menos ? 'menos' : 'más'}`
-    : `Productos que te dejaron ${menos ? 'menos' : 'más'}`;
+    : `Productos con ${menos ? 'menos' : 'más'} ganancia`;
 }
 
 const diasConVentas = (resumen: ResumenInicio) =>
