@@ -4,7 +4,7 @@ import { MagnifyingGlassIcon } from '@phosphor-icons/react/dist/csr/MagnifyingGl
 import { CheckCircleIcon } from '@phosphor-icons/react/dist/csr/CheckCircle';
 
 const PASOS = [
-  { id: 'cuaderno', nombre: 'Lo tenés en papel' },
+  { id: 'papel', nombre: 'Lo tenés en papel' },
   { id: 'revisar', nombre: 'Revisás los datos' },
   { id: 'buscar', nombre: 'Lo encontrás' },
 ] as const;
@@ -28,7 +28,7 @@ const normalizar = (valor: string) =>
 
 // Recorrido ilustrativo con datos ficticios: no procesa fotos ni escribe en la cuenta.
 export function EntradaDatos() {
-  const [paso, setPaso] = useState<PasoId>('cuaderno');
+  const [paso, setPaso] = useState<PasoId>('papel');
   const [importe, setImporte] = useState('3200');
   const [confirmado, setConfirmado] = useState(3200);
   const [busqueda, setBusqueda] = useState('Ana');
@@ -125,7 +125,7 @@ export function EntradaDatos() {
             <p className="ens-demo-progress" aria-live="polite">
               Paso {PASOS.findIndex(({ id }) => id === paso) + 1} de {PASOS.length}
             </p>
-            {paso === 'cuaderno' && (
+            {paso === 'papel' && (
               <div className="ens-demo-start">
                 <p className="ens-example-question">
                   Encontrá el dato que necesitás <strong>sin recorrer todas las hojas</strong>

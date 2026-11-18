@@ -20,10 +20,10 @@ const tieneFilasPropias = (sistema: Sistema) =>
   );
 
 /**
- * Los cuadernos de los que se pueden mostrar números: los que ya tienen ventas o productos cargados de verdad
- * (las filas de ejemplo no cuentan). El que se tocó más recientemente va primero.
+ * Las secciones de las que se pueden mostrar números: las que ya tienen ventas o productos cargados de verdad
+ * (las filas de ejemplo no cuentan). La que se tocó más recientemente va primero.
  */
-export function cuadernosConDatos(sistemas: Sistema[]): Sistema[] {
+export function sistemasConDatos(sistemas: Sistema[]): Sistema[] {
   return sistemas.filter(tieneFilasPropias).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 

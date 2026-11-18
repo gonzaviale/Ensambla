@@ -12,6 +12,10 @@ import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.reporte.DatosDeProyecto;
 import com.ensambla.backend.domain.model.sistema.Sistema;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
+import com.ensambla.backend.domain.repository.caja.CobroCajaRepository;
+import com.ensambla.backend.domain.repository.caja.VentaCajaRepository;
+import com.ensambla.backend.support.CajaTestData;
+import com.ensambla.backend.support.CobroCajaTestData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -34,7 +38,10 @@ class DatosDeProyectoServiceTest {
     private static final CampoId TOTAL_ID = CampoId.de("f0000000-0000-4000-8000-000000000023");
 
     private final RegistroRepository registroRepository = mock(RegistroRepository.class);
-    private final DatosDeProyectoService service = new DatosDeProyectoService(registroRepository);
+    private final VentaCajaRepository ventaCajaRepository = mock(VentaCajaRepository.class);
+    private final CobroCajaRepository cobroCajaRepository = mock(CobroCajaRepository.class);
+    private final DatosDeProyectoService service = new DatosDeProyectoService(
+            registroRepository, ventaCajaRepository, cobroCajaRepository);
 
     @Test
     @DisplayName("Carga las tablas de inventario, ventas, gastos y entradas con sus campos por clave y sin las filas de ejemplo")
@@ -129,6 +136,22 @@ class DatosDeProyectoServiceTest {
 
         assertThat(datos.inventarios()).singleElement().satisfies(resultado ->
                 assertThat(resultado.registros()).containsExactly(real));
+        verifyNoInteractions(registroRepository);
+    }
+
+    @Test
+    @DisplayName("Carga ventas y cobros de todas las cajas del proyecto dentro del negocio")
+    void cargarShouldLoadScopedSalesAndCollections() {
+        Sistema sistema = CajaTestData.sistema();
+        when(ventaCajaRepository.listarPorProyecto(CajaTestData.NEGOCIO, CajaTestData.PROYECTO))
+                .thenReturn(List.of(CobroCajaTestData.venta()));
+        when(cobroCajaRepository.listarPorProyecto(CajaTestData.NEGOCIO, CajaTestData.PROYECTO))
+                .thenReturn(List.of(CobroCajaTestData.cobro()));
+
+        DatosDeProyecto datos = service.cargar(sistema);
+
+        assertThat(datos.ventasCaja()).containsExactly(CobroCajaTestData.venta());
+        assertThat(datos.cobrosCaja()).containsExactly(CobroCajaTestData.cobro());
         verifyNoInteractions(registroRepository);
     }
 

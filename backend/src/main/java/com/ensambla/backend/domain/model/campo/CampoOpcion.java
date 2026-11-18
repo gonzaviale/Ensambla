@@ -31,6 +31,11 @@ public class CampoOpcion extends Campo {
     }
 
     @Override
+    public Optional<String> errorDeValorLeido(String valor) {
+        return errorDeValorInicial(valor);
+    }
+
+    @Override
     protected Optional<String> errorDeValorInicial(String valor) {
         return errorSi(!opciones.contains(valor), "Tiene que ser una de las opciones");
     }

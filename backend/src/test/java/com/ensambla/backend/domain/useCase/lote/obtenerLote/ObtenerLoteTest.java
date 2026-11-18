@@ -4,69 +4,79 @@ import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.useCase.lote.LoteItem;
-import com.ensambla.backend.support.LoteTestData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-
 import static com.ensambla.backend.support.LoteTestData.LOTE_ID;
 import static com.ensambla.backend.support.LoteTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.LoteTestData.USUARIO_ID;
+import static com.ensambla.backend.support.LotesDePrueba.unLoteConUnaFoto;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class ObtenerLoteTest {
 
-    private static final ObtenerLoteRequest REQUEST = new ObtenerLoteRequest(USUARIO_ID, LOTE_ID);
-
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final LoteSubidaRepository loteSubidaRepository = mock(LoteSubidaRepository.class);
+    private final ObtenerLote obtenerLote = new ObtenerLote(negocioRepository, loteSubidaRepository);
 
-    private ObtenerLote obtenerLote;
+    private LoteItem lote;
+    private Throwable rechazo;
 
     @BeforeEach
-    void setUp() {
-        obtenerLote = new ObtenerLote(negocioRepository,
-                loteSubidaRepository);
-    }
-
-    @Test
-    @DisplayName("Busca el lote en el negocio de la sesión y devuelve sus fotos")
-    void executeShouldReturnLoteOfSessionNegocio() {
-        givenNegocio();
-        givenLote();
-
-        LoteItem result = obtenerLote.execute(REQUEST);
-
-        assertThat(result.id()).isEqualTo(LOTE_ID);
-        assertThat(result.fotos()).hasSize(1);
-    }
-
-    @Test
-    @DisplayName("Propaga el 404 de un lote de otro negocio")
-    void executeShouldPropagateNotFound() {
-        givenNegocio();
-        givenLoteAjeno();
-
-        assertThatThrownBy(() -> obtenerLote.execute(REQUEST)).isInstanceOf(ResourceNotFoundException.class);
-    }
-
-    // --- arrange ---
-    private void givenNegocio() {
+    void dadoUnNegocioDelUsuario() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
-    private void givenLote() {
-        when(loteSubidaRepository.obtener(NEGOCIO_ID, LOTE_ID))
-                .thenReturn(LoteTestData.lote(List.of(LoteTestData.foto())));
+    @Test
+    @DisplayName("El lote se busca en el negocio de la sesión y se devuelve con sus fotos")
+    void elLoteSeBuscaEnElNegocioDeLaSesionYSeDevuelveConSusFotos() {
+        dadoUnLoteDelNegocio();
+
+        cuandoSeObtieneElLote();
+
+        entoncesSeDevuelveElLoteConSusFotos();
     }
 
-    private void givenLoteAjeno() {
+    @Test
+    @DisplayName("Un lote de otro negocio se informa como no encontrado")
+    void unLoteDeOtroNegocioSeInformaComoNoEncontrado() {
+        dadoUnLoteDeOtroNegocio();
+
+        cuandoSeIntentaObtenerElLote();
+
+        entoncesSeRechazaPorqueElLoteNoExiste();
+    }
+
+    // --- dado ---
+    private void dadoUnLoteDelNegocio() {
+        when(loteSubidaRepository.obtener(NEGOCIO_ID, LOTE_ID)).thenReturn(unLoteConUnaFoto());
+    }
+
+    private void dadoUnLoteDeOtroNegocio() {
         when(loteSubidaRepository.obtener(NEGOCIO_ID, LOTE_ID))
                 .thenThrow(new ResourceNotFoundException("Lote no encontrado"));
+    }
+
+    // --- cuando ---
+    private void cuandoSeObtieneElLote() {
+        lote = obtenerLote.execute(new ObtenerLoteRequest(USUARIO_ID, LOTE_ID));
+    }
+
+    private void cuandoSeIntentaObtenerElLote() {
+        rechazo = catchThrowable(this::cuandoSeObtieneElLote);
+    }
+
+    // --- entonces ---
+    private void entoncesSeDevuelveElLoteConSusFotos() {
+        assertThat(lote.id()).isEqualTo(LOTE_ID);
+        assertThat(lote.fotos()).hasSize(1);
+    }
+
+    private void entoncesSeRechazaPorqueElLoteNoExiste() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class);
     }
 }

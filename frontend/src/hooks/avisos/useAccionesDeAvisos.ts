@@ -1,4 +1,5 @@
 import type { AccionDeAviso, Aviso } from '@/lib/sistema/alertas';
+import type { Sistema } from '@/lib/sistema/tipos';
 import { findBlock, id as nuevoId } from '@/lib/sistema/core';
 import { crearAlmacenCargado, crearAlmacenDeEjemplo } from '@/lib/sistema/demo';
 import { hoy } from '@/lib/sistema/formato';
@@ -12,9 +13,43 @@ import { useAbrirAvisos } from '@/hooks/avisos/useAbrirAvisos';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
+type AccionDeTipo<T extends AccionDeAviso['tipo']> = Extract<AccionDeAviso, { tipo: T }>;
+type AccionDelServidor = AccionDeTipo<'servidor'>;
+type ManejadoresDeAccion = {
+  [T in AccionDeAviso['tipo']]: (accion: AccionDeTipo<T>) => void;
+};
+
 const MAXIMO_DE_DESCARTADOS = 200;
 /** Lo que se espera a que la tabla dibuje el registro pedido antes de marcarlo. */
 const ESPERA_DE_LA_TANDA = 60;
+
+const ocultarElAvisoNuevo = () => useSistemaStore.getState().ocultarAvisoNuevo();
+
+const avisarAlUsuario = (mensaje: string) => useSistemaStore.getState().avisar(mensaje);
+
+const actualizarElSistema = (sistemaId: string, cambio: (sistema: Sistema) => void) =>
+  useSistemaStore.getState().actualizarSistema(sistemaId, cambio);
+
+function aplicarElCambioDelAviso(accion: AccionDeTipo<'aplicar'>) {
+  actualizarElSistema(accion.sistemaId, (sistema) => {
+    const fila = findBlock(sistema, accion.bloqueId)?.rows.find(
+      (item) => item.id === accion.filaId,
+    );
+    if (fila) Object.assign(fila, accion.valores);
+  });
+  avisarAlUsuario(accion.confirmacion);
+}
+
+function crearElRegistroDelAviso(accion: AccionDeTipo<'crear'>) {
+  actualizarElSistema(accion.sistemaId, (sistema) => {
+    findBlock(sistema, accion.bloqueId)?.rows.push({
+      id: nuevoId(),
+      ...accion.valores,
+      __source: 'Aviso de Sami',
+    });
+  });
+  avisarAlUsuario(accion.confirmacion);
+}
 
 // Lo que se puede hacer con un aviso: aplicarlo, abrirlo, descartarlo o apagar un grupo.
 export function useAccionesDeAvisos() {
@@ -25,7 +60,7 @@ export function useAccionesDeAvisos() {
   const navegacion = useNavegacion();
   const abrirAvisos = useAbrirAvisos();
 
-  // Abre el sistema, va a la sección del bloque y marca con el marco animado el registro (o la tabla, si no se
+  // Abre el sistema, va a la pestaña del bloque y marca con el marco animado el registro (o la tabla, si no se
   // sabe cuál). Si hace falta, abre el formulario de un registro nuevo.
   const irAlBloque = async (
     sistemaId: string,
@@ -46,13 +81,15 @@ export function useAccionesDeAvisos() {
       item.blocks.some((bloque) => bloque.id === bloqueId),
     );
     if (seccion && seccion.id !== store.sectionId) store.elegirSeccion(seccion.id);
-    // La tabla dibuja de a tandas: con la sección ya a la vista se le pide el registro y, cuando lo dibujó, se lo marca.
+    // La tabla dibuja de a tandas: con la pestaña ya a la vista se le pide el registro y, cuando lo dibujó, se lo marca.
     setTimeout(() => {
       if (filaId) pedirMostrarFila(bloqueId, filaId);
       setTimeout(
         () => {
           const bloque = document.querySelector(`[data-block="${CSS.escape(bloqueId)}"]`);
-          const fila = filaId ? bloque?.querySelector(`[data-record="${CSS.escape(filaId)}"]`) : null;
+          const fila = filaId
+            ? bloque?.querySelector(`[data-record="${CSS.escape(filaId)}"]`)
+            : null;
           const objetivo = fila ?? bloque;
           objetivo?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
           resaltar(objetivo);
@@ -63,50 +100,36 @@ export function useAccionesDeAvisos() {
     }, 120);
   };
 
+  const manejadores: ManejadoresDeAccion = {
+    aplicar: (accion) => aplicarElCambioDelAviso(accion),
+    crear: (accion) => crearElRegistroDelAviso(accion),
+    registrar: (accion) => {
+      ocultarElAvisoNuevo();
+      void irAlBloque(accion.sistemaId, accion.bloqueId, {
+        nuevoRegistro: true,
+        avisoId: accion.avisoId,
+      });
+    },
+    abrir: (accion) => {
+      ocultarElAvisoNuevo();
+      void irAlBloque(accion.sistemaId, accion.bloqueId, { filaId: accion.filaId });
+    },
+    zona: () => {
+      ocultarElAvisoNuevo();
+      void navegacion.irAZona();
+    },
+    servidor: (accion) => aplicarEnElServidor(accion),
+  };
+
+  const aplicarEnElServidor = (accion: AccionDelServidor) =>
+    aplicarEnServidor.mutate(accion.avisoId, {
+      onSuccess: () => avisarAlUsuario(accion.confirmacion),
+      onError: () => avisarAlUsuario('No pudimos aplicar el cambio. Probá de nuevo.'),
+    });
+
   const ejecutar = (accion: AccionDeAviso) => {
-    const store = useSistemaStore.getState();
-    switch (accion.tipo) {
-      case 'aplicar':
-        store.actualizarSistema(accion.sistemaId, (sistema) => {
-          const fila = findBlock(sistema, accion.bloqueId)?.rows.find(
-            (item) => item.id === accion.filaId,
-          );
-          if (fila) Object.assign(fila, accion.valores);
-        });
-        store.avisar(accion.confirmacion);
-        break;
-      case 'crear':
-        store.actualizarSistema(accion.sistemaId, (sistema) => {
-          findBlock(sistema, accion.bloqueId)?.rows.push({
-            id: nuevoId(),
-            ...accion.valores,
-            __source: 'Aviso de Sami',
-          });
-        });
-        store.avisar(accion.confirmacion);
-        break;
-      case 'registrar':
-        store.ocultarAvisoNuevo();
-        void irAlBloque(accion.sistemaId, accion.bloqueId, {
-          nuevoRegistro: true,
-          avisoId: accion.avisoId,
-        });
-        break;
-      case 'abrir':
-        store.ocultarAvisoNuevo();
-        void irAlBloque(accion.sistemaId, accion.bloqueId, { filaId: accion.filaId });
-        break;
-      case 'zona':
-        store.ocultarAvisoNuevo();
-        void navegacion.irAZona();
-        break;
-      case 'servidor':
-        aplicarEnServidor.mutate(accion.avisoId, {
-          onSuccess: () => store.avisar(accion.confirmacion),
-          onError: () => store.avisar('No pudimos aplicar el cambio. Probá de nuevo.'),
-        });
-        break;
-    }
+    const manejar = manejadores[accion.tipo] as (accion: AccionDeAviso) => void;
+    manejar(accion);
   };
 
   const descartar = (aviso: Aviso) => {
@@ -148,7 +171,7 @@ export function useAccionesDeAvisos() {
       .avisar('Cargamos un almacén con muchos datos. Sami ya lo está mirando.');
   };
 
-  /** Lleva a un registro (o a una tabla) del cuaderno y lo marca. */
+  /** Lleva a un registro (o a una tabla) de la sección y lo marca. */
   const irAlObjeto = (destino: { sistemaId: string; bloqueId: string; filaId?: string }) =>
     irAlBloque(destino.sistemaId, destino.bloqueId, { filaId: destino.filaId });
 

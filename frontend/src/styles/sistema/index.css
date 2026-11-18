@@ -14,6 +14,8 @@
 @import './inicio.css';
 /* El tablero del inicio y sus gráficos. */
 @import './tablero.css';
+/* Mis negocios: elegirlo al iniciar sesión, el selector de la barra, crearlos y eliminarlos, y compararlos. */
+@import './negocios.css';
 /* La pantalla del sistema: fondo blanco, piezas y cabeceras de color. */
 @import './sistema-editor.css';
 @import './ubicacion.css';
@@ -28,10 +30,19 @@
 @import './taller.css';
 /* Tu cuenta: la configuración del usuario, a la que lleva el avatar. */
 @import './cuenta.css';
-/* Avisos arriba del cuaderno, marco animado de «Ver» y cifras del comercio. */
-@import './cuaderno-avisos.css';
-/* Los dos íconos de herramientas del cuaderno. */
+/* Avisos arriba de la sección, marco animado de «Ver» y cifras del comercio. */
+@import './sistema-avisos.css';
+/* Los dos íconos de herramientas de la sección. */
 @import './herramientas.css';
 @import './overrides.css';
+@import './escaneo.css';
 /* Último: el criterio único de color, botones y tarjetas (ver el comentario de la hoja). */
 @import './armonia.css';
+@import './lectorInventario.css';
+@import './caja.css';
+@import './cajaMostrador.css';
+@import './cajaEscaneo.css';
+@import './cajaClientes.css';
+@import './cajaCompraCobro.css';
+@import './accesosRapidos.css';
+@import './presentacionMovil.css';

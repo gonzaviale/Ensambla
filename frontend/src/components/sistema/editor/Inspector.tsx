@@ -149,7 +149,7 @@ export function Inspector({ bloque, sistema }: { bloque: Bloque; sistema: Sistem
         <span className="input-hint">En celulares, cada bloque ocupa una fila.</span>
       </div>
       <div className="field">
-        <label htmlFor="block-section">Sección</label>
+        <label htmlFor="block-section">Pestaña</label>
         <select
           id="block-section"
           value={seccionDelBloque?.id}
@@ -175,7 +175,7 @@ export function Inspector({ bloque, sistema }: { bloque: Bloque; sistema: Sistem
         </div>
       ) : bloque.type === 'summary' ? (
         <p className="inspector-hint">
-          Estos indicadores toman los registros de todos los bloques del cuaderno y se actualizan
+          Estos indicadores toman los registros de todos los bloques de la sección y se actualizan
           cuando cargás datos.
         </p>
       ) : (

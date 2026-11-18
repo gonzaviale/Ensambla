@@ -67,8 +67,8 @@ tipo(scope): descripcion
 - Cobertura 100 % de líneas y ramas por clase (JaCoCo en `verify`)
 - **Código semántico y polimórfico (obligatorio, skill `codigo-semantico`):** métodos de ≈10 líneas que se leen como una
   frase, detalle en métodos privados con nombre de intención, sin comentarios que repitan el código, y nunca `switch` ni
-  `if/else if` por tipo o estado: herencia (clase base abstracta + subclases). Tests dado/cuando/entonces
-  (`givenX/whenX/thenX`) sin lógica ni ternarios. Si tocás un archivo, lo dejás semántico
+  `if/else if` por tipo o estado: herencia (clase base abstracta + subclases). Tests con `@DisplayName` en español en todo `@Test`
+  (frase con tildes), nombre de método en español sin tildes que se lee solo, tres bloques de una línea `dadoX/cuandoX/entoncesX`, sin lógica ni ternarios. Si tocás un archivo, lo dejás semántico
 - **Los métodos públicos no llaman a repositorios, puertos ni servicios** (van a privados con nombre de intención) y el
   dominio no conoce formatos de persistencia ni de transporte (`"servidor:"`, JSON, `Map<?, ?>`): la infraestructura
   los convierte a objetos tipados
@@ -81,7 +81,7 @@ tipo(scope): descripcion
 - Respuestas de la API validadas con zod
 - **Código semántico (obligatorio, skill `codigo-frontend`):** funciones y componentes de ≈10 líneas, hooks con nombre de
   intención, JSX sin lógica inline, sin comentarios que repitan el código y nunca `switch` ni ternarios encadenados por
-  tipo de campo (`comportamientoDe(tipo)`). Tests con `it` en español, helpers `given/when/then` compartidos en
+  tipo de campo (`comportamientoDe(tipo)`). Tests con `it` en español, helpers `dadoX/cuandoX/entoncesX` compartidos en
   `src/test/` y sin `setTimeout` ni `getElementById`
 - Las funciones públicas no llaman a `api/` ni al store directo (van a funciones con nombre de intención) y la UI recibe
   objetos tipados, sin armar claves ni parsear JSON

@@ -1,6 +1,7 @@
 import { Btn } from '@/components/sistema/Btn';
 import { GestionRenovacion } from './GestionRenovacion';
 import { Icon } from '@/components/sistema/Icon';
+import { textoDeNegocios } from '@/lib/planes/negocios';
 import type { Plan } from '@/types/planes';
 
 const FUNCIONES = [['REPORTES_FILTRADOS', 'Resúmenes en PDF']] as const;
@@ -71,8 +72,10 @@ export function TarjetaPlan({
       </p>
       <dl className="plan-limits">
         <div>
-          <dt>Cuadernos</dt>
-          <dd>{limite(plan.limiteProyectos, plan.limitesConfigurados)}</dd>
+          <dt>Negocios</dt>
+          <dd>
+            {plan.limitesConfigurados ? textoDeNegocios(plan.limiteProyectos) : 'Por definir'}
+          </dd>
         </div>
         <div>
           <dt>Registros en total</dt>

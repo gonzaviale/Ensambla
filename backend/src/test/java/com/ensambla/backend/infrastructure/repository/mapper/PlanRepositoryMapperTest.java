@@ -12,71 +12,73 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PlanRepositoryMapperTest {
 
     private final PlanRepositoryMapper planRepositoryMapper = new PlanRepositoryMapper();
-    private PlanEntity origen;
-    private Plan result;
 
     @Test
     @DisplayName("Mapea todos los campos de persistencia al dominio de plan")
-    void toDomainShouldMapEveryField() {
-        origen = planEntity();
+    void unaEntidadSeLeeComoPlanConTodosSusDatos() {
+        PlanEntity entidad = dadoUnaEntidadDePlan();
 
-        whenSeLeeLaEntidad();
+        Plan resultado = cuandoSeConvierteEnPlan(entidad);
 
-        thenToDomainMatches();
+        entoncesElPlanTieneTodosLosDatosDeLaEntidad(resultado);
     }
 
     @Test
     @DisplayName("Conserva los campos nulos en toDomain de plan")
-    void toDomainShouldPreserveNullFields() {
-        givenUnaEntidadVacia();
+    void unaEntidadVaciaSeLeeComoPlanConCamposNulos() {
+        PlanEntity entidad = dadoUnaEntidadVacia();
 
-        whenSeLeeLaEntidad();
+        Plan resultado = cuandoSeConvierteEnPlan(entidad);
 
-        thenTodosLosCamposSonNulos();
+        entoncesElPlanTieneTodosLosCamposNulos(resultado);
     }
 
-    // --- arrange ---
-    private void givenUnaEntidadVacia() {
-        origen = new PlanEntity();
+    // --- dado ---
+    private PlanEntity dadoUnaEntidadDePlan() {
+        return planEntity();
     }
 
-    // --- act ---
-    private void whenSeLeeLaEntidad() {
-        result = planRepositoryMapper.toDomain(origen);
+    private PlanEntity dadoUnaEntidadVacia() {
+        return new PlanEntity();
     }
 
-    // --- assert ---
-    private void thenTodosLosCamposSonNulos() {
-        assertThat(result.getId()).isNull();
-        assertThat(result.getCodigo()).isNull();
-        assertThat(result.getNombre()).isNull();
-        assertThat(result.getConfigurado()).isNull();
-        assertThat(result.getPrecioMensual()).isNull();
-        assertThat(result.getMoneda()).isNull();
-        assertThat(result.getLimiteProyectos()).isNull();
-        assertThat(result.getLimiteRegistros()).isNull();
-        assertThat(result.getLimitePaginasIaMensuales()).isNull();
-        assertThat(result.getLimiteObjetivosIaMensuales()).isNull();
-        assertThat(result.getFunciones()).isNull();
-        assertThat(result.getCreadoEn()).isNull();
-        assertThat(result.getActualizadoEn()).isNull();
+    // --- cuando ---
+    private Plan cuandoSeConvierteEnPlan(PlanEntity entidad) {
+        return planRepositoryMapper.toDomain(entidad);
     }
 
-    private void thenToDomainMatches() {
+    // --- entonces ---
+    private void entoncesElPlanTieneTodosLosDatosDeLaEntidad(Plan resultado) {
         Plan esperado = plan();
-        assertThat(result.getId()).isEqualTo(esperado.getId());
-        assertThat(result.getCodigo()).isEqualTo(esperado.getCodigo());
-        assertThat(result.getNombre()).isEqualTo(esperado.getNombre());
-        assertThat(result.getConfigurado()).isEqualTo(esperado.getConfigurado());
-        assertThat(result.getLimitesConfigurados()).isEqualTo(esperado.getLimitesConfigurados());
-        assertThat(result.getPrecioMensual()).isEqualTo(esperado.getPrecioMensual());
-        assertThat(result.getMoneda()).isEqualTo(esperado.getMoneda());
-        assertThat(result.getLimiteProyectos()).isEqualTo(esperado.getLimiteProyectos());
-        assertThat(result.getLimiteRegistros()).isEqualTo(esperado.getLimiteRegistros());
-        assertThat(result.getLimitePaginasIaMensuales()).isEqualTo(esperado.getLimitePaginasIaMensuales());
-        assertThat(result.getLimiteObjetivosIaMensuales()).isEqualTo(esperado.getLimiteObjetivosIaMensuales());
-        assertThat(result.getFunciones()).isEqualTo(esperado.getFunciones());
-        assertThat(result.getCreadoEn()).isEqualTo(esperado.getCreadoEn());
-        assertThat(result.getActualizadoEn()).isEqualTo(esperado.getActualizadoEn());
+        assertThat(resultado.getId()).isEqualTo(esperado.getId());
+        assertThat(resultado.getCodigo()).isEqualTo(esperado.getCodigo());
+        assertThat(resultado.getNombre()).isEqualTo(esperado.getNombre());
+        assertThat(resultado.getConfigurado()).isEqualTo(esperado.getConfigurado());
+        assertThat(resultado.getLimitesConfigurados()).isEqualTo(esperado.getLimitesConfigurados());
+        assertThat(resultado.getPrecioMensual()).isEqualTo(esperado.getPrecioMensual());
+        assertThat(resultado.getMoneda()).isEqualTo(esperado.getMoneda());
+        assertThat(resultado.getLimiteProyectos()).isEqualTo(esperado.getLimiteProyectos());
+        assertThat(resultado.getLimiteRegistros()).isEqualTo(esperado.getLimiteRegistros());
+        assertThat(resultado.getLimitePaginasIaMensuales()).isEqualTo(esperado.getLimitePaginasIaMensuales());
+        assertThat(resultado.getLimiteObjetivosIaMensuales()).isEqualTo(esperado.getLimiteObjetivosIaMensuales());
+        assertThat(resultado.getFunciones()).isEqualTo(esperado.getFunciones());
+        assertThat(resultado.getCreadoEn()).isEqualTo(esperado.getCreadoEn());
+        assertThat(resultado.getActualizadoEn()).isEqualTo(esperado.getActualizadoEn());
+    }
+
+    private void entoncesElPlanTieneTodosLosCamposNulos(Plan resultado) {
+        assertThat(resultado.getId()).isNull();
+        assertThat(resultado.getCodigo()).isNull();
+        assertThat(resultado.getNombre()).isNull();
+        assertThat(resultado.getConfigurado()).isNull();
+        assertThat(resultado.getPrecioMensual()).isNull();
+        assertThat(resultado.getMoneda()).isNull();
+        assertThat(resultado.getLimiteProyectos()).isNull();
+        assertThat(resultado.getLimiteRegistros()).isNull();
+        assertThat(resultado.getLimitePaginasIaMensuales()).isNull();
+        assertThat(resultado.getLimiteObjetivosIaMensuales()).isNull();
+        assertThat(resultado.getFunciones()).isNull();
+        assertThat(resultado.getCreadoEn()).isNull();
+        assertThat(resultado.getActualizadoEn()).isNull();
     }
 }

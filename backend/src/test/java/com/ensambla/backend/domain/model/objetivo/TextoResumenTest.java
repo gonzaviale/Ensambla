@@ -100,7 +100,7 @@ class TextoResumenTest {
 
         whenSeExplicaElMotivo(MotivoReajuste.PRODUCTO_FUERA, BigDecimal.ZERO);
 
-        thenElTextoEs("«Yerba 1 kg» ya no está en tu cuaderno o le falta el precio o el costo. "
+        thenElTextoEs("«Yerba 1 kg» ya no está en tus secciones o le falta el precio o el costo. "
                 + "Lo cambiamos por «Vender más».");
     }
 

@@ -19,8 +19,8 @@ import { Encabezado } from './piezas';
 
 const mensajeParaQuitar = (objetivo: Objetivo) =>
   objetivo.meta === null
-    ? `Dejás de seguir «${objetivo.texto}». Tus cuadernos no cambian.`
-    : `Dejás de seguir «${objetivo.texto}» (${formatoPesos(objetivo.meta)} por mes). Tus cuadernos no cambian.`;
+    ? `Dejás de seguir «${objetivo.texto}». Tus secciones no cambian.`
+    : `Dejás de seguir «${objetivo.texto}» (${formatoPesos(objetivo.meta)} por mes). Tus secciones no cambian.`;
 
 function useQuitarObjetivo() {
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);

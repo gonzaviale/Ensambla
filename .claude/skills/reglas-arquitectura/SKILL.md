@@ -45,11 +45,13 @@ Son **obligatorias**, no sugerencias: ninguna tarea se cierra rompiendo una.
    - Sin comentarios que repitan el código (solo el porqué no obvio) y con cláusulas de guarda, no `if` anidados.
    - **Nunca `switch` ni cadenas de `if/else if` por tipo o estado**: clase base abstracta + subclases, o enum con
      constructor/fábrica. En `domain/model/campo` lo verifica `ArchitectureTest`.
-   - Tests dado/cuando/entonces (`givenX/whenX/thenX`), un comportamiento por test, sin lógica ni ternarios.
+   - Tests con `@DisplayName` en español en todo `@Test`, nombre de método en español sin tildes que se lee solo, tres bloques de una línea
+     `dadoX/cuandoX/entoncesX`, un comportamiento por test, sin lógica ni ternarios.
    - Si tocás un archivo, lo dejás semántico.
    - **Los métodos públicos no llaman a repositorios, puertos ni servicios**: `execute()` y los públicos de un servicio
      solo llaman a privados con nombre de intención (`obtenerCampo(...)`, no `campoRepository.obtener(...)`). En los
-     tests, un `@Test` no usa `when/verify` ni arma datos inline: todo va a `givenX/whenX/thenX`.
+     tests, un `@Test` no nombra repositorios, mocks, `when/verify` ni builders: todo va a `dadoX/cuandoX/entoncesX` y a fábricas
+     de dominio en `support/`.
 9. **El dominio no conoce formatos de persistencia ni de transporte.** Sin prefijos de clave (`"servidor:"`), JSON ni
    `Map<?, ?>` con claves de texto en `domain`: la infraestructura los convierte a objetos tipados (interfaz sellada +
    records, polimorfismo, mapa tipo→fábrica en el mapper). Ej.: `AccionDeAviso` y `AvisoId` en el dominio; la clave

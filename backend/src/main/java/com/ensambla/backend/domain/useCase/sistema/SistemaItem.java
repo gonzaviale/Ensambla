@@ -128,19 +128,6 @@ public record SistemaItem(
             "warehouse", PlantillaSistema.DEPOSITO,
             "business", PlantillaSistema.PEDIDOS_Y_CLIENTES);
 
-    private static final Map<String, TipoCampo> TIPOS_DE_CAMPO = Map.ofEntries(
-            Map.entry("text", TipoCampo.TEXTO),
-            Map.entry("textarea", TipoCampo.TEXTO_LARGO),
-            Map.entry("number", TipoCampo.NUMERO),
-            Map.entry("currency", TipoCampo.MONEDA),
-            Map.entry("date", TipoCampo.FECHA),
-            Map.entry("select", TipoCampo.OPCION),
-            Map.entry("email", TipoCampo.EMAIL),
-            Map.entry("tel", TipoCampo.TELEFONO),
-            Map.entry("checkbox", TipoCampo.SI_NO),
-            Map.entry("relation", TipoCampo.RELACION),
-            Map.entry("time", TipoCampo.HORA));
-
     // ===== Backend -> pantalla =====
 
     public static SistemaItem de(Sistema sistema) {
@@ -212,7 +199,7 @@ public record SistemaItem(
         return new CampoItem(
                 claveDe(campo),
                 campo.getNombre(),
-                tipoDeCampo(campo.getTipo()),
+                TipoDeCampoEnPantalla.claveDe(campo.getTipo()),
                 campo.esObligatorio(),
                 esOpcion ? campo.getOpciones() : null,
                 campo.getMinimo(),
@@ -240,11 +227,6 @@ public record SistemaItem(
     /** La clave que ve la pantalla; las columnas que no la traen (creadas por Sami o por una plantilla) usan su id. */
     private static String claveDe(Campo campo) {
         return campo.getClave() == null ? campo.getId().toString() : campo.getClave();
-    }
-
-    /** La pantalla no tiene columnas calculadas: una fórmula se muestra como número. */
-    private static String tipoDeCampo(TipoCampo tipo) {
-        return tipo == TipoCampo.FORMULA ? "number" : clave(TIPOS_DE_CAMPO, tipo);
     }
 
     private static <T> String clave(Map<String, T> tabla, T valor) {
@@ -355,7 +337,7 @@ public record SistemaItem(
     private static Campo campo(NegocioId negocioId, BloqueId bloqueId, CampoId campoId, String clave, short posicion,
             CampoItem item,
                                Set<BloqueId> bloquesDelSistema, OffsetDateTime ahora) {
-        TipoCampo tipo = TIPOS_DE_CAMPO.getOrDefault(item.type(), TipoCampo.TEXTO);
+        TipoCampo tipo = TipoDeCampoEnPantalla.tipoAlGuardar(item.type());
         BloqueId destino = item.target() == null ? null : IdSistema.aId(negocioId, item.target(), BloqueId::de);
         List<String> opciones = item.options() == null ? List.of() : item.options();
         if (tipo == TipoCampo.RELACION && !bloquesDelSistema.contains(destino)) {

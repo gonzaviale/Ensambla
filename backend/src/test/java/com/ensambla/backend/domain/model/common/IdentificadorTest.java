@@ -1,6 +1,9 @@
 package com.ensambla.backend.domain.model.common;
 
 import com.ensambla.backend.domain.model.aviso.AvisoId;
+import com.ensambla.backend.domain.model.caja.VentaCajaId;
+import com.ensambla.backend.domain.model.caja.CierreCajaId;
+import com.ensambla.backend.domain.model.caja.CobroCajaId;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.inventario.MovimientoStockId;
@@ -50,160 +53,164 @@ class IdentificadorTest {
 
     private Identificador desdeUuid;
     private Identificador desdeTexto;
-    private Object uno;
-    private Object otro;
-    private Throwable error;
+    private Object nuevo;
+    private Object otroNuevo;
+    private Throwable rechazo;
     private UUID valor;
-    private BloqueId idOpcional;
+    private BloqueId opcionalPresente;
+    private BloqueId opcionalAusente;
     private List<UUID> valores;
-    private boolean sonIguales;
 
     static Stream<Class<?>> tipos() {
-        return Stream.of(AvisoId.class, BloqueId.class, CampoId.class, MovimientoStockId.class, FotoId.class,
-                LoteId.class, NegocioId.class, RenovacionId.class, PlanId.class, SuscripcionId.class,
-                PlantillaId.class, ReclamoId.class, ProyectoId.class, RecetaId.class, RegistroId.class,
-                SeccionId.class, UsuarioId.class, ZonaId.class, VinculoWhatsappId.class, CodigoVinculacionId.class, PropuestaWhatsappId.class,
-                VerificacionWhatsappId.class,
-                MensajeWhatsappId.class, ObjetivoId.class, MiniObjetivoId.class, ProgresoObjetivoId.class,
-                DecisionObjetivoId.class, ResumenSemanalId.class, ReajusteMiniObjetivoId.class,
-                RespuestaMiniObjetivoId.class);
+        return Stream.of(CobroCajaId.class, CierreCajaId.class, VentaCajaId.class, AvisoId.class, BloqueId.class,
+                CampoId.class, MovimientoStockId.class, FotoId.class, LoteId.class, NegocioId.class,
+                RenovacionId.class, PlanId.class, SuscripcionId.class, PlantillaId.class, ReclamoId.class,
+                ProyectoId.class, RecetaId.class, RegistroId.class, SeccionId.class, UsuarioId.class, ZonaId.class,
+                VinculoWhatsappId.class, CodigoVinculacionId.class, PropuestaWhatsappId.class,
+                VerificacionWhatsappId.class, MensajeWhatsappId.class, ObjetivoId.class, MiniObjetivoId.class,
+                ProgresoObjetivoId.class, DecisionObjetivoId.class, ResumenSemanalId.class,
+                ReajusteMiniObjetivoId.class, RespuestaMiniObjetivoId.class);
     }
 
     @ParameterizedTest
     @MethodSource("tipos")
     @DisplayName("Cada id envuelve su UUID, se arma desde UUID o texto y se lee como el UUID")
-    void idShouldWrapUuid(Class<?> tipo) throws Exception {
-        whenSeArmaDesdeUuidYTexto(tipo);
+    void cadaIdEnvuelveSuUuidSeArmaDesdeUuidOTextoYSeLeeComoElUuid(Class<?> tipo) throws Exception {
+        cuandoSeArmaElIdDesdeUuidYDesdeTexto(tipo);
 
-        thenElIdEnvuelveElUuid();
+        entoncesAmbosIdsEnvuelvenElUuidYSeLeenComoEl();
     }
 
     @ParameterizedTest
     @MethodSource("tipos")
     @DisplayName("Un id nuevo es distinto cada vez")
-    void nuevoShouldCreateDifferentIds(Class<?> tipo) throws Exception {
-        whenSeCreanDosIdsNuevos(tipo);
+    void unIdNuevoEsDistintoCadaVez(Class<?> tipo) throws Exception {
+        cuandoSeCreanDosIdsNuevos(tipo);
 
-        thenLosIdsSonDistintos();
+        entoncesLosIdsNuevosSonDistintos();
     }
 
     @ParameterizedTest
     @MethodSource("tipos")
     @DisplayName("Un id sin UUID no se puede armar")
-    void idShouldRejectNull(Class<?> tipo) {
-        whenSeArmaSinUuid(tipo);
+    void unIdSinUuidNoSePuedeArmar(Class<?> tipo) {
+        cuandoSeIntentaArmarElIdSinUuid(tipo);
 
-        thenSeRechazaPorObligatorio();
+        entoncesSeRechazaPorqueElUuidEsObligatorio();
     }
 
     @Test
     @DisplayName("Dos ids de tipo distinto con el mismo UUID no son iguales")
-    void idsOfDifferentTypesShouldNotBeEqual() {
-        whenSeComparanIdsDeDistintoTipo();
+    void dosIdsDeTipoDistintoConElMismoUuidNoSonIguales() {
+        cuandoSeArmanUnBloqueIdYUnCampoIdConElMismoUuid();
 
-        thenNoSonIguales();
+        entoncesLosIdsDeDistintoTipoNoSonIguales();
     }
 
     @Test
     @DisplayName("El valor de un id que falta es nulo")
-    void valorDeShouldBeNullForMissingId() {
-        whenSeLeElValorDe(null);
+    void elValorDeUnIdQueFaltaEsNulo() {
+        cuandoSePideElValorDeUnIdAusente();
 
-        thenElValorEs(null);
+        entoncesElValorEsNulo();
     }
 
     @Test
-    @DisplayName("El valor de un id idOpcional es su UUID")
-    void valorDeShouldBeTheUuidForAPresentId() {
-        whenSeLeElValorDe(BloqueId.de(UUID_FIJO));
+    @DisplayName("El valor de un id presente es su UUID")
+    void elValorDeUnIdPresenteEsSuUuid() {
+        cuandoSePideElValorDeUnIdPresente();
 
-        thenElValorEs(UUID_FIJO);
+        entoncesElValorEsElUuid();
     }
 
     @Test
-    @DisplayName("Un UUID que puede faltar da un id si está")
-    void opcionalShouldWrapAPresentUuid() {
-        whenSeArmaOpcional(UUID_FIJO);
+    @DisplayName("Un UUID que puede faltar da un id sólo si está")
+    void unUuidQuePuedeFaltarDaUnIdSoloSiEsta() {
+        cuandoSeEnvuelvenUnUuidPresenteYUnoAusente();
 
-        thenElIdOpcionalEs(BloqueId.de(UUID_FIJO));
-    }
-
-    @Test
-    @DisplayName("Un UUID que puede faltar no da id si falta")
-    void opcionalShouldBeNullForAMissingUuid() {
-        whenSeArmaOpcional(null);
-
-        thenElIdOpcionalEs(null);
+        entoncesSoloElPresenteDaUnId();
     }
 
     @Test
     @DisplayName("Los UUID de varios ids conservan el orden")
-    void valoresShouldKeepOrder() {
-        whenSeLeenLosValores(List.of(BloqueId.de(OTRO_UUID), BloqueId.de(UUID_FIJO)));
+    void losUuidDeVariosIdsConservanElOrden() {
+        cuandoSePidenLosValoresDeDosIds();
 
-        thenLosValoresSon(OTRO_UUID, UUID_FIJO);
+        entoncesLosValoresConservanElOrden();
     }
 
-    // --- act ---
-    private void whenSeArmaDesdeUuidYTexto(Class<?> tipo) throws Exception {
+    // --- cuando ---
+    private void cuandoSeArmaElIdDesdeUuidYDesdeTexto(Class<?> tipo) throws Exception {
         desdeUuid = (Identificador) tipo.getMethod("de", UUID.class).invoke(null, UUID_FIJO);
         desdeTexto = (Identificador) tipo.getMethod("de", String.class).invoke(null, UUID_FIJO.toString());
     }
 
-    private void whenSeCreanDosIdsNuevos(Class<?> tipo) throws Exception {
-        uno = tipo.getMethod("nuevo").invoke(null);
-        otro = tipo.getMethod("nuevo").invoke(null);
+    private void cuandoSeCreanDosIdsNuevos(Class<?> tipo) throws Exception {
+        nuevo = tipo.getMethod("nuevo").invoke(null);
+        otroNuevo = tipo.getMethod("nuevo").invoke(null);
     }
 
-    private void whenSeArmaSinUuid(Class<?> tipo) {
-        error = catchThrowable(() -> tipo.getMethod("de", UUID.class).invoke(null, (Object) null));
+    private void cuandoSeIntentaArmarElIdSinUuid(Class<?> tipo) {
+        rechazo = catchThrowable(() -> tipo.getMethod("de", UUID.class).invoke(null, (Object) null));
     }
 
-    private void whenSeComparanIdsDeDistintoTipo() {
-        sonIguales = BloqueId.de(UUID_FIJO).equals(CampoId.de(UUID_FIJO));
+    private void cuandoSeArmanUnBloqueIdYUnCampoIdConElMismoUuid() {
+        desdeUuid = BloqueId.de(UUID_FIJO);
+        desdeTexto = CampoId.de(UUID_FIJO);
     }
 
-    private void whenSeLeElValorDe(Identificador id) {
-        valor = Identificador.valorDe(id);
+    private void cuandoSePideElValorDeUnIdAusente() {
+        valor = Identificador.valorDe(null);
     }
 
-    private void whenSeArmaOpcional(UUID uuid) {
-        idOpcional = Identificador.opcional(uuid, BloqueId::de);
+    private void cuandoSePideElValorDeUnIdPresente() {
+        valor = Identificador.valorDe(BloqueId.de(UUID_FIJO));
     }
 
-    private void whenSeLeenLosValores(List<BloqueId> ids) {
-        valores = Identificador.valores(ids);
+    private void cuandoSeEnvuelvenUnUuidPresenteYUnoAusente() {
+        opcionalPresente = Identificador.opcional(UUID_FIJO, BloqueId::de);
+        opcionalAusente = Identificador.opcional(null, BloqueId::de);
     }
 
-    // --- assert ---
-    private void thenElIdEnvuelveElUuid() {
+    private void cuandoSePidenLosValoresDeDosIds() {
+        valores = Identificador.valores(List.of(BloqueId.de(OTRO_UUID), BloqueId.de(UUID_FIJO)));
+    }
+
+    // --- entonces ---
+    private void entoncesAmbosIdsEnvuelvenElUuidYSeLeenComoEl() {
         assertThat(desdeUuid.valor()).isEqualTo(UUID_FIJO);
         assertThat(desdeTexto).isEqualTo(desdeUuid);
         assertThat(desdeUuid).hasToString(UUID_FIJO.toString());
     }
 
-    private void thenLosIdsSonDistintos() {
-        assertThat(uno).isNotEqualTo(otro);
+    private void entoncesLosIdsNuevosSonDistintos() {
+        assertThat(nuevo).isNotEqualTo(otroNuevo);
     }
 
-    private void thenSeRechazaPorObligatorio() {
-        assertThat(error).isInstanceOf(InvocationTargetException.class)
+    private void entoncesSeRechazaPorqueElUuidEsObligatorio() {
+        assertThat(rechazo)
+                .isInstanceOf(InvocationTargetException.class)
                 .cause().isInstanceOf(NullPointerException.class).hasMessageContaining("obligatorio");
     }
 
-    private void thenNoSonIguales() {
-        assertThat(sonIguales).isFalse();
+    private void entoncesLosIdsDeDistintoTipoNoSonIguales() {
+        assertThat((Object) desdeUuid).isNotEqualTo(desdeTexto);
     }
 
-    private void thenElValorEs(UUID esperado) {
-        assertThat(valor).isEqualTo(esperado);
+    private void entoncesElValorEsNulo() {
+        assertThat(valor).isNull();
     }
 
-    private void thenElIdOpcionalEs(BloqueId esperado) {
-        assertThat(idOpcional).isEqualTo(esperado);
+    private void entoncesElValorEsElUuid() {
+        assertThat(valor).isEqualTo(UUID_FIJO);
     }
 
-    private void thenLosValoresSon(UUID... esperados) {
-        assertThat(valores).containsExactly(esperados);
+    private void entoncesSoloElPresenteDaUnId() {
+        assertThat(opcionalPresente).isEqualTo(BloqueId.de(UUID_FIJO));
+        assertThat(opcionalAusente).isNull();
+    }
+
+    private void entoncesLosValoresConservanElOrden() {
+        assertThat(valores).containsExactly(OTRO_UUID, UUID_FIJO);
     }
 }

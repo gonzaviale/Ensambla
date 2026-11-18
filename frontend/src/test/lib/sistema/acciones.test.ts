@@ -14,7 +14,7 @@ import type { Fila, Sistema } from '@/lib/sistema/tipos';
 import {
   cuandoSeCarganTresVentasPorNombre,
   cuandoSeSumanLosPendientes,
-  dadoUnCuadernoConUnaVelaDeEjemploYUnaClientaReal,
+  dadoUnCuadernoConVelasDeEjemploYUnaClientaReal,
   entoncesLasVentasQuedanVinculadasALosRegistrosNuevos,
   entoncesLosFaltantesQuedanPendientesUnaSolaVez,
   entoncesNoSeCreoNingunRegistroNuevo,
@@ -58,7 +58,7 @@ describe('las acciones de Sami sobre el taller', () => {
       expect(JSON.stringify(resumen)).not.toContain('Yerba');
     });
 
-    it('lleva la distribución elegida y la sección de cada pieza', () => {
+    it('lleva la distribución elegida y la pestaña de cada pieza', () => {
       sistema.layout = 'single';
 
       const resumen = resumirSistema(sistema);
@@ -163,7 +163,7 @@ describe('las acciones de Sami sobre el taller', () => {
       expect(pieza('summary').fields).toEqual([]);
     });
 
-    it('no puede sumar nada si no hay secciones', () => {
+    it('no puede sumar nada si no hay pestañas', () => {
       sistema.sections = [];
 
       const resultado = aplicarAcciones(sistema, [accion('agregar_pieza', { tipo: 'expenses' })]);
@@ -352,7 +352,7 @@ describe('las acciones de Sami sobre el taller', () => {
   });
 
   describe('separar_en_seccion y cambiar_distribucion', () => {
-    it('crea la sección y pasa la pieza', () => {
+    it('crea la pestaña y pasa la pieza', () => {
       const resultado = aplicarAcciones(sistema, [
         accion('separar_en_seccion', { pieza: 'clients', seccion: 'Mis clientes' }),
       ]);
@@ -362,7 +362,7 @@ describe('las acciones de Sami sobre el taller', () => {
       expect(seccion?.blocks.map((bloque) => bloque.type)).toEqual(['clients']);
     });
 
-    it('reutiliza una sección que ya existe sin importar mayúsculas', () => {
+    it('reutiliza una pestaña que ya existe sin importar mayúsculas', () => {
       aplicarAcciones(sistema, [
         accion('separar_en_seccion', { pieza: 'clients', seccion: 'Aparte' }),
         accion('separar_en_seccion', { pieza: 'sales', seccion: 'aparte' }),
@@ -374,7 +374,7 @@ describe('las acciones de Sami sobre el taller', () => {
       expect(sistema.sections.find((item) => item.name === 'Aparte')?.blocks).toHaveLength(2);
     });
 
-    it('omite una pieza inexistente o una sección sin nombre', () => {
+    it('omite una pieza inexistente o una pestaña sin nombre', () => {
       const resultado = aplicarAcciones(sistema, [
         accion('separar_en_seccion', { pieza: 'nada', seccion: 'X' }),
         accion('separar_en_seccion', { pieza: 'clients', seccion: ' ' }),
@@ -854,7 +854,7 @@ describe('Sami ensambla el sistema desde cero', () => {
 
       expect(resultado.aplicadas).toEqual([
         'Sumé turnos.',
-        'Sumé encargos en la sección Agenda.',
+        'Sumé encargos en la pestaña Agenda.',
         'Sumé clientes.',
       ]);
       expect(resultado.omitidas).toEqual([
@@ -933,7 +933,7 @@ describe('Sami ensambla el sistema desde cero', () => {
   });
 
   describe('cargar_registros', () => {
-    it('entiende las fechas como se anotan en un cuaderno y descarta las que no existen', () => {
+    it('entiende las fechas como se anotan en una sección y descarta las que no existen', () => {
       aplicarAcciones(sistema, [accion('agregar_pieza', { tipo: 'expenses', ejemplos: [] })]);
       const anio = new Date().getFullYear();
 
@@ -1035,32 +1035,37 @@ describe('Sami ensambla el sistema desde cero', () => {
       expect(mismoSistema(sistema, antes)).toBe(true);
     });
 
-    describe('con vínculos por nombre', () => {
-      let rosa: Fila;
-      let resultado: ReturnType<typeof aplicarAcciones>;
+    it('una venta se vincula con la clienta real que ya está cargada', () => {
+      dadoUnCuadernoConVelasDeEjemploYUnaClientaReal();
 
-      beforeEach(() => {
-        rosa = dadoUnCuadernoConUnaVelaDeEjemploYUnaClientaReal(sistema);
-        resultado = cuandoSeCarganTresVentasPorNombre(sistema);
-      });
+      cuandoSeCarganTresVentasPorNombre();
 
-      it('vincula solo con el registro real que ya está', () => {
-        entoncesSoloRosaQuedaVinculada(sistema, rosa);
-      });
+      entoncesSoloRosaQuedaVinculada();
+    });
 
-      it('no crea los registros que faltan', () => {
-        entoncesNoSeCreoNingunRegistroNuevo(sistema);
-      });
+    it('un nombre que no existe no crea ningún registro nuevo', () => {
+      dadoUnCuadernoConVelasDeEjemploYUnaClientaReal();
 
-      it('deja los faltantes pendientes, una sola vez cada uno', () => {
-        entoncesLosFaltantesQuedanPendientesUnaSolaVez(resultado);
-      });
+      cuandoSeCarganTresVentasPorNombre();
 
-      it('al sumar los pendientes vincula las ventas con los registros nuevos', () => {
-        cuandoSeSumanLosPendientes(sistema, resultado);
+      entoncesNoSeCreoNingunRegistroNuevo();
+    });
 
-        entoncesLasVentasQuedanVinculadasALosRegistrosNuevos(sistema, rosa);
-      });
+    it('los nombres que faltan quedan pendientes una sola vez cada uno', () => {
+      dadoUnCuadernoConVelasDeEjemploYUnaClientaReal();
+
+      cuandoSeCarganTresVentasPorNombre();
+
+      entoncesLosFaltantesQuedanPendientesUnaSolaVez();
+    });
+
+    it('al sumar los pendientes las ventas quedan vinculadas a los registros nuevos', () => {
+      dadoUnCuadernoConVelasDeEjemploYUnaClientaReal();
+      cuandoSeCarganTresVentasPorNombre();
+
+      cuandoSeSumanLosPendientes();
+
+      entoncesLasVentasQuedanVinculadasALosRegistrosNuevos();
     });
 
     it('sumar los pendientes usa un registro que se cargó mientras tanto e ignora las filas que ya no están', () => {
@@ -1845,7 +1850,7 @@ describe('sistemaParaCrear: el sistema que sale del taller', () => {
 
     const sistema = sistemaParaCrear(borrador);
 
-    expect(sistema.name).toBe('Mi cuaderno');
+    expect(sistema.name).toBe('Mi sección');
     expect(sistema.id).toBe(borrador.id);
     const filas = allBlocks(sistema).flatMap((bloque) => bloque.rows);
     expect(filas.some((fila) => fila.__example)).toBe(false);

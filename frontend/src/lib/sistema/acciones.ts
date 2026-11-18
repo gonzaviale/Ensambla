@@ -312,7 +312,7 @@ function aplicarUna(
       const nombre = texto(args.nombre).slice(0, 100);
       if (!nombre) return 'Falta el nombre.';
       sistema.name = nombre;
-      return hecho(`Llamé al cuaderno ${nombre}.`);
+      return hecho(`Llamé a la sección ${nombre}.`);
     }
     case 'agregar_campo':
       return agregarCampo(sistema, args, hecho);
@@ -334,7 +334,7 @@ function aplicarUna(
       if (!pieza || !nombre) return 'No pude separar esa pieza.';
       const destino = seccionLlamada(sistema, nombre);
       return moveBlock(sistema, pieza.id, destino.id)
-        ? hecho(`Pasé ${pieza.name.toLowerCase()} a la sección ${destino.name}.`)
+        ? hecho(`Pasé ${pieza.name.toLowerCase()} a la pestaña ${destino.name}.`)
         : 'No se pudo mover esa pieza.';
     }
     case 'cambiar_distribucion': {
@@ -348,7 +348,7 @@ function aplicarUna(
   }
 }
 
-/** La sección con ese nombre (sin importar mayúsculas ni tildes); si no existe, la crea al final. */
+/** La pestaña con ese nombre (sin importar mayúsculas ni tildes); si no existe, la crea al final. */
 function seccionLlamada(sistema: Sistema, nombre: string): Seccion {
   let seccion = sistema.sections.find((item) => normalize(item.name) === normalize(nombre));
   if (!seccion) {
@@ -364,7 +364,7 @@ const campoNombrado = (pieza: Bloque, etiqueta: string) =>
 
 /**
  * Si el valor guardado en la fila es el que Sami nombra. Un vínculo guarda el id de la fila vinculada: se compara
- * con el nombre de esa fila. El valor pedido se pasa antes al tipo del dato (`0,5`, «sí», una fecha de cuaderno).
+ * con el nombre de esa fila. El valor pedido se pasa antes al tipo del dato (`0,5`, «sí», una fecha de sección).
  */
 function coincide(sistema: Sistema, campo: Campo, guardado: Valor, pedido: unknown): boolean {
   if (guardado === undefined || guardado === null || guardado === '') return false;
@@ -496,7 +496,7 @@ function agregarPieza(
   seccion.blocks.push(pieza);
   return hecho(
     nombreDeSeccion
-      ? `Sumé ${nombre.toLowerCase()} en la sección ${seccion.name}.`
+      ? `Sumé ${nombre.toLowerCase()} en la pestaña ${seccion.name}.`
       : `Sumé ${nombre.toLowerCase()}.`,
   );
 }
@@ -959,7 +959,7 @@ export function ajusteParaGuardar(original: Sistema, borrador: Sistema): Sistema
  */
 export function sistemaParaCrear(borrador: Sistema): Sistema {
   const sistema = clone(borrador);
-  sistema.name = sistema.name.trim() || 'Mi cuaderno';
+  sistema.name = sistema.name.trim() || 'Mi sección';
   descartarEjemplos(sistema, new Set());
   return sistema;
 }

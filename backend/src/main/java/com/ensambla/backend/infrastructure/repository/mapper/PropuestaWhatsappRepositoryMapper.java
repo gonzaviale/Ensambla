@@ -31,8 +31,7 @@ public class PropuestaWhatsappRepositoryMapper {
                 .estado(entity.getEstado())
                 .bloqueId(Identificador.opcional(entity.getBloqueId(), BloqueId::de))
                 .texto(entity.getTexto())
-                .lectura(entity.getLectura() == null ? null
-                        : objectMapper.readValue(entity.getLectura(), LecturaCuaderno.class))
+                .lectura(lecturaDe(entity.getLectura()))
                 .opciones(objectMapper.readValue(entity.getOpciones(), new TypeReference<List<BloqueId>>() { }))
                 .filas(objectMapper.readValue(entity.getFilas(), new TypeReference<List<FilaPropuesta>>() { }))
                 .creadoEn(entity.getCreadoEn())
@@ -50,12 +49,26 @@ public class PropuestaWhatsappRepositoryMapper {
                 .estado(propuesta.getEstado())
                 .bloqueId(Identificador.valorDe(propuesta.getBloqueId()))
                 .texto(propuesta.getTexto())
-                .lectura(propuesta.getLectura() == null ? null : objectMapper.writeValueAsString(propuesta.getLectura()))
+                .lectura(lecturaComoJson(propuesta.getLectura()))
                 .opciones(objectMapper.writeValueAsString(propuesta.getOpciones()))
                 .filas(objectMapper.writeValueAsString(propuesta.getFilas()))
                 .creadoEn(propuesta.getCreadoEn())
                 .expiraEn(propuesta.getExpiraEn())
                 .cerradoEn(propuesta.getCerradoEn())
                 .build();
+    }
+
+    private LecturaCuaderno lecturaDe(String json) {
+        if (json == null) {
+            return null;
+        }
+        return objectMapper.readValue(json, LecturaCuaderno.class);
+    }
+
+    private String lecturaComoJson(LecturaCuaderno lectura) {
+        if (lectura == null) {
+            return null;
+        }
+        return objectMapper.writeValueAsString(lectura);
     }
 }

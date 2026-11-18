@@ -41,11 +41,7 @@ public class ResumenSemanalRepositoryMapper {
                 source.getSemanaInicio(),
                 source.getResultado(),
                 source.getAvance(),
-                new ConteoDecisiones(
-                        source.getDecisionesAplicadas(),
-                        source.getDecisionesDescartadas(),
-                        source.getDecisionesAceptadas(),
-                        source.getDecisionesIgnoradas()),
+                conteoDe(source),
                 source.getMinis().stream().map(ResumenSemanalRepositoryMapper::cierreDe).toList(),
                 source.getQueFunciono(),
                 source.isTextoConIa(),
@@ -101,6 +97,14 @@ public class ResumenSemanalRepositoryMapper {
                 .metaNueva(source.metaNueva())
                 .creadoEn(source.creadoEn())
                 .build();
+    }
+
+    private static ConteoDecisiones conteoDe(ResumenSemanalEntity source) {
+        return new ConteoDecisiones(
+                source.getDecisionesAplicadas(),
+                source.getDecisionesDescartadas(),
+                source.getDecisionesAceptadas(),
+                source.getDecisionesIgnoradas());
     }
 
     /** El valor va como texto para no perder decimales al pasar por JSON. */

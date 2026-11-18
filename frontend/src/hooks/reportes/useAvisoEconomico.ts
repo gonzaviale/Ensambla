@@ -3,7 +3,7 @@ import { avisoEconomicoQuery } from '@/hooks/reportes/queries';
 import type { AvisoEconomico } from '@/types/avisoEconomico';
 
 /**
- * El aviso económico del cuaderno para el inicio: esta semana frente a la anterior. Mientras carga, si falla o si
+ * El aviso económico de la sección para el inicio: esta semana frente a la anterior. Mientras carga, si falla o si
  * todavía no hay una semana anterior para comparar, no hay aviso y el inicio no muestra la tarjeta.
  */
 export function useAvisoEconomico(sistemaId: string): { aviso: AvisoEconomico | undefined } {

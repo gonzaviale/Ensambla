@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.useCase.objetivo.cerrarSemanasObjetivos.CerrarSemanasObjetivos;
 import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;
@@ -24,6 +25,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.csrf.DefaultCsrfToken;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
+import org.springframework.test.context.bean.override.convention.TestBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -31,6 +33,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -50,6 +55,15 @@ class CierreSemanalObjetivosPostgresIntegrationTest extends PostgresRepositoryTe
     private static final String OBJETIVOS = "/api/objetivos";
     private static final String MANUAL_RESPONDIDO = "Pedile a 3 clientes que te recomienden";
     private static final String MANUAL_SIN_RESPUESTA = "Poné un cartel en la vidriera";
+
+    @TestBean(methodName = "relojAntesDelCierre")
+    private Clock clock;
+
+    private static Clock relojAntesDelCierre() {
+        // El domingo desde las 23:30 la semana actual ya es cerrable; este escenario necesita una semana abierta.
+        return Clock.fixed(LocalDate.now(ZonaNegocio.ZONA).atTime(LocalTime.NOON)
+                .atZone(ZonaNegocio.ZONA).toInstant(), ZonaNegocio.ZONA);
+    }
 
     @Autowired
     private WebApplicationContext context;
@@ -102,7 +116,7 @@ class CierreSemanalObjetivosPostgresIntegrationTest extends PostgresRepositoryTe
     }
 
     @Test
-    @DisplayName("Un objetivo creado esta semana no tiene nada que cerrar todavía")
+    @DisplayName("Antes del horario de cierre, un objetivo de esta semana no tiene nada que cerrar")
     void cerrarShouldNotCloseTheCurrentWeek() throws Exception {
         givenUnObjetivoDeEstaSemana();
 

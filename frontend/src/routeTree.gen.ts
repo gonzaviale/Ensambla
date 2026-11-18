@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as PublicaRouteImport } from './routes/_publica'
+import { Route as ElegirNegocioRouteImport } from './routes/elegir-negocio'
 import { Route as AppAvisosRouteImport } from './routes/_app/avisos'
+import { Route as AppCajaRouteImport } from './routes/_app/caja'
 import { Route as AppCuadernosRouteImport } from './routes/_app/cuadernos'
 import { Route as AppCuentaRouteImport } from './routes/_app/cuenta'
 import { Route as AppDondeAbrirRouteImport } from './routes/_app/donde-abrir'
@@ -26,6 +28,7 @@ import { Route as AppZonaRouteImport } from './routes/_app/zona'
 import { Route as PublicaIndexRouteImport } from './routes/_publica/index'
 import { Route as PublicaLoginRouteImport } from './routes/_publica/login'
 import { Route as PublicaRegistroRouteImport } from './routes/_publica/registro'
+import { Route as AppNegociosCompararRouteImport } from './routes/_app/negocios.comparar'
 import { Route as AppObjetivosIndexRouteImport } from './routes/_app/objetivos/index'
 import { Route as AppObjetivosObjetivoIdRouteImport } from './routes/_app/objetivos/$objetivoId'
 import { Route as AppSistemasSistemaIdRouteImport } from './routes/_app/sistemas.$sistemaId'
@@ -40,9 +43,19 @@ const PublicaRoute = PublicaRouteImport.update({
   id: '/_publica',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ElegirNegocioRoute = ElegirNegocioRouteImport.update({
+  id: '/elegir-negocio',
+  path: '/elegir-negocio',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppAvisosRoute = AppAvisosRouteImport.update({
   id: '/avisos',
   path: '/avisos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCajaRoute = AppCajaRouteImport.update({
+  id: '/caja',
+  path: '/caja',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCuadernosRoute = AppCuadernosRouteImport.update({
@@ -115,6 +128,11 @@ const PublicaRegistroRoute = PublicaRegistroRouteImport.update({
   path: '/registro',
   getParentRoute: () => PublicaRoute,
 } as any)
+const AppNegociosCompararRoute = AppNegociosCompararRouteImport.update({
+  id: '/negocios/comparar',
+  path: '/negocios/comparar',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppObjetivosIndexRoute = AppObjetivosIndexRouteImport.update({
   id: '/objetivos/',
   path: '/objetivos/',
@@ -143,7 +161,9 @@ const AppZonaDondeAbrirRoute = AppZonaDondeAbrirRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicaIndexRoute
+  '/elegir-negocio': typeof ElegirNegocioRoute
   '/avisos': typeof AppAvisosRoute
+  '/caja': typeof AppCajaRoute
   '/cuadernos': typeof AppCuadernosRoute
   '/cuenta': typeof AppCuentaRoute
   '/donde-abrir': typeof AppDondeAbrirRoute
@@ -157,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/zona': typeof AppZonaRouteWithChildren
   '/login': typeof PublicaLoginRoute
   '/registro': typeof PublicaRegistroRoute
+  '/negocios/comparar': typeof AppNegociosCompararRoute
   '/objetivos/$objetivoId': typeof AppObjetivosObjetivoIdRoute
   '/sistemas/$sistemaId': typeof AppSistemasSistemaIdRoute
   '/zona/donde-abrir': typeof AppZonaDondeAbrirRoute
@@ -165,7 +186,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof PublicaIndexRoute
+  '/elegir-negocio': typeof ElegirNegocioRoute
   '/avisos': typeof AppAvisosRoute
+  '/caja': typeof AppCajaRoute
   '/cuadernos': typeof AppCuadernosRoute
   '/cuenta': typeof AppCuentaRoute
   '/donde-abrir': typeof AppDondeAbrirRoute
@@ -178,6 +201,7 @@ export interface FileRoutesByTo {
   '/ubicacion': typeof AppUbicacionRoute
   '/login': typeof PublicaLoginRoute
   '/registro': typeof PublicaRegistroRoute
+  '/negocios/comparar': typeof AppNegociosCompararRoute
   '/objetivos/$objetivoId': typeof AppObjetivosObjetivoIdRoute
   '/sistemas/$sistemaId': typeof AppSistemasSistemaIdRoute
   '/zona/donde-abrir': typeof AppZonaDondeAbrirRoute
@@ -188,7 +212,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/_publica': typeof PublicaRouteWithChildren
+  '/elegir-negocio': typeof ElegirNegocioRoute
   '/_app/avisos': typeof AppAvisosRoute
+  '/_app/caja': typeof AppCajaRoute
   '/_app/cuadernos': typeof AppCuadernosRoute
   '/_app/cuenta': typeof AppCuentaRoute
   '/_app/donde-abrir': typeof AppDondeAbrirRoute
@@ -203,6 +229,7 @@ export interface FileRoutesById {
   '/_publica/login': typeof PublicaLoginRoute
   '/_publica/registro': typeof PublicaRegistroRoute
   '/_publica/': typeof PublicaIndexRoute
+  '/_app/negocios/comparar': typeof AppNegociosCompararRoute
   '/_app/objetivos/$objetivoId': typeof AppObjetivosObjetivoIdRoute
   '/_app/sistemas/$sistemaId': typeof AppSistemasSistemaIdRoute
   '/_app/zona/donde-abrir': typeof AppZonaDondeAbrirRoute
@@ -213,7 +240,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/elegir-negocio'
     | '/avisos'
+    | '/caja'
     | '/cuadernos'
     | '/cuenta'
     | '/donde-abrir'
@@ -227,6 +256,7 @@ export interface FileRouteTypes {
     | '/zona'
     | '/login'
     | '/registro'
+    | '/negocios/comparar'
     | '/objetivos/$objetivoId'
     | '/sistemas/$sistemaId'
     | '/zona/donde-abrir'
@@ -235,7 +265,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/elegir-negocio'
     | '/avisos'
+    | '/caja'
     | '/cuadernos'
     | '/cuenta'
     | '/donde-abrir'
@@ -248,6 +280,7 @@ export interface FileRouteTypes {
     | '/ubicacion'
     | '/login'
     | '/registro'
+    | '/negocios/comparar'
     | '/objetivos/$objetivoId'
     | '/sistemas/$sistemaId'
     | '/zona/donde-abrir'
@@ -257,7 +290,9 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/_publica'
+    | '/elegir-negocio'
     | '/_app/avisos'
+    | '/_app/caja'
     | '/_app/cuadernos'
     | '/_app/cuenta'
     | '/_app/donde-abrir'
@@ -272,6 +307,7 @@ export interface FileRouteTypes {
     | '/_publica/login'
     | '/_publica/registro'
     | '/_publica/'
+    | '/_app/negocios/comparar'
     | '/_app/objetivos/$objetivoId'
     | '/_app/sistemas/$sistemaId'
     | '/_app/zona/donde-abrir'
@@ -282,6 +318,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   PublicaRoute: typeof PublicaRouteWithChildren
+  ElegirNegocioRoute: typeof ElegirNegocioRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -300,11 +337,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/elegir-negocio': {
+      id: '/elegir-negocio'
+      path: '/elegir-negocio'
+      fullPath: '/elegir-negocio'
+      preLoaderRoute: typeof ElegirNegocioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/avisos': {
       id: '/_app/avisos'
       path: '/avisos'
       fullPath: '/avisos'
       preLoaderRoute: typeof AppAvisosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/caja': {
+      id: '/_app/caja'
+      path: '/caja'
+      fullPath: '/caja'
+      preLoaderRoute: typeof AppCajaRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/cuadernos': {
@@ -405,6 +456,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicaRegistroRouteImport
       parentRoute: typeof PublicaRoute
     }
+    '/_app/negocios/comparar': {
+      id: '/_app/negocios/comparar'
+      path: '/negocios/comparar'
+      fullPath: '/negocios/comparar'
+      preLoaderRoute: typeof AppNegociosCompararRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/objetivos/': {
       id: '/_app/objetivos/'
       path: '/objetivos'
@@ -458,6 +516,7 @@ const AppZonaRouteWithChildren =
 
 interface AppRouteChildren {
   AppAvisosRoute: typeof AppAvisosRoute
+  AppCajaRoute: typeof AppCajaRoute
   AppCuadernosRoute: typeof AppCuadernosRoute
   AppCuentaRoute: typeof AppCuentaRoute
   AppDondeAbrirRoute: typeof AppDondeAbrirRoute
@@ -469,6 +528,7 @@ interface AppRouteChildren {
   AppTallerRoute: typeof AppTallerRoute
   AppUbicacionRoute: typeof AppUbicacionRoute
   AppZonaRoute: typeof AppZonaRouteWithChildren
+  AppNegociosCompararRoute: typeof AppNegociosCompararRoute
   AppObjetivosObjetivoIdRoute: typeof AppObjetivosObjetivoIdRoute
   AppSistemasSistemaIdRoute: typeof AppSistemasSistemaIdRoute
   AppObjetivosIndexRoute: typeof AppObjetivosIndexRoute
@@ -476,6 +536,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAvisosRoute: AppAvisosRoute,
+  AppCajaRoute: AppCajaRoute,
   AppCuadernosRoute: AppCuadernosRoute,
   AppCuentaRoute: AppCuentaRoute,
   AppDondeAbrirRoute: AppDondeAbrirRoute,
@@ -487,6 +548,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppTallerRoute: AppTallerRoute,
   AppUbicacionRoute: AppUbicacionRoute,
   AppZonaRoute: AppZonaRouteWithChildren,
+  AppNegociosCompararRoute: AppNegociosCompararRoute,
   AppObjetivosObjetivoIdRoute: AppObjetivosObjetivoIdRoute,
   AppSistemasSistemaIdRoute: AppSistemasSistemaIdRoute,
   AppObjetivosIndexRoute: AppObjetivosIndexRoute,
@@ -512,6 +574,7 @@ const PublicaRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   PublicaRoute: PublicaRouteWithChildren,
+  ElegirNegocioRoute: ElegirNegocioRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

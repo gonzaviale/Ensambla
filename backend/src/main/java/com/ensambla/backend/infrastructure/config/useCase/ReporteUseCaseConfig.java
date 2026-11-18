@@ -5,6 +5,8 @@ import com.ensambla.backend.domain.port.GeneradorResumenPdfPort;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.caja.CobroCajaRepository;
+import com.ensambla.backend.domain.repository.caja.VentaCajaRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
@@ -111,8 +113,9 @@ public class ReporteUseCaseConfig {
     }
 
     @Bean
-    public DatosDeProyectoService datosDeProyectoService(RegistroRepository registroRepository) {
-        return new DatosDeProyectoService(registroRepository);
+    public DatosDeProyectoService datosDeProyectoService(RegistroRepository registroRepository,
+            VentaCajaRepository ventaCajaRepository, CobroCajaRepository cobroCajaRepository) {
+        return new DatosDeProyectoService(registroRepository, ventaCajaRepository, cobroCajaRepository);
     }
 
     @Bean

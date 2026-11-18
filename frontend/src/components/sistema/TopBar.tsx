@@ -3,17 +3,10 @@ import { GraduationCapIcon } from '@phosphor-icons/react';
 import { Icon } from './Icon';
 import { Logo } from './Logo';
 import { MenuDePerfil } from './MenuDePerfil';
+import { SelectorDeNegocio } from './SelectorDeNegocio';
 
 export type SeccionActiva =
-  | 'home'
-  | 'sistemas'
-  | 'templates'
-  | 'zone'
-  | 'avisos'
-  | 'goals'
-  | 'learn'
-  | 'plans'
-  | 'account';
+  'home' | 'caja' | 'templates' | 'zone' | 'avisos' | 'goals' | 'learn' | 'plans' | 'account';
 
 type TopBarProps = {
   active?: SeccionActiva;
@@ -21,7 +14,7 @@ type TopBarProps = {
   /** La campana de avisos, que vive en el encabezado. */
   campana?: ReactNode;
   onInicio: () => void;
-  onSistemas: () => void;
+  onCaja: () => void;
   onPlantillas: () => void;
   onZona: () => void;
   onAvisos: () => void;
@@ -41,7 +34,7 @@ export function TopBar({
   nombre,
   campana,
   onInicio,
-  onSistemas,
+  onCaja,
   onPlantillas,
   onZona,
   onAvisos,
@@ -83,10 +76,11 @@ export function TopBar({
         </button>
         <button
           type="button"
-          className={active === 'sistemas' ? 'active' : ''}
-          onClick={ir(onSistemas)}
+          className={active === 'caja' ? 'active' : ''}
+          aria-current={active === 'caja' ? 'page' : undefined}
+          onClick={ir(onCaja)}
         >
-          Mis cuadernos
+          Caja
         </button>
         <button
           type="button"
@@ -147,13 +141,16 @@ export function TopBar({
         >
           <Icon name="help" />
         </button>
-        <MenuDePerfil
-          nombre={nombre}
-          enCuenta={active === 'account'}
-          cerrando={cerrandoSesion}
-          onConfiguracion={onCuenta}
-          onCerrarSesion={onCerrarSesion}
-        />
+        <div className="topbar-cuenta">
+          <SelectorDeNegocio />
+          <MenuDePerfil
+            nombre={nombre}
+            enCuenta={active === 'account'}
+            cerrando={cerrandoSesion}
+            onConfiguracion={onCuenta}
+            onCerrarSesion={onCerrarSesion}
+          />
+        </div>
         <button
           type="button"
           className="menu-movil-boton"

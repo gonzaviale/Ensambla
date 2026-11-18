@@ -6,18 +6,18 @@ type Props = {
   /** Hay cambios que todavía no llegaron al servidor. */
   guardando: boolean;
   puedeDeshacer: boolean;
-  /** Vuelve a la lista de cuadernos. */
-  onCuadernos: () => void;
+  /** Vuelve al Inicio, donde están el negocio y todas sus secciones. */
+  onInicio: () => void;
   onDeshacer: () => void;
 };
 
-// Las herramientas del cuaderno, arriba del lienzo: migas, estado de guardado, deshacer.
+// Las herramientas de la sección, arriba del lienzo: migas, estado de guardado, deshacer.
 // El navbar de arriba es el mismo de todas las pantallas (CabeceraComun).
 export function EncabezadoDelEditor({
   nombre,
   guardando,
   puedeDeshacer,
-  onCuadernos,
+  onInicio,
   onDeshacer,
 }: Props) {
   return (
@@ -27,10 +27,10 @@ export function EncabezadoDelEditor({
           type="button"
           className="editor-crumb"
           data-accion="home"
-          title="Volver a mis cuadernos"
-          onClick={onCuadernos}
+          title="Volver al inicio"
+          onClick={onInicio}
         >
-          Mis cuadernos / <strong>{nombre}</strong>
+          Inicio / <strong>{nombre}</strong>
         </button>
         <span className="save-status">
           <Icon name="check-circle" />

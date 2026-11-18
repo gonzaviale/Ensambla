@@ -1,6 +1,6 @@
 ---
 name: codigo-semantico
-description: OBLIGATORIO siempre que se escriba, modifique, mueva o revise código Java del backend de Ensambla o sus tests, sin excepción. Impone código semántico y orientado a objetos - métodos cortos (≈10 líneas, un solo nivel de abstracción), método público que se lee como una frase que entiende alguien que no programa, todo el detalle en métodos privados con nombre de intención, cláusulas de guarda en lugar de if anidados, sin comentarios que repitan lo que el código dice y SIEMPRE herencia y polimorfismo (clase base abstracta + subclases, enum con constructor o fábrica) en lugar de switch o cadenas de if/else if por tipo o estado. En tests exige dado/cuando/entonces con helpers givenX/whenX/thenX, un comportamiento por test, sin lógica ni ternarios y base abstracta cuando varios tipos comparten comportamiento. Incluye receta de switch a jerarquía con el antes/después de Campo, anti-patrones, checklist de revisión, greps de control y la deuda conocida. Usar al crear, tocar o revisar cualquier clase de backend/src (main o test), al refactorizar, al revisar un PR y antes de cerrar cualquier tarea del backend. Si tocás un archivo, lo dejás semántico.
+description: OBLIGATORIO siempre que se escriba, modifique, mueva o revise código Java del backend de Ensambla o sus tests, sin excepción. Impone código semántico y orientado a objetos - métodos cortos (≈10 líneas, un solo nivel de abstracción), método público que se lee como una frase que entiende alguien que no programa, todo el detalle en métodos privados con nombre de intención, cláusulas de guarda en lugar de if anidados, sin comentarios que repitan lo que el código dice y SIEMPRE herencia y polimorfismo (clase base abstracta + subclases, enum con constructor o fábrica) en lugar de switch o cadenas de if/else if por tipo o estado. En tests exige nombre en español sin tildes, @DisplayName obligatorio en español, bloques dadoX/cuandoX/entoncesX de una línea, un comportamiento por test, sin lógica ni ternarios y base abstracta cuando varios tipos comparten comportamiento. Incluye receta de switch a jerarquía con el antes/después de Campo, anti-patrones, checklist de revisión, greps de control y la deuda conocida. Usar al crear, tocar o revisar cualquier clase de backend/src (main o test), al refactorizar, al revisar un PR y antes de cerrar cualquier tarea del backend. Si tocás un archivo, lo dejás semántico.
 ---
 
 # Código semántico y polimorfismo (backend Ensambla)
@@ -44,7 +44,7 @@ porqué de cada pilar. Este skill es cómo se escribe cada clase por dentro.
    cada llamada a un repositorio, puerto u otro servicio se extrae a un privado. Mal:
    `Campo campo = campoRepository.obtener(request.campoId(), negocioId);`. Bien:
    `Campo campo = obtenerCampo(request.campoId(), negocioId);`. Lo mismo en los tests: un `@Test` no usa `when(...)`,
-   `verify(...)` ni arma datos inline; todo va a `givenX`/`whenX`/`thenX`.
+   `verify(...)` ni arma datos inline; todo va a `dadoX`/`cuandoX`/`entoncesX`.
 9. **El dominio no conoce formatos de persistencia ni de transporte.** Nada de prefijos de clave (`"servidor:"`), JSON,
    ni `Map<?, ?>` con claves de texto (`"tipo"`, `"bloqueId"`) en `domain`: la infraestructura los convierte a objetos
    tipados (interfaz sellada + records, polimorfismo, mapa tipo→fábrica en el mapper) y el dominio solo habla de ids y
@@ -255,39 +255,51 @@ eliminar(campo);
 - Clases "Utils"/"Helper" que concentran reglas de un tipo: esa regla va a la clase del tipo.
 - `Object`/`String` como "tipo" con `if` por valor: se modela con enum o clase.
 - Un método público (`execute()`, método de servicio) que llama directo a `*Repository`, `*Port` u otro servicio.
-- Un `@Test` con `when(...)`, `verify(...)`, `assertThat` o datos armados inline: van a `givenX/whenX/thenX`.
+- Un `@Test` con `when(...)`, `verify(...)`, `assertThat`, builders o datos armados inline: van a `dadoX/cuandoX/entoncesX`.
+- Tests con nombre en inglés (`executeShouldXWhenY`, `metodoShouldHacerXWhenY`) o sin `@DisplayName` en español.
 - Prefijos de clave, JSON o `Map<?, ?>` con claves de texto dentro de `domain`.
 - Lógica o ternarios en los tests (ver abajo).
 
 ## Tests: dado / cuando / entonces
 
-Los tests siguen el mismo estándar y se leen como una especificación:
+Los tests siguen el mismo estándar y se leen como una especificación del negocio (detalle y plantillas por capa en el
+skill `escribir-tests`):
 
-1. **Dado/cuando/entonces con helpers.** El cuerpo del test son tres líneas: `givenX()`, `whenX()`, `thenX()`
-   (`givenContratoConPrecioAjeno()`, `whenSeActualizaElContrato()`, `thenSeRechazaElContrato()`). Todo el detalle
-   (stubs, builders, `assertThat`, `verify`) va a helpers privados con nombre de intención, agrupados al final.
-2. **Un comportamiento por test**, con `@DisplayName` en español que se entiende sin leer el código. Nombre
-   `metodoShouldHacerXWhenY` en camelCase.
-3. **Sin lógica en el test:** ni `if`, ni `for` con aserciones, ni ternarios, ni `caso == 6 ? … : …`. Si un
-   `@ParameterizedTest` necesita decidir qué esperar según el caso, son tests distintos: uno por escenario.
-4. **Base abstracta cuando varios tipos comparten comportamiento.** Una `CampoPorTipoTest` abstracta con los tests
-   semánticos (`aceptaUnValorValido`, `rechazaUnValorInvalido`, `aceptaUnValorInicialValido`) y un test concreto por
-   subclase que **solo aporta datos** (`valorValido()`, `valorInvalido()`, `mensajeDeError()`). Así cada subclase
-   delgada queda cubierta por la base compartida (100 % por clase).
-5. **Nombres de datos que se leen sin pensar** (`PRECIO_AJENO`, `OTRA_REFERENCIA`), no `X1`, `valor2`, `dto`.
-6. Más detalle y plantillas por capa: skill `escribir-tests`.
+1. **Nombre del método en español, sin tildes, como una frase del negocio que se lee sola**
+   (`unCampoUsadoPorUnaFormulaNoPuedeCambiarDeTipo`, `elProveedorNoPuedeCambiarElPrecioDeLaRenovacion`). **Prohibido**
+   `executeShouldXWhenY`, `metodoShouldHacerXWhenY` y los nombres en inglés. **Y `@DisplayName` obligatorio en todo
+   `@Test` y `@ParameterizedTest`**: una frase completa en español, con tildes y puntuación normal, que explica el
+   comportamiento en lenguaje de negocio (`@DisplayName("Un campo usado por una fórmula no puede cambiar de tipo")`).
+   Nunca se quita.
+2. **Tres bloques de UNA línea** con prefijos en español: `dadoX(...)` (preparar), `cuandoX(...)` (actuar),
+   `entoncesX(...)` (verificar). Reemplazan a `givenX/whenX/thenX`.
+3. **El cuerpo del `@Test` nunca nombra repositorios, mocks, `when(...)`, `verify(...)`, builders ni UUID sueltos**: todo
+   va a helpers con nombre de negocio. Los datos de prueba se arman con fábricas de dominio (`unCampoNumerico("Precio")`,
+   `unaFormulaQueUsa(precio)`) en clases de apoyo compartidas por tema en `src/test/.../support/` (`CamposDePrueba`,
+   `AvisosDePrueba`, `RenovacionesDePrueba`); los helpers `dado/cuando/entonces` del escenario quedan privados en la
+   clase del test.
+4. **Un comportamiento por test**, sin lógica: ni `if`, ni `for` con aserciones, ni ternarios, ni `caso == 6 ? … : …`.
+   Si un `@ParameterizedTest` decide qué esperar según el caso, son tests distintos: uno por escenario.
+5. **Tests por tipo: clase base abstracta con nombres de negocio** (`aceptaLosValoresDeSuTipo`,
+   `rechazaLosValoresQueNoSonDeSuTipo`) y una subclase por tipo que **solo aporta datos** (`valorValido()`,
+   `valorInvalido()`, `mensajeDeError()`). Así cada subclase delgada queda cubierta por la base (100 % por clase).
 
 ```java
 @Test
-@DisplayName("Rechaza el contrato cuando el precio es de otro plan")
-void actualizarContratoShouldRejectWhenPrecioIsAjeno() {
-    givenContratoConPrecioAjeno();
+@DisplayName("Un campo usado por una fórmula no puede cambiar de tipo")
+void unCampoUsadoPorUnaFormulaNoPuedeCambiarDeTipo() {
+    Campo cantidad = unCampoNumerico("Cantidad");
+    dadoUnBloqueCon(cantidad, unaFormulaQueUsa(cantidad, "Doble"));
 
-    whenSeActualizaElContrato();
+    cuandoSeIntentaConvertirEnTexto(cantidad);
 
-    thenSeRechazaElContrato();
+    entoncesSeRechazaPorque("No se puede cambiar el tipo de «Cantidad»: la fórmula «Doble» lo usa");
+    entoncesNoSeGuardaNingunCampo();
 }
 ```
+
+Antes (prohibido): `executeShouldRejectChangingTypeOfFieldUsedByFormula` (nombre en inglés), `givenCamposDelBloque()` y
+`verify(campoRepository, never()).save(any())` dentro del `@Test`. El antes/después completo está en `escribir-tests`.
 
 ## Checklist de revisión (todo en "sí" antes de cerrar)
 
@@ -300,7 +312,8 @@ void actualizarContratoShouldRejectWhenPrecioIsAjeno() {
 - [ ] ¿Los métodos extraídos nombran una intención (no se fragmentó por fragmentar)?
 - [ ] ¿Los métodos públicos llaman solo a privados con nombre de intención (ni un repositorio, puerto o servicio directo)?
 - [ ] ¿El dominio habla en tipos propios, sin prefijos de clave, JSON ni `Map<?, ?>` con claves de texto?
-- [ ] ¿Los tests son dado/cuando/entonces, un comportamiento por test, sin lógica ni ternarios?
+- [ ] ¿Todo test tiene `@DisplayName` en español (frase con tildes), nombre de método en español sin tildes que se lee solo, tres bloques de una línea (`dado/cuando/entonces`) y un comportamiento por test, sin lógica ni ternarios?
+- [ ] ¿El cuerpo del `@Test` no nombra repositorios, mocks, `when/verify`, builders ni UUID sueltos (fábricas de dominio en `support/`)?
 - [ ] ¿Hay base abstracta de test cuando varios tipos comparten comportamiento?
 - [ ] ¿Los archivos que toqué quedaron semánticos (regla de oro)?
 - [ ] ¿Los greps de control salen vacíos y `./mvnw clean verify` está en verde?
@@ -317,20 +330,31 @@ grep -rnE "== TipoCampo\.|instanceof " src/main/java/com/ensambla/backend/domain
 grep -nE "=\s*\w+(Repository|Port|Service)\.\w+\(" src/main/java/com/ensambla/backend/domain/useCase   # solo líneas dentro de métodos privados
 grep -rn "servidor:" src/main   # solo en infrastructure
 grep -rnE "Map<\?, ?\?>" src/main/java/com/ensambla/backend/domain   # vacío
+grep -rn "Should[A-Z]" src/test        # solo código legado, ningún test nuevo
+grep -rL "@DisplayName" --include=*Test.java src/test   # archivos de test sin ningún @DisplayName: revisar
+grep -rA1 -E "@(Test|ParameterizedTest)\b" src/test | grep -vE "@(Test|ParameterizedTest)\b|@DisplayName|^--"   # vacío: ningún @Test sin su @DisplayName justo debajo
 ```
 
 En `domain/model/campo` el `switch (` está prohibido y `ArchitectureTest` falla. En el resto de `domain`, cada resultado
 de los greps o se convierte en polimorfismo o se justifica por escrito (por ejemplo, un `switch` sobre un tipo externo
 que no controlamos, como un código de respuesta de un proveedor). "Ya estaba así" no es una justificación.
 
+## Qué `instanceof`, `switch` y mapas sí valen
+
+La regla apunta a *quién decide el comportamiento por tipo*, no a toda comprobación de tipo:
+
+- **Válido:** chequear el tipo de un **valor** dentro de la clase del campo (`valor instanceof String texto` en
+  `CampoFecha`), y las **tablas de traducción de formato en la infraestructura o la presentación** (por ejemplo
+  `AccionDeAvisoJson`, `ClavesDeContenido`, `LecturaPresentationMapper`): un mapa `clave → fábrica` o `clave → enum` no
+  es polimorfismo faltante, es el borde donde se traduce un formato externo a objetos del dominio.
+- **Deuda:** preguntar por el tipo o el estado de un **objeto del dominio** para decidir qué hacer (`campo.getTipo() ==
+  TipoCampo.X`, `instanceof SubclaseDeDominio`, `switch (tipo)`): ese comportamiento va en la clase de ese tipo (ejemplos
+  ya resueltos: `Campo.errorDeValorLeido`, `Campo.claseInterpretable`, `TipoDeCampoEnPantalla`).
+
 ## Deuda conocida (todavía con `switch` o ramas por tipo)
 
 No es permiso para copiarlos: es la lista de lo que hay que convertir. Si tocás uno, lo dejás semántico (regla de oro).
 
-- `LecturaCuaderno.validarDato`
-- `InterpreteRegistrosSimulado`
-- `SistemaItem.TIPOS_DE_CAMPO`
-- `LecturaPresentationMapper`
 - `ConversarEnTaller`
 - `AtenderMensajeWhatsapp`
 

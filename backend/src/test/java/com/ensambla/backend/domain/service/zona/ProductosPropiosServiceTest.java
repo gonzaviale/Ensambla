@@ -10,6 +10,8 @@ import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.repository.caja.CobroCajaRepository;
+import com.ensambla.backend.domain.repository.caja.VentaCajaRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
@@ -33,54 +35,94 @@ class ProductosPropiosServiceTest {
     private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
     private final RegistroRepository registroRepository = mock(RegistroRepository.class);
     private final ProductosPropiosService service = new ProductosPropiosService(
-            proyectoRepository, new DatosDeProyectoService(registroRepository));
+            proyectoRepository, new DatosDeProyectoService(registroRepository,
+                    mock(VentaCajaRepository.class), mock(CobroCajaRepository.class)));
+
+    private List<String> nombres;
 
     @Test
     @DisplayName("Devuelve los nombres del inventario sin las filas de ejemplo ni las sin nombre")
-    void nombresDelInventarioShouldReturnRealNamedProducts() {
-        Proyecto proyecto = givenProyectoConInventario(
-                registro("Yerba Playadito 1 kg", false),
-                registro("Fideos de ejemplo", true),
-                registro("   ", false),
-                Registro.builder().id(RegistroId.nuevo()).negocioId(NEGOCIO_ID).bloqueId(INVENTARIO_ID)
-                        .valores(Map.of()).build());
-        when(proyectoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(proyecto));
-        when(proyectoRepository.findByIdAndNegocioId(proyecto.getId(), NEGOCIO_ID)).thenReturn(Optional.of(proyecto));
+    void devuelveLosNombresDelInventarioSinLasFilasDeEjemploNiLasSinNombre() {
+        dadoUnProyectoExistenteConInventarioDeFilasVariadas();
 
-        List<String> result = service.nombresDelInventario(NEGOCIO_ID);
+        cuandoSePidenLosNombresDelInventario();
 
-        assertThat(result).containsExactly("Yerba Playadito 1 kg");
+        entoncesSoloEstaLaYerba();
     }
 
     @Test
     @DisplayName("Si el proyecto ya no existe no aporta nombres")
-    void nombresDelInventarioShouldSkipMissingProjects() {
-        Proyecto proyecto = givenProyectoConInventario();
-        when(proyectoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(proyecto));
-        when(proyectoRepository.findByIdAndNegocioId(proyecto.getId(), NEGOCIO_ID)).thenReturn(Optional.empty());
+    void siElProyectoYaNoExisteNoAportaNombres() {
+        dadoUnProyectoListadoQueYaNoExiste();
 
-        assertThat(service.nombresDelInventario(NEGOCIO_ID)).isEmpty();
+        cuandoSePidenLosNombresDelInventario();
+
+        entoncesNoHayNombres();
     }
 
     @Test
     @DisplayName("Un negocio sin proyectos no tiene nombres")
-    void nombresDelInventarioShouldBeEmptyWithoutProjects() {
-        when(proyectoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
+    void unNegocioSinProyectosNoTieneNombres() {
+        dadoUnNegocioSinProyectos();
 
-        assertThat(service.nombresDelInventario(NEGOCIO_ID)).isEmpty();
+        cuandoSePidenLosNombresDelInventario();
+
+        entoncesNoHayNombres();
     }
 
-    // --- arrange ---
-    private Proyecto givenProyectoConInventario(Registro... registros) {
+    // --- dado ---
+    private void dadoUnProyectoExistenteConInventarioDeFilasVariadas() {
+        Proyecto proyecto = unProyectoConInventario(
+                unRegistro("Yerba Playadito 1 kg", false),
+                unRegistro("Fideos de ejemplo", true),
+                unRegistro("   ", false),
+                unRegistroSinNombre());
+        when(proyectoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(proyecto));
+        when(proyectoRepository.findByIdAndNegocioId(proyecto.getId(), NEGOCIO_ID)).thenReturn(Optional.of(proyecto));
+    }
+
+    private void dadoUnProyectoListadoQueYaNoExiste() {
+        Proyecto proyecto = unProyectoConInventario();
+        when(proyectoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(proyecto));
+        when(proyectoRepository.findByIdAndNegocioId(proyecto.getId(), NEGOCIO_ID)).thenReturn(Optional.empty());
+    }
+
+    private void dadoUnNegocioSinProyectos() {
+        when(proyectoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
+    }
+
+    private Proyecto unProyectoConInventario(Registro... registros) {
         when(registroRepository.findAllByBloqueIdAndNegocioId(INVENTARIO_ID, NEGOCIO_ID))
                 .thenReturn(List.of(registros));
-        return Proyecto.builder().id(ProyectoId.nuevo()).nombre("Almacén").bloques(List.of(
-                Bloque.builder().id(INVENTARIO_ID).negocioId(NEGOCIO_ID).tipo(TipoBloque.INVENTARIO)
-                        .campos(List.of(Campo.builder().id(NOMBRE_ID).clave("name").build())).build())).build();
+        return Proyecto.builder().id(ProyectoId.nuevo()).nombre("Almacén").bloques(List.of(unInventario())).build();
     }
 
-    private static Registro registro(String nombre, boolean esEjemplo) {
+    private Bloque unInventario() {
+        return Bloque.builder().id(INVENTARIO_ID).negocioId(NEGOCIO_ID).tipo(TipoBloque.INVENTARIO)
+                .campos(List.of(Campo.builder().id(NOMBRE_ID).clave("name").build())).build();
+    }
+
+    private Registro unRegistro(String nombre, boolean esEjemplo) {
         return Registro.builder().id(RegistroId.nuevo()).negocioId(NEGOCIO_ID).bloqueId(INVENTARIO_ID)
                 .esEjemplo(esEjemplo).valores(Map.of(NOMBRE_ID.toString(), nombre)).build();
+    }
+
+    private Registro unRegistroSinNombre() {
+        return Registro.builder().id(RegistroId.nuevo()).negocioId(NEGOCIO_ID).bloqueId(INVENTARIO_ID)
+                .valores(Map.of()).build();
+    }
+
+    // --- cuando ---
+    private void cuandoSePidenLosNombresDelInventario() {
+        nombres = service.nombresDelInventario(NEGOCIO_ID);
+    }
+
+    // --- entonces ---
+    private void entoncesSoloEstaLaYerba() {
+        assertThat(nombres).containsExactly("Yerba Playadito 1 kg");
+    }
+
+    private void entoncesNoHayNombres() {
+        assertThat(nombres).isEmpty();
     }
 }

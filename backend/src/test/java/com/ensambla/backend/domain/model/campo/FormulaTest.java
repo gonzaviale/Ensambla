@@ -7,99 +7,199 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class FormulaTest {
 
     private static final CampoId CANTIDAD_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
     private static final CampoId PRECIO_ID = CampoId.de("c0000000-0000-4000-8000-000000000002");
+    private static final String CANTIDAD = "{" + CANTIDAD_ID + "}";
+    private static final String PRECIO = "{" + PRECIO_ID + "}";
+
+    private BigDecimal resultado;
+    private Set<CampoId> referencias;
+    private Throwable rechazo;
 
     @Test
     @DisplayName("Multiplica dos campos del registro")
-    void evaluarShouldMultiplyFields() {
-        Formula formula = Formula.parsear(ref(CANTIDAD_ID) + " * " + ref(PRECIO_ID));
+    void multiplicaDosCamposDelRegistro() {
+        cuandoSeEvaluaLaCantidadPorElPrecioCon("3", "12.5");
 
-        BigDecimal result = formula.evaluar(valores(Map.of(CANTIDAD_ID, "3", PRECIO_ID, "12.5")));
-
-        assertThat(result).isEqualByComparingTo("37.5");
+        entoncesElResultadoEs("37.5");
     }
 
     @Test
-    @DisplayName("Respeta la precedencia, los paréntesis y el menos unario")
-    void evaluarShouldRespectPrecedenceParenthesesAndUnaryMinus() {
-        assertThat(evaluar("2 + 3 * 4")).isEqualByComparingTo("14");
-        assertThat(evaluar("(2 + 3) * 4")).isEqualByComparingTo("20");
-        assertThat(evaluar("-(2 - 5) - 1")).isEqualByComparingTo("2");
-        assertThat(evaluar("10 / 4")).isEqualByComparingTo("2.5");
+    @DisplayName("La multiplicación se resuelve antes que la suma")
+    void laMultiplicacionVaAntesQueLaSuma() {
+        cuandoSeEvalua("2 + 3 * 4");
+
+        entoncesElResultadoEs("14");
     }
 
     @Test
-    @DisplayName("Devuelve el resultado sin ceros de más ni notación científica")
-    void evaluarShouldStripTrailingZeros() {
-        assertThat(evaluar("1500 * 1").toString()).isEqualTo("1500");
-        assertThat(evaluar("2.50 * 1").toString()).isEqualTo("2.5");
-        assertThat(evaluar("0 * 5").toString()).isEqualTo("0");
+    @DisplayName("Los paréntesis cambian el orden de las cuentas")
+    void losParentesisCambianElOrdenDeLasCuentas() {
+        cuandoSeEvalua("(2 + 3) * 4");
+
+        entoncesElResultadoEs("20");
     }
 
     @Test
-    @DisplayName("Queda sin valor cuando falta un dato o se divide por cero")
-    void evaluarShouldReturnNullWhenAValueIsMissingOrDividesByZero() {
-        Formula conDato = Formula.parsear(ref(CANTIDAD_ID) + " * 2");
-        Formula negada = Formula.parsear("-" + ref(CANTIDAD_ID));
-        Formula dividida = Formula.parsear("5 / 0");
+    @DisplayName("El menos unario niega lo que sigue")
+    void elMenosUnarioNiegaLoQueSigue() {
+        cuandoSeEvalua("-(2 - 5) - 1");
 
-        assertThat(conDato.evaluar(id -> null)).isNull();
-        assertThat(negada.evaluar(id -> null)).isNull();
-        assertThat(Formula.parsear("2 * " + ref(CANTIDAD_ID)).evaluar(id -> null)).isNull();
-        assertThat(dividida.evaluar(id -> null)).isNull();
+        entoncesElResultadoEs("2");
     }
 
     @Test
-    @DisplayName("Informa los campos que usa, sin repetir")
-    void referenciasShouldListUsedFieldsOnce() {
-        Formula formula = Formula.parsear(ref(CANTIDAD_ID) + " * " + ref(PRECIO_ID) + " + " + ref(CANTIDAD_ID));
+    @DisplayName("La división puede dar decimales")
+    void laDivisionPuedeDarDecimales() {
+        cuandoSeEvalua("10 / 4");
 
-        assertThat(formula.referencias()).containsExactly(CANTIDAD_ID, PRECIO_ID);
+        entoncesElResultadoEs("2.5");
+    }
+
+    @Test
+    @DisplayName("El resultado no lleva notación científica")
+    void elResultadoNoLlevaNotacionCientifica() {
+        cuandoSeEvalua("1500 * 1");
+
+        entoncesElResultadoSeEscribe("1500");
+    }
+
+    @Test
+    @DisplayName("El resultado no lleva ceros de más en los decimales")
+    void elResultadoNoLlevaCerosDeMasEnLosDecimales() {
+        cuandoSeEvalua("2.50 * 1");
+
+        entoncesElResultadoSeEscribe("2.5");
+    }
+
+    @Test
+    @DisplayName("El cero se escribe sin decimales")
+    void elCeroSeEscribeSinDecimales() {
+        cuandoSeEvalua("0 * 5");
+
+        entoncesElResultadoSeEscribe("0");
+    }
+
+    @Test
+    @DisplayName("Queda sin valor si falta el dato del primer operando")
+    void quedaSinValorSiFaltaElDatoDelPrimerOperando() {
+        cuandoSeEvaluaSinDatos(CANTIDAD + " * 2");
+
+        entoncesNoHayResultado();
+    }
+
+    @Test
+    @DisplayName("Queda sin valor si falta el dato de una negación")
+    void quedaSinValorSiFaltaElDatoDeUnaNegacion() {
+        cuandoSeEvaluaSinDatos("-" + CANTIDAD);
+
+        entoncesNoHayResultado();
+    }
+
+    @Test
+    @DisplayName("Queda sin valor si falta el dato del segundo operando")
+    void quedaSinValorSiFaltaElDatoDelSegundoOperando() {
+        cuandoSeEvaluaSinDatos("2 * " + CANTIDAD);
+
+        entoncesNoHayResultado();
+    }
+
+    @Test
+    @DisplayName("Queda sin valor si se divide por cero")
+    void quedaSinValorSiSeDividePorCero() {
+        cuandoSeEvaluaSinDatos("5 / 0");
+
+        entoncesNoHayResultado();
+    }
+
+    @Test
+    @DisplayName("Informa los campos que usa, sin repetirlos")
+    void informaLosCamposQueUsaSinRepetir() {
+        cuandoSePidenLasReferenciasDe(CANTIDAD + " * " + PRECIO + " + " + CANTIDAD);
+
+        entoncesLasReferenciasSonLaCantidadYElPrecio();
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"", "   ", "2 +", "(2 + 3", "2 3", "abc", "*", ".", "{no-es-un-id}",
-            "{c0000000-0000-4000-8000-000000000001", "{c0000000-0000-4000-8000-000000000001 + 1", "{zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz}", "2 + )"})
-    @DisplayName("Rechaza una expresión mal armada")
-    void parsearShouldRejectMalformedExpressions(String texto) {
-        assertThatThrownBy(() -> Formula.parsear(texto)).isInstanceOf(IllegalArgumentException.class);
+            "{c0000000-0000-4000-8000-000000000001", "{c0000000-0000-4000-8000-000000000001 + 1",
+            "{zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz}", "2 + )"})
+    @DisplayName("Una expresión mal armada se rechaza")
+    void unaExpresionMalArmadaSeRechaza(String texto) {
+        cuandoSeParsea(texto);
+
+        entoncesSeRechazaLaExpresion();
     }
 
     @Test
-    @DisplayName("Rechaza una expresión nula")
-    void parsearShouldRejectNull() {
-        assertThatThrownBy(() -> Formula.parsear(null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Armá la fórmula");
+    @DisplayName("Una expresión nula se rechaza")
+    void unaExpresionNulaSeRechaza() {
+        cuandoSeParsea(null);
+
+        entoncesSeRechazaPorque("Armá la fórmula");
     }
 
     @Test
-    @DisplayName("Rechaza una expresión demasiado larga")
-    void parsearShouldRejectTooLongExpressions() {
-        String larga = "1 + ".repeat(Formula.MAX_CARACTERES) + "1";
+    @DisplayName("Una expresión demasiado larga se rechaza")
+    void unaExpresionDemasiadoLargaSeRechaza() {
+        cuandoSeParseaUnaExpresionDemasiadoLarga();
 
-        assertThatThrownBy(() -> Formula.parsear(larga))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Máximo " + Formula.MAX_CARACTERES + " caracteres");
+        entoncesSeRechazaPorque("Máximo " + Formula.MAX_CARACTERES + " caracteres");
     }
 
-    // --- helpers ---
-    private BigDecimal evaluar(String texto) {
-        return Formula.parsear(texto).evaluar(id -> null);
+    private void cuandoSeEvalua(String expresion) {
+        resultado = Formula.parsear(expresion).evaluar(id -> null);
     }
 
-    private static String ref(CampoId id) {
-        return "{" + id + "}";
+    private void cuandoSeEvaluaSinDatos(String expresion) {
+        cuandoSeEvalua(expresion);
     }
 
-    private static java.util.function.Function<CampoId, BigDecimal> valores(Map<CampoId, String> valores) {
-        return id -> new BigDecimal(valores.get(id));
+    private void cuandoSeEvaluaLaCantidadPorElPrecioCon(String cantidad, String precio) {
+        Map<CampoId, String> valores = Map.of(CANTIDAD_ID, cantidad, PRECIO_ID, precio);
+        resultado = Formula.parsear(CANTIDAD + " * " + PRECIO).evaluar(id -> new BigDecimal(valores.get(id)));
+    }
+
+    private void cuandoSePidenLasReferenciasDe(String expresion) {
+        referencias = Formula.parsear(expresion).referencias();
+    }
+
+    private void cuandoSeParsea(String texto) {
+        rechazo = catchThrowable(() -> Formula.parsear(texto));
+    }
+
+    private void cuandoSeParseaUnaExpresionDemasiadoLarga() {
+        cuandoSeParsea("1 + ".repeat(Formula.MAX_CARACTERES) + "1");
+    }
+
+    private void entoncesElResultadoEs(String esperado) {
+        assertThat(resultado).isEqualByComparingTo(esperado);
+    }
+
+    private void entoncesElResultadoSeEscribe(String esperado) {
+        assertThat(resultado.toString()).isEqualTo(esperado);
+    }
+
+    private void entoncesNoHayResultado() {
+        assertThat(resultado).isNull();
+    }
+
+    private void entoncesLasReferenciasSonLaCantidadYElPrecio() {
+        assertThat(referencias).containsExactly(CANTIDAD_ID, PRECIO_ID);
+    }
+
+    private void entoncesSeRechazaLaExpresion() {
+        assertThat(rechazo).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    private void entoncesSeRechazaPorque(String motivo) {
+        assertThat(rechazo).isInstanceOf(IllegalArgumentException.class).hasMessage(motivo);
     }
 }

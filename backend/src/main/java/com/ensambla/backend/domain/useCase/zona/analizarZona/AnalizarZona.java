@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.ubicacion.ConsultaDireccion;
 import com.ensambla.backend.domain.model.ubicacion.DireccionEncontrada;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
 import com.ensambla.backend.domain.model.zona.VistaZona;
 import com.ensambla.backend.domain.model.zona.Zona;
@@ -43,24 +44,45 @@ public class AnalizarZona {
      * el inventario del negocio. Gasta el cupo gratuito de {@link VistaZona#OTRA}, aparte del de Mi zona.
      */
     public ZonaItem execute(AnalizarZonaRequest request) {
-        Zona zona = zonaPedida(request)
+        Zona zona = obtenerZonaPedida(request);
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+        ZonaItem zonaItem = ZonaItem.de(analizarParaOtraZona(zona));
+        return zonaItem.filtrada(seleccionarAcceso(negocioId, zonaItem));
+    }
+
+    private Zona obtenerZonaPedida(AnalizarZonaRequest request) {
+        return zonaPedida(request)
                 .orElseThrow(() -> new ResourceNotFoundException("Todavía no tenemos datos de esa zona"));
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        AnalisisZona analisis = VistaZona.OTRA.ordenar(
-                agregadoZonaRepository.analizar(zona).sinProductosSiHayMenosDe(AnalisisZona.MINIMO_COMERCIOS),
-                List.of());
-        ZonaItem zonaItem = ZonaItem.de(analisis);
-        AccesoContenidoItem acceso = controlPlanService.seleccionar(negocioId, VistaZona.OTRA.tipoDeContenido(),
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private AnalisisZona analizarParaOtraZona(Zona zona) {
+        AnalisisZona analisis = analizar(zona).sinProductosSiHayMenosDe(AnalisisZona.MINIMO_COMERCIOS);
+        return VistaZona.OTRA.ordenar(analisis, List.of());
+    }
+
+    private AnalisisZona analizar(Zona zona) {
+        return agregadoZonaRepository.analizar(zona);
+    }
+
+    private AccesoContenidoItem seleccionarAcceso(NegocioId negocioId, ZonaItem zonaItem) {
+        return controlPlanService.seleccionar(negocioId, VistaZona.OTRA.tipoDeContenido(),
                 zonaItem.clavesDeAcceso(), OffsetDateTime.now(clock));
-        return zonaItem.filtrada(acceso);
     }
 
     private Optional<Zona> zonaPedida(AnalizarZonaRequest request) {
         if (request.tienePunto()) {
-            return zonaRepository.resolver(request.latitud(), request.longitud());
+            return zonaDelPunto(request);
         }
         return buscarPorTexto(request.lugar())
                 .or(() -> zonaDeLaDireccion(request.lugar()));
+    }
+
+    private Optional<Zona> zonaDelPunto(AnalizarZonaRequest request) {
+        return zonaRepository.resolver(request.latitud(), request.longitud());
     }
 
     /** Zona cuyo nombre o localidad coincide con lo escrito ("San Justo", "villa crespo"). */

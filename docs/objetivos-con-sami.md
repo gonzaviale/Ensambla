@@ -445,9 +445,9 @@ Casos de borde de la validación (no son ejemplos de la persona, sino de la resp
 - **Puertos:** `ConversacionObjetivosIaPort`, `RespuestaMiniObjetivoRepository`.
 - **Casos de uso** (`domain/useCase/objetivo`): `proponerObjetivoConSami`, `guardarObjetivoConSami`, `responderMiniObjetivo`,
   `listarRespuestasPendientes`.
-- **Migraciones:** `V34__objetivo_tipo_y_modo.sql` (tipo, meta opcional, modo, restricciones),
-  `V35__respuesta_mini_objetivo.sql` (respuestas y las decisiones nuevas), `V36__cuota_objetivos_ia.sql` (cuota por plan y
-  su consumo), `V37__metricas_mini_objetivo_nuevas.sql` y `V38__cierre_con_manuales.sql`.
+- **Migraciones:** `V38__objetivo_tipo_y_modo.sql` (tipo, meta opcional, modo, restricciones),
+  `V39__respuesta_mini_objetivo.sql` (respuestas y las decisiones nuevas), `V40__cuota_objetivos_ia.sql` (cuota por plan y
+  su consumo), `V41__metricas_mini_objetivo_nuevas.sql` y `V42__cierre_con_manuales.sql`.
 - **Infraestructura:** `ConversacionObjetivosIaAdapter` (+ `PromptConversacionObjetivos`, `ia/prompt-conversacion-objetivos.md`
   y `ia/esquema-conversacion-objetivos.json`), el cliente de texto simulado, `SamiObjetivoController` y
   `RespuestaMiniObjetivoController`. Propiedades: `ensambla.objetivos.ia.conversacion-habilitada` y `.max-mensajes`.

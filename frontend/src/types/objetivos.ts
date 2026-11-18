@@ -4,8 +4,8 @@ import { z } from 'zod';
 export const tipoObjetivoSchema = z.enum(['MONETARIO', 'CON_DATOS', 'SIN_DATOS', 'HIBRIDO']);
 
 // Un objetivo guardado en el servidor: lo que la persona le contó a Sami, su tipo y la meta mensual, que sólo tiene el
-// monetario (sin importe no hay meta). El historial de avance no viaja: lo calcula el frontend con lo que hay en los
-// cuadernos.
+// monetario (sin importe no hay meta). El historial de avance no viaja: lo calcula el frontend con lo que hay en las
+// secciones.
 export const objetivoDelServidorSchema = z.object({
   id: z.string(),
   texto: z.string(),
@@ -123,7 +123,7 @@ const hitoSchema = z.enum(['OBJETIVO_ALCANZADO', 'MINI_LOGRADO', 'SIN_AVANCE']).
 const puntoSemanalSchema = z.object({
   semana: z.string(),
   valor: z.number(),
-  /** Calculado con los cuadernos, de antes de que Sami empezara a medir. */
+  /** Calculado con las secciones, de antes de que Sami empezara a medir. */
   estimado: z.boolean(),
 });
 

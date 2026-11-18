@@ -32,7 +32,7 @@ public enum MotivoReajuste {
     /** Su producto ya no está en el cuaderno o perdió el precio o el costo. */
     PRODUCTO_FUERA(TipoReajuste.REEMPLAZAR,
             (anterior, valorAlCierre, nuevo) -> "«" + anterior.getReferencia()
-                    + "» ya no está en tu cuaderno o le falta el precio o el costo. Lo cambiamos por «"
+                    + "» ya no está en tus secciones o le falta el precio o el costo. Lo cambiamos por «"
                     + nuevo.getTitulo() + "»."),
     /** Se aplicó un aviso vinculado y, medido su efecto, las ventas no subieron. */
     DECISION_SIN_EFECTO(TipoReajuste.PROBAR_OTRO_CAMINO,

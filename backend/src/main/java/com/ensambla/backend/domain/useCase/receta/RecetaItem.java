@@ -8,7 +8,10 @@ import com.ensambla.backend.domain.model.registro.RegistroId;
 import java.math.BigDecimal;
 import java.util.List;
 
-/** La receta con su costo (la tabla de los insumos y la columna del precio de la que sale); {@code incompleta} avisa que a algún insumo le falta el precio o ya no existe. */
+/**
+ * La receta con su costo (la tabla de los insumos y la columna del precio de la que sale); {@code incompleta} avisa
+ * que a algún insumo le falta el precio o ya no existe.
+ */
 public record RecetaItem(
         BloqueId bloqueInsumosId,
         CampoId campoPrecioId,

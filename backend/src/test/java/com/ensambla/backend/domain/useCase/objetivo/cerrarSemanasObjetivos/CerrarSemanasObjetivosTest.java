@@ -936,7 +936,7 @@ class CerrarSemanasObjetivosTest {
     }
 
     private void thenSeCambiaElMiniCuyoProductoYaNoEstaYNoEntraEnElCierre() {
-        assertThat(unicoReajuste().motivo()).startsWith("«Yerba 1 kg» ya no está en tu cuaderno");
+        assertThat(unicoReajuste().motivo()).startsWith("«Yerba 1 kg» ya no está en tus secciones");
         assertThat(resumenGuardado().minis()).isEmpty();
     }
 

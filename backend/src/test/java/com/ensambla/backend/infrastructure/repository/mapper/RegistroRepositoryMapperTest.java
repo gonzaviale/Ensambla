@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.OffsetDateTime;
 import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RegistroRepositoryMapperTest {
@@ -28,32 +29,41 @@ class RegistroRepositoryMapperTest {
 
     @Test
     @DisplayName("Pasa todos los campos de la entidad al modelo")
-    void toDomainShouldMapEveryField() {
-        RegistroEntity entity = RegistroEntity.builder()
-                .id(ID.valor())
-                .negocioId(NEGOCIO_ID.valor())
-                .bloqueId(BLOQUE_ID.valor())
-                .valores(VALORES)
-                .fotoOrigenId(FOTO_ID.valor())
-                .creadoEn(CREADO)
-                .actualizadoEn(ACTUALIZADO)
-                .build();
+    void unaEntidadSeLeeComoRegistroConTodosSusDatos() {
+        RegistroEntity entidad = dadoUnaEntidadDeRegistroConFoto();
 
-        Registro result = mapper.toDomain(entity);
+        Registro registro = cuandoSeConvierteEnRegistro(entidad);
 
-        assertThat(result.getId()).isEqualTo(ID);
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(result.getBloqueId()).isEqualTo(BLOQUE_ID);
-        assertThat(result.getValores()).isEqualTo(VALORES);
-        assertThat(result.getFotoOrigenId()).isEqualTo(FOTO_ID);
-        assertThat(result.getCreadoEn()).isEqualTo(CREADO);
-        assertThat(result.getActualizadoEn()).isEqualTo(ACTUALIZADO);
+        entoncesElRegistroTieneTodosLosDatosDeLaEntidad(registro);
     }
 
     @Test
     @DisplayName("Pasa todos los campos del modelo a la entidad")
-    void toEntityShouldMapEveryField() {
-        Registro registro = Registro.builder()
+    void unRegistroSeGuardaConTodosSusDatos() {
+        Registro registro = dadoUnRegistroConFoto();
+
+        RegistroEntity entidad = cuandoSeConvierteEnEntidad(registro);
+
+        entoncesLaEntidadTieneTodosLosDatosDelRegistro(entidad);
+    }
+
+    @Test
+    @DisplayName("Una entidad vacía se mapea a un modelo con valores nulos")
+    void unaEntidadVaciaSeLeeComoRegistroConValoresNulos() {
+        RegistroEntity entidad = dadoUnaEntidadVacia();
+
+        Registro registro = cuandoSeConvierteEnRegistro(entidad);
+
+        entoncesElRegistroNoTieneIdNiValoresNiFoto(registro);
+    }
+
+    // --- dado ---
+    private RegistroEntity dadoUnaEntidadDeRegistroConFoto() {
+        return unaEntidadDeRegistroConFoto();
+    }
+
+    private Registro dadoUnRegistroConFoto() {
+        return Registro.builder()
                 .id(ID)
                 .negocioId(NEGOCIO_ID)
                 .bloqueId(BLOQUE_ID)
@@ -62,12 +72,14 @@ class RegistroRepositoryMapperTest {
                 .creadoEn(CREADO)
                 .actualizadoEn(ACTUALIZADO)
                 .build();
+    }
 
-        RegistroEntity result = mapper.toEntity(registro);
+    private RegistroEntity dadoUnaEntidadVacia() {
+        return new RegistroEntity();
+    }
 
-        assertThat(result).usingRecursiveComparison()
-                .withEqualsForFieldsMatchingRegexes(IdsDePrueba::mismoValor, IdsDePrueba.CAMPOS_DE_ID)
-                .isEqualTo(RegistroEntity.builder()
+    private RegistroEntity unaEntidadDeRegistroConFoto() {
+        return RegistroEntity.builder()
                 .id(ID.valor())
                 .negocioId(NEGOCIO_ID.valor())
                 .bloqueId(BLOQUE_ID.valor())
@@ -75,16 +87,38 @@ class RegistroRepositoryMapperTest {
                 .fotoOrigenId(FOTO_ID.valor())
                 .creadoEn(CREADO)
                 .actualizadoEn(ACTUALIZADO)
-                .build());
+                .build();
     }
 
-    @Test
-    @DisplayName("Una entidad vacía se mapea a un modelo con valores nulos")
-    void toDomainShouldKeepNullsWhenEntityIsEmpty() {
-        Registro result = mapper.toDomain(new RegistroEntity());
+    // --- cuando ---
+    private Registro cuandoSeConvierteEnRegistro(RegistroEntity entidad) {
+        return mapper.toDomain(entidad);
+    }
 
-        assertThat(result.getId()).isNull();
-        assertThat(result.getValores()).isNull();
-        assertThat(result.getFotoOrigenId()).isNull();
+    private RegistroEntity cuandoSeConvierteEnEntidad(Registro registro) {
+        return mapper.toEntity(registro);
+    }
+
+    // --- entonces ---
+    private void entoncesElRegistroTieneTodosLosDatosDeLaEntidad(Registro registro) {
+        assertThat(registro.getId()).isEqualTo(ID);
+        assertThat(registro.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(registro.getBloqueId()).isEqualTo(BLOQUE_ID);
+        assertThat(registro.getValores()).isEqualTo(VALORES);
+        assertThat(registro.getFotoOrigenId()).isEqualTo(FOTO_ID);
+        assertThat(registro.getCreadoEn()).isEqualTo(CREADO);
+        assertThat(registro.getActualizadoEn()).isEqualTo(ACTUALIZADO);
+    }
+
+    private void entoncesLaEntidadTieneTodosLosDatosDelRegistro(RegistroEntity entidad) {
+        assertThat(entidad).usingRecursiveComparison()
+                .withEqualsForFieldsMatchingRegexes(IdsDePrueba::mismoValor, IdsDePrueba.CAMPOS_DE_ID)
+                .isEqualTo(unaEntidadDeRegistroConFoto());
+    }
+
+    private void entoncesElRegistroNoTieneIdNiValoresNiFoto(Registro registro) {
+        assertThat(registro.getId()).isNull();
+        assertThat(registro.getValores()).isNull();
+        assertThat(registro.getFotoOrigenId()).isNull();
     }
 }

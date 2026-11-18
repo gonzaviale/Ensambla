@@ -31,6 +31,7 @@ type Props = {
   textoVolver?: string;
   /** Los registros que se cargaron en este armado: van primero y resaltados. */
   nuevas?: ReadonlySet<string>;
+  onEscanear?: () => void;
 };
 
 const SIN_NUEVAS: ReadonlySet<string> = new Set();
@@ -41,8 +42,9 @@ export function TablaCompleta({
   bloque,
   sistema,
   onRegistro,
-  textoVolver = 'Volver al cuaderno',
+  textoVolver = 'Volver a la sección',
   nuevas = SIN_NUEVAS,
+  onEscanear,
 }: Props) {
   const verTablaCompleta = useSistemaStore((estado) => estado.verTablaCompleta);
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
@@ -152,6 +154,11 @@ export function TablaCompleta({
           <Btn cls="soft small" onClick={() => registrar(null)}>
             <Icon name="plus" /> Registrar
           </Btn>
+          {onEscanear && (
+            <Btn cls="primary small" onClick={onEscanear}>
+              <Icon name="camera" /> Escanear productos
+            </Btn>
+          )}
           <Btn cls="secondary small" data-tabla-completa-volver="true" onClick={cerrar}>
             <Icon name="back" /> {textoVolver}
           </Btn>
@@ -219,7 +226,9 @@ export function TablaCompleta({
                           : ''
                       }
                     >
-                      {indice === 0 && nuevas.has(fila.id) && <em className="nuevo-badge">Nuevo</em>}
+                      {indice === 0 && nuevas.has(fila.id) && (
+                        <em className="nuevo-badge">Nuevo</em>
+                      )}
                       <ValorDeCampo sistema={sistema} campo={campo} valor={fila[campo.key]} />
                     </td>
                   ))}

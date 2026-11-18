@@ -37,7 +37,7 @@ const abrirTaller = async () => {
 };
 
 const foto = (contenido: BlobPart = 'pixeles', tipo = 'image/jpeg') =>
-  new File([contenido], 'cuaderno.jpg', { type: tipo });
+  new File([contenido], 'sistema.jpg', { type: tipo });
 
 /** Elige la foto con el botón de la cámara, que abre el selector de archivos. */
 const adjuntar = async (user: Usuario, archivo: File = foto()) => {
@@ -188,7 +188,7 @@ describe('una foto para Sami en el taller', () => {
   it('con el Sami simulado, lo leído de la foto queda como registros reales al crear el sistema', async () => {
     const { user, router } = await abrirTaller();
     await clickButton(user, /Almacén o kiosco/);
-    await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA);
+    await screen.findByLabelText('Nombre de tu sección', {}, ESPERA);
 
     await adjuntar(user);
     await screen.findByRole('img', { name: 'La foto que vas a mandar a Sami' });
@@ -207,7 +207,7 @@ describe('una foto para Sami en el taller', () => {
       'Ojo: no alcanzó el stock de Vela lavanda, Vela vainilla y Vela flotante; quedaron en 0.',
     );
 
-    await clickButton(user, /Sí, crear mi cuaderno/);
+    await clickButton(user, /Sí, crear mi sección/);
 
     await waitFor(() => expect(useSistemaStore.getState().sistemas).toHaveLength(1), ESPERA);
     const [sistema] = useSistemaStore.getState().sistemas;
@@ -234,7 +234,7 @@ describe('una foto para Sami en el taller', () => {
   it('Sami corrige un registro que leyó de la foto sin volver a cargarlo', async () => {
     const { user } = await abrirTaller();
     await clickButton(user, /Almacén o kiosco/);
-    await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA);
+    await screen.findByLabelText('Nombre de tu sección', {}, ESPERA);
     await adjuntar(user);
     await screen.findByRole('img', { name: 'La foto que vas a mandar a Sami' });
     await clickButton(user, /Ajustalo conmigo/);
@@ -309,7 +309,7 @@ describe('una foto para Sami en el taller', () => {
   it('si la persona no quiere sumarlos, las ventas quedan sin vincular y no se crea nada', async () => {
     const { user } = await abrirTaller();
     await clickButton(user, /Almacén o kiosco/);
-    await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA);
+    await screen.findByLabelText('Nombre de tu sección', {}, ESPERA);
     await adjuntar(user);
     await screen.findByRole('img', { name: 'La foto que vas a mandar a Sami' });
     await clickButton(user, /Ajustalo conmigo/);
@@ -361,7 +361,7 @@ describe('una foto para Sami en el taller', () => {
   it('suelta un aviso por vez: primero las dudas de a una y recién después la tarjeta de los vínculos nuevos', async () => {
     const { user } = await abrirTaller();
     await clickButton(user, /Almacén o kiosco/);
-    await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA);
+    await screen.findByLabelText('Nombre de tu sección', {}, ESPERA);
     await adjuntar(user);
     await screen.findByRole('img', { name: 'La foto que vas a mandar a Sami' });
     await clickButton(user, /Ajustalo conmigo/);

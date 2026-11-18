@@ -7,7 +7,7 @@ export function RegistroPage() {
   return (
     <AuthCard
       title="Creá tu cuenta"
-      lead="Empezá a armar el cuaderno de tu negocio."
+      lead="Empezá a armar tu negocio en Ensambla."
       saludoSami="¡Hola, soy Sami!"
       conEslogan
       footer={

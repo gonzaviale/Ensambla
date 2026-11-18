@@ -3,16 +3,13 @@ import { SamiFlotante } from '@/components/sistema/avisos/SamiFlotante';
 import { TarjetaDeImpacto } from '@/components/sistema/avisos/TarjetaDeImpacto';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
-import { useSistemaStore } from '@/stores/sistemaStore';
+import { seleccionarNegocioActivo, useSistemaStore } from '@/stores/sistemaStore';
 
 // La pestaña «Avisos»: lo que Sami encontró en tus datos, con más lugar que el panel lateral de antes.
 export function AvisosPage() {
   useTituloPagina('Avisos de Sami');
-  // El chat flotante habla del cuaderno que se estaba usando (o, si no hay, del primero).
-  const sistemaDelChat = useSistemaStore(
-    (estado) =>
-      estado.sistemas.find((item) => item.id === estado.activeId)?.id ?? estado.sistemas[0]?.id,
-  );
+  // El chat flotante habla del negocio con que se está trabajando.
+  const sistemaDelChat = useSistemaStore((estado) => seleccionarNegocioActivo(estado)?.id);
   return (
     <>
       <CabeceraComun active="avisos" />
