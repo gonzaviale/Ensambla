@@ -1,5 +1,8 @@
-import { pesos, type AccionDeAviso, type Aviso, type TipoDeAviso } from '@/lib/sistema/alertas';
+import type { AccionDeAviso, Aviso, TipoDeAviso } from '@/lib/sistema/alertas';
 import type { NombreDeIcono } from '@/lib/sistema/iconos';
+import { comportamientoDeAviso, type DatoDelAviso } from './comportamientoDeAviso';
+
+export type { DatoDelAviso };
 
 export const ICONO_DE_AVISO: Record<TipoDeAviso, NombreDeIcono> = {
   stock: 'box',
@@ -29,65 +32,26 @@ export function textoDeAccion(accion: AccionDeAviso) {
   return accion.texto;
 }
 
-const numero = (valor: unknown) => {
-  const convertido = typeof valor === 'string' ? Number(valor) : valor;
-  return typeof convertido === 'number' && Number.isFinite(convertido) ? convertido : undefined;
-};
-
-export type DatoDelAviso = { etiqueta: string; valor: string; tono?: 'bueno' | 'malo' };
-
 /** Los números del aviso listos para mostrar. Vacío cuando el aviso no los trae (los calculados en el navegador). */
 export function datosDelAviso(aviso: Aviso): DatoDelAviso[] {
-  const datos = aviso.datos ?? {};
-  if (aviso.tipo === 'stock') {
-    const cantidad = numero(datos.cantidad);
-    const minimo = numero(datos.minimo);
-    if (cantidad === undefined) return [];
-    return [
-      { etiqueta: 'Te quedan', valor: `${cantidad} u.`, tono: 'malo' },
-      ...(minimo ? [{ etiqueta: 'Tu mínimo', valor: `${minimo} u.` }] : []),
-    ];
-  }
-  if (aviso.tipo === 'estancado') {
-    const precio = numero(datos.precio);
-    const sugerido = numero(datos.sugerido);
-    if (precio === undefined || sugerido === undefined) return [];
-    const baja = precio > 0 ? Math.round(((precio - sugerido) / precio) * 100) : 0;
-    return [
-      { etiqueta: 'Lo tenés a', valor: pesos(precio), tono: 'malo' },
-      { etiqueta: 'Precio sugerido', valor: pesos(sugerido), tono: 'bueno' },
-      ...(baja > 0 ? [{ etiqueta: 'Rebaja', valor: `${baja} %` }] : []),
-    ];
-  }
-  if (aviso.tipo === 'revisar_precio') {
-    const anterior = numero(datos.precioAnterior);
-    const nuevo = numero(datos.precioNuevo);
-    if (anterior === undefined || nuevo === undefined) return [];
-    return [
-      { etiqueta: 'Precio anterior', valor: pesos(anterior), tono: 'bueno' },
-      { etiqueta: 'Precio actual', valor: pesos(nuevo), tono: 'malo' },
-    ];
-  }
-  return [];
+  return comportamientoDeAviso(aviso.tipo).datos(aviso);
 }
 
 /** Qué se propone hacer, en una línea y con números cuando se conocen. */
 export function propuestaDelAviso(aviso: Aviso): string | undefined {
-  const accion = aviso.acciones[0];
-  if (!accion) return undefined;
-  const datos = aviso.datos ?? {};
-  if (aviso.tipo === 'estancado') {
-    const precio = numero(datos.precio);
-    const sugerido = numero(datos.sugerido);
-    if (precio !== undefined && sugerido !== undefined) {
-      return `Bajar el precio de ${pesos(precio)} a ${pesos(sugerido)}`;
-    }
-  }
-  if (aviso.tipo === 'stock') {
-    const pedir = /(?:pedí|pedir) ([^.]+?)(?: para [^.]+)?\./.exec(aviso.detalle)?.[1];
-    if (pedir) return `Te conviene pedir ${pedir}`;
-  }
-  return accion.texto;
+  if (!aviso.acciones[0]) return undefined;
+  return comportamientoDeAviso(aviso.tipo).propuesta(aviso);
+}
+
+/** Si hay algo más que contar que lo que ya dice la fila: es lo que decide si se ofrece «Ver por qué». */
+export function tieneDetalle(aviso: Aviso) {
+  const [, ...secundarias] = aviso.acciones;
+  return Boolean(
+    restoDelAviso(aviso.detalle) ||
+    datosDelAviso(aviso).length ||
+    razonDelAviso(aviso) ||
+    secundarias.length,
+  );
 }
 
 /** «hoy», «ayer» o «hace N días», para saber cuánto hace que el motor lo detectó. */
@@ -146,45 +110,25 @@ export function razonDelAviso(aviso: Aviso): string | undefined {
 
 export type GrupoDeAvisos = { clave: string; avisos: Aviso[] };
 
-/** Junta los avisos del mismo tipo y nivel, de cualquier negocio, para que no se amontonen hacia abajo. */
+/** Junta los avisos del mismo tipo y nivel, de cualquier negocio, y pone primero los más urgentes. */
 export function agruparAvisos(avisos: Aviso[]): GrupoDeAvisos[] {
   const grupos = new Map<string, Aviso[]>();
   for (const aviso of avisos) {
     const clave = `${aviso.tipo}:${aviso.prioridad}`;
     grupos.set(clave, [...(grupos.get(clave) ?? []), aviso]);
   }
-  return [...grupos].map(([clave, juntos]) => ({ clave, avisos: juntos }));
+  return [...grupos]
+    .map(([clave, juntos]) => ({ clave, avisos: juntos }))
+    .sort((a, b) => prioridadDelGrupo(b) - prioridadDelGrupo(a));
+}
+
+function prioridadDelGrupo(grupo: GrupoDeAvisos) {
+  return grupo.avisos[0]?.prioridad ?? 0;
 }
 
 /** El título de varios avisos juntos: el número va adelante («5 productos bajo el mínimo»). */
 export function tituloDeGrupo(tipo: TipoDeAviso, prioridad: number, cantidad: number) {
-  const cuantos = (uno: string, varios: string) => `${cantidad} ${cantidad === 1 ? uno : varios}`;
-  switch (tipo) {
-    case 'stock':
-      return prioridad === 3
-        ? cuantos('producto sin stock', 'productos sin stock')
-        : cuantos('producto bajo el mínimo', 'productos bajo el mínimo');
-    case 'precio_zona':
-      return prioridad === 2
-        ? cuantos('producto casi al costo', 'productos casi al costo')
-        : cuantos(
-            'producto con precio distinto al de la zona',
-            'productos con precio distinto al de la zona',
-          );
-    case 'estancado':
-      return cuantos('producto caro que no se mueve', 'productos caros que no se mueven');
-    case 'muy_vendido':
-      return cuantos(
-        'producto muy vendido con precio bajo',
-        'productos muy vendidos con precio bajo',
-      );
-    case 'combo':
-      return cuantos('combo para armar', 'combos para armar');
-    case 'consumo_zona':
-      return cuantos('producto de la zona que no tenés', 'productos de la zona que no tenés');
-    case 'revisar_precio':
-      return cuantos('precio para revisar', 'precios para revisar');
-  }
+  return comportamientoDeAviso(tipo).titulo(cantidad, prioridad);
 }
 
 /** La primera idea del aviso, en una línea o línea y media: el resto queda en «Ver por qué». */

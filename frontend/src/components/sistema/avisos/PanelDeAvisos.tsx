@@ -6,11 +6,8 @@ import { useAccionesDeAvisos } from '@/hooks/avisos/useAccionesDeAvisos';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useZona } from '@/hooks/zona/queries';
 import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
-import { Btn } from '../Btn';
 import { Icon } from '../Icon';
-import { TarjetaDeAviso } from './TarjetaDeAviso';
-import { TarjetaDeGrupo } from './TarjetaDeGrupo';
-import { agruparAvisos } from './presentacion';
+import { ListaDeAvisos } from './ListaDeAvisos';
 import { InvitacionConfigurarComercio } from '../ubicacion/InvitacionConfigurarComercio';
 import { useFaltaConfiguracionNegocio } from '@/hooks/negocio/queries';
 
@@ -100,15 +97,6 @@ export function PanelDeAvisos() {
       panel.filtro === 'todas' ||
       (panel.filtro === 'urgentes' ? aviso.prioridad >= 2 : aviso.grupo === panel.filtro),
   );
-  // Los grupos abiertos se recuerdan acá: si se borra un aviso, el grupo sigue abierto aunque quede uno solo.
-  const grupos = agruparAvisos(lista);
-  const [abiertos, setAbiertos] = useState<ReadonlySet<string>>(new Set());
-  const [focoAtendido, setFocoAtendido] = useState(panel.foco);
-  if (panel.foco !== focoAtendido) {
-    setFocoAtendido(panel.foco);
-    const delFoco = grupos.find((grupo) => grupo.avisos.some((aviso) => aviso.id === panel.foco));
-    if (delFoco) setAbiertos(new Set([...abiertos, delFoco.clave]));
-  }
   // Al descartar, la pantalla se queda donde estaba aunque la lista se achique o se vuelva a pedir.
   const posicion = useRef<{ y: number; hasta: number } | null>(null);
   const descartarSinSaltar = (aviso: Aviso) => {
@@ -121,11 +109,6 @@ export function PanelDeAvisos() {
       window.scrollTo({ top: guardada.y });
     }
   }, [avisos]);
-  const alternarGrupo = (clave: string) => {
-    const siguiente = new Set(abiertos);
-    if (!siguiente.delete(clave)) siguiente.add(clave);
-    setAbiertos(siguiente);
-  };
   const hayDemo = sistemas.some((sistema) => sistema.demoAlmacen);
   const sinDatos = !sistemas.some((sistema) =>
     sistema.sections.some((seccion) => seccion.blocks.some((bloque) => bloque.rows.length)),
@@ -252,61 +235,16 @@ export function PanelDeAvisos() {
           </ul>
         </aside>
       )}
-      <div className="alertas-lista">
-        {lista.length ? (
-          grupos.map(({ clave, avisos: juntos }) =>
-            juntos.length > 1 || abiertos.has(clave) ? (
-              <TarjetaDeGrupo
-                key={clave}
-                avisos={juntos}
-                foco={panel.foco}
-                abierto={abiertos.has(clave)}
-                onAlternar={() => alternarGrupo(clave)}
-                onAccion={acciones.ejecutar}
-                onDescartar={descartarSinSaltar}
-              />
-            ) : (
-              juntos.map((aviso) => (
-                <TarjetaDeAviso
-                  key={aviso.id}
-                  aviso={aviso}
-                  enfocado={panel.foco === aviso.id}
-                  onAccion={acciones.ejecutar}
-                  onDescartar={descartarSinSaltar}
-                />
-              ))
-            ),
-          )
-        ) : (
-          <div className={sinDatos ? 'alertas-vacio' : 'alertas-vacio ok'}>
-            {!sinDatos && (
-              <img className="alertas-vacio-img" src="/mockup/sami-guino.webp" alt="" />
-            )}
-            {sinDatos ? (
-              <>
-                <h3>Todavía no tengo datos para mirar.</h3>
-                <p>
-                  Cuando cargues stock, ventas o precios, te aviso lo que necesita atención y lo
-                  comparo con los datos de tu zona.
-                </p>
-                {!hayDemo && (
-                  <Btn cls="primary" onClick={acciones.crearDemo}>
-                    Probar con un almacén de ejemplo
-                  </Btn>
-                )}
-              </>
-            ) : (
-              <>
-                <h3>{panel.filtro === 'todas' ? 'Todo en orden.' : 'Nada en esta categoría.'}</h3>
-                <p>
-                  Sigo mirando tu stock, tus ventas y los precios de tu zona. Si algo cambia, te
-                  aviso.
-                </p>
-              </>
-            )}
-          </div>
-        )}
-      </div>
+      <ListaDeAvisos
+        avisos={lista}
+        foco={panel.foco}
+        filtro={panel.filtro}
+        sinDatos={sinDatos}
+        hayDemo={hayDemo}
+        onAccion={acciones.ejecutar}
+        onDescartar={descartarSinSaltar}
+        onCrearDemo={acciones.crearDemo}
+      />
       <p className="alertas-aclaracion">
         Los datos de tu zona vienen de varios comercios juntos: nadie queda identificado.
       </p>

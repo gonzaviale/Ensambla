@@ -1,167 +1,152 @@
-import { useEffect, useId, useState } from 'react';
 import type { AccionDeAviso, Aviso } from '@/lib/sistema/alertas';
+import { useDescarteSuave } from '@/hooks/avisos/useDescarteSuave';
+import { useSistemaStore } from '@/stores/sistemaStore';
 import { Icon } from '../Icon';
 import {
   cuandoSeDetecto,
-  datosDelAviso,
   ICONO_DE_AVISO,
-  NIVEL_DE_AVISO,
-  NOMBRE_DE_TIPO,
   propuestaDelAviso,
-  razonDelAviso,
-  restoDelAviso,
   resumenDelAviso,
   textoDeAccion,
+  tieneDetalle,
 } from './presentacion';
-
-/** Lo que dura el desvanecido de una tarjeta descartada, en milisegundos (el mismo número va en el CSS). */
-const DURACION_DEL_DESVANECIDO = 280;
 
 type Props = {
   aviso: Aviso;
   enfocado?: boolean;
-  /** Dentro de un grupo el tipo y el nivel ya están en el título del grupo: no se repiten. */
-  enGrupo?: boolean;
-  /** Dentro de un grupo con varios negocios, para saber de cuál es cada aviso. */
+  /** Con avisos de varios negocios juntos, cada fila dice de cuál es. */
   conNegocio?: boolean;
   onAccion: (accion: AccionDeAviso) => void;
   onDescartar: (aviso: Aviso) => void;
 };
 
-// Un aviso: ícono y color del tipo, cuándo se detectó, qué pasa en una línea, el botón para resolverlo y, si se abre, por qué.
+// Un aviso en una fila: qué pasa, el botón para resolverlo y, si hay más para contar, un ojo que abre el porqué.
 export function TarjetaDeAviso({
   aviso,
   enfocado = false,
-  enGrupo = false,
   conNegocio = false,
-  onAccion,
-  onDescartar,
+  ...acciones
 }: Props) {
-  const [abierto, setAbierto] = useState(enfocado);
-  const [saliendo, setSaliendo] = useState(false);
-  const idDetalle = useId();
-  const [principal, ...otras] = aviso.acciones;
-  const propuesta = propuestaDelAviso(aviso);
-  const datos = datosDelAviso(aviso);
-  const detectado = cuandoSeDetecto(aviso.creadoEn);
-  const resto = restoDelAviso(aviso.detalle);
-  const razon = razonDelAviso(aviso);
-  const resumen = resumenDelAviso(aviso.detalle);
-
-  // Si se llega desde la campana o el toast, el aviso se abre solo para dar contexto.
-  useEffect(() => {
-    if (enfocado) setAbierto(true);
-  }, [enfocado]);
-
-  // Al descartar, la tarjeta se desvanece despacio y recién después se quita. Sin animación si la persona la desactivó.
-  const descartar = () => {
-    const sinAnimacion =
-      typeof window.matchMedia !== 'function' ||
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (sinAnimacion) return onDescartar(aviso);
-    setSaliendo(true);
-    setTimeout(() => onDescartar(aviso), DURACION_DEL_DESVANECIDO);
-  };
+  const descarte = useDescarteSuave(() => acciones.onDescartar(aviso));
+  const verDetalle = useVerDetalleDeAviso(aviso, acciones.onAccion);
 
   return (
     <article
-      className={`alerta p${aviso.prioridad} ${enfocado ? 'foco' : ''} ${saliendo ? 'saliendo' : ''}`.trim()}
+      className={claseDeFila(aviso, enfocado, descarte.saliendo)}
       data-alerta={aviso.id}
       data-tipo={aviso.tipo}
     >
-      <div className="alerta-cabeza">
-        <span className="alerta-icono">
-          <Icon name={ICONO_DE_AVISO[aviso.tipo]} />
-        </span>
-        <div className="alerta-cuerpo">
-          <div className="alerta-meta">
-            {detectado && (
-              <span className="alerta-reloj">
-                <Icon name="clock" />
-                {detectado}
-              </span>
-            )}
-            {!enGrupo && (
-              <>
-                <span className="alerta-tipo">{NOMBRE_DE_TIPO[aviso.tipo]}</span>
-                <span className="alerta-nivel">{NIVEL_DE_AVISO[aviso.prioridad]}</span>
-              </>
-            )}
-            <span className="alerta-sistema">{aviso.sistema}</span>
-            {conNegocio && <span className="alerta-negocio">{aviso.sistema}</span>}
-          </div>
-          <h3>{aviso.titulo}</h3>
-          <p className="alerta-resumen">{resumen}</p>
-          {propuesta && principal && propuesta !== principal.texto && (
-            <p className="alerta-propuesta-linea">
-              <Icon name="arrow" />
-              {propuesta}
-            </p>
-          )}
-        </div>
-        <button
-          type="button"
-          className="alerta-descartar"
-          aria-label="Descartar"
-          title="Descartar"
-          disabled={saliendo}
-          onClick={descartar}
-        >
-          <Icon name="trash" />
-        </button>
+      <span className="aviso-fila-icono">
+        <Icon name={ICONO_DE_AVISO[aviso.tipo]} />
+      </span>
+      <CuerpoDeAviso aviso={aviso} conNegocio={conNegocio} />
+      <div className="aviso-fila-acciones">
+        <AccionPrincipal aviso={aviso} onAccion={acciones.onAccion} />
+        <BotonVerPorQue aviso={aviso} onVer={verDetalle} />
+        <BotonDescartar deshabilitado={descarte.saliendo} onDescartar={descarte.descartar} />
       </div>
-      <div className="alerta-pie">
-        {principal && (
-          <button type="button" className="btn petrol small" onClick={() => onAccion(principal)}>
-            {textoDeAccion(principal)}
-          </button>
-        )}
-        <button
-          type="button"
-          className="alerta-ver"
-          aria-expanded={abierto}
-          aria-controls={idDetalle}
-          onClick={() => setAbierto((valor) => !valor)}
-        >
-          {abierto ? 'Ocultar el detalle' : 'Ver por qué'}
-          <Icon name="arrow" />
-        </button>
-      </div>
-      {abierto && (
-        <div className="alerta-detalle" id={idDetalle}>
-          {resto && <p className="alerta-completo">{resto}</p>}
-          {datos.length > 0 && (
-            <dl className="alerta-datos">
-              {datos.map((dato) => (
-                <div key={dato.etiqueta} data-tono={dato.tono}>
-                  <dt>{dato.etiqueta}</dt>
-                  <dd>{dato.valor}</dd>
-                </div>
-              ))}
-            </dl>
-          )}
-          {razon && (
-            <>
-              <h4>Por qué de este aviso</h4>
-              <p className="alerta-razon">{razon}</p>
-            </>
-          )}
-          {otras.length > 0 && (
-            <div className="alerta-acciones">
-              {otras.map((accion, indice) => (
-                <button
-                  key={`${accion.tipo}-${indice}`}
-                  type="button"
-                  className="btn secondary small"
-                  onClick={() => onAccion(accion)}
-                >
-                  {textoDeAccion(accion)}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </article>
+  );
+}
+
+const claseDeFila = (aviso: Aviso, enfocado: boolean, saliendo: boolean) =>
+  ['aviso-fila', `p${aviso.prioridad}`, enfocado && 'foco', saliendo && 'saliendo']
+    .filter(Boolean)
+    .join(' ');
+
+function useVerDetalleDeAviso(aviso: Aviso, onAccion: (accion: AccionDeAviso) => void) {
+  const abrirModal = useSistemaStore((estado) => estado.abrirModal);
+  return () => abrirModal({ tipo: 'detalleDeAviso', avisoId: aviso.id, onAccion });
+}
+
+function CuerpoDeAviso({ aviso, conNegocio }: { aviso: Aviso; conNegocio: boolean }) {
+  return (
+    <div className="aviso-fila-cuerpo">
+      <h3>{aviso.titulo}</h3>
+      <LineaDeApoyo aviso={aviso} conNegocio={conNegocio} />
+    </div>
+  );
+}
+
+function LineaDeApoyo({ aviso, conNegocio }: { aviso: Aviso; conNegocio: boolean }) {
+  const detectado = cuandoSeDetecto(aviso.creadoEn);
+  return (
+    <p className="aviso-fila-linea">
+      <span className="aviso-fila-resumen">{resumenDelAviso(aviso.detalle)}</span>
+      <Propuesta aviso={aviso} />
+      {detectado && <Detectado texto={detectado} />}
+      {conNegocio && <span className="aviso-fila-negocio">{aviso.sistema}</span>}
+    </p>
+  );
+}
+
+const Detectado = ({ texto }: { texto: string }) => (
+  <span className="aviso-fila-reloj">
+    <Icon name="clock" />
+    {texto}
+  </span>
+);
+
+function Propuesta({ aviso }: { aviso: Aviso }) {
+  const [principal] = aviso.acciones;
+  const propuesta = propuestaDelAviso(aviso);
+  if (!propuesta || propuesta === principal?.texto) return null;
+  return (
+    <span className="aviso-fila-propuesta">
+      <Icon name="arrow" />
+      {propuesta}
+    </span>
+  );
+}
+
+function AccionPrincipal({
+  aviso,
+  onAccion,
+}: {
+  aviso: Aviso;
+  onAccion: (accion: AccionDeAviso) => void;
+}) {
+  const [principal] = aviso.acciones;
+  if (!principal) return null;
+  return (
+    <button type="button" className="btn petrol small" onClick={() => onAccion(principal)}>
+      {textoDeAccion(principal)}
+    </button>
+  );
+}
+
+function BotonVerPorQue({ aviso, onVer }: { aviso: Aviso; onVer: () => void }) {
+  if (!tieneDetalle(aviso)) return null;
+  return (
+    <button
+      type="button"
+      className="aviso-fila-ver"
+      aria-label="Ver por qué"
+      title="Ver por qué"
+      onClick={onVer}
+    >
+      <Icon name="eye" />
+    </button>
+  );
+}
+
+function BotonDescartar({
+  deshabilitado,
+  onDescartar,
+}: {
+  deshabilitado: boolean;
+  onDescartar: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="aviso-fila-descartar"
+      aria-label="Descartar"
+      title="Descartar"
+      disabled={deshabilitado}
+      onClick={onDescartar}
+    >
+      <Icon name="trash" />
+    </button>
   );
 }
