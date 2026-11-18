@@ -61,172 +61,172 @@ class IMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
 
     @BeforeEach
     void setUp() {
-        negocioA = givenNegocio("a@example.com").getId();
-        negocioB = givenNegocio("b@example.com").getId();
-        objetivoA = givenObjetivo(negocioA);
-        objetivoB = givenObjetivo(negocioB);
+        negocioA = dadoNegocio("a@example.com").getId();
+        negocioB = dadoNegocio("b@example.com").getId();
+        objetivoA = dadoObjetivo(negocioA);
+        objetivoB = dadoObjetivo(negocioB);
     }
 
     @Test
     @DisplayName("Guarda y relee el mini-objetivo con todos sus datos")
-    void saveShouldRoundTripEveryField() {
-        givenUnMiniReemplazadoConProductoYTextoDeIa();
+    void guardaYReleeElMiniObjetivoConTodosSusDatos() {
+        dadoUnMiniReemplazadoConProductoYTextoDeIa();
 
-        whenSeLeeElMini();
+        cuandoSeLeeElMini();
 
-        thenSeRelenTodosLosDatos();
+        entoncesSeRelenTodosLosDatos();
     }
 
     @Test
     @DisplayName("Lista sólo los del objetivo del negocio, del más viejo al más nuevo y, a igualdad, por posición")
-    void findAllShouldFilterAndOrder() {
-        givenTresMinisDeAYUnoDeB();
+    void listaSoloLosDelObjetivoDelNegocioDelMasViejoAlMasNuevoYAIgualdadPorPosicion() {
+        dadoTresMinisDeAYUnoDeB();
 
-        whenSeListanLosMinisDeA();
+        cuandoSeListanLosMinisDeA();
 
-        thenSeListanEnElOrdenEsperado();
+        entoncesSeListanEnElOrdenEsperado();
     }
 
     @Test
     @DisplayName("No devuelve un mini-objetivo de otro negocio ni de otro objetivo")
-    void findByIdShouldBeScopedToObjetivoAndNegocio() {
-        givenUnMiniEnCurso(objetivoA, negocioA, 1);
+    void noDevuelveUnMiniObjetivoDeOtroNegocioNiDeOtroObjetivo() {
+        dadoUnMiniEnCurso(objetivoA, negocioA, 1);
 
-        whenSeBuscaElMiniEnOtroNegocioYEnOtroObjetivo();
+        cuandoSeBuscaElMiniEnOtroNegocioYEnOtroObjetivo();
 
-        thenNoSeEncuentraEnNingunLado();
+        entoncesNoSeEncuentraEnNingunLado();
     }
 
     @Test
     @DisplayName("Un lugar lo ocupa uno solo en curso: el segundo en la misma posición se rechaza")
     void shouldRejectTwoInProgressInTheSamePlace() {
-        givenUnMiniEnCurso(objetivoA, negocioA, 1);
+        dadoUnMiniEnCurso(objetivoA, negocioA, 1);
 
-        whenSeGuardaConError(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO);
+        cuandoSeGuardaConError(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO);
 
-        thenLaBaseLoRechaza();
+        entoncesLaBaseLoRechaza();
     }
 
     @Test
     @DisplayName("Los que ya no están en curso no ocupan lugar: pueden compartir la posición con uno en curso")
     void shouldAllowHistoryInTheSamePlaceAsOneInProgress() {
-        givenUnoReemplazadoUnoLogradoYUnoEnCursoEnLaMismaPosicion();
+        dadoUnoReemplazadoUnoLogradoYUnoEnCursoEnLaMismaPosicion();
 
-        whenSeListanLosMinisDeA();
+        cuandoSeListanLosMinisDeA();
 
-        thenHayMinis(3);
+        entoncesHayMinis(3);
     }
 
     @Test
     @DisplayName("Otro objetivo puede usar la misma posición")
     void shouldAllowTheSamePlaceInAnotherObjetivo() {
-        givenUnMiniEnCurso(objetivoA, negocioA, 1);
+        dadoUnMiniEnCurso(objetivoA, negocioA, 1);
 
-        whenSeGuardaUnMiniEnCursoEn(objetivoB, negocioB, 1);
+        cuandoSeGuardaUnMiniEnCursoEn(objetivoB, negocioB, 1);
 
-        thenHayMinisEnLaBase(2);
+        entoncesHayMinisEnLaBase(2);
     }
 
     @Test
     @DisplayName("La base rechaza una posición fuera de 1 a 3")
     void shouldRejectAPositionOutOfRange() {
-        whenSeGuardaConError(objetivoA, negocioA, POSICION_FUERA_DE_RANGO, EstadoMiniObjetivo.EN_CURSO);
+        cuandoSeGuardaConError(objetivoA, negocioA, POSICION_FUERA_DE_RANGO, EstadoMiniObjetivo.EN_CURSO);
 
-        thenLaBaseLoRechaza();
+        entoncesLaBaseLoRechaza();
     }
 
     @Test
     @DisplayName("La base rechaza un texto en blanco")
     void shouldRejectABlankTitle() {
-        whenSeGuardaConTituloEnBlanco();
+        cuandoSeGuardaConTituloEnBlanco();
 
-        thenLaBaseLoRechaza();
+        entoncesLaBaseLoRechaza();
     }
 
     @Test
     @DisplayName("Guarda y relee un mini-objetivo manual sin métrica ni números")
-    void saveShouldRoundTripAManualMiniObjetivo() {
-        whenSeGuardaYSeLeeUnManual();
+    void guardaYReleeUnMiniObjetivoManualSinMetricaNiNumeros() {
+        cuandoSeGuardaYSeLeeUnManual();
 
-        thenElManualNoTieneMetricaNiNumeros();
+        entoncesElManualNoTieneMetricaNiNumeros();
     }
 
     @Test
     @DisplayName("La base acepta las métricas nuevas sin producto")
-    void saveShouldAcceptTheNewMetrics() {
-        whenSeGuardanLasMetricasNuevas();
+    void laBaseAceptaLasMetricasNuevasSinProducto() {
+        cuandoSeGuardanLasMetricasNuevas();
 
-        thenSeGuardanLasMetricasNuevas();
+        entoncesSeGuardanLasMetricasNuevas();
     }
 
     @Test
     @DisplayName("Un mini-objetivo guardado sin modo es medido")
-    void saveShouldDefaultToMedido() {
-        whenSeGuardaUnMiniEnCursoEn(objetivoA, negocioA, 1);
+    void unMiniObjetivoGuardadoSinModoEsMedido() {
+        cuandoSeGuardaUnMiniEnCursoEn(objetivoA, negocioA, 1);
 
-        thenElModoEs(ModoMiniObjetivo.MEDIDO);
+        entoncesElModoEs(ModoMiniObjetivo.MEDIDO);
     }
 
     @Test
     @DisplayName("La base rechaza un mini-objetivo medido sin meta")
-    void saveShouldRejectAMedidoWithoutGoal() {
-        whenSeGuardaUnMedidoSinMeta();
+    void laBaseRechazaUnMiniObjetivoMedidoSinMeta() {
+        cuandoSeGuardaUnMedidoSinMeta();
 
-        thenLaBaseLoRechaza();
+        entoncesLaBaseLoRechaza();
     }
 
     @Test
     @DisplayName("La base rechaza un mini-objetivo manual con números")
-    void saveShouldRejectAManualWithNumbers() {
-        whenSeGuardaUnManualConMeta();
+    void laBaseRechazaUnMiniObjetivoManualConNumeros() {
+        cuandoSeGuardaUnManualConMeta();
 
-        thenLaBaseLoRechaza();
+        entoncesLaBaseLoRechaza();
     }
 
     @Test
     @DisplayName("Los pendientes son los manuales en curso sin respuesta, del más viejo al más nuevo")
-    void findPendientesDeRespuestaShouldListManualMinisInProgressWithoutAnswer() {
-        givenDosManualesEnCursoYUnMedido();
+    void losPendientesSonLosManualesEnCursoSinRespuestaDelMasViejoAlMasNuevo() {
+        dadoDosManualesEnCursoYUnMedido();
 
-        whenSeListanLosPendientesDe(negocioA);
+        cuandoSeListanLosPendientesDe(negocioA);
 
-        thenLosPendientesSonDelMasViejoAlMasNuevo();
+        entoncesLosPendientesSonDelMasViejoAlMasNuevo();
     }
 
     @Test
     @DisplayName("Un manual ya respondido o que ya no está en curso no es pendiente")
-    void findPendientesDeRespuestaShouldSkipAnsweredAndNotInProgress() {
-        givenUnManualRespondidoYUnoAbandonado();
+    void unManualYaRespondidoOQueYaNoEstaEnCursoNoEsPendiente() {
+        dadoUnManualRespondidoYUnoAbandonado();
 
-        whenSeListanLosPendientesDe(negocioA);
+        cuandoSeListanLosPendientesDe(negocioA);
 
-        thenNoHayPendientes();
+        entoncesNoHayPendientes();
     }
 
     @Test
     @DisplayName("Los pendientes nunca son de otro negocio")
-    void findPendientesDeRespuestaShouldNeverListOtherBusinessMinis() {
-        givenUnManualDeOtroNegocio();
+    void losPendientesNuncaSonDeOtroNegocio() {
+        dadoUnManualDeOtroNegocio();
 
-        whenSeListanLosPendientesDe(negocioA);
+        cuandoSeListanLosPendientesDe(negocioA);
 
-        thenNoHayPendientes();
+        entoncesNoHayPendientes();
     }
 
     @Test
     @DisplayName("Al borrar el objetivo se borran sus mini-objetivos")
-    void deletingObjetivoShouldDeleteItsMiniObjetivos() {
-        givenUnMiniEnCurso(objetivoA, negocioA, 1);
+    void alBorrarElObjetivoSeBorranSusMiniObjetivos() {
+        dadoUnMiniEnCurso(objetivoA, negocioA, 1);
 
-        whenSeBorraElObjetivoA();
+        cuandoSeBorraElObjetivoA();
 
-        thenElObjetivoNoTieneMinis();
+        entoncesElObjetivoNoTieneMinis();
     }
 
     // --- arrange ---
-    private void givenUnMiniReemplazadoConProductoYTextoDeIa() {
+    private void dadoUnMiniReemplazadoConProductoYTextoDeIa() {
         productoDelMini = UUID.randomUUID();
-        reemplazo = givenMini(objetivoA, negocioA, 2, EstadoMiniObjetivo.EN_CURSO, AHORA).getId();
+        reemplazo = dadoMini(objetivoA, negocioA, 2, EstadoMiniObjetivo.EN_CURSO, AHORA).getId();
         MiniObjetivoEntity entity = mini(objetivoA, negocioA, 1, EstadoMiniObjetivo.REEMPLAZADO, AHORA);
         entity.setRegistroId(productoDelMini);
         entity.setReferencia("Yerba 1 kg");
@@ -235,31 +235,31 @@ class IMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
         idDelMini = minis.saveAndFlush(entity).getId();
     }
 
-    private void givenTresMinisDeAYUnoDeB() {
-        idNuevo = givenMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA.plusDays(1)).getId();
-        idSegundo = givenMini(objetivoA, negocioA, 2, EstadoMiniObjetivo.EN_CURSO, AHORA).getId();
-        idPrimero = givenMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.LOGRADO, AHORA).getId();
-        givenMini(objetivoB, negocioB, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
+    private void dadoTresMinisDeAYUnoDeB() {
+        idNuevo = dadoMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA.plusDays(1)).getId();
+        idSegundo = dadoMini(objetivoA, negocioA, 2, EstadoMiniObjetivo.EN_CURSO, AHORA).getId();
+        idPrimero = dadoMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.LOGRADO, AHORA).getId();
+        dadoMini(objetivoB, negocioB, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
     }
 
-    private void givenUnMiniEnCurso(UUID objetivoId, UUID negocioId, int posicion) {
-        guardado = givenMini(objetivoId, negocioId, posicion, EstadoMiniObjetivo.EN_CURSO, AHORA);
+    private void dadoUnMiniEnCurso(UUID objetivoId, UUID negocioId, int posicion) {
+        guardado = dadoMini(objetivoId, negocioId, posicion, EstadoMiniObjetivo.EN_CURSO, AHORA);
         idDelMini = guardado.getId();
     }
 
-    private void givenUnoReemplazadoUnoLogradoYUnoEnCursoEnLaMismaPosicion() {
-        givenMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.REEMPLAZADO, AHORA);
-        givenMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.LOGRADO, AHORA);
-        givenMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
+    private void dadoUnoReemplazadoUnoLogradoYUnoEnCursoEnLaMismaPosicion() {
+        dadoMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.REEMPLAZADO, AHORA);
+        dadoMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.LOGRADO, AHORA);
+        dadoMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
     }
 
-    private void givenDosManualesEnCursoYUnMedido() {
+    private void dadoDosManualesEnCursoYUnMedido() {
         idNuevo = minis.saveAndFlush(manual(objetivoA, negocioA, 2, AHORA.plusDays(1))).getId();
         idViejo = minis.saveAndFlush(manual(objetivoA, negocioA, 3, AHORA)).getId();
-        givenMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
+        dadoMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
     }
 
-    private void givenUnManualRespondidoYUnoAbandonado() {
+    private void dadoUnManualRespondidoYUnoAbandonado() {
         MiniObjetivoEntity respondido = minis.saveAndFlush(manual(objetivoA, negocioA, 2, AHORA));
         respuestas.saveAndFlush(respuestaDe(respondido));
         MiniObjetivoEntity quitado = manual(objetivoA, negocioA, 3, AHORA);
@@ -267,44 +267,44 @@ class IMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
         minis.saveAndFlush(quitado);
     }
 
-    private void givenUnManualDeOtroNegocio() {
+    private void dadoUnManualDeOtroNegocio() {
         minis.saveAndFlush(manual(objetivoB, negocioB, 1, AHORA));
     }
 
     // --- act ---
-    private void whenSeLeeElMini() {
+    private void cuandoSeLeeElMini() {
         leido = minis.findByIdAndObjetivoIdAndNegocioId(idDelMini, objetivoA, negocioA).orElseThrow();
     }
 
-    private void whenSeListanLosMinisDeA() {
+    private void cuandoSeListanLosMinisDeA() {
         listados = minis.findAllByObjetivoIdAndNegocioIdOrderByCreadoEnAscPosicionAsc(objetivoA, negocioA);
     }
 
-    private void whenSeBuscaElMiniEnOtroNegocioYEnOtroObjetivo() {
+    private void cuandoSeBuscaElMiniEnOtroNegocioYEnOtroObjetivo() {
         deOtroNegocio = minis.findByIdAndObjetivoIdAndNegocioId(idDelMini, objetivoA, negocioB);
         deOtroObjetivo = minis.findByIdAndObjetivoIdAndNegocioId(idDelMini, objetivoB, negocioA);
     }
 
-    private void whenSeGuardaConError(UUID objetivoId, UUID negocioId, int posicion, EstadoMiniObjetivo estado) {
-        error = catchThrowable(() -> givenMini(objetivoId, negocioId, posicion, estado, AHORA));
+    private void cuandoSeGuardaConError(UUID objetivoId, UUID negocioId, int posicion, EstadoMiniObjetivo estado) {
+        error = catchThrowable(() -> dadoMini(objetivoId, negocioId, posicion, estado, AHORA));
     }
 
-    private void whenSeGuardaUnMiniEnCursoEn(UUID objetivoId, UUID negocioId, int posicion) {
-        guardado = givenMini(objetivoId, negocioId, posicion, EstadoMiniObjetivo.EN_CURSO, AHORA);
+    private void cuandoSeGuardaUnMiniEnCursoEn(UUID objetivoId, UUID negocioId, int posicion) {
+        guardado = dadoMini(objetivoId, negocioId, posicion, EstadoMiniObjetivo.EN_CURSO, AHORA);
     }
 
-    private void whenSeGuardaConTituloEnBlanco() {
+    private void cuandoSeGuardaConTituloEnBlanco() {
         MiniObjetivoEntity sinTitulo = mini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
         sinTitulo.setTitulo("  ");
         error = catchThrowable(() -> minis.saveAndFlush(sinTitulo));
     }
 
-    private void whenSeGuardaYSeLeeUnManual() {
+    private void cuandoSeGuardaYSeLeeUnManual() {
         idDelMini = minis.saveAndFlush(manual(objetivoA, negocioA, 2, AHORA)).getId();
-        whenSeLeeElMini();
+        cuandoSeLeeElMini();
     }
 
-    private void whenSeGuardanLasMetricasNuevas() {
+    private void cuandoSeGuardanLasMetricasNuevas() {
         MiniObjetivoEntity capital = mini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
         capital.setTipo(TipoMiniObjetivo.CAPITAL_PARADO);
         MiniObjetivoEntity variedad = mini(objetivoA, negocioA, 2, EstadoMiniObjetivo.EN_CURSO, AHORA);
@@ -314,28 +314,28 @@ class IMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
         guardados = minis.saveAllAndFlush(List.of(capital, variedad, minimo));
     }
 
-    private void whenSeGuardaUnMedidoSinMeta() {
+    private void cuandoSeGuardaUnMedidoSinMeta() {
         MiniObjetivoEntity medidoSinMeta = mini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
         medidoSinMeta.setMeta(null);
         error = catchThrowable(() -> minis.saveAndFlush(medidoSinMeta));
     }
 
-    private void whenSeGuardaUnManualConMeta() {
+    private void cuandoSeGuardaUnManualConMeta() {
         MiniObjetivoEntity manualConMeta = manual(objetivoA, negocioA, 2, AHORA);
         manualConMeta.setMeta(new BigDecimal("10.00"));
         error = catchThrowable(() -> minis.saveAndFlush(manualConMeta));
     }
 
-    private void whenSeListanLosPendientesDe(UUID negocioId) {
+    private void cuandoSeListanLosPendientesDe(UUID negocioId) {
         listados = minis.findPendientesDeRespuesta(negocioId, ModoMiniObjetivo.MANUAL, EstadoMiniObjetivo.EN_CURSO);
     }
 
-    private void whenSeBorraElObjetivoA() {
+    private void cuandoSeBorraElObjetivoA() {
         objetivos.deleteByIdAndNegocioId(objetivoA, negocioA);
     }
 
     // --- assert ---
-    private void thenSeRelenTodosLosDatos() {
+    private void entoncesSeRelenTodosLosDatos() {
         assertThat(leido.getObjetivoId()).isEqualTo(objetivoA);
         assertThat(leido.getNegocioId()).isEqualTo(negocioA);
         assertThat(leido.getPosicion()).isEqualTo((short) 1);
@@ -356,29 +356,29 @@ class IMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
         assertThat(leido.getActualizadoEn()).isEqualTo(AHORA);
     }
 
-    private void thenSeListanEnElOrdenEsperado() {
+    private void entoncesSeListanEnElOrdenEsperado() {
         assertThat(listados).extracting(MiniObjetivoEntity::getId)
                 .containsExactly(idPrimero, idSegundo, idNuevo);
     }
 
-    private void thenNoSeEncuentraEnNingunLado() {
+    private void entoncesNoSeEncuentraEnNingunLado() {
         assertThat(deOtroNegocio).isEmpty();
         assertThat(deOtroObjetivo).isEmpty();
     }
 
-    private void thenLaBaseLoRechaza() {
+    private void entoncesLaBaseLoRechaza() {
         assertThat(error).isInstanceOf(DataIntegrityViolationException.class);
     }
 
-    private void thenHayMinis(int cantidad) {
+    private void entoncesHayMinis(int cantidad) {
         assertThat(listados).hasSize(cantidad);
     }
 
-    private void thenHayMinisEnLaBase(int cantidad) {
+    private void entoncesHayMinisEnLaBase(int cantidad) {
         assertThat(minis.findAll()).hasSize(cantidad);
     }
 
-    private void thenElManualNoTieneMetricaNiNumeros() {
+    private void entoncesElManualNoTieneMetricaNiNumeros() {
         assertThat(leido.getModo()).isEqualTo(ModoMiniObjetivo.MANUAL);
         assertThat(leido.getTipo()).isNull();
         assertThat(leido.getMeta()).isNull();
@@ -388,31 +388,31 @@ class IMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
         assertThat(leido.getTitulo()).isEqualTo("Pedile a 3 clientes");
     }
 
-    private void thenSeGuardanLasMetricasNuevas() {
+    private void entoncesSeGuardanLasMetricasNuevas() {
         assertThat(guardados).extracting(MiniObjetivoEntity::getTipo).containsExactly(
                 TipoMiniObjetivo.CAPITAL_PARADO, TipoMiniObjetivo.VARIEDAD_VENDIDA,
                 TipoMiniObjetivo.PRODUCTOS_BAJO_EL_MINIMO);
     }
 
-    private void thenElModoEs(ModoMiniObjetivo esperado) {
+    private void entoncesElModoEs(ModoMiniObjetivo esperado) {
         assertThat(guardado.getModo()).isEqualTo(esperado);
     }
 
-    private void thenLosPendientesSonDelMasViejoAlMasNuevo() {
+    private void entoncesLosPendientesSonDelMasViejoAlMasNuevo() {
         assertThat(listados).extracting(MiniObjetivoEntity::getId).containsExactly(idViejo, idNuevo);
     }
 
-    private void thenNoHayPendientes() {
+    private void entoncesNoHayPendientes() {
         assertThat(listados).isEmpty();
     }
 
-    private void thenElObjetivoNoTieneMinis() {
+    private void entoncesElObjetivoNoTieneMinis() {
         assertThat(minis.findAllByObjetivoIdAndNegocioIdOrderByCreadoEnAscPosicionAsc(objetivoA, negocioA))
                 .isEmpty();
     }
 
     // --- helpers ---
-    private UUID givenObjetivo(UUID negocioId) {
+    private UUID dadoObjetivo(UUID negocioId) {
         return objetivos.saveAndFlush(ObjetivoEntity.builder()
                 .negocioId(negocioId)
                 .texto("Ganar más")
@@ -421,7 +421,7 @@ class IMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
                 .build()).getId();
     }
 
-    private MiniObjetivoEntity givenMini(
+    private MiniObjetivoEntity dadoMini(
             UUID objetivoId, UUID negocioId, int posicion, EstadoMiniObjetivo estado, OffsetDateTime creadoEn) {
         return minis.saveAndFlush(mini(objetivoId, negocioId, posicion, estado, creadoEn));
     }

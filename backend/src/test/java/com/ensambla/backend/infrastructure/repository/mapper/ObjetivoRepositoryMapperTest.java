@@ -23,56 +23,56 @@ class ObjetivoRepositoryMapperTest {
 
     @Test
     @DisplayName("Mapea la entidad al dominio con todos sus campos")
-    void toDomainShouldMapEveryField() {
-        givenUnaEntidadCompleta();
+    void mapeaLaEntidadAlDominioConTodosSusCampos() {
+        dadoUnaEntidadCompleta();
 
-        whenSeLeeLaEntidad();
+        cuandoSeLeeLaEntidad();
 
-        thenElDominioTraeTodosLosCampos();
+        entoncesElDominioTraeTodosLosCampos();
     }
 
     @Test
     @DisplayName("Una entidad sin ids se mapea con ids nulos")
-    void toDomainShouldKeepMissingIdsNull() {
+    void unaEntidadSinIdsSeMapeaConIdsNulos() {
         entidad = ObjetivoEntity.builder().build();
 
-        whenSeLeeLaEntidad();
+        cuandoSeLeeLaEntidad();
 
-        thenElDominioNoTieneIds();
+        entoncesElDominioNoTieneIds();
     }
 
     @Test
     @DisplayName("Mapea el dominio a la entidad con todos sus campos")
-    void toEntityShouldMapEveryField() {
-        givenUnObjetivoAlcanzado();
+    void mapeaElDominioALaEntidadConTodosSusCampos() {
+        dadoUnObjetivoAlcanzado();
 
-        whenSePasaElObjetivoALaEntidad();
+        cuandoSePasaElObjetivoALaEntidad();
 
-        thenLaEntidadTraeTodosLosCampos();
+        entoncesLaEntidadTraeTodosLosCampos();
     }
 
     @Test
     @DisplayName("Un objetivo armado con Sami se mapea a la entidad sin meta")
-    void toEntityShouldKeepTheMissingGoalAndTheType() {
+    void unObjetivoArmadoConSamiSeMapeaALaEntidadSinMeta() {
         dominio = objetivoSinMeta();
 
-        whenSePasaElObjetivoALaEntidad();
+        cuandoSePasaElObjetivoALaEntidad();
 
-        thenLaEntidadNoTieneMetaYLoArmoSami();
+        entoncesLaEntidadNoTieneMetaYLoArmoSami();
     }
 
     @Test
     @DisplayName("Un objetivo nuevo, sin id, se mapea con id nulo para que la base lo asigne")
-    void toEntityShouldKeepMissingIdNull() {
+    void unObjetivoNuevoSinIdSeMapeaConIdNuloParaQueLaBaseLoAsigne() {
         dominio = Objetivo.nuevo(NEGOCIO_ID, TEXTO, META, AHORA);
 
-        whenSePasaElObjetivoALaEntidad();
+        cuandoSePasaElObjetivoALaEntidad();
 
-        thenLaEntidadNoTieneId();
+        entoncesLaEntidadNoTieneId();
     }
 
     // --- arrange ---
-    private void givenUnaEntidadCompleta() {
+    private void dadoUnaEntidadCompleta() {
         entidad = ObjetivoEntity.builder()
                 .id(OBJETIVO_ID.valor())
                 .negocioId(NEGOCIO_ID.valor())
@@ -85,22 +85,22 @@ class ObjetivoRepositoryMapperTest {
                 .build();
     }
 
-    private void givenUnObjetivoAlcanzado() {
+    private void dadoUnObjetivoAlcanzado() {
         dominio = objetivo();
         dominio.marcarAlcanzado(AHORA.plusDays(3));
     }
 
     // --- act ---
-    private void whenSeLeeLaEntidad() {
+    private void cuandoSeLeeLaEntidad() {
         dominio = mapper.toDomain(entidad);
     }
 
-    private void whenSePasaElObjetivoALaEntidad() {
+    private void cuandoSePasaElObjetivoALaEntidad() {
         entidad = mapper.toEntity(dominio);
     }
 
     // --- assert ---
-    private void thenElDominioTraeTodosLosCampos() {
+    private void entoncesElDominioTraeTodosLosCampos() {
         assertThat(dominio.getId()).isEqualTo(OBJETIVO_ID);
         assertThat(dominio.getNegocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(dominio.getTexto()).isEqualTo(TEXTO);
@@ -111,12 +111,12 @@ class ObjetivoRepositoryMapperTest {
         assertThat(dominio.getAlcanzadoEn()).isEqualTo(AHORA.plusDays(3));
     }
 
-    private void thenElDominioNoTieneIds() {
+    private void entoncesElDominioNoTieneIds() {
         assertThat(dominio.getId()).isNull();
         assertThat(dominio.getNegocioId()).isNull();
     }
 
-    private void thenLaEntidadTraeTodosLosCampos() {
+    private void entoncesLaEntidadTraeTodosLosCampos() {
         assertThat(entidad.getAlcanzadoEn()).isEqualTo(AHORA.plusDays(3));
         assertThat(entidad.getId()).isEqualTo(OBJETIVO_ID.valor());
         assertThat(entidad.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
@@ -127,13 +127,13 @@ class ObjetivoRepositoryMapperTest {
         assertThat(entidad.getCreadoEn()).isEqualTo(AHORA);
     }
 
-    private void thenLaEntidadNoTieneMetaYLoArmoSami() {
+    private void entoncesLaEntidadNoTieneMetaYLoArmoSami() {
         assertThat(entidad.getTipo()).isEqualTo(TipoObjetivo.SIN_DATOS);
         assertThat(entidad.getMeta()).isNull();
         assertThat(entidad.isArmadoConSami()).isTrue();
     }
 
-    private void thenLaEntidadNoTieneId() {
+    private void entoncesLaEntidadNoTieneId() {
         assertThat(entidad.getId()).isNull();
     }
 }

@@ -70,106 +70,106 @@ class ResponderMiniObjetivoTest {
                 decisionObjetivoRepository,
                 new TransaccionDirecta(),
                 CLOCK);
-        givenUnNegocioConSuObjetivo();
+        dadoUnNegocioConSuObjetivo();
     }
 
     @Test
     @DisplayName("Guarda la respuesta con su fecha")
-    void executeShouldSaveTheAnswerWithItsDate() {
-        givenUnManualSinResponder();
+    void guardaLaRespuestaConSuFecha() {
+        dadoUnManualSinResponder();
 
-        whenSeResponde(HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO);
+        cuandoSeResponde(HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO);
 
-        thenSeGuardaLaRespuestaConSuFecha();
+        entoncesSeGuardaLaRespuestaConSuFecha();
     }
 
     @Test
     @DisplayName("Devuelve la respuesta guardada")
-    void executeShouldReturnTheSavedAnswer() {
-        givenUnManualSinResponder();
+    void devuelveLaRespuestaGuardada() {
+        dadoUnManualSinResponder();
 
-        whenSeResponde(HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO);
+        cuandoSeResponde(HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO);
 
-        thenSeDevuelveLaRespuestaGuardada();
+        entoncesSeDevuelveLaRespuestaGuardada();
     }
 
     @Test
     @DisplayName("Anota la decisión en el historial del objetivo antes de guardar la respuesta")
-    void executeShouldRecordTheDecisionBeforeSavingTheAnswer() {
-        givenUnManualSinResponder();
+    void anotaLaDecisionEnElHistorialDelObjetivoAntesDeGuardarLaRespuesta() {
+        dadoUnManualSinResponder();
 
-        whenSeResponde(HizoManual.NO, QuePaso.NO_FUNCIONO);
+        cuandoSeResponde(HizoManual.NO, QuePaso.NO_FUNCIONO);
 
-        thenSeAnotaLaDecisionAntesDeGuardarLaRespuesta();
+        entoncesSeAnotaLaDecisionAntesDeGuardarLaRespuesta();
     }
 
     @Test
     @DisplayName("No cambia el mini-objetivo: sigue en curso hasta que lo renueve el cierre")
-    void executeShouldNotChangeTheMiniObjetivo() {
-        givenUnManualSinResponder();
+    void noCambiaElMiniObjetivoSigueEnCursoHastaQueLoRenueveElCierre() {
+        dadoUnManualSinResponder();
 
-        whenSeResponde(HizoManual.SI, QuePaso.FUNCIONO);
+        cuandoSeResponde(HizoManual.SI, QuePaso.FUNCIONO);
 
-        thenElMiniObjetivoSigueEnCurso();
+        entoncesElMiniObjetivoSigueEnCurso();
     }
 
     @Test
     @DisplayName("Un manual ya respondido responde 409 y no se vuelve a guardar")
-    void executeShouldRejectASecondAnswer() {
-        givenUnManualYaRespondido();
+    void unManualYaRespondidoResponde409YNoSeVuelveAGuardar() {
+        dadoUnManualYaRespondido();
 
-        whenSeResponde(HizoManual.SI, QuePaso.FUNCIONO);
+        cuandoSeResponde(HizoManual.SI, QuePaso.FUNCIONO);
 
-        thenSeRechazaLaSegundaRespuesta();
+        entoncesSeRechazaLaSegundaRespuesta();
     }
 
     @Test
     @DisplayName("Un mini-objetivo medido no se responde")
-    void executeShouldRejectAMeasuredMiniObjetivo() {
-        givenUnMiniObjetivoMedido();
+    void unMiniObjetivoMedidoNoSeResponde() {
+        dadoUnMiniObjetivoMedido();
 
-        whenSeResponde(HizoManual.SI, QuePaso.FUNCIONO);
+        cuandoSeResponde(HizoManual.SI, QuePaso.FUNCIONO);
 
-        thenSeRechazaPorqueSoloSeRespondenLosManuales();
+        entoncesSeRechazaPorqueSoloSeRespondenLosManuales();
     }
 
     @Test
     @DisplayName("Una combinación contradictoria no se guarda")
-    void executeShouldRejectAContradictoryAnswer() {
-        givenUnManualSinResponder();
+    void unaCombinacionContradictoriaNoSeGuarda() {
+        dadoUnManualSinResponder();
 
-        whenSeResponde(HizoManual.SI, QuePaso.NO_TUVE_TIEMPO);
+        cuandoSeResponde(HizoManual.SI, QuePaso.NO_TUVE_TIEMPO);
 
-        thenSeRechazaLaCombinacionContradictoria();
+        entoncesSeRechazaLaCombinacionContradictoria();
     }
 
     @Test
     @DisplayName("Un mini-objetivo de otro objetivo o negocio responde como inexistente")
-    void executeShouldFailWhenTheMiniObjetivoIsNotFound() {
-        givenUnMiniObjetivoInexistente();
+    void unMiniObjetivoDeOtroObjetivoONegocioRespondeComoInexistente() {
+        dadoUnMiniObjetivoInexistente();
 
-        whenSeResponde(HizoManual.SI, QuePaso.FUNCIONO);
+        cuandoSeResponde(HizoManual.SI, QuePaso.FUNCIONO);
 
-        thenRespondeComoInexistenteSinGuardarNada();
+        entoncesRespondeComoInexistenteSinGuardarNada();
     }
 
     @Test
     @DisplayName("Un objetivo de otro negocio responde como inexistente y no busca el mini-objetivo")
-    void executeShouldFailWhenTheObjetivoIsNotFound() {
-        givenUnObjetivoInexistente();
+    void unObjetivoDeOtroNegocioRespondeComoInexistenteYNoBuscaElMiniObjetivo() {
+        dadoUnObjetivoInexistente();
 
-        whenSeResponde(HizoManual.SI, QuePaso.FUNCIONO);
+        cuandoSeResponde(HizoManual.SI, QuePaso.FUNCIONO);
 
-        thenRespondeComoInexistenteSinBuscarElMini();
+        entoncesRespondeComoInexistenteSinBuscarElMini();
     }
 
     // --- arrange ---
-    private void givenUnNegocioConSuObjetivo() {
+    private void dadoUnNegocioConSuObjetivo() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(objetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID)).thenReturn(objetivo());
     }
 
-    private void givenUnManualSinResponder() {
+    private void dadoUnManualSinResponder() {
         mini = miniManual();
         when(miniObjetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID, OTRO_MINI_ID)).thenReturn(mini);
         when(respuestaMiniObjetivoRepository.existsByMiniObjetivoId(OTRO_MINI_ID)).thenReturn(false);
@@ -177,39 +177,39 @@ class ResponderMiniObjetivoTest {
                 .thenAnswer(call -> call.getArgument(0));
     }
 
-    private void givenUnManualYaRespondido() {
+    private void dadoUnManualYaRespondido() {
         when(miniObjetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID, OTRO_MINI_ID)).thenReturn(miniManual());
         when(respuestaMiniObjetivoRepository.existsByMiniObjetivoId(OTRO_MINI_ID)).thenReturn(true);
     }
 
-    private void givenUnMiniObjetivoMedido() {
+    private void dadoUnMiniObjetivoMedido() {
         when(miniObjetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID, OTRO_MINI_ID)).thenReturn(miniObjetivo());
     }
 
-    private void givenUnMiniObjetivoInexistente() {
+    private void dadoUnMiniObjetivoInexistente() {
         when(miniObjetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID, OTRO_MINI_ID))
                 .thenThrow(new ResourceNotFoundException("Mini-objetivo no encontrado"));
     }
 
-    private void givenUnObjetivoInexistente() {
+    private void dadoUnObjetivoInexistente() {
         when(objetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID))
                 .thenThrow(new ResourceNotFoundException("Objetivo no encontrado"));
     }
 
     // --- act ---
-    private void whenSeResponde(HizoManual hizo, QuePaso quePaso) {
+    private void cuandoSeResponde(HizoManual hizo, QuePaso quePaso) {
         error = catchThrowable(() -> respuesta = responderMiniObjetivo.execute(new ResponderMiniObjetivoRequest(
                 USUARIO_ID, OBJETIVO_ID, OTRO_MINI_ID, hizo, quePaso, COMENTARIO)));
     }
 
     // --- assert ---
-    private void thenSeGuardaLaRespuestaConSuFecha() {
+    private void entoncesSeGuardaLaRespuestaConSuFecha() {
         RespuestaMiniObjetivo guardada = respuestaGuardada();
         assertThat(guardada.miniObjetivoId()).isEqualTo(OTRO_MINI_ID);
         assertThat(guardada.respondidaEn()).isEqualTo(AHORA);
     }
 
-    private void thenSeDevuelveLaRespuestaGuardada() {
+    private void entoncesSeDevuelveLaRespuestaGuardada() {
         assertThat(respuesta.id()).isEqualTo(respuestaGuardada().id());
         assertThat(respuesta.miniObjetivoId()).isEqualTo(OTRO_MINI_ID);
         assertThat(respuesta.hizo()).isEqualTo(HizoManual.EN_PARTE);
@@ -219,7 +219,7 @@ class ResponderMiniObjetivoTest {
         assertThat(respuesta.respondidaEn()).isEqualTo(AHORA);
     }
 
-    private void thenSeAnotaLaDecisionAntesDeGuardarLaRespuesta() {
+    private void entoncesSeAnotaLaDecisionAntesDeGuardarLaRespuesta() {
         ArgumentCaptor<DecisionObjetivo> decision = ArgumentCaptor.forClass(DecisionObjetivo.class);
         InOrder orden = inOrder(decisionObjetivoRepository, respuestaMiniObjetivoRepository);
         orden.verify(decisionObjetivoRepository).save(decision.capture());
@@ -229,12 +229,12 @@ class ResponderMiniObjetivoTest {
         assertThat(decision.getValue().descripcion()).isEqualTo(TITULO_MANUAL);
     }
 
-    private void thenElMiniObjetivoSigueEnCurso() {
+    private void entoncesElMiniObjetivoSigueEnCurso() {
         assertThat(mini.estaEnCurso()).isTrue();
         verify(miniObjetivoRepository, never()).save(any());
     }
 
-    private void thenSeRechazaLaSegundaRespuesta() {
+    private void entoncesSeRechazaLaSegundaRespuesta() {
         assertThat(error)
                 .isInstanceOf(DuplicateResourceException.class)
                 .hasMessage("Ya respondiste este mini-objetivo");
@@ -242,25 +242,25 @@ class ResponderMiniObjetivoTest {
         verifyNoInteractions(decisionObjetivoRepository);
     }
 
-    private void thenSeRechazaPorqueSoloSeRespondenLosManuales() {
+    private void entoncesSeRechazaPorqueSoloSeRespondenLosManuales() {
         assertThat(error)
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("Sólo se responden los mini-objetivos manuales");
         verifyNoInteractions(respuestaMiniObjetivoRepository, decisionObjetivoRepository);
     }
 
-    private void thenSeRechazaLaCombinacionContradictoria() {
+    private void entoncesSeRechazaLaCombinacionContradictoria() {
         assertThat(error).isInstanceOf(BusinessRuleException.class);
         verify(respuestaMiniObjetivoRepository, never()).save(any());
         verifyNoInteractions(decisionObjetivoRepository);
     }
 
-    private void thenRespondeComoInexistenteSinGuardarNada() {
+    private void entoncesRespondeComoInexistenteSinGuardarNada() {
         assertThat(error).isInstanceOf(ResourceNotFoundException.class);
         verifyNoInteractions(respuestaMiniObjetivoRepository, decisionObjetivoRepository);
     }
 
-    private void thenRespondeComoInexistenteSinBuscarElMini() {
+    private void entoncesRespondeComoInexistenteSinBuscarElMini() {
         assertThat(error).isInstanceOf(ResourceNotFoundException.class);
         verifyNoInteractions(miniObjetivoRepository, respuestaMiniObjetivoRepository, decisionObjetivoRepository);
     }

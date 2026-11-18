@@ -40,64 +40,64 @@ class ListarRespuestasPendientesTest {
 
     @Test
     @DisplayName("Lista los manuales sin respuesta del negocio con el texto de su objetivo")
-    void executeShouldListThePendingManualMinis() {
-        givenUnManualSinResponder();
+    void listaLosManualesSinRespuestaDelNegocioConElTextoDeSuObjetivo() {
+        dadoUnManualSinResponder();
 
-        whenSeListanLasRespuestasPendientes();
+        cuandoSeListanLasRespuestasPendientes();
 
-        thenSeListaElManualConElTextoDeSuObjetivo();
+        entoncesSeListaElManualConElTextoDeSuObjetivo();
     }
 
     @Test
     @DisplayName("Sin pendientes devuelve una lista vacía")
-    void executeShouldReturnAnEmptyList() {
-        givenNingunManualSinResponder();
+    void sinPendientesDevuelveUnaListaVacia() {
+        dadoNingunManualSinResponder();
 
-        whenSeListanLasRespuestasPendientes();
+        cuandoSeListanLasRespuestasPendientes();
 
-        thenNoHayPendientes();
+        entoncesNoHayPendientes();
     }
 
     @Test
     @DisplayName("Un usuario sin negocio responde como inexistente y no consulta nada más")
-    void executeShouldFailWithoutBusiness() {
-        givenUnUsuarioSinNegocio();
+    void unUsuarioSinNegocioRespondeComoInexistenteYNoConsultaNadaMas() {
+        dadoUnUsuarioSinNegocio();
 
-        whenSeListanLasRespuestasPendientes();
+        cuandoSeListanLasRespuestasPendientes();
 
-        thenRespondeComoInexistenteSinConsultarNadaMas();
+        entoncesRespondeComoInexistenteSinConsultarNadaMas();
     }
 
     // --- arrange ---
-    private void givenUnManualSinResponder() {
-        givenUnNegocioConObjetivo();
+    private void dadoUnManualSinResponder() {
+        dadoUnNegocioConObjetivo();
         when(miniObjetivoRepository.findAllPendientesDeRespuestaByNegocioId(NEGOCIO_ID))
                 .thenReturn(List.of(miniManual()));
     }
 
-    private void givenNingunManualSinResponder() {
-        givenUnNegocioConObjetivo();
+    private void dadoNingunManualSinResponder() {
+        dadoUnNegocioConObjetivo();
         when(miniObjetivoRepository.findAllPendientesDeRespuestaByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
     }
 
-    private void givenUnUsuarioSinNegocio() {
+    private void dadoUnUsuarioSinNegocio() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID))
                 .thenThrow(new ResourceNotFoundException("Negocio no encontrado"));
     }
 
-    private void givenUnNegocioConObjetivo() {
+    private void dadoUnNegocioConObjetivo() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(objetivoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(objetivo()));
     }
 
     // --- act ---
-    private void whenSeListanLasRespuestasPendientes() {
+    private void cuandoSeListanLasRespuestasPendientes() {
         error = catchThrowable(() -> respuesta =
                 listarRespuestasPendientes.execute(new ListarRespuestasPendientesRequest(USUARIO_ID)));
     }
 
     // --- assert ---
-    private void thenSeListaElManualConElTextoDeSuObjetivo() {
+    private void entoncesSeListaElManualConElTextoDeSuObjetivo() {
         assertThat(respuesta.pendientes()).singleElement().satisfies(pendiente -> {
             assertThat(pendiente.objetivoId()).isEqualTo(OBJETIVO_ID);
             assertThat(pendiente.objetivoTexto()).isEqualTo(TEXTO);
@@ -105,11 +105,11 @@ class ListarRespuestasPendientesTest {
         });
     }
 
-    private void thenNoHayPendientes() {
+    private void entoncesNoHayPendientes() {
         assertThat(respuesta.pendientes()).isEmpty();
     }
 
-    private void thenRespondeComoInexistenteSinConsultarNadaMas() {
+    private void entoncesRespondeComoInexistenteSinConsultarNadaMas() {
         assertThat(error).isInstanceOf(ResourceNotFoundException.class);
         verifyNoInteractions(objetivoRepository, miniObjetivoRepository);
     }

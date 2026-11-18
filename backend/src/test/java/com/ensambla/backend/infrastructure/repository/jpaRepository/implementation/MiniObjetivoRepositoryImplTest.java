@@ -37,66 +37,66 @@ class MiniObjetivoRepositoryImplTest {
 
     @Test
     @DisplayName("Lista los mini-objetivos del objetivo del negocio, en el orden de la base, con los UUID de los ids")
-    void findAllByObjetivoIdAndNegocioIdShouldMapInOrder() {
-        givenLaBaseTieneDosMinisDelObjetivo();
+    void listaLosMiniObjetivosDelObjetivoDelNegocioEnElOrdenDeLaBaseConLosUuidDeLos() {
+        dadoLaBaseTieneDosMinisDelObjetivo();
 
-        whenSeListanLosMinisDelObjetivo();
+        cuandoSeListanLosMinisDelObjetivo();
 
-        thenLosIdsSonEnOrden(MINI_ID, OTRO_MINI_ID);
+        entoncesLosIdsSonEnOrden(MINI_ID, OTRO_MINI_ID);
     }
 
     @Test
     @DisplayName("Sin mini-objetivos devuelve una lista vacía")
-    void findAllByObjetivoIdAndNegocioIdShouldReturnEmptyList() {
-        givenLaBaseNoTieneMinisDelObjetivo();
+    void sinMiniObjetivosDevuelveUnaListaVacia() {
+        dadoLaBaseNoTieneMinisDelObjetivo();
 
-        whenSeListanLosMinisDelObjetivo();
+        cuandoSeListanLosMinisDelObjetivo();
 
-        thenNoHayMinis();
+        entoncesNoHayMinis();
     }
 
     @Test
     @DisplayName("Busca por id, objetivo y negocio y mapea el resultado")
-    void findByIdAndObjetivoIdAndNegocioIdShouldMapTheEntity() {
-        givenLaBaseTieneElMini();
+    void buscaPorIdObjetivoYNegocioYMapeaElResultado() {
+        dadoLaBaseTieneElMini();
 
-        whenSeBuscaElMini();
+        cuandoSeBuscaElMini();
 
-        thenSeEncuentraElMini();
+        entoncesSeEncuentraElMini();
     }
 
     @Test
     @DisplayName("Uno de otro objetivo o de otro negocio no se encuentra")
-    void findByIdAndObjetivoIdAndNegocioIdShouldReturnEmptyWhenMissing() {
-        givenLaBaseNoTieneElMini();
+    void unoDeOtroObjetivoODeOtroNegocioNoSeEncuentra() {
+        dadoLaBaseNoTieneElMini();
 
-        whenSeBuscaElMini();
+        cuandoSeBuscaElMini();
 
-        thenNoSeEncuentraElMini();
+        entoncesNoSeEncuentraElMini();
     }
 
     @Test
     @DisplayName("Guarda escribiendo en el acto y devuelve lo guardado como dominio")
-    void saveShouldWriteImmediatelyAndMapTheResult() {
-        givenLaBaseDevuelveLoQueGuarda();
+    void guardaEscribiendoEnElActoYDevuelveLoGuardadoComoDominio() {
+        dadoLaBaseDevuelveLoQueGuarda();
 
-        whenSeGuardaUnMini();
+        cuandoSeGuardaUnMini();
 
-        thenSeEscribioEnElActoYSeDevuelveElDominio();
+        entoncesSeEscribioEnElActoYSeDevuelveElDominio();
     }
 
     @Test
     @DisplayName("Lista los manuales pendientes del negocio con el modo manual y el estado en curso")
-    void findAllPendientesDeRespuestaByNegocioIdShouldAskForManualMinisInProgress() {
-        givenLaBaseTieneUnManualPendiente();
+    void listaLosManualesPendientesDelNegocioConElModoManualYElEstadoEnCurso() {
+        dadoLaBaseTieneUnManualPendiente();
 
-        whenSeListanLosPendientes();
+        cuandoSeListanLosPendientes();
 
-        thenHayUnManualPendiente();
+        entoncesHayUnManualPendiente();
     }
 
     // --- arrange ---
-    private void givenLaBaseTieneDosMinisDelObjetivo() {
+    private void dadoLaBaseTieneDosMinisDelObjetivo() {
         MiniObjetivo otro = miniObjetivo();
         otro.setId(OTRO_MINI_ID);
         when(jpa.findAllByObjetivoIdAndNegocioIdOrderByCreadoEnAscPosicionAsc(
@@ -104,73 +104,73 @@ class MiniObjetivoRepositoryImplTest {
                 .thenReturn(List.of(mapper.toEntity(miniObjetivo()), mapper.toEntity(otro)));
     }
 
-    private void givenLaBaseNoTieneMinisDelObjetivo() {
+    private void dadoLaBaseNoTieneMinisDelObjetivo() {
         when(jpa.findAllByObjetivoIdAndNegocioIdOrderByCreadoEnAscPosicionAsc(
                 OBJETIVO_ID.valor(), NEGOCIO_ID.valor())).thenReturn(List.of());
     }
 
-    private void givenLaBaseTieneElMini() {
+    private void dadoLaBaseTieneElMini() {
         when(jpa.findByIdAndObjetivoIdAndNegocioId(MINI_ID.valor(), OBJETIVO_ID.valor(), NEGOCIO_ID.valor()))
                 .thenReturn(Optional.of(mapper.toEntity(miniObjetivo())));
     }
 
-    private void givenLaBaseNoTieneElMini() {
+    private void dadoLaBaseNoTieneElMini() {
         when(jpa.findByIdAndObjetivoIdAndNegocioId(MINI_ID.valor(), OBJETIVO_ID.valor(), NEGOCIO_ID.valor()))
                 .thenReturn(Optional.empty());
     }
 
-    private void givenLaBaseDevuelveLoQueGuarda() {
+    private void dadoLaBaseDevuelveLoQueGuarda() {
         when(jpa.saveAndFlush(any(MiniObjetivoEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
-    private void givenLaBaseTieneUnManualPendiente() {
+    private void dadoLaBaseTieneUnManualPendiente() {
         when(jpa.findPendientesDeRespuesta(NEGOCIO_ID.valor(), ModoMiniObjetivo.MANUAL, EstadoMiniObjetivo.EN_CURSO))
                 .thenReturn(List.of(mapper.toEntity(miniManual())));
     }
 
     // --- act ---
-    private void whenSeListanLosMinisDelObjetivo() {
+    private void cuandoSeListanLosMinisDelObjetivo() {
         minis = repository.findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID);
     }
 
-    private void whenSeBuscaElMini() {
+    private void cuandoSeBuscaElMini() {
         mini = repository.findByIdAndObjetivoIdAndNegocioId(MINI_ID, OBJETIVO_ID, NEGOCIO_ID);
     }
 
-    private void whenSeGuardaUnMini() {
+    private void cuandoSeGuardaUnMini() {
         guardado = repository.save(miniObjetivo());
     }
 
-    private void whenSeListanLosPendientes() {
+    private void cuandoSeListanLosPendientes() {
         minis = repository.findAllPendientesDeRespuestaByNegocioId(NEGOCIO_ID);
     }
 
     // --- assert ---
-    private void thenLosIdsSonEnOrden(MiniObjetivoId... ids) {
+    private void entoncesLosIdsSonEnOrden(MiniObjetivoId... ids) {
         assertThat(minis).extracting(MiniObjetivo::getId).containsExactly(ids);
     }
 
-    private void thenNoHayMinis() {
+    private void entoncesNoHayMinis() {
         assertThat(minis).isEmpty();
     }
 
-    private void thenSeEncuentraElMini() {
+    private void entoncesSeEncuentraElMini() {
         assertThat(mini).hasValueSatisfying(encontrado -> assertThat(encontrado.getId()).isEqualTo(MINI_ID));
     }
 
-    private void thenNoSeEncuentraElMini() {
+    private void entoncesNoSeEncuentraElMini() {
         assertThat(mini).isEmpty();
     }
 
-    private void thenSeEscribioEnElActoYSeDevuelveElDominio() {
+    private void entoncesSeEscribioEnElActoYSeDevuelveElDominio() {
         ArgumentCaptor<MiniObjetivoEntity> captor = ArgumentCaptor.forClass(MiniObjetivoEntity.class);
         verify(jpa).saveAndFlush(captor.capture());
         assertThat(captor.getValue().getId()).isEqualTo(MINI_ID.valor());
         assertThat(guardado.getId()).isEqualTo(MiniObjetivoId.de(MINI_ID.valor()));
     }
 
-    private void thenHayUnManualPendiente() {
+    private void entoncesHayUnManualPendiente() {
         assertThat(minis).singleElement().satisfies(manual -> assertThat(manual.esManual()).isTrue());
     }
 }

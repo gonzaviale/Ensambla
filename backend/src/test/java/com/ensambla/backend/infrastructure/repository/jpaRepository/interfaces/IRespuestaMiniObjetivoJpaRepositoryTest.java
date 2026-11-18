@@ -47,7 +47,7 @@ class IRespuestaMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
 
     @BeforeEach
     void setUp() {
-        negocioA = givenNegocio("a@example.com").getId();
+        negocioA = dadoNegocio("a@example.com").getId();
         objetivoA = objetivos.saveAndFlush(ObjetivoEntity.builder()
                 .negocioId(negocioA)
                 .texto("Que me conozcan")
@@ -60,105 +60,105 @@ class IRespuestaMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
 
     @Test
     @DisplayName("Guarda y relee la respuesta con todos sus datos")
-    void saveShouldRoundTripEveryField() {
-        givenUnaRespuestaGuardada(HizoManual.NO, QuePaso.OTRA, "Llovió");
+    void guardaYReleeLaRespuestaConTodosSusDatos() {
+        dadoUnaRespuestaGuardada(HizoManual.NO, QuePaso.OTRA, "Llovió");
 
-        whenSeLeeLaRespuesta();
+        cuandoSeLeeLaRespuesta();
 
-        thenSeRelenTodosLosDatos();
+        entoncesSeRelenTodosLosDatos();
     }
 
     @Test
     @DisplayName("Un mini-objetivo sin respuesta no figura como respondido")
-    void existsByMiniObjetivoIdShouldBeFalseWithoutAnAnswer() {
-        whenSePreguntaSiElManualFueRespondido();
+    void unMiniObjetivoSinRespuestaNoFiguraComoRespondido() {
+        cuandoSePreguntaSiElManualFueRespondido();
 
-        thenNoFueRespondido();
+        entoncesNoFueRespondido();
     }
 
     @Test
     @DisplayName("Un mini-objetivo con respuesta figura como respondido")
-    void existsByMiniObjetivoIdShouldBeTrueWithAnAnswer() {
-        givenUnaRespuestaGuardada(HizoManual.SI, QuePaso.FUNCIONO, null);
+    void unMiniObjetivoConRespuestaFiguraComoRespondido() {
+        dadoUnaRespuestaGuardada(HizoManual.SI, QuePaso.FUNCIONO, null);
 
-        whenSePreguntaSiElManualFueRespondido();
+        cuandoSePreguntaSiElManualFueRespondido();
 
-        thenFueRespondido();
+        entoncesFueRespondido();
     }
 
     @Test
     @DisplayName("La base no admite una segunda respuesta al mismo mini-objetivo")
-    void saveShouldRejectASecondAnswerToTheSameMiniObjetivo() {
-        givenUnaRespuestaGuardada(HizoManual.SI, QuePaso.FUNCIONO, null);
+    void laBaseNoAdmiteUnaSegundaRespuestaAlMismoMiniObjetivo() {
+        dadoUnaRespuestaGuardada(HizoManual.SI, QuePaso.FUNCIONO, null);
 
-        whenSeGuardaConError(HizoManual.NO, QuePaso.OTRA, null);
+        cuandoSeGuardaConError(HizoManual.NO, QuePaso.OTRA, null);
 
-        thenLaBaseLaRechaza();
+        entoncesLaBaseLaRechaza();
     }
 
     @Test
     @DisplayName("La base rechaza «lo hice» con «no tuve tiempo»")
-    void saveShouldRejectDoneWithoutTime() {
-        whenSeGuardaConError(HizoManual.SI, QuePaso.NO_TUVE_TIEMPO, null);
+    void laBaseRechazaLoHiceConNoTuveTiempo() {
+        cuandoSeGuardaConError(HizoManual.SI, QuePaso.NO_TUVE_TIEMPO, null);
 
-        thenLaBaseLaRechaza();
+        entoncesLaBaseLaRechaza();
     }
 
     @Test
     @DisplayName("La base rechaza un comentario de más de 300 caracteres")
-    void saveShouldRejectATooLongComment() {
-        whenSeGuardaConError(HizoManual.NO, QuePaso.OTRA, "a".repeat(LARGO_MAXIMO_DE_COMENTARIO + 1));
+    void laBaseRechazaUnComentarioDeMasDe300Caracteres() {
+        cuandoSeGuardaConError(HizoManual.NO, QuePaso.OTRA, "a".repeat(LARGO_MAXIMO_DE_COMENTARIO + 1));
 
-        thenLaBaseLaRechaza();
+        entoncesLaBaseLaRechaza();
     }
 
     @Test
     @DisplayName("Al borrar el mini-objetivo se borra su respuesta")
-    void deletingTheMiniObjetivoShouldDeleteItsAnswer() {
-        givenUnaRespuestaGuardada(HizoManual.SI, QuePaso.FUNCIONO, null);
+    void alBorrarElMiniObjetivoSeBorraSuRespuesta() {
+        dadoUnaRespuestaGuardada(HizoManual.SI, QuePaso.FUNCIONO, null);
 
-        whenSeBorraElMini();
+        cuandoSeBorraElMini();
 
-        thenLaRespuestaYaNoExiste();
+        entoncesLaRespuestaYaNoExiste();
     }
 
     @Test
     @DisplayName("Lista las respuestas del objetivo del negocio y nunca las de otro negocio")
-    void findAllByObjetivoIdAndNegocioIdShouldNeverListOtherBusinessAnswers() {
-        givenUnaRespuestaGuardada(HizoManual.SI, QuePaso.FUNCIONO, null);
-        negocioB = givenNegocio("b@example.com").getId();
+    void listaLasRespuestasDelObjetivoDelNegocioYNuncaLasDeOtroNegocio() {
+        dadoUnaRespuestaGuardada(HizoManual.SI, QuePaso.FUNCIONO, null);
+        negocioB = dadoNegocio("b@example.com").getId();
 
-        thenSoloElNegocioDuenoVeLaRespuesta();
+        entoncesSoloElNegocioDuenoVeLaRespuesta();
     }
 
     // --- arrange ---
-    private void givenUnaRespuestaGuardada(HizoManual hizo, QuePaso quePaso, String comentario) {
+    private void dadoUnaRespuestaGuardada(HizoManual hizo, QuePaso quePaso, String comentario) {
         idRespuesta = respuestas.saveAndFlush(
                 respuesta(UUID.randomUUID(), manualA, hizo, quePaso, comentario)).getId();
     }
 
     // --- act ---
-    private void whenSeLeeLaRespuesta() {
+    private void cuandoSeLeeLaRespuesta() {
         leida = respuestas.findById(idRespuesta).orElseThrow();
     }
 
-    private void whenSePreguntaSiElManualFueRespondido() {
+    private void cuandoSePreguntaSiElManualFueRespondido() {
         respondido = respuestas.existsByMiniObjetivoId(manualA);
     }
 
-    private void whenSeGuardaConError(HizoManual hizo, QuePaso quePaso, String comentario) {
+    private void cuandoSeGuardaConError(HizoManual hizo, QuePaso quePaso, String comentario) {
         RespuestaMiniObjetivoEntity respuesta = respuesta(UUID.randomUUID(), manualA, hizo, quePaso, comentario);
         error = catchThrowable(() -> respuestas.saveAndFlush(respuesta));
     }
 
-    private void whenSeBorraElMini() {
+    private void cuandoSeBorraElMini() {
         minis.deleteById(manualA);
         minis.flush();
         respuestas.flush();
     }
 
     // --- assert ---
-    private void thenSeRelenTodosLosDatos() {
+    private void entoncesSeRelenTodosLosDatos() {
         assertThat(leida.getNegocioId()).isEqualTo(negocioA);
         assertThat(leida.getObjetivoId()).isEqualTo(objetivoA);
         assertThat(leida.getMiniObjetivoId()).isEqualTo(manualA);
@@ -169,23 +169,23 @@ class IRespuestaMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
         assertThat(leida.getRespondidaEn()).isEqualTo(AHORA);
     }
 
-    private void thenFueRespondido() {
+    private void entoncesFueRespondido() {
         assertThat(respondido).isTrue();
     }
 
-    private void thenNoFueRespondido() {
+    private void entoncesNoFueRespondido() {
         assertThat(respondido).isFalse();
     }
 
-    private void thenLaBaseLaRechaza() {
+    private void entoncesLaBaseLaRechaza() {
         assertThat(error).isInstanceOf(DataIntegrityViolationException.class);
     }
 
-    private void thenLaRespuestaYaNoExiste() {
+    private void entoncesLaRespuestaYaNoExiste() {
         assertThat(respuestas.existsById(idRespuesta)).isFalse();
     }
 
-    private void thenSoloElNegocioDuenoVeLaRespuesta() {
+    private void entoncesSoloElNegocioDuenoVeLaRespuesta() {
         List<RespuestaMiniObjetivoEntity> delDueno = respuestas.findAllByObjetivoIdAndNegocioId(objetivoA, negocioA);
         assertThat(delDueno).extracting(RespuestaMiniObjetivoEntity::getId).containsExactly(idRespuesta);
         assertThat(respuestas.findAllByObjetivoIdAndNegocioId(objetivoA, negocioB)).isEmpty();

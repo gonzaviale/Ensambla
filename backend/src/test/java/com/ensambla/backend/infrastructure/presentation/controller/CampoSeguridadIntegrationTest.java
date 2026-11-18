@@ -81,16 +81,16 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        UUID usuarioId = givenUsuario();
-        negocioId = givenNegocio(usuarioId);
+        UUID usuarioId = dadoUsuario();
+        negocioId = dadoNegocio(usuarioId);
         sesion = givenSesion(usuarioId);
     }
 
     @Test
     @DisplayName("Crear agrega el campo normalizado al final del bloque propio y lo deja guardado")
     void crearShouldPersistCampoAtTheEnd() throws Exception {
-        UUID bloqueId = givenBloque(negocioId);
-        givenCampo(negocioId, bloqueId, "Producto", 0);
+        UUID bloqueId = dadoBloque(negocioId);
+        dadoCampo(negocioId, bloqueId, "Producto", 0);
 
         crear(bloqueId, """
                 {"nombre":" Talle ","tipo":"OPCION","valorInicial":"Chico","opciones":[" Chico ","Grande"]}
@@ -113,7 +113,7 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Crear un campo de conexión con el propio bloque lo guarda con la tabla conectada")
     void crearShouldPersistRelacionWithBloqueOfSameProyecto() throws Exception {
-        UUID bloqueId = givenBloque(negocioId);
+        UUID bloqueId = dadoBloque(negocioId);
 
         crear(bloqueId, """
                 {"nombre":"Recomendado por","tipo":"RELACION","bloqueRelacionadoId":"%s"}
@@ -130,8 +130,8 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Crear un campo de conexión con una tabla de otro sistema devuelve 400 en bloqueRelacionadoId")
     void crearShouldRejectRelacionWithBloqueOfOtherProyecto() throws Exception {
-        UUID bloqueId = givenBloque(negocioId);
-        UUID deOtroSistema = givenBloque(negocioId);
+        UUID bloqueId = dadoBloque(negocioId);
+        UUID deOtroSistema = dadoBloque(negocioId);
 
         crear(bloqueId, """
                 {"nombre":"Cliente","tipo":"RELACION","bloqueRelacionadoId":"%s"}
@@ -145,9 +145,9 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Listar devuelve los campos del bloque propio ordenados por posición")
     void listarShouldReturnCamposInOrder() throws Exception {
-        UUID bloqueId = givenBloque(negocioId);
-        givenCampo(negocioId, bloqueId, "Segundo", 1);
-        givenCampo(negocioId, bloqueId, "Primero", 0);
+        UUID bloqueId = dadoBloque(negocioId);
+        dadoCampo(negocioId, bloqueId, "Segundo", 1);
+        dadoCampo(negocioId, bloqueId, "Primero", 0);
 
         mockMvc.perform(get("/api/bloques/{id}/campos", bloqueId).session(sesion))
                 .andExpect(status().isOk())
@@ -159,7 +159,7 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Un tipo fuera de la lista se rechaza con 400 y no guarda nada")
     void crearShouldRejectUnknownTipo() throws Exception {
-        UUID bloqueId = givenBloque(negocioId);
+        UUID bloqueId = dadoBloque(negocioId);
 
         crear(bloqueId, "{\"nombre\":\"Adjunto\",\"tipo\":\"ARCHIVO\"}")
                 .andExpect(status().isBadRequest())
@@ -171,7 +171,7 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Una opción sin lista de opciones se rechaza con 400")
     void crearShouldRejectOpcionWithoutOpciones() throws Exception {
-        UUID bloqueId = givenBloque(negocioId);
+        UUID bloqueId = dadoBloque(negocioId);
 
         crear(bloqueId, "{\"nombre\":\"Talle\",\"tipo\":\"OPCION\"}")
                 .andExpect(status().isBadRequest())
@@ -181,8 +181,8 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Crear con un nombre que ya existe en el bloque devuelve 409")
     void crearShouldRejectRepeatedName() throws Exception {
-        UUID bloqueId = givenBloque(negocioId);
-        givenCampo(negocioId, bloqueId, "Producto", 0);
+        UUID bloqueId = dadoBloque(negocioId);
+        dadoCampo(negocioId, bloqueId, "Producto", 0);
 
         crear(bloqueId, "{\"nombre\":\" PRODUCTO \",\"tipo\":\"TEXTO\"}")
                 .andExpect(status().isConflict());
@@ -191,7 +191,7 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Editar reemplaza la configuración del campo propio")
     void editarShouldReplaceConfiguracion() throws Exception {
-        UUID campoId = givenCampo(negocioId, givenBloque(negocioId), "Precio", 0);
+        UUID campoId = dadoCampo(negocioId, dadoBloque(negocioId), "Precio", 0);
 
         mockMvc.perform(patch("/api/campos/{id}", campoId).session(sesion)
                         .header("X-CSRF-TOKEN", csrfToken)
@@ -211,8 +211,8 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Crear en un bloque ajeno devuelve 404 y no guarda nada")
     void crearShouldHideForeignBloque() throws Exception {
-        UUID ajenoNegocioId = givenNegocio(givenUsuario());
-        UUID ajenoBloqueId = givenBloque(ajenoNegocioId);
+        UUID ajenoNegocioId = dadoNegocio(dadoUsuario());
+        UUID ajenoBloqueId = dadoBloque(ajenoNegocioId);
 
         crear(ajenoBloqueId, "{\"nombre\":\"Intruso\",\"tipo\":\"TEXTO\"}")
                 .andExpect(status().isNotFound());
@@ -224,9 +224,9 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Listar los campos de un bloque ajeno devuelve 404")
     void listarShouldHideForeignBloque() throws Exception {
-        UUID ajenoNegocioId = givenNegocio(givenUsuario());
-        UUID ajenoBloqueId = givenBloque(ajenoNegocioId);
-        givenCampo(ajenoNegocioId, ajenoBloqueId, "Secreto", 0);
+        UUID ajenoNegocioId = dadoNegocio(dadoUsuario());
+        UUID ajenoBloqueId = dadoBloque(ajenoNegocioId);
+        dadoCampo(ajenoNegocioId, ajenoBloqueId, "Secreto", 0);
 
         mockMvc.perform(get("/api/bloques/{id}/campos", ajenoBloqueId).session(sesion))
                 .andExpect(status().isNotFound());
@@ -235,8 +235,8 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Un PATCH a un campo ajeno responde 404 y conserva su configuración")
     void editarShouldNotModifyForeignCampo() throws Exception {
-        UUID ajenoNegocioId = givenNegocio(givenUsuario());
-        UUID ajenoCampoId = givenCampo(ajenoNegocioId, givenBloque(ajenoNegocioId), "Ajeno", 0);
+        UUID ajenoNegocioId = dadoNegocio(dadoUsuario());
+        UUID ajenoCampoId = dadoCampo(ajenoNegocioId, dadoBloque(ajenoNegocioId), "Ajeno", 0);
 
         mockMvc.perform(patch("/api/campos/{id}", ajenoCampoId).session(sesion)
                         .header("X-CSRF-TOKEN", csrfToken)
@@ -250,8 +250,8 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Un DELETE a un campo ajeno responde 404 y conserva el campo")
     void eliminarShouldNotDeleteForeignCampo() throws Exception {
-        UUID ajenoNegocioId = givenNegocio(givenUsuario());
-        UUID ajenoCampoId = givenCampo(ajenoNegocioId, givenBloque(ajenoNegocioId), "Ajeno", 0);
+        UUID ajenoNegocioId = dadoNegocio(dadoUsuario());
+        UUID ajenoCampoId = dadoCampo(ajenoNegocioId, dadoBloque(ajenoNegocioId), "Ajeno", 0);
 
         mockMvc.perform(delete("/api/campos/{id}", ajenoCampoId).session(sesion)
                         .header("X-CSRF-TOKEN", csrfToken))
@@ -263,7 +263,7 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Un DELETE a un campo propio lo borra y responde 204")
     void eliminarShouldDeleteOwnCampo() throws Exception {
-        UUID campoId = givenCampo(negocioId, givenBloque(negocioId), "Precio", 0);
+        UUID campoId = dadoCampo(negocioId, dadoBloque(negocioId), "Precio", 0);
 
         mockMvc.perform(delete("/api/campos/{id}", campoId).session(sesion)
                         .header("X-CSRF-TOKEN", csrfToken))
@@ -275,7 +275,7 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Crear un campo sin CSRF devuelve 403")
     void crearShouldRequireCsrf() throws Exception {
-        UUID bloqueId = givenBloque(negocioId);
+        UUID bloqueId = dadoBloque(negocioId);
 
         mockMvc.perform(post("/api/bloques/{id}/campos", bloqueId).session(sesion)
                         .contentType("application/json").content("{\"nombre\":\"Producto\",\"tipo\":\"TEXTO\"}"))
@@ -299,7 +299,7 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     // --- arrange ---
-    private UUID givenUsuario() {
+    private UUID dadoUsuario() {
         return usuarios.saveAndFlush(UsuarioEntity.builder()
                 .nombre("Persona")
                 .email(UUID.randomUUID() + "@example.com")
@@ -309,7 +309,7 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenNegocio(UUID usuarioId) {
+    private UUID dadoNegocio(UUID usuarioId) {
         return negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(usuarioId)
@@ -318,7 +318,7 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenBloque(UUID negocioId) {
+    private UUID dadoBloque(UUID negocioId) {
         UUID proyectoId = proyectos.saveAndFlush(ProyectoEntity.builder()
                 .negocioId(negocioId)
                 .nombre("Inventario")
@@ -335,7 +335,7 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenCampo(UUID negocioId, UUID bloqueId, String nombre, int posicion) {
+    private UUID dadoCampo(UUID negocioId, UUID bloqueId, String nombre, int posicion) {
         return campos.saveAndFlush(CampoEntity.builder()
                 .negocioId(negocioId)
                 .bloqueId(bloqueId)

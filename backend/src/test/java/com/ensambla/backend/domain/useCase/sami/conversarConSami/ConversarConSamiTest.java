@@ -201,7 +201,7 @@ class ConversarConSamiTest {
     @Test
     @DisplayName("Con el límite diario agotado no llama a la IA")
     void executeShouldNotCallAiWhenLimitIsReached() {
-        givenNegocio();
+        dadoNegocio();
         when(consumoSamiRepository.reservar(NEGOCIO_ID, HOY, LIMITE_IA, AHORA)).thenReturn(false);
         ConversarConSami conversacion = conversacion(0);
         ConversarConSamiRequest request = new ConversarConSamiRequest(USUARIO_ID, "texto", List.of());
@@ -216,7 +216,7 @@ class ConversarConSamiTest {
     @Test
     @DisplayName("Si la IA no está habilitada para el dueño, no reserva ni consulta")
     void executeShouldRejectWhenIaIsNotEnabledForTheOwner() {
-        givenNegocio();
+        dadoNegocio();
         doThrow(new RestriccionPlanException("IA_NO_HABILITADA", "La IA no está habilitada para tu cuenta."))
                 .when(controlPlanService).exigirIa(NEGOCIO_ID);
         ConversarConSamiRequest request = new ConversarConSamiRequest(USUARIO_ID, "texto", List.of());
@@ -231,7 +231,7 @@ class ConversarConSamiTest {
     @DisplayName("El día del límite es el argentino aunque en UTC ya sea el día siguiente")
     void executeShouldUseArgentinaDayForTheLimit() {
         OffsetDateTime tardeEnArgentina = OffsetDateTime.parse("2026-10-19T22:30:00-03:00");
-        givenNegocio();
+        dadoNegocio();
         when(consumoSamiRepository.reservar(NEGOCIO_ID, LocalDate.of(2026, 10, 19), LIMITE_IA,
                 tardeEnArgentina.withOffsetSameInstant(ZoneOffset.UTC))).thenReturn(false);
         ConversarConSami conversacion = new ConversarConSami(negocioRepository, plantillaRepository,
@@ -292,12 +292,12 @@ class ConversarConSamiTest {
                 maxPreguntas, LIMITE_IA);
     }
 
-    private void givenNegocio() {
+    private void dadoNegocio() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     private void givenReserva() {
-        givenNegocio();
+        dadoNegocio();
         when(consumoSamiRepository.reservar(NEGOCIO_ID, HOY, LIMITE_IA, AHORA)).thenReturn(true);
     }
 

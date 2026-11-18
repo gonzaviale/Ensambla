@@ -24,51 +24,51 @@ class TipoObjetivoTest {
     @ParameterizedTest(name = "{0}")
     @DisplayName("Sólo el monetario tiene meta en pesos")
     @CsvSource({"MONETARIO, true", "CON_DATOS, false", "SIN_DATOS, false", "HIBRIDO, false"})
-    void tieneMetaShouldBeTrueOnlyForMonetario(TipoObjetivo tipoDado, boolean esperado) {
-        whenSePreguntaSiTieneMeta(tipoDado);
+    void soloElMonetarioTieneMetaEnPesos(TipoObjetivo tipoDado, boolean esperado) {
+        cuandoSePreguntaSiTieneMeta(tipoDado);
 
-        thenTieneMeta(esperado);
+        entoncesTieneMeta(esperado);
     }
 
     @Test
     @DisplayName("Con sólo mini-objetivos medidos el objetivo es con datos")
-    void deShouldBeConDatosWhenAllAreMeasured() {
-        whenSeDeduceElTipoDe(MEDIDO, MEDIDO);
+    void conSoloMiniObjetivosMedidosElObjetivoEsConDatos() {
+        cuandoSeDeduceElTipoDe(MEDIDO, MEDIDO);
 
-        thenElTipoEs(TipoObjetivo.CON_DATOS);
+        entoncesElTipoEs(TipoObjetivo.CON_DATOS);
     }
 
     @Test
     @DisplayName("Con sólo mini-objetivos manuales el objetivo es sin datos")
-    void deShouldBeSinDatosWhenAllAreManual() {
-        whenSeDeduceElTipoDe(MANUAL);
+    void conSoloMiniObjetivosManualesElObjetivoEsSinDatos() {
+        cuandoSeDeduceElTipoDe(MANUAL);
 
-        thenElTipoEs(TipoObjetivo.SIN_DATOS);
+        entoncesElTipoEs(TipoObjetivo.SIN_DATOS);
     }
 
     @Test
     @DisplayName("Con mini-objetivos medidos y manuales el objetivo es híbrido")
-    void deShouldBeHibridoWhenMixed() {
-        whenSeDeduceElTipoDe(MEDIDO, MANUAL);
+    void conMiniObjetivosMedidosYManualesElObjetivoEsHibrido() {
+        cuandoSeDeduceElTipoDe(MEDIDO, MANUAL);
 
-        thenElTipoEs(TipoObjetivo.HIBRIDO);
+        entoncesElTipoEs(TipoObjetivo.HIBRIDO);
     }
 
     // --- act ---
-    private void whenSePreguntaSiTieneMeta(TipoObjetivo tipoDado) {
+    private void cuandoSePreguntaSiTieneMeta(TipoObjetivo tipoDado) {
         tieneMeta = tipoDado.tieneMeta();
     }
 
-    private void whenSeDeduceElTipoDe(MiniObjetivoPropuesto... minis) {
+    private void cuandoSeDeduceElTipoDe(MiniObjetivoPropuesto... minis) {
         tipo = TipoObjetivo.de(List.of(minis));
     }
 
     // --- assert ---
-    private void thenTieneMeta(boolean esperado) {
+    private void entoncesTieneMeta(boolean esperado) {
         assertThat(tieneMeta).isEqualTo(esperado);
     }
 
-    private void thenElTipoEs(TipoObjetivo esperado) {
+    private void entoncesElTipoEs(TipoObjetivo esperado) {
         assertThat(tipo).isEqualTo(esperado);
     }
 }

@@ -25,64 +25,64 @@ class MiniObjetivoPropuestoTest {
 
     @Test
     @DisplayName("Uno medido lleva la métrica del catálogo y el texto del servidor")
-    void medidoShouldCarryTheCatalogMetric() {
-        whenSeProponeUnMedido();
+    void unoMedidoLlevaLaMetricaDelCatalogoYElTextoDelServidor() {
+        cuandoSeProponeUnMedido();
 
-        thenLlevaLaMetricaDelCatalogo();
+        entoncesLlevaLaMetricaDelCatalogo();
     }
 
     @Test
     @DisplayName("Uno manual lleva la acción y si la redactó la IA")
-    void manualShouldCarryTheAction() {
-        whenSeProponeUnManual();
+    void unoManualLlevaLaAccionYSiLaRedactoLaIa() {
+        cuandoSeProponeUnManual();
 
-        thenLlevaLaAccionRedactadaPorLaIa();
+        entoncesLlevaLaAccionRedactadaPorLaIa();
     }
 
     @Test
     @DisplayName("Uno medido se vuelve un mini-objetivo medido en curso con los números del candidato")
-    void aMiniObjetivoShouldBuildAMeasuredMini() {
-        givenUnMedido();
+    void unoMedidoSeVuelveUnMiniObjetivoMedidoEnCursoConLosNumerosDelCandidato() {
+        dadoUnMedido();
 
-        whenSeVuelveMiniObjetivo(POSICION_MEDIDO);
+        cuandoSeVuelveMiniObjetivo(POSICION_MEDIDO);
 
-        thenElMiniEsMedidoConLosNumerosDelCandidato();
+        entoncesElMiniEsMedidoConLosNumerosDelCandidato();
     }
 
     @Test
     @DisplayName("Uno manual se vuelve un mini-objetivo manual en curso sin números")
-    void aMiniObjetivoShouldBuildAManualMini() {
-        givenUnManual();
+    void unoManualSeVuelveUnMiniObjetivoManualEnCursoSinNumeros() {
+        dadoUnManual();
 
-        whenSeVuelveMiniObjetivo(POSICION_MANUAL);
+        cuandoSeVuelveMiniObjetivo(POSICION_MANUAL);
 
-        thenElMiniEsManualSinNumeros();
+        entoncesElMiniEsManualSinNumeros();
     }
 
     // --- arrange ---
-    private void givenUnMedido() {
+    private void dadoUnMedido() {
         propuesto = MiniObjetivoPropuesto.medido(candidato());
     }
 
-    private void givenUnManual() {
+    private void dadoUnManual() {
         propuesto = MiniObjetivoPropuesto.manual(accion(), true);
     }
 
     // --- act ---
-    private void whenSeProponeUnMedido() {
-        givenUnMedido();
+    private void cuandoSeProponeUnMedido() {
+        dadoUnMedido();
     }
 
-    private void whenSeProponeUnManual() {
-        givenUnManual();
+    private void cuandoSeProponeUnManual() {
+        dadoUnManual();
     }
 
-    private void whenSeVuelveMiniObjetivo(int posicion) {
+    private void cuandoSeVuelveMiniObjetivo(int posicion) {
         mini = propuesto.aMiniObjetivo(objetivo(), posicion, SEMANA, AHORA);
     }
 
     // --- assert ---
-    private void thenLlevaLaMetricaDelCatalogo() {
+    private void entoncesLlevaLaMetricaDelCatalogo() {
         assertThat(propuesto.modo()).isEqualTo(ModoMiniObjetivo.MEDIDO);
         assertThat(propuesto.esMedido()).isTrue();
         assertThat(propuesto.esManual()).isFalse();
@@ -91,7 +91,7 @@ class MiniObjetivoPropuestoTest {
         assertThat(propuesto.textoConIa()).isFalse();
     }
 
-    private void thenLlevaLaAccionRedactadaPorLaIa() {
+    private void entoncesLlevaLaAccionRedactadaPorLaIa() {
         assertThat(propuesto.modo()).isEqualTo(ModoMiniObjetivo.MANUAL);
         assertThat(propuesto.esManual()).isTrue();
         assertThat(propuesto.esMedido()).isFalse();
@@ -100,7 +100,7 @@ class MiniObjetivoPropuestoTest {
         assertThat(propuesto.textoConIa()).isTrue();
     }
 
-    private void thenElMiniEsMedidoConLosNumerosDelCandidato() {
+    private void entoncesElMiniEsMedidoConLosNumerosDelCandidato() {
         assertThat(mini.esMedido()).isTrue();
         assertThat(mini.getObjetivoId()).isEqualTo(OBJETIVO_ID);
         assertThat(mini.getPosicion()).isEqualTo(POSICION_MEDIDO);
@@ -110,7 +110,7 @@ class MiniObjetivoPropuestoTest {
         assertThat(mini.getSemanaInicio()).isEqualTo(SEMANA);
     }
 
-    private void thenElMiniEsManualSinNumeros() {
+    private void entoncesElMiniEsManualSinNumeros() {
         assertThat(mini.esManual()).isTrue();
         assertThat(mini.getPosicion()).isEqualTo(POSICION_MANUAL);
         assertThat(mini.getTitulo()).isEqualTo(TITULO_ACCION);

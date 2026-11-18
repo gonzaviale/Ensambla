@@ -47,7 +47,7 @@ class IReajusteMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
 
     @BeforeEach
     void setUp() {
-        UUID negocio = givenNegocio("a@example.com").getId();
+        UUID negocio = dadoNegocio("a@example.com").getId();
         UUID objetivo = givenObjetivo(negocio);
         anterior = givenMini(objetivo, negocio, (short) 1);
         nuevo = givenMini(objetivo, negocio, (short) 2);

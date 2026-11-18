@@ -32,78 +32,78 @@ class RespuestaMiniObjetivoRepositoryImplTest {
 
     @Test
     @DisplayName("Guarda escribiendo en el acto y devuelve lo guardado como dominio")
-    void saveShouldWriteImmediatelyAndMapTheResult() {
-        givenLaBaseDevuelveLoQueGuarda();
+    void guardaEscribiendoEnElActoYDevuelveLoGuardadoComoDominio() {
+        dadoLaBaseDevuelveLoQueGuarda();
 
-        whenSeGuardaLaRespuesta();
+        cuandoSeGuardaLaRespuesta();
 
-        thenSeEscribioEnElActoYSeDevuelveElDominio();
+        entoncesSeEscribioEnElActoYSeDevuelveElDominio();
     }
 
     @Test
     @DisplayName("Pregunta por el mini-objetivo con el UUID de su id")
-    void existsByMiniObjetivoIdShouldAskWithTheUuid() {
-        givenLaBaseYaTieneRespuestaDelMini();
+    void preguntaPorElMiniObjetivoConElUuidDeSuId() {
+        dadoLaBaseYaTieneRespuestaDelMini();
 
-        whenSePreguntaSiElMiniFueRespondido();
+        cuandoSePreguntaSiElMiniFueRespondido();
 
-        thenElMiniFueRespondido();
+        entoncesElMiniFueRespondido();
     }
 
     @Test
     @DisplayName("Lista las respuestas del objetivo del negocio con los UUID de los ids")
-    void findAllByObjetivoIdAndNegocioIdShouldMapTheAnswers() {
-        givenLaBaseTieneUnaRespuestaDelObjetivo();
+    void listaLasRespuestasDelObjetivoDelNegocioConLosUuidDeLosIds() {
+        dadoLaBaseTieneUnaRespuestaDelObjetivo();
 
-        whenSeListanLasRespuestasDelObjetivo();
+        cuandoSeListanLasRespuestasDelObjetivo();
 
-        thenSeListaLaRespuestaConSusIds();
+        entoncesSeListaLaRespuestaConSusIds();
     }
 
     @Test
     @DisplayName("Sin respuestas devuelve una lista vacía")
-    void findAllByObjetivoIdAndNegocioIdShouldReturnAnEmptyList() {
-        givenLaBaseNoTieneRespuestasDelObjetivo();
+    void sinRespuestasDevuelveUnaListaVacia() {
+        dadoLaBaseNoTieneRespuestasDelObjetivo();
 
-        whenSeListanLasRespuestasDelObjetivo();
+        cuandoSeListanLasRespuestasDelObjetivo();
 
-        thenNoHayRespuestas();
+        entoncesNoHayRespuestas();
     }
 
     // --- arrange ---
-    private void givenLaBaseDevuelveLoQueGuarda() {
+    private void dadoLaBaseDevuelveLoQueGuarda() {
         when(jpa.saveAndFlush(any(RespuestaMiniObjetivoEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
-    private void givenLaBaseYaTieneRespuestaDelMini() {
+    private void dadoLaBaseYaTieneRespuestaDelMini() {
         when(jpa.existsByMiniObjetivoId(OTRO_MINI_ID.valor())).thenReturn(true);
     }
 
-    private void givenLaBaseTieneUnaRespuestaDelObjetivo() {
+    private void dadoLaBaseTieneUnaRespuestaDelObjetivo() {
         when(jpa.findAllByObjetivoIdAndNegocioId(OBJETIVO_ID.valor(), NEGOCIO_ID.valor()))
                 .thenReturn(List.of(mapper.toEntity(respuesta())));
     }
 
-    private void givenLaBaseNoTieneRespuestasDelObjetivo() {
+    private void dadoLaBaseNoTieneRespuestasDelObjetivo() {
         when(jpa.findAllByObjetivoIdAndNegocioId(OBJETIVO_ID.valor(), NEGOCIO_ID.valor())).thenReturn(List.of());
     }
 
     // --- act ---
-    private void whenSeGuardaLaRespuesta() {
+    private void cuandoSeGuardaLaRespuesta() {
         guardada = repository.save(respuesta());
     }
 
-    private void whenSePreguntaSiElMiniFueRespondido() {
+    private void cuandoSePreguntaSiElMiniFueRespondido() {
         existe = repository.existsByMiniObjetivoId(OTRO_MINI_ID);
     }
 
-    private void whenSeListanLasRespuestasDelObjetivo() {
+    private void cuandoSeListanLasRespuestasDelObjetivo() {
         respuestas = repository.findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID);
     }
 
     // --- assert ---
-    private void thenSeEscribioEnElActoYSeDevuelveElDominio() {
+    private void entoncesSeEscribioEnElActoYSeDevuelveElDominio() {
         ArgumentCaptor<RespuestaMiniObjetivoEntity> captor =
                 ArgumentCaptor.forClass(RespuestaMiniObjetivoEntity.class);
         verify(jpa).saveAndFlush(captor.capture());
@@ -111,18 +111,18 @@ class RespuestaMiniObjetivoRepositoryImplTest {
         assertThat(guardada.id()).isEqualTo(RESPUESTA_ID);
     }
 
-    private void thenElMiniFueRespondido() {
+    private void entoncesElMiniFueRespondido() {
         assertThat(existe).isTrue();
     }
 
-    private void thenSeListaLaRespuestaConSusIds() {
+    private void entoncesSeListaLaRespuestaConSusIds() {
         assertThat(respuestas).singleElement().satisfies(respuesta -> {
             assertThat(respuesta.id()).isEqualTo(RESPUESTA_ID);
             assertThat(respuesta.miniObjetivoId()).isEqualTo(OTRO_MINI_ID);
         });
     }
 
-    private void thenNoHayRespuestas() {
+    private void entoncesNoHayRespuestas() {
         assertThat(respuestas).isEmpty();
     }
 }

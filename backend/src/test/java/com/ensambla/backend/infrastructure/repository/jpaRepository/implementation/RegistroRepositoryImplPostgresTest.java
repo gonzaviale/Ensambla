@@ -34,10 +34,10 @@ class RegistroRepositoryImplPostgresTest extends PostgresDatosTestSupport {
 
     @BeforeEach
     void setUp() {
-        negocioId = NegocioId.de(givenNegocio("dueña@example.com").getId());
-        bloqueId = BloqueId.de(givenBloque(negocioId, "Productos"));
-        campoNombre = CampoId.de(givenCampo(negocioId, bloqueId, "Producto", TipoCampo.TEXTO, 0));
-        campoCantidad = CampoId.de(givenCampo(negocioId, bloqueId, "Cantidad", TipoCampo.NUMERO, 1));
+        negocioId = NegocioId.de(dadoNegocio("dueña@example.com").getId());
+        bloqueId = BloqueId.de(dadoBloque(negocioId, "Productos"));
+        campoNombre = CampoId.de(dadoCampo(negocioId, bloqueId, "Producto", TipoCampo.TEXTO, 0));
+        campoCantidad = CampoId.de(dadoCampo(negocioId, bloqueId, "Cantidad", TipoCampo.NUMERO, 1));
     }
 
     @Test
@@ -138,14 +138,14 @@ class RegistroRepositoryImplPostgresTest extends PostgresDatosTestSupport {
     // --- arrange ---
     private void givenProductos(int cantidad) {
         for (int i = 0; i < cantidad; i++) {
-            givenRegistro(negocioId, bloqueId, Map.of(
+            dadoRegistro(negocioId, bloqueId, Map.of(
                     campoNombre.toString(), "Producto " + i,
                     campoCantidad.toString(), i), AHORA.minusSeconds(cantidad - i));
         }
     }
 
     private void givenNombre(String nombre) {
-        givenRegistro(negocioId, bloqueId, Map.of(campoNombre.toString(), nombre), AHORA);
+        dadoRegistro(negocioId, bloqueId, Map.of(campoNombre.toString(), nombre), AHORA);
     }
 
     // --- helpers ---

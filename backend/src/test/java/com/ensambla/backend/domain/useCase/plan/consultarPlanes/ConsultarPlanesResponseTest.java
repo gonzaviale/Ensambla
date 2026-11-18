@@ -18,46 +18,46 @@ class ConsultarPlanesResponseTest {
 
     @Test
     @DisplayName("Mapea catálogo completo, suscripción efectiva, uso e historial de prueba")
-    void deShouldMapEveryField() {
-        givenUnaConsultaConHistorialDePrueba();
+    void mapeaCatalogoCompletoSuscripcionEfectivaUsoEHistorialDePrueba() {
+        dadoUnaConsultaConHistorialDePrueba();
 
-        whenSeMapeaLaConsulta();
+        cuandoSeMapeaLaConsulta();
 
-        thenSeMapeanElCatalogoYLaSuscripcion();
-        thenSeMapeaElUso();
-        thenSeMapeaElHistorialDePrueba();
+        entoncesSeMapeanElCatalogoYLaSuscripcion();
+        entoncesSeMapeaElUso();
+        entoncesSeMapeaElHistorialDePrueba();
     }
 
     @Test
     @DisplayName("Un negocio que nunca inició prueba conserva historial nulo y elegibilidad")
-    void deShouldPreserveAbsentHistory() {
-        givenUnaConsultaSinHistorialDePrueba();
+    void unNegocioQueNuncaInicioPruebaConservaHistorialNuloYElegibilidad() {
+        dadoUnaConsultaSinHistorialDePrueba();
 
-        whenSeMapeaLaConsulta();
+        cuandoSeMapeaLaConsulta();
 
-        thenNoHayHistorialYPuedeIniciarPrueba();
+        entoncesNoHayHistorialYPuedeIniciarPrueba();
     }
 
     // --- arrange ---
-    private void givenUnaConsultaConHistorialDePrueba() {
+    private void dadoUnaConsultaConHistorialDePrueba() {
         consulta = consulta(true);
     }
 
-    private void givenUnaConsultaSinHistorialDePrueba() {
+    private void dadoUnaConsultaSinHistorialDePrueba() {
         consulta = consulta(false);
     }
 
     // --- act ---
-    private void whenSeMapeaLaConsulta() {
+    private void cuandoSeMapeaLaConsulta() {
         respuesta = ConsultarPlanesResponse.de(consulta, AHORA);
     }
 
     // --- assert ---
-    private void thenSeMapeanElCatalogoYLaSuscripcion() {
+    private void entoncesSeMapeanElCatalogoYLaSuscripcion() {
         assertThat(respuesta.consultadoEn()).isEqualTo(AHORA);
         assertThat(respuesta.planes()).hasSize(2);
         IntStream.range(0, consulta.planes().size())
-                .forEach(indice -> thenPlanMatches(respuesta.planes().get(indice), consulta.planes().get(indice)));
+                .forEach(indice -> entoncesPlanMatches(respuesta.planes().get(indice), consulta.planes().get(indice)));
         assertThat(respuesta.suscripcion().codigoPlanActual()).isEqualTo("GRATUITO");
         assertThat(respuesta.suscripcion().pruebaActiva()).isFalse();
         assertThat(respuesta.suscripcion().puedeIniciarPrueba()).isFalse();
@@ -65,7 +65,7 @@ class ConsultarPlanesResponseTest {
         assertThat(respuesta.suscripcion().finEn()).isEqualTo(consulta.suscripcion().getFinEn());
     }
 
-    private void thenSeMapeaElUso() {
+    private void entoncesSeMapeaElUso() {
         assertThat(respuesta.uso().proyectos()).isEqualTo(2);
         assertThat(respuesta.uso().registros()).isEqualTo(89);
         assertThat(respuesta.uso().paginasIa()).isEqualTo(6);
@@ -78,19 +78,19 @@ class ConsultarPlanesResponseTest {
         assertThat(respuesta.uso().finPeriodoIa()).isEqualTo(consulta.finPeriodoIa());
     }
 
-    private void thenSeMapeaElHistorialDePrueba() {
+    private void entoncesSeMapeaElHistorialDePrueba() {
         assertThat(respuesta.prueba().inicioEn()).isEqualTo(consulta.prueba().inicioEn());
         assertThat(respuesta.prueba().finEn()).isEqualTo(consulta.prueba().finEn());
         assertThat(respuesta.prueba().paginasIaUtilizadas()).isEqualTo(8);
         assertThat(respuesta.prueba().limitePaginasIa()).isEqualTo(10);
     }
 
-    private void thenNoHayHistorialYPuedeIniciarPrueba() {
+    private void entoncesNoHayHistorialYPuedeIniciarPrueba() {
         assertThat(respuesta.prueba()).isNull();
         assertThat(respuesta.suscripcion().puedeIniciarPrueba()).isTrue();
     }
 
-    private void thenPlanMatches(PlanItem actual, Plan esperado) {
+    private void entoncesPlanMatches(PlanItem actual, Plan esperado) {
         assertThat(actual.codigo()).isEqualTo(esperado.getCodigo().name());
         assertThat(actual.nombre()).isEqualTo(esperado.getNombre());
         assertThat(actual.precioConfigurado()).isEqualTo(esperado.getConfigurado());

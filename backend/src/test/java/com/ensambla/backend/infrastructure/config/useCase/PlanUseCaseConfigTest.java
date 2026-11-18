@@ -44,7 +44,7 @@ class PlanUseCaseConfigTest {
     @Test
     @DisplayName("El wiring conecta la consulta con usuario, catálogo, uso y reloj")
     void consultarPlanesUseCaseShouldWireDependencies() {
-        givenNegocio();
+        dadoNegocio();
         givenCatalogo();
         Suscripcion suscripcion = suscripcion();
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
@@ -62,7 +62,7 @@ class PlanUseCaseConfigTest {
     @Test
     @DisplayName("El wiring conecta usuario, catálogo, suscripción y reloj al inicio de prueba")
     void iniciarPruebaUseCaseShouldWireDependencies() {
-        givenNegocio();
+        dadoNegocio();
         givenCatalogo();
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
         when(pruebaPremiumRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -89,7 +89,7 @@ class PlanUseCaseConfigTest {
     }
 
     // --- arrange ---
-    private void givenNegocio() {
+    private void dadoNegocio() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 

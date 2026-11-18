@@ -76,166 +76,166 @@ class RespuestaMiniObjetivoControllerTest {
 
     @Test
     @DisplayName("POST guarda la respuesta y responde 201 con todos sus datos")
-    void responderShouldReturnCreatedWithTheAnswer() throws Exception {
-        givenSeGuardaLaRespuesta();
+    void postGuardaLaRespuestaYResponde201ConTodosSusDatos() throws Exception {
+        dadoSeGuardaLaRespuesta();
 
-        whenResponder(CUERPO);
+        cuandoResponder(CUERPO);
 
-        thenSeResponde201ConLaRespuesta();
+        entoncesSeResponde201ConLaRespuesta();
     }
 
     @Test
     @DisplayName("POST manda al caso de uso el usuario de la sesión, los ids de la ruta y la respuesta")
-    void responderShouldPassTheRequestToTheUseCase() throws Exception {
-        givenSeGuardaLaRespuesta();
+    void postMandaAlCasoDeUsoElUsuarioDeLaSesionLosIdsDeLaRutaYLaRespuesta() throws Exception {
+        dadoSeGuardaLaRespuesta();
 
-        whenResponder(CUERPO);
+        cuandoResponder(CUERPO);
 
-        thenElCasoDeUsoRecibeUsuarioIdsYRespuesta();
+        entoncesElCasoDeUsoRecibeUsuarioIdsYRespuesta();
     }
 
     @Test
     @DisplayName("POST responde 400 cuando falta si lo hizo y no llega al caso de uso")
-    void responderShouldReturn400WhenHizoIsMissing() throws Exception {
-        whenResponder("{\"quePaso\":\"FUNCIONO\"}");
+    void postResponde400CuandoFaltaSiLoHizoYNoLlegaAlCasoDeUso() throws Exception {
+        cuandoResponder("{\"quePaso\":\"FUNCIONO\"}");
 
-        thenSeResponde400ConElError("hizo", "Contá si lo hiciste");
-        thenNoLlegaAlCasoDeUso();
+        entoncesSeResponde400ConElError("hizo", "Contá si lo hiciste");
+        entoncesNoLlegaAlCasoDeUso();
     }
 
     @Test
     @DisplayName("POST responde 400 cuando falta qué pasó y no llega al caso de uso")
-    void responderShouldReturn400WhenQuePasoIsMissing() throws Exception {
-        whenResponder("{\"hizo\":\"SI\"}");
+    void postResponde400CuandoFaltaQuePasoYNoLlegaAlCasoDeUso() throws Exception {
+        cuandoResponder("{\"hizo\":\"SI\"}");
 
-        thenSeResponde400ConElError("quePaso", "Elegí qué pasó");
-        thenNoLlegaAlCasoDeUso();
+        entoncesSeResponde400ConElError("quePaso", "Elegí qué pasó");
+        entoncesNoLlegaAlCasoDeUso();
     }
 
     @Test
     @DisplayName("POST responde 400 cuando el comentario pasa los 300 caracteres")
-    void responderShouldReturn400WhenTheCommentIsTooLong() throws Exception {
-        whenResponder("{\"hizo\":\"SI\",\"quePaso\":\"FUNCIONO\",\"comentario\":\"" + "a".repeat(301) + "\"}");
+    void postResponde400CuandoElComentarioPasaLos300Caracteres() throws Exception {
+        cuandoResponder("{\"hizo\":\"SI\",\"quePaso\":\"FUNCIONO\",\"comentario\":\"" + "a".repeat(301) + "\"}");
 
-        thenSeResponde400ConElError("comentario", "El comentario no puede tener más de 300 caracteres");
-        thenNoLlegaAlCasoDeUso();
+        entoncesSeResponde400ConElError("comentario", "El comentario no puede tener más de 300 caracteres");
+        entoncesNoLlegaAlCasoDeUso();
     }
 
     @Test
     @DisplayName("POST responde 400 cuando la respuesta no es una de las permitidas")
-    void responderShouldReturn400WhenTheAnswerIsUnknown() throws Exception {
-        whenResponder("{\"hizo\":\"TAL_VEZ\",\"quePaso\":\"FUNCIONO\"}");
+    void postResponde400CuandoLaRespuestaNoEsUnaDeLasPermitidas() throws Exception {
+        cuandoResponder("{\"hizo\":\"TAL_VEZ\",\"quePaso\":\"FUNCIONO\"}");
 
-        thenSeResponde400();
-        thenNoLlegaAlCasoDeUso();
+        entoncesSeResponde400();
+        entoncesNoLlegaAlCasoDeUso();
     }
 
     @Test
     @DisplayName("POST responde 400 cuando la combinación es contradictoria")
-    void responderShouldReturn400WhenTheCombinationIsContradictory() throws Exception {
-        givenUnaCombinacionContradictoria();
+    void postResponde400CuandoLaCombinacionEsContradictoria() throws Exception {
+        dadoUnaCombinacionContradictoria();
 
-        whenResponder("{\"hizo\":\"SI\",\"quePaso\":\"NO_TUVE_TIEMPO\"}");
+        cuandoResponder("{\"hizo\":\"SI\",\"quePaso\":\"NO_TUVE_TIEMPO\"}");
 
-        thenSeResponde400();
+        entoncesSeResponde400();
     }
 
     @Test
     @DisplayName("POST responde 409 cuando el mini-objetivo ya se respondió")
-    void responderShouldReturn409WhenAlreadyAnswered() throws Exception {
-        givenUnMiniYaRespondido();
+    void postResponde409CuandoElMiniObjetivoYaSeRespondio() throws Exception {
+        dadoUnMiniYaRespondido();
 
-        whenResponder(CUERPO);
+        cuandoResponder(CUERPO);
 
-        thenSeResponde409();
+        entoncesSeResponde409();
     }
 
     @Test
     @DisplayName("POST responde 404 cuando el mini-objetivo es de otro negocio o no existe")
-    void responderShouldReturn404WhenTheMiniObjetivoIsNotFound() throws Exception {
-        givenUnMiniInexistente();
+    void postResponde404CuandoElMiniObjetivoEsDeOtroNegocioONoExiste() throws Exception {
+        dadoUnMiniInexistente();
 
-        whenResponder(CUERPO);
+        cuandoResponder(CUERPO);
 
-        thenSeResponde404();
+        entoncesSeResponde404();
     }
 
     @Test
     @DisplayName("POST responde 400 cuando un id de la ruta no es un UUID")
-    void responderShouldReturn400WhenTheIdIsNotUuid() throws Exception {
-        whenResponderEn(RESPUESTA_CON_ID_INVALIDO, CUERPO);
+    void postResponde400CuandoUnIdDeLaRutaNoEsUnUuid() throws Exception {
+        cuandoResponderEn(RESPUESTA_CON_ID_INVALIDO, CUERPO);
 
-        thenSeResponde400();
-        thenNoLlegaAlCasoDeUso();
+        entoncesSeResponde400();
+        entoncesNoLlegaAlCasoDeUso();
     }
 
     @Test
     @DisplayName("GET lista los manuales pendientes con el objetivo al que pertenecen")
-    void pendientesShouldReturnThePendingOnes() throws Exception {
-        givenUnManualPendiente();
+    void getListaLosManualesPendientesConElObjetivoAlQuePertenecen() throws Exception {
+        dadoUnManualPendiente();
 
-        whenSePidenLosPendientes();
+        cuandoSePidenLosPendientes();
 
-        thenSeListaElManualPendienteConSuObjetivo();
-        thenSeConsultaConElUsuarioDeLaSesion();
+        entoncesSeListaElManualPendienteConSuObjetivo();
+        entoncesSeConsultaConElUsuarioDeLaSesion();
     }
 
     @Test
     @DisplayName("GET sin pendientes responde una lista vacía")
-    void pendientesShouldReturnAnEmptyList() throws Exception {
-        givenNingunManualPendiente();
+    void getSinPendientesRespondeUnaListaVacia() throws Exception {
+        dadoNingunManualPendiente();
 
-        whenSePidenLosPendientes();
+        cuandoSePidenLosPendientes();
 
-        thenSeResponde200ConUnaListaVacia();
+        entoncesSeResponde200ConUnaListaVacia();
     }
 
     // --- arrange ---
-    private void givenSeGuardaLaRespuesta() {
+    private void dadoSeGuardaLaRespuesta() {
         when(responderMiniObjetivo.execute(any())).thenReturn(ResponderMiniObjetivoResponse.de(respuesta()));
     }
 
-    private void givenUnaCombinacionContradictoria() {
+    private void dadoUnaCombinacionContradictoria() {
         when(responderMiniObjetivo.execute(any())).thenThrow(
                 new BusinessRuleException("Si lo hiciste, no puede ser que no hayas tenido tiempo"));
     }
 
-    private void givenUnMiniYaRespondido() {
+    private void dadoUnMiniYaRespondido() {
         when(responderMiniObjetivo.execute(any()))
                 .thenThrow(new DuplicateResourceException("Ya respondiste este mini-objetivo"));
     }
 
-    private void givenUnMiniInexistente() {
+    private void dadoUnMiniInexistente() {
         when(responderMiniObjetivo.execute(any()))
                 .thenThrow(new ResourceNotFoundException("Mini-objetivo no encontrado"));
     }
 
-    private void givenUnManualPendiente() {
+    private void dadoUnManualPendiente() {
         when(listarRespuestasPendientes.execute(any())).thenReturn(
                 ListarRespuestasPendientesResponse.de(List.of(objetivo()), List.of(miniManual())));
     }
 
-    private void givenNingunManualPendiente() {
+    private void dadoNingunManualPendiente() {
         when(listarRespuestasPendientes.execute(any()))
                 .thenReturn(ListarRespuestasPendientesResponse.de(List.of(), List.of()));
     }
 
     // --- act ---
-    private void whenResponder(String cuerpo) throws Exception {
-        whenResponderEn(RESPUESTA, cuerpo);
+    private void cuandoResponder(String cuerpo) throws Exception {
+        cuandoResponderEn(RESPUESTA, cuerpo);
     }
 
-    private void whenResponderEn(String ruta, String cuerpo) throws Exception {
+    private void cuandoResponderEn(String ruta, String cuerpo) throws Exception {
         resultado = mockMvc.perform(post(ruta).principal(principal)
                 .contentType(MediaType.APPLICATION_JSON).content(cuerpo));
     }
 
-    private void whenSePidenLosPendientes() throws Exception {
+    private void cuandoSePidenLosPendientes() throws Exception {
         resultado = mockMvc.perform(get(PENDIENTES).principal(principal));
     }
 
     // --- assert ---
-    private void thenSeResponde201ConLaRespuesta() throws Exception {
+    private void entoncesSeResponde201ConLaRespuesta() throws Exception {
         resultado.andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(RESPUESTA_ID.toString()))
                 .andExpect(jsonPath("$.miniObjetivoId").value(OTRO_MINI_ID.toString()))
@@ -245,7 +245,7 @@ class RespuestaMiniObjetivoControllerTest {
                 .andExpect(jsonPath("$.semanaInicio").value("2026-11-09"));
     }
 
-    private void thenElCasoDeUsoRecibeUsuarioIdsYRespuesta() throws Exception {
+    private void entoncesElCasoDeUsoRecibeUsuarioIdsYRespuesta() throws Exception {
         resultado.andExpect(status().isCreated());
         ArgumentCaptor<ResponderMiniObjetivoRequest> captor =
                 ArgumentCaptor.forClass(ResponderMiniObjetivoRequest.class);
@@ -258,28 +258,28 @@ class RespuestaMiniObjetivoControllerTest {
         assertThat(captor.getValue().comentario()).isEqualTo(COMENTARIO);
     }
 
-    private void thenSeResponde400() throws Exception {
+    private void entoncesSeResponde400() throws Exception {
         resultado.andExpect(status().isBadRequest());
     }
 
-    private void thenSeResponde400ConElError(String campo, String mensaje) throws Exception {
+    private void entoncesSeResponde400ConElError(String campo, String mensaje) throws Exception {
         resultado.andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors." + campo).value(mensaje));
     }
 
-    private void thenSeResponde409() throws Exception {
+    private void entoncesSeResponde409() throws Exception {
         resultado.andExpect(status().isConflict());
     }
 
-    private void thenSeResponde404() throws Exception {
+    private void entoncesSeResponde404() throws Exception {
         resultado.andExpect(status().isNotFound());
     }
 
-    private void thenNoLlegaAlCasoDeUso() {
+    private void entoncesNoLlegaAlCasoDeUso() {
         verifyNoInteractions(responderMiniObjetivo);
     }
 
-    private void thenSeListaElManualPendienteConSuObjetivo() throws Exception {
+    private void entoncesSeListaElManualPendienteConSuObjetivo() throws Exception {
         resultado.andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].objetivoId").value(OBJETIVO_ID.toString()))
@@ -291,14 +291,14 @@ class RespuestaMiniObjetivoControllerTest {
                 .andExpect(jsonPath("$[0].miniObjetivo.meta").doesNotExist());
     }
 
-    private void thenSeConsultaConElUsuarioDeLaSesion() {
+    private void entoncesSeConsultaConElUsuarioDeLaSesion() {
         ArgumentCaptor<ListarRespuestasPendientesRequest> captor =
                 ArgumentCaptor.forClass(ListarRespuestasPendientesRequest.class);
         verify(listarRespuestasPendientes).execute(captor.capture());
         assertThat(captor.getValue().usuarioId()).isEqualTo(USUARIO_ID);
     }
 
-    private void thenSeResponde200ConUnaListaVacia() throws Exception {
+    private void entoncesSeResponde200ConUnaListaVacia() throws Exception {
         resultado.andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
     }
 }

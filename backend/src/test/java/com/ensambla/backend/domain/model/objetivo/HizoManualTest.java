@@ -17,26 +17,26 @@ class HizoManualTest {
             "EN_PARTE, MINI_EN_PARTE",
             "NO, MINI_NO_HECHO"})
     @DisplayName("Cada respuesta deja su decisión en el historial del objetivo")
-    void tipoDecisionShouldMapEveryAnswer(HizoManual hizo, TipoDecision esperada) {
-        givenUnaRespuesta(hizo);
+    void cadaRespuestaDejaSuDecisionEnElHistorialDelObjetivo(HizoManual hizo, TipoDecision esperada) {
+        dadoUnaRespuesta(hizo);
 
-        whenSeAnotaLaDecision();
+        cuandoSeAnotaLaDecision();
 
-        thenLaDecisionEs(esperada);
+        entoncesLaDecisionEs(esperada);
     }
 
     // --- arrange ---
-    private void givenUnaRespuesta(HizoManual hizo) {
+    private void dadoUnaRespuesta(HizoManual hizo) {
         respuesta = hizo;
     }
 
     // --- act ---
-    private void whenSeAnotaLaDecision() {
+    private void cuandoSeAnotaLaDecision() {
         decision = respuesta.tipoDecision();
     }
 
     // --- assert ---
-    private void thenLaDecisionEs(TipoDecision esperada) {
+    private void entoncesLaDecisionEs(TipoDecision esperada) {
         assertThat(decision).isEqualTo(esperada);
     }
 }

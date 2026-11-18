@@ -25,48 +25,48 @@ class RespuestaMiniObjetivoRepositoryMapperTest {
 
     @Test
     @DisplayName("Mapea el dominio a la entidad con todos sus campos")
-    void toEntityShouldMapEveryField() {
-        whenSePasaLaRespuestaALaEntidad();
+    void mapeaElDominioALaEntidadConTodosSusCampos() {
+        cuandoSePasaLaRespuestaALaEntidad();
 
-        thenLaEntidadTraeTodosLosCampos();
+        entoncesLaEntidadTraeTodosLosCampos();
     }
 
     @Test
     @DisplayName("Mapea la entidad al dominio con todos sus campos")
-    void toDomainShouldMapEveryField() {
-        givenLaEntidadDeLaRespuesta();
+    void mapeaLaEntidadAlDominioConTodosSusCampos() {
+        dadoLaEntidadDeLaRespuesta();
 
-        whenSeLeeLaEntidad();
+        cuandoSeLeeLaEntidad();
 
-        thenElDominioTraeTodosLosCampos();
+        entoncesElDominioTraeTodosLosCampos();
     }
 
     @Test
     @DisplayName("Una entidad sin ids se mapea con ids nulos")
-    void toDomainShouldKeepMissingIdsNull() {
+    void unaEntidadSinIdsSeMapeaConIdsNulos() {
         entidad = RespuestaMiniObjetivoEntity.builder().build();
 
-        whenSeLeeLaEntidad();
+        cuandoSeLeeLaEntidad();
 
-        thenElDominioNoTieneIds();
+        entoncesElDominioNoTieneIds();
     }
 
     // --- arrange ---
-    private void givenLaEntidadDeLaRespuesta() {
+    private void dadoLaEntidadDeLaRespuesta() {
         entidad = mapper.toEntity(respuesta());
     }
 
     // --- act ---
-    private void whenSePasaLaRespuestaALaEntidad() {
+    private void cuandoSePasaLaRespuestaALaEntidad() {
         entidad = mapper.toEntity(respuesta());
     }
 
-    private void whenSeLeeLaEntidad() {
+    private void cuandoSeLeeLaEntidad() {
         dominio = mapper.toDomain(entidad);
     }
 
     // --- assert ---
-    private void thenLaEntidadTraeTodosLosCampos() {
+    private void entoncesLaEntidadTraeTodosLosCampos() {
         assertThat(entidad.getId()).isEqualTo(RESPUESTA_ID.valor());
         assertThat(entidad.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
         assertThat(entidad.getObjetivoId()).isEqualTo(OBJETIVO_ID.valor());
@@ -78,7 +78,7 @@ class RespuestaMiniObjetivoRepositoryMapperTest {
         assertThat(entidad.getRespondidaEn()).isEqualTo(AHORA);
     }
 
-    private void thenElDominioTraeTodosLosCampos() {
+    private void entoncesElDominioTraeTodosLosCampos() {
         assertThat(dominio.id()).isEqualTo(RESPUESTA_ID);
         assertThat(dominio.negocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(dominio.objetivoId()).isEqualTo(OBJETIVO_ID);
@@ -90,7 +90,7 @@ class RespuestaMiniObjetivoRepositoryMapperTest {
         assertThat(dominio.respondidaEn()).isEqualTo(AHORA);
     }
 
-    private void thenElDominioNoTieneIds() {
+    private void entoncesElDominioNoTieneIds() {
         assertThat(dominio.id()).isNull();
         assertThat(dominio.miniObjetivoId()).isNull();
     }

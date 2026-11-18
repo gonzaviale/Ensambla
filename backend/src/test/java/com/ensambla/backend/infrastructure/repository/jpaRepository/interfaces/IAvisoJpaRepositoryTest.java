@@ -25,8 +25,8 @@ class IAvisoJpaRepositoryTest extends PostgresDatosTestSupport {
 
     @BeforeEach
     void setUp() {
-        negocioA = givenNegocio("a@example.com").getId();
-        negocioB = givenNegocio("b@example.com").getId();
+        negocioA = dadoNegocio("a@example.com").getId();
+        negocioB = dadoNegocio("b@example.com").getId();
     }
 
     @Test

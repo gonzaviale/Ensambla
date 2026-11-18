@@ -35,12 +35,12 @@ class IMovimientoStockJpaRepositoryTest extends PostgresDatosTestSupport {
 
     @BeforeEach
     void setUp() {
-        negocioA = givenNegocio("a@example.com").getId();
-        negocioB = givenNegocio("b@example.com").getId();
-        bloqueA = givenBloque(NegocioId.de(negocioA), "Productos");
-        givenCampo(NegocioId.de(negocioA), BloqueId.de(bloqueA), "Producto", TipoCampo.TEXTO, 0);
-        harina = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), AHORA);
-        azucar = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), AHORA);
+        negocioA = dadoNegocio("a@example.com").getId();
+        negocioB = dadoNegocio("b@example.com").getId();
+        bloqueA = dadoBloque(NegocioId.de(negocioA), "Productos");
+        dadoCampo(NegocioId.de(negocioA), BloqueId.de(bloqueA), "Producto", TipoCampo.TEXTO, 0);
+        harina = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), AHORA);
+        azucar = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), AHORA);
     }
 
     @Test
@@ -74,8 +74,8 @@ class IMovimientoStockJpaRepositoryTest extends PostgresDatosTestSupport {
         MovimientoStockEntity viejo = givenMovimiento(negocioA, harina, TipoMovimiento.ENTRADA, "1", 3);
         MovimientoStockEntity medio = givenMovimiento(negocioA, azucar, TipoMovimiento.ENTRADA, "1", 2);
         MovimientoStockEntity nuevo = givenMovimiento(negocioA, harina, TipoMovimiento.SALIDA, "1", 1);
-        UUID otroBloque = givenBloque(NegocioId.de(negocioA), "Clientes");
-        UUID otroProducto = givenRegistro(NegocioId.de(negocioA), BloqueId.de(otroBloque), Map.of(), AHORA);
+        UUID otroBloque = dadoBloque(NegocioId.de(negocioA), "Clientes");
+        UUID otroProducto = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(otroBloque), Map.of(), AHORA);
         givenMovimiento(negocioA, otroProducto, TipoMovimiento.ENTRADA, "1", 0);
 
         List<MovimientoStockEntity> todos = movimientos.findRecientes(negocioA, bloqueA, null, 100);

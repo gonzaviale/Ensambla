@@ -17,249 +17,249 @@ class PlanTest {
 
     @Test
     @DisplayName("Permite el primer sistema cuando el límite es uno")
-    void validarProyectosShouldAllowTheFirstOne() {
-        givenUnLimiteDeProyectos(1);
+    void permiteElPrimerSistemaCuandoElLimiteEsUno() {
+        dadoUnLimiteDeProyectos(1);
 
-        whenSeValidanLosProyectos(0);
+        cuandoSeValidanLosProyectos(0);
 
-        thenNoSeRechaza();
+        entoncesNoSeRechaza();
     }
 
     @Test
     @DisplayName("Rechaza el siguiente sistema al alcanzar el límite")
-    void validarProyectosShouldRejectTheNextOneAtTheLimit() {
-        givenUnLimiteDeProyectos(1);
+    void rechazaElSiguienteSistemaAlAlcanzarElLimite() {
+        dadoUnLimiteDeProyectos(1);
 
-        whenSeValidanLosProyectos(1);
+        cuandoSeValidanLosProyectos(1);
 
-        thenSeRechazaConMensaje("1 sistemas");
+        entoncesSeRechazaConMensaje("1 sistemas");
     }
 
     @Test
     @DisplayName("Un límite nulo permite sistemas sin límite comercial")
-    void validarProyectosShouldAllowUnlimitedConfiguredPlan() {
-        givenUnLimiteDeProyectos(null);
+    void unLimiteNuloPermiteSistemasSinLimiteComercial() {
+        dadoUnLimiteDeProyectos(null);
 
-        whenSeValidanLosProyectos(10000);
+        cuandoSeValidanLosProyectos(10000);
 
-        thenNoSeRechaza();
+        entoncesNoSeRechaza();
     }
 
     @Test
     @DisplayName("Permite un lote que entra completo en el límite de registros")
-    void validarRegistrosShouldAllowABatchThatFits() {
-        givenUnLimiteDeRegistros(1000L);
+    void permiteUnLoteQueEntraCompletoEnElLimiteDeRegistros() {
+        dadoUnLimiteDeRegistros(1000L);
 
-        whenSeValidanLosRegistros(998, 2);
+        cuandoSeValidanLosRegistros(998, 2);
 
-        thenNoSeRechaza();
+        entoncesNoSeRechaza();
     }
 
     @Test
     @DisplayName("Rechaza un lote que no entra completo en el límite de registros")
-    void validarRegistrosShouldRejectABatchThatDoesNotFit() {
-        givenUnLimiteDeRegistros(1000L);
+    void rechazaUnLoteQueNoEntraCompletoEnElLimiteDeRegistros() {
+        dadoUnLimiteDeRegistros(1000L);
 
-        whenSeValidanLosRegistros(998, 3);
+        cuandoSeValidanLosRegistros(998, 3);
 
-        thenSeRechazaConMensaje("1000 registros");
+        entoncesSeRechazaConMensaje("1000 registros");
     }
 
     @Test
     @DisplayName("Un lote vacío no exige eliminar registros cuando el negocio ya superó su cuota")
-    void validarRegistrosShouldAllowEmptyBatchAboveLimit() {
-        givenUnLimiteDeRegistros(1000L);
+    void unLoteVacioNoExigeEliminarRegistrosCuandoElNegocioYaSuperoSuCuota() {
+        dadoUnLimiteDeRegistros(1000L);
 
-        whenSeValidanLosRegistros(1500, 0);
+        cuandoSeValidanLosRegistros(1500, 0);
 
-        thenNoSeRechaza();
+        entoncesNoSeRechaza();
     }
 
     @Test
     @DisplayName("Un lote con filas rechaza cuando el negocio ya superó su cuota")
-    void validarRegistrosShouldRejectANonEmptyBatchAboveLimit() {
-        givenUnLimiteDeRegistros(1000L);
+    void unLoteConFilasRechazaCuandoElNegocioYaSuperoSuCuota() {
+        dadoUnLimiteDeRegistros(1000L);
 
-        whenSeValidanLosRegistros(1500, 1);
+        cuandoSeValidanLosRegistros(1500, 1);
 
-        thenSeRechaza();
+        entoncesSeRechaza();
     }
 
     @Test
     @DisplayName("La cuota mensual de IA incluye páginas procesadas y reservadas")
-    void validarPaginasIaShouldAllowWhatFitsTheMonthlyAllowance() {
-        givenUnLimiteDePaginasIa(10);
+    void laCuotaMensualDeIaIncluyePaginasProcesadasYReservadas() {
+        dadoUnLimiteDePaginasIa(10);
 
-        whenSeValidanLasPaginasIa(9, 1);
+        cuandoSeValidanLasPaginasIa(9, 1);
 
-        thenNoSeRechaza();
+        entoncesNoSeRechaza();
     }
 
     @Test
     @DisplayName("La cuota mensual de IA rechaza lo que la supera")
-    void validarPaginasIaShouldRejectWhatExceedsTheMonthlyAllowance() {
-        givenUnLimiteDePaginasIa(10);
+    void laCuotaMensualDeIaRechazaLoQueLaSupera() {
+        dadoUnLimiteDePaginasIa(10);
 
-        whenSeValidanLasPaginasIa(9, 2);
+        cuandoSeValidanLasPaginasIa(9, 2);
 
-        thenSeRechazaConMensaje("10 análisis de foto por mes");
+        entoncesSeRechazaConMensaje("10 análisis de foto por mes");
     }
 
     @Test
     @DisplayName("No habilita límites comerciales pendientes de configuración")
-    void validarLimitesConfiguradosShouldFailClosedWhenFalse() {
-        givenLimitesConfigurados(false);
+    void noHabilitaLimitesComercialesPendientesDeConfiguracion() {
+        dadoLimitesConfigurados(false);
 
-        whenSeValidanLosLimitesConfigurados();
+        cuandoSeValidanLosLimitesConfigurados();
 
-        thenSeRechazaConMensaje("Los límites del plan no están configurados");
+        entoncesSeRechazaConMensaje("Los límites del plan no están configurados");
     }
 
     @Test
     @DisplayName("No interpreta una configuración nula como un plan ilimitado")
-    void validarLimitesConfiguradosShouldFailClosedWhenNull() {
-        givenLimitesConfigurados(null);
+    void noInterpretaUnaConfiguracionNulaComoUnPlanIlimitado() {
+        dadoLimitesConfigurados(null);
 
-        whenSeValidanLosLimitesConfigurados();
+        cuandoSeValidanLosLimitesConfigurados();
 
-        thenSeRechaza();
+        entoncesSeRechaza();
     }
 
     @Test
     @DisplayName("Permite usar capacidades aprobadas aunque el precio siga pendiente")
-    void validarLimitesConfiguradosShouldAllowCapabilitiesWithoutPrice() {
-        givenElPrecioPendiente();
+    void permiteUsarCapacidadesAprobadasAunqueElPrecioSigaPendiente() {
+        dadoElPrecioPendiente();
 
-        whenSeValidanLosLimitesConfigurados();
+        cuandoSeValidanLosLimitesConfigurados();
 
-        thenNoSeRechaza();
+        entoncesNoSeRechaza();
     }
 
     @Test
     @DisplayName("Permite una función incluida explícitamente en el catálogo")
-    void validarFuncionShouldAllowAnEnabledFeature() {
-        givenFunciones(FuncionPlan.RECETAS_COSTOS);
+    void permiteUnaFuncionIncluidaExplicitamenteEnElCatalogo() {
+        dadoFunciones(FuncionPlan.RECETAS_COSTOS);
 
-        whenSeValidaLaFuncion(FuncionPlan.RECETAS_COSTOS);
+        cuandoSeValidaLaFuncion(FuncionPlan.RECETAS_COSTOS);
 
-        thenNoSeRechaza();
+        entoncesNoSeRechaza();
     }
 
     @Test
     @DisplayName("Rechaza una función que el catálogo no incluye")
-    void validarFuncionShouldRejectAFeatureThatIsNotIncluded() {
-        givenFunciones(FuncionPlan.RECETAS_COSTOS);
+    void rechazaUnaFuncionQueElCatalogoNoIncluye() {
+        dadoFunciones(FuncionPlan.RECETAS_COSTOS);
 
-        whenSeValidaLaFuncion(FuncionPlan.EXPORTAR_EXCEL);
+        cuandoSeValidaLaFuncion(FuncionPlan.EXPORTAR_EXCEL);
 
-        thenSeRechazaConMensaje("premium activo");
+        entoncesSeRechazaConMensaje("premium activo");
     }
 
     @Test
     @DisplayName("La cuota mensual de objetivos con IA deja guardar mientras queden")
-    void validarObjetivosIaShouldAllowWhileThereAreLeft() {
-        givenUnLimiteDeObjetivosIa(5);
+    void laCuotaMensualDeObjetivosConIaDejaGuardarMientrasQueden() {
+        dadoUnLimiteDeObjetivosIa(5);
 
-        whenSeValidanLosObjetivosIa(4);
+        cuandoSeValidanLosObjetivosIa(4);
 
-        thenNoSeRechaza();
+        entoncesNoSeRechaza();
     }
 
     @Test
     @DisplayName("La cuota mensual de objetivos con IA rechaza al agotarse y explica cómo seguir")
-    void validarObjetivosIaShouldRejectWhenTheAllowanceIsSpent() {
-        givenUnLimiteDeObjetivosIa(5);
+    void laCuotaMensualDeObjetivosConIaRechazaAlAgotarseYExplicaComoSeguir() {
+        dadoUnLimiteDeObjetivosIa(5);
 
-        whenSeValidanLosObjetivosIa(5);
+        cuandoSeValidanLosObjetivosIa(5);
 
-        thenSeRechazaPorLimiteDeObjetivosIa();
+        entoncesSeRechazaPorLimiteDeObjetivosIa();
     }
 
     @Test
     @DisplayName("Un plan sin límite de objetivos con IA nunca rechaza")
-    void validarObjetivosIaShouldAllowEverythingWithoutLimit() {
-        givenUnLimiteDeObjetivosIa(null);
+    void unPlanSinLimiteDeObjetivosConIaNuncaRechaza() {
+        dadoUnLimiteDeObjetivosIa(null);
 
-        whenSeValidanLosObjetivosIa(1_000);
+        cuandoSeValidanLosObjetivosIa(1_000);
 
-        thenNoSeRechaza();
+        entoncesNoSeRechaza();
     }
 
     // --- arrange ---
-    private void givenUnLimiteDeProyectos(Integer limite) {
+    private void dadoUnLimiteDeProyectos(Integer limite) {
         plan = plan();
         plan.setLimiteProyectos(limite);
     }
 
-    private void givenUnLimiteDeRegistros(Long limite) {
+    private void dadoUnLimiteDeRegistros(Long limite) {
         plan = plan();
         plan.setLimiteRegistros(limite);
     }
 
-    private void givenUnLimiteDePaginasIa(Integer limite) {
+    private void dadoUnLimiteDePaginasIa(Integer limite) {
         plan = plan();
         plan.setLimitePaginasIaMensuales(limite);
     }
 
-    private void givenLimitesConfigurados(Boolean configurados) {
+    private void dadoLimitesConfigurados(Boolean configurados) {
         plan = plan();
         plan.setLimitesConfigurados(configurados);
     }
 
-    private void givenElPrecioPendiente() {
+    private void dadoElPrecioPendiente() {
         plan = plan();
         plan.setConfigurado(false);
     }
 
-    private void givenFunciones(FuncionPlan... funciones) {
+    private void dadoFunciones(FuncionPlan... funciones) {
         plan = plan();
         plan.setFunciones(List.of(funciones).stream().map(Enum::name).toList());
     }
 
-    private void givenUnLimiteDeObjetivosIa(Integer limite) {
+    private void dadoUnLimiteDeObjetivosIa(Integer limite) {
         plan = plan();
         plan.setLimiteObjetivosIaMensuales(limite);
     }
 
     // --- act ---
-    private void whenSeValidanLosProyectos(int existentes) {
+    private void cuandoSeValidanLosProyectos(int existentes) {
         error = catchThrowable(() -> plan.validarProyectos(existentes));
     }
 
-    private void whenSeValidanLosRegistros(int existentes, int nuevos) {
+    private void cuandoSeValidanLosRegistros(int existentes, int nuevos) {
         error = catchThrowable(() -> plan.validarRegistros(existentes, nuevos));
     }
 
-    private void whenSeValidanLasPaginasIa(int usadas, int nuevas) {
+    private void cuandoSeValidanLasPaginasIa(int usadas, int nuevas) {
         error = catchThrowable(() -> plan.validarPaginasIa(usadas, nuevas));
     }
 
-    private void whenSeValidanLosLimitesConfigurados() {
+    private void cuandoSeValidanLosLimitesConfigurados() {
         error = catchThrowable(plan::validarLimitesConfigurados);
     }
 
-    private void whenSeValidaLaFuncion(FuncionPlan funcion) {
+    private void cuandoSeValidaLaFuncion(FuncionPlan funcion) {
         error = catchThrowable(() -> plan.validarFuncion(funcion));
     }
 
-    private void whenSeValidanLosObjetivosIa(int usados) {
+    private void cuandoSeValidanLosObjetivosIa(int usados) {
         error = catchThrowable(() -> plan.validarObjetivosIa(usados));
     }
 
     // --- assert ---
-    private void thenNoSeRechaza() {
+    private void entoncesNoSeRechaza() {
         assertThat(error).isNull();
     }
 
-    private void thenSeRechaza() {
+    private void entoncesSeRechaza() {
         assertThat(error).isInstanceOf(RestriccionPlanException.class);
     }
 
-    private void thenSeRechazaConMensaje(String fragmento) {
+    private void entoncesSeRechazaConMensaje(String fragmento) {
         assertThat(error).isInstanceOf(RestriccionPlanException.class).hasMessageContaining(fragmento);
     }
 
-    private void thenSeRechazaPorLimiteDeObjetivosIa() {
+    private void entoncesSeRechazaPorLimiteDeObjetivosIa() {
         assertThat(error).isInstanceOf(RestriccionPlanException.class)
                 .hasMessageContaining("Ya armaste los 5 objetivos con Sami")
                 .hasMessageContaining("«Planes»");

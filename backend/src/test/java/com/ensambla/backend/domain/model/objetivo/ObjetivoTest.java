@@ -25,159 +25,159 @@ class ObjetivoTest {
 
     @Test
     @DisplayName("Un objetivo nuevo toma el negocio, la meta y la fecha, y todavía no tiene id")
-    void nuevoShouldCopyEveryField() {
-        whenSeCreaUnObjetivoNuevo();
+    void unObjetivoNuevoTomaElNegocioLaMetaYLaFechaYTodaviaNoTieneId() {
+        cuandoSeCreaUnObjetivoNuevo();
 
-        thenElObjetivoNoTieneIdYCopiaLosDatos();
+        entoncesElObjetivoNoTieneIdYCopiaLosDatos();
     }
 
     @Test
     @DisplayName("Un objetivo nuevo todavía no está alcanzado")
-    void nuevoShouldNotBeReached() {
-        whenSeCreaUnObjetivoNuevo();
+    void unObjetivoNuevoTodaviaNoEstaAlcanzado() {
+        cuandoSeCreaUnObjetivoNuevo();
 
-        thenElObjetivoNoEstaAlcanzado();
+        entoncesElObjetivoNoEstaAlcanzado();
     }
 
     @Test
     @DisplayName("Al marcarlo alcanzado se anota cuándo")
-    void marcarAlcanzadoShouldRecordWhen() {
-        givenUnObjetivoNuevo();
+    void alMarcarloAlcanzadoSeAnotaCuando() {
+        dadoUnObjetivoNuevo();
 
-        whenSeMarcaAlcanzado(AHORA.plusDays(1));
+        cuandoSeMarcaAlcanzado(AHORA.plusDays(1));
 
-        thenElObjetivoEstaAlcanzadoDesde(AHORA.plusDays(1));
+        entoncesElObjetivoEstaAlcanzadoDesde(AHORA.plusDays(1));
     }
 
     @Test
     @DisplayName("No llega a la meta cuando el resultado es menor")
-    void llegaAShouldBeFalseWhenTheResultIsBelowTheGoal() {
-        givenUnObjetivoNuevo();
+    void noLlegaALaMetaCuandoElResultadoEsMenor() {
+        dadoUnObjetivoNuevo();
 
-        whenSeConsultaSiLlegaA(META.subtract(BigDecimal.ONE));
+        cuandoSeConsultaSiLlegaA(META.subtract(BigDecimal.ONE));
 
-        thenNoLlegaALaMeta();
+        entoncesNoLlegaALaMeta();
     }
 
     @Test
     @DisplayName("Llega a la meta cuando el resultado es igual")
-    void llegaAShouldBeTrueWhenTheResultIsTheGoal() {
-        givenUnObjetivoNuevo();
+    void llegaALaMetaCuandoElResultadoEsIgual() {
+        dadoUnObjetivoNuevo();
 
-        whenSeConsultaSiLlegaA(META);
+        cuandoSeConsultaSiLlegaA(META);
 
-        thenLlegaALaMeta();
+        entoncesLlegaALaMeta();
     }
 
     @Test
     @DisplayName("Llega a la meta cuando el resultado es mayor")
-    void llegaAShouldBeTrueWhenTheResultIsAboveTheGoal() {
-        givenUnObjetivoNuevo();
+    void llegaALaMetaCuandoElResultadoEsMayor() {
+        dadoUnObjetivoNuevo();
 
-        whenSeConsultaSiLlegaA(META.add(BigDecimal.ONE));
+        cuandoSeConsultaSiLlegaA(META.add(BigDecimal.ONE));
 
-        thenLlegaALaMeta();
+        entoncesLlegaALaMeta();
     }
 
     @Test
     @DisplayName("Un objetivo que no fue alcanzado no tiene hito")
-    void hitoShouldBeEmptyWhenTheObjetivoWasNotAchieved() {
-        givenUnObjetivoNuevo();
+    void unObjetivoQueNoFueAlcanzadoNoTieneHito() {
+        dadoUnObjetivoNuevo();
 
-        whenSeConsultaElHito();
+        cuandoSeConsultaElHito();
 
-        thenNoTieneHito();
+        entoncesNoTieneHito();
     }
 
     @Test
     @DisplayName("Un objetivo alcanzado tiene el hito de alcanzado")
-    void hitoShouldBeAchievedWhenTheObjetivoWasAchieved() {
-        givenUnObjetivoNuevo();
+    void unObjetivoAlcanzadoTieneElHitoDeAlcanzado() {
+        dadoUnObjetivoNuevo();
 
-        whenSeMarcaAlcanzado(AHORA);
-        whenSeConsultaElHito();
+        cuandoSeMarcaAlcanzado(AHORA);
+        cuandoSeConsultaElHito();
 
-        thenTieneElHitoDeAlcanzado();
+        entoncesTieneElHitoDeAlcanzado();
     }
 
     @Test
     @DisplayName("Un objetivo nuevo guarda el texto sin espacios en los extremos")
-    void nuevoShouldStripText() {
-        whenSeCreaUnObjetivoConTexto("  " + TEXTO + " \n");
+    void unObjetivoNuevoGuardaElTextoSinEspaciosEnLosExtremos() {
+        cuandoSeCreaUnObjetivoConTexto("  " + TEXTO + " \n");
 
-        thenElTextoEs(TEXTO);
+        entoncesElTextoEs(TEXTO);
     }
 
     @Test
     @DisplayName("Un objetivo nuevo es monetario y no lo armó Sami")
-    void nuevoShouldBeMonetarioAndNotBuiltWithSami() {
-        whenSeCreaUnObjetivoNuevo();
+    void unObjetivoNuevoEsMonetarioYNoLoArmoSami() {
+        cuandoSeCreaUnObjetivoNuevo();
 
-        thenElObjetivoEsMonetarioYNoLoArmoSami();
+        entoncesElObjetivoEsMonetarioYNoLoArmoSami();
     }
 
     @Test
     @DisplayName("Un objetivo sin meta en pesos nunca llega a la meta, por alto que sea el resultado")
-    void llegaAShouldBeFalseWithoutGoal() {
-        givenUnObjetivoSinMeta();
+    void unObjetivoSinMetaEnPesosNuncaLlegaALaMetaPorAltoQueSeaElResultado() {
+        dadoUnObjetivoSinMeta();
 
-        whenSeConsultaSiLlegaA(RESULTADO_ENORME);
+        cuandoSeConsultaSiLlegaA(RESULTADO_ENORME);
 
-        thenNoLlegaALaMeta();
+        entoncesNoLlegaALaMeta();
     }
 
     @Test
     @DisplayName("Un objetivo armado con Sami no tiene meta, trae su tipo y el texto sin espacios en los extremos")
-    void conSamiShouldBuildAnObjetivoWithoutGoal() {
-        whenSeArmaConSami(TipoObjetivo.HIBRIDO, true);
+    void unObjetivoArmadoConSamiNoTieneMetaTraeSuTipoYElTextoSinEspaciosEnLos() {
+        cuandoSeArmaConSami(TipoObjetivo.HIBRIDO, true);
 
-        thenElObjetivoDeSamiNoTieneMetaYTraeSuTipo();
+        entoncesElObjetivoDeSamiNoTieneMetaYTraeSuTipo();
     }
 
     @Test
     @DisplayName("El seguimiento manual no cuenta como armado con Sami")
-    void conSamiShouldKeepTheFlagThatSamiDidNotBuildIt() {
-        whenSeArmaConSami(TipoObjetivo.SIN_DATOS, false);
+    void elSeguimientoManualNoCuentaComoArmadoConSami() {
+        cuandoSeArmaConSami(TipoObjetivo.SIN_DATOS, false);
 
-        thenNoEstaArmadoConSami();
+        entoncesNoEstaArmadoConSami();
     }
 
     // --- arrange ---
-    private void givenUnObjetivoNuevo() {
-        whenSeCreaUnObjetivoNuevo();
+    private void dadoUnObjetivoNuevo() {
+        cuandoSeCreaUnObjetivoNuevo();
     }
 
-    private void givenUnObjetivoSinMeta() {
+    private void dadoUnObjetivoSinMeta() {
         objetivo = objetivoSinMeta();
     }
 
     // --- act ---
-    private void whenSeCreaUnObjetivoNuevo() {
+    private void cuandoSeCreaUnObjetivoNuevo() {
         objetivo = Objetivo.nuevo(NEGOCIO_ID, TEXTO, META, AHORA);
     }
 
-    private void whenSeCreaUnObjetivoConTexto(String texto) {
+    private void cuandoSeCreaUnObjetivoConTexto(String texto) {
         objetivo = Objetivo.nuevo(NEGOCIO_ID, texto, META, AHORA);
     }
 
-    private void whenSeMarcaAlcanzado(OffsetDateTime cuando) {
+    private void cuandoSeMarcaAlcanzado(OffsetDateTime cuando) {
         objetivo.marcarAlcanzado(cuando);
     }
 
-    private void whenSeConsultaSiLlegaA(BigDecimal resultado) {
+    private void cuandoSeConsultaSiLlegaA(BigDecimal resultado) {
         llegaALaMeta = objetivo.llegaA(resultado);
     }
 
-    private void whenSeConsultaElHito() {
+    private void cuandoSeConsultaElHito() {
         hito = objetivo.hito();
     }
 
-    private void whenSeArmaConSami(TipoObjetivo tipo, boolean armadoConSami) {
+    private void cuandoSeArmaConSami(TipoObjetivo tipo, boolean armadoConSami) {
         objetivo = Objetivo.conSami(NEGOCIO_ID, "  " + TEXTO_SIN_META + " ", tipo, armadoConSami, AHORA);
     }
 
     // --- assert ---
-    private void thenElObjetivoNoTieneIdYCopiaLosDatos() {
+    private void entoncesElObjetivoNoTieneIdYCopiaLosDatos() {
         assertThat(objetivo.getId()).isNull();
         assertThat(objetivo.getNegocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(objetivo.getTexto()).isEqualTo(TEXTO);
@@ -185,46 +185,46 @@ class ObjetivoTest {
         assertThat(objetivo.getCreadoEn()).isEqualTo(AHORA);
     }
 
-    private void thenElObjetivoNoEstaAlcanzado() {
+    private void entoncesElObjetivoNoEstaAlcanzado() {
         assertThat(objetivo.estaAlcanzado()).isFalse();
         assertThat(objetivo.getAlcanzadoEn()).isNull();
     }
 
-    private void thenElObjetivoEstaAlcanzadoDesde(OffsetDateTime cuando) {
+    private void entoncesElObjetivoEstaAlcanzadoDesde(OffsetDateTime cuando) {
         assertThat(objetivo.estaAlcanzado()).isTrue();
         assertThat(objetivo.getAlcanzadoEn()).isEqualTo(cuando);
     }
 
-    private void thenLlegaALaMeta() {
+    private void entoncesLlegaALaMeta() {
         assertThat(llegaALaMeta).isTrue();
     }
 
-    private void thenNoLlegaALaMeta() {
+    private void entoncesNoLlegaALaMeta() {
         assertThat(llegaALaMeta).isFalse();
     }
 
-    private void thenNoTieneHito() {
+    private void entoncesNoTieneHito() {
         assertThat(hito).isEmpty();
     }
 
-    private void thenTieneElHitoDeAlcanzado() {
+    private void entoncesTieneElHitoDeAlcanzado() {
         assertThat(hito).contains(HitoObjetivo.OBJETIVO_ALCANZADO);
     }
 
-    private void thenElTextoEs(String esperado) {
+    private void entoncesElTextoEs(String esperado) {
         assertThat(objetivo.getTexto()).isEqualTo(esperado);
     }
 
-    private void thenElObjetivoEsMonetarioYNoLoArmoSami() {
+    private void entoncesElObjetivoEsMonetarioYNoLoArmoSami() {
         assertThat(objetivo.getTipo()).isEqualTo(TipoObjetivo.MONETARIO);
-        thenNoEstaArmadoConSami();
+        entoncesNoEstaArmadoConSami();
     }
 
-    private void thenNoEstaArmadoConSami() {
+    private void entoncesNoEstaArmadoConSami() {
         assertThat(objetivo.isArmadoConSami()).isFalse();
     }
 
-    private void thenElObjetivoDeSamiNoTieneMetaYTraeSuTipo() {
+    private void entoncesElObjetivoDeSamiNoTieneMetaYTraeSuTipo() {
         assertThat(objetivo.getId()).isNull();
         assertThat(objetivo.getNegocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(objetivo.getTexto()).isEqualTo(TEXTO_SIN_META);

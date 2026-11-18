@@ -42,142 +42,142 @@ class ObjetivoPresentationMapperTest {
 
     @Test
     @DisplayName("Arma el pedido de listado con el usuario de la sesión")
-    void toListarRequestShouldCarrySessionUsuario() {
-        whenSeArmaElPedidoDeListado();
+    void armaElPedidoDeListadoConElUsuarioDeLaSesion() {
+        cuandoSeArmaElPedidoDeListado();
 
-        thenElPedidoDeListadoTraeElUsuario();
+        entoncesElPedidoDeListadoTraeElUsuario();
     }
 
     @Test
     @DisplayName("Arma el pedido de alta con el usuario de la sesión y el texto y la meta del body")
-    void toCrearRequestShouldCarryUsuarioAndBody() {
-        whenSeArmaElPedidoDeAlta();
+    void armaElPedidoDeAltaConElUsuarioDeLaSesionYElTextoYLaMetaDelBody() {
+        cuandoSeArmaElPedidoDeAlta();
 
-        thenElPedidoDeAltaTraeUsuarioTextoYMeta();
+        entoncesElPedidoDeAltaTraeUsuarioTextoYMeta();
     }
 
     @Test
     @DisplayName("Arma el pedido de baja con el usuario de la sesión y el id de la ruta")
-    void toEliminarRequestShouldCarryUsuarioAndId() {
-        whenSeArmaElPedidoDeBaja();
+    void armaElPedidoDeBajaConElUsuarioDeLaSesionYElIdDeLaRuta() {
+        cuandoSeArmaElPedidoDeBaja();
 
-        thenElPedidoDeBajaTraeUsuarioEId();
+        entoncesElPedidoDeBajaTraeUsuarioEId();
     }
 
     @Test
     @DisplayName("Mapea cada campo del item a la respuesta")
-    void toResponseShouldMapEveryField() {
-        whenSeMapeaUnObjetivo();
+    void mapeaCadaCampoDelItemALaRespuesta() {
+        cuandoSeMapeaUnObjetivo();
 
-        thenSeMapeaCadaCampoDelObjetivo();
+        entoncesSeMapeaCadaCampoDelObjetivo();
     }
 
     @Test
     @DisplayName("Un objetivo armado con Sami se responde sin meta y con su tipo")
-    void toResponseShouldKeepTheTypeAndMissingGoalOfAnObjetivoBuiltWithSami() {
-        whenSeMapeaUnObjetivoDeSami();
+    void unObjetivoArmadoConSamiSeRespondeSinMetaYConSuTipo() {
+        cuandoSeMapeaUnObjetivoDeSami();
 
-        thenSeRespondeSinMetaYConSuTipo();
+        entoncesSeRespondeSinMetaYConSuTipo();
     }
 
     @Test
     @DisplayName("Mapea una lista de items conservando el orden")
-    void toResponseShouldMapList() {
-        whenSeMapeaUnaLista(List.of(ObjetivoItem.de(objetivo())));
+    void mapeaUnaListaDeItemsConservandoElOrden() {
+        cuandoSeMapeaUnaLista(List.of(ObjetivoItem.de(objetivo())));
 
-        thenLosIdsSon(OBJETIVO_ID);
+        entoncesLosIdsSon(OBJETIVO_ID);
     }
 
     @Test
     @DisplayName("Una lista vacía se mapea a una lista vacía")
-    void toResponseShouldMapEmptyList() {
-        whenSeMapeaUnaLista(List.of());
+    void unaListaVaciaSeMapeaAUnaListaVacia() {
+        cuandoSeMapeaUnaLista(List.of());
 
-        thenNoHayRespuestas();
+        entoncesNoHayRespuestas();
     }
 
     @Test
     @DisplayName("Arma el pedido con el usuario autenticado")
-    void toObtenerPasosRequestShouldUseAuthenticatedUser() {
-        whenSeArmaElPedidoDePasos();
+    void armaElPedidoConElUsuarioAutenticado() {
+        cuandoSeArmaElPedidoDePasos();
 
-        thenElPedidoDePasosTraeElUsuario();
+        entoncesElPedidoDePasosTraeElUsuario();
     }
 
     @Test
     @DisplayName("Mapea todos los campos de los pasos y su rango de zona")
-    void toResponseShouldMapEveryStepAndZoneField() {
-        whenSeMapeanLosPasos(pasosConZona());
+    void mapeaTodosLosCamposDeLosPasosYSuRangoDeZona() {
+        cuandoSeMapeanLosPasos(pasosConZona());
 
-        thenSeMapeanTodosLosCamposDelPasoYSuZona();
+        entoncesSeMapeanTodosLosCamposDelPasoYSuZona();
     }
 
     @Test
     @DisplayName("Conserva la zona vacía de un paso")
-    void toResponseShouldKeepMissingZone() {
-        whenSeMapeanLosPasos(pasosSinZona());
+    void conservaLaZonaVaciaDeUnPaso() {
+        cuandoSeMapeanLosPasos(pasosSinZona());
 
-        thenElPasoNoTieneZona();
+        entoncesElPasoNoTieneZona();
     }
 
     @Test
     @DisplayName("Sin pasos devuelve una lista vacía")
-    void toResponseShouldAllowEmptyList() {
-        whenSeMapeanLosPasos(sinPasos());
+    void sinPasosDevuelveUnaListaVacia() {
+        cuandoSeMapeanLosPasos(sinPasos());
 
-        thenNoHayPasos();
+        entoncesNoHayPasos();
     }
 
     // --- act ---
-    private void whenSeArmaElPedidoDeListado() {
+    private void cuandoSeArmaElPedidoDeListado() {
         pedidoDeListado = mapper.toListarRequest(USUARIO_ID);
     }
 
-    private void whenSeArmaElPedidoDeAlta() {
+    private void cuandoSeArmaElPedidoDeAlta() {
         pedidoDeAlta = mapper.toCrearRequest(USUARIO_ID, new CrearObjetivoWebRequest(TEXTO, META));
     }
 
-    private void whenSeArmaElPedidoDeBaja() {
+    private void cuandoSeArmaElPedidoDeBaja() {
         pedidoDeBaja = mapper.toEliminarRequest(USUARIO_ID, OBJETIVO_ID);
     }
 
-    private void whenSeMapeaUnObjetivo() {
+    private void cuandoSeMapeaUnObjetivo() {
         respuesta = mapper.toResponse(ObjetivoItem.de(objetivo()));
     }
 
-    private void whenSeMapeaUnObjetivoDeSami() {
+    private void cuandoSeMapeaUnObjetivoDeSami() {
         respuesta = mapper.toResponse(ObjetivoItem.de(objetivoSinMeta()));
     }
 
-    private void whenSeMapeaUnaLista(List<ObjetivoItem> items) {
+    private void cuandoSeMapeaUnaLista(List<ObjetivoItem> items) {
         respuestas = mapper.toResponse(items);
     }
 
-    private void whenSeArmaElPedidoDePasos() {
+    private void cuandoSeArmaElPedidoDePasos() {
         pedidoDePasos = mapper.toObtenerPasosRequest(USUARIO_ID);
     }
 
-    private void whenSeMapeanLosPasos(ObtenerPasosResponse response) {
+    private void cuandoSeMapeanLosPasos(ObtenerPasosResponse response) {
         pasos = mapper.toResponse(response);
     }
 
     // --- assert ---
-    private void thenElPedidoDeListadoTraeElUsuario() {
+    private void entoncesElPedidoDeListadoTraeElUsuario() {
         assertThat(pedidoDeListado.usuarioId()).isEqualTo(USUARIO_ID);
     }
 
-    private void thenElPedidoDeAltaTraeUsuarioTextoYMeta() {
+    private void entoncesElPedidoDeAltaTraeUsuarioTextoYMeta() {
         assertThat(pedidoDeAlta.usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(pedidoDeAlta.texto()).isEqualTo(TEXTO);
         assertThat(pedidoDeAlta.meta()).isEqualTo(META);
     }
 
-    private void thenElPedidoDeBajaTraeUsuarioEId() {
+    private void entoncesElPedidoDeBajaTraeUsuarioEId() {
         assertThat(pedidoDeBaja.usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(pedidoDeBaja.objetivoId()).isEqualTo(OBJETIVO_ID);
     }
 
-    private void thenSeMapeaCadaCampoDelObjetivo() {
+    private void entoncesSeMapeaCadaCampoDelObjetivo() {
         assertThat(respuesta.id()).isEqualTo(OBJETIVO_ID);
         assertThat(respuesta.texto()).isEqualTo(TEXTO);
         assertThat(respuesta.tipo()).isEqualTo(TipoObjetivo.MONETARIO);
@@ -186,25 +186,25 @@ class ObjetivoPresentationMapperTest {
         assertThat(respuesta.creadoEn()).isEqualTo(AHORA);
     }
 
-    private void thenSeRespondeSinMetaYConSuTipo() {
+    private void entoncesSeRespondeSinMetaYConSuTipo() {
         assertThat(respuesta.tipo()).isEqualTo(TipoObjetivo.SIN_DATOS);
         assertThat(respuesta.meta()).isNull();
         assertThat(respuesta.armadoConSami()).isTrue();
     }
 
-    private void thenLosIdsSon(ObjetivoId... ids) {
+    private void entoncesLosIdsSon(ObjetivoId... ids) {
         assertThat(respuestas).extracting(ObjetivoResponse::id).containsExactly(ids);
     }
 
-    private void thenNoHayRespuestas() {
+    private void entoncesNoHayRespuestas() {
         assertThat(respuestas).isEmpty();
     }
 
-    private void thenElPedidoDePasosTraeElUsuario() {
+    private void entoncesElPedidoDePasosTraeElUsuario() {
         assertThat(pedidoDePasos.usuarioId()).isEqualTo(USUARIO_ID);
     }
 
-    private void thenSeMapeanTodosLosCamposDelPasoYSuZona() {
+    private void entoncesSeMapeanTodosLosCamposDelPasoYSuZona() {
         assertThat(pasos).singleElement().satisfies(paso -> {
             assertThat(paso.tipo()).isEqualTo(TipoPasoObjetivo.SUBIR_PRECIO);
             assertThat(paso.nombre()).isEqualTo("Yerba");
@@ -218,11 +218,11 @@ class ObjetivoPresentationMapperTest {
         });
     }
 
-    private void thenElPasoNoTieneZona() {
+    private void entoncesElPasoNoTieneZona() {
         assertThat(pasos.getFirst().precioZona()).isNull();
     }
 
-    private void thenNoHayPasos() {
+    private void entoncesNoHayPasos() {
         assertThat(pasos).isEmpty();
     }
 

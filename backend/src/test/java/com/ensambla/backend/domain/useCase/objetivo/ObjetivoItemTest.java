@@ -19,27 +19,27 @@ class ObjetivoItemTest {
 
     @Test
     @DisplayName("Copia todos los datos del objetivo")
-    void deShouldCopyEveryField() {
-        whenSeArmaElItemDe(objetivo());
+    void copiaTodosLosDatosDelObjetivo() {
+        cuandoSeArmaElItemDe(objetivo());
 
-        thenSeCopianTodosLosDatos();
+        entoncesSeCopianTodosLosDatos();
     }
 
     @Test
     @DisplayName("Un objetivo armado con Sami no tiene meta y lo dice")
-    void deShouldKeepTheMissingGoalOfAnObjetivoBuiltWithSami() {
-        whenSeArmaElItemDe(objetivoSinMeta());
+    void unObjetivoArmadoConSamiNoTieneMetaYLoDice() {
+        cuandoSeArmaElItemDe(objetivoSinMeta());
 
-        thenNoTieneMetaYLoArmoSami();
+        entoncesNoTieneMetaYLoArmoSami();
     }
 
     // --- act ---
-    private void whenSeArmaElItemDe(Objetivo objetivo) {
+    private void cuandoSeArmaElItemDe(Objetivo objetivo) {
         item = ObjetivoItem.de(objetivo);
     }
 
     // --- assert ---
-    private void thenSeCopianTodosLosDatos() {
+    private void entoncesSeCopianTodosLosDatos() {
         assertThat(item.id()).isEqualTo(OBJETIVO_ID);
         assertThat(item.texto()).isEqualTo(TEXTO);
         assertThat(item.tipo()).isEqualTo(TipoObjetivo.MONETARIO);
@@ -48,7 +48,7 @@ class ObjetivoItemTest {
         assertThat(item.creadoEn()).isEqualTo(AHORA);
     }
 
-    private void thenNoTieneMetaYLoArmoSami() {
+    private void entoncesNoTieneMetaYLoArmoSami() {
         assertThat(item.tipo()).isEqualTo(TipoObjetivo.SIN_DATOS);
         assertThat(item.meta()).isNull();
         assertThat(item.armadoConSami()).isTrue();

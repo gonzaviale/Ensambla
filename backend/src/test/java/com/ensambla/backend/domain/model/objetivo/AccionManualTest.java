@@ -20,137 +20,137 @@ class AccionManualTest {
 
     @Test
     @DisplayName("Una acción válida queda con el texto sin espacios en los extremos")
-    void deShouldAcceptAValidAction() {
-        whenSeArmaLaAccion("  " + TITULO + " ", JUSTIFICACION + "\n");
+    void unaAccionValidaQuedaConElTextoSinEspaciosEnLosExtremos() {
+        cuandoSeArmaLaAccion("  " + TITULO + " ", JUSTIFICACION + "\n");
 
-        thenLaAccionEsLaValida();
+        entoncesLaAccionEsLaValida();
     }
 
     @Test
     @DisplayName("Un título de 80 caracteres y una justificación de 280 se aceptan")
-    void deShouldAcceptTheMaximumLengths() {
-        whenSeArmaLaAccion("a".repeat(LARGO_MAXIMO_DE_TITULO), "b".repeat(LARGO_MAXIMO_DE_JUSTIFICACION));
+    void unTituloDe80CaracteresYUnaJustificacionDe280SeAceptan() {
+        cuandoSeArmaLaAccion("a".repeat(LARGO_MAXIMO_DE_TITULO), "b".repeat(LARGO_MAXIMO_DE_JUSTIFICACION));
 
-        thenHayAccion();
+        entoncesHayAccion();
     }
 
     @Test
     @DisplayName("Sin título no hay acción")
-    void deShouldRejectAMissingTitle() {
-        whenSeArmaLaAccion(null, JUSTIFICACION);
+    void sinTituloNoHayAccion() {
+        cuandoSeArmaLaAccion(null, JUSTIFICACION);
 
-        thenNoHayAccion();
+        entoncesNoHayAccion();
     }
 
     @Test
     @DisplayName("Con un título en blanco no hay acción")
-    void deShouldRejectABlankTitle() {
-        whenSeArmaLaAccion("   ", JUSTIFICACION);
+    void conUnTituloEnBlancoNoHayAccion() {
+        cuandoSeArmaLaAccion("   ", JUSTIFICACION);
 
-        thenNoHayAccion();
+        entoncesNoHayAccion();
     }
 
     @Test
     @DisplayName("Con un título de más de 80 caracteres no hay acción")
-    void deShouldRejectATitleThatIsTooLong() {
-        whenSeArmaLaAccion("a".repeat(LARGO_MAXIMO_DE_TITULO + 1), JUSTIFICACION);
+    void conUnTituloDeMasDe80CaracteresNoHayAccion() {
+        cuandoSeArmaLaAccion("a".repeat(LARGO_MAXIMO_DE_TITULO + 1), JUSTIFICACION);
 
-        thenNoHayAccion();
+        entoncesNoHayAccion();
     }
 
     @Test
     @DisplayName("Sin justificación no hay acción")
-    void deShouldRejectAMissingJustification() {
-        whenSeArmaLaAccion(TITULO, null);
+    void sinJustificacionNoHayAccion() {
+        cuandoSeArmaLaAccion(TITULO, null);
 
-        thenNoHayAccion();
+        entoncesNoHayAccion();
     }
 
     @Test
     @DisplayName("Con una justificación en blanco no hay acción")
-    void deShouldRejectABlankJustification() {
-        whenSeArmaLaAccion(TITULO, " ");
+    void conUnaJustificacionEnBlancoNoHayAccion() {
+        cuandoSeArmaLaAccion(TITULO, " ");
 
-        thenNoHayAccion();
+        entoncesNoHayAccion();
     }
 
     @Test
     @DisplayName("Con una justificación de más de 280 caracteres no hay acción")
-    void deShouldRejectAJustificationThatIsTooLong() {
-        whenSeArmaLaAccion(TITULO, "b".repeat(LARGO_MAXIMO_DE_JUSTIFICACION + 1));
+    void conUnaJustificacionDeMasDe280CaracteresNoHayAccion() {
+        cuandoSeArmaLaAccion(TITULO, "b".repeat(LARGO_MAXIMO_DE_JUSTIFICACION + 1));
 
-        thenNoHayAccion();
+        entoncesNoHayAccion();
     }
 
     @Test
     @DisplayName("Un título con un importe en pesos no es una acción")
-    void deShouldRejectAnAmountInTheTitle() {
-        whenSeArmaLaAccion("Cobrá $5.000 de más", JUSTIFICACION);
+    void unTituloConUnImporteEnPesosNoEsUnaAccion() {
+        cuandoSeArmaLaAccion("Cobrá $5.000 de más", JUSTIFICACION);
 
-        thenNoHayAccion();
+        entoncesNoHayAccion();
     }
 
     @Test
     @DisplayName("Una justificación con un porcentaje con espacio no es una acción")
-    void deShouldRejectASpacedPercentage() {
-        whenSeArmaLaAccion(TITULO, "Vas a vender un 20 % más");
+    void unaJustificacionConUnPorcentajeConEspacioNoEsUnaAccion() {
+        cuandoSeArmaLaAccion(TITULO, "Vas a vender un 20 % más");
 
-        thenNoHayAccion();
+        entoncesNoHayAccion();
     }
 
     @Test
     @DisplayName("Una justificación con un porcentaje pegado no es una acción")
-    void deShouldRejectAGluedPercentage() {
-        whenSeArmaLaAccion(TITULO, "Vas a vender 20% más");
+    void unaJustificacionConUnPorcentajePegadoNoEsUnaAccion() {
+        cuandoSeArmaLaAccion(TITULO, "Vas a vender 20% más");
 
-        thenNoHayAccion();
+        entoncesNoHayAccion();
     }
 
     @Test
     @DisplayName("El seguimiento de respaldo pide contar cada semana cómo va el objetivo, con sus palabras")
-    void seguimientoShouldAskForAWeeklyReport() {
-        whenSeArmaElSeguimiento("  Quiero vender más  ");
+    void elSeguimientoDeRespaldoPideContarCadaSemanaComoVaElObjetivoConSusPalabras() {
+        cuandoSeArmaElSeguimiento("  Quiero vender más  ");
 
-        thenElSeguimientoPideContarCadaSemana();
+        entoncesElSeguimientoPideContarCadaSemana();
     }
 
     @Test
     @DisplayName("El seguimiento acorta un objetivo de más de 200 caracteres")
-    void seguimientoShouldCutALongObjective() {
-        whenSeArmaElSeguimiento("a".repeat(LARGO_MAXIMO_DE_OBJETIVO + 100));
+    void elSeguimientoAcortaUnObjetivoDeMasDe200Caracteres() {
+        cuandoSeArmaElSeguimiento("a".repeat(LARGO_MAXIMO_DE_OBJETIVO + 100));
 
-        thenElSeguimientoCortaElObjetivo();
+        entoncesElSeguimientoCortaElObjetivo();
     }
 
     // --- act ---
-    private void whenSeArmaLaAccion(String titulo, String justificacion) {
+    private void cuandoSeArmaLaAccion(String titulo, String justificacion) {
         accion = AccionManual.de(titulo, justificacion);
     }
 
-    private void whenSeArmaElSeguimiento(String objetivo) {
+    private void cuandoSeArmaElSeguimiento(String objetivo) {
         seguimiento = AccionManual.seguimiento(objetivo);
     }
 
     // --- assert ---
-    private void thenLaAccionEsLaValida() {
+    private void entoncesLaAccionEsLaValida() {
         assertThat(accion).contains(new AccionManual(TITULO, JUSTIFICACION));
     }
 
-    private void thenHayAccion() {
+    private void entoncesHayAccion() {
         assertThat(accion).isPresent();
     }
 
-    private void thenNoHayAccion() {
+    private void entoncesNoHayAccion() {
         assertThat(accion).isEmpty();
     }
 
-    private void thenElSeguimientoPideContarCadaSemana() {
+    private void entoncesElSeguimientoPideContarCadaSemana() {
         assertThat(seguimiento.titulo()).isEqualTo("Anotá cómo te fue con tu objetivo");
         assertThat(seguimiento.justificacion())
                 .isEqualTo("Una vez por semana contale a Sami cómo avanzaste con: Quiero vender más");
     }
 
-    private void thenElSeguimientoCortaElObjetivo() {
+    private void entoncesElSeguimientoCortaElObjetivo() {
         assertThat(seguimiento.justificacion()).endsWith("a".repeat(LARGO_MAXIMO_DE_OBJETIVO) + "…");
         assertThat(seguimiento.justificacion().length()).isLessThanOrEqualTo(AccionManual.LARGO_MAXIMO_JUSTIFICACION);
     }

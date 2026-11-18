@@ -104,8 +104,8 @@ class DecisionesObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSu
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        UUID usuarioId = givenUsuario();
-        negocioId = givenNegocio(usuarioId);
+        UUID usuarioId = dadoUsuario();
+        negocioId = dadoNegocio(usuarioId);
         productoId = UUID.randomUUID();
         sesion = givenSesion(usuarioId);
         LocalDate hoy = ZonaNegocio.dia(OffsetDateTime.now());
@@ -283,7 +283,7 @@ class DecisionesObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSu
     }
 
     // --- arrange ---
-    private UUID givenUsuario() {
+    private UUID dadoUsuario() {
         return usuarios.saveAndFlush(UsuarioEntity.builder()
                 .nombre("Persona")
                 .email(UUID.randomUUID() + "@example.com")
@@ -293,7 +293,7 @@ class DecisionesObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSu
                 .build()).getId();
     }
 
-    private UUID givenNegocio(UUID usuarioId) {
+    private UUID dadoNegocio(UUID usuarioId) {
         UUID creado = negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(usuarioId)
@@ -312,7 +312,7 @@ class DecisionesObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSu
     }
 
     private UUID givenObjetivoDeOtroNegocio() {
-        UUID otroNegocio = givenNegocio(givenUsuario());
+        UUID otroNegocio = dadoNegocio(dadoUsuario());
         return givenObjetivo(otroNegocio, 400000);
     }
 

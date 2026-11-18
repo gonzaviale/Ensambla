@@ -76,7 +76,7 @@ class RegistrarCobroTest {
     @Test
     @DisplayName("Reintentar el mismo cobro devuelve el movimiento guardado sin reducir otra vez la deuda")
     void executeShouldReturnPreviousCollectionWhenRetried() {
-        givenUsuario();
+        dadoUsuario();
         when(cobros.findByIdAndNegocioId(CobroCajaTestData.COBRO, CajaTestData.NEGOCIO))
                 .thenReturn(Optional.of(CobroCajaTestData.cobro()));
 
@@ -89,7 +89,7 @@ class RegistrarCobroTest {
     @Test
     @DisplayName("Reutilizar el id de cobro con otro contenido responde conflicto")
     void executeShouldRejectChangedRetry() {
-        givenUsuario();
+        dadoUsuario();
         CobroCaja base = CobroCajaTestData.cobro();
         when(cobros.findByIdAndNegocioId(base.id(), base.negocioId())).thenReturn(Optional.of(new CobroCaja(
                 base.id(), base.negocioId(), base.proyectoId(), base.inventarioId(), base.clienteId(), base.clienteNombre(),
@@ -101,7 +101,7 @@ class RegistrarCobroTest {
     @Test
     @DisplayName("Una venta ajena responde como inexistente")
     void executeShouldHideMissingSale() {
-        givenUsuario();
+        dadoUsuario();
         when(ventas.listarPorIds(any(), any())).thenReturn(List.of());
 
         assertThatThrownBy(() -> registrar.execute(CobroCajaTestData.request())).isInstanceOf(ResourceNotFoundException.class);
@@ -134,7 +134,7 @@ class RegistrarCobroTest {
     @Test
     @DisplayName("Rechaza una solicitud sin deudas seleccionadas")
     void executeShouldRejectEmptyApplications() {
-        givenUsuario();
+        dadoUsuario();
 
         assertThatThrownBy(() -> registrar.execute(new RegistrarCobroRequest(CajaTestData.USUARIO, CobroCajaTestData.COBRO,
                 CajaTestData.PROYECTO, CajaTestData.INVENTARIO, List.of()))).isInstanceOf(BusinessRuleException.class);
@@ -143,7 +143,7 @@ class RegistrarCobroTest {
     @Test
     @DisplayName("No permite mezclar deudas de clientes distintos en un mismo cobro")
     void executeShouldRejectDifferentCustomers() {
-        givenUsuario();
+        dadoUsuario();
         VentaCaja primera = CobroCajaTestData.venta();
         VentaCaja segunda = segundaVenta(RegistroId.nuevo());
         RegistrarCobroRequest request = solicitudDoble(segunda.id());
@@ -157,7 +157,7 @@ class RegistrarCobroTest {
     @Test
     @DisplayName("Un mismo pago puede reducir dos deudas del mismo cliente")
     void executeShouldApplyOneCollectionToMultipleSales() {
-        givenUsuario();
+        dadoUsuario();
         VentaCaja primera = CobroCajaTestData.venta();
         VentaCaja segunda = segundaVenta(CajaTestData.CLIENTE);
         when(ventas.listarPorIds(any(), any())).thenReturn(List.of(primera, segunda));
@@ -170,12 +170,12 @@ class RegistrarCobroTest {
     }
 
     // --- arrange ---
-    private void givenUsuario() {
+    private void dadoUsuario() {
         when(negocios.obtenerIdDelUsuario(CajaTestData.USUARIO)).thenReturn(CajaTestData.NEGOCIO);
     }
 
     private void givenVenta(VentaCaja venta) {
-        givenUsuario();
+        dadoUsuario();
         when(ventas.listarPorIds(CajaTestData.NEGOCIO, List.of(CajaTestData.OPERACION))).thenReturn(List.of(venta));
     }
 

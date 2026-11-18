@@ -78,208 +78,208 @@ class MonitorearObjetivosTest {
 
     @Test
     @DisplayName("Guarda la foto del resultado del negocio para el objetivo")
-    void executeShouldSaveThePhotoOfTheBusinessResultForTheObjetivo() {
-        givenObjetivoConMinis(objetivo(), miniObjetivo());
+    void guardaLaFotoDelResultadoDelNegocioParaElObjetivo() {
+        dadoObjetivoConMinis(objetivo(), miniObjetivo());
 
-        whenMonitorear();
+        cuandoMonitorear();
 
-        thenSeGuardaLaFotoDelResultadoDelObjetivo();
+        entoncesSeGuardaLaFotoDelResultadoDelObjetivo();
     }
 
     @Test
     @DisplayName("Mide cada mini-objetivo en curso y lo guarda")
-    void executeShouldMeasureEachMiniObjetivoInProgress() {
-        givenObjetivoConMinis(objetivo(), miniEnCursoConValorViejo());
+    void mideCadaMiniObjetivoEnCursoYLoGuarda() {
+        dadoObjetivoConMinis(objetivo(), miniEnCursoConValorViejo());
 
-        whenMonitorear();
+        cuandoMonitorear();
 
-        thenElMiniQuedaMedidoYEnCurso();
+        entoncesElMiniQuedaMedidoYEnCurso();
     }
 
     @Test
     @DisplayName("Anota la foto de cada mini-objetivo medido")
-    void executeShouldSaveThePhotoOfEachMeasuredMiniObjetivo() {
-        givenObjetivoConMinis(objetivo(), miniEnCursoConValorViejo());
+    void anotaLaFotoDeCadaMiniObjetivoMedido() {
+        dadoObjetivoConMinis(objetivo(), miniEnCursoConValorViejo());
 
-        whenMonitorear();
+        cuandoMonitorear();
 
-        thenSeGuardaLaFotoDelMini();
+        entoncesSeGuardaLaFotoDelMini();
     }
 
     @Test
     @DisplayName("Marca como logrado el mini-objetivo cuya meta ya se cumplió")
-    void executeShouldMarkAsAchievedTheMiniObjetivoWhoseGoalWasMet() {
-        givenObjetivoConMinis(objetivo(), miniConLaMetaCumplida());
+    void marcaComoLogradoElMiniObjetivoCuyaMetaYaSeCumplio() {
+        dadoObjetivoConMinis(objetivo(), miniConLaMetaCumplida());
 
-        whenMonitorear();
+        cuandoMonitorear();
 
-        thenElMiniQuedaLogrado();
+        entoncesElMiniQuedaLogrado();
     }
 
     @Test
     @DisplayName("Un mini-objetivo cuyo producto ya no está en el cuaderno queda como estaba y no suma foto")
-    void executeShouldLeaveAsIsTheMiniObjetivoThatCannotBeMeasured() {
-        givenObjetivoConMinis(objetivo(), miniConProductoQueYaNoEsta());
+    void unMiniObjetivoCuyoProductoYaNoEstaEnElCuadernoQuedaComoEstabaYNoSumaFoto() {
+        dadoObjetivoConMinis(objetivo(), miniConProductoQueYaNoEsta());
 
-        whenMonitorear();
+        cuandoMonitorear();
 
-        thenNoSeGuardaNingunMiniNiSumaFotoDeMini();
+        entoncesNoSeGuardaNingunMiniNiSumaFotoDeMini();
     }
 
     @Test
     @DisplayName("No mide los mini-objetivos que ya no están en curso")
-    void executeShouldNotMeasureTheMiniObjetivosNoLongerInProgress() {
-        givenObjetivoConMinis(objetivo(), miniConEstado(EstadoMiniObjetivo.LOGRADO));
+    void noMideLosMiniObjetivosQueYaNoEstanEnCurso() {
+        dadoObjetivoConMinis(objetivo(), miniConEstado(EstadoMiniObjetivo.LOGRADO));
 
-        whenMonitorear();
+        cuandoMonitorear();
 
-        thenNoSeGuardaNingunMiniNiSumaFotoDeMini();
+        entoncesNoSeGuardaNingunMiniNiSumaFotoDeMini();
     }
 
     @Test
     @DisplayName("Marca el objetivo como alcanzado cuando el resultado llega a la meta")
-    void executeShouldMarkTheObjetivoAsAchievedWhenTheResultReachesTheGoal() {
-        givenObjetivoConMinis(objetivoConMeta("-30000"), miniObjetivo());
+    void marcaElObjetivoComoAlcanzadoCuandoElResultadoLlegaALaMeta() {
+        dadoObjetivoConMinis(objetivoConMeta("-30000"), miniObjetivo());
 
-        whenMonitorear();
+        cuandoMonitorear();
 
-        thenElObjetivoQuedaAlcanzado();
+        entoncesElObjetivoQuedaAlcanzado();
     }
 
     @Test
     @DisplayName("Un objetivo que todavía no llega a la meta no se vuelve a guardar")
-    void executeShouldNotSaveTheObjetivoWhenItDoesNotReachTheGoal() {
-        givenObjetivoConMinis(objetivo(), miniObjetivo());
+    void unObjetivoQueTodaviaNoLlegaALaMetaNoSeVuelveAGuardar() {
+        dadoObjetivoConMinis(objetivo(), miniObjetivo());
 
-        whenMonitorear();
+        cuandoMonitorear();
 
-        thenNoSeGuardaElObjetivo();
+        entoncesNoSeGuardaElObjetivo();
     }
 
     @Test
     @DisplayName("Un objetivo ya alcanzado no se vuelve a guardar")
-    void executeShouldNotSaveAnObjetivoThatWasAlreadyAchieved() {
-        givenObjetivoConMinis(objetivoYaAlcanzado(), miniObjetivo());
+    void unObjetivoYaAlcanzadoNoSeVuelveAGuardar() {
+        dadoObjetivoConMinis(objetivoYaAlcanzado(), miniObjetivo());
 
-        whenMonitorear();
+        cuandoMonitorear();
 
-        thenNoSeGuardaElObjetivo();
+        entoncesNoSeGuardaElObjetivo();
     }
 
     @Test
     @DisplayName("Un objetivo ya alcanzado sigue anotando su foto")
-    void executeShouldKeepSavingThePhotoOfAnAchievedObjetivo() {
-        givenObjetivoConMinis(objetivoYaAlcanzado(), miniObjetivo());
+    void unObjetivoYaAlcanzadoSigueAnotandoSuFoto() {
+        dadoObjetivoConMinis(objetivoYaAlcanzado(), miniObjetivo());
 
-        whenMonitorear();
+        cuandoMonitorear();
 
-        thenSeSigueGuardandoLaFotoDelObjetivo();
+        entoncesSeSigueGuardandoLaFotoDelObjetivo();
     }
 
     @Test
     @DisplayName("Un objetivo que nunca tuvo mini-objetivos recibe los suyos con texto de reserva")
-    void executeShouldProposeMiniObjetivosToAnObjetivoWithoutThem() {
-        givenObjetivoSinMinisYConUnCandidato();
+    void unObjetivoQueNuncaTuvoMiniObjetivosRecibeLosSuyosConTextoDeReserva() {
+        dadoObjetivoSinMinisYConUnCandidato();
 
-        whenMonitorear();
+        cuandoMonitorear();
 
-        thenSeLeProponeElMiniConTextoDeReserva();
+        entoncesSeLeProponeElMiniConTextoDeReserva();
     }
 
     @Test
     @DisplayName("Un objetivo que nunca tuvo mini-objetivos recibe los suyos y los mide")
-    void executeShouldMeasureTheProposedMiniObjetivos() {
-        givenObjetivoSinMinisYConUnCandidato();
+    void unObjetivoQueNuncaTuvoMiniObjetivosRecibeLosSuyosYLosMide() {
+        dadoObjetivoSinMinisYConUnCandidato();
 
-        whenMonitorear();
+        cuandoMonitorear();
 
-        thenSeGuardaLaFotoDeUnMini();
+        entoncesSeGuardaLaFotoDeUnMini();
     }
 
     @Test
     @DisplayName("Un objetivo alcanzado sin mini-objetivos no recibe propuestas")
-    void executeShouldNotProposeToAnAchievedObjetivoWithoutMiniObjetivos() {
-        givenObjetivoConMinis(objetivoYaAlcanzado());
+    void unObjetivoAlcanzadoSinMiniObjetivosNoRecibePropuestas() {
+        dadoObjetivoConMinis(objetivoYaAlcanzado());
 
-        whenMonitorear();
+        cuandoMonitorear();
 
-        thenNoSeProponeNada();
+        entoncesNoSeProponeNada();
     }
 
     @Test
     @DisplayName("Un objetivo con mini-objetivos quitados no recibe propuestas nuevas")
-    void executeShouldNotProposeWhenTheObjetivoAlreadyHadMiniObjetivos() {
-        givenObjetivoConMinis(objetivo(), miniConEstado(EstadoMiniObjetivo.ABANDONADO));
+    void unObjetivoConMiniObjetivosQuitadosNoRecibePropuestasNuevas() {
+        dadoObjetivoConMinis(objetivo(), miniConEstado(EstadoMiniObjetivo.ABANDONADO));
 
-        whenMonitorear();
+        cuandoMonitorear();
 
-        thenNoSeConsultanCandidatos();
+        entoncesNoSeConsultanCandidatos();
     }
 
     @Test
     @DisplayName("Un mini-objetivo manual no se mide ni suma foto")
-    void executeShouldNotMeasureAManualMiniObjetivo() {
-        givenObjetivoConMinis(objetivo(), miniManual());
+    void unMiniObjetivoManualNoSeMideNiSumaFoto() {
+        dadoObjetivoConMinis(objetivo(), miniManual());
 
-        whenMonitorear();
+        cuandoMonitorear();
 
-        thenNoSeGuardaNingunMiniNiSumaFotoDeMini();
+        entoncesNoSeGuardaNingunMiniNiSumaFotoDeMini();
     }
 
     @Test
     @DisplayName("Un objetivo sin meta en pesos nunca se marca alcanzado")
-    void executeShouldNotReachAnObjetivoWithoutGoal() {
-        givenObjetivoConMinis(objetivoSinMeta());
+    void unObjetivoSinMetaEnPesosNuncaSeMarcaAlcanzado() {
+        dadoObjetivoConMinis(objetivoSinMeta());
 
-        whenMonitorear();
+        cuandoMonitorear();
 
-        thenElObjetivoSinMetaNoQuedaAlcanzado();
+        entoncesElObjetivoSinMetaNoQuedaAlcanzado();
     }
 
     @Test
     @DisplayName("Un objetivo sin meta en pesos no recibe mini-objetivos solo")
-    void executeShouldNotProposeToAnObjetivoWithoutGoal() {
-        givenObjetivoConMinis(objetivoSinMeta());
+    void unObjetivoSinMetaEnPesosNoRecibeMiniObjetivosSolo() {
+        dadoObjetivoConMinis(objetivoSinMeta());
 
-        whenMonitorear();
+        cuandoMonitorear();
 
-        thenSoloSeGuardaLaFotoDelObjetivoSinProponerNada();
+        entoncesSoloSeGuardaLaFotoDelObjetivoSinProponerNada();
     }
 
     @Test
     @DisplayName("Un negocio con error no frena a los demás")
-    void executeShouldKeepGoingWhenABusinessFails() {
-        givenUnNegocioQueFallaAntesDeOtroQueFunciona();
+    void unNegocioConErrorNoFrenaALosDemas() {
+        dadoUnNegocioQueFallaAntesDeOtroQueFunciona();
 
-        whenMonitorear();
+        cuandoMonitorear();
 
-        thenElNegocioQueFuncionaSigueMonitoreado();
+        entoncesElNegocioQueFuncionaSigueMonitoreado();
     }
 
     @Test
     @DisplayName("Sin objetivos no mide nada")
-    void executeShouldDoNothingWithoutObjetivos() {
-        givenNingunNegocioConObjetivos();
+    void sinObjetivosNoMideNada() {
+        dadoNingunNegocioConObjetivos();
 
-        whenMonitorear();
+        cuandoMonitorear();
 
-        thenNoSeMideNiSeGuardaNada();
+        entoncesNoSeMideNiSeGuardaNada();
     }
 
     @Test
     @DisplayName("Pide los negocios de a tandas hasta que una viene incompleta")
-    void executeShouldRequestTheBusinessesInBatchesUntilOneIsIncomplete() {
-        givenNegociosEnTandasDeDos();
+    void pideLosNegociosDeATandasHastaQueUnaVieneIncompleta() {
+        dadoNegociosEnTandasDeDos();
 
-        whenMonitorear();
+        cuandoMonitorear();
 
-        thenSePidenLasTandasHastaLaIncompleta();
+        entoncesSePidenLasTandasHastaLaIncompleta();
     }
 
     @Test
     @DisplayName("No tiene cómo crear avisos ni mandar mensajes: no depende de ellos")
     void shouldNotDependOnNotifications() {
-        thenNoDependeDeAvisosNiDeMensajes();
+        entoncesNoDependeDeAvisosNiDeMensajes();
     }
 
     // --- arrange ---
@@ -293,29 +293,29 @@ class MonitorearObjetivosTest {
                 tamanoTanda);
     }
 
-    private void givenObjetivoConMinis(Objetivo objetivo, MiniObjetivo... minis) {
+    private void dadoObjetivoConMinis(Objetivo objetivo, MiniObjetivo... minis) {
         objetivoMonitoreado = objetivo;
         when(objetivoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(objetivo));
         when(miniObjetivoRepository.findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID))
                 .thenReturn(List.of(minis));
     }
 
-    private void givenObjetivoSinMinisYConUnCandidato() {
-        givenObjetivoConMinis(objetivo());
+    private void dadoObjetivoSinMinisYConUnCandidato() {
+        dadoObjetivoConMinis(objetivo());
         when(propuestaMiniObjetivosService.candidatos(NEGOCIO_ID, medidor)).thenReturn(List.of(candidato()));
     }
 
-    private void givenUnNegocioQueFallaAntesDeOtroQueFunciona() {
+    private void dadoUnNegocioQueFallaAntesDeOtroQueFunciona() {
         when(objetivoRepository.findNegocioIdsConObjetivos(0, 50)).thenReturn(List.of(OTRO_NEGOCIO_ID, NEGOCIO_ID));
         when(propuestaMiniObjetivosService.medidor(OTRO_NEGOCIO_ID, HOY)).thenThrow(new IllegalStateException("falló"));
-        givenObjetivoConMinis(objetivo(), miniObjetivo());
+        dadoObjetivoConMinis(objetivo(), miniObjetivo());
     }
 
-    private void givenNingunNegocioConObjetivos() {
+    private void dadoNingunNegocioConObjetivos() {
         when(objetivoRepository.findNegocioIdsConObjetivos(0, 50)).thenReturn(List.of());
     }
 
-    private void givenNegociosEnTandasDeDos() {
+    private void dadoNegociosEnTandasDeDos() {
         monitorearObjetivos = monitor(2);
         when(objetivoRepository.findNegocioIdsConObjetivos(0, 2)).thenReturn(List.of(NEGOCIO_ID, OTRO_NEGOCIO_ID));
         when(objetivoRepository.findNegocioIdsConObjetivos(1, 2)).thenReturn(List.of(NEGOCIO_ID));
@@ -324,12 +324,12 @@ class MonitorearObjetivosTest {
     }
 
     // --- act ---
-    private void whenMonitorear() {
+    private void cuandoMonitorear() {
         monitorearObjetivos.execute();
     }
 
     // --- assert ---
-    private void thenSeGuardaLaFotoDelResultadoDelObjetivo() {
+    private void entoncesSeGuardaLaFotoDelResultadoDelObjetivo() {
         ProgresoObjetivo foto = fotosGuardadas().stream().filter(ProgresoObjetivo::esDelObjetivo).findFirst()
                 .orElseThrow();
         assertThat(foto.objetivoId()).isEqualTo(OBJETIVO_ID);
@@ -338,44 +338,44 @@ class MonitorearObjetivosTest {
         assertThat(foto.medidoEn()).isEqualTo(AHORA);
     }
 
-    private void thenElMiniQuedaMedidoYEnCurso() {
+    private void entoncesElMiniQuedaMedidoYEnCurso() {
         MiniObjetivo guardado = miniGuardado();
         assertThat(guardado.getValorActual()).isEqualByComparingTo(GANANCIA_YERBA);
         assertThat(guardado.getSinAvanceDesde()).isNull();
         assertThat(guardado.getEstado()).isEqualTo(EstadoMiniObjetivo.EN_CURSO);
     }
 
-    private void thenSeGuardaLaFotoDelMini() {
+    private void entoncesSeGuardaLaFotoDelMini() {
         assertThat(fotosGuardadas()).filteredOn(foto -> MINI_ID.equals(foto.miniObjetivoId()))
                 .singleElement()
                 .satisfies(foto -> assertThat(foto.valor()).isEqualByComparingTo(GANANCIA_YERBA));
     }
 
-    private void thenElMiniQuedaLogrado() {
+    private void entoncesElMiniQuedaLogrado() {
         assertThat(miniGuardado().getEstado()).isEqualTo(EstadoMiniObjetivo.LOGRADO);
     }
 
-    private void thenNoSeGuardaNingunMiniNiSumaFotoDeMini() {
+    private void entoncesNoSeGuardaNingunMiniNiSumaFotoDeMini() {
         verify(miniObjetivoRepository, never()).save(any());
         assertThat(fotosGuardadas()).allMatch(ProgresoObjetivo::esDelObjetivo);
     }
 
-    private void thenElObjetivoQuedaAlcanzado() {
+    private void entoncesElObjetivoQuedaAlcanzado() {
         ArgumentCaptor<Objetivo> guardado = ArgumentCaptor.forClass(Objetivo.class);
         verify(objetivoRepository).save(guardado.capture());
         assertThat(guardado.getValue().estaAlcanzado()).isTrue();
         assertThat(guardado.getValue().getAlcanzadoEn()).isEqualTo(AHORA);
     }
 
-    private void thenNoSeGuardaElObjetivo() {
+    private void entoncesNoSeGuardaElObjetivo() {
         verify(objetivoRepository, never()).save(any());
     }
 
-    private void thenSeSigueGuardandoLaFotoDelObjetivo() {
+    private void entoncesSeSigueGuardandoLaFotoDelObjetivo() {
         assertThat(fotosGuardadas()).anyMatch(ProgresoObjetivo::esDelObjetivo);
     }
 
-    private void thenSeLeProponeElMiniConTextoDeReserva() {
+    private void entoncesSeLeProponeElMiniConTextoDeReserva() {
         ArgumentCaptor<MiniObjetivo> guardado = ArgumentCaptor.forClass(MiniObjetivo.class);
         verify(miniObjetivoRepository, times(2)).save(guardado.capture());
         MiniObjetivo propuesto = guardado.getAllValues().getFirst();
@@ -384,45 +384,45 @@ class MonitorearObjetivosTest {
         assertThat(propuesto.isTextoConIa()).isFalse();
     }
 
-    private void thenSeGuardaLaFotoDeUnMini() {
+    private void entoncesSeGuardaLaFotoDeUnMini() {
         assertThat(fotosGuardadas()).anyMatch(foto -> !foto.esDelObjetivo());
     }
 
-    private void thenNoSeProponeNada() {
-        thenNoSeConsultanCandidatos();
+    private void entoncesNoSeProponeNada() {
+        entoncesNoSeConsultanCandidatos();
         verify(miniObjetivoRepository, never()).save(any());
     }
 
-    private void thenNoSeConsultanCandidatos() {
+    private void entoncesNoSeConsultanCandidatos() {
         verify(propuestaMiniObjetivosService, never()).candidatos(any(NegocioId.class), any(MedidorMiniObjetivo.class));
     }
 
-    private void thenElObjetivoSinMetaNoQuedaAlcanzado() {
+    private void entoncesElObjetivoSinMetaNoQuedaAlcanzado() {
         assertThat(objetivoMonitoreado.estaAlcanzado()).isFalse();
         verify(objetivoRepository, never()).save(any());
     }
 
-    private void thenSoloSeGuardaLaFotoDelObjetivoSinProponerNada() {
-        thenNoSeProponeNada();
+    private void entoncesSoloSeGuardaLaFotoDelObjetivoSinProponerNada() {
+        entoncesNoSeProponeNada();
         assertThat(fotosGuardadas()).singleElement().satisfies(foto -> assertThat(foto.esDelObjetivo()).isTrue());
     }
 
-    private void thenElNegocioQueFuncionaSigueMonitoreado() {
+    private void entoncesElNegocioQueFuncionaSigueMonitoreado() {
         verify(objetivoRepository, never()).findAllByNegocioId(OTRO_NEGOCIO_ID);
         assertThat(fotosGuardadas()).anyMatch(ProgresoObjetivo::esDelObjetivo);
     }
 
-    private void thenNoSeMideNiSeGuardaNada() {
+    private void entoncesNoSeMideNiSeGuardaNada() {
         verifyNoInteractions(propuestaMiniObjetivosService, miniObjetivoRepository, progresoObjetivoRepository);
     }
 
-    private void thenSePidenLasTandasHastaLaIncompleta() {
+    private void entoncesSePidenLasTandasHastaLaIncompleta() {
         verify(objetivoRepository).findNegocioIdsConObjetivos(0, 2);
         verify(objetivoRepository).findNegocioIdsConObjetivos(1, 2);
         verify(objetivoRepository, never()).findNegocioIdsConObjetivos(2, 2);
     }
 
-    private void thenNoDependeDeAvisosNiDeMensajes() {
+    private void entoncesNoDependeDeAvisosNiDeMensajes() {
         List<String> tipos = Arrays.stream(MonitorearObjetivos.class.getDeclaredFields())
                 .map(Field::getType)
                 .map(Class::getSimpleName)

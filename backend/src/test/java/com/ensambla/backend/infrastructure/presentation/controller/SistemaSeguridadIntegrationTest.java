@@ -77,8 +77,8 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        UsuarioId usuarioId = UsuarioId.de(givenUsuario());
-        negocioId = NegocioId.de(givenNegocio(usuarioId));
+        UsuarioId usuarioId = UsuarioId.de(dadoUsuario());
+        negocioId = NegocioId.de(dadoNegocio(usuarioId));
         sesion = givenSesion(usuarioId);
     }
 
@@ -310,7 +310,7 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 """.formatted(SISTEMA_ID, nombre);
     }
 
-    private UUID givenUsuario() {
+    private UUID dadoUsuario() {
         return usuarios.saveAndFlush(UsuarioEntity.builder()
                 .nombre("Persona")
                 .email(UUID.randomUUID() + "@example.com")
@@ -320,7 +320,7 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenNegocio(UsuarioId usuarioId) {
+    private UUID dadoNegocio(UsuarioId usuarioId) {
         UUID creado = negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(usuarioId.valor())
@@ -332,8 +332,8 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     private UUID givenUsuarioConNegocio() {
-        UsuarioId usuarioId = UsuarioId.de(givenUsuario());
-        givenNegocio(usuarioId);
+        UsuarioId usuarioId = UsuarioId.de(dadoUsuario());
+        dadoNegocio(usuarioId);
         return usuarioId.valor();
     }
 

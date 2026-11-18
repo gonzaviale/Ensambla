@@ -96,7 +96,7 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Copiar dos veces persiste árboles independientes sin alterar la plantilla")
     void crearDesdePlantillaShouldPersistIndependentTrees() {
-        UUID negocioId = givenNegocio();
+        UUID negocioId = dadoNegocio();
         var plantilla = plantillaRepository.obtenerParaProyecto(PlantillaId.de(INVENTARIO_ID));
         Map<String, Object> original = Map.copyOf(plantillas.findById(INVENTARIO_ID).orElseThrow().getEstructura());
 
@@ -120,7 +120,7 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Eliminar un proyecto borra sus bloques, campos y registros en cascada")
     void eliminarShouldCascadeThroughWholeGraph() {
-        UUID negocioId = givenNegocio();
+        UUID negocioId = dadoNegocio();
         Proyecto proyecto = proyectosDePrueba.crearDesdePlantilla(
                 NegocioId.de(negocioId), plantillaRepository.obtenerParaProyecto(PlantillaId.de(INVENTARIO_ID)), AHORA);
         var bloque = proyecto.getBloques().getFirst();
@@ -146,8 +146,8 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Las consultas y el borrado no atraviesan el límite de negocio")
     void repositoryShouldIsolateNegocios() {
-        UUID propioId = givenNegocio();
-        UUID ajenoId = givenNegocio();
+        UUID propioId = dadoNegocio();
+        UUID ajenoId = dadoNegocio();
         Proyecto ajeno = proyectosDePrueba.crearDesdePlantilla(
                 NegocioId.de(ajenoId), plantillaRepository.obtenerParaProyecto(PlantillaId.de(INVENTARIO_ID)), AHORA);
 
@@ -167,7 +167,7 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @DisplayName("Si falla un campo al copiar se revierte también la creación del proyecto")
     void crearDesdePlantillaShouldRollbackWholeGraph() {
         TransactionTemplate transaction = new TransactionTemplate(transactionManager);
-        UUID negocioId = transaction.execute(status -> givenNegocio());
+        UUID negocioId = transaction.execute(status -> dadoNegocio());
         UUID plantillaId = transaction.execute(status -> plantillas.saveAndFlush(PlantillaEntity.builder()
                 .nombre("Inválida " + UUID.randomUUID())
                 .descripcion("Para probar rollback")
@@ -198,7 +198,7 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     // --- arrange ---
-    private UUID givenNegocio() {
+    private UUID dadoNegocio() {
         UUID usuarioId = usuarios.saveAndFlush(UsuarioEntity.builder()
                 .nombre("Persona")
                 .email(UUID.randomUUID() + "@example.com")

@@ -32,44 +32,44 @@ class ProgresoObjetivoPresentationMapperTest {
 
     @Test
     @DisplayName("Arma el pedido con el usuario de la sesión y el objetivo de la ruta")
-    void toRequestShouldCarryTheUserAndTheObjetivo() {
-        whenSeArmaElPedido();
+    void armaElPedidoConElUsuarioDeLaSesionYElObjetivoDeLaRuta() {
+        cuandoSeArmaElPedido();
 
-        thenElPedidoTraeUsuarioYObjetivo();
+        entoncesElPedidoTraeUsuarioYObjetivo();
     }
 
     @Test
     @DisplayName("Copia la meta, el hito, la serie del objetivo y la de cada mini-objetivo")
-    void toResponseShouldCopyEveryField() {
-        whenSeMapeaElProgreso(progresoCompleto());
+    void copiaLaMetaElHitoLaSerieDelObjetivoYLaDeCadaMiniObjetivo() {
+        cuandoSeMapeaElProgreso(progresoCompleto());
 
-        thenSeCopianLaMetaElHitoYLasSeries();
+        entoncesSeCopianLaMetaElHitoYLasSeries();
     }
 
     @Test
     @DisplayName("Sin semanas ni mini-objetivos devuelve listas vacías")
-    void toResponseShouldReturnEmptyLists() {
-        whenSeMapeaElProgreso(progresoVacio());
+    void sinSemanasNiMiniObjetivosDevuelveListasVacias() {
+        cuandoSeMapeaElProgreso(progresoVacio());
 
-        thenNoHayHitoNiSeries();
+        entoncesNoHayHitoNiSeries();
     }
 
     // --- act ---
-    private void whenSeArmaElPedido() {
+    private void cuandoSeArmaElPedido() {
         pedido = mapper.toRequest(USUARIO_ID, OBJETIVO_ID);
     }
 
-    private void whenSeMapeaElProgreso(ObtenerProgresoResponse progreso) {
+    private void cuandoSeMapeaElProgreso(ObtenerProgresoResponse progreso) {
         respuesta = mapper.toResponse(progreso);
     }
 
     // --- assert ---
-    private void thenElPedidoTraeUsuarioYObjetivo() {
+    private void entoncesElPedidoTraeUsuarioYObjetivo() {
         assertThat(pedido.usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(pedido.objetivoId()).isEqualTo(OBJETIVO_ID);
     }
 
-    private void thenSeCopianLaMetaElHitoYLasSeries() {
+    private void entoncesSeCopianLaMetaElHitoYLasSeries() {
         assertThat(respuesta.meta()).isEqualTo(META);
         assertThat(respuesta.hito()).isEqualTo(HitoObjetivo.OBJETIVO_ALCANZADO);
         assertThat(respuesta.semanas()).singleElement().satisfies(item -> {
@@ -87,7 +87,7 @@ class ProgresoObjetivoPresentationMapperTest {
         });
     }
 
-    private void thenNoHayHitoNiSeries() {
+    private void entoncesNoHayHitoNiSeries() {
         assertThat(respuesta.hito()).isNull();
         assertThat(respuesta.semanas()).isEmpty();
         assertThat(respuesta.minis()).isEmpty();

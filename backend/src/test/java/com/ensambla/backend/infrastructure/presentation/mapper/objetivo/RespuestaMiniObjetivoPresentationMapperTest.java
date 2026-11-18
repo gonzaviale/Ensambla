@@ -39,64 +39,64 @@ class RespuestaMiniObjetivoPresentationMapperTest {
 
     @Test
     @DisplayName("Arma el pedido con el usuario de la sesión, los ids de la ruta y el body")
-    void toResponderRequestShouldCarryUsuarioIdsAndBody() {
-        whenSeArmaElPedidoDeResponder();
+    void armaElPedidoConElUsuarioDeLaSesionLosIdsDeLaRutaYElBody() {
+        cuandoSeArmaElPedidoDeResponder();
 
-        thenElPedidoDeResponderTraeUsuarioIdsYBody();
+        entoncesElPedidoDeResponderTraeUsuarioIdsYBody();
     }
 
     @Test
     @DisplayName("Arma el pedido de pendientes con el usuario de la sesión")
-    void toListarPendientesRequestShouldCarrySessionUsuario() {
-        whenSeArmaElPedidoDePendientes();
+    void armaElPedidoDePendientesConElUsuarioDeLaSesion() {
+        cuandoSeArmaElPedidoDePendientes();
 
-        thenElPedidoDePendientesTraeElUsuario();
+        entoncesElPedidoDePendientesTraeElUsuario();
     }
 
     @Test
     @DisplayName("Mapea cada campo de la respuesta")
-    void toResponseShouldMapEveryFieldOfTheAnswer() {
-        whenSeMapeaLaRespuesta();
+    void mapeaCadaCampoDeLaRespuesta() {
+        cuandoSeMapeaLaRespuesta();
 
-        thenSeMapeaCadaCampoDeLaRespuesta();
+        entoncesSeMapeaCadaCampoDeLaRespuesta();
     }
 
     @Test
     @DisplayName("Mapea los pendientes con el objetivo y el mini-objetivo manual")
-    void toResponseShouldMapThePendingOnes() {
-        whenSeMapeanLosPendientes(ListarRespuestasPendientesResponse.de(List.of(objetivo()), List.of(miniManual())));
+    void mapeaLosPendientesConElObjetivoYElMiniObjetivoManual() {
+        cuandoSeMapeanLosPendientes(ListarRespuestasPendientesResponse.de(List.of(objetivo()), List.of(miniManual())));
 
-        thenSeMapeaElPendienteConSuObjetivoYSuManual();
+        entoncesSeMapeaElPendienteConSuObjetivoYSuManual();
     }
 
     @Test
     @DisplayName("Sin pendientes se mapea una lista vacía")
-    void toResponseShouldMapAnEmptyList() {
-        whenSeMapeanLosPendientes(ListarRespuestasPendientesResponse.de(List.of(), List.of()));
+    void sinPendientesSeMapeaUnaListaVacia() {
+        cuandoSeMapeanLosPendientes(ListarRespuestasPendientesResponse.de(List.of(), List.of()));
 
-        thenNoHayPendientes();
+        entoncesNoHayPendientes();
     }
 
     // --- act ---
-    private void whenSeArmaElPedidoDeResponder() {
+    private void cuandoSeArmaElPedidoDeResponder() {
         pedidoDeResponder = mapper.toResponderRequest(USUARIO_ID, OBJETIVO_ID, OTRO_MINI_ID,
                 new ResponderMiniObjetivoWebRequest(HizoManual.NO, QuePaso.NO_FUNCIONO, COMENTARIO));
     }
 
-    private void whenSeArmaElPedidoDePendientes() {
+    private void cuandoSeArmaElPedidoDePendientes() {
         pedidoDePendientes = mapper.toListarPendientesRequest(USUARIO_ID);
     }
 
-    private void whenSeMapeaLaRespuesta() {
+    private void cuandoSeMapeaLaRespuesta() {
         respuestaMapeada = mapper.toResponse(ResponderMiniObjetivoResponse.de(respuesta()));
     }
 
-    private void whenSeMapeanLosPendientes(ListarRespuestasPendientesResponse respuestas) {
+    private void cuandoSeMapeanLosPendientes(ListarRespuestasPendientesResponse respuestas) {
         pendientes = mapper.toResponse(respuestas);
     }
 
     // --- assert ---
-    private void thenElPedidoDeResponderTraeUsuarioIdsYBody() {
+    private void entoncesElPedidoDeResponderTraeUsuarioIdsYBody() {
         assertThat(pedidoDeResponder.usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(pedidoDeResponder.objetivoId()).isEqualTo(OBJETIVO_ID);
         assertThat(pedidoDeResponder.miniObjetivoId()).isEqualTo(OTRO_MINI_ID);
@@ -105,11 +105,11 @@ class RespuestaMiniObjetivoPresentationMapperTest {
         assertThat(pedidoDeResponder.comentario()).isEqualTo(COMENTARIO);
     }
 
-    private void thenElPedidoDePendientesTraeElUsuario() {
+    private void entoncesElPedidoDePendientesTraeElUsuario() {
         assertThat(pedidoDePendientes.usuarioId()).isEqualTo(USUARIO_ID);
     }
 
-    private void thenSeMapeaCadaCampoDeLaRespuesta() {
+    private void entoncesSeMapeaCadaCampoDeLaRespuesta() {
         assertThat(respuestaMapeada.id()).isEqualTo(RESPUESTA_ID);
         assertThat(respuestaMapeada.miniObjetivoId()).isEqualTo(OTRO_MINI_ID);
         assertThat(respuestaMapeada.hizo()).isEqualTo(HizoManual.EN_PARTE);
@@ -119,7 +119,7 @@ class RespuestaMiniObjetivoPresentationMapperTest {
         assertThat(respuestaMapeada.respondidaEn()).isEqualTo(AHORA);
     }
 
-    private void thenSeMapeaElPendienteConSuObjetivoYSuManual() {
+    private void entoncesSeMapeaElPendienteConSuObjetivoYSuManual() {
         assertThat(pendientes).singleElement().satisfies(pendiente -> {
             assertThat(pendiente.objetivoId()).isEqualTo(OBJETIVO_ID);
             assertThat(pendiente.objetivoTexto()).isEqualTo(TEXTO);
@@ -129,7 +129,7 @@ class RespuestaMiniObjetivoPresentationMapperTest {
         });
     }
 
-    private void thenNoHayPendientes() {
+    private void entoncesNoHayPendientes() {
         assertThat(pendientes).isEmpty();
     }
 }

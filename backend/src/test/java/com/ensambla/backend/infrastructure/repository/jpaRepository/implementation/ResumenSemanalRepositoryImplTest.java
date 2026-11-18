@@ -59,81 +59,81 @@ class ResumenSemanalRepositoryImplTest {
 
     @Test
     @DisplayName("Guarda el resumen y después sus reajustes colgados de él")
-    void saveShouldSaveTheResumenAndItsReajustes() {
-        givenUnResumenConUnReajuste();
+    void guardaElResumenYDespuesSusReajustesColgadosDeEl() {
+        dadoUnResumenConUnReajuste();
 
-        whenSeGuardaElResumen();
+        cuandoSeGuardaElResumen();
 
-        thenSeDevuelveElMismoResumen();
-        thenSeGuardaElResumen();
-        thenSeGuardanSusReajustesColgadosDeEl();
+        entoncesSeDevuelveElMismoResumen();
+        entoncesSeGuardaElResumen();
+        entoncesSeGuardanSusReajustesColgadosDeEl();
     }
 
     @Test
     @DisplayName("Una semana ya cerrada se informa como duplicada y no guarda reajustes")
-    void saveShouldThrowDuplicateWhenTheWeekIsAlreadyClosed() {
-        givenUnaSemanaYaCerrada();
+    void unaSemanaYaCerradaSeInformaComoDuplicadaYNoGuardaReajustes() {
+        dadoUnaSemanaYaCerrada();
 
-        whenSeGuardaElResumenConError();
+        cuandoSeGuardaElResumenConError();
 
-        thenSeInformaQueLaSemanaYaEstaCerrada();
-        thenNoSeGuardanReajustes();
+        entoncesSeInformaQueLaSemanaYaEstaCerrada();
+        entoncesNoSeGuardanReajustes();
     }
 
     @Test
     @DisplayName("Otro error de integridad se deja pasar tal cual")
-    void saveShouldRethrowOtherIntegrityErrors() {
-        givenOtroErrorDeIntegridad();
+    void otroErrorDeIntegridadSeDejaPasarTalCual() {
+        dadoOtroErrorDeIntegridad();
 
-        whenSeGuardaElResumenConError();
+        cuandoSeGuardaElResumenConError();
 
-        thenSeDejaPasarElMismoError();
+        entoncesSeDejaPasarElMismoError();
     }
 
     @Test
     @DisplayName("Un objetivo sin semanas cerradas devuelve una lista vacía sin buscar reajustes")
-    void findAllByObjetivoIdShouldReturnEmptyWithoutLookingForReajustes() {
-        givenUnObjetivoSinSemanasCerradas();
+    void unObjetivoSinSemanasCerradasDevuelveUnaListaVaciaSinBuscarReajustes() {
+        dadoUnObjetivoSinSemanasCerradas();
 
-        whenSeListanLasSemanas();
+        cuandoSeListanLasSemanas();
 
-        thenNoHaySemanas();
-        thenNoSeBuscanReajustes();
+        entoncesNoHaySemanas();
+        entoncesNoSeBuscanReajustes();
     }
 
     @Test
     @DisplayName("Lista las semanas en el orden de la consulta, cada una con sus propios reajustes")
-    void findAllByObjetivoIdShouldGroupTheReajustesByResumen() {
-        givenDosSemanasConUnReajusteEnLaNueva();
+    void listaLasSemanasEnElOrdenDeLaConsultaCadaUnaConSusPropiosReajustes() {
+        dadoDosSemanasConUnReajusteEnLaNueva();
 
-        whenSeListanLasSemanas();
+        cuandoSeListanLasSemanas();
 
-        thenLasSemanasVienenEnOrdenConSusReajustes();
+        entoncesLasSemanasVienenEnOrdenConSusReajustes();
     }
 
     // --- arrange ---
-    private void givenUnResumenConUnReajuste() {
+    private void dadoUnResumenConUnReajuste() {
         resumenAGuardar = resumen(UUID.randomUUID(), reajuste());
     }
 
-    private void givenUnaSemanaYaCerrada() {
+    private void dadoUnaSemanaYaCerrada() {
         resumenAGuardar = resumen(UUID.randomUUID());
         when(resumenes.saveAndFlush(any(ResumenSemanalEntity.class))).thenThrow(new DataIntegrityViolationException(
                 "error", new RuntimeException("duplicate key value violates unique constraint \"ux_resumen_semana\"")));
     }
 
-    private void givenOtroErrorDeIntegridad() {
+    private void dadoOtroErrorDeIntegridad() {
         resumenAGuardar = resumen(UUID.randomUUID());
         errorDeIntegridad = new DataIntegrityViolationException(
                 "error", new RuntimeException("violates foreign key constraint"));
         when(resumenes.saveAndFlush(any(ResumenSemanalEntity.class))).thenThrow(errorDeIntegridad);
     }
 
-    private void givenUnObjetivoSinSemanasCerradas() {
+    private void dadoUnObjetivoSinSemanasCerradas() {
         when(resumenes.findAllByObjetivoIdOrderBySemanaInicioDesc(OBJETIVO_ID.valor())).thenReturn(List.of());
     }
 
-    private void givenDosSemanasConUnReajusteEnLaNueva() {
+    private void dadoDosSemanasConUnReajusteEnLaNueva() {
         when(resumenes.findAllByObjetivoIdOrderBySemanaInicioDesc(OBJETIVO_ID.valor())).thenReturn(List.of(
                 mapper.toEntity(resumen(RESUMEN_NUEVO)), mapper.toEntity(resumen(RESUMEN_VIEJO))));
         when(reajustes.findAllByResumenIdInOrderByCreadoEnAscIdAsc(List.of(RESUMEN_NUEVO, RESUMEN_VIEJO)))
@@ -141,30 +141,30 @@ class ResumenSemanalRepositoryImplTest {
     }
 
     // --- act ---
-    private void whenSeGuardaElResumen() {
+    private void cuandoSeGuardaElResumen() {
         resumenDevuelto = repository.save(resumenAGuardar);
     }
 
-    private void whenSeGuardaElResumenConError() {
+    private void cuandoSeGuardaElResumenConError() {
         error = catchThrowable(() -> repository.save(resumenAGuardar));
     }
 
-    private void whenSeListanLasSemanas() {
+    private void cuandoSeListanLasSemanas() {
         semanas = repository.findAllByObjetivoId(OBJETIVO_ID);
     }
 
     // --- assert ---
-    private void thenSeDevuelveElMismoResumen() {
+    private void entoncesSeDevuelveElMismoResumen() {
         assertThat(resumenDevuelto).isSameAs(resumenAGuardar);
     }
 
-    private void thenSeGuardaElResumen() {
+    private void entoncesSeGuardaElResumen() {
         ArgumentCaptor<ResumenSemanalEntity> guardado = ArgumentCaptor.forClass(ResumenSemanalEntity.class);
         verify(resumenes).saveAndFlush(guardado.capture());
         assertThat(guardado.getValue().getId()).isEqualTo(resumenAGuardar.id().valor());
     }
 
-    private void thenSeGuardanSusReajustesColgadosDeEl() {
+    private void entoncesSeGuardanSusReajustesColgadosDeEl() {
         verify(reajustes).saveAllAndFlush(reajustesGuardados.capture());
         assertThat(reajustesGuardados.getValue()).singleElement().satisfies(reajuste -> {
             assertThat(reajuste.getResumenId()).isEqualTo(resumenAGuardar.id().valor());
@@ -172,28 +172,28 @@ class ResumenSemanalRepositoryImplTest {
         });
     }
 
-    private void thenSeInformaQueLaSemanaYaEstaCerrada() {
+    private void entoncesSeInformaQueLaSemanaYaEstaCerrada() {
         assertThat(error).isInstanceOf(DuplicateResourceException.class)
                 .hasMessage("Esa semana del objetivo ya está cerrada");
     }
 
-    private void thenNoSeGuardanReajustes() {
+    private void entoncesNoSeGuardanReajustes() {
         verify(reajustes, never()).saveAllAndFlush(anyList());
     }
 
-    private void thenSeDejaPasarElMismoError() {
+    private void entoncesSeDejaPasarElMismoError() {
         assertThat(error).isSameAs(errorDeIntegridad);
     }
 
-    private void thenNoHaySemanas() {
+    private void entoncesNoHaySemanas() {
         assertThat(semanas).isEmpty();
     }
 
-    private void thenNoSeBuscanReajustes() {
+    private void entoncesNoSeBuscanReajustes() {
         verify(reajustes, never()).findAllByResumenIdInOrderByCreadoEnAscIdAsc(anyList());
     }
 
-    private void thenLasSemanasVienenEnOrdenConSusReajustes() {
+    private void entoncesLasSemanasVienenEnOrdenConSusReajustes() {
         assertThat(semanas).extracting(resumen -> resumen.id().valor())
                 .containsExactly(RESUMEN_NUEVO, RESUMEN_VIEJO);
         assertThat(semanas.get(0).reajustes()).containsExactly(reajuste());

@@ -48,7 +48,7 @@ class LecturaIaJsonMapperTest {
     @Test
     @DisplayName("Convierte una lectura válida con tipo, bloque, filas, advertencias y consumo")
     void toDomainShouldMapValidLectura() {
-        LecturaIaJson json = givenLectura(givenBloque(null, FECHA, MONTO),
+        LecturaIaJson json = givenLectura(dadoBloque(null, FECHA, MONTO),
                 List.of(givenFila(1, 1, Map.of("fecha", new DatoJson("2026-10-03", 0.9), "monto", new DatoJson("100", 0.5)))),
                 List.of("Página borrosa"));
 
@@ -60,7 +60,7 @@ class LecturaIaJsonMapperTest {
     @Test
     @DisplayName("Sin filas ni advertencias devuelve listas vacías")
     void toDomainShouldReturnEmptyListsWhenFilasAndAdvertenciasAreNull() {
-        LecturaIaJson json = givenLectura(givenBloque(null, FECHA), null, null);
+        LecturaIaJson json = givenLectura(dadoBloque(null, FECHA), null, null);
 
         LecturaCuaderno result = mapper.toDomain(json, BLOQUES, PAGINAS, CONSUMO);
 
@@ -71,7 +71,7 @@ class LecturaIaJsonMapperTest {
     @Test
     @DisplayName("Una fila sin datos queda vacía")
     void toDomainShouldAcceptFilaWithoutDatos() {
-        LecturaIaJson json = givenLectura(givenBloque(null, FECHA), List.of(givenFila(2, 3, null)), List.of());
+        LecturaIaJson json = givenLectura(dadoBloque(null, FECHA), List.of(givenFila(2, 3, null)), List.of());
 
         FilaLeida fila = mapper.toDomain(json, BLOQUES, PAGINAS, CONSUMO).filas().getFirst();
 
@@ -83,7 +83,7 @@ class LecturaIaJsonMapperTest {
     @Test
     @DisplayName("Acepta el bloque existente que sugiere la IA si es del negocio")
     void toDomainShouldKeepBloqueExistenteWhenItBelongsToNegocio() {
-        LecturaIaJson json = givenLectura(givenBloque(BLOQUE_VENTAS_ID.toString().toUpperCase(), FECHA), List.of(), List.of());
+        LecturaIaJson json = givenLectura(dadoBloque(BLOQUE_VENTAS_ID.toString().toUpperCase(), FECHA), List.of(), List.of());
 
         LecturaCuaderno result = mapper.toDomain(json, BLOQUES, PAGINAS, CONSUMO);
 
@@ -93,7 +93,7 @@ class LecturaIaJsonMapperTest {
     @Test
     @DisplayName("Descarta un bloque existente que no es del negocio y propone uno nuevo")
     void toDomainShouldDropBloqueExistenteWhenItIsUnknown() {
-        LecturaIaJson json = givenLectura(givenBloque(UUID.randomUUID().toString(), FECHA), List.of(), List.of());
+        LecturaIaJson json = givenLectura(dadoBloque(UUID.randomUUID().toString(), FECHA), List.of(), List.of());
 
         LecturaCuaderno result = mapper.toDomain(json, BLOQUES, PAGINAS, CONSUMO);
 
@@ -106,7 +106,7 @@ class LecturaIaJsonMapperTest {
         List<BloqueConocido> bloques = List.of(new BloqueConocido(BLOQUE_VENTAS_ID, "Ventas", List.of(
                 new CampoContexto("Cliente", TipoCampo.RELACION, List.of(), "Clientes"))));
         CampoJson cliente = new CampoJson("cliente", " cliente ", "RELACION", List.of());
-        LecturaIaJson json = givenLectura(givenBloque(BLOQUE_VENTAS_ID.toString(), cliente), List.of(), List.of());
+        LecturaIaJson json = givenLectura(dadoBloque(BLOQUE_VENTAS_ID.toString(), cliente), List.of(), List.of());
 
         LecturaCuaderno result = mapper.toDomain(json, bloques, PAGINAS, CONSUMO);
 
@@ -117,7 +117,7 @@ class LecturaIaJsonMapperTest {
     @DisplayName("Una conexión que el bloque no tiene se lee como el texto escrito")
     void toDomainShouldDegradeInventedRelacionToTexto() {
         CampoJson cliente = new CampoJson("cliente", "Cliente", "RELACION", List.of());
-        LecturaIaJson json = givenLectura(givenBloque(null, cliente), List.of(), List.of());
+        LecturaIaJson json = givenLectura(dadoBloque(null, cliente), List.of(), List.of());
 
         LecturaCuaderno result = mapper.toDomain(json, BLOQUES, PAGINAS, CONSUMO);
 
@@ -128,7 +128,7 @@ class LecturaIaJsonMapperTest {
     @DisplayName("Una conexión sin nombre se rechaza como cualquier campo sin nombre")
     void toDomainShouldRejectRelacionWithoutName() {
         CampoJson sinNombre = new CampoJson("cliente", null, "RELACION", List.of());
-        LecturaIaJson json = givenLectura(givenBloque(null, sinNombre), List.of(), List.of());
+        LecturaIaJson json = givenLectura(dadoBloque(null, sinNombre), List.of(), List.of());
 
         thenRejects(json, "falta el nombre del campo cliente");
     }
@@ -137,7 +137,7 @@ class LecturaIaJsonMapperTest {
     @DisplayName("Acepta un campo OPCION con opciones")
     void toDomainShouldMapOpcionCampoWithOptions() {
         CampoJson producto = new CampoJson("producto", "Producto", "OPCION", List.of("Vela", "Difusor"));
-        LecturaIaJson json = givenLectura(givenBloque(null, producto), List.of(), List.of());
+        LecturaIaJson json = givenLectura(dadoBloque(null, producto), List.of(), List.of());
 
         LecturaCuaderno result = mapper.toDomain(json, BLOQUES, PAGINAS, CONSUMO);
 
@@ -147,7 +147,7 @@ class LecturaIaJsonMapperTest {
     @Test
     @DisplayName("Rechaza un tipo de registro desconocido")
     void toDomainShouldRejectUnknownTipoRegistro() {
-        LecturaIaJson json = new LecturaIaJson("RECETAS", givenBloque(null, FECHA), List.of(), List.of());
+        LecturaIaJson json = new LecturaIaJson("RECETAS", dadoBloque(null, FECHA), List.of(), List.of());
 
         thenRejects(json, "tipoRegistro es desconocido: RECETAS");
     }
@@ -155,7 +155,7 @@ class LecturaIaJsonMapperTest {
     @Test
     @DisplayName("Rechaza una lectura sin tipo de registro")
     void toDomainShouldRejectMissingTipoRegistro() {
-        LecturaIaJson json = new LecturaIaJson(null, givenBloque(null, FECHA), List.of(), List.of());
+        LecturaIaJson json = new LecturaIaJson(null, dadoBloque(null, FECHA), List.of(), List.of());
 
         thenRejects(json, "falta tipoRegistro");
     }
@@ -184,7 +184,7 @@ class LecturaIaJsonMapperTest {
     void toDomainShouldRejectUnknownTipoCampo() {
         CampoJson raro = new CampoJson("foto", "Foto", "IMAGEN", List.of());
 
-        thenRejects(givenLectura(givenBloque(null, raro), List.of(), List.of()), "el tipo del campo foto es desconocido");
+        thenRejects(givenLectura(dadoBloque(null, raro), List.of(), List.of()), "el tipo del campo foto es desconocido");
     }
 
     @Test
@@ -192,7 +192,7 @@ class LecturaIaJsonMapperTest {
     void toDomainShouldRejectOpcionCampoWithoutOptions() {
         CampoJson producto = new CampoJson("producto", "Producto", "OPCION", List.of());
 
-        thenRejects(givenLectura(givenBloque(null, producto), List.of(), List.of()), "es OPCION y no tiene opciones");
+        thenRejects(givenLectura(dadoBloque(null, producto), List.of(), List.of()), "es OPCION y no tiene opciones");
     }
 
     @Test
@@ -200,19 +200,19 @@ class LecturaIaJsonMapperTest {
     void toDomainShouldRejectCampoWithoutClave() {
         CampoJson sinClave = new CampoJson(null, "Fecha", "FECHA", List.of());
 
-        thenRejects(givenLectura(givenBloque(null, sinClave), List.of(), List.of()), "falta la clave de un campo");
+        thenRejects(givenLectura(dadoBloque(null, sinClave), List.of(), List.of()), "falta la clave de un campo");
     }
 
     @Test
     @DisplayName("Rechaza claves de campo repetidas")
     void toDomainShouldRejectDuplicatedClaves() {
-        thenRejects(givenLectura(givenBloque(null, FECHA, FECHA), List.of(), List.of()), "la clave fecha está repetida");
+        thenRejects(givenLectura(dadoBloque(null, FECHA, FECHA), List.of(), List.of()), "la clave fecha está repetida");
     }
 
     @Test
     @DisplayName("Rechaza una fila que menciona una página que no se envió")
     void toDomainShouldRejectFilaFromPageNotSent() {
-        LecturaIaJson json = givenLectura(givenBloque(null, FECHA), List.of(givenFila(3, 1, Map.of())), List.of());
+        LecturaIaJson json = givenLectura(dadoBloque(null, FECHA), List.of(givenFila(3, 1, Map.of())), List.of());
 
         thenRejects(json, "la página 3 y sólo se enviaron 2");
     }
@@ -220,7 +220,7 @@ class LecturaIaJsonMapperTest {
     @Test
     @DisplayName("Rechaza una fila sin página")
     void toDomainShouldRejectFilaWithoutPagina() {
-        LecturaIaJson json = givenLectura(givenBloque(null, FECHA), List.of(givenFila(null, 1, Map.of())), List.of());
+        LecturaIaJson json = givenLectura(dadoBloque(null, FECHA), List.of(givenFila(null, 1, Map.of())), List.of());
 
         thenRejects(json, "la página de una fila debe ser 1 o mayor");
     }
@@ -228,7 +228,7 @@ class LecturaIaJsonMapperTest {
     @Test
     @DisplayName("Rechaza una fila con renglón cero")
     void toDomainShouldRejectFilaWithRenglonZero() {
-        LecturaIaJson json = givenLectura(givenBloque(null, FECHA), List.of(givenFila(1, 0, Map.of())), List.of());
+        LecturaIaJson json = givenLectura(dadoBloque(null, FECHA), List.of(givenFila(1, 0, Map.of())), List.of());
 
         thenRejects(json, "el renglón de una fila debe ser 1 o mayor");
     }
@@ -236,7 +236,7 @@ class LecturaIaJsonMapperTest {
     @Test
     @DisplayName("Rechaza una fila que usa una clave que no está entre los campos")
     void toDomainShouldRejectUnknownClaveInFila() {
-        LecturaIaJson json = givenLectura(givenBloque(null, FECHA),
+        LecturaIaJson json = givenLectura(dadoBloque(null, FECHA),
                 List.of(givenFila(1, 1, Map.of("cliente", new DatoJson("Marta", 0.9)))), List.of());
 
         thenRejects(json, "la clave cliente que no está entre los campos");
@@ -247,7 +247,7 @@ class LecturaIaJsonMapperTest {
     void toDomainShouldRejectNullDato() {
         Map<String, DatoJson> datos = new HashMap<>();
         datos.put("fecha", null);
-        LecturaIaJson json = givenLectura(givenBloque(null, FECHA), List.of(givenFila(1, 1, datos)), List.of());
+        LecturaIaJson json = givenLectura(dadoBloque(null, FECHA), List.of(givenFila(1, 1, datos)), List.of());
 
         thenRejects(json, "la confianza de fecha debe estar entre 0 y 1");
     }
@@ -275,7 +275,7 @@ class LecturaIaJsonMapperTest {
         return new LecturaIaJson("ventas", bloque, filas, advertencias);
     }
 
-    private BloqueJson givenBloque(String bloqueExistenteId, CampoJson... campos) {
+    private BloqueJson dadoBloque(String bloqueExistenteId, CampoJson... campos) {
         return new BloqueJson(" Ventas ", bloqueExistenteId, List.of(campos));
     }
 
@@ -299,7 +299,7 @@ class LecturaIaJsonMapperTest {
     }
 
     private void thenRejectsConfianza(Double confianza) {
-        LecturaIaJson json = givenLectura(givenBloque(null, FECHA),
+        LecturaIaJson json = givenLectura(dadoBloque(null, FECHA),
                 List.of(givenFila(1, 1, Map.of("fecha", new DatoJson("2026-10-03", confianza)))), List.of());
 
         thenRejects(json, "la confianza de fecha debe estar entre 0 y 1");

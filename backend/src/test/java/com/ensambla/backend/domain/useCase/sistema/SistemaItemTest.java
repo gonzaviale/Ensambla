@@ -106,7 +106,7 @@ class SistemaItemTest {
     @Test
     @DisplayName("Mapea secciones y bloques con su posición, su sección y sus datos")
     void deShouldMapSeccionesAndBloques() {
-        BloqueItem inventario = givenBloque(INVENTARIO_ID.toString(), "inventory", "Productos", "coral", "wide",
+        BloqueItem inventario = dadoBloque(INVENTARIO_ID.toString(), "inventory", "Productos", "coral", "wide",
                 List.of(), List.of());
         BloqueItem nota = new BloqueItem(NOTA_ID.toString(), "note", "Notas", null, "petrol", "full", List.of(),
                 List.of(), "Llamar al proveedor", true, -1);
@@ -179,8 +179,8 @@ class SistemaItemTest {
                 new CampoItem("phone", "Teléfono", "tel", false, null, null, null),
                 new CampoItem("qty", "Cantidad", "number", false, null, null, null));
         SistemaItem item = givenItem(SISTEMA_ID.toString(), List.of(givenSeccion(SECCION_ID.toString(), List.of(
-                givenBloque(INVENTARIO_ID.toString(), "inventory", "Productos", "blue", "half", campos, List.of()),
-                givenBloque(CLIENTES_ID.toString(), "clients", "Clientes", "blue", "half", List.of(), List.of())))),
+                dadoBloque(INVENTARIO_ID.toString(), "inventory", "Productos", "blue", "half", campos, List.of()),
+                dadoBloque(CLIENTES_ID.toString(), "clients", "Clientes", "blue", "half", List.of(), List.of())))),
                 null, null, null, false, null);
 
         List<Campo> resultado = item.aSistema(NEGOCIO_ID, SISTEMA_ID.toString(), AHORA)
@@ -217,7 +217,7 @@ class SistemaItemTest {
                 new CampoItem("no valida!", "Clave inválida", "text", false, null, null, null),
                 new CampoItem("rara", "Rara", "tipo-que-no-existe", false, null, null, null));
         SistemaItem item = givenItem(SISTEMA_ID.toString(), List.of(givenSeccion(SECCION_ID.toString(), List.of(
-                givenBloque(INVENTARIO_ID.toString(), "inventory", "Productos", "blue", "half", campos, List.of())))),
+                dadoBloque(INVENTARIO_ID.toString(), "inventory", "Productos", "blue", "half", campos, List.of())))),
                 null, null, null, false, null);
 
         List<Campo> resultado = item.aSistema(NEGOCIO_ID, SISTEMA_ID.toString(), AHORA)
@@ -253,9 +253,9 @@ class SistemaItemTest {
         tercera.put("client", null);
         tercera.put("__source", 7);
         SistemaItem item = givenItem(SISTEMA_ID.toString(), List.of(givenSeccion(SECCION_ID.toString(), List.of(
-                givenBloque(INVENTARIO_ID.toString(), "inventory", "Productos", "blue", "half", campos,
+                dadoBloque(INVENTARIO_ID.toString(), "inventory", "Productos", "blue", "half", campos,
                         List.of(primera, segunda, tercera)),
-                givenBloque(CLIENTES_ID.toString(), "clients", "Clientes", "blue", "half", List.of(), List.of())))),
+                dadoBloque(CLIENTES_ID.toString(), "clients", "Clientes", "blue", "half", List.of(), List.of())))),
                 null, null, null, false, null);
 
         Sistema sistema = item.aSistema(NEGOCIO_ID, SISTEMA_ID.toString(), AHORA);
@@ -292,7 +292,7 @@ class SistemaItemTest {
         Map<String, Object> fila = fila(FILA_ID.toString(), "repetida", "valor");
         fila.put("__source", "x".repeat(300));
         SistemaItem item = givenItem(SISTEMA_ID.toString(), List.of(givenSeccion(SECCION_ID.toString(), List.of(
-                givenBloque(INVENTARIO_ID.toString(), "inventory", "Productos", "blue", "half", campos,
+                dadoBloque(INVENTARIO_ID.toString(), "inventory", "Productos", "blue", "half", campos,
                         List.of(fila))))), null, null, null, false, null);
 
         Sistema sistema = item.aSistema(NEGOCIO_ID, SISTEMA_ID.toString(), AHORA);
@@ -387,7 +387,7 @@ class SistemaItemTest {
     void deShouldFallBackToCampoIdAndFormulaAsNumber() {
         UUID sinClaveId = UUID.fromString("d4000000-0000-4000-8000-000000000001");
         UUID formulaId = UUID.fromString("d4000000-0000-4000-8000-000000000002");
-        Bloque bloque = givenBloque(INVENTARIO_ID.valor(), SECCION_ID, 0, TipoBloque.GASTOS, List.of(
+        Bloque bloque = dadoBloque(INVENTARIO_ID.valor(), SECCION_ID, 0, TipoBloque.GASTOS, List.of(
                 Campo.builder().id(CampoId.de(formulaId)).bloqueId(INVENTARIO_ID).nombre("Total")
                         .tipo(TipoCampo.FORMULA)
                         .obligatorio(false).posicion((short) 1).build(),
@@ -411,7 +411,7 @@ class SistemaItemTest {
     @Test
     @DisplayName("Un proyecto sin secciones se muestra con una sección Vista general que contiene sus bloques")
     void deShouldCreateGeneralSectionWhenThereAreNone() {
-        Bloque bloque = givenBloque(INVENTARIO_ID.valor(), null, 0, TipoBloque.FORMULARIO, List.of());
+        Bloque bloque = dadoBloque(INVENTARIO_ID.valor(), null, 0, TipoBloque.FORMULARIO, List.of());
         Sistema sistema = new Sistema(givenProyecto(List.of(bloque)), List.of(), Map.of());
 
         SistemaItem item = SistemaItem.de(sistema);
@@ -427,10 +427,10 @@ class SistemaItemTest {
     @Test
     @DisplayName("Los bloques sin sección van a la primera y los demás a la suya, ordenados por posición")
     void deShouldPlaceOrphanBlocksInFirstSection() {
-        Bloque huerfano = givenBloque(NOTA_ID.valor(), null, 5, TipoBloque.NOTA, List.of());
-        Bloque ajeno = givenBloque(CLIENTES_ID.valor(), SeccionId.nuevo(), 3, TipoBloque.CLIENTES, List.of());
-        Bloque propio = givenBloque(INVENTARIO_ID.valor(), SECCION_ID, 1, TipoBloque.INVENTARIO, List.of());
-        Bloque deLaOtra = givenBloque(UUID.fromString("d2000000-0000-4000-8000-000000000009"), OTRA_SECCION_ID, 0,
+        Bloque huerfano = dadoBloque(NOTA_ID.valor(), null, 5, TipoBloque.NOTA, List.of());
+        Bloque ajeno = dadoBloque(CLIENTES_ID.valor(), SeccionId.nuevo(), 3, TipoBloque.CLIENTES, List.of());
+        Bloque propio = dadoBloque(INVENTARIO_ID.valor(), SECCION_ID, 1, TipoBloque.INVENTARIO, List.of());
+        Bloque deLaOtra = dadoBloque(UUID.fromString("d2000000-0000-4000-8000-000000000009"), OTRA_SECCION_ID, 0,
                 TipoBloque.VENTAS, List.of());
         Sistema sistema = new Sistema(givenProyecto(List.of(huerfano, ajeno, propio, deLaOtra)),
                 List.of(givenSeccion(OTRA_SECCION_ID, 1), givenSeccion(SECCION_ID, 0)), Map.of());
@@ -455,8 +455,8 @@ class SistemaItemTest {
                 "client", CLIENTE_FILA_ID.toString());
         SistemaItem item = new SistemaItem(SISTEMA_ID.toString(), "Mi almacén", "2026-01-10T09:00:00Z",
                 "2026-10-21T10:00:00Z", List.of(givenSeccion(SECCION_ID.toString(), List.of(
-                givenBloque(INVENTARIO_ID.toString(), "inventory", "Productos", "orange", "half", campos, List.of(fila)),
-                givenBloque(CLIENTES_ID.toString(), "clients", "Clientes", "orange", "half", List.of(), List.of())))),
+                dadoBloque(INVENTARIO_ID.toString(), "inventory", "Productos", "orange", "half", campos, List.of(fila)),
+                dadoBloque(CLIENTES_ID.toString(), "clients", "Clientes", "orange", "half", List.of(), List.of())))),
                 "shop", new OpcionesItem(true, true), "mosaic", false);
 
         SistemaItem resultado = SistemaItem.de(item.aSistema(NEGOCIO_ID, SISTEMA_ID.toString(), AHORA));
@@ -479,7 +479,7 @@ class SistemaItemTest {
         return new SeccionItem(id, "Vista general", bloques);
     }
 
-    private BloqueItem givenBloque(String id, String tipo, String nombre, String color, String ancho,
+    private BloqueItem dadoBloque(String id, String tipo, String nombre, String color, String ancho,
                                    List<CampoItem> campos, List<Map<String, Object>> filas) {
         return new BloqueItem(id, tipo, nombre, "Lo que vendo", color, ancho, campos, filas, null, null, null);
     }
@@ -497,7 +497,7 @@ class SistemaItemTest {
         CampoId nombreId = CampoId.de("d4000000-0000-4000-8000-000000000001");
         UUID categoriaId = UUID.fromString("d4000000-0000-4000-8000-000000000002");
         CampoId clienteId = CampoId.de("d4000000-0000-4000-8000-000000000003");
-        Bloque inventario = givenBloque(INVENTARIO_ID.valor(), SECCION_ID, 0, TipoBloque.INVENTARIO, List.of(
+        Bloque inventario = dadoBloque(INVENTARIO_ID.valor(), SECCION_ID, 0, TipoBloque.INVENTARIO, List.of(
                 Campo.builder().id(clienteId).bloqueId(INVENTARIO_ID).nombre("Cliente").tipo(TipoCampo.RELACION)
                         .obligatorio(false).clave("cliente").bloqueRelacionadoId(CLIENTES_ID).posicion((short) 2).build(),
                 Campo.builder().id(nombreId).bloqueId(INVENTARIO_ID).nombre("Producto").tipo(TipoCampo.TEXTO)
@@ -507,7 +507,7 @@ class SistemaItemTest {
                         .obligatorio(false).clave("categoria").opciones(List.of("Insumos")).posicion((short) 1).build()));
         inventario.setColor(ColorBloque.NARANJA);
         inventario.setDireccionStock((short) 1);
-        Bloque clientes = givenBloque(CLIENTES_ID.valor(), SECCION_ID, 1, TipoBloque.CLIENTES, List.of());
+        Bloque clientes = dadoBloque(CLIENTES_ID.valor(), SECCION_ID, 1, TipoBloque.CLIENTES, List.of());
         Registro harina = Registro.builder().id(FILA_ID).bloqueId(INVENTARIO_ID).esEjemplo(true)
                 .origen("Aviso de Sami").orden(0)
                 .valores(Map.of(nombreId.toString(), "Harina", clienteId.toString(), CLIENTE_FILA_ID.toString()))
@@ -536,7 +536,7 @@ class SistemaItemTest {
                 .posicion((short) posicion).build();
     }
 
-    private Bloque givenBloque(UUID id, SeccionId seccionId, int posicion, TipoBloque tipo, List<Campo> campos) {
+    private Bloque dadoBloque(UUID id, SeccionId seccionId, int posicion, TipoBloque tipo, List<Campo> campos) {
         return Bloque.builder().id(BloqueId.de(id)).proyectoId(SISTEMA_ID).seccionId(seccionId).nombre("Bloque")
                 .posicion((short) posicion).tipo(tipo).descripcion(tipo == TipoBloque.INVENTARIO ? "Lo que vendo" : "")
                 .campos(campos).build();

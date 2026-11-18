@@ -24,129 +24,129 @@ class CandidatoMiniObjetivoTest {
 
     @Test
     @DisplayName("Con el texto de la IA cambia el título y la justificación y lo marca")
-    void conTextoDeIaShouldReplaceTheTextAndMarkIt() {
-        whenSeLeDaElTextoDeLaIa();
+    void conElTextoDeLaIaCambiaElTituloYLaJustificacionYLoMarca() {
+        cuandoSeLeDaElTextoDeLaIa();
 
-        thenElTextoEsElDeLaIa();
+        entoncesElTextoEsElDeLaIa();
     }
 
     @Test
     @DisplayName("Con el texto de la IA no se tocan los números")
-    void conTextoDeIaShouldKeepTheNumbers() {
-        whenSeLeDaElTextoDeLaIa();
+    void conElTextoDeLaIaNoSeTocanLosNumeros() {
+        cuandoSeLeDaElTextoDeLaIa();
 
-        thenLosNumerosNoCambian();
+        entoncesLosNumerosNoCambian();
     }
 
     @Test
     @DisplayName("Es el mismo cuando coinciden el tipo, el producto y la referencia")
-    void esElMismoShouldBeTrueWhenTypeProductAndReferenceMatch() {
-        whenSeCompara(TipoMiniObjetivo.SUBIR_PRECIO, PRODUCTO_ID, PRODUCTO);
+    void esElMismoCuandoCoincidenElTipoElProductoYLaReferencia() {
+        cuandoSeCompara(TipoMiniObjetivo.SUBIR_PRECIO, PRODUCTO_ID, PRODUCTO);
 
-        thenEsElMismo();
+        entoncesEsElMismo();
     }
 
     @Test
     @DisplayName("No es el mismo si cambia el tipo")
-    void esElMismoShouldBeFalseWhenTypeDiffers() {
-        whenSeCompara(TipoMiniObjetivo.PONER_A_LA_VISTA, PRODUCTO_ID, PRODUCTO);
+    void noEsElMismoSiCambiaElTipo() {
+        cuandoSeCompara(TipoMiniObjetivo.PONER_A_LA_VISTA, PRODUCTO_ID, PRODUCTO);
 
-        thenNoEsElMismo();
+        entoncesNoEsElMismo();
     }
 
     @Test
     @DisplayName("No es el mismo si cambia el producto")
-    void esElMismoShouldBeFalseWhenProductDiffers() {
-        whenSeCompara(TipoMiniObjetivo.SUBIR_PRECIO, OTRO_PRODUCTO_ID, PRODUCTO);
+    void noEsElMismoSiCambiaElProducto() {
+        cuandoSeCompara(TipoMiniObjetivo.SUBIR_PRECIO, OTRO_PRODUCTO_ID, PRODUCTO);
 
-        thenNoEsElMismo();
+        entoncesNoEsElMismo();
     }
 
     @Test
     @DisplayName("No es el mismo si cambia la referencia")
-    void esElMismoShouldBeFalseWhenReferenceDiffers() {
-        whenSeCompara(TipoMiniObjetivo.SUBIR_PRECIO, PRODUCTO_ID, "Otra yerba");
+    void noEsElMismoSiCambiaLaReferencia() {
+        cuandoSeCompara(TipoMiniObjetivo.SUBIR_PRECIO, PRODUCTO_ID, "Otra yerba");
 
-        thenNoEsElMismo();
+        entoncesNoEsElMismo();
     }
 
     @Test
     @DisplayName("Chocan si miden el mismo tipo")
-    void chocaConShouldBeTrueForTheSameType() {
-        givenOtro(TipoMiniObjetivo.SUBIR_PRECIO, OTRO_PRODUCTO_ID, "Fideos");
+    void chocanSiMidenElMismoTipo() {
+        dadoOtro(TipoMiniObjetivo.SUBIR_PRECIO, OTRO_PRODUCTO_ID, "Fideos");
 
-        whenSeComparaSiChocan(candidato());
+        cuandoSeComparaSiChocan(candidato());
 
-        thenChocan();
+        entoncesChocan();
     }
 
     @Test
     @DisplayName("Chocan si miden el mismo producto aunque sean de otro tipo")
-    void chocaConShouldBeTrueForTheSameProduct() {
-        givenOtro(TipoMiniObjetivo.PONER_A_LA_VISTA, PRODUCTO_ID, PRODUCTO);
+    void chocanSiMidenElMismoProductoAunqueSeanDeOtroTipo() {
+        dadoOtro(TipoMiniObjetivo.PONER_A_LA_VISTA, PRODUCTO_ID, PRODUCTO);
 
-        whenSeComparaSiChocan(candidato());
+        cuandoSeComparaSiChocan(candidato());
 
-        thenChocan();
+        entoncesChocan();
     }
 
     @Test
     @DisplayName("No chocan si cambian el tipo y el producto")
-    void chocaConShouldBeFalseWhenTypeAndProductDiffer() {
-        givenOtro(TipoMiniObjetivo.PONER_A_LA_VISTA, OTRO_PRODUCTO_ID, "Fideos");
+    void noChocanSiCambianElTipoYElProducto() {
+        dadoOtro(TipoMiniObjetivo.PONER_A_LA_VISTA, OTRO_PRODUCTO_ID, "Fideos");
 
-        whenSeComparaSiChocan(candidato());
+        cuandoSeComparaSiChocan(candidato());
 
-        thenNoChocan();
+        entoncesNoChocan();
     }
 
     @Test
     @DisplayName("Dos métricas del negocio, sin producto, de distinto tipo no chocan")
-    void chocaConShouldBeFalseForBusinessMetricsOfDifferentTypes() {
+    void dosMetricasDelNegocioSinProductoDeDistintoTipoNoChocan() {
         otro = candidatoDelNegocio(TipoMiniObjetivo.VENTAS_SEMANALES, "100");
 
-        whenSeComparaSiChocan(candidatoDelNegocio(TipoMiniObjetivo.MEJORAR_MARGEN, "100"));
+        cuandoSeComparaSiChocan(candidatoDelNegocio(TipoMiniObjetivo.MEJORAR_MARGEN, "100"));
 
-        thenNoChocan();
+        entoncesNoChocan();
     }
 
     @Test
     @DisplayName("Una métrica del negocio y una de un producto de distinto tipo no chocan")
-    void chocaConShouldBeFalseForABusinessMetricAndAProductMetric() {
+    void unaMetricaDelNegocioYUnaDeUnProductoDeDistintoTipoNoChocan() {
         otro = candidatoDelNegocio(TipoMiniObjetivo.MEJORAR_MARGEN, "100");
 
-        whenSeComparaSiChocan(candidato());
+        cuandoSeComparaSiChocan(candidato());
 
-        thenNoChocan();
+        entoncesNoChocan();
     }
 
     // --- arrange ---
-    private void givenOtro(TipoMiniObjetivo tipo, RegistroId productoId, String referencia) {
+    private void dadoOtro(TipoMiniObjetivo tipo, RegistroId productoId, String referencia) {
         otro = new CandidatoMiniObjetivo(
                 tipo, productoId, referencia, VALOR_INICIAL, META_MINI, APORTE, "t", "j", false);
     }
 
     // --- act ---
-    private void whenSeLeDaElTextoDeLaIa() {
+    private void cuandoSeLeDaElTextoDeLaIa() {
         conTexto = candidato().conTextoDeIa(new TextoMiniObjetivo("Un título", "Una razón"));
     }
 
-    private void whenSeCompara(TipoMiniObjetivo tipo, RegistroId productoId, String referencia) {
+    private void cuandoSeCompara(TipoMiniObjetivo tipo, RegistroId productoId, String referencia) {
         esElMismo = candidato().esElMismo(tipo, productoId, referencia);
     }
 
-    private void whenSeComparaSiChocan(CandidatoMiniObjetivo candidato) {
+    private void cuandoSeComparaSiChocan(CandidatoMiniObjetivo candidato) {
         chocan = candidato.chocaCon(otro);
     }
 
     // --- assert ---
-    private void thenElTextoEsElDeLaIa() {
+    private void entoncesElTextoEsElDeLaIa() {
         assertThat(conTexto.titulo()).isEqualTo("Un título");
         assertThat(conTexto.justificacion()).isEqualTo("Una razón");
         assertThat(conTexto.textoConIa()).isTrue();
     }
 
-    private void thenLosNumerosNoCambian() {
+    private void entoncesLosNumerosNoCambian() {
         assertThat(conTexto.tipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
         assertThat(conTexto.registroId()).isEqualTo(PRODUCTO_ID);
         assertThat(conTexto.referencia()).isEqualTo(PRODUCTO);
@@ -155,19 +155,19 @@ class CandidatoMiniObjetivoTest {
         assertThat(conTexto.aporteEstimado()).isEqualTo(APORTE);
     }
 
-    private void thenEsElMismo() {
+    private void entoncesEsElMismo() {
         assertThat(esElMismo).isTrue();
     }
 
-    private void thenNoEsElMismo() {
+    private void entoncesNoEsElMismo() {
         assertThat(esElMismo).isFalse();
     }
 
-    private void thenChocan() {
+    private void entoncesChocan() {
         assertThat(chocan).isTrue();
     }
 
-    private void thenNoChocan() {
+    private void entoncesNoChocan() {
         assertThat(chocan).isFalse();
     }
 }

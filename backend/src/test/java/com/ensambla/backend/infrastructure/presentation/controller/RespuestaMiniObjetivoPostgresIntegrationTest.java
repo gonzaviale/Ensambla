@@ -72,139 +72,139 @@ class RespuestaMiniObjetivoPostgresIntegrationTest extends PostgresRepositoryTes
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        UUID usuarioId = givenUsuarioYNegocio();
+        UUID usuarioId = dadoUsuarioYNegocio();
         negocioId = negocioDe(usuarioId);
-        objetivoId = givenObjetivoSinMeta(negocioId);
-        manualId = givenManual(negocioId, objetivoId, 1);
-        sesion = givenSesion(usuarioId);
+        objetivoId = dadoObjetivoSinMeta(negocioId);
+        manualId = dadoManual(negocioId, objetivoId, 1);
+        sesion = dadoSesion(usuarioId);
     }
 
     @Test
     @DisplayName("Un manual sin responder aparece entre los pendientes, sin métrica ni números")
-    void pendientesShouldListTheManualMiniWithoutAnswer() throws Exception {
-        whenSePidenLosPendientes();
+    void unManualSinResponderApareceEntreLosPendientesSinMetricaNiNumeros() throws Exception {
+        cuandoSePidenLosPendientes();
 
-        thenElManualApareceSinMetricaNiNumeros();
+        entoncesElManualApareceSinMetricaNiNumeros();
     }
 
     @Test
     @DisplayName("Los mini-objetivos medidos no son pendientes")
-    void pendientesShouldNotListMeasuredMinis() throws Exception {
-        givenUnMedido();
+    void losMiniObjetivosMedidosNoSonPendientes() throws Exception {
+        dadoUnMedido();
 
-        whenSePidenLosPendientes();
+        cuandoSePidenLosPendientes();
 
-        thenHayPendientes(1);
+        entoncesHayPendientes(1);
     }
 
     @Test
     @DisplayName("Responder guarda la respuesta con su fecha, anota la decisión y saca al manual de los pendientes")
-    void responderShouldSaveTheAnswerRecordTheDecisionAndClearThePending() throws Exception {
-        whenSeResponde(manualId, CUERPO);
-        whenSePidenLosPendientes();
+    void responderGuardaLaRespuestaConSuFechaAnotaLaDecisionYSacaAlManualDeLos() throws Exception {
+        cuandoSeResponde(manualId, CUERPO);
+        cuandoSePidenLosPendientes();
 
-        thenSeCreoLaRespuestaConSuFecha();
-        thenSeGuardaUnaRespuestaYSuDecisionYElManualSigueEnCurso();
-        thenHayPendientes(0);
+        entoncesSeCreoLaRespuestaConSuFecha();
+        entoncesSeGuardaUnaRespuestaYSuDecisionYElManualSigueEnCurso();
+        entoncesHayPendientes(0);
     }
 
     @Test
     @DisplayName("La decisión de la respuesta se ve en el historial del objetivo")
-    void responderShouldShowTheDecisionInTheObjectiveHistory() throws Exception {
-        givenElManualYaRespondidoComoHecho();
+    void laDecisionDeLaRespuestaSeVeEnElHistorialDelObjetivo() throws Exception {
+        dadoElManualYaRespondidoComoHecho();
 
-        whenSePideElHistorialDeDecisiones();
+        cuandoSePideElHistorialDeDecisiones();
 
-        thenElHistorialMuestraLaDecisionSinMedicion();
+        entoncesElHistorialMuestraLaDecisionSinMedicion();
     }
 
     @Test
     @DisplayName("Responder dos veces responde 409 y la primera respuesta queda como estaba")
-    void responderShouldNotOverwriteTheFirstAnswer() throws Exception {
-        givenElManualYaRespondidoEnParte();
+    void responderDosVecesResponde409YLaPrimeraRespuestaQuedaComoEstaba() throws Exception {
+        dadoElManualYaRespondidoEnParte();
 
-        whenSeResponde(manualId, CUERPO_HECHO);
+        cuandoSeResponde(manualId, CUERPO_HECHO);
 
-        thenSeResponde409();
-        thenLaPrimeraRespuestaQuedaComoEstaba();
+        entoncesSeResponde409();
+        entoncesLaPrimeraRespuestaQuedaComoEstaba();
     }
 
     @Test
     @DisplayName("Un mini-objetivo medido no se responde")
-    void responderShouldRejectAMeasuredMini() throws Exception {
-        givenUnMedido();
+    void unMiniObjetivoMedidoNoSeResponde() throws Exception {
+        dadoUnMedido();
 
-        whenSeResponde(medidoId, CUERPO);
+        cuandoSeResponde(medidoId, CUERPO);
 
-        thenSeResponde400();
+        entoncesSeResponde400();
     }
 
     @Test
     @DisplayName("Decir que lo hizo y que no tuvo tiempo responde 400")
-    void responderShouldRejectAContradictoryAnswer() throws Exception {
-        whenSeResponde(manualId, CUERPO_CONTRADICTORIO);
+    void decirQueLoHizoYQueNoTuvoTiempoResponde400() throws Exception {
+        cuandoSeResponde(manualId, CUERPO_CONTRADICTORIO);
 
-        thenSeResponde400();
+        entoncesSeResponde400();
     }
 
     @Test
     @DisplayName("Un mini-objetivo de otro negocio responde 404 igual que uno inexistente y no se le guarda nada")
-    void responderShouldReturn404ForAnotherBusinessMini() throws Exception {
-        givenUnManualDeOtroNegocio();
+    void unMiniObjetivoDeOtroNegocioResponde404IgualQueUnoInexistenteYNoSeLeGuarda() throws Exception {
+        dadoUnManualDeOtroNegocio();
 
-        whenSeRespondeAUnoAjenoYAUnoInexistente();
+        cuandoSeRespondeAUnoAjenoYAUnoInexistente();
 
-        thenAmbosRespondenNotFound();
-        thenNoSeGuardoNingunaRespuesta();
+        entoncesAmbosRespondenNotFound();
+        entoncesNoSeGuardoNingunaRespuesta();
     }
 
     @Test
     @DisplayName("Los pendientes son sólo los del negocio de la sesión")
-    void pendientesShouldIsolateBusinesses() throws Exception {
-        givenUnManualDeOtroNegocio();
+    void losPendientesSonSoloLosDelNegocioDeLaSesion() throws Exception {
+        dadoUnManualDeOtroNegocio();
 
-        whenSePidenLosPendientes();
+        cuandoSePidenLosPendientes();
 
-        thenSoloEstaElManualPropio();
+        entoncesSoloEstaElManualPropio();
     }
 
     @Test
     @DisplayName("Responder sin CSRF responde 403 y sin sesión 401")
-    void responderShouldRequireSessionAndCsrf() throws Exception {
-        thenResponderSinCsrfResponde403();
-        thenResponderSinSesionResponde401();
-        thenPendientesSinSesionResponde401();
+    void responderSinCsrfResponde403YSinSesion401() throws Exception {
+        entoncesResponderSinCsrfResponde403();
+        entoncesResponderSinSesionResponde401();
+        entoncesPendientesSinSesionResponde401();
     }
 
     // --- arrange ---
-    private void givenUnMedido() {
-        medidoId = givenMedido(negocioId, objetivoId, 2);
+    private void dadoUnMedido() {
+        medidoId = dadoMedido(negocioId, objetivoId, 2);
     }
 
-    private void givenElManualYaRespondidoComoHecho() throws Exception {
-        whenSeResponde(manualId, CUERPO_HECHO);
+    private void dadoElManualYaRespondidoComoHecho() throws Exception {
+        cuandoSeResponde(manualId, CUERPO_HECHO);
         respuesta.andExpect(status().isCreated());
     }
 
-    private void givenElManualYaRespondidoEnParte() throws Exception {
-        whenSeResponde(manualId, CUERPO);
+    private void dadoElManualYaRespondidoEnParte() throws Exception {
+        cuandoSeResponde(manualId, CUERPO);
         respuesta.andExpect(status().isCreated());
     }
 
-    private void givenUnManualDeOtroNegocio() {
-        UUID otroNegocio = negocioDe(givenUsuarioYNegocio());
-        otroObjetivoId = givenObjetivoSinMeta(otroNegocio);
-        manualAjenoId = givenManual(otroNegocio, otroObjetivoId, 1);
+    private void dadoUnManualDeOtroNegocio() {
+        UUID otroNegocio = negocioDe(dadoUsuarioYNegocio());
+        otroObjetivoId = dadoObjetivoSinMeta(otroNegocio);
+        manualAjenoId = dadoManual(otroNegocio, otroObjetivoId, 1);
     }
 
     // --- act ---
-    private void whenSeResponde(UUID miniId, String cuerpo) throws Exception {
+    private void cuandoSeResponde(UUID miniId, String cuerpo) throws Exception {
         respuesta = mockMvc.perform(post(RUTA_DE_RESPUESTA, objetivoId, miniId)
                 .session(sesion).header("X-CSRF-TOKEN", csrfToken)
                 .contentType("application/json").content(cuerpo));
     }
 
-    private void whenSeRespondeAUnoAjenoYAUnoInexistente() throws Exception {
+    private void cuandoSeRespondeAUnoAjenoYAUnoInexistente() throws Exception {
         respuestaAjena = mockMvc.perform(post(RUTA_DE_RESPUESTA, otroObjetivoId, manualAjenoId)
                 .session(sesion).header("X-CSRF-TOKEN", csrfToken)
                 .contentType("application/json").content(CUERPO));
@@ -213,16 +213,16 @@ class RespuestaMiniObjetivoPostgresIntegrationTest extends PostgresRepositoryTes
                 .contentType("application/json").content(CUERPO));
     }
 
-    private void whenSePidenLosPendientes() throws Exception {
+    private void cuandoSePidenLosPendientes() throws Exception {
         pendientes = mockMvc.perform(get(PENDIENTES).session(sesion));
     }
 
-    private void whenSePideElHistorialDeDecisiones() throws Exception {
+    private void cuandoSePideElHistorialDeDecisiones() throws Exception {
         decisiones = mockMvc.perform(get("/api/objetivos/{id}/decisiones", objetivoId).session(sesion));
     }
 
     // --- assert ---
-    private void thenElManualApareceSinMetricaNiNumeros() throws Exception {
+    private void entoncesElManualApareceSinMetricaNiNumeros() throws Exception {
         pendientes
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
@@ -234,11 +234,11 @@ class RespuestaMiniObjetivoPostgresIntegrationTest extends PostgresRepositoryTes
                 .andExpect(jsonPath("$[0].miniObjetivo.meta").doesNotExist());
     }
 
-    private void thenHayPendientes(int cantidad) throws Exception {
+    private void entoncesHayPendientes(int cantidad) throws Exception {
         pendientes.andExpect(jsonPath("$.length()").value(cantidad));
     }
 
-    private void thenSeCreoLaRespuestaConSuFecha() throws Exception {
+    private void entoncesSeCreoLaRespuestaConSuFecha() throws Exception {
         respuesta
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.miniObjetivoId").value(manualId.toString()))
@@ -248,7 +248,7 @@ class RespuestaMiniObjetivoPostgresIntegrationTest extends PostgresRepositoryTes
                 .andExpect(jsonPath("$.respondidaEn").exists());
     }
 
-    private void thenSeGuardaUnaRespuestaYSuDecisionYElManualSigueEnCurso() {
+    private void entoncesSeGuardaUnaRespuestaYSuDecisionYElManualSigueEnCurso() {
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM respuesta_mini_objetivo WHERE mini_objetivo_id = ? AND negocio_id = ?",
                 Integer.class, manualId, negocioId)).isEqualTo(1);
@@ -259,22 +259,22 @@ class RespuestaMiniObjetivoPostgresIntegrationTest extends PostgresRepositoryTes
                 "SELECT estado FROM mini_objetivo WHERE id = ?", String.class, manualId)).isEqualTo("EN_CURSO");
     }
 
-    private void thenElHistorialMuestraLaDecisionSinMedicion() throws Exception {
+    private void entoncesElHistorialMuestraLaDecisionSinMedicion() throws Exception {
         decisiones
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.semanas[0].decisiones[0].tipo").value("MINI_HECHO"))
                 .andExpect(jsonPath("$.semanas[0].decisiones[0].efecto").value("SIN_MEDICION"));
     }
 
-    private void thenSeResponde409() throws Exception {
+    private void entoncesSeResponde409() throws Exception {
         respuesta.andExpect(status().isConflict());
     }
 
-    private void thenSeResponde400() throws Exception {
+    private void entoncesSeResponde400() throws Exception {
         respuesta.andExpect(status().isBadRequest());
     }
 
-    private void thenLaPrimeraRespuestaQuedaComoEstaba() {
+    private void entoncesLaPrimeraRespuestaQuedaComoEstaba() {
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT hizo FROM respuesta_mini_objetivo WHERE mini_objetivo_id = ?", String.class, manualId))
                 .isEqualTo("EN_PARTE");
@@ -283,40 +283,40 @@ class RespuestaMiniObjetivoPostgresIntegrationTest extends PostgresRepositoryTes
                 .isEqualTo(1);
     }
 
-    private void thenAmbosRespondenNotFound() throws Exception {
+    private void entoncesAmbosRespondenNotFound() throws Exception {
         respuestaAjena.andExpect(status().isNotFound());
         respuestaInexistente.andExpect(status().isNotFound());
     }
 
-    private void thenNoSeGuardoNingunaRespuesta() {
+    private void entoncesNoSeGuardoNingunaRespuesta() {
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM respuesta_mini_objetivo", Integer.class))
                 .isZero();
     }
 
-    private void thenSoloEstaElManualPropio() throws Exception {
+    private void entoncesSoloEstaElManualPropio() throws Exception {
         pendientes
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].miniObjetivo.id").value(manualId.toString()));
     }
 
-    private void thenResponderSinCsrfResponde403() throws Exception {
+    private void entoncesResponderSinCsrfResponde403() throws Exception {
         mockMvc.perform(post(RUTA_DE_RESPUESTA, objetivoId, manualId)
                         .session(sesion).contentType("application/json").content(CUERPO))
                 .andExpect(status().isForbidden());
     }
 
-    private void thenResponderSinSesionResponde401() throws Exception {
+    private void entoncesResponderSinSesionResponde401() throws Exception {
         mockMvc.perform(post(RUTA_DE_RESPUESTA, objetivoId, manualId)
                         .contentType("application/json").content(CUERPO))
                 .andExpect(status().isUnauthorized());
     }
 
-    private void thenPendientesSinSesionResponde401() throws Exception {
+    private void entoncesPendientesSinSesionResponde401() throws Exception {
         mockMvc.perform(get(PENDIENTES)).andExpect(status().isUnauthorized());
     }
 
     // --- helpers ---
-    private UUID givenUsuarioYNegocio() {
+    private UUID dadoUsuarioYNegocio() {
         UUID usuarioId = UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO usuario (id, email, nombre) VALUES (?, ?, 'Respuestas HTTP')",
                 usuarioId, usuarioId + "@example.test");
@@ -329,7 +329,7 @@ class RespuestaMiniObjetivoPostgresIntegrationTest extends PostgresRepositoryTes
         return jdbcTemplate.queryForObject("SELECT id FROM negocio WHERE duenio_id = ?", UUID.class, usuarioId);
     }
 
-    private UUID givenObjetivoSinMeta(UUID negocio) {
+    private UUID dadoObjetivoSinMeta(UUID negocio) {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO objetivo (id, negocio_id, texto, tipo, armado_con_sami) "
                 + "VALUES (?, ?, 'Que me conozcan', 'HIBRIDO', true)", id, negocio);
@@ -337,7 +337,7 @@ class RespuestaMiniObjetivoPostgresIntegrationTest extends PostgresRepositoryTes
     }
 
     /** Un manual en curso: no tiene métrica ni números. */
-    private UUID givenManual(UUID negocio, UUID objetivo, int posicion) {
+    private UUID dadoManual(UUID negocio, UUID objetivo, int posicion) {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO mini_objetivo (id, objetivo_id, negocio_id, posicion, modo, estado, "
                 + "semana_inicio, titulo, justificacion, creado_en, actualizado_en) "
@@ -347,7 +347,7 @@ class RespuestaMiniObjetivoPostgresIntegrationTest extends PostgresRepositoryTes
     }
 
     /** Un medido en curso, con los números de un «ventas semanales». */
-    private UUID givenMedido(UUID negocio, UUID objetivo, int posicion) {
+    private UUID dadoMedido(UUID negocio, UUID objetivo, int posicion) {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO mini_objetivo (id, objetivo_id, negocio_id, posicion, modo, tipo, "
                 + "meta, valor_inicial, valor_actual, aporte_estimado, estado, semana_inicio, titulo, "
@@ -357,7 +357,7 @@ class RespuestaMiniObjetivoPostgresIntegrationTest extends PostgresRepositoryTes
         return id;
     }
 
-    private MockHttpSession givenSesion(UUID usuarioId) throws Exception {
+    private MockHttpSession dadoSesion(UUID usuarioId) throws Exception {
         MockHttpSession session = new MockHttpSession();
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setSession(session);

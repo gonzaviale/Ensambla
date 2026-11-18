@@ -37,79 +37,79 @@ class DecisionObjetivoTest {
 
     @Test
     @DisplayName("Una decisión sobre un aviso copia el aviso, el producto y el mini-objetivo vinculado")
-    void deAvisoShouldCopyTheAvisoAndLinkTheMiniObjetivo() {
-        whenSeDecideSobreUnAviso(aviso(TipoAviso.ESTANCADO, EstadoAviso.APLICADO), TipoDecision.AVISO_APLICADO,
+    void unaDecisionSobreUnAvisoCopiaElAvisoElProductoYElMiniObjetivoVinculado() {
+        cuandoSeDecideSobreUnAviso(aviso(TipoAviso.ESTANCADO, EstadoAviso.APLICADO), TipoDecision.AVISO_APLICADO,
                 miniObjetivo(), AHORA);
 
-        thenLaDecisionCopiaElAvisoYSeVinculaAlMini();
+        entoncesLaDecisionCopiaElAvisoYSeVinculaAlMini();
     }
 
     @Test
     @DisplayName("Sin mini-objetivo del producto la decisión queda sin vincular")
-    void deAvisoShouldLeaveTheMiniObjetivoEmptyWhenThereIsNone() {
-        whenSeDecideSobreUnAviso(aviso(TipoAviso.STOCK, EstadoAviso.DESCARTADO), TipoDecision.AVISO_DESCARTADO, null,
+    void sinMiniObjetivoDelProductoLaDecisionQuedaSinVincular() {
+        cuandoSeDecideSobreUnAviso(aviso(TipoAviso.STOCK, EstadoAviso.DESCARTADO), TipoDecision.AVISO_DESCARTADO, null,
                 AHORA);
 
-        thenLaDecisionNoTieneMini();
-        thenElTipoEs(TipoDecision.AVISO_DESCARTADO);
+        entoncesLaDecisionNoTieneMini();
+        entoncesElTipoEs(TipoDecision.AVISO_DESCARTADO);
     }
 
     @Test
     @DisplayName("Un aviso que no es de un producto no trae producto")
-    void deAvisoShouldHaveNoProductWhenTheAvisoIsNotAboutOne() {
-        whenSeDecideSobreUnAviso(avisoDeLaZona(), TipoDecision.AVISO_APLICADO, null, AHORA);
+    void unAvisoQueNoEsDeUnProductoNoTraeProducto() {
+        cuandoSeDecideSobreUnAviso(avisoDeLaZona(), TipoDecision.AVISO_APLICADO, null, AHORA);
 
-        thenLaDecisionNoTieneProducto();
+        entoncesLaDecisionNoTieneProducto();
     }
 
     @Test
     @DisplayName("La semana es la del lunes en hora argentina, aunque en UTC ya sea otro día")
-    void deAvisoShouldUseTheArgentineWeek() {
-        whenSeDecideSobreUnAviso(aviso(TipoAviso.ESTANCADO, EstadoAviso.APLICADO), TipoDecision.AVISO_APLICADO, null,
+    void laSemanaEsLaDelLunesEnHoraArgentinaAunqueEnUtcYaSeaOtroDia() {
+        cuandoSeDecideSobreUnAviso(aviso(TipoAviso.ESTANCADO, EstadoAviso.APLICADO), TipoDecision.AVISO_APLICADO, null,
                 DOMINGO_A_LA_NOCHE);
 
-        thenLaSemanaEs(LUNES_ARGENTINO);
+        entoncesLaSemanaEs(LUNES_ARGENTINO);
     }
 
     @Test
     @DisplayName("Una decisión sobre un paso copia el mini-objetivo, su producto y su título")
-    void dePasoShouldCopyTheMiniObjetivo() {
-        whenSeDecideSobreUnPaso(DecisionPaso.ACEPTADO);
+    void unaDecisionSobreUnPasoCopiaElMiniObjetivoSuProductoYSuTitulo() {
+        cuandoSeDecideSobreUnPaso(DecisionPaso.ACEPTADO);
 
-        thenLaDecisionCopiaElPaso();
+        entoncesLaDecisionCopiaElPaso();
     }
 
     @Test
     @DisplayName("Ignorar el paso es otro tipo de decisión")
-    void dePasoShouldBeIgnoredWhenThePersonSaysNotNow() {
-        whenSeDecideSobreUnPaso(DecisionPaso.IGNORADO);
+    void ignorarElPasoEsOtroTipoDeDecision() {
+        cuandoSeDecideSobreUnPaso(DecisionPaso.IGNORADO);
 
-        thenElTipoEs(TipoDecision.PASO_IGNORADO);
+        entoncesElTipoEs(TipoDecision.PASO_IGNORADO);
     }
 
     @Test
     @DisplayName("La respuesta a un manual deja una decisión con el tipo de lo que contó, vinculada al mini-objetivo")
-    void deRespuestaShouldRecordTheDecisionOfTheAnswer() {
-        whenSeDecideSobreUnaRespuesta();
+    void laRespuestaAUnManualDejaUnaDecisionConElTipoDeLoQueContoVinculadaAlMini() {
+        cuandoSeDecideSobreUnaRespuesta();
 
-        thenLaDecisionCopiaLaRespuesta();
+        entoncesLaDecisionCopiaLaRespuesta();
     }
 
     // --- act ---
-    private void whenSeDecideSobreUnAviso(Aviso aviso, TipoDecision tipo, MiniObjetivo mini, OffsetDateTime cuando) {
+    private void cuandoSeDecideSobreUnAviso(Aviso aviso, TipoDecision tipo, MiniObjetivo mini, OffsetDateTime cuando) {
         decision = DecisionObjetivo.deAviso(objetivo(), aviso, tipo, mini, cuando);
     }
 
-    private void whenSeDecideSobreUnPaso(DecisionPaso paso) {
+    private void cuandoSeDecideSobreUnPaso(DecisionPaso paso) {
         decision = DecisionObjetivo.dePaso(miniObjetivo(), paso, AHORA);
     }
 
-    private void whenSeDecideSobreUnaRespuesta() {
+    private void cuandoSeDecideSobreUnaRespuesta() {
         decision = DecisionObjetivo.deRespuesta(miniManual(), respuesta(), AHORA);
     }
 
     // --- assert ---
-    private void thenLaDecisionCopiaElAvisoYSeVinculaAlMini() {
+    private void entoncesLaDecisionCopiaElAvisoYSeVinculaAlMini() {
         assertThat(decision.id()).isNotNull();
         assertThat(decision.negocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(decision.objetivoId()).isEqualTo(OBJETIVO_ID);
@@ -122,23 +122,23 @@ class DecisionObjetivoTest {
         assertThat(decision.semanaInicio()).isEqualTo(SEMANA);
     }
 
-    private void thenLaDecisionNoTieneMini() {
+    private void entoncesLaDecisionNoTieneMini() {
         assertThat(decision.miniObjetivoId()).isNull();
     }
 
-    private void thenElTipoEs(TipoDecision esperado) {
+    private void entoncesElTipoEs(TipoDecision esperado) {
         assertThat(decision.tipo()).isEqualTo(esperado);
     }
 
-    private void thenLaDecisionNoTieneProducto() {
+    private void entoncesLaDecisionNoTieneProducto() {
         assertThat(decision.registroId()).isNull();
     }
 
-    private void thenLaSemanaEs(LocalDate esperada) {
+    private void entoncesLaSemanaEs(LocalDate esperada) {
         assertThat(decision.semanaInicio()).isEqualTo(esperada);
     }
 
-    private void thenLaDecisionCopiaElPaso() {
+    private void entoncesLaDecisionCopiaElPaso() {
         assertThat(decision.id()).isNotNull();
         assertThat(decision.negocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(decision.objetivoId()).isEqualTo(OBJETIVO_ID);
@@ -151,7 +151,7 @@ class DecisionObjetivoTest {
         assertThat(decision.semanaInicio()).isEqualTo(SEMANA);
     }
 
-    private void thenLaDecisionCopiaLaRespuesta() {
+    private void entoncesLaDecisionCopiaLaRespuesta() {
         assertThat(decision.id()).isNotNull();
         assertThat(decision.negocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(decision.objetivoId()).isEqualTo(OBJETIVO_ID);

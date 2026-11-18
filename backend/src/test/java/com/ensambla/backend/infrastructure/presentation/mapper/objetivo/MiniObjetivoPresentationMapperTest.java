@@ -50,114 +50,114 @@ class MiniObjetivoPresentationMapperTest {
 
     @Test
     @DisplayName("Arma el pedido de listar con el usuario de la sesión y el objetivo de la ruta")
-    void toListarRequestShouldCarryUserAndObjetivo() {
-        whenSeArmaElPedidoDeListar();
+    void armaElPedidoDeListarConElUsuarioDeLaSesionYElObjetivoDeLaRuta() {
+        cuandoSeArmaElPedidoDeListar();
 
-        thenElPedidoDeListarTraeUsuarioYObjetivo();
+        entoncesElPedidoDeListarTraeUsuarioYObjetivo();
     }
 
     @Test
     @DisplayName("Arma el pedido de candidatos con el usuario, el objetivo y el mini-objetivo")
-    void toCandidatosRequestShouldCarryTheIds() {
-        whenSeArmaElPedidoDeCandidatos();
+    void armaElPedidoDeCandidatosConElUsuarioElObjetivoYElMiniObjetivo() {
+        cuandoSeArmaElPedidoDeCandidatos();
 
-        thenElPedidoDeCandidatosTraeLosIds();
+        entoncesElPedidoDeCandidatosTraeLosIds();
     }
 
     @Test
     @DisplayName("Arma el pedido de reemplazo con los ids de la ruta y el candidato elegido del cuerpo")
-    void toReemplazarRequestShouldCarryIdsAndTheChosenCandidate() {
-        whenSeArmaElPedidoDeReemplazo();
+    void armaElPedidoDeReemplazoConLosIdsDeLaRutaYElCandidatoElegidoDelCuerpo() {
+        cuandoSeArmaElPedidoDeReemplazo();
 
-        thenElPedidoDeReemplazoTraeIdsYCandidatoElegido();
+        entoncesElPedidoDeReemplazoTraeIdsYCandidatoElegido();
     }
 
     @Test
     @DisplayName("Arma el pedido de abandonar con los ids de la sesión y la ruta")
-    void toAbandonarRequestShouldCarryTheIds() {
-        whenSeArmaElPedidoDeAbandonar();
+    void armaElPedidoDeAbandonarConLosIdsDeLaSesionYLaRuta() {
+        cuandoSeArmaElPedidoDeAbandonar();
 
-        thenElPedidoDeAbandonarTraeLosIds();
+        entoncesElPedidoDeAbandonarTraeLosIds();
     }
 
     @Test
     @DisplayName("Mapea cada mini-objetivo a su respuesta con todos sus datos")
-    void toResponseShouldMapEveryFieldOfAMiniObjetivo() {
-        whenSeMapeaUnMiniObjetivo();
+    void mapeaCadaMiniObjetivoASuRespuestaConTodosSusDatos() {
+        cuandoSeMapeaUnMiniObjetivo();
 
-        thenSeMapeanTodosLosDatosDelMini();
+        entoncesSeMapeanTodosLosDatosDelMini();
     }
 
     @Test
     @DisplayName("Mapea la lista de mini-objetivos con su historia y lo que falta")
-    void toResponseShouldMapTheListWithHistoryAndMissingData() {
-        whenSeMapeaLaLista();
+    void mapeaLaListaDeMiniObjetivosConSuHistoriaYLoQueFalta() {
+        cuandoSeMapeaLaLista();
 
-        thenSeMapeanLosMinisElHistorialYLoQueFalta();
+        entoncesSeMapeanLosMinisElHistorialYLoQueFalta();
     }
 
     @Test
     @DisplayName("Mapea las alternativas con todos sus datos")
-    void toResponseShouldMapEveryFieldOfTheCandidates() {
-        whenSeMapeanLasAlternativas(List.of(candidato()));
+    void mapeaLasAlternativasConTodosSusDatos() {
+        cuandoSeMapeanLasAlternativas(List.of(candidato()));
 
-        thenSeMapeanTodosLosDatosDeLaAlternativa();
+        entoncesSeMapeanTodosLosDatosDeLaAlternativa();
     }
 
     @Test
     @DisplayName("Sin alternativas devuelve una lista vacía")
-    void toResponseShouldReturnAnEmptyListWithoutCandidates() {
-        whenSeMapeanLasAlternativas(List.of());
+    void sinAlternativasDevuelveUnaListaVacia() {
+        cuandoSeMapeanLasAlternativas(List.of());
 
-        thenNoHayAlternativas();
+        entoncesNoHayAlternativas();
     }
 
     // --- act ---
-    private void whenSeArmaElPedidoDeListar() {
+    private void cuandoSeArmaElPedidoDeListar() {
         pedidoDeListar = mapper.toListarRequest(USUARIO_ID, OBJETIVO_ID);
     }
 
-    private void whenSeArmaElPedidoDeCandidatos() {
+    private void cuandoSeArmaElPedidoDeCandidatos() {
         pedidoDeCandidatos = mapper.toCandidatosRequest(USUARIO_ID, OBJETIVO_ID, MINI_ID);
     }
 
-    private void whenSeArmaElPedidoDeReemplazo() {
+    private void cuandoSeArmaElPedidoDeReemplazo() {
         pedidoDeReemplazo = mapper.toReemplazarRequest(USUARIO_ID, OBJETIVO_ID, MINI_ID,
                 new ReemplazarMiniObjetivoWebRequest(TipoMiniObjetivo.SUBIR_PRECIO, PRODUCTO_ID, PRODUCTO));
     }
 
-    private void whenSeArmaElPedidoDeAbandonar() {
+    private void cuandoSeArmaElPedidoDeAbandonar() {
         pedidoDeAbandonar = mapper.toAbandonarRequest(USUARIO_ID, OBJETIVO_ID, MINI_ID);
     }
 
-    private void whenSeMapeaUnMiniObjetivo() {
+    private void cuandoSeMapeaUnMiniObjetivo() {
         respuestaDelMini = mapper.toResponse(MiniObjetivoItem.de(miniObjetivo()));
     }
 
-    private void whenSeMapeaLaLista() {
+    private void cuandoSeMapeaLaLista() {
         respuestaDeLaLista = mapper.toResponse(new ListarMiniObjetivosResponse(
                 List.of(MiniObjetivoItem.de(miniObjetivo())),
                 List.of(MiniObjetivoItem.de(miniObjetivo()), MiniObjetivoItem.de(miniObjetivo())),
                 FaltanDatosMiniObjetivos.POCOS_DATOS));
     }
 
-    private void whenSeMapeanLasAlternativas(List<CandidatoMiniObjetivo> candidatos) {
+    private void cuandoSeMapeanLasAlternativas(List<CandidatoMiniObjetivo> candidatos) {
         alternativas = mapper.toResponse(ListarCandidatosResponse.de(candidatos));
     }
 
     // --- assert ---
-    private void thenElPedidoDeListarTraeUsuarioYObjetivo() {
+    private void entoncesElPedidoDeListarTraeUsuarioYObjetivo() {
         assertThat(pedidoDeListar.usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(pedidoDeListar.objetivoId()).isEqualTo(OBJETIVO_ID);
     }
 
-    private void thenElPedidoDeCandidatosTraeLosIds() {
+    private void entoncesElPedidoDeCandidatosTraeLosIds() {
         assertThat(pedidoDeCandidatos.usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(pedidoDeCandidatos.objetivoId()).isEqualTo(OBJETIVO_ID);
         assertThat(pedidoDeCandidatos.miniObjetivoId()).isEqualTo(MINI_ID);
     }
 
-    private void thenElPedidoDeReemplazoTraeIdsYCandidatoElegido() {
+    private void entoncesElPedidoDeReemplazoTraeIdsYCandidatoElegido() {
         assertThat(pedidoDeReemplazo.usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(pedidoDeReemplazo.objetivoId()).isEqualTo(OBJETIVO_ID);
         assertThat(pedidoDeReemplazo.miniObjetivoId()).isEqualTo(MINI_ID);
@@ -166,13 +166,13 @@ class MiniObjetivoPresentationMapperTest {
         assertThat(pedidoDeReemplazo.referencia()).isEqualTo(PRODUCTO);
     }
 
-    private void thenElPedidoDeAbandonarTraeLosIds() {
+    private void entoncesElPedidoDeAbandonarTraeLosIds() {
         assertThat(pedidoDeAbandonar.usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(pedidoDeAbandonar.objetivoId()).isEqualTo(OBJETIVO_ID);
         assertThat(pedidoDeAbandonar.miniObjetivoId()).isEqualTo(MINI_ID);
     }
 
-    private void thenSeMapeanTodosLosDatosDelMini() {
+    private void entoncesSeMapeanTodosLosDatosDelMini() {
         assertThat(respuestaDelMini.id()).isEqualTo(MINI_ID);
         assertThat(respuestaDelMini.posicion()).isEqualTo(1);
         assertThat(respuestaDelMini.modo()).isEqualTo(ModoMiniObjetivo.MEDIDO);
@@ -192,13 +192,13 @@ class MiniObjetivoPresentationMapperTest {
         assertThat(respuestaDelMini.textoConIa()).isFalse();
     }
 
-    private void thenSeMapeanLosMinisElHistorialYLoQueFalta() {
+    private void entoncesSeMapeanLosMinisElHistorialYLoQueFalta() {
         assertThat(respuestaDeLaLista.minis()).hasSize(1);
         assertThat(respuestaDeLaLista.historial()).hasSize(2);
         assertThat(respuestaDeLaLista.faltanDatos()).isEqualTo(FaltanDatosMiniObjetivos.POCOS_DATOS);
     }
 
-    private void thenSeMapeanTodosLosDatosDeLaAlternativa() {
+    private void entoncesSeMapeanTodosLosDatosDeLaAlternativa() {
         assertThat(alternativas).singleElement().satisfies(item -> {
             assertThat(item.tipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
             assertThat(item.sentido()).isEqualTo(SentidoMiniObjetivo.SUBE);
@@ -212,7 +212,7 @@ class MiniObjetivoPresentationMapperTest {
         });
     }
 
-    private void thenNoHayAlternativas() {
+    private void entoncesNoHayAlternativas() {
         assertThat(alternativas).isEmpty();
     }
 }

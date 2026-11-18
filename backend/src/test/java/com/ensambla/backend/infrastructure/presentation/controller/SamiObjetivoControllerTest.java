@@ -101,151 +101,151 @@ class SamiObjetivoControllerTest {
 
     @Test
     @DisplayName("POST propuesta responde 200 con lo que contesta Sami, lo que entendió y los mini-objetivos")
-    void proponerShouldReturnTheProposal() throws Exception {
-        givenSamiProponeUnMedido();
+    void postPropuestaResponde200ConLoQueContestaSamiLoQueEntendioYLosMiniObjetivos() throws Exception {
+        dadoSamiProponeUnMedido();
 
-        whenPropuesta(CONVERSACION);
+        cuandoPropuesta(CONVERSACION);
 
-        thenSeResponde200ConLaPropuesta();
+        entoncesSeResponde200ConLaPropuesta();
     }
 
     @Test
     @DisplayName("POST propuesta manda al caso de uso el usuario de la sesión y los mensajes")
-    void proponerShouldPassTheRequestToTheUseCase() throws Exception {
-        givenSamiProponeElRespaldo();
+    void postPropuestaMandaAlCasoDeUsoElUsuarioDeLaSesionYLosMensajes() throws Exception {
+        dadoSamiProponeElRespaldo();
 
-        whenPropuesta(CONVERSACION);
+        cuandoPropuesta(CONVERSACION);
 
-        thenElCasoDeUsoRecibeElUsuarioYLosMensajes();
+        entoncesElCasoDeUsoRecibeElUsuarioYLosMensajes();
     }
 
     @ParameterizedTest
     @MethodSource("conversacionesInvalidas")
     @DisplayName("POST propuesta responde 400 con una conversación inválida y no llega al caso de uso")
-    void proponerShouldReturn400ForAnInvalidConversation(String cuerpo) throws Exception {
-        whenPropuesta(cuerpo);
+    void postPropuestaResponde400ConUnaConversacionInvalidaYNoLlegaAlCasoDeUso(String cuerpo) throws Exception {
+        cuandoPropuesta(cuerpo);
 
-        thenSeResponde400();
-        thenNoLlegaAlCasoDeUsoDeProponer();
+        entoncesSeResponde400();
+        entoncesNoLlegaAlCasoDeUsoDeProponer();
     }
 
     @Test
     @DisplayName("POST propuesta sin mensajes explica que hay que contarle a Sami")
-    void proponerShouldExplainThatSamiNeedsAMessage() throws Exception {
-        whenPropuesta("{\"mensajes\":[]}");
+    void postPropuestaSinMensajesExplicaQueHayQueContarleASami() throws Exception {
+        cuandoPropuesta("{\"mensajes\":[]}");
 
-        thenSeExplicaQueHayQueContarleASami();
+        entoncesSeExplicaQueHayQueContarleASami();
     }
 
     @Test
     @DisplayName("POST propuesta responde 400 con un mensaje de más de 500 caracteres")
-    void proponerShouldReturn400ForATooLongMessage() throws Exception {
-        whenPropuesta("{\"mensajes\":[{\"rol\":\"PERSONA\",\"texto\":\"" + "a".repeat(501) + "\"}]}");
+    void postPropuestaResponde400ConUnMensajeDeMasDe500Caracteres() throws Exception {
+        cuandoPropuesta("{\"mensajes\":[{\"rol\":\"PERSONA\",\"texto\":\"" + "a".repeat(501) + "\"}]}");
 
-        thenSeResponde400();
-        thenNoLlegaAlCasoDeUsoDeProponer();
+        entoncesSeResponde400();
+        entoncesNoLlegaAlCasoDeUsoDeProponer();
     }
 
     @Test
     @DisplayName("POST propuesta responde 400 cuando la conversación llegó al tope de mensajes")
-    void proponerShouldReturn400WhenTheConversationIsFull() throws Exception {
-        givenLaConversacionLlegoAlTope();
+    void postPropuestaResponde400CuandoLaConversacionLlegoAlTopeDeMensajes() throws Exception {
+        dadoLaConversacionLlegoAlTope();
 
-        whenPropuesta(CONVERSACION);
+        cuandoPropuesta(CONVERSACION);
 
-        thenSeResponde400();
+        entoncesSeResponde400();
     }
 
     @Test
     @DisplayName("POST guardar responde 201 con el objetivo sin meta y la ubicación del nuevo")
-    void guardarShouldReturnCreatedWithTheObjetivo() throws Exception {
-        givenSeGuardaUnObjetivoSinMeta();
+    void postGuardarResponde201ConElObjetivoSinMetaYLaUbicacionDelNuevo() throws Exception {
+        dadoSeGuardaUnObjetivoSinMeta();
 
-        whenGuardar("{\"texto\":\"" + OBJETIVO + "\",\"minis\":[]}");
+        cuandoGuardar("{\"texto\":\"" + OBJETIVO + "\",\"minis\":[]}");
 
-        thenSeResponde201ConElObjetivoSinMeta();
+        entoncesSeResponde201ConElObjetivoSinMeta();
     }
 
     @Test
     @DisplayName("POST guardar manda al caso de uso el usuario de la sesión, el texto y los mini-objetivos elegidos")
-    void guardarShouldPassTheRequestToTheUseCase() throws Exception {
-        givenSeGuardaUnObjetivoSinMeta();
+    void postGuardarMandaAlCasoDeUsoElUsuarioDeLaSesionElTextoYLosMiniObjetivos() throws Exception {
+        dadoSeGuardaUnObjetivoSinMeta();
 
-        whenGuardar(guardarConUnMedidoYUnManual());
+        cuandoGuardar(guardarConUnMedidoYUnManual());
 
-        thenElCasoDeUsoDeGuardarRecibeTextoYMinis();
+        entoncesElCasoDeUsoDeGuardarRecibeTextoYMinis();
     }
 
     @Test
     @DisplayName("POST guardar ignora el negocio del body: el caso de uso sólo recibe el usuario de la sesión")
-    void guardarShouldIgnoreTheNegocioOfTheBody() throws Exception {
-        givenSeGuardaUnObjetivoSinMeta();
+    void postGuardarIgnoraElNegocioDelBodyElCasoDeUsoSoloRecibeElUsuarioDeLaSesion() throws Exception {
+        dadoSeGuardaUnObjetivoSinMeta();
 
-        whenGuardar("{\"texto\":\"" + OBJETIVO + "\",\"seguimientoManual\":true,"
+        cuandoGuardar("{\"texto\":\"" + OBJETIVO + "\",\"seguimientoManual\":true,"
                 + "\"negocioId\":\"00000000-0000-4000-8000-0000000000ff\"}");
 
-        thenElCasoDeUsoDeGuardarSoloRecibeElUsuarioDeLaSesion();
+        entoncesElCasoDeUsoDeGuardarSoloRecibeElUsuarioDeLaSesion();
     }
 
     @ParameterizedTest
     @MethodSource("cuerposDeGuardarInvalidos")
     @DisplayName("POST guardar responde 400 sin texto, con más de 3 mini-objetivos o con uno sin modo")
-    void guardarShouldReturn400ForAnInvalidBody(String cuerpo) throws Exception {
-        whenGuardar(cuerpo);
+    void postGuardarResponde400SinTextoConMasDe3MiniObjetivosOConUnoSinModo(String cuerpo) throws Exception {
+        cuandoGuardar(cuerpo);
 
-        thenSeResponde400();
-        thenNoLlegaAlCasoDeUsoDeGuardar();
+        entoncesSeResponde400();
+        entoncesNoLlegaAlCasoDeUsoDeGuardar();
     }
 
     @Test
     @DisplayName("POST guardar responde 400 cuando el caso de uso rechaza los mini-objetivos")
-    void guardarShouldReturn400WhenTheUseCaseRejectsTheMinis() throws Exception {
-        givenElCasoDeUsoRechazaLosMinis();
+    void postGuardarResponde400CuandoElCasoDeUsoRechazaLosMiniObjetivos() throws Exception {
+        dadoElCasoDeUsoRechazaLosMinis();
 
-        whenGuardar("{\"texto\":\"x\",\"minis\":[]}");
+        cuandoGuardar("{\"texto\":\"x\",\"minis\":[]}");
 
-        thenSeResponde400();
+        entoncesSeResponde400();
     }
 
     // --- arrange ---
-    private void givenSamiProponeUnMedido() {
+    private void dadoSamiProponeUnMedido() {
         PropuestaObjetivo propuesta = new PropuestaObjetivo(RESPUESTA_IA, ENTENDIDO, false,
                 List.of(MiniObjetivoPropuesto.medido(candidato())), OrigenPropuesta.IA);
         when(proponerObjetivoConSami.execute(any())).thenReturn(ProponerObjetivoConSamiResponse.de(
                 propuesta, List.of(new DatoUsado(FuenteDato.ZONA, false)), 5, new CuotaObjetivosIa(2, 5)));
     }
 
-    private void givenSamiProponeElRespaldo() {
+    private void dadoSamiProponeElRespaldo() {
         when(proponerObjetivoConSami.execute(any())).thenReturn(ProponerObjetivoConSamiResponse.de(
                 PropuestaObjetivo.respaldo(OBJETIVO), List.of(), 5, new CuotaObjetivosIa(0, 5)));
     }
 
-    private void givenLaConversacionLlegoAlTope() {
+    private void dadoLaConversacionLlegoAlTope() {
         when(proponerObjetivoConSami.execute(any())).thenThrow(new BusinessRuleException("Llegaste al máximo"));
     }
 
-    private void givenSeGuardaUnObjetivoSinMeta() {
+    private void dadoSeGuardaUnObjetivoSinMeta() {
         when(guardarObjetivoConSami.execute(any())).thenReturn(ObjetivoItem.de(objetivoSinMeta()));
     }
 
-    private void givenElCasoDeUsoRechazaLosMinis() {
+    private void dadoElCasoDeUsoRechazaLosMinis() {
         when(guardarObjetivoConSami.execute(any()))
                 .thenThrow(new BusinessRuleException("Ese mini-objetivo ya no está disponible"));
     }
 
     // --- act ---
-    private void whenPropuesta(String cuerpo) throws Exception {
+    private void cuandoPropuesta(String cuerpo) throws Exception {
         resultado = mockMvc.perform(post(PROPUESTA).principal(principal)
                 .contentType(MediaType.APPLICATION_JSON).content(cuerpo));
     }
 
-    private void whenGuardar(String cuerpo) throws Exception {
+    private void cuandoGuardar(String cuerpo) throws Exception {
         resultado = mockMvc.perform(post(GUARDAR).principal(principal)
                 .contentType(MediaType.APPLICATION_JSON).content(cuerpo));
     }
 
     // --- assert ---
-    private void thenSeResponde200ConLaPropuesta() throws Exception {
+    private void entoncesSeResponde200ConLaPropuesta() throws Exception {
         resultado.andExpect(status().isOk())
                 .andExpect(jsonPath("$.respuesta").value(RESPUESTA_IA))
                 .andExpect(jsonPath("$.entendido").value(ENTENDIDO))
@@ -265,7 +265,7 @@ class SamiObjetivoControllerTest {
                 .andExpect(jsonPath("$.cuota.restantes").value(3));
     }
 
-    private void thenElCasoDeUsoRecibeElUsuarioYLosMensajes() throws Exception {
+    private void entoncesElCasoDeUsoRecibeElUsuarioYLosMensajes() throws Exception {
         resultado.andExpect(status().isOk());
         ArgumentCaptor<ProponerObjetivoConSamiRequest> captor =
                 ArgumentCaptor.forClass(ProponerObjetivoConSamiRequest.class);
@@ -277,20 +277,20 @@ class SamiObjetivoControllerTest {
         });
     }
 
-    private void thenSeResponde400() throws Exception {
+    private void entoncesSeResponde400() throws Exception {
         resultado.andExpect(status().isBadRequest());
     }
 
-    private void thenSeExplicaQueHayQueContarleASami() throws Exception {
+    private void entoncesSeExplicaQueHayQueContarleASami() throws Exception {
         resultado.andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.mensajes").value("Contale a Sami qué querés lograr"));
     }
 
-    private void thenNoLlegaAlCasoDeUsoDeProponer() {
+    private void entoncesNoLlegaAlCasoDeUsoDeProponer() {
         verifyNoInteractions(proponerObjetivoConSami);
     }
 
-    private void thenSeResponde201ConElObjetivoSinMeta() throws Exception {
+    private void entoncesSeResponde201ConElObjetivoSinMeta() throws Exception {
         resultado.andExpect(status().isCreated())
                 .andExpect(header().string("Location", "/api/objetivos/" + OBJETIVO_ID))
                 .andExpect(jsonPath("$.id").value(OBJETIVO_ID.toString()))
@@ -299,7 +299,7 @@ class SamiObjetivoControllerTest {
                 .andExpect(jsonPath("$.armadoConSami").value(true));
     }
 
-    private void thenElCasoDeUsoDeGuardarRecibeTextoYMinis() throws Exception {
+    private void entoncesElCasoDeUsoDeGuardarRecibeTextoYMinis() throws Exception {
         resultado.andExpect(status().isCreated());
         GuardarObjetivoConSamiRequest pedido = pedidoDeGuardar();
         assertThat(pedido.usuarioId()).isEqualTo(USUARIO_ID);
@@ -312,14 +312,14 @@ class SamiObjetivoControllerTest {
         assertThat(pedido.minis().get(1).titulo()).isEqualTo("Un cartel");
     }
 
-    private void thenElCasoDeUsoDeGuardarSoloRecibeElUsuarioDeLaSesion() throws Exception {
+    private void entoncesElCasoDeUsoDeGuardarSoloRecibeElUsuarioDeLaSesion() throws Exception {
         resultado.andExpect(status().isCreated());
         GuardarObjetivoConSamiRequest pedido = pedidoDeGuardar();
         assertThat(pedido.usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(pedido.seguimientoManual()).isTrue();
     }
 
-    private void thenNoLlegaAlCasoDeUsoDeGuardar() {
+    private void entoncesNoLlegaAlCasoDeUsoDeGuardar() {
         verifyNoInteractions(guardarObjetivoConSami);
     }
 

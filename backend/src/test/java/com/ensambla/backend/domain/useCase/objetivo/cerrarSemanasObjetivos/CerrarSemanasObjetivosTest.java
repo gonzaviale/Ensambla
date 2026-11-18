@@ -138,598 +138,598 @@ class CerrarSemanasObjetivosTest {
 
     @Test
     @DisplayName("Cierra la semana pendiente con el resultado al domingo y las decisiones de esa semana")
-    void executeShouldCloseThePendingWeekWithTheSundayResultAndItsDecisions() {
-        givenMinis(miniObjetivo(), miniConEstado(EstadoMiniObjetivo.REEMPLAZADO, OTRO_MINI_ID));
-        givenValor(SIN_LLEGAR);
-        givenDecisiones(decision(TipoDecision.PASO_ACEPTADO, null), decisionDeOtraSemana());
+    void cierraLaSemanaPendienteConElResultadoAlDomingoYLasDecisionesDeEsaSemana() {
+        dadoMinis(miniObjetivo(), miniConEstado(EstadoMiniObjetivo.REEMPLAZADO, OTRO_MINI_ID));
+        dadoValor(SIN_LLEGAR);
+        dadoDecisiones(decision(TipoDecision.PASO_ACEPTADO, null), decisionDeOtraSemana());
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeCierraLaSemanaConElResultadoDelDomingoYSusDecisiones();
+        entoncesSeCierraLaSemanaConElResultadoDelDomingoYSusDecisiones();
     }
 
     @Test
     @DisplayName("Un mini-objetivo que llegó a su meta sigue con una meta más alta desde la semana siguiente")
-    void executeShouldRaiseTheGoalOfAnAchievedMiniObjetivo() {
-        givenUnMiniAnterior(miniObjetivo());
-        givenValor(META_ALCANZADA);
+    void unMiniObjetivoQueLlegoASuMetaSigueConUnaMetaMasAltaDesdeLaSemanaSiguiente() {
+        dadoUnMiniAnterior(miniObjetivo());
+        dadoValor(META_ALCANZADA);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenElMiniLogradoSigueConUnaMetaMasAlta();
+        entoncesElMiniLogradoSigueConUnaMetaMasAlta();
     }
 
     @Test
     @DisplayName("El mini-objetivo logrado se guarda antes que el nuevo")
-    void executeShouldSaveTheAchievedMiniObjetivoBeforeTheNewOne() {
-        givenUnMiniAnterior(miniObjetivo());
-        givenValor(META_ALCANZADA);
+    void elMiniObjetivoLogradoSeGuardaAntesQueElNuevo() {
+        dadoUnMiniAnterior(miniObjetivo());
+        dadoValor(META_ALCANZADA);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeGuardaElAnteriorAntesQueElNuevo();
+        entoncesSeGuardaElAnteriorAntesQueElNuevo();
     }
 
     @Test
     @DisplayName("Uno que no avanzó respecto de dos cierres atrás se cambia por el mejor candidato")
-    void executeShouldReplaceAMiniObjetivoWithoutProgressInTwoCloses() {
-        givenUnMiniAnterior(deSemanasAtras());
-        givenValor(SIN_LLEGAR);
-        givenDosCierresSinAvance();
-        givenCandidatos(VENTAS);
+    void unoQueNoAvanzoRespectoDeDosCierresAtrasSeCambiaPorElMejorCandidato() {
+        dadoUnMiniAnterior(deSemanasAtras());
+        dadoValor(SIN_LLEGAR);
+        dadoDosCierresSinAvance();
+        dadoCandidatos(VENTAS);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenElMiniSinAvanceSeReemplazaPorElMejorCandidato();
+        entoncesElMiniSinAvanceSeReemplazaPorElMejorCandidato();
     }
 
     @Test
     @DisplayName("Sin un candidato para reemplazarlo, el mini-objetivo se mantiene")
-    void executeShouldKeepTheMiniObjetivoWhenThereIsNoCandidate() {
-        givenUnMiniAnterior(deSemanasAtras());
-        givenValor(SIN_LLEGAR);
-        givenDosCierresSinAvance();
-        givenCandidatos();
+    void sinUnCandidatoParaReemplazarloElMiniObjetivoSeMantiene() {
+        dadoUnMiniAnterior(deSemanasAtras());
+        dadoValor(SIN_LLEGAR);
+        dadoDosCierresSinAvance();
+        dadoCandidatos();
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenElMiniSeMantieneSinReajustes();
+        entoncesElMiniSeMantieneSinReajustes();
     }
 
     @Test
     @DisplayName("Si un aviso aplicado no movió la venta, prueba con un candidato de otro tipo")
-    void executeShouldTryAnotherPathWhenAnAppliedAvisoHadNoEffect() {
-        givenUnMiniAnterior(deSemanasAtras());
-        givenValor(SIN_LLEGAR);
-        givenDecisiones(decision(TipoDecision.AVISO_APLICADO, AVISO_ID));
-        givenAvisoSinEfecto();
-        givenCandidatos(candidatoDeOtroProducto(), VENTAS);
+    void siUnAvisoAplicadoNoMovioLaVentaPruebaConUnCandidatoDeOtroTipo() {
+        dadoUnMiniAnterior(deSemanasAtras());
+        dadoValor(SIN_LLEGAR);
+        dadoDecisiones(decision(TipoDecision.AVISO_APLICADO, AVISO_ID));
+        dadoAvisoSinEfecto();
+        dadoCandidatos(candidatoDeOtroProducto(), VENTAS);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeProbaOtroCaminoConUnCandidatoDeOtroTipo();
+        entoncesSeProbaOtroCaminoConUnCandidatoDeOtroTipo();
     }
 
     @Test
     @DisplayName("Probar otro camino consulta el aviso aplicado pero no crea avisos")
-    void executeShouldNotCreateAvisosWhenTryingAnotherPath() {
-        givenUnMiniAnterior(deSemanasAtras());
-        givenValor(SIN_LLEGAR);
-        givenDecisiones(decision(TipoDecision.AVISO_APLICADO, AVISO_ID));
-        givenAvisoSinEfecto();
-        givenCandidatos(candidatoDeOtroProducto(), VENTAS);
+    void probarOtroCaminoConsultaElAvisoAplicadoPeroNoCreaAvisos() {
+        dadoUnMiniAnterior(deSemanasAtras());
+        dadoValor(SIN_LLEGAR);
+        dadoDecisiones(decision(TipoDecision.AVISO_APLICADO, AVISO_ID));
+        dadoAvisoSinEfecto();
+        dadoCandidatos(candidatoDeOtroProducto(), VENTAS);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeConsultaElAvisoAplicadoSinCrearAvisos();
+        entoncesSeConsultaElAvisoAplicadoSinCrearAvisos();
     }
 
     @Test
     @DisplayName("Uno cuyo producto ya no está en el cuaderno se cambia y no entra en el cierre")
-    void executeShouldReplaceAMiniObjetivoWhoseProductIsGone() {
-        givenMinis(miniObjetivo());
-        givenCandidatos(VENTAS);
+    void unoCuyoProductoYaNoEstaEnElCuadernoSeCambiaYNoEntraEnElCierre() {
+        dadoMinis(miniObjetivo());
+        dadoCandidatos(VENTAS);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeCambiaElMiniCuyoProductoYaNoEstaYNoEntraEnElCierre();
+        entoncesSeCambiaElMiniCuyoProductoYaNoEstaYNoEntraEnElCierre();
     }
 
     @Test
     @DisplayName("El lugar de uno quitado se completa y el quitado conserva su estado")
-    void executeShouldFillThePlaceOfARemovedMiniObjetivo() {
-        givenUnMiniAnterior(miniConEstado(EstadoMiniObjetivo.ABANDONADO, MINI_ID));
-        givenCandidatos(VENTAS);
+    void elLugarDeUnoQuitadoSeCompletaYElQuitadoConservaSuEstado() {
+        dadoUnMiniAnterior(miniConEstado(EstadoMiniObjetivo.ABANDONADO, MINI_ID));
+        dadoCandidatos(VENTAS);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeCompletaElLugarDelQuitadoYConservaSuEstado();
+        entoncesSeCompletaElLugarDelQuitadoYConservaSuEstado();
     }
 
     @Test
     @DisplayName("El lugar de uno quitado se completa aunque haya otro en curso en otro lugar")
-    void executeShouldFillThePlaceOfARemovedMiniObjetivoWhenAnotherPlaceIsTaken() {
-        givenMinis(quitadoEnElSegundoLugar(), miniObjetivo());
-        givenValor(SIN_LLEGAR);
-        givenCandidatos(VENTAS);
+    void elLugarDeUnoQuitadoSeCompletaAunqueHayaOtroEnCursoEnOtroLugar() {
+        dadoMinis(quitadoEnElSegundoLugar(), miniObjetivo());
+        dadoValor(SIN_LLEGAR);
+        dadoCandidatos(VENTAS);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeCompletaElSegundoLugar();
+        entoncesSeCompletaElSegundoLugar();
     }
 
     @Test
     @DisplayName("Uno logrado cuyo lugar ya ocupa otro en curso no se toca")
-    void executeShouldNotTouchAnAchievedMiniObjetivoWhosePlaceIsTaken() {
-        givenUnMiniAnterior(miniConEstado(EstadoMiniObjetivo.LOGRADO, OTRO_MINI_ID));
-        givenMinis(miniAnterior, miniObjetivo());
-        givenValor(SIN_LLEGAR);
+    void unoLogradoCuyoLugarYaOcupaOtroEnCursoNoSeToca() {
+        dadoUnMiniAnterior(miniConEstado(EstadoMiniObjetivo.LOGRADO, OTRO_MINI_ID));
+        dadoMinis(miniAnterior, miniObjetivo());
+        dadoValor(SIN_LLEGAR);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenElLogradoNoSeToca();
+        entoncesElLogradoNoSeToca();
     }
 
     @Test
     @DisplayName("Uno logrado que ya no puede pedir más deja su lugar al mejor candidato")
-    void executeShouldReplaceAnAchievedMiniObjetivoThatCannotAskForMore() {
-        givenUnMiniAnterior(margenLogradoEnSuTope());
-        givenCandidatos(VENTAS);
+    void unoLogradoQueYaNoPuedePedirMasDejaSuLugarAlMejorCandidato() {
+        dadoUnMiniAnterior(margenLogradoEnSuTope());
+        dadoCandidatos(VENTAS);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenElLogradoSinTechoDejaSuLugarAlMejorCandidato();
+        entoncesElLogradoSinTechoDejaSuLugarAlMejorCandidato();
     }
 
     @Test
     @DisplayName("Con el objetivo alcanzado no se reajusta nada")
-    void executeShouldNotAdjustWhenTheObjetivoIsReached() {
-        givenMinis(miniObjetivo());
-        givenValor(META_ALCANZADA);
-        givenUnResultadoQueSuperaLaMeta();
+    void conElObjetivoAlcanzadoNoSeReajustaNada() {
+        dadoMinis(miniObjetivo());
+        dadoValor(META_ALCANZADA);
+        dadoUnResultadoQueSuperaLaMeta();
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenNoSeReajustaNadaNiSePidenCandidatos();
+        entoncesNoSeReajustaNadaNiSePidenCandidatos();
     }
 
     @Test
     @DisplayName("Un objetivo que ya estaba alcanzado no se reajusta aunque el resultado haya bajado")
-    void executeShouldNotAdjustWhenTheObjetivoWasAlreadyReached() {
-        givenObjetivo(objetivoYaAlcanzado());
-        givenMinis(miniObjetivo());
-        givenValor(META_ALCANZADA);
+    void unObjetivoQueYaEstabaAlcanzadoNoSeReajustaAunqueElResultadoHayaBajado() {
+        dadoObjetivo(objetivoYaAlcanzado());
+        dadoMinis(miniObjetivo());
+        dadoValor(META_ALCANZADA);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenElResumenFelicitaSinReajustar();
+        entoncesElResumenFelicitaSinReajustar();
     }
 
     @Test
     @DisplayName("En una semana sin ventas no se reajusta nada")
-    void executeShouldNotAdjustWhenThereWereNoSales() {
-        givenMinis(miniObjetivo());
-        givenValor(META_ALCANZADA);
-        givenUnaSemanaSinVentas();
+    void enUnaSemanaSinVentasNoSeReajustaNada() {
+        dadoMinis(miniObjetivo());
+        dadoValor(META_ALCANZADA);
+        dadoUnaSemanaSinVentas();
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenNoSeReajustaNadaNiSeGuardaNingunMini();
+        entoncesNoSeReajustaNadaNiSeGuardaNingunMini();
     }
 
     @Test
     @DisplayName("Recupera como mucho las semanas pendientes más nuevas, cada una con lo medido a su domingo")
-    void executeShouldRecoverAtMostTheNewestPendingWeeks() {
-        givenUnCierreQueRecuperaComoMuchoTresSemanas();
-        givenObjetivo(creadoHaceSemanas(SEMANAS_DE_UN_OBJETIVO_VIEJO));
+    void recuperaComoMuchoLasSemanasPendientesMasNuevasCadaUnaConLoMedidoASuDomingo() {
+        dadoUnCierreQueRecuperaComoMuchoTresSemanas();
+        dadoObjetivo(creadoHaceSemanas(SEMANAS_DE_UN_OBJETIVO_VIEJO));
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeRecuperanLasTresSemanasMasNuevasConLoMedidoASuDomingo();
+        entoncesSeRecuperanLasTresSemanasMasNuevasConLoMedidoASuDomingo();
     }
 
     @Test
     @DisplayName("Sigue desde la semana siguiente a la última cerrada")
-    void executeShouldContinueFromTheWeekAfterTheLastClosed() {
-        givenObjetivo(creadoHaceSemanas(SEMANAS_DE_UN_OBJETIVO_VIEJO));
-        givenResumenes(resumen(SEMANA.minusWeeks(1), "175000", SIN_LLEGAR));
+    void sigueDesdeLaSemanaSiguienteALaUltimaCerrada() {
+        dadoObjetivo(creadoHaceSemanas(SEMANAS_DE_UN_OBJETIVO_VIEJO));
+        dadoResumenes(resumen(SEMANA.minusWeeks(1), "175000", SIN_LLEGAR));
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeCierraLaSemana(SEMANA);
+        entoncesSeCierraLaSemana(SEMANA);
     }
 
     @Test
     @DisplayName("Un cierre anterior a la creación del objetivo no adelanta el comienzo")
-    void executeShouldStartFromTheCreationWeekWhenTheLastCloseIsOlder() {
-        givenResumenes(resumen(SEMANA.minusWeeks(5), "175000", SIN_LLEGAR));
+    void unCierreAnteriorALaCreacionDelObjetivoNoAdelantaElComienzo() {
+        dadoResumenes(resumen(SEMANA.minusWeeks(5), "175000", SIN_LLEGAR));
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeCierraLaSemana(SEMANA);
+        entoncesSeCierraLaSemana(SEMANA);
     }
 
     @Test
     @DisplayName("Si la última semana ya está cerrada no hace nada")
-    void executeShouldDoNothingWhenTheLastWeekIsAlreadyClosed() {
-        givenResumenes(resumen(SEMANA, "175000", SIN_LLEGAR));
+    void siLaUltimaSemanaYaEstaCerradaNoHaceNada() {
+        dadoResumenes(resumen(SEMANA, "175000", SIN_LLEGAR));
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenNoSeCierraNiSeMideNada();
+        entoncesNoSeCierraNiSeMideNada();
     }
 
     @Test
     @DisplayName("Si otra corrida ya cerró una semana, sigue con la siguiente")
-    void executeShouldContinueWithTheNextWeekWhenAnotherRunAlreadyClosedOne() {
-        givenObjetivo(creadoHaceSemanas(1));
-        givenQueOtraCorridaYaCerroLaPrimeraSemana();
+    void siOtraCorridaYaCerroUnaSemanaSigueConLaSiguiente() {
+        dadoObjetivo(creadoHaceSemanas(1));
+        dadoQueOtraCorridaYaCerroLaPrimeraSemana();
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeIntentanCerrarDosSemanas();
+        entoncesSeIntentanCerrarDosSemanas();
     }
 
     @Test
     @DisplayName("Un negocio con error no frena el cierre de los demás")
-    void executeShouldContinueWithOtherBusinessesWhenOneFails() {
-        givenUnNegocioCaidoAntesDeOtroQueFunciona();
+    void unNegocioConErrorNoFrenaElCierreDeLosDemas() {
+        dadoUnNegocioCaidoAntesDeOtroQueFunciona();
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeCierraLaSemanaDelNegocioQueFunciona();
+        entoncesSeCierraLaSemanaDelNegocioQueFunciona();
     }
 
     @Test
     @DisplayName("Pide los negocios de a tandas hasta que una viene incompleta")
-    void executeShouldRequestBusinessesInBatches() {
-        givenNegociosEnTandasDeUno();
+    void pideLosNegociosDeATandasHastaQueUnaVieneIncompleta() {
+        dadoNegociosEnTandasDeUno();
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSePideLaSegundaTandaYSeCierraLaSemana();
+        entoncesSePideLaSegundaTandaYSeCierraLaSemana();
     }
 
     @Test
     @DisplayName("Los objetivos de un negocio comparten lo medido al domingo")
-    void executeShouldShareTheMeasurementBetweenObjetivosOfTheSameBusiness() {
-        givenDosObjetivosEnElMismoNegocio();
+    void losObjetivosDeUnNegocioCompartenLoMedidoAlDomingo() {
+        dadoDosObjetivosEnElMismoNegocio();
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeCierranLosDosObjetivosConUnaSolaMedicion();
+        entoncesSeCierranLosDosObjetivosConUnaSolaMedicion();
     }
 
     @Test
     @DisplayName("Un mini-objetivo manual no se reajusta ni suma su valor al cierre")
-    void executeShouldLeaveAManualMiniObjetivoUntouched() {
-        givenUnMiniAnterior(miniManualAbandonado());
-        givenMinis(miniObjetivo(), miniAnterior);
-        givenValor(SIN_LLEGAR);
+    void unMiniObjetivoManualNoSeReajustaNiSumaSuValorAlCierre() {
+        dadoUnMiniAnterior(miniManualAbandonado());
+        dadoMinis(miniObjetivo(), miniAnterior);
+        dadoValor(SIN_LLEGAR);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenElManualAbandonadoQuedaIntactoYNoSumaAlCierre();
+        entoncesElManualAbandonadoQuedaIntactoYNoSumaAlCierre();
     }
 
     @Test
     @DisplayName("Un objetivo sin meta en pesos cierra la semana sin avance y sin decir cuánto falta")
-    void executeShouldCloseTheWeekOfAnObjetivoWithoutGoal() {
-        givenObjetivo(objetivoSinMeta());
-        givenMinis(miniObjetivo(), miniManual());
-        givenValor(SIN_LLEGAR);
+    void unObjetivoSinMetaEnPesosCierraLaSemanaSinAvanceYSinDecirCuantoFalta() {
+        dadoObjetivo(objetivoSinMeta());
+        dadoMinis(miniObjetivo(), miniManual());
+        dadoValor(SIN_LLEGAR);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeCierraSinAvanceNiCuantoFalta();
+        entoncesSeCierraSinAvanceNiCuantoFalta();
     }
 
     @Test
     @DisplayName("Un manual que la persona hizo y le funcionó queda logrado")
-    void executeShouldMarkAsAchievedAManualThatWorked() {
-        givenUnMiniAnterior(miniManual());
-        givenRespuesta(HizoManual.SI, QuePaso.FUNCIONO, null);
+    void unManualQueLaPersonaHizoYLeFuncionoQuedaLogrado() {
+        dadoUnMiniAnterior(miniManual());
+        dadoRespuesta(HizoManual.SI, QuePaso.FUNCIONO, null);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenElManualQuedaLogradoYLoSigueUnoNuevo();
+        entoncesElManualQuedaLogradoYLoSigueUnoNuevo();
     }
 
     @Test
     @DisplayName("Un manual que funcionó lo sigue uno con un paso más")
-    void executeShouldRenewAManualThatWorkedWithOneStepMore() {
-        givenUnMiniAnterior(miniManual());
-        givenRespuesta(HizoManual.SI, QuePaso.FUNCIONO, null);
+    void unManualQueFuncionoLoSigueUnoConUnPasoMas() {
+        dadoUnMiniAnterior(miniManual());
+        dadoRespuesta(HizoManual.SI, QuePaso.FUNCIONO, null);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenElNuevoManualEsUnPasoMas();
+        entoncesElNuevoManualEsUnPasoMas();
     }
 
     @Test
     @DisplayName("El manual logrado se guarda antes que el nuevo")
-    void executeShouldSaveTheAchievedManualBeforeTheNewOne() {
-        givenUnMiniAnterior(miniManual());
-        givenRespuesta(HizoManual.SI, QuePaso.FUNCIONO, null);
+    void elManualLogradoSeGuardaAntesQueElNuevo() {
+        dadoUnMiniAnterior(miniManual());
+        dadoRespuesta(HizoManual.SI, QuePaso.FUNCIONO, null);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeGuardaElAnteriorAntesQueElNuevo();
+        entoncesSeGuardaElAnteriorAntesQueElNuevo();
     }
 
     @Test
     @DisplayName("Un manual que se hizo en parte queda reemplazado por lo que faltó")
-    void executeShouldSplitAManualDoneInPart() {
-        givenUnMiniAnterior(miniManual());
-        givenRespuesta(HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO, "Hablé con 1 sola vecina");
+    void unManualQueSeHizoEnParteQuedaReemplazadoPorLoQueFalto() {
+        dadoUnMiniAnterior(miniManual());
+        dadoRespuesta(HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO, "Hablé con 1 sola vecina");
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenElManualQuedaReemplazadoPorLoQueFalto();
+        entoncesElManualQuedaReemplazadoPorLoQueFalto();
     }
 
     @Test
     @DisplayName("Un manual que no se hizo por falta de tiempo se simplifica")
-    void executeShouldSimplifyAManualThatWasNotDone() {
-        givenMinis(miniManual());
-        givenRespuesta(HizoManual.NO, QuePaso.NO_TUVE_TIEMPO, null);
+    void unManualQueNoSeHizoPorFaltaDeTiempoSeSimplifica() {
+        dadoMinis(miniManual());
+        dadoRespuesta(HizoManual.NO, QuePaso.NO_TUVE_TIEMPO, null);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenElManualSeSimplifica();
+        entoncesElManualSeSimplifica();
     }
 
     @Test
     @DisplayName("Un manual que no funcionó cambia por otra acción, aunque se haya hecho")
-    void executeShouldChangeAManualThatDidNotWork() {
-        givenUnMiniAnterior(miniManual());
-        givenRespuesta(HizoManual.SI, QuePaso.NO_FUNCIONO, null);
+    void unManualQueNoFuncionoCambiaPorOtraAccionAunqueSeHayaHecho() {
+        dadoUnMiniAnterior(miniManual());
+        dadoRespuesta(HizoManual.SI, QuePaso.NO_FUNCIONO, null);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenElManualQuedaLogradoYCambiaPorOtraAccion();
+        entoncesElManualQuedaLogradoYCambiaPorOtraAccion();
     }
 
     @Test
     @DisplayName("El resumen cuenta lo respondido de los manuales")
-    void executeShouldSummarizeTheManualAnswers() {
-        givenMinis(miniManual());
-        givenRespuesta(HizoManual.SI, QuePaso.FUNCIONO, null);
+    void elResumenCuentaLoRespondidoDeLosManuales() {
+        dadoMinis(miniManual());
+        dadoRespuesta(HizoManual.SI, QuePaso.FUNCIONO, null);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenElResumenCuentaLoRespondidoDeLosManuales();
+        entoncesElResumenCuentaLoRespondidoDeLosManuales();
     }
 
     @Test
     @DisplayName("Un manual sin respuesta no se renueva: sigue igual")
-    void executeShouldNotRenewAManualWithoutAnswer() {
-        givenUnMiniAnterior(miniManual());
+    void unManualSinRespuestaNoSeRenuevaSigueIgual() {
+        dadoUnMiniAnterior(miniManual());
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenElManualSinRespuestaSigueIgual();
+        entoncesElManualSinRespuestaSigueIgual();
     }
 
     @Test
     @DisplayName("Un manual sin respuesta queda en el resumen, que dice que sigue igual hasta que responda")
-    void executeShouldTellInTheSummaryThatAManualWithoutAnswerStaysTheSame() {
-        givenMinis(miniManual());
+    void unManualSinRespuestaQuedaEnElResumenQueDiceQueSigueIgualHastaQueResponda() {
+        dadoMinis(miniManual());
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenElResumenDiceQueElManualSigueIgualHastaQueResponda();
+        entoncesElResumenDiceQueElManualSigueIgualHastaQueResponda();
     }
 
     @Test
     @DisplayName("Los medidos se reajustan como siempre y los manuales se renuevan en el mismo cierre")
-    void executeShouldReadjustTheMeasuredAndRenewTheManualOnesTogether() {
-        givenMinis(miniObjetivo(), miniManual());
-        givenValor(META_ALCANZADA);
-        givenRespuesta(HizoManual.NO, QuePaso.OTRA, null);
+    void losMedidosSeReajustanComoSiempreYLosManualesSeRenuevanEnElMismoCierre() {
+        dadoMinis(miniObjetivo(), miniManual());
+        dadoValor(META_ALCANZADA);
+        dadoRespuesta(HizoManual.NO, QuePaso.OTRA, null);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeReajustanLosMedidosYSeRenuevanLosManuales();
+        entoncesSeReajustanLosMedidosYSeRenuevanLosManuales();
     }
 
     @Test
     @DisplayName("Una semana sin ventas no se reajustan los medidos pero sí se renuevan los manuales")
-    void executeShouldRenewTheManualOnesInAWeekWithoutSales() {
-        givenUnaSemanaSinVentas();
-        givenMinis(miniManual());
-        givenRespuesta(HizoManual.SI, QuePaso.FUNCIONO, null);
+    void unaSemanaSinVentasNoSeReajustanLosMedidosPeroSiSeRenuevanLosManuales() {
+        dadoUnaSemanaSinVentas();
+        dadoMinis(miniManual());
+        dadoRespuesta(HizoManual.SI, QuePaso.FUNCIONO, null);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeRenuevaElManualConUnPasoMas();
+        entoncesSeRenuevaElManualConUnPasoMas();
     }
 
     @Test
     @DisplayName("Un manual que empieza después de la semana que se cierra no entra en su cierre")
-    void executeShouldIgnoreAManualOfALaterWeek() {
-        givenUnMiniAnterior(miniManualDeLaSemanaSiguiente());
-        givenRespuesta(HizoManual.SI, QuePaso.FUNCIONO, null);
+    void unManualQueEmpiezaDespuesDeLaSemanaQueSeCierraNoEntraEnSuCierre() {
+        dadoUnMiniAnterior(miniManualDeLaSemanaSiguiente());
+        dadoRespuesta(HizoManual.SI, QuePaso.FUNCIONO, null);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenElManualDeLaSemanaSiguienteNoEntraNiSeRenueva();
+        entoncesElManualDeLaSemanaSiguienteNoEntraNiSeRenueva();
     }
 
     @Test
     @DisplayName("Un objetivo ya alcanzado no renueva sus manuales pero el resumen cuenta lo que respondieron")
-    void executeShouldNotRenewTheManualOnesOfAnAchievedObjetivo() {
-        givenObjetivo(objetivoYaAlcanzado());
-        givenUnMiniAnterior(miniManual());
-        givenRespuesta(HizoManual.SI, QuePaso.FUNCIONO, null);
+    void unObjetivoYaAlcanzadoNoRenuevaSusManualesPeroElResumenCuentaLoQue() {
+        dadoObjetivo(objetivoYaAlcanzado());
+        dadoUnMiniAnterior(miniManual());
+        dadoRespuesta(HizoManual.SI, QuePaso.FUNCIONO, null);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenElResumenCuentaElManualPeroNoLoRenueva();
+        entoncesElResumenCuentaElManualPeroNoLoRenueva();
     }
 
     @Test
     @DisplayName("Un manual renovado no se vuelve a renovar en la semana siguiente del mismo cierre")
-    void executeShouldNotRenewTheSameManualTwiceWhenClosingSeveralWeeks() {
-        givenObjetivo(creadoHaceSemanas(1));
-        givenUnMiniAnterior(miniManual());
-        givenRespuesta(HizoManual.SI, QuePaso.FUNCIONO, null);
+    void unManualRenovadoNoSeVuelveARenovarEnLaSemanaSiguienteDelMismoCierre() {
+        dadoObjetivo(creadoHaceSemanas(1));
+        dadoUnMiniAnterior(miniManual());
+        dadoRespuesta(HizoManual.SI, QuePaso.FUNCIONO, null);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenElManualSeRenuevaUnaSolaVezEnDosSemanas();
+        entoncesElManualSeRenuevaUnaSolaVezEnDosSemanas();
     }
 
     @Test
     @DisplayName("Con IA, la acción nueva la redacta la IA leyendo lo que contó la persona")
-    void executeShouldLetTheIaWriteTheRenewedAction() {
-        givenUnCierreConIa();
-        givenMinis(miniManual());
-        givenRespuesta(HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO, "Le mandé un mensaje a ana@mail.com");
-        givenIaDisponibleQueRedacta();
+    void conIaLaAccionNuevaLaRedactaLaIaLeyendoLoQueContoLaPersona() {
+        dadoUnCierreConIa();
+        dadoMinis(miniManual());
+        dadoRespuesta(HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO, "Le mandé un mensaje a ana@mail.com");
+        dadoIaDisponibleQueRedacta();
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenLaAccionNuevaLaRedactaLaIa();
+        entoncesLaAccionNuevaLaRedactaLaIa();
     }
 
     @Test
     @DisplayName("A la IA le pide la renovación con lo que contó la persona, sin datos personales")
-    void executeShouldAskTheIaWithTheSafeCommentOfThePerson() {
-        givenUnCierreConIa();
-        givenMinis(miniManual());
-        givenRespuesta(HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO, "Le mandé un mensaje a ana@mail.com");
-        givenIaDisponibleQueRedacta();
+    void aLaIaLePideLaRenovacionConLoQueContoLaPersonaSinDatosPersonales() {
+        dadoUnCierreConIa();
+        dadoMinis(miniManual());
+        dadoRespuesta(HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO, "Le mandé un mensaje a ana@mail.com");
+        dadoIaDisponibleQueRedacta();
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenLaIaRecibeElPedidoSinDatosPersonales();
+        entoncesLaIaRecibeElPedidoSinDatosPersonales();
     }
 
     @Test
     @DisplayName("Cuando la IA redacta se registra su consumo")
-    void executeShouldRegisterTheIaConsumption() {
-        givenUnCierreConIa();
-        givenMinis(miniManual());
-        givenRespuesta(HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO, "Le mandé un mensaje a ana@mail.com");
-        givenIaDisponibleQueRedacta();
+    void cuandoLaIaRedactaSeRegistraSuConsumo() {
+        dadoUnCierreConIa();
+        dadoMinis(miniManual());
+        dadoRespuesta(HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO, "Le mandé un mensaje a ana@mail.com");
+        dadoIaDisponibleQueRedacta();
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeRegistraElConsumoDeLaIa();
+        entoncesSeRegistraElConsumoDeLaIa();
     }
 
     @Test
     @DisplayName("Si el texto de la IA no es una acción válida (trae un importe), se usa el texto de reserva")
-    void executeShouldFallBackWhenTheIaTextIsNotAValidAction() {
-        givenUnCierreConIa();
-        givenMinis(miniManual());
-        givenRespuesta(HizoManual.NO, QuePaso.OTRA, null);
-        givenIaDisponibleQueRedactaUnTextoConImporte();
+    void siElTextoDeLaIaNoEsUnaAccionValidaTraeUnImporteSeUsaElTextoDeReserva() {
+        dadoUnCierreConIa();
+        dadoMinis(miniManual());
+        dadoRespuesta(HizoManual.NO, QuePaso.OTRA, null);
+        dadoIaDisponibleQueRedactaUnTextoConImporte();
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeUsaElTextoDeReserva();
+        entoncesSeUsaElTextoDeReserva();
     }
 
     @Test
     @DisplayName("Si la IA falla se usa el texto de reserva")
-    void executeShouldFallBackWhenTheIaFails() {
-        givenUnCierreConIa();
-        givenMinis(miniManual());
-        givenRespuesta(HizoManual.NO, QuePaso.OTRA, null);
-        givenIaDisponibleQueFalla();
+    void siLaIaFallaSeUsaElTextoDeReserva() {
+        dadoUnCierreConIa();
+        dadoMinis(miniManual());
+        dadoRespuesta(HizoManual.NO, QuePaso.OTRA, null);
+        dadoIaDisponibleQueFalla();
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeUsaElTextoDeReserva();
+        entoncesSeUsaElTextoDeReserva();
     }
 
     @Test
     @DisplayName("Si la IA falla no se registra consumo")
-    void executeShouldNotRegisterConsumptionWhenTheIaFails() {
-        givenUnCierreConIa();
-        givenMinis(miniManual());
-        givenRespuesta(HizoManual.NO, QuePaso.OTRA, null);
-        givenIaDisponibleQueFalla();
+    void siLaIaFallaNoSeRegistraConsumo() {
+        dadoUnCierreConIa();
+        dadoMinis(miniManual());
+        dadoRespuesta(HizoManual.NO, QuePaso.OTRA, null);
+        dadoIaDisponibleQueFalla();
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenNoSeRegistraConsumo();
+        entoncesNoSeRegistraConsumo();
     }
 
     @Test
     @DisplayName("Si la IA devuelve menos textos que renovaciones se usa el texto de reserva")
-    void executeShouldFallBackWhenTheIaReturnsFewerTexts() {
-        givenUnCierreConIa();
-        givenMinis(miniManual());
-        givenRespuesta(HizoManual.NO, QuePaso.OTRA, null);
-        givenIaDisponibleQueDevuelveMenosTextos();
+    void siLaIaDevuelveMenosTextosQueRenovacionesSeUsaElTextoDeReserva() {
+        dadoUnCierreConIa();
+        dadoMinis(miniManual());
+        dadoRespuesta(HizoManual.NO, QuePaso.OTRA, null);
+        dadoIaDisponibleQueDevuelveMenosTextos();
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeUsaElTextoDeReserva();
+        entoncesSeUsaElTextoDeReserva();
     }
 
     @Test
     @DisplayName("Sin acceso a la IA no la consulta y usa el texto de reserva")
-    void executeShouldNotConsultTheIaWithoutAccess() {
-        givenUnCierreConIa();
-        givenMinis(miniManual());
-        givenRespuesta(HizoManual.NO, QuePaso.OTRA, null);
-        givenUnNegocioSinAccesoALaIa();
+    void sinAccesoALaIaNoLaConsultaYUsaElTextoDeReserva() {
+        dadoUnCierreConIa();
+        dadoMinis(miniManual());
+        dadoRespuesta(HizoManual.NO, QuePaso.OTRA, null);
+        dadoUnNegocioSinAccesoALaIa();
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeUsaElTextoDeReservaSinConsultarLaIa();
+        entoncesSeUsaElTextoDeReservaSinConsultarLaIa();
     }
 
     @Test
     @DisplayName("Sin reserva diaria de IA no la consulta y usa el texto de reserva")
-    void executeShouldNotConsultTheIaWithoutDailyAllowance() {
-        givenUnCierreConIa();
-        givenMinis(miniManual());
-        givenRespuesta(HizoManual.NO, QuePaso.OTRA, null);
-        givenElLimiteDiarioDeIaAgotado();
+    void sinReservaDiariaDeIaNoLaConsultaYUsaElTextoDeReserva() {
+        dadoUnCierreConIa();
+        dadoMinis(miniManual());
+        dadoRespuesta(HizoManual.NO, QuePaso.OTRA, null);
+        dadoElLimiteDiarioDeIaAgotado();
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenSeUsaElTextoDeReservaSinPedirleNadaALaIa();
+        entoncesSeUsaElTextoDeReservaSinPedirleNadaALaIa();
     }
 
     @Test
     @DisplayName("Sin nada para renovar (un manual sin respuesta) no consulta a la IA")
-    void executeShouldNotConsultTheIaWithNothingToRenew() {
-        givenUnCierreConIa();
-        givenMinis(miniManual());
+    void sinNadaParaRenovarUnManualSinRespuestaNoConsultaALaIa() {
+        dadoUnCierreConIa();
+        dadoMinis(miniManual());
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenNoSeConsultaLaIaNiSuCuota();
+        entoncesNoSeConsultaLaIaNiSuCuota();
     }
 
     @Test
     @DisplayName("Con la IA apagada nunca la consulta")
-    void executeShouldNeverConsultTheIaWhenItIsDisabled() {
-        givenMinis(miniManual());
-        givenRespuesta(HizoManual.NO, QuePaso.OTRA, null);
+    void conLaIaApagadaNuncaLaConsulta() {
+        dadoMinis(miniManual());
+        dadoRespuesta(HizoManual.NO, QuePaso.OTRA, null);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenNoSeConsultaLaIaNiSuCuota();
+        entoncesNoSeConsultaLaIaNiSuCuota();
     }
 
     @Test
     @DisplayName("Un objetivo alcanzado no consulta a la IA")
-    void executeShouldNotConsultTheIaForAnAchievedObjetivo() {
-        givenUnCierreConIa();
-        givenObjetivo(objetivoYaAlcanzado());
-        givenMinis(miniManual());
-        givenRespuesta(HizoManual.NO, QuePaso.OTRA, null);
+    void unObjetivoAlcanzadoNoConsultaALaIa() {
+        dadoUnCierreConIa();
+        dadoObjetivo(objetivoYaAlcanzado());
+        dadoMinis(miniManual());
+        dadoRespuesta(HizoManual.NO, QuePaso.OTRA, null);
 
-        whenCerrar();
+        cuandoCerrar();
 
-        thenNoSePideNadaALaIa();
+        entoncesNoSePideNadaALaIa();
     }
 
     // --- arrange ---
@@ -744,139 +744,139 @@ class CerrarSemanasObjetivosTest {
                 new TransaccionDirecta(), CLOCK, maxSemanasPendientes, tamanoTanda, iaHabilitada, LIMITE_DIARIO_IA);
     }
 
-    private void givenUnCierreConIa() {
+    private void dadoUnCierreConIa() {
         cerrarSemanasObjetivos = cierre(8, 50, true);
     }
 
-    private void givenUnCierreQueRecuperaComoMuchoTresSemanas() {
+    private void dadoUnCierreQueRecuperaComoMuchoTresSemanas() {
         cerrarSemanasObjetivos = cierre(3, 50);
     }
 
-    private void givenObjetivo(Objetivo objetivo) {
+    private void dadoObjetivo(Objetivo objetivo) {
         when(objetivoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(objetivo));
     }
 
-    private void givenMinis(MiniObjetivo... minis) {
+    private void dadoMinis(MiniObjetivo... minis) {
         when(miniObjetivoRepository.findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID))
                 .thenReturn(List.of(minis));
     }
 
-    private void givenUnMiniAnterior(MiniObjetivo mini) {
+    private void dadoUnMiniAnterior(MiniObjetivo mini) {
         miniAnterior = mini;
-        givenMinis(mini);
+        dadoMinis(mini);
     }
 
-    private void givenValor(BigDecimal valor) {
+    private void dadoValor(BigDecimal valor) {
         when(medidor.valorDe(TipoMiniObjetivo.SUBIR_PRECIO, PRODUCTO_ID, PRODUCTO)).thenReturn(Optional.of(valor));
     }
 
-    private void givenDecisiones(DecisionObjetivo... decisiones) {
+    private void dadoDecisiones(DecisionObjetivo... decisiones) {
         when(decisionObjetivoRepository.findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID))
                 .thenReturn(List.of(decisiones));
     }
 
-    private void givenResumenes(ResumenSemanal... resumenes) {
+    private void dadoResumenes(ResumenSemanal... resumenes) {
         when(resumenSemanalRepository.findAllByObjetivoId(OBJETIVO_ID)).thenReturn(List.of(resumenes));
     }
 
-    private void givenDosCierresSinAvance() {
-        givenResumenes(resumen(SEMANA.minusWeeks(1), "175000", SIN_LLEGAR),
+    private void dadoDosCierresSinAvance() {
+        dadoResumenes(resumen(SEMANA.minusWeeks(1), "175000", SIN_LLEGAR),
                 resumen(SEMANA.minusWeeks(2), "170000", SIN_LLEGAR));
     }
 
-    private void givenCandidatos(CandidatoMiniObjetivo... candidatos) {
+    private void dadoCandidatos(CandidatoMiniObjetivo... candidatos) {
         when(propuestaMiniObjetivosService.candidatos(NEGOCIO_ID, medidor)).thenReturn(List.of(candidatos));
     }
 
-    private void givenAvisoSinEfecto() {
+    private void dadoAvisoSinEfecto() {
         Aviso aplicado = aviso(TipoAviso.ESTANCADO, EstadoAviso.APLICADO);
         aplicado.registrarImpacto(new ImpactoAviso(14, new BigDecimal("3.00"), new BigDecimal("2.00"),
                 new BigDecimal("150.00"), new BigDecimal("100.00")), AHORA);
         when(avisoRepository.findAllByIdsAndNegocioId(List.of(AVISO_ID), NEGOCIO_ID)).thenReturn(List.of(aplicado));
     }
 
-    private void givenUnResultadoQueSuperaLaMeta() {
+    private void dadoUnResultadoQueSuperaLaMeta() {
         when(medidor.resultado()).thenReturn(new BigDecimal("400000"));
     }
 
-    private void givenUnaSemanaSinVentas() {
+    private void dadoUnaSemanaSinVentas() {
         when(medidor.ventasSemana()).thenReturn(BigDecimal.ZERO);
     }
 
-    private void givenQueOtraCorridaYaCerroLaPrimeraSemana() {
+    private void dadoQueOtraCorridaYaCerroLaPrimeraSemana() {
         when(resumenSemanalRepository.save(any(ResumenSemanal.class)))
                 .thenThrow(new DuplicateResourceException("Esa semana del objetivo ya está cerrada"))
                 .thenAnswer(call -> call.getArgument(0));
     }
 
-    private void givenUnNegocioCaidoAntesDeOtroQueFunciona() {
+    private void dadoUnNegocioCaidoAntesDeOtroQueFunciona() {
         when(objetivoRepository.findNegocioIdsConObjetivos(0, 50)).thenReturn(List.of(OTRO_NEGOCIO_ID, NEGOCIO_ID));
         when(objetivoRepository.findAllByNegocioId(OTRO_NEGOCIO_ID)).thenThrow(new IllegalStateException("caído"));
     }
 
-    private void givenNegociosEnTandasDeUno() {
+    private void dadoNegociosEnTandasDeUno() {
         cerrarSemanasObjetivos = cierre(8, 1);
         when(objetivoRepository.findNegocioIdsConObjetivos(0, 1)).thenReturn(List.of(NEGOCIO_ID));
         when(objetivoRepository.findNegocioIdsConObjetivos(1, 1)).thenReturn(List.of());
     }
 
-    private void givenDosObjetivosEnElMismoNegocio() {
+    private void dadoDosObjetivosEnElMismoNegocio() {
         Objetivo otro = objetivo();
         otro.setId(OTRO_OBJETIVO_ID);
         when(objetivoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(objetivo(), otro));
     }
 
-    private void givenRespuesta(HizoManual hizo, QuePaso quePaso, String comentario) {
+    private void dadoRespuesta(HizoManual hizo, QuePaso quePaso, String comentario) {
         when(respuestaMiniObjetivoRepository.findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID)).thenReturn(
                 List.of(new RespuestaMiniObjetivo(RespuestaMiniObjetivoId.nuevo(), NEGOCIO_ID, OBJETIVO_ID,
                         OTRO_MINI_ID, hizo, quePaso, comentario, SEMANA, AHORA)));
     }
 
-    private void givenIaDisponible() {
+    private void dadoIaDisponible() {
         when(consumoSamiRepository.reservar(NEGOCIO_ID, DIA_DEL_CIERRE, LIMITE_DIARIO_IA, AHORA_CIERRE))
                 .thenReturn(true);
     }
 
-    private void givenIaDisponibleQueRedacta() {
-        givenIaDisponible();
+    private void dadoIaDisponibleQueRedacta() {
+        dadoIaDisponible();
         when(renovacionManualesIaPort.renovar(any())).thenReturn(new RedaccionObjetivosIa(
                 List.of(new TextoMiniObjetivo("Hablá con 2 vecinas más", "Con más charlas sabés qué piden.")),
                 CONSUMO));
     }
 
-    private void givenIaDisponibleQueRedactaUnTextoConImporte() {
-        givenIaDisponible();
+    private void dadoIaDisponibleQueRedactaUnTextoConImporte() {
+        dadoIaDisponible();
         when(renovacionManualesIaPort.renovar(any())).thenReturn(new RedaccionObjetivosIa(
                 List.of(new TextoMiniObjetivo("Cobrá $5.000 más", "Porque sí")), CONSUMO));
     }
 
-    private void givenIaDisponibleQueFalla() {
-        givenIaDisponible();
+    private void dadoIaDisponibleQueFalla() {
+        dadoIaDisponible();
         when(renovacionManualesIaPort.renovar(any())).thenThrow(new IllegalStateException("sin red"));
     }
 
-    private void givenIaDisponibleQueDevuelveMenosTextos() {
-        givenIaDisponible();
+    private void dadoIaDisponibleQueDevuelveMenosTextos() {
+        dadoIaDisponible();
         when(renovacionManualesIaPort.renovar(any())).thenReturn(new RedaccionObjetivosIa(List.of(), CONSUMO));
     }
 
-    private void givenUnNegocioSinAccesoALaIa() {
+    private void dadoUnNegocioSinAccesoALaIa() {
         doThrow(new RestriccionPlanException("IA_NO_HABILITADA", "No habilitada"))
                 .when(controlPlanService).exigirIa(NEGOCIO_ID);
     }
 
-    private void givenElLimiteDiarioDeIaAgotado() {
+    private void dadoElLimiteDiarioDeIaAgotado() {
         when(consumoSamiRepository.reservar(NEGOCIO_ID, DIA_DEL_CIERRE, LIMITE_DIARIO_IA, AHORA_CIERRE))
                 .thenReturn(false);
     }
 
     // --- act ---
-    private void whenCerrar() {
+    private void cuandoCerrar() {
         cerrarSemanasObjetivos.execute();
     }
 
     // --- assert ---
-    private void thenSeCierraLaSemanaConElResultadoDelDomingoYSusDecisiones() {
+    private void entoncesSeCierraLaSemanaConElResultadoDelDomingoYSusDecisiones() {
         ResumenSemanal resumen = resumenGuardado();
         assertThat(resumen.objetivoId()).isEqualTo(OBJETIVO_ID);
         assertThat(resumen.semanaInicio()).isEqualTo(SEMANA);
@@ -891,7 +891,7 @@ class CerrarSemanasObjetivosTest {
         verifyNoInteractions(avisoRepository);
     }
 
-    private void thenElMiniLogradoSigueConUnaMetaMasAlta() {
+    private void entoncesElMiniLogradoSigueConUnaMetaMasAlta() {
         ReajusteMiniObjetivo reajuste = unicoReajuste();
         MiniObjetivo nuevo = nuevoGuardado();
         assertThat(reajuste.tipo()).isEqualTo(TipoReajuste.SUBIR_META);
@@ -905,13 +905,13 @@ class CerrarSemanasObjetivosTest {
         assertThat(miniAnterior.getReemplazadoPor()).isEqualTo(nuevo.getId());
     }
 
-    private void thenSeGuardaElAnteriorAntesQueElNuevo() {
+    private void entoncesSeGuardaElAnteriorAntesQueElNuevo() {
         InOrder orden = inOrder(miniObjetivoRepository);
         orden.verify(miniObjetivoRepository).save(miniAnterior);
         orden.verify(miniObjetivoRepository).save(any(MiniObjetivo.class));
     }
 
-    private void thenElMiniSinAvanceSeReemplazaPorElMejorCandidato() {
+    private void entoncesElMiniSinAvanceSeReemplazaPorElMejorCandidato() {
         ReajusteMiniObjetivo reajuste = unicoReajuste();
         assertThat(reajuste.tipo()).isEqualTo(TipoReajuste.REEMPLAZAR);
         assertThat(reajuste.motivo()).startsWith("Hace 2 semanas que");
@@ -920,43 +920,43 @@ class CerrarSemanasObjetivosTest {
         assertThat(resumenGuardado().queFunciono()).startsWith("Esta semana tu resultado subió $5.000");
     }
 
-    private void thenElMiniSeMantieneSinReajustes() {
+    private void entoncesElMiniSeMantieneSinReajustes() {
         assertThat(resumenGuardado().reajustes()).isEmpty();
         verify(miniObjetivoRepository, never()).save(any());
     }
 
-    private void thenSeProbaOtroCaminoConUnCandidatoDeOtroTipo() {
+    private void entoncesSeProbaOtroCaminoConUnCandidatoDeOtroTipo() {
         assertThat(unicoReajuste().tipo()).isEqualTo(TipoReajuste.PROBAR_OTRO_CAMINO);
         assertThat(nuevoGuardado().getTipo()).isEqualTo(TipoMiniObjetivo.VENTAS_SEMANALES);
     }
 
-    private void thenSeConsultaElAvisoAplicadoSinCrearAvisos() {
+    private void entoncesSeConsultaElAvisoAplicadoSinCrearAvisos() {
         verify(avisoRepository).findAllByIdsAndNegocioId(List.of(AVISO_ID), NEGOCIO_ID);
         verify(avisoRepository, never()).save(any());
     }
 
-    private void thenSeCambiaElMiniCuyoProductoYaNoEstaYNoEntraEnElCierre() {
+    private void entoncesSeCambiaElMiniCuyoProductoYaNoEstaYNoEntraEnElCierre() {
         assertThat(unicoReajuste().motivo()).startsWith("«Yerba 1 kg» ya no está en tus secciones");
         assertThat(resumenGuardado().minis()).isEmpty();
     }
 
-    private void thenSeCompletaElLugarDelQuitadoYConservaSuEstado() {
+    private void entoncesSeCompletaElLugarDelQuitadoYConservaSuEstado() {
         assertThat(unicoReajuste().motivo()).startsWith("Quitaste");
         assertThat(miniAnterior.getEstado()).isEqualTo(EstadoMiniObjetivo.ABANDONADO);
         assertThat(miniAnterior.getReemplazadoPor()).isEqualTo(nuevoGuardado().getId());
     }
 
-    private void thenSeCompletaElSegundoLugar() {
+    private void entoncesSeCompletaElSegundoLugar() {
         assertThat(unicoReajuste().motivo()).startsWith("Quitaste");
         assertThat(nuevoGuardado().getPosicion()).isEqualTo(2);
     }
 
-    private void thenElLogradoNoSeToca() {
+    private void entoncesElLogradoNoSeToca() {
         assertThat(resumenGuardado().reajustes()).isEmpty();
         assertThat(miniAnterior.getReemplazadoPor()).isNull();
     }
 
-    private void thenElLogradoSinTechoDejaSuLugarAlMejorCandidato() {
+    private void entoncesElLogradoSinTechoDejaSuLugarAlMejorCandidato() {
         ReajusteMiniObjetivo reajuste = unicoReajuste();
         assertThat(reajuste.tipo()).isEqualTo(TipoReajuste.REEMPLAZAR);
         assertThat(reajuste.motivo()).startsWith("Lo lograste: llegaste a 60 %. Como ya no se puede pedir más");
@@ -964,70 +964,70 @@ class CerrarSemanasObjetivosTest {
         assertThat(miniAnterior.getReemplazadoPor()).isEqualTo(nuevoGuardado().getId());
     }
 
-    private void thenNoSeReajustaNadaNiSePidenCandidatos() {
+    private void entoncesNoSeReajustaNadaNiSePidenCandidatos() {
         assertThat(resumenGuardado().reajustes()).isEmpty();
         assertThat(resumenGuardado().queFunciono()).contains("¡Llegaste a tu meta!");
         verify(propuestaMiniObjetivosService, never()).candidatos(any(), any(MedidorMiniObjetivo.class));
     }
 
-    private void thenElResumenFelicitaSinReajustar() {
+    private void entoncesElResumenFelicitaSinReajustar() {
         assertThat(resumenGuardado().reajustes()).isEmpty();
         assertThat(resumenGuardado().queFunciono()).contains("¡Llegaste a tu meta!");
     }
 
-    private void thenNoSeReajustaNadaNiSeGuardaNingunMini() {
+    private void entoncesNoSeReajustaNadaNiSeGuardaNingunMini() {
         assertThat(resumenGuardado().reajustes()).isEmpty();
         verify(miniObjetivoRepository, never()).save(any());
     }
 
-    private void thenSeRecuperanLasTresSemanasMasNuevasConLoMedidoASuDomingo() {
+    private void entoncesSeRecuperanLasTresSemanasMasNuevasConLoMedidoASuDomingo() {
         verify(resumenSemanalRepository, times(3)).save(any());
         verify(propuestaMiniObjetivosService).medidor(NEGOCIO_ID, DOMINGO.minusWeeks(2));
         verify(propuestaMiniObjetivosService).medidor(NEGOCIO_ID, DOMINGO.minusWeeks(1));
         verify(propuestaMiniObjetivosService).medidor(NEGOCIO_ID, DOMINGO);
     }
 
-    private void thenSeCierraLaSemana(LocalDate semana) {
+    private void entoncesSeCierraLaSemana(LocalDate semana) {
         assertThat(resumenGuardado().semanaInicio()).isEqualTo(semana);
     }
 
-    private void thenNoSeCierraNiSeMideNada() {
+    private void entoncesNoSeCierraNiSeMideNada() {
         verify(resumenSemanalRepository, never()).save(any());
         verify(propuestaMiniObjetivosService, never()).medidor(any(), any());
     }
 
-    private void thenSeIntentanCerrarDosSemanas() {
+    private void entoncesSeIntentanCerrarDosSemanas() {
         verify(resumenSemanalRepository, times(2)).save(any());
     }
 
-    private void thenSeCierraLaSemanaDelNegocioQueFunciona() {
+    private void entoncesSeCierraLaSemanaDelNegocioQueFunciona() {
         verify(resumenSemanalRepository).save(any());
     }
 
-    private void thenSePideLaSegundaTandaYSeCierraLaSemana() {
+    private void entoncesSePideLaSegundaTandaYSeCierraLaSemana() {
         verify(objetivoRepository).findNegocioIdsConObjetivos(1, 1);
         verify(resumenSemanalRepository).save(any());
     }
 
-    private void thenSeCierranLosDosObjetivosConUnaSolaMedicion() {
+    private void entoncesSeCierranLosDosObjetivosConUnaSolaMedicion() {
         verify(resumenSemanalRepository, times(2)).save(any());
         verify(propuestaMiniObjetivosService, times(1)).medidor(NEGOCIO_ID, DOMINGO);
     }
 
-    private void thenElManualAbandonadoQuedaIntactoYNoSumaAlCierre() {
+    private void entoncesElManualAbandonadoQuedaIntactoYNoSumaAlCierre() {
         assertThat(resumenGuardado().minis()).containsExactly(new CierreMini(MINI_ID, SIN_LLEGAR));
         assertThat(resumenGuardado().reajustes()).isEmpty();
         assertThat(miniAnterior.getReemplazadoPor()).isNull();
         verify(miniObjetivoRepository, never()).save(miniAnterior);
     }
 
-    private void thenSeCierraSinAvanceNiCuantoFalta() {
+    private void entoncesSeCierraSinAvanceNiCuantoFalta() {
         ResumenSemanal resumen = resumenGuardado();
         assertThat(resumen.avance()).isEqualByComparingTo("0");
         assertThat(resumen.queFunciono()).doesNotContain("Te faltan").contains("de la semana que viene.");
     }
 
-    private void thenElManualQuedaLogradoYLoSigueUnoNuevo() {
+    private void entoncesElManualQuedaLogradoYLoSigueUnoNuevo() {
         MiniObjetivo nuevo = nuevoGuardado();
         ReajusteMiniObjetivo reajuste = unicoReajuste();
         assertThat(miniAnterior.getEstado()).isEqualTo(EstadoMiniObjetivo.LOGRADO);
@@ -1041,7 +1041,7 @@ class CerrarSemanasObjetivosTest {
         assertThat(reajuste.tituloNuevo()).isEqualTo(nuevo.getTitulo());
     }
 
-    private void thenElNuevoManualEsUnPasoMas() {
+    private void entoncesElNuevoManualEsUnPasoMas() {
         MiniObjetivo nuevo = nuevoGuardado();
         ReajusteMiniObjetivo reajuste = unicoReajuste();
         assertThat(nuevo.getTitulo()).isEqualTo("Un paso más: " + TITULO_MANUAL);
@@ -1050,38 +1050,38 @@ class CerrarSemanasObjetivosTest {
         assertThat(reajuste.motivo()).startsWith("Hiciste «" + TITULO_MANUAL + "» y te funcionó");
     }
 
-    private void thenElManualQuedaReemplazadoPorLoQueFalto() {
+    private void entoncesElManualQuedaReemplazadoPorLoQueFalto() {
         assertThat(miniAnterior.getEstado()).isEqualTo(EstadoMiniObjetivo.REEMPLAZADO);
         assertThat(nuevoGuardado().getTitulo()).isEqualTo("Lo que faltó: " + TITULO_MANUAL);
         assertThat(unicoReajuste().tipo()).isEqualTo(TipoReajuste.REEMPLAZAR);
     }
 
-    private void thenElManualSeSimplifica() {
+    private void entoncesElManualSeSimplifica() {
         assertThat(nuevoGuardado().getTitulo()).isEqualTo("Versión corta: " + TITULO_MANUAL);
         assertThat(unicoReajuste().tipo()).isEqualTo(TipoReajuste.REEMPLAZAR);
     }
 
-    private void thenElManualQuedaLogradoYCambiaPorOtraAccion() {
+    private void entoncesElManualQuedaLogradoYCambiaPorOtraAccion() {
         assertThat(miniAnterior.getEstado()).isEqualTo(EstadoMiniObjetivo.LOGRADO);
         assertThat(nuevoGuardado().getTitulo()).isEqualTo("Probá otra acción para tu objetivo");
         assertThat(unicoReajuste().tipo()).isEqualTo(TipoReajuste.PROBAR_OTRO_CAMINO);
     }
 
-    private void thenElResumenCuentaLoRespondidoDeLosManuales() {
+    private void entoncesElResumenCuentaLoRespondidoDeLosManuales() {
         ResumenSemanal resumen = resumenGuardado();
         assertThat(resumen.manuales()).containsExactly(
                 new ManualCierre(OTRO_MINI_ID, TITULO_MANUAL, HizoManual.SI, QuePaso.FUNCIONO));
         assertThat(resumen.queFunciono()).contains("De tus acciones respondiste: 1 hechas, 0 en parte y 0 sin hacer.");
     }
 
-    private void thenElManualSinRespuestaSigueIgual() {
+    private void entoncesElManualSinRespuestaSigueIgual() {
         assertThat(miniAnterior.estaEnCurso()).isTrue();
         assertThat(miniAnterior.getReemplazadoPor()).isNull();
         assertThat(resumenGuardado().reajustes()).isEmpty();
         verify(miniObjetivoRepository, never()).save(any());
     }
 
-    private void thenElResumenDiceQueElManualSigueIgualHastaQueResponda() {
+    private void entoncesElResumenDiceQueElManualSigueIgualHastaQueResponda() {
         ResumenSemanal resumen = resumenGuardado();
         assertThat(resumen.manuales()).containsExactly(
                 new ManualCierre(OTRO_MINI_ID, TITULO_MANUAL, null, null));
@@ -1089,7 +1089,7 @@ class CerrarSemanasObjetivosTest {
                 + "»: queda igual hasta que respondas.");
     }
 
-    private void thenSeReajustanLosMedidosYSeRenuevanLosManuales() {
+    private void entoncesSeReajustanLosMedidosYSeRenuevanLosManuales() {
         ResumenSemanal resumen = resumenGuardado();
         assertThat(resumen.reajustes()).extracting(ReajusteMiniObjetivo::tipo)
                 .containsExactly(TipoReajuste.SUBIR_META, TipoReajuste.REEMPLAZAR);
@@ -1097,36 +1097,36 @@ class CerrarSemanasObjetivosTest {
         verify(miniObjetivoRepository, times(4)).save(any(MiniObjetivo.class));
     }
 
-    private void thenSeRenuevaElManualConUnPasoMas() {
+    private void entoncesSeRenuevaElManualConUnPasoMas() {
         assertThat(unicoReajuste().tipo()).isEqualTo(TipoReajuste.SUBIR_META);
     }
 
-    private void thenElManualDeLaSemanaSiguienteNoEntraNiSeRenueva() {
+    private void entoncesElManualDeLaSemanaSiguienteNoEntraNiSeRenueva() {
         assertThat(resumenGuardado().manuales()).isEmpty();
         assertThat(miniAnterior.estaEnCurso()).isTrue();
         verify(miniObjetivoRepository, never()).save(any());
     }
 
-    private void thenElResumenCuentaElManualPeroNoLoRenueva() {
+    private void entoncesElResumenCuentaElManualPeroNoLoRenueva() {
         assertThat(resumenGuardado().manuales()).hasSize(1);
         assertThat(resumenGuardado().reajustes()).isEmpty();
         assertThat(miniAnterior.estaEnCurso()).isTrue();
     }
 
-    private void thenElManualSeRenuevaUnaSolaVezEnDosSemanas() {
+    private void entoncesElManualSeRenuevaUnaSolaVezEnDosSemanas() {
         verify(resumenSemanalRepository, times(2)).save(any(ResumenSemanal.class));
         verify(miniObjetivoRepository, times(2)).save(any(MiniObjetivo.class));
         assertThat(miniAnterior.getEstado()).isEqualTo(EstadoMiniObjetivo.LOGRADO);
     }
 
-    private void thenLaAccionNuevaLaRedactaLaIa() {
+    private void entoncesLaAccionNuevaLaRedactaLaIa() {
         MiniObjetivo nuevo = nuevoGuardado();
         assertThat(nuevo.getTitulo()).isEqualTo("Hablá con 2 vecinas más");
         assertThat(nuevo.getJustificacion()).isEqualTo("Con más charlas sabés qué piden.");
         assertThat(nuevo.isTextoConIa()).isTrue();
     }
 
-    private void thenLaIaRecibeElPedidoSinDatosPersonales() {
+    private void entoncesLaIaRecibeElPedidoSinDatosPersonales() {
         ArgumentCaptor<List<PedidoRenovacion>> pedidos = ArgumentCaptor.captor();
         verify(renovacionManualesIaPort).renovar(pedidos.capture());
         assertThat(pedidos.getValue()).singleElement().satisfies(pedido -> {
@@ -1136,35 +1136,35 @@ class CerrarSemanasObjetivosTest {
         });
     }
 
-    private void thenSeRegistraElConsumoDeLaIa() {
+    private void entoncesSeRegistraElConsumoDeLaIa() {
         verify(consumoSamiRepository).registrar(eq(NEGOCIO_ID), any(), eq(CONSUMO), eq(AHORA_CIERRE));
     }
 
-    private void thenSeUsaElTextoDeReserva() {
+    private void entoncesSeUsaElTextoDeReserva() {
         MiniObjetivo nuevo = nuevoGuardado();
         assertThat(nuevo.getTitulo()).isEqualTo("Versión corta: " + TITULO_MANUAL);
         assertThat(nuevo.isTextoConIa()).isFalse();
     }
 
-    private void thenNoSeRegistraConsumo() {
+    private void entoncesNoSeRegistraConsumo() {
         verify(consumoSamiRepository, never()).registrar(any(), any(), any(), any());
     }
 
-    private void thenSeUsaElTextoDeReservaSinConsultarLaIa() {
+    private void entoncesSeUsaElTextoDeReservaSinConsultarLaIa() {
         assertThat(nuevoGuardado().getTitulo()).isEqualTo("Versión corta: " + TITULO_MANUAL);
         verifyNoInteractions(renovacionManualesIaPort, consumoSamiRepository);
     }
 
-    private void thenSeUsaElTextoDeReservaSinPedirleNadaALaIa() {
+    private void entoncesSeUsaElTextoDeReservaSinPedirleNadaALaIa() {
         assertThat(nuevoGuardado().getTitulo()).isEqualTo("Versión corta: " + TITULO_MANUAL);
         verifyNoInteractions(renovacionManualesIaPort);
     }
 
-    private void thenNoSeConsultaLaIaNiSuCuota() {
+    private void entoncesNoSeConsultaLaIaNiSuCuota() {
         verifyNoInteractions(renovacionManualesIaPort, controlPlanService, consumoSamiRepository);
     }
 
-    private void thenNoSePideNadaALaIa() {
+    private void entoncesNoSePideNadaALaIa() {
         verifyNoInteractions(renovacionManualesIaPort);
     }
 

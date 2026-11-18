@@ -151,252 +151,252 @@ class ObjetivoUseCaseConfigTest {
 
     @Test
     @DisplayName("El wiring de la propuesta carga los sistemas del negocio y no encuentra candidatos sin datos")
-    void propuestaMiniObjetivosServiceShouldWireTheBusinessSources() {
-        givenUnNegocioSinSistemasNiZona();
+    void elWiringDeLaPropuestaCargaLosSistemasDelNegocioYNoEncuentraCandidatosSin() {
+        dadoUnNegocioSinSistemasNiZona();
 
-        whenSePideLaPropuestaDeCandidatos();
+        cuandoSePideLaPropuestaDeCandidatos();
 
-        thenNoHayCandidatosSinDatos();
+        entoncesNoHayCandidatosSinDatos();
     }
 
     @Test
     @DisplayName("El wiring de listar mini-objetivos conecta los repositorios")
-    void listarMiniObjetivosShouldWireTheRepositories() {
-        givenObjetivoYMiniObjetivo();
-        givenLosMinisDelObjetivo();
+    void elWiringDeListarMiniObjetivosConectaLosRepositorios() {
+        dadoObjetivoYMiniObjetivo();
+        dadoLosMinisDelObjetivo();
 
-        whenSeListanLosMiniObjetivos();
+        cuandoSeListanLosMiniObjetivos();
 
-        thenSeListaUnMiniObjetivo();
+        entoncesSeListaUnMiniObjetivo();
     }
 
     @Test
     @DisplayName("El wiring de listar candidatos conecta la propuesta y el reloj")
-    void listarCandidatosShouldWireTheProposal() {
-        givenObjetivoYMiniObjetivo();
-        givenLosMinisDelObjetivo();
-        givenUnNegocioSinSistemasNiZona();
+    void elWiringDeListarCandidatosConectaLaPropuestaYElReloj() {
+        dadoObjetivoYMiniObjetivo();
+        dadoLosMinisDelObjetivo();
+        dadoUnNegocioSinSistemasNiZona();
 
-        whenSeListanLosCandidatos();
+        cuandoSeListanLosCandidatos();
 
-        thenNoHayCandidatosParaElegir();
+        entoncesNoHayCandidatosParaElegir();
     }
 
     @Test
     @DisplayName("El wiring de reemplazar conecta la propuesta: sin candidatos el elegido no está disponible")
-    void reemplazarMiniObjetivoShouldWireTheProposal() {
-        givenObjetivoYMiniObjetivo();
-        givenLosMinisDelObjetivo();
-        givenUnNegocioSinSistemasNiZona();
+    void elWiringDeReemplazarConectaLaPropuestaSinCandidatosElElegidoNoEsta() {
+        dadoObjetivoYMiniObjetivo();
+        dadoLosMinisDelObjetivo();
+        dadoUnNegocioSinSistemasNiZona();
 
-        whenSeReemplazaUnMiniObjetivo();
+        cuandoSeReemplazaUnMiniObjetivo();
 
-        thenSeRechazaPorReglaDeNegocio();
+        entoncesSeRechazaPorReglaDeNegocio();
     }
 
     @Test
     @DisplayName("El wiring de abandonar conecta los repositorios y guarda el mini-objetivo quitado")
-    void abandonarMiniObjetivoShouldWireTheRepositories() {
-        givenObjetivoYMiniObjetivo();
+    void elWiringDeAbandonarConectaLosRepositoriosYGuardaElMiniObjetivoQuitado() {
+        dadoObjetivoYMiniObjetivo();
 
-        whenSeAbandonaUnMiniObjetivo();
+        cuandoSeAbandonaUnMiniObjetivo();
 
-        thenSeGuardaElMiniObjetivoAbandonado();
+        entoncesSeGuardaElMiniObjetivoAbandonado();
     }
 
     @Test
     @DisplayName("El wiring de pasos conecta las fuentes reales del negocio")
-    void obtenerPasosShouldWireBusinessSources() {
-        givenUnNegocioSinSistemasNiZona();
-        givenElNegocioDelUsuario();
+    void elWiringDePasosConectaLasFuentesRealesDelNegocio() {
+        dadoUnNegocioSinSistemasNiZona();
+        dadoElNegocioDelUsuario();
 
-        whenSeObtienenLosPasos();
+        cuandoSeObtienenLosPasos();
 
-        thenNoHayPasos();
+        entoncesNoHayPasos();
     }
 
     @Test
     @DisplayName("El wiring del monitoreo mide cada objetivo y guarda su foto del día")
-    void monitorearObjetivosShouldWireTheRepositories() {
-        givenUnNegocioConUnObjetivoSinSistemas();
+    void elWiringDelMonitoreoMideCadaObjetivoYGuardaSuFotoDelDia() {
+        dadoUnNegocioConUnObjetivoSinSistemas();
 
-        whenSeMonitoreanLosObjetivos();
+        cuandoSeMonitoreanLosObjetivos();
 
-        thenSeGuardaLaFotoDelObjetivo();
+        entoncesSeGuardaLaFotoDelObjetivo();
     }
 
     @Test
     @DisplayName("El wiring de medir mide el negocio de la sesión y guarda su foto del día")
-    void medirObjetivosShouldWireTheRepositories() {
-        givenUnNegocioConUnObjetivoSinSistemas();
-        givenElNegocioDelUsuario();
+    void elWiringDeMedirMideElNegocioDeLaSesionYGuardaSuFotoDelDia() {
+        dadoUnNegocioConUnObjetivoSinSistemas();
+        dadoElNegocioDelUsuario();
 
-        whenSeMidenLosObjetivos();
+        cuandoSeMidenLosObjetivos();
 
-        thenSeGuardaUnaFoto();
+        entoncesSeGuardaUnaFoto();
     }
 
     @Test
     @DisplayName("El wiring del progreso busca el objetivo del negocio de la sesión")
-    void obtenerProgresoShouldWireTheRepositories() {
-        givenObjetivoYMiniObjetivo();
-        givenUnNegocioSinSistemasNiZona();
+    void elWiringDelProgresoBuscaElObjetivoDelNegocioDeLaSesion() {
+        dadoObjetivoYMiniObjetivo();
+        dadoUnNegocioSinSistemasNiZona();
 
-        whenSeObtieneElProgreso();
+        cuandoSeObtieneElProgreso();
 
-        thenElProgresoTieneLaMetaYNoTieneSemanas();
+        entoncesElProgresoTieneLaMetaYNoTieneSemanas();
     }
 
     @Test
     @DisplayName("El wiring del servicio de decisiones anota una decisión por objetivo activo")
-    void decisionesObjetivoServiceShouldWireTheRepositories() {
-        givenUnObjetivoActivoConUnMiniObjetivo();
+    void elWiringDelServicioDeDecisionesAnotaUnaDecisionPorObjetivoActivo() {
+        dadoUnObjetivoActivoConUnMiniObjetivo();
 
-        whenSeRegistraUnAvisoAplicado();
+        cuandoSeRegistraUnAvisoAplicado();
 
-        thenSeAnotaLaDecisionDelMiniObjetivo();
+        entoncesSeAnotaLaDecisionDelMiniObjetivo();
     }
 
     @Test
     @DisplayName("El wiring de decidir un paso busca el mini-objetivo del negocio de la sesión y guarda la decisión")
-    void registrarDecisionPasoShouldWireTheRepositories() {
-        givenObjetivoYMiniObjetivo();
-        givenQueSeGuardaLaDecision();
+    void elWiringDeDecidirUnPasoBuscaElMiniObjetivoDelNegocioDeLaSesionYGuardaLa() {
+        dadoObjetivoYMiniObjetivo();
+        dadoQueSeGuardaLaDecision();
 
-        whenSeRegistraLaDecisionDeUnPaso();
+        cuandoSeRegistraLaDecisionDeUnPaso();
 
-        thenSeGuardaLaDecisionDelPasoAceptado();
+        entoncesSeGuardaLaDecisionDelPasoAceptado();
     }
 
     @Test
     @DisplayName("El wiring de listar decisiones busca el objetivo del negocio de la sesión")
-    void listarDecisionesShouldWireTheRepositories() {
-        givenObjetivoYMiniObjetivo();
+    void elWiringDeListarDecisionesBuscaElObjetivoDelNegocioDeLaSesion() {
+        dadoObjetivoYMiniObjetivo();
 
-        whenSeListanLasDecisiones();
+        cuandoSeListanLasDecisiones();
 
-        thenNoHayDecisionesYSeBuscaronLasDelObjetivo();
+        entoncesNoHayDecisionesYSeBuscaronLasDelObjetivo();
     }
 
     @Test
     @DisplayName("El wiring del cierre semanal cierra la semana pendiente y guarda su resumen")
-    void cerrarSemanasObjetivosShouldWireTheRepositories() {
-        givenUnObjetivoDeLaSemanaPasadaSinSistemas();
+    void elWiringDelCierreSemanalCierraLaSemanaPendienteYGuardaSuResumen() {
+        dadoUnObjetivoDeLaSemanaPasadaSinSistemas();
 
-        whenSeCierranLasSemanas();
+        cuandoSeCierranLasSemanas();
 
-        thenSeGuardaElResumenDeLaSemana();
+        entoncesSeGuardaElResumenDeLaSemana();
     }
 
     @Test
     @DisplayName("El wiring de listar semanas busca el objetivo del negocio de la sesión")
-    void listarSemanasShouldWireTheRepositories() {
-        givenObjetivoYMiniObjetivo();
+    void elWiringDeListarSemanasBuscaElObjetivoDelNegocioDeLaSesion() {
+        dadoObjetivoYMiniObjetivo();
 
-        whenSeListanLasSemanas();
+        cuandoSeListanLasSemanas();
 
-        thenNoHaySemanasYSeBuscaronLasDelObjetivo();
+        entoncesNoHaySemanasYSeBuscaronLasDelObjetivo();
     }
 
     @Test
     @DisplayName("El wiring de responder un mini-objetivo conecta los repositorios, la transacción y el reloj")
-    void responderMiniObjetivoShouldWireTheRepositories() {
-        givenUnManualSinResponder();
+    void elWiringDeResponderUnMiniObjetivoConectaLosRepositoriosLaTransaccionYEl() {
+        dadoUnManualSinResponder();
 
-        whenSeRespondeElManual();
+        cuandoSeRespondeElManual();
 
-        thenSeGuardaLaRespuestaYLaDecision();
+        entoncesSeGuardaLaRespuestaYLaDecision();
     }
 
     @Test
     @DisplayName("El wiring de listar respuestas pendientes conecta los repositorios")
-    void listarRespuestasPendientesShouldWireTheRepositories() {
-        givenUnManualPendiente();
+    void elWiringDeListarRespuestasPendientesConectaLosRepositorios() {
+        dadoUnManualPendiente();
 
-        whenSeListanLasRespuestasPendientes();
+        cuandoSeListanLasRespuestasPendientes();
 
-        thenHayUnaRespuestaPendiente();
+        entoncesHayUnaRespuestaPendiente();
     }
 
     @Test
     @DisplayName("El wiring de proponer con Sami conecta la propuesta, la IA, el consumo y sus límites")
-    void proponerObjetivoConSamiShouldWireTheCollaboratorsAndTheLimits() {
-        givenUnaIaQueProponeUnaAccion();
+    void elWiringDeProponerConSamiConectaLaPropuestaLaIaElConsumoYSusLimites() {
+        dadoUnaIaQueProponeUnaAccion();
 
-        whenSePropone();
+        cuandoSePropone();
 
-        thenSeProponeConLaIaYSeReservaConElLimiteConfigurado();
+        entoncesSeProponeConLaIaYSeReservaConElLimiteConfigurado();
     }
 
     @Test
     @DisplayName("El wiring de proponer con Sami respeta si la conversación está apagada y el tope de mensajes")
-    void proponerObjetivoConSamiShouldWireTheSwitchAndTheMessageLimit() {
-        givenUnNegocioConCuotaYSinSistemas();
+    void elWiringDeProponerConSamiRespetaSiLaConversacionEstaApagadaYElTopeDe() {
+        dadoUnNegocioConCuotaYSinSistemas();
 
-        whenSeProponeConLaConversacionApagada();
+        cuandoSeProponeConLaConversacionApagada();
 
-        thenSeProponeElRespaldoSinMensajesRestantes();
+        entoncesSeProponeElRespaldoSinMensajesRestantes();
     }
 
     @Test
     @DisplayName("El wiring de guardar con Sami conecta los repositorios, la propuesta, la transacción y el reloj")
-    void guardarObjetivoConSamiShouldWireTheCollaborators() {
-        givenUnNegocioQueGuardaObjetivos();
+    void elWiringDeGuardarConSamiConectaLosRepositoriosLaPropuestaLaTransaccionYEl() {
+        dadoUnNegocioQueGuardaObjetivos();
 
-        whenSeGuardaConSeguimientoManual();
+        cuandoSeGuardaConSeguimientoManual();
 
-        thenSeGuardaElObjetivoManualYSuMini();
+        entoncesSeGuardaElObjetivoManualYSuMini();
     }
 
     @Test
     @DisplayName("El wiring de guardar con Sami conecta el control del plan y el consumo de la cuota")
-    void guardarObjetivoConSamiShouldWireTheAllowance() {
-        givenUnNegocioQueGuardaObjetivos();
+    void elWiringDeGuardarConSamiConectaElControlDelPlanYElConsumoDeLaCuota() {
+        dadoUnNegocioQueGuardaObjetivos();
 
-        whenSeGuardaConUnaAccionDeSami();
+        cuandoSeGuardaConUnaAccionDeSami();
 
-        thenSeValidaYSeGastaLaCuota();
+        entoncesSeValidaYSeGastaLaCuota();
     }
 
     // --- arrange ---
-    private void givenElNegocioDelUsuario() {
+    private void dadoElNegocioDelUsuario() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
-    private void givenUnNegocioSinSistemasNiZona() {
+    private void dadoUnNegocioSinSistemasNiZona() {
         when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
         when(negocioRepository.findZonaIdById(NEGOCIO_ID)).thenReturn(Optional.empty());
     }
 
-    private void givenObjetivoYMiniObjetivo() {
-        givenElNegocioDelUsuario();
+    private void dadoObjetivoYMiniObjetivo() {
+        dadoElNegocioDelUsuario();
         when(objetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID)).thenReturn(objetivo());
         when(miniObjetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID, MINI_ID)).thenReturn(miniObjetivo());
     }
 
-    private void givenLosMinisDelObjetivo() {
+    private void dadoLosMinisDelObjetivo() {
         when(miniObjetivoRepository.findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID))
                 .thenReturn(List.of(miniObjetivo()));
     }
 
-    private void givenUnNegocioConUnObjetivoSinSistemas() {
+    private void dadoUnNegocioConUnObjetivoSinSistemas() {
         when(objetivoRepository.findNegocioIdsConObjetivos(0, 50)).thenReturn(List.of(NEGOCIO_ID));
         when(objetivoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(objetivo()));
         when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
     }
 
-    private void givenUnObjetivoActivoConUnMiniObjetivo() {
+    private void dadoUnObjetivoActivoConUnMiniObjetivo() {
         Objetivo delNegocio = objetivo();
         delNegocio.setNegocioId(NEGOCIO_ID);
         when(objetivoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(delNegocio));
-        givenLosMinisDelObjetivo();
+        dadoLosMinisDelObjetivo();
     }
 
-    private void givenQueSeGuardaLaDecision() {
+    private void dadoQueSeGuardaLaDecision() {
         when(decisionObjetivoRepository.save(any(DecisionObjetivo.class))).thenAnswer(call -> call.getArgument(0));
     }
 
-    private void givenUnObjetivoDeLaSemanaPasadaSinSistemas() {
+    private void dadoUnObjetivoDeLaSemanaPasadaSinSistemas() {
         Objetivo deLaSemanaPasada = objetivo();
         deLaSemanaPasada.setCreadoEn(AHORA.minusWeeks(1));
         when(objetivoRepository.findNegocioIdsConObjetivos(0, 50)).thenReturn(List.of(NEGOCIO_ID));
@@ -404,36 +404,36 @@ class ObjetivoUseCaseConfigTest {
         when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
     }
 
-    private void givenUnManualSinResponder() {
-        givenElNegocioDelUsuario();
+    private void dadoUnManualSinResponder() {
+        dadoElNegocioDelUsuario();
         when(objetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID)).thenReturn(objetivo());
         when(miniObjetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID, OTRO_MINI_ID)).thenReturn(miniManual());
         when(respuestaMiniObjetivoRepository.save(any(RespuestaMiniObjetivo.class)))
                 .thenAnswer(call -> call.getArgument(0));
     }
 
-    private void givenUnManualPendiente() {
-        givenElNegocioDelUsuario();
+    private void dadoUnManualPendiente() {
+        dadoElNegocioDelUsuario();
         when(objetivoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(objetivo()));
         when(miniObjetivoRepository.findAllPendientesDeRespuestaByNegocioId(NEGOCIO_ID))
                 .thenReturn(List.of(miniManual()));
     }
 
-    private void givenUnaIaQueProponeUnaAccion() {
-        givenUnNegocioConCuotaYSinSistemas();
+    private void dadoUnaIaQueProponeUnaAccion() {
+        dadoUnNegocioConCuotaYSinSistemas();
         when(consumoSamiRepository.reservar(any(), any(), anyInt(), any())).thenReturn(true);
         when(conversacionObjetivosIaPort.conversar(any(ConsultaObjetivoIa.class)))
                 .thenReturn(respuestaIa(manual(TITULO_ACCION, JUSTIFICACION_ACCION)));
     }
 
-    private void givenUnNegocioConCuotaYSinSistemas() {
-        givenElNegocioDelUsuario();
-        givenUnNegocioSinSistemasNiZona();
+    private void dadoUnNegocioConCuotaYSinSistemas() {
+        dadoElNegocioDelUsuario();
+        dadoUnNegocioSinSistemasNiZona();
         when(controlPlanService.cuotaObjetivosIa(eq(NEGOCIO_ID), any())).thenReturn(new CuotaObjetivosIa(0, 5));
     }
 
-    private void givenUnNegocioQueGuardaObjetivos() {
-        givenElNegocioDelUsuario();
+    private void dadoUnNegocioQueGuardaObjetivos() {
+        dadoElNegocioDelUsuario();
         when(objetivoRepository.save(any(Objetivo.class))).thenAnswer(call -> {
             Objetivo objetivo = call.getArgument(0);
             objetivo.setId(OBJETIVO_ID);
@@ -442,22 +442,22 @@ class ObjetivoUseCaseConfigTest {
     }
 
     // --- act ---
-    private void whenSePideLaPropuestaDeCandidatos() {
+    private void cuandoSePideLaPropuestaDeCandidatos() {
         candidatosDelNegocio = propuesta().candidatos(NEGOCIO_ID, HOY);
     }
 
-    private void whenSeListanLosMiniObjetivos() {
+    private void cuandoSeListanLosMiniObjetivos() {
         minis = config.listarMiniObjetivos(negocioRepository, objetivoRepository, miniObjetivoRepository)
                 .execute(new ListarMiniObjetivosRequest(USUARIO_ID, OBJETIVO_ID));
     }
 
-    private void whenSeListanLosCandidatos() {
+    private void cuandoSeListanLosCandidatos() {
         candidatos = config
                 .listarCandidatos(negocioRepository, objetivoRepository, miniObjetivoRepository, propuesta(), CLOCK)
                 .execute(new ListarCandidatosRequest(USUARIO_ID, OBJETIVO_ID, MINI_ID));
     }
 
-    private void whenSeReemplazaUnMiniObjetivo() {
+    private void cuandoSeReemplazaUnMiniObjetivo() {
         var reemplazar = config.reemplazarMiniObjetivo(
                 negocioRepository, objetivoRepository, miniObjetivoRepository, propuesta(),
                 new TransaccionDirecta(), CLOCK);
@@ -465,13 +465,13 @@ class ObjetivoUseCaseConfigTest {
                 USUARIO_ID, OBJETIVO_ID, MINI_ID, TipoMiniObjetivo.MEJORAR_MARGEN, null, null)));
     }
 
-    private void whenSeAbandonaUnMiniObjetivo() {
+    private void cuandoSeAbandonaUnMiniObjetivo() {
         config.abandonarMiniObjetivo(
                         negocioRepository, objetivoRepository, miniObjetivoRepository, new TransaccionDirecta(), CLOCK)
                 .execute(new AbandonarMiniObjetivoRequest(USUARIO_ID, OBJETIVO_ID, MINI_ID));
     }
 
-    private void whenSeObtienenLosPasos() {
+    private void cuandoSeObtienenLosPasos() {
         pasos = config.obtenerPasos(
                         negocioRepository,
                         sistemaRepository,
@@ -483,46 +483,46 @@ class ObjetivoUseCaseConfigTest {
                 .execute(new ObtenerPasosRequest(USUARIO_ID));
     }
 
-    private void whenSeMonitoreanLosObjetivos() {
+    private void cuandoSeMonitoreanLosObjetivos() {
         config.monitorearObjetivos(
                         objetivoRepository, monitoreo(), new TransaccionDirecta(), CLOCK,
                         new ObjetivosMonitoreoProperties(50))
                 .execute();
     }
 
-    private void whenSeMidenLosObjetivos() {
+    private void cuandoSeMidenLosObjetivos() {
         config.medirObjetivos(negocioRepository, monitoreo(), new TransaccionDirecta(), CLOCK)
                 .execute(new MedirObjetivosRequest(USUARIO_ID));
     }
 
-    private void whenSeObtieneElProgreso() {
+    private void cuandoSeObtieneElProgreso() {
         progreso = config.obtenerProgreso(
                         negocioRepository, objetivoRepository, miniObjetivoRepository, progresoObjetivoRepository,
                         propuesta(), resumenSemanalRepository, CLOCK)
                 .execute(new ObtenerProgresoRequest(USUARIO_ID, OBJETIVO_ID));
     }
 
-    private void whenSeRegistraUnAvisoAplicado() {
+    private void cuandoSeRegistraUnAvisoAplicado() {
         Aviso aplicado = aviso(TipoAviso.ESTANCADO, EstadoAviso.APLICADO);
         aplicado.setNegocioId(NEGOCIO_ID);
         config.decisionesObjetivoService(objetivoRepository, miniObjetivoRepository, decisionObjetivoRepository)
                 .registrarAviso(aplicado, TipoDecision.AVISO_APLICADO, AHORA);
     }
 
-    private void whenSeRegistraLaDecisionDeUnPaso() {
+    private void cuandoSeRegistraLaDecisionDeUnPaso() {
         config.registrarDecisionPaso(
                         negocioRepository, objetivoRepository, miniObjetivoRepository, decisionObjetivoRepository,
                         new TransaccionDirecta(), CLOCK)
                 .execute(new RegistrarDecisionPasoRequest(USUARIO_ID, OBJETIVO_ID, MINI_ID, DecisionPaso.ACEPTADO));
     }
 
-    private void whenSeListanLasDecisiones() {
+    private void cuandoSeListanLasDecisiones() {
         decisiones = config.listarDecisiones(
                         negocioRepository, objetivoRepository, decisionObjetivoRepository, avisoRepository)
                 .execute(new ListarDecisionesRequest(USUARIO_ID, OBJETIVO_ID));
     }
 
-    private void whenSeCierranLasSemanas() {
+    private void cuandoSeCierranLasSemanas() {
         config.cerrarSemanasObjetivos(
                         objetivoRepository, miniObjetivoRepository, decisionObjetivoRepository,
                         avisoRepository, resumenSemanalRepository, propuesta(),
@@ -532,12 +532,12 @@ class ObjetivoUseCaseConfigTest {
                 .execute();
     }
 
-    private void whenSeListanLasSemanas() {
+    private void cuandoSeListanLasSemanas() {
         semanas = config.listarSemanas(negocioRepository, objetivoRepository, resumenSemanalRepository)
                 .execute(new ListarSemanasRequest(USUARIO_ID, OBJETIVO_ID));
     }
 
-    private void whenSeRespondeElManual() {
+    private void cuandoSeRespondeElManual() {
         respondida = config
                 .responderMiniObjetivo(negocioRepository, objetivoRepository, miniObjetivoRepository,
                         respuestaMiniObjetivoRepository, decisionObjetivoRepository, new TransaccionDirecta(), CLOCK)
@@ -545,13 +545,13 @@ class ObjetivoUseCaseConfigTest {
                         USUARIO_ID, OBJETIVO_ID, OTRO_MINI_ID, HizoManual.SI, QuePaso.FUNCIONO, null));
     }
 
-    private void whenSeListanLasRespuestasPendientes() {
+    private void cuandoSeListanLasRespuestasPendientes() {
         pendientes = config
                 .listarRespuestasPendientes(negocioRepository, objetivoRepository, miniObjetivoRepository)
                 .execute(new ListarRespuestasPendientesRequest(USUARIO_ID));
     }
 
-    private void whenSePropone() {
+    private void cuandoSePropone() {
         respuestaDeSami = config
                 .proponerObjetivoConSami(negocioRepository, propuesta(), controlPlanService, consumoSamiRepository,
                         conversacionObjetivosIaPort, CLOCK,
@@ -559,21 +559,21 @@ class ObjetivoUseCaseConfigTest {
                 .execute(new ProponerObjetivoConSamiRequest(USUARIO_ID, mensajes()));
     }
 
-    private void whenSeProponeConLaConversacionApagada() {
+    private void cuandoSeProponeConLaConversacionApagada() {
         ProponerObjetivoConSami apagada = config.proponerObjetivoConSami(negocioRepository, propuesta(),
                 controlPlanService, consumoSamiRepository, conversacionObjetivosIaPort, CLOCK,
                 new ObjetivosIaProperties(true, 10, false, 1));
         respuestaDeSami = apagada.execute(new ProponerObjetivoConSamiRequest(USUARIO_ID, mensajes()));
     }
 
-    private void whenSeGuardaConSeguimientoManual() {
+    private void cuandoSeGuardaConSeguimientoManual() {
         objetivoGuardado = config
                 .guardarObjetivoConSami(negocioRepository, objetivoRepository, miniObjetivoRepository, propuesta(),
                         controlPlanService, usoPlanRepository, new TransaccionDirecta(), CLOCK)
                 .execute(new GuardarObjetivoConSamiRequest(USUARIO_ID, TEXTO_SIN_META, true, List.of()));
     }
 
-    private void whenSeGuardaConUnaAccionDeSami() {
+    private void cuandoSeGuardaConUnaAccionDeSami() {
         MiniElegido accion = new MiniElegido(
                 ModoMiniObjetivo.MANUAL, null, null, null, TITULO_ACCION, JUSTIFICACION_ACCION);
         config.guardarObjetivoConSami(negocioRepository, objetivoRepository, miniObjetivoRepository, propuesta(),
@@ -582,101 +582,101 @@ class ObjetivoUseCaseConfigTest {
     }
 
     // --- assert ---
-    private void thenNoHayCandidatosSinDatos() {
+    private void entoncesNoHayCandidatosSinDatos() {
         assertThat(candidatosDelNegocio.candidatos()).isEmpty();
     }
 
-    private void thenSeListaUnMiniObjetivo() {
+    private void entoncesSeListaUnMiniObjetivo() {
         assertThat(minis.minis()).hasSize(1);
     }
 
-    private void thenNoHayCandidatosParaElegir() {
+    private void entoncesNoHayCandidatosParaElegir() {
         assertThat(candidatos.content()).isEmpty();
     }
 
-    private void thenSeRechazaPorReglaDeNegocio() {
+    private void entoncesSeRechazaPorReglaDeNegocio() {
         assertThat(error).isInstanceOf(BusinessRuleException.class);
     }
 
-    private void thenSeGuardaElMiniObjetivoAbandonado() {
+    private void entoncesSeGuardaElMiniObjetivoAbandonado() {
         ArgumentCaptor<MiniObjetivo> captor = ArgumentCaptor.forClass(MiniObjetivo.class);
         verify(miniObjetivoRepository).save(captor.capture());
         assertThat(captor.getValue().getEstado()).isEqualTo(EstadoMiniObjetivo.ABANDONADO);
     }
 
-    private void thenNoHayPasos() {
+    private void entoncesNoHayPasos() {
         assertThat(pasos.content()).isEmpty();
     }
 
-    private void thenSeGuardaLaFotoDelObjetivo() {
+    private void entoncesSeGuardaLaFotoDelObjetivo() {
         ArgumentCaptor<ProgresoObjetivo> captor = ArgumentCaptor.forClass(ProgresoObjetivo.class);
         verify(progresoObjetivoRepository).registrar(captor.capture());
         assertThat(captor.getValue().objetivoId()).isEqualTo(OBJETIVO_ID);
     }
 
-    private void thenSeGuardaUnaFoto() {
+    private void entoncesSeGuardaUnaFoto() {
         verify(progresoObjetivoRepository).registrar(any(ProgresoObjetivo.class));
     }
 
-    private void thenElProgresoTieneLaMetaYNoTieneSemanas() {
+    private void entoncesElProgresoTieneLaMetaYNoTieneSemanas() {
         assertThat(progreso.meta()).isEqualTo(META);
         assertThat(progreso.semanas()).isEmpty();
     }
 
-    private void thenSeAnotaLaDecisionDelMiniObjetivo() {
+    private void entoncesSeAnotaLaDecisionDelMiniObjetivo() {
         ArgumentCaptor<DecisionObjetivo> captor = ArgumentCaptor.forClass(DecisionObjetivo.class);
         verify(decisionObjetivoRepository).save(captor.capture());
         assertThat(captor.getValue().miniObjetivoId()).isEqualTo(MINI_ID);
     }
 
-    private void thenSeGuardaLaDecisionDelPasoAceptado() {
+    private void entoncesSeGuardaLaDecisionDelPasoAceptado() {
         ArgumentCaptor<DecisionObjetivo> captor = ArgumentCaptor.forClass(DecisionObjetivo.class);
         verify(decisionObjetivoRepository).save(captor.capture());
         assertThat(captor.getValue().tipo()).isEqualTo(TipoDecision.PASO_ACEPTADO);
     }
 
-    private void thenNoHayDecisionesYSeBuscaronLasDelObjetivo() {
+    private void entoncesNoHayDecisionesYSeBuscaronLasDelObjetivo() {
         assertThat(decisiones.semanas()).isEmpty();
         verify(decisionObjetivoRepository).findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID);
     }
 
-    private void thenSeGuardaElResumenDeLaSemana() {
+    private void entoncesSeGuardaElResumenDeLaSemana() {
         ArgumentCaptor<ResumenSemanal> captor = ArgumentCaptor.forClass(ResumenSemanal.class);
         verify(resumenSemanalRepository).save(captor.capture());
         assertThat(captor.getValue().objetivoId()).isEqualTo(OBJETIVO_ID);
     }
 
-    private void thenNoHaySemanasYSeBuscaronLasDelObjetivo() {
+    private void entoncesNoHaySemanasYSeBuscaronLasDelObjetivo() {
         assertThat(semanas.semanas()).isEmpty();
         verify(resumenSemanalRepository).findAllByObjetivoId(OBJETIVO_ID);
     }
 
-    private void thenSeGuardaLaRespuestaYLaDecision() {
+    private void entoncesSeGuardaLaRespuestaYLaDecision() {
         assertThat(respondida.hizo()).isEqualTo(HizoManual.SI);
         verify(decisionObjetivoRepository).save(any(DecisionObjetivo.class));
     }
 
-    private void thenHayUnaRespuestaPendiente() {
+    private void entoncesHayUnaRespuestaPendiente() {
         assertThat(pendientes.pendientes()).hasSize(1);
     }
 
-    private void thenSeProponeConLaIaYSeReservaConElLimiteConfigurado() {
+    private void entoncesSeProponeConLaIaYSeReservaConElLimiteConfigurado() {
         assertThat(respuestaDeSami.origen()).isEqualTo(OrigenPropuesta.IA);
         verify(consumoSamiRepository).reservar(eq(NEGOCIO_ID), any(LocalDate.class), eq(LIMITE_DIARIO_CONFIGURADO), any());
     }
 
-    private void thenSeProponeElRespaldoSinMensajesRestantes() {
+    private void entoncesSeProponeElRespaldoSinMensajesRestantes() {
         assertThat(respuestaDeSami.origen()).isEqualTo(OrigenPropuesta.RESPALDO);
         assertThat(respuestaDeSami.mensajesRestantes()).isZero();
     }
 
-    private void thenSeGuardaElObjetivoManualYSuMini() {
+    private void entoncesSeGuardaElObjetivoManualYSuMini() {
         assertThat(objetivoGuardado.tipo()).isEqualTo(TipoObjetivo.SIN_DATOS);
         assertThat(objetivoGuardado.armadoConSami()).isFalse();
         verify(miniObjetivoRepository).save(any(MiniObjetivo.class));
     }
 
-    private void thenSeValidaYSeGastaLaCuota() {
+    private void entoncesSeValidaYSeGastaLaCuota() {
         verify(controlPlanService).validarObjetivoIa(eq(NEGOCIO_ID), any());
         verify(usoPlanRepository).registrarObjetivoIa(eq(NEGOCIO_ID), eq(OBJETIVO_ID), any());
     }

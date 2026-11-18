@@ -100,230 +100,230 @@ class SamiObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSupport 
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        UUID usuarioId = givenUsuarioYNegocio();
+        UUID usuarioId = dadoUsuarioYNegocio();
         negocioId = jdbcTemplate.queryForObject("SELECT id FROM negocio WHERE duenio_id = ?", UUID.class, usuarioId);
         AlmacenDeObjetivosDePrueba.guardar(sistemaRepository, negocioId);
         suscripciones.asignarGratuito(NegocioId.de(negocioId), OffsetDateTime.now().minusDays(1));
-        sesion = givenSesion(usuarioId);
+        sesion = dadoSesion(usuarioId);
     }
 
     @Test
     @DisplayName("Sami propone una métrica del catálogo con números reales y una acción, y dice en qué datos se apoya")
-    void proponerShouldProposeAMeasuredMetricAndAManualAction() throws Exception {
-        whenSePideUnaPropuesta();
+    void samiProponeUnaMetricaDelCatalogoConNumerosRealesYUnaAccionYDiceEnQueDatosSe() throws Exception {
+        cuandoSePideUnaPropuesta();
 
-        thenSamiProponeUnaMetricaYUnaAccionConSusDatos();
+        entoncesSamiProponeUnaMetricaYUnaAccionConSusDatos();
     }
 
     @Test
     @DisplayName("La propuesta dice cuántos objetivos con IA lleva el mes y cuántos permite el plan")
-    void proponerShouldReportTheMonthlyAllowance() throws Exception {
-        whenSePideUnaPropuesta();
+    void laPropuestaDiceCuantosObjetivosConIaLlevaElMesYCuantosPermiteElPlan() throws Exception {
+        cuandoSePideUnaPropuesta();
 
-        thenLaCuotaEs(0, CUOTA_MENSUAL_GRATUITA, CUOTA_MENSUAL_GRATUITA);
+        entoncesLaCuotaEs(0, CUOTA_MENSUAL_GRATUITA, CUOTA_MENSUAL_GRATUITA);
     }
 
     @Test
     @DisplayName("Guardar con IA gasta una unidad de la cuota, que se ve en la propuesta y en Planes")
-    void guardarShouldSpendOneUnitOfTheAllowance() throws Exception {
-        givenUnObjetivoGuardadoConLoQueSamiPropuso();
+    void guardarConIaGastaUnaUnidadDeLaCuotaQueSeVeEnLaPropuestaYEnPlanes() throws Exception {
+        dadoUnObjetivoGuardadoConLoQueSamiPropuso();
 
-        whenSePideUnaPropuesta();
-        whenSePidenLosPlanes();
+        cuandoSePideUnaPropuesta();
+        cuandoSePidenLosPlanes();
 
-        thenLaCuotaEs(1, CUOTA_MENSUAL_GRATUITA, 4);
-        thenPlanesMuestraElUsoYLosLimites();
+        entoncesLaCuotaEs(1, CUOTA_MENSUAL_GRATUITA, 4);
+        entoncesPlanesMuestraElUsoYLosLimites();
     }
 
     @Test
     @DisplayName("Con la cuota agotada la propuesta no usa la IA y guardar con IA responde 403 LIMITE_OBJETIVOS_IA")
     void shouldStopWhenTheAllowanceIsUsed() throws Exception {
-        givenUnaPropuestaDeSami();
-        givenCuotaAgotada();
+        dadoUnaPropuestaDeSami();
+        dadoCuotaAgotada();
 
-        whenSePideUnaPropuesta();
-        whenSeGuardaLoAceptado();
+        cuandoSePideUnaPropuesta();
+        cuandoSeGuardaLoAceptado();
 
-        thenLaPropuestaEsDeRespaldoYSinCuota();
-        thenGuardarResponde403PorLimite();
-        thenNoSeGuardoNingunObjetivo();
+        entoncesLaPropuestaEsDeRespaldoYSinCuota();
+        entoncesGuardarResponde403PorLimite();
+        entoncesNoSeGuardoNingunObjetivo();
     }
 
     @Test
     @DisplayName("Con la cuota agotada el seguimiento manual se guarda igual y no gasta nada")
-    void guardarShouldStillSaveTheManualFollowUpWithoutAllowance() throws Exception {
-        givenCuotaAgotada();
+    void conLaCuotaAgotadaElSeguimientoManualSeGuardaIgualYNoGastaNada() throws Exception {
+        dadoCuotaAgotada();
 
-        whenSeGuarda(SEGUIMIENTO_MANUAL);
+        cuandoSeGuarda(SEGUIMIENTO_MANUAL);
 
-        thenSeCreo();
-        thenElConsumoSigueEnLaCuotaMensual();
+        entoncesSeCreo();
+        entoncesElConsumoSigueEnLaCuotaMensual();
     }
 
     @Test
     @DisplayName("Eliminar el objetivo no devuelve la cuota del mes")
-    void eliminarShouldNotGiveTheAllowanceBack() throws Exception {
-        givenUnObjetivoGuardadoConLoQueSamiPropuso();
+    void eliminarElObjetivoNoDevuelveLaCuotaDelMes() throws Exception {
+        dadoUnObjetivoGuardadoConLoQueSamiPropuso();
 
-        whenSeEliminaElObjetivo();
-        whenSePideUnaPropuesta();
+        cuandoSeEliminaElObjetivo();
+        cuandoSePideUnaPropuesta();
 
-        thenSeElimino();
-        thenLaCuotaUsadaEs(1);
+        entoncesSeElimino();
+        entoncesLaCuotaUsadaEs(1);
     }
 
     @Test
     @DisplayName("Proponer no guarda nada ni gasta cuota")
-    void proponerShouldNotSaveAnything() throws Exception {
-        whenSePideUnaPropuesta();
+    void proponerNoGuardaNadaNiGastaCuota() throws Exception {
+        cuandoSePideUnaPropuesta();
 
-        thenSeResponde200();
-        thenNoSeGuardoNingunObjetivo();
+        entoncesSeResponde200();
+        entoncesNoSeGuardoNingunObjetivo();
     }
 
     @Test
     @DisplayName("Lo que la persona acepta se guarda como objetivo híbrido sin meta, con sus mini-objetivos")
-    void guardarShouldSaveTheAcceptedProposal() throws Exception {
-        givenUnaPropuestaDeSami();
+    void loQueLaPersonaAceptaSeGuardaComoObjetivoHibridoSinMetaConSusMiniObjetivos() throws Exception {
+        dadoUnaPropuestaDeSami();
 
-        whenSeGuardaLoAceptado();
-        whenSePidenLosMinisYLaListaDelObjetivoGuardado();
+        cuandoSeGuardaLoAceptado();
+        cuandoSePidenLosMinisYLaListaDelObjetivoGuardado();
 
-        thenSeGuardaUnObjetivoHibridoSinMeta();
-        thenSeGuardanSusDosMinisEnOrden();
-        thenLaListaTieneElObjetivoHibridoSinMeta();
+        entoncesSeGuardaUnObjetivoHibridoSinMeta();
+        entoncesSeGuardanSusDosMinisEnOrden();
+        entoncesLaListaTieneElObjetivoHibridoSinMeta();
     }
 
     @Test
     @DisplayName("Los números del mini-objetivo medido los pone el servidor aunque el frontend no los mande")
-    void guardarShouldRecomputeTheNumbersOfAMeasuredMini() throws Exception {
-        givenUnObjetivoGuardadoConLoQueSamiPropuso();
+    void losNumerosDelMiniObjetivoMedidoLosPoneElServidorAunqueElFrontendNoLosMande() throws Exception {
+        dadoUnObjetivoGuardadoConLoQueSamiPropuso();
 
-        thenLaMetaGuardadaDelMedidoEsLaDeLaPropuesta();
+        entoncesLaMetaGuardadaDelMedidoEsLaDeLaPropuesta();
     }
 
     @Test
     @DisplayName("Un objetivo sin meta convive con el resto: progreso, pendientes y respuesta del manual")
-    void guardarShouldLetTheObjetivoWithoutGoalWorkWithTheRest() throws Exception {
-        givenUnObjetivoGuardadoConLoQueSamiPropuso();
+    void unObjetivoSinMetaConviveConElRestoProgresoPendientesYRespuestaDelManual() throws Exception {
+        dadoUnObjetivoGuardadoConLoQueSamiPropuso();
 
-        whenSePideElProgreso();
-        whenSePidenLosPendientes();
-        whenSeRespondeElManualPendiente();
-        whenSeMidenLosObjetivos();
+        cuandoSePideElProgreso();
+        cuandoSePidenLosPendientes();
+        cuandoSeRespondeElManualPendiente();
+        cuandoSeMidenLosObjetivos();
 
-        thenElProgresoNoTieneMetaYTieneUnMini();
-        thenElUnicoPendienteEsElDelObjetivo();
-        thenSeCreoLaRespuestaDelManual();
-        thenSeMidioSinContenido();
+        entoncesElProgresoNoTieneMetaYTieneUnMini();
+        entoncesElUnicoPendienteEsElDelObjetivo();
+        entoncesSeCreoLaRespuestaDelManual();
+        entoncesSeMidioSinContenido();
     }
 
     @Test
     @DisplayName("Guardar como seguimiento manual crea un objetivo sin IA con un solo mini-objetivo manual")
-    void guardarShouldSaveTheManualFollowUp() throws Exception {
-        whenSeGuarda(SEGUIMIENTO_MANUAL);
+    void guardarComoSeguimientoManualCreaUnObjetivoSinIaConUnSoloMiniObjetivoManual() throws Exception {
+        cuandoSeGuarda(SEGUIMIENTO_MANUAL);
 
-        thenSeCreaUnObjetivoSinDatosYSinIa();
-        thenTieneUnSoloMiniManual();
+        entoncesSeCreaUnObjetivoSinDatosYSinIa();
+        entoncesTieneUnSoloMiniManual();
     }
 
     @Test
     @DisplayName("Guardar un mini-objetivo medido que no está en el catálogo responde 400 y no guarda nada")
-    void guardarShouldRejectAMetricThatIsNotInTheCatalog() throws Exception {
-        whenSeGuarda("{\"texto\":\"" + OBJETIVO + "\",\"minis\":[{\"modo\":\"MEDIDO\",\"tipo\":\"RECORTAR_GASTO\","
+    void guardarUnMiniObjetivoMedidoQueNoEstaEnElCatalogoResponde400YNoGuardaNada() throws Exception {
+        cuandoSeGuarda("{\"texto\":\"" + OBJETIVO + "\",\"minis\":[{\"modo\":\"MEDIDO\",\"tipo\":\"RECORTAR_GASTO\","
                 + "\"referencia\":\"Una categoría que no existe\"}]}");
 
-        thenGuardarResponde400();
-        thenNoSeGuardoNingunObjetivo();
+        entoncesGuardarResponde400();
+        entoncesNoSeGuardoNingunObjetivo();
     }
 
     @Test
     @DisplayName("Guardar una acción con un importe responde 400")
-    void guardarShouldRejectAnActionWithAnAmount() throws Exception {
-        whenSeGuarda("{\"texto\":\"" + OBJETIVO + "\",\"minis\":[{\"modo\":\"MANUAL\","
+    void guardarUnaAccionConUnImporteResponde400() throws Exception {
+        cuandoSeGuarda("{\"texto\":\"" + OBJETIVO + "\",\"minis\":[{\"modo\":\"MANUAL\","
                 + "\"titulo\":\"Cobrá $5.000 más\",\"justificacion\":\"Porque sí\"}]}");
 
-        thenGuardarResponde400();
+        entoncesGuardarResponde400();
     }
 
     @Test
     @DisplayName("Con más mensajes que el tope la conversación responde 400")
-    void proponerShouldRejectAConversationOverTheLimit() throws Exception {
-        whenSePideUnaPropuestaCon(conversacionConMensajes(MENSAJES_DE_MAS));
+    void conMasMensajesQueElTopeLaConversacionResponde400() throws Exception {
+        cuandoSePideUnaPropuestaCon(conversacionConMensajes(MENSAJES_DE_MAS));
 
-        thenProponerResponde400();
+        entoncesProponerResponde400();
     }
 
     @Test
     @DisplayName("Proponer y guardar piden sesión y las escrituras piden CSRF")
     void shouldRequireSessionAndCsrf() throws Exception {
-        thenProponerSinSesionResponde401();
-        thenGuardarSinSesionResponde401();
-        thenProponerSinCsrfResponde403();
+        entoncesProponerSinSesionResponde401();
+        entoncesGuardarSinSesionResponde401();
+        entoncesProponerSinCsrfResponde403();
     }
 
     // --- arrange ---
-    private void givenUnaPropuestaDeSami() throws Exception {
-        whenSePideUnaPropuesta();
+    private void dadoUnaPropuestaDeSami() throws Exception {
+        cuandoSePideUnaPropuesta();
         propuesta = respuestaPropuesta.andReturn().getResponse().getContentAsString();
     }
 
-    private void givenUnObjetivoGuardadoConLoQueSamiPropuso() throws Exception {
-        givenUnaPropuestaDeSami();
-        whenSeGuardaLoAceptado();
+    private void dadoUnObjetivoGuardadoConLoQueSamiPropuso() throws Exception {
+        dadoUnaPropuestaDeSami();
+        cuandoSeGuardaLoAceptado();
         objetivoId = JsonPath.read(respuestaGuardar.andReturn().getResponse().getContentAsString(), "$.id");
     }
 
-    private void givenCuotaAgotada() {
+    private void dadoCuotaAgotada() {
         IntStream.range(0, CUOTA_MENSUAL_GRATUITA).forEach(indice -> jdbcTemplate.update(
                 "INSERT INTO consumo_objetivo_ia (negocio_id, objetivo_id, consumido_en) VALUES (?, ?, now())",
                 negocioId, UUID.randomUUID()));
     }
 
     // --- act ---
-    private void whenSePideUnaPropuesta() throws Exception {
-        whenSePideUnaPropuestaCon(CONVERSACION);
+    private void cuandoSePideUnaPropuesta() throws Exception {
+        cuandoSePideUnaPropuestaCon(CONVERSACION);
     }
 
-    private void whenSePideUnaPropuestaCon(String cuerpo) throws Exception {
+    private void cuandoSePideUnaPropuestaCon(String cuerpo) throws Exception {
         respuestaPropuesta = mockMvc.perform(post(PROPUESTA).session(sesion).header("X-CSRF-TOKEN", csrfToken)
                 .contentType("application/json").content(cuerpo));
     }
 
-    private void whenSeGuardaLoAceptado() throws Exception {
-        whenSeGuarda(aceptando(propuesta, false));
+    private void cuandoSeGuardaLoAceptado() throws Exception {
+        cuandoSeGuarda(aceptando(propuesta, false));
     }
 
-    private void whenSeGuarda(String cuerpo) throws Exception {
+    private void cuandoSeGuarda(String cuerpo) throws Exception {
         respuestaGuardar = mockMvc.perform(post(OBJETIVOS + "/sami").session(sesion)
                 .header("X-CSRF-TOKEN", csrfToken).contentType("application/json").content(cuerpo));
     }
 
-    private void whenSePidenLosPlanes() throws Exception {
+    private void cuandoSePidenLosPlanes() throws Exception {
         respuestaPlanes = mockMvc.perform(get("/api/planes").session(sesion));
     }
 
-    private void whenSeEliminaElObjetivo() throws Exception {
+    private void cuandoSeEliminaElObjetivo() throws Exception {
         respuestaEliminar = mockMvc.perform(delete(OBJETIVOS + "/{id}", objetivoId).session(sesion)
                 .header("X-CSRF-TOKEN", csrfToken));
     }
 
-    private void whenSePidenLosMinisYLaListaDelObjetivoGuardado() throws Exception {
+    private void cuandoSePidenLosMinisYLaListaDelObjetivoGuardado() throws Exception {
         objetivoId = JsonPath.read(respuestaGuardar.andReturn().getResponse().getContentAsString(), "$.id");
         respuestaMinis = mockMvc.perform(get(OBJETIVOS + "/{id}/mini-objetivos", objetivoId).session(sesion));
         respuestaLista = mockMvc.perform(get(OBJETIVOS).session(sesion));
     }
 
-    private void whenSePideElProgreso() throws Exception {
+    private void cuandoSePideElProgreso() throws Exception {
         respuestaProgreso = mockMvc.perform(get(OBJETIVOS + "/{id}/progreso", objetivoId).session(sesion));
     }
 
-    private void whenSePidenLosPendientes() throws Exception {
+    private void cuandoSePidenLosPendientes() throws Exception {
         respuestaPendientes = mockMvc.perform(get(OBJETIVOS + "/respuestas-pendientes").session(sesion));
         pendientes = respuestaPendientes.andReturn().getResponse().getContentAsString();
     }
 
-    private void whenSeRespondeElManualPendiente() throws Exception {
+    private void cuandoSeRespondeElManualPendiente() throws Exception {
         String manualId = JsonPath.read(pendientes, "$[0].miniObjetivo.id");
         respuestaDelManual = mockMvc.perform(
                 post(OBJETIVOS + "/{o}/mini-objetivos/{m}/respuesta", objetivoId, manualId)
@@ -331,13 +331,13 @@ class SamiObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSupport 
                         .content("{\"hizo\":\"SI\",\"quePaso\":\"FUNCIONO\"}"));
     }
 
-    private void whenSeMidenLosObjetivos() throws Exception {
+    private void cuandoSeMidenLosObjetivos() throws Exception {
         respuestaMedir = mockMvc.perform(post(OBJETIVOS + "/medir").session(sesion)
                 .header("X-CSRF-TOKEN", csrfToken));
     }
 
     // --- assert ---
-    private void thenSamiProponeUnaMetricaYUnaAccionConSusDatos() throws Exception {
+    private void entoncesSamiProponeUnaMetricaYUnaAccionConSusDatos() throws Exception {
         respuestaPropuesta
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.origen").value("IA"))
@@ -357,18 +357,18 @@ class SamiObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSupport 
                 .andExpect(jsonPath("$.datos[0].hay").value(true));
     }
 
-    private void thenLaCuotaEs(int usadas, int limite, int restantes) throws Exception {
+    private void entoncesLaCuotaEs(int usadas, int limite, int restantes) throws Exception {
         respuestaPropuesta
                 .andExpect(jsonPath("$.cuota.usadas").value(usadas))
                 .andExpect(jsonPath("$.cuota.limite").value(limite))
                 .andExpect(jsonPath("$.cuota.restantes").value(restantes));
     }
 
-    private void thenLaCuotaUsadaEs(int usadas) throws Exception {
+    private void entoncesLaCuotaUsadaEs(int usadas) throws Exception {
         respuestaPropuesta.andExpect(jsonPath("$.cuota.usadas").value(usadas));
     }
 
-    private void thenPlanesMuestraElUsoYLosLimites() throws Exception {
+    private void entoncesPlanesMuestraElUsoYLosLimites() throws Exception {
         respuestaPlanes
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.uso.objetivosIa").value(1))
@@ -377,7 +377,7 @@ class SamiObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSupport 
                 .andExpect(jsonPath("$.planes[1].limiteObjetivosIaMensuales").value(20));
     }
 
-    private void thenLaPropuestaEsDeRespaldoYSinCuota() throws Exception {
+    private void entoncesLaPropuestaEsDeRespaldoYSinCuota() throws Exception {
         respuestaPropuesta
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.origen").value("RESPALDO"))
@@ -385,35 +385,35 @@ class SamiObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSupport 
                 .andExpect(jsonPath("$.cuota.restantes").value(0));
     }
 
-    private void thenGuardarResponde403PorLimite() throws Exception {
+    private void entoncesGuardarResponde403PorLimite() throws Exception {
         respuestaGuardar
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.codigo").value("LIMITE_OBJETIVOS_IA"));
     }
 
-    private void thenNoSeGuardoNingunObjetivo() {
+    private void entoncesNoSeGuardoNingunObjetivo() {
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM objetivo WHERE negocio_id = ?",
                 Integer.class, negocioId)).isZero();
     }
 
-    private void thenSeCreo() throws Exception {
+    private void entoncesSeCreo() throws Exception {
         respuestaGuardar.andExpect(status().isCreated());
     }
 
-    private void thenElConsumoSigueEnLaCuotaMensual() {
+    private void entoncesElConsumoSigueEnLaCuotaMensual() {
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM consumo_objetivo_ia WHERE negocio_id = ?",
                 Integer.class, negocioId)).isEqualTo(CUOTA_MENSUAL_GRATUITA);
     }
 
-    private void thenSeElimino() throws Exception {
+    private void entoncesSeElimino() throws Exception {
         respuestaEliminar.andExpect(status().isNoContent());
     }
 
-    private void thenSeResponde200() throws Exception {
+    private void entoncesSeResponde200() throws Exception {
         respuestaPropuesta.andExpect(status().isOk());
     }
 
-    private void thenSeGuardaUnObjetivoHibridoSinMeta() throws Exception {
+    private void entoncesSeGuardaUnObjetivoHibridoSinMeta() throws Exception {
         respuestaGuardar
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.tipo").value("HIBRIDO"))
@@ -422,7 +422,7 @@ class SamiObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSupport 
                 .andExpect(jsonPath("$.texto").value(OBJETIVO));
     }
 
-    private void thenSeGuardanSusDosMinisEnOrden() throws Exception {
+    private void entoncesSeGuardanSusDosMinisEnOrden() throws Exception {
         respuestaMinis
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.minis.length()").value(2))
@@ -433,14 +433,14 @@ class SamiObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSupport 
                 .andExpect(jsonPath("$.minis[1].meta").doesNotExist());
     }
 
-    private void thenLaListaTieneElObjetivoHibridoSinMeta() throws Exception {
+    private void entoncesLaListaTieneElObjetivoHibridoSinMeta() throws Exception {
         respuestaLista
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].tipo").value("HIBRIDO"))
                 .andExpect(jsonPath("$[0].meta").doesNotExist());
     }
 
-    private void thenLaMetaGuardadaDelMedidoEsLaDeLaPropuesta() {
+    private void entoncesLaMetaGuardadaDelMedidoEsLaDeLaPropuesta() {
         Number metaPropuesta = JsonPath.read(propuesta, "$.minis[0].meta");
         Number metaGuardada = jdbcTemplate.queryForObject(
                 "SELECT meta FROM mini_objetivo WHERE objetivo_id = ? AND modo = 'MEDIDO'", Number.class,
@@ -448,60 +448,60 @@ class SamiObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSupport 
         assertThat(metaGuardada.doubleValue()).isEqualTo(metaPropuesta.doubleValue());
     }
 
-    private void thenElProgresoNoTieneMetaYTieneUnMini() throws Exception {
+    private void entoncesElProgresoNoTieneMetaYTieneUnMini() throws Exception {
         respuestaProgreso
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.meta").doesNotExist())
                 .andExpect(jsonPath("$.minis.length()").value(1));
     }
 
-    private void thenElUnicoPendienteEsElDelObjetivo() throws Exception {
+    private void entoncesElUnicoPendienteEsElDelObjetivo() throws Exception {
         respuestaPendientes
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].objetivoId").value(objetivoId));
     }
 
-    private void thenSeCreoLaRespuestaDelManual() throws Exception {
+    private void entoncesSeCreoLaRespuestaDelManual() throws Exception {
         respuestaDelManual.andExpect(status().isCreated());
     }
 
-    private void thenSeMidioSinContenido() throws Exception {
+    private void entoncesSeMidioSinContenido() throws Exception {
         respuestaMedir.andExpect(status().isNoContent());
     }
 
-    private void thenSeCreaUnObjetivoSinDatosYSinIa() throws Exception {
+    private void entoncesSeCreaUnObjetivoSinDatosYSinIa() throws Exception {
         respuestaGuardar
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.tipo").value("SIN_DATOS"))
                 .andExpect(jsonPath("$.armadoConSami").value(false));
     }
 
-    private void thenTieneUnSoloMiniManual() {
+    private void entoncesTieneUnSoloMiniManual() {
         assertThat(jdbcTemplate.queryForList(
                 "SELECT m.modo FROM mini_objetivo m JOIN objetivo o ON o.id = m.objetivo_id WHERE o.negocio_id = ?",
                 String.class, negocioId)).containsExactly("MANUAL");
     }
 
-    private void thenGuardarResponde400() throws Exception {
+    private void entoncesGuardarResponde400() throws Exception {
         respuestaGuardar.andExpect(status().isBadRequest());
     }
 
-    private void thenProponerResponde400() throws Exception {
+    private void entoncesProponerResponde400() throws Exception {
         respuestaPropuesta.andExpect(status().isBadRequest());
     }
 
-    private void thenProponerSinSesionResponde401() throws Exception {
+    private void entoncesProponerSinSesionResponde401() throws Exception {
         mockMvc.perform(post(PROPUESTA).contentType("application/json").content(CONVERSACION))
                 .andExpect(status().isUnauthorized());
     }
 
-    private void thenGuardarSinSesionResponde401() throws Exception {
+    private void entoncesGuardarSinSesionResponde401() throws Exception {
         mockMvc.perform(post(OBJETIVOS + "/sami").contentType("application/json").content("{}"))
                 .andExpect(status().isUnauthorized());
     }
 
-    private void thenProponerSinCsrfResponde403() throws Exception {
+    private void entoncesProponerSinCsrfResponde403() throws Exception {
         mockMvc.perform(post(PROPUESTA).session(sesion).contentType("application/json").content(CONVERSACION))
                 .andExpect(status().isForbidden());
     }
@@ -535,7 +535,7 @@ class SamiObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSupport 
         return JSON.writeValueAsString(cuerpo);
     }
 
-    private UUID givenUsuarioYNegocio() {
+    private UUID dadoUsuarioYNegocio() {
         UUID usuarioId = UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO usuario (id, email, nombre) VALUES (?, ?, 'Objetivos con Sami HTTP')",
                 usuarioId, usuarioId + "@example.test");
@@ -544,7 +544,7 @@ class SamiObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSupport 
         return usuarioId;
     }
 
-    private MockHttpSession givenSesion(UUID usuarioId) throws Exception {
+    private MockHttpSession dadoSesion(UUID usuarioId) throws Exception {
         MockHttpSession session = new MockHttpSession();
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setSession(session);

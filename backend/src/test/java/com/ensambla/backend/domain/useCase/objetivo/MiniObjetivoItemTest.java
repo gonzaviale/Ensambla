@@ -35,42 +35,42 @@ class MiniObjetivoItemTest {
 
     @Test
     @DisplayName("Copia todos los datos del mini-objetivo y le suma su sentido y su avance")
-    void deShouldCopyEveryFieldAndAddDirectionAndProgress() {
-        givenUnMedidoConIa();
+    void copiaTodosLosDatosDelMiniObjetivoYLeSumaSuSentidoYSuAvance() {
+        dadoUnMedidoConIa();
 
-        whenSeArmaElItem();
+        cuandoSeArmaElItem();
 
-        thenSeCopianTodosLosDatosConSentidoYAvance();
+        entoncesSeCopianTodosLosDatosConSentidoYAvance();
     }
 
     @Test
     @DisplayName("Un mini-objetivo manual copia su texto y deja sin números todo lo medido")
-    void deShouldLeaveTheNumbersEmptyForAManualMini() {
-        givenUnManual();
+    void unMiniObjetivoManualCopiaSuTextoYDejaSinNumerosTodoLoMedido() {
+        dadoUnManual();
 
-        whenSeArmaElItem();
+        cuandoSeArmaElItem();
 
-        thenSeCopiaElTextoYNoHayNumeros();
+        entoncesSeCopiaElTextoYNoHayNumeros();
     }
 
     // --- arrange ---
-    private void givenUnMedidoConIa() {
+    private void dadoUnMedidoConIa() {
         mini = miniObjetivo();
         mini.setValorActual(VALOR_ACTUAL);
         mini.setTextoConIa(true);
     }
 
-    private void givenUnManual() {
+    private void dadoUnManual() {
         mini = miniManual();
     }
 
     // --- act ---
-    private void whenSeArmaElItem() {
+    private void cuandoSeArmaElItem() {
         item = MiniObjetivoItem.de(mini);
     }
 
     // --- assert ---
-    private void thenSeCopianTodosLosDatosConSentidoYAvance() {
+    private void entoncesSeCopianTodosLosDatosConSentidoYAvance() {
         assertThat(item.id()).isEqualTo(MINI_ID);
         assertThat(item.posicion()).isEqualTo(1);
         assertThat(item.modo()).isEqualTo(ModoMiniObjetivo.MEDIDO);
@@ -90,7 +90,7 @@ class MiniObjetivoItemTest {
         assertThat(item.textoConIa()).isTrue();
     }
 
-    private void thenSeCopiaElTextoYNoHayNumeros() {
+    private void entoncesSeCopiaElTextoYNoHayNumeros() {
         assertThat(item.id()).isEqualTo(OTRO_MINI_ID);
         assertThat(item.posicion()).isEqualTo(2);
         assertThat(item.modo()).isEqualTo(ModoMiniObjetivo.MANUAL);

@@ -22,147 +22,147 @@ class ConversacionObjetivoTest {
 
     @Test
     @DisplayName("Una conversación válida deja los mensajes sin espacios y cuenta los que quedan")
-    void deShouldStripTheMessagesAndCountTheRemainingOnes() {
-        givenMensajes(persona("  Quiero vender más \n"), sami("¿Qué producto?"), persona("La yerba"));
+    void unaConversacionValidaDejaLosMensajesSinEspaciosYCuentaLosQueQuedan() {
+        dadoMensajes(persona("  Quiero vender más \n"), sami("¿Qué producto?"), persona("La yerba"));
 
-        whenSeArmaLaConversacion();
+        cuandoSeArmaLaConversacion();
 
-        thenLosTextosSon("Quiero vender más", "¿Qué producto?", "La yerba");
-        thenQuedanMensajes(4);
+        entoncesLosTextosSon("Quiero vender más", "¿Qué producto?", "La yerba");
+        entoncesQuedanMensajes(4);
     }
 
     @Test
     @DisplayName("El objetivo de la persona es lo primero que escribió")
-    void objetivoDeLaPersonaShouldBeTheFirstMessageOfThePerson() {
-        givenMensajes(sami("Hola"), persona("Quiero vender más"), persona("La yerba"));
+    void elObjetivoDeLaPersonaEsLoPrimeroQueEscribio() {
+        dadoMensajes(sami("Hola"), persona("Quiero vender más"), persona("La yerba"));
 
-        whenSeArmaLaConversacion();
+        cuandoSeArmaLaConversacion();
 
-        thenElObjetivoDeLaPersonaEs("Quiero vender más");
+        entoncesElObjetivoDeLaPersonaEs("Quiero vender más");
     }
 
     @Test
     @DisplayName("A la IA le llegan los mensajes sin correos ni teléfonos")
-    void paraLaIaShouldHidePersonalData() {
-        givenMensajes(persona("Cobrale a ana@mail.com, tel 11 5555 5555"));
+    void aLaIaLeLleganLosMensajesSinCorreosNiTelefonos() {
+        dadoMensajes(persona("Cobrale a ana@mail.com, tel 11 5555 5555"));
 
-        whenSeArmaLaConversacion();
+        cuandoSeArmaLaConversacion();
 
-        thenALaIaLeLlegaSinDatosPersonales("Cobrale a [dato oculto], tel [dato oculto]");
-        thenElMensajeOriginalConservaElCorreo("ana@mail.com");
+        entoncesALaIaLeLlegaSinDatosPersonales("Cobrale a [dato oculto], tel [dato oculto]");
+        entoncesElMensajeOriginalConservaElCorreo("ana@mail.com");
     }
 
     @Test
     @DisplayName("Sin mensajes no hay conversación")
-    void deShouldRejectNoMessages() {
-        givenMensajes();
+    void sinMensajesNoHayConversacion() {
+        dadoMensajes();
 
-        whenSeArmaLaConversacionConError();
+        cuandoSeArmaLaConversacionConError();
 
-        thenSeRechazaConMensaje("Contale a Sami qué querés lograr");
+        entoncesSeRechazaConMensaje("Contale a Sami qué querés lograr");
     }
 
     @Test
     @DisplayName("Con mensajes nulos no hay conversación")
-    void deShouldRejectNullMessages() {
+    void conMensajesNulosNoHayConversacion() {
         mensajes = null;
 
-        whenSeArmaLaConversacionConError();
+        cuandoSeArmaLaConversacionConError();
 
-        thenSeRechaza();
+        entoncesSeRechaza();
     }
 
     @Test
     @DisplayName("Un mensaje vacío o en blanco se rechaza")
-    void deShouldRejectBlankMessages() {
-        givenMensajes(persona("   "));
+    void unMensajeVacioOEnBlancoSeRechaza() {
+        dadoMensajes(persona("   "));
 
-        whenSeArmaLaConversacionConError();
+        cuandoSeArmaLaConversacionConError();
 
-        thenSeRechazaConMensaje("Los mensajes no pueden estar vacíos");
+        entoncesSeRechazaConMensaje("Los mensajes no pueden estar vacíos");
     }
 
     @Test
     @DisplayName("Un mensaje nulo se rechaza")
-    void deShouldRejectNullTextMessages() {
-        givenMensajes(persona(null));
+    void unMensajeNuloSeRechaza() {
+        dadoMensajes(persona(null));
 
-        whenSeArmaLaConversacionConError();
+        cuandoSeArmaLaConversacionConError();
 
-        thenSeRechaza();
+        entoncesSeRechaza();
     }
 
     @Test
     @DisplayName("Un mensaje de 500 caracteres se acepta")
-    void deShouldAcceptAMessageOfTheMaximumLength() {
-        givenMensajes(persona("a".repeat(LARGO_MAXIMO_DE_MENSAJE)));
+    void unMensajeDe500CaracteresSeAcepta() {
+        dadoMensajes(persona("a".repeat(LARGO_MAXIMO_DE_MENSAJE)));
 
-        whenSeArmaLaConversacion();
+        cuandoSeArmaLaConversacion();
 
-        thenHayMensajes(1);
+        entoncesHayMensajes(1);
     }
 
     @Test
     @DisplayName("Un mensaje de 501 caracteres se rechaza")
-    void deShouldRejectAMessageOverTheMaximumLength() {
-        givenMensajes(persona("a".repeat(LARGO_MAXIMO_DE_MENSAJE + 1)));
+    void unMensajeDe501CaracteresSeRechaza() {
+        dadoMensajes(persona("a".repeat(LARGO_MAXIMO_DE_MENSAJE + 1)));
 
-        whenSeArmaLaConversacionConError();
+        cuandoSeArmaLaConversacionConError();
 
-        thenSeRechazaConMensaje("Cada mensaje puede tener hasta 500 caracteres");
+        entoncesSeRechazaConMensaje("Cada mensaje puede tener hasta 500 caracteres");
     }
 
     @Test
     @DisplayName("El último mensaje tiene que ser de la persona")
-    void deShouldRejectAConversationEndingWithSami() {
-        givenMensajes(persona("Hola"), sami("¿Qué querés?"));
+    void elUltimoMensajeTieneQueSerDeLaPersona() {
+        dadoMensajes(persona("Hola"), sami("¿Qué querés?"));
 
-        whenSeArmaLaConversacionConError();
+        cuandoSeArmaLaConversacionConError();
 
-        thenSeRechazaConMensaje("El último mensaje tiene que ser tuyo");
+        entoncesSeRechazaConMensaje("El último mensaje tiene que ser tuyo");
     }
 
     @Test
     @DisplayName("Seis mensajes de la persona se aceptan y no quedan más")
-    void deShouldAcceptTheMaximumMessagesOfThePerson() {
-        givenMensajesDeLaPersona(6);
+    void seisMensajesDeLaPersonaSeAceptanYNoQuedanMas() {
+        dadoMensajesDeLaPersona(6);
 
-        whenSeArmaLaConversacion();
+        cuandoSeArmaLaConversacion();
 
-        thenQuedanMensajes(0);
+        entoncesQuedanMensajes(0);
     }
 
     @Test
     @DisplayName("Siete mensajes de la persona se rechazan")
-    void deShouldRejectMoreMessagesThanTheMaximum() {
-        givenMensajesDeLaPersona(7);
+    void sieteMensajesDeLaPersonaSeRechazan() {
+        dadoMensajesDeLaPersona(7);
 
-        whenSeArmaLaConversacionConError();
+        cuandoSeArmaLaConversacionConError();
 
-        thenSeRechazaConMensaje("Llegaste al máximo de 6 mensajes de esta conversación. "
+        entoncesSeRechazaConMensaje("Llegaste al máximo de 6 mensajes de esta conversación. "
                 + "Guardá lo que armamos o empezá una nueva");
     }
 
     @Test
     @DisplayName("Los mensajes de Sami no cuentan para el tope")
-    void deShouldNotCountTheMessagesOfSami() {
-        givenCincoMensajesDeLaPersonaIntercaladosConDosDeSami();
+    void losMensajesDeSamiNoCuentanParaElTope() {
+        dadoCincoMensajesDeLaPersonaIntercaladosConDosDeSami();
 
-        whenSeArmaLaConversacion();
+        cuandoSeArmaLaConversacion();
 
-        thenQuedanMensajes(1);
+        entoncesQuedanMensajes(1);
     }
 
     // --- arrange ---
-    private void givenMensajes(MensajeObjetivo... mensajesDados) {
+    private void dadoMensajes(MensajeObjetivo... mensajesDados) {
         mensajes = List.of(mensajesDados);
     }
 
-    private void givenMensajesDeLaPersona(int cantidad) {
+    private void dadoMensajesDeLaPersona(int cantidad) {
         mensajes = mensajesDeLaPersona(cantidad);
     }
 
-    private void givenCincoMensajesDeLaPersonaIntercaladosConDosDeSami() {
+    private void dadoCincoMensajesDeLaPersonaIntercaladosConDosDeSami() {
         List<MensajeObjetivo> intercalados = new ArrayList<>(mensajesDeLaPersona(5));
         intercalados.add(1, sami("Una pregunta"));
         intercalados.add(3, sami("Otra pregunta"));
@@ -170,44 +170,44 @@ class ConversacionObjetivoTest {
     }
 
     // --- act ---
-    private void whenSeArmaLaConversacion() {
+    private void cuandoSeArmaLaConversacion() {
         conversacion = ConversacionObjetivo.de(mensajes, MAXIMO);
     }
 
-    private void whenSeArmaLaConversacionConError() {
-        error = catchThrowable(this::whenSeArmaLaConversacion);
+    private void cuandoSeArmaLaConversacionConError() {
+        error = catchThrowable(this::cuandoSeArmaLaConversacion);
     }
 
     // --- assert ---
-    private void thenLosTextosSon(String... textos) {
+    private void entoncesLosTextosSon(String... textos) {
         assertThat(conversacion.mensajes()).extracting(MensajeObjetivo::texto).containsExactly(textos);
     }
 
-    private void thenQuedanMensajes(int cantidad) {
+    private void entoncesQuedanMensajes(int cantidad) {
         assertThat(conversacion.mensajesRestantes()).isEqualTo(cantidad);
     }
 
-    private void thenHayMensajes(int cantidad) {
+    private void entoncesHayMensajes(int cantidad) {
         assertThat(conversacion.mensajes()).hasSize(cantidad);
     }
 
-    private void thenElObjetivoDeLaPersonaEs(String esperado) {
+    private void entoncesElObjetivoDeLaPersonaEs(String esperado) {
         assertThat(conversacion.objetivoDeLaPersona()).isEqualTo(esperado);
     }
 
-    private void thenALaIaLeLlegaSinDatosPersonales(String texto) {
+    private void entoncesALaIaLeLlegaSinDatosPersonales(String texto) {
         assertThat(conversacion.paraLaIa()).extracting(MensajeObjetivo::texto).containsExactly(texto);
     }
 
-    private void thenElMensajeOriginalConservaElCorreo(String correo) {
+    private void entoncesElMensajeOriginalConservaElCorreo(String correo) {
         assertThat(conversacion.mensajes().getFirst().texto()).contains(correo);
     }
 
-    private void thenSeRechaza() {
+    private void entoncesSeRechaza() {
         assertThat(error).isInstanceOf(BusinessRuleException.class);
     }
 
-    private void thenSeRechazaConMensaje(String mensaje) {
+    private void entoncesSeRechazaConMensaje(String mensaje) {
         assertThat(error).isInstanceOf(BusinessRuleException.class).hasMessage(mensaje);
     }
 

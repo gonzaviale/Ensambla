@@ -92,302 +92,302 @@ class ControlPlanServiceTest {
 
     @Test
     @DisplayName("Bloquea el negocio antes de contar y autorizar un sistema")
-    void validarAltaProyectoShouldLockBeforeCounting() {
-        givenActivePlan();
+    void bloqueaElNegocioAntesDeContarYAutorizarUnSistema() {
+        dadoActivePlan();
 
-        whenSeValidaElAltaDeUnProyecto();
+        cuandoSeValidaElAltaDeUnProyecto();
 
-        thenSeBloqueaElNegocioAntesDeContar();
+        entoncesSeBloqueaElNegocioAntesDeContar();
     }
 
     @Test
     @DisplayName("Rechaza todas las filas del lote cuando no entran en la cuota")
-    void validarAltaRegistrosShouldRejectWholeBatch() {
-        givenActivePlan();
-        givenRegistrosCasiAlTope();
+    void rechazaTodasLasFilasDelLoteCuandoNoEntranEnLaCuota() {
+        dadoActivePlan();
+        dadoRegistrosCasiAlTope();
 
-        whenSeValidaElAltaDeDosRegistros();
+        cuandoSeValidaElAltaDeDosRegistros();
 
-        thenSeRechazaPorElPlan();
+        entoncesSeRechazaPorElPlan();
     }
 
     @Test
     @DisplayName("Calcula el mes por el día argentino aunque en UTC ya sea el mes siguiente")
-    void validarPaginasIaShouldUseArgentinaMonth() {
-        givenUnaSuscripcionIniciadaElMesPasado();
+    void calculaElMesPorElDiaArgentinoAunqueEnUtcYaSeaElMesSiguiente() {
+        dadoUnaSuscripcionIniciadaElMesPasado();
 
-        whenSeValidaUnaPaginaDeIaEn(MADRUGADA_UTC_DEL_PRIMERO_DE_OCTUBRE);
+        cuandoSeValidaUnaPaginaDeIaEn(MADRUGADA_UTC_DEL_PRIMERO_DE_OCTUBRE);
 
-        thenSeCuentanLasPaginasDeSeptiembreConElNegocioBloqueado();
+        entoncesSeCuentanLasPaginasDeSeptiembreConElNegocioBloqueado();
     }
 
     @Test
     @DisplayName("Una función incluida se permite sin bloquear ni contar las altas")
-    void validarFuncionShouldAllowEnabledFeature() {
-        givenUnPlanConRecetasIncluidas();
+    void unaFuncionIncluidaSePermiteSinBloquearNiContarLasAltas() {
+        dadoUnPlanConRecetasIncluidas();
 
-        whenSeValidaLaFuncionRecetas();
+        cuandoSeValidaLaFuncionRecetas();
 
-        thenSePermiteSinBloquearNiContar();
+        entoncesSePermiteSinBloquearNiContar();
     }
 
     @Test
     @DisplayName("La suscripción vencida usa el gratuito aunque todavía figure activa en persistencia")
-    void validarFuncionShouldFallBackAtExactExpiry() {
-        givenUnaSuscripcionQueVenceJusto();
+    void laSuscripcionVencidaUsaElGratuitoAunqueTodaviaFigureActivaEnPersistencia() {
+        dadoUnaSuscripcionQueVenceJusto();
 
-        whenSeValidaLaFuncionRecetas();
+        cuandoSeValidaLaFuncionRecetas();
 
-        thenSeRechazaPorFaltaDePremiumActivo();
+        entoncesSeRechazaPorFaltaDePremiumActivo();
     }
 
     @Test
     @DisplayName("Una suscripción cancelada conserva los límites de alta del gratuito")
-    void validarAltaProyectoShouldUseFreePlanWhenCancelled() {
-        givenUnaSuscripcionCancelada();
+    void unaSuscripcionCanceladaConservaLosLimitesDeAltaDelGratuito() {
+        dadoUnaSuscripcionCancelada();
 
-        whenSeValidaElAltaDeUnProyecto();
+        cuandoSeValidaElAltaDeUnProyecto();
 
-        thenSeUsaElPlanGratuito();
+        entoncesSeUsaElPlanGratuito();
     }
 
     @Test
     @DisplayName("Un negocio sin suscripción no recibe capacidades por defecto")
-    void validarFuncionShouldRejectMissingSubscription() {
-        givenUnNegocioSinSuscripcion();
+    void unNegocioSinSuscripcionNoRecibeCapacidadesPorDefecto() {
+        dadoUnNegocioSinSuscripcion();
 
-        whenSeValidaLaFuncionRecetas();
+        cuandoSeValidaLaFuncionRecetas();
 
-        thenSeRechazaPorSuscripcionInexistenteSinConsultarPlanes();
+        entoncesSeRechazaPorSuscripcionInexistenteSinConsultarPlanes();
     }
 
     @Test
     @DisplayName("No habilita un plan referido que ya no existe")
-    void validarFuncionShouldRejectMissingAssignedPlan() {
-        givenUnPlanAsignadoQueYaNoExiste();
+    void noHabilitaUnPlanReferidoQueYaNoExiste() {
+        dadoUnPlanAsignadoQueYaNoExiste();
 
-        whenSeValidaLaFuncionRecetas();
+        cuandoSeValidaLaFuncionRecetas();
 
-        thenSeRechazaPorPlanInexistente("Plan no encontrado");
+        entoncesSeRechazaPorPlanInexistente("Plan no encontrado");
     }
 
     @Test
     @DisplayName("Una suscripción vencida no habilita funciones si falta el catálogo gratuito")
-    void validarFuncionShouldRejectMissingFallbackPlan() {
-        givenUnaSuscripcionVencidaSinPlanGratuito();
+    void unaSuscripcionVencidaNoHabilitaFuncionesSiFaltaElCatalogoGratuito() {
+        dadoUnaSuscripcionVencidaSinPlanGratuito();
 
-        whenSeValidaLaFuncionRecetas();
+        cuandoSeValidaLaFuncionRecetas();
 
-        thenSeRechazaPorPlanInexistente("Plan gratuito no encontrado");
+        entoncesSeRechazaPorPlanInexistente("Plan gratuito no encontrado");
     }
 
     @Test
     @DisplayName("Una prueba sin historial persistido falla sin autorizar páginas")
-    void validarPaginasIaShouldRejectTrialWithoutHistory() {
-        givenUnaPruebaSinHistorial();
+    void unaPruebaSinHistorialPersistidoFallaSinAutorizarPaginas() {
+        dadoUnaPruebaSinHistorial();
 
-        whenSeValidaUnaPaginaDeIaEn(INSTANTE);
+        cuandoSeValidaUnaPaginaDeIaEn(INSTANTE);
 
-        thenSeRechazaPorPlanInexistente("Prueba no encontrada");
+        entoncesSeRechazaPorPlanInexistente("Prueba no encontrada");
     }
 
     @Test
     @DisplayName("Una foto inmediata valida el mes, reserva en el día argentino con el límite diario y no lanza si entra")
-    void reservarPaginaIaInmediataShouldReserveInTheArgentinaDay() {
-        givenActivePlan();
-        givenQueLaReservaInmediataEntra();
+    void unaFotoInmediataValidaElMesReservaEnElDiaArgentinoConElLimiteDiarioYNoLanza() {
+        dadoActivePlan();
+        dadoQueLaReservaInmediataEntra();
 
-        whenSeReservaUnaPaginaInmediataEnArgentina();
+        cuandoSeReservaUnaPaginaInmediataEnArgentina();
 
-        thenSeReservaLaPaginaEnElDiaArgentino();
+        entoncesSeReservaLaPaginaEnElDiaArgentino();
     }
 
     @Test
     @DisplayName("Una foto inmediata con el límite diario agotado responde la restricción del día")
-    void reservarPaginaIaInmediataShouldRejectWhenDailyLimitIsReached() {
-        givenActivePlan();
-        givenQueLaReservaInmediataNoEntra();
+    void unaFotoInmediataConElLimiteDiarioAgotadoRespondeLaRestriccionDelDia() {
+        dadoActivePlan();
+        dadoQueLaReservaInmediataNoEntra();
 
-        whenSeReservaUnaPaginaInmediata();
+        cuandoSeReservaUnaPaginaInmediata();
 
-        thenSeRechazaPorElLimiteDiario();
+        entoncesSeRechazaPorElLimiteDiario();
     }
 
     @Test
     @DisplayName("La reserva de páginas tampoco admite un negocio sin suscripción")
-    void reservarPaginasIaShouldRejectMissingSubscription() {
-        givenUnaReservaDiariaQueEntra();
+    void laReservaDePaginasTampocoAdmiteUnNegocioSinSuscripcion() {
+        dadoUnaReservaDiariaQueEntra();
 
-        whenSeReservanPaginas(1);
+        cuandoSeReservanPaginas(1);
 
-        thenSeRechazaPorPlanInexistente("Suscripción no encontrada");
+        entoncesSeRechazaPorPlanInexistente("Suscripción no encontrada");
     }
 
     @Test
     @DisplayName("Una prueba vencida usa la cuota mensual gratuita")
-    void reservarPaginasIaShouldUseTheFreeMonthlyQuotaWhenTheTrialExpired() {
-        givenUnaPruebaVencida();
-        givenUnaReservaDiariaQueEntra();
+    void unaPruebaVencidaUsaLaCuotaMensualGratuita() {
+        dadoUnaPruebaVencida();
+        dadoUnaReservaDiariaQueEntra();
 
-        whenSeReservanPaginas(1);
+        cuandoSeReservanPaginas(1);
 
-        thenSeConcedeLaReserva();
+        entoncesSeConcedeLaReserva();
     }
 
     @Test
     @DisplayName("Una prueba vencida no incrementa el historial de prueba")
-    void reservarPaginasIaShouldNotTouchTheTrialHistoryWhenTheTrialExpired() {
-        givenUnaPruebaVencida();
-        givenUnaReservaDiariaQueEntra();
+    void unaPruebaVencidaNoIncrementaElHistorialDePrueba() {
+        dadoUnaPruebaVencida();
+        dadoUnaReservaDiariaQueEntra();
 
-        whenSeReservanPaginas(1);
+        cuandoSeReservanPaginas(1);
 
-        thenNoSeTocaElHistorialDePrueba();
+        entoncesNoSeTocaElHistorialDePrueba();
     }
 
     @Test
     @DisplayName("Valida la cuota de la prueba antes de la reserva diaria y, si entra, la descuenta de la prueba")
-    void reservarPaginasIaShouldValidateReserveAndChargeTrialInOrder() {
-        givenUnaPruebaVigente();
-        givenUnaReservaDiariaEspiadaQueEntra();
+    void validaLaCuotaDeLaPruebaAntesDeLaReservaDiariaYSiEntraLaDescuentaDeLaPrueba() {
+        dadoUnaPruebaVigente();
+        dadoUnaReservaDiariaEspiadaQueEntra();
 
-        whenSeReservanPaginas(2);
+        cuandoSeReservanPaginas(2);
 
-        thenSeValidaLaReservaYSeDescuentaDeLaPruebaEnOrden();
+        entoncesSeValidaLaReservaYSeDescuentaDeLaPruebaEnOrden();
     }
 
     @Test
     @DisplayName("Una reserva diaria que no entra no descuenta páginas de la prueba")
-    void reservarPaginasIaShouldNotChargeTrialWhenReservationFails() {
-        givenUnaPruebaVigente();
-        givenUnaReservaDiariaQueNoEntra();
+    void unaReservaDiariaQueNoEntraNoDescuentaPaginasDeLaPrueba() {
+        dadoUnaPruebaVigente();
+        dadoUnaReservaDiariaQueNoEntra();
 
-        whenSeReservanPaginas(2);
+        cuandoSeReservanPaginas(2);
 
-        thenNoSeConcedeLaReservaNiSeDescuentaDeLaPrueba();
+        entoncesNoSeConcedeLaReservaNiSeDescuentaDeLaPrueba();
     }
 
     @Test
     @DisplayName("Un rechazo de la cuota mensual no llega a hacer la reserva diaria")
-    void reservarPaginasIaShouldNotReserveWhenMonthlyQuotaIsFull() {
-        givenActivePlan();
-        givenLaCuotaMensualDePaginasLlena();
-        givenUnaReservaDiariaSinUsar();
+    void unRechazoDeLaCuotaMensualNoLlegaAHacerLaReservaDiaria() {
+        dadoActivePlan();
+        dadoLaCuotaMensualDePaginasLlena();
+        dadoUnaReservaDiariaSinUsar();
 
-        whenSeReservanPaginas(1);
+        cuandoSeReservanPaginas(1);
 
-        thenSeRechazaPorElPlanSinHacerLaReservaDiaria();
+        entoncesSeRechazaPorElPlanSinHacerLaReservaDiaria();
     }
 
     @Test
     @DisplayName("La cuota de objetivos con IA cuenta el mes argentino y trae el límite del plan vigente")
-    void cuotaObjetivosIaShouldCountTheArgentinaMonthWithThePlanLimit() {
-        givenActivePlan();
-        givenTresObjetivosConIaEnOctubre();
+    void laCuotaDeObjetivosConIaCuentaElMesArgentinoYTraeElLimiteDelPlanVigente() {
+        dadoActivePlan();
+        dadoTresObjetivosConIaEnOctubre();
 
-        whenSeConsultaLaCuotaDeObjetivosConIa();
+        cuandoSeConsultaLaCuotaDeObjetivosConIa();
 
-        thenLaCuotaEsDeTresDeCincoConDosRestantes();
+        entoncesLaCuotaEsDeTresDeCincoConDosRestantes();
     }
 
     @Test
     @DisplayName("Un objetivo con IA se valida con el negocio bloqueado antes de contar")
-    void validarObjetivoIaShouldLockBeforeCounting() {
-        givenActivePlan();
-        givenObjetivosConIaUsados(4L);
+    void unObjetivoConIaSeValidaConElNegocioBloqueadoAntesDeContar() {
+        dadoActivePlan();
+        dadoObjetivosConIaUsados(4L);
 
-        whenSeValidaUnObjetivoConIa();
+        cuandoSeValidaUnObjetivoConIa();
 
-        thenSeBloqueaElNegocioAntesDeContarLosObjetivosConIa();
+        entoncesSeBloqueaElNegocioAntesDeContarLosObjetivosConIa();
     }
 
     @Test
     @DisplayName("Con la cuota agotada rechaza con el código del límite de objetivos con IA")
-    void validarObjetivoIaShouldRejectWhenTheAllowanceIsUsed() {
-        givenActivePlan();
-        givenObjetivosConIaUsados(5L);
+    void conLaCuotaAgotadaRechazaConElCodigoDelLimiteDeObjetivosConIa() {
+        dadoActivePlan();
+        dadoObjetivosConIaUsados(5L);
 
-        whenSeValidaUnObjetivoConIa();
+        cuandoSeValidaUnObjetivoConIa();
 
-        thenSeRechazaPorElLimiteDeObjetivosConIa();
+        entoncesSeRechazaPorElLimiteDeObjetivosConIa();
     }
 
     // --- arrange ---
-    private Plan givenActivePlan() {
+    private Plan dadoActivePlan() {
         Plan plan = plan();
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
         when(planRepository.findById(PLAN_ID)).thenReturn(Optional.of(plan));
         return plan;
     }
 
-    private void givenRegistrosCasiAlTope() {
+    private void dadoRegistrosCasiAlTope() {
         when(usoPlanRepository.contarRegistros(NEGOCIO_ID)).thenReturn(REGISTROS_CASI_AL_TOPE);
     }
 
-    private void givenUnaSuscripcionIniciadaElMesPasado() {
+    private void dadoUnaSuscripcionIniciadaElMesPasado() {
         Suscripcion suscripcion = suscripcion();
         suscripcion.setInicioEn(INSTANTE.minusMonths(1));
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
         when(planRepository.findById(PLAN_ID)).thenReturn(Optional.of(plan()));
     }
 
-    private void givenUnPlanConRecetasIncluidas() {
-        Plan plan = givenActivePlan();
+    private void dadoUnPlanConRecetasIncluidas() {
+        Plan plan = dadoActivePlan();
         plan.setFunciones(List.of(FuncionPlan.RECETAS_COSTOS.name()));
     }
 
-    private void givenUnaSuscripcionQueVenceJusto() {
+    private void dadoUnaSuscripcionQueVenceJusto() {
         Suscripcion suscripcion = suscripcion();
         suscripcion.setFinEn(INSTANTE);
-        givenFallback(suscripcion);
+        dadoFallback(suscripcion);
     }
 
-    private void givenUnaSuscripcionCancelada() {
+    private void dadoUnaSuscripcionCancelada() {
         Suscripcion suscripcion = suscripcion();
         suscripcion.setEstado(EstadoSuscripcion.CANCELADA);
-        givenFallback(suscripcion);
+        dadoFallback(suscripcion);
     }
 
-    private void givenUnNegocioSinSuscripcion() {
+    private void dadoUnNegocioSinSuscripcion() {
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.empty());
     }
 
-    private void givenUnPlanAsignadoQueYaNoExiste() {
+    private void dadoUnPlanAsignadoQueYaNoExiste() {
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
         when(planRepository.findById(PLAN_ID)).thenReturn(Optional.empty());
     }
 
-    private void givenUnaSuscripcionVencidaSinPlanGratuito() {
+    private void dadoUnaSuscripcionVencidaSinPlanGratuito() {
         Suscripcion suscripcion = suscripcion();
         suscripcion.setEstado(EstadoSuscripcion.VENCIDA);
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
         when(planRepository.findByCodigo(CodigoPlan.GRATUITO)).thenReturn(Optional.empty());
     }
 
-    private void givenUnaPruebaSinHistorial() {
-        givenActivePlan();
+    private void dadoUnaPruebaSinHistorial() {
+        dadoActivePlan();
         Suscripcion prueba = suscripcion();
         prueba.setEstado(EstadoSuscripcion.PRUEBA);
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(prueba));
     }
 
-    private void givenQueLaReservaInmediataEntra() {
+    private void dadoQueLaReservaInmediataEntra() {
         when(usoPlanRepository.registrarPaginaInmediata(NEGOCIO_ID, ZonaNegocio.dia(INSTANTE),
                 LIMITE_DIARIO_DE_PAGINAS, instanteEnArgentina())).thenReturn(true);
     }
 
-    private void givenQueLaReservaInmediataNoEntra() {
+    private void dadoQueLaReservaInmediataNoEntra() {
         when(usoPlanRepository.registrarPaginaInmediata(any(), any(), anyInt(), any())).thenReturn(false);
     }
 
-    private void givenUnaPruebaVencida() {
+    private void dadoUnaPruebaVencida() {
         Suscripcion prueba = suscripcion();
         prueba.setEstado(EstadoSuscripcion.PRUEBA);
         prueba.setFinEn(INSTANTE);
-        givenFallback(prueba);
+        dadoFallback(prueba);
     }
 
-    private void givenUnaPruebaVigente() {
+    private void dadoUnaPruebaVigente() {
         Suscripcion suscripcion = suscripcion();
         suscripcion.setEstado(EstadoSuscripcion.PRUEBA);
         pruebaVigente = PruebaPremium.nueva(NEGOCIO_ID, INSTANTE);
@@ -396,144 +396,144 @@ class ControlPlanServiceTest {
         when(pruebaPremiumRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(pruebaVigente));
     }
 
-    private void givenFallback(Suscripcion suscripcion) {
+    private void dadoFallback(Suscripcion suscripcion) {
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
         when(planRepository.findByCodigo(CodigoPlan.GRATUITO)).thenReturn(Optional.of(plan()));
     }
 
-    private void givenUnaReservaDiariaQueEntra() {
+    private void dadoUnaReservaDiariaQueEntra() {
         reservaDiaria = () -> true;
     }
 
-    private void givenUnaReservaDiariaQueNoEntra() {
+    private void dadoUnaReservaDiariaQueNoEntra() {
         reservaDiaria = () -> false;
     }
 
-    private void givenUnaReservaDiariaEspiadaQueEntra() {
+    private void dadoUnaReservaDiariaEspiadaQueEntra() {
         reservaDiaria = mock(BooleanSupplier.class);
         when(reservaDiaria.getAsBoolean()).thenReturn(true);
     }
 
-    private void givenUnaReservaDiariaSinUsar() {
+    private void dadoUnaReservaDiariaSinUsar() {
         reservaDiaria = mock(BooleanSupplier.class);
     }
 
-    private void givenLaCuotaMensualDePaginasLlena() {
+    private void dadoLaCuotaMensualDePaginasLlena() {
         when(usoPlanRepository.paginasEnPeriodo(any(), any(), any())).thenReturn(PAGINAS_YA_USADAS_DEL_MES);
     }
 
-    private void givenTresObjetivosConIaEnOctubre() {
+    private void dadoTresObjetivosConIaEnOctubre() {
         when(usoPlanRepository.objetivosIaEnPeriodo(NEGOCIO_ID,
                 OffsetDateTime.parse("2026-10-01T03:00:00Z"), OffsetDateTime.parse("2026-11-01T03:00:00Z")))
                 .thenReturn(3L);
     }
 
-    private void givenObjetivosConIaUsados(long usados) {
+    private void dadoObjetivosConIaUsados(long usados) {
         when(usoPlanRepository.objetivosIaEnPeriodo(any(), any(), any())).thenReturn(usados);
     }
 
     // --- act ---
-    private void whenSeValidaElAltaDeUnProyecto() {
+    private void cuandoSeValidaElAltaDeUnProyecto() {
         error = catchThrowable(() -> controlPlanService.validarAltaProyecto(NEGOCIO_ID, INSTANTE));
     }
 
-    private void whenSeValidaElAltaDeDosRegistros() {
+    private void cuandoSeValidaElAltaDeDosRegistros() {
         error = catchThrowable(() -> controlPlanService.validarAltaRegistros(NEGOCIO_ID, 2, INSTANTE));
     }
 
-    private void whenSeValidaUnaPaginaDeIaEn(OffsetDateTime ahora) {
+    private void cuandoSeValidaUnaPaginaDeIaEn(OffsetDateTime ahora) {
         error = catchThrowable(() -> controlPlanService.validarPaginasIa(NEGOCIO_ID, 1, ahora));
     }
 
-    private void whenSeValidaLaFuncionRecetas() {
+    private void cuandoSeValidaLaFuncionRecetas() {
         error = catchThrowable(() -> controlPlanService.validarFuncion(
                 NEGOCIO_ID, FuncionPlan.RECETAS_COSTOS, INSTANTE));
     }
 
-    private void whenSeReservaUnaPaginaInmediataEnArgentina() {
+    private void cuandoSeReservaUnaPaginaInmediataEnArgentina() {
         error = catchThrowable(() -> controlPlanService.reservarPaginaIaInmediata(
                 NEGOCIO_ID, LIMITE_DIARIO_DE_PAGINAS, instanteEnArgentina()));
     }
 
-    private void whenSeReservaUnaPaginaInmediata() {
+    private void cuandoSeReservaUnaPaginaInmediata() {
         error = catchThrowable(() -> controlPlanService.reservarPaginaIaInmediata(
                 NEGOCIO_ID, LIMITE_DIARIO_DE_PAGINAS, INSTANTE));
     }
 
-    private void whenSeReservanPaginas(int paginas) {
+    private void cuandoSeReservanPaginas(int paginas) {
         error = catchThrowable(() -> reservaConcedida =
                 controlPlanService.reservarPaginasIa(NEGOCIO_ID, paginas, INSTANTE, reservaDiaria));
     }
 
-    private void whenSeConsultaLaCuotaDeObjetivosConIa() {
+    private void cuandoSeConsultaLaCuotaDeObjetivosConIa() {
         cuota = controlPlanService.cuotaObjetivosIa(NEGOCIO_ID, MEDIADOS_DE_OCTUBRE);
     }
 
-    private void whenSeValidaUnObjetivoConIa() {
+    private void cuandoSeValidaUnObjetivoConIa() {
         error = catchThrowable(() -> controlPlanService.validarObjetivoIa(NEGOCIO_ID, INSTANTE));
     }
 
     // --- assert ---
-    private void thenSeBloqueaElNegocioAntesDeContar() {
+    private void entoncesSeBloqueaElNegocioAntesDeContar() {
         var orden = inOrder(usoPlanRepository, suscripcionRepository);
         orden.verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
         orden.verify(suscripcionRepository).findByNegocioId(NEGOCIO_ID);
         orden.verify(usoPlanRepository).contarProyectos(NEGOCIO_ID);
     }
 
-    private void thenSeRechazaPorElPlan() {
+    private void entoncesSeRechazaPorElPlan() {
         assertThat(error).isInstanceOf(RestriccionPlanException.class);
     }
 
-    private void thenSeCuentanLasPaginasDeSeptiembreConElNegocioBloqueado() {
+    private void entoncesSeCuentanLasPaginasDeSeptiembreConElNegocioBloqueado() {
         verify(usoPlanRepository).paginasEnPeriodo(NEGOCIO_ID,
                 LocalDate.parse("2026-09-01"), LocalDate.parse("2026-10-01"));
         verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
     }
 
-    private void thenSePermiteSinBloquearNiContar() {
+    private void entoncesSePermiteSinBloquearNiContar() {
         assertThat(error).isNull();
         verifyNoInteractions(usoPlanRepository);
     }
 
-    private void thenSeRechazaPorFaltaDePremiumActivo() {
+    private void entoncesSeRechazaPorFaltaDePremiumActivo() {
         assertThat(error).isInstanceOf(RestriccionPlanException.class).hasMessageContaining("premium activo");
     }
 
-    private void thenSeUsaElPlanGratuito() {
+    private void entoncesSeUsaElPlanGratuito() {
         verify(planRepository).findByCodigo(CodigoPlan.GRATUITO);
     }
 
-    private void thenSeRechazaPorSuscripcionInexistenteSinConsultarPlanes() {
+    private void entoncesSeRechazaPorSuscripcionInexistenteSinConsultarPlanes() {
         assertThat(error).isInstanceOf(ResourceNotFoundException.class).hasMessage("Suscripción no encontrada");
         verifyNoInteractions(planRepository);
     }
 
-    private void thenSeRechazaPorPlanInexistente(String mensaje) {
+    private void entoncesSeRechazaPorPlanInexistente(String mensaje) {
         assertThat(error).isInstanceOf(ResourceNotFoundException.class).hasMessage(mensaje);
     }
 
-    private void thenSeReservaLaPaginaEnElDiaArgentino() {
+    private void entoncesSeReservaLaPaginaEnElDiaArgentino() {
         assertThat(error).isNull();
         verify(usoPlanRepository).registrarPaginaInmediata(
                 NEGOCIO_ID, ZonaNegocio.dia(INSTANTE), LIMITE_DIARIO_DE_PAGINAS, instanteEnArgentina());
     }
 
-    private void thenSeRechazaPorElLimiteDiario() {
+    private void entoncesSeRechazaPorElLimiteDiario() {
         assertThat(error)
                 .isInstanceOf(RestriccionPlanException.class)
                 .hasMessage(PoliticaProcesamiento.LIMITE_DIARIO_AGOTADO);
     }
 
-    private void thenSeConcedeLaReserva() {
+    private void entoncesSeConcedeLaReserva() {
         assertThat(reservaConcedida).isTrue();
     }
 
-    private void thenNoSeTocaElHistorialDePrueba() {
+    private void entoncesNoSeTocaElHistorialDePrueba() {
         verifyNoInteractions(pruebaPremiumRepository);
     }
 
-    private void thenSeValidaLaReservaYSeDescuentaDeLaPruebaEnOrden() {
+    private void entoncesSeValidaLaReservaYSeDescuentaDeLaPruebaEnOrden() {
         assertThat(reservaConcedida).isTrue();
         var orden = inOrder(usoPlanRepository, reservaDiaria, pruebaPremiumRepository);
         orden.verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
@@ -541,28 +541,28 @@ class ControlPlanServiceTest {
         orden.verify(pruebaPremiumRepository).save(pruebaVigente.consumir(2));
     }
 
-    private void thenNoSeConcedeLaReservaNiSeDescuentaDeLaPrueba() {
+    private void entoncesNoSeConcedeLaReservaNiSeDescuentaDeLaPrueba() {
         assertThat(reservaConcedida).isFalse();
         verify(pruebaPremiumRepository, never()).save(any());
     }
 
-    private void thenSeRechazaPorElPlanSinHacerLaReservaDiaria() {
+    private void entoncesSeRechazaPorElPlanSinHacerLaReservaDiaria() {
         assertThat(error).isInstanceOf(RestriccionPlanException.class);
         verifyNoInteractions(reservaDiaria);
     }
 
-    private void thenLaCuotaEsDeTresDeCincoConDosRestantes() {
+    private void entoncesLaCuotaEsDeTresDeCincoConDosRestantes() {
         assertThat(cuota).isEqualTo(new CuotaObjetivosIa(3, 5));
         assertThat(cuota.restantes()).isEqualTo(2);
     }
 
-    private void thenSeBloqueaElNegocioAntesDeContarLosObjetivosConIa() {
+    private void entoncesSeBloqueaElNegocioAntesDeContarLosObjetivosConIa() {
         var orden = inOrder(usoPlanRepository);
         orden.verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
         orden.verify(usoPlanRepository).objetivosIaEnPeriodo(any(), any(), any());
     }
 
-    private void thenSeRechazaPorElLimiteDeObjetivosConIa() {
+    private void entoncesSeRechazaPorElLimiteDeObjetivosConIa() {
         assertThat(error)
                 .isInstanceOf(RestriccionPlanException.class)
                 .hasMessageContaining("Ya armaste los 5 objetivos con Sami");

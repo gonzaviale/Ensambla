@@ -27,16 +27,16 @@ class ListarRespuestasPendientesResponseTest {
 
     @Test
     @DisplayName("Cada pendiente trae el texto del objetivo al que pertenece, en el orden recibido")
-    void deShouldPairEachMiniObjetivoWithItsObjetivoInOrder() {
-        givenUnOtroObjetivoConUnMiniManual();
+    void cadaPendienteTraeElTextoDelObjetivoAlQuePerteneceEnElOrdenRecibido() {
+        dadoUnOtroObjetivoConUnMiniManual();
 
-        whenSeArmaLaRespuesta();
+        cuandoSeArmaLaRespuesta();
 
-        thenCadaPendienteTraeElTextoDeSuObjetivoEnOrden();
+        entoncesCadaPendienteTraeElTextoDeSuObjetivoEnOrden();
     }
 
     // --- arrange ---
-    private void givenUnOtroObjetivoConUnMiniManual() {
+    private void dadoUnOtroObjetivoConUnMiniManual() {
         otroObjetivo = objetivoSinMeta();
         otroObjetivo.setId(OTRO_OBJETIVO_ID);
         miniDelOtro = miniManual();
@@ -44,13 +44,13 @@ class ListarRespuestasPendientesResponseTest {
     }
 
     // --- act ---
-    private void whenSeArmaLaRespuesta() {
+    private void cuandoSeArmaLaRespuesta() {
         respuesta = ListarRespuestasPendientesResponse.de(
                 List.of(objetivo(), otroObjetivo), List.of(miniDelOtro, miniManual()));
     }
 
     // --- assert ---
-    private void thenCadaPendienteTraeElTextoDeSuObjetivoEnOrden() {
+    private void entoncesCadaPendienteTraeElTextoDeSuObjetivoEnOrden() {
         assertThat(respuesta.pendientes()).extracting(ListarRespuestasPendientesResponse.Pendiente::objetivoTexto)
                 .containsExactly(TEXTO_SIN_META, TEXTO);
         assertThat(respuesta.pendientes()).extracting(ListarRespuestasPendientesResponse.Pendiente::objetivoId)

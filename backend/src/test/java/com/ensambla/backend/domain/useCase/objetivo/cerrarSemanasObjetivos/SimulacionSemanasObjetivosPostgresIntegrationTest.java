@@ -185,86 +185,86 @@ class SimulacionSemanasObjetivosPostgresIntegrationTest extends PostgresReposito
 
     @Test
     @DisplayName("Si el negocio avanza, sube la meta de un mini-objetivo logrado")
-    void simularShouldRaiseTheMetaWhenTheBusinessAdvances() {
-        givenSimulacion(Escenario.AVANZA);
+    void siElNegocioAvanzaSubeLaMetaDeUnMiniObjetivoLogrado() {
+        dadoSimulacion(Escenario.AVANZA);
 
-        whenSeSimulan8Semanas();
+        cuandoSeSimulan8Semanas();
 
-        thenSeSubeLaMetaDeUnMiniLogrado();
-        thenLaSemanaMasNuevaRindeMasQueLaMasVieja();
+        entoncesSeSubeLaMetaDeUnMiniLogrado();
+        entoncesLaSemanaMasNuevaRindeMasQueLaMasVieja();
     }
 
     @Test
     @DisplayName("Si el negocio se estanca, cambia lo que no avanzó en dos cierres y explica por qué")
-    void simularShouldReplaceWhatDoesNotAdvanceWhenTheBusinessStalls() {
-        givenSimulacion(Escenario.SE_ESTANCA);
+    void siElNegocioSeEstancaCambiaLoQueNoAvanzoEnDosCierresYExplicaPorQue() {
+        dadoSimulacion(Escenario.SE_ESTANCA);
 
-        whenSeSimulan8Semanas();
+        cuandoSeSimulan8Semanas();
 
-        thenSeReemplazaLoQueNoAvanzoYSeExplicaPorQue();
-        thenNuncaSeSubeLaMeta();
+        entoncesSeReemplazaLoQueNoAvanzoYSeExplicaPorQue();
+        entoncesNuncaSeSubeLaMeta();
     }
 
     @Test
     @DisplayName("Si lo logra pronto, marca el objetivo como alcanzado y ya no reajusta")
-    void simularShouldStopAdjustingWhenTheObjetivoIsReachedEarly() {
-        givenSimulacion(Escenario.LO_LOGRA_PRONTO);
+    void siLoLograProntoMarcaElObjetivoComoAlcanzadoYYaNoReajusta() {
+        dadoSimulacion(Escenario.LO_LOGRA_PRONTO);
 
-        whenSeSimulan8Semanas();
+        cuandoSeSimulan8Semanas();
 
-        thenElObjetivoQuedaAlcanzado();
-        thenLaSemanaMasNuevaYaLlegoALaMeta();
-        thenLasSemanasQueLlegaronALaMetaNoReajustan();
+        entoncesElObjetivoQuedaAlcanzado();
+        entoncesLaSemanaMasNuevaYaLlegoALaMeta();
+        entoncesLasSemanasQueLlegaronALaMetaNoReajustan();
     }
 
     @Test
     @DisplayName("Si el negocio retrocede, lo cuenta en el resumen y cambia lo que no avanza")
-    void simularShouldReportTheDropAndReplaceWhenTheBusinessGoesBack() {
-        givenSimulacion(Escenario.RETROCEDE);
+    void siElNegocioRetrocedeLoCuentaEnElResumenYCambiaLoQueNoAvanza() {
+        dadoSimulacion(Escenario.RETROCEDE);
 
-        whenSeSimulan8Semanas();
+        cuandoSeSimulan8Semanas();
 
-        thenElResumenCuentaQueElResultadoBajo();
-        thenLaSemanaMasNuevaRindeMenosQueLaMasVieja();
-        thenSeReemplazaAlgo();
+        entoncesElResumenCuentaQueElResultadoBajo();
+        entoncesLaSemanaMasNuevaRindeMenosQueLaMasVieja();
+        entoncesSeReemplazaAlgo();
     }
 
     @ParameterizedTest(name = "{0}")
     @EnumSource(Escenario.class)
     @DisplayName("En ningún escenario el monitoreo ni el cierre crean avisos")
-    void simularShouldNotCreateNoticesInAnyScenario(Escenario escenario) {
-        givenSimulacion(escenario);
-        givenLosAvisosQueHabiaAntes();
+    void enNingunEscenarioElMonitoreoNiElCierreCreanAvisos(Escenario escenario) {
+        dadoSimulacion(escenario);
+        dadoLosAvisosQueHabiaAntes();
 
-        whenSeSimulan8Semanas();
+        cuandoSeSimulan8Semanas();
 
-        thenNoSeCrearonAvisos();
+        entoncesNoSeCrearonAvisos();
     }
 
     @ParameterizedTest(name = "{0}")
     @EnumSource(Escenario.class)
     @DisplayName("Cada escenario tiene un solo resumen por semana aunque el cierre corra dos veces")
-    void simularShouldKeepOneSummaryPerWeekInEveryScenario(Escenario escenario) {
-        givenSimulacion(escenario);
+    void cadaEscenarioTieneUnSoloResumenPorSemanaAunqueElCierreCorraDosVeces(Escenario escenario) {
+        dadoSimulacion(escenario);
 
-        whenSeSimulan8Semanas();
+        cuandoSeSimulan8Semanas();
 
-        thenHayUnSoloResumenPorSemana();
+        entoncesHayUnSoloResumenPorSemana();
     }
 
     @ParameterizedTest(name = "{0}")
     @EnumSource(Escenario.class)
     @DisplayName("En cada escenario el gráfico muestra, para cada semana cerrada, el mismo resultado que el resumen")
-    void simularShouldDrawTheSameWeeklyResultAsTheSummary(Escenario escenario) {
-        givenSimulacion(escenario);
+    void enCadaEscenarioElGraficoMuestraParaCadaSemanaCerradaElMismoResultadoQueEl(Escenario escenario) {
+        dadoSimulacion(escenario);
 
-        whenSeSimulan8Semanas();
+        cuandoSeSimulan8Semanas();
 
-        thenElGraficoMuestraElMismoResultadoQueElResumen();
+        entoncesElGraficoMuestraElMismoResultadoQueElResumen();
     }
 
     // --- arrange ---
-    private void givenSimulacion(Escenario escenario) {
+    private void dadoSimulacion(Escenario escenario) {
         UUID usuarioId = UUID.randomUUID();
         UUID negocioId = UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO usuario (id, email, nombre) VALUES (?, ?, 'Simulación')",
@@ -280,13 +280,13 @@ class SimulacionSemanasObjetivosPostgresIntegrationTest extends PostgresReposito
                 ObjetivoId.de(objetivoId));
     }
 
-    private void givenLosAvisosQueHabiaAntes() {
+    private void dadoLosAvisosQueHabiaAntes() {
         avisosAntes = contar("aviso");
     }
 
     // --- act ---
     /** Corre las 8 semanas día por día y deja los resúmenes, del más nuevo al más viejo. */
-    private void whenSeSimulan8Semanas() {
+    private void cuandoSeSimulan8Semanas() {
         for (LocalDate dia = inicio; dia.isBefore(inicio.plusWeeks(SEMANAS)); dia = dia.plusDays(1)) {
             reloj.en(instante(dia, MEDIODIA));
             monitorear.execute();
@@ -325,19 +325,19 @@ class SimulacionSemanasObjetivosPostgresIntegrationTest extends PostgresReposito
     }
 
     // --- assert ---
-    private void thenSeSubeLaMetaDeUnMiniLogrado() {
+    private void entoncesSeSubeLaMetaDeUnMiniLogrado() {
         assertThat(tiposDe(semanas)).contains(TipoReajuste.SUBIR_META);
     }
 
-    private void thenLaSemanaMasNuevaRindeMasQueLaMasVieja() {
+    private void entoncesLaSemanaMasNuevaRindeMasQueLaMasVieja() {
         assertThat(semanas.getFirst().resultado()).isGreaterThan(semanas.getLast().resultado());
     }
 
-    private void thenLaSemanaMasNuevaRindeMenosQueLaMasVieja() {
+    private void entoncesLaSemanaMasNuevaRindeMenosQueLaMasVieja() {
         assertThat(semanas.getFirst().resultado()).isLessThan(semanas.getLast().resultado());
     }
 
-    private void thenSeReemplazaLoQueNoAvanzoYSeExplicaPorQue() {
+    private void entoncesSeReemplazaLoQueNoAvanzoYSeExplicaPorQue() {
         assertThat(reajustesDe(semanas))
                 .anySatisfy(reajuste -> {
                     assertThat(reajuste.tipo()).isEqualTo(TipoReajuste.REEMPLAZAR);
@@ -345,43 +345,43 @@ class SimulacionSemanasObjetivosPostgresIntegrationTest extends PostgresReposito
                 });
     }
 
-    private void thenNuncaSeSubeLaMeta() {
+    private void entoncesNuncaSeSubeLaMeta() {
         assertThat(tiposDe(semanas)).doesNotContain(TipoReajuste.SUBIR_META);
     }
 
-    private void thenElObjetivoQuedaAlcanzado() {
+    private void entoncesElObjetivoQuedaAlcanzado() {
         assertThat(alcanzado()).isTrue();
     }
 
-    private void thenLaSemanaMasNuevaYaLlegoALaMeta() {
+    private void entoncesLaSemanaMasNuevaYaLlegoALaMeta() {
         assertThat(semanas.getFirst().avance()).isGreaterThanOrEqualTo(BigDecimal.ONE);
     }
 
-    private void thenLasSemanasQueLlegaronALaMetaNoReajustan() {
+    private void entoncesLasSemanasQueLlegaronALaMetaNoReajustan() {
         assertThat(semanas.stream().filter(semana -> semana.avance().compareTo(BigDecimal.ONE) >= 0))
                 .allSatisfy(semana -> assertThat(semana.reajustes()).isEmpty());
     }
 
-    private void thenElResumenCuentaQueElResultadoBajo() {
+    private void entoncesElResumenCuentaQueElResultadoBajo() {
         assertThat(semanas.getFirst().queFunciono()).startsWith("Esta semana tu resultado bajó ");
     }
 
-    private void thenSeReemplazaAlgo() {
+    private void entoncesSeReemplazaAlgo() {
         assertThat(tiposDe(semanas)).contains(TipoReajuste.REEMPLAZAR);
     }
 
-    private void thenNoSeCrearonAvisos() {
+    private void entoncesNoSeCrearonAvisos() {
         assertThat(contar("aviso")).isEqualTo(avisosAntes);
     }
 
-    private void thenHayUnSoloResumenPorSemana() {
+    private void entoncesHayUnSoloResumenPorSemana() {
         assertThat(semanas).extracting(SemanaItem::semana)
                 .doesNotHaveDuplicates()
                 .hasSize(SEMANAS)
                 .containsExactlyElementsOf(lunesDeLaSimulacion().reversed());
     }
 
-    private void thenElGraficoMuestraElMismoResultadoQueElResumen() {
+    private void entoncesElGraficoMuestraElMismoResultadoQueElResumen() {
         Map<LocalDate, BigDecimal> grafico = graficoDe();
         assertThat(semanas).allSatisfy(semana -> assertThat(grafico.get(semana.semana()))
                 .as("%s, semana del %s", simulacion.escenario(), semana.semana())

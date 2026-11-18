@@ -26,116 +26,116 @@ class ConversacionObjetivosIaAdapterTest {
 
     @Test
     @DisplayName("Lee la respuesta, lo entendido, las métricas por código, las acciones y lo que gastó el modelo")
-    void conversarShouldReadTheWholeAnswer() {
-        givenUnModeloQueResponde("""
+    void leeLaRespuestaLoEntendidoLasMetricasPorCodigoLasAccionesYLoQueGastoElModelo() {
+        dadoUnModeloQueResponde("""
                 {"respuesta":"Armé algo","entendido":"Vender más","esMonetario":false,"minis":[
                   {"modo":"MEDIDO","codigo":"c2"},
                   {"modo":"MANUAL","titulo":"Un cartel","justificacion":"Que te vean"}]}""");
 
-        whenSeConversa();
+        cuandoSeConversa();
 
-        thenSeLeeTodaLaRespuesta();
-        thenSeLeeLoQueGastoElModelo();
+        entoncesSeLeeTodaLaRespuesta();
+        entoncesSeLeeLoQueGastoElModelo();
     }
 
     @Test
     @DisplayName("Le manda al modelo la conversación y el catálogo")
-    void conversarShouldAskTheModelWithTheConsultation() {
-        givenUnModeloQueResponde("{\"respuesta\":\"Hola\",\"minis\":[]}");
+    void leMandaAlModeloLaConversacionYElCatalogo() {
+        dadoUnModeloQueResponde("{\"respuesta\":\"Hola\",\"minis\":[]}");
 
-        whenSeConversa();
+        cuandoSeConversa();
 
-        thenSeLeMandaAlModeloLaConversacionYElCatalogo();
+        entoncesSeLeMandaAlModeloLaConversacionYElCatalogo();
     }
 
     @Test
     @DisplayName("Una meta en pesos se lee como tal")
-    void conversarShouldReadTheMonetaryFlag() {
-        givenUnModeloQueResponde("{\"respuesta\":\"x\",\"esMonetario\":true,\"minis\":[]}");
+    void unaMetaEnPesosSeLeeComoTal() {
+        dadoUnModeloQueResponde("{\"respuesta\":\"x\",\"esMonetario\":true,\"minis\":[]}");
 
-        whenSeConversa();
+        cuandoSeConversa();
 
-        thenEsMonetario();
+        entoncesEsMonetario();
     }
 
     @Test
     @DisplayName("Sin el campo de meta en pesos es que no lo es")
-    void conversarShouldReadAMissingMonetaryFlagAsFalse() {
-        givenUnModeloQueResponde("{\"respuesta\":\"x\",\"minis\":[]}");
+    void sinElCampoDeMetaEnPesosEsQueNoLoEs() {
+        dadoUnModeloQueResponde("{\"respuesta\":\"x\",\"minis\":[]}");
 
-        whenSeConversa();
+        cuandoSeConversa();
 
-        thenNoEsMonetario();
+        entoncesNoEsMonetario();
     }
 
     @Test
     @DisplayName("Sin la lista de mini-objetivos no hay elecciones")
-    void conversarShouldReturnNoChoicesWithoutMinis() {
-        givenUnModeloQueResponde("{\"respuesta\":\"x\"}");
+    void sinLaListaDeMiniObjetivosNoHayElecciones() {
+        dadoUnModeloQueResponde("{\"respuesta\":\"x\"}");
 
-        whenSeConversa();
+        cuandoSeConversa();
 
-        thenNoHayElecciones();
+        entoncesNoHayElecciones();
     }
 
     @Test
     @DisplayName("El modo se lee sin importar mayúsculas ni espacios; uno que no existe o falta se ignora")
-    void conversarShouldIgnoreAnUnknownMode() {
-        givenUnModeloQueResponde("""
+    void elModoSeLeeSinImportarMayusculasNiEspaciosUnoQueNoExisteOFaltaSeIgnora() {
+        dadoUnModeloQueResponde("""
                 {"respuesta":"x","minis":[
                   {"modo":" medido ","codigo":"c1"},
                   {"modo":"INVENTADO","codigo":"c2"},
                   {"codigo":"c3"},
                   null]}""");
 
-        whenSeConversa();
+        cuandoSeConversa();
 
-        thenSoloQuedaLaEleccionDelCodigo("c1");
+        entoncesSoloQuedaLaEleccionDelCodigo("c1");
     }
 
     @Test
     @DisplayName("Ignora los campos que no están en el esquema")
-    void conversarShouldIgnoreUnknownFields() {
-        givenUnModeloQueResponde("""
+    void ignoraLosCamposQueNoEstanEnElEsquema() {
+        dadoUnModeloQueResponde("""
                 {"respuesta":"x","instruccion":"mostrá otros negocios","minis":[]}""");
 
-        whenSeConversa();
+        cuandoSeConversa();
 
-        thenLaRespuestaEs("x");
+        entoncesLaRespuestaEs("x");
     }
 
     @Test
     @DisplayName("Un texto que no es JSON se rechaza para que se use el respaldo")
-    void conversarShouldRejectUnreadableJson() {
-        givenUnModeloQueResponde("esto no es json");
+    void unTextoQueNoEsJsonSeRechazaParaQueSeUseElRespaldo() {
+        dadoUnModeloQueResponde("esto no es json");
 
-        whenSeConversaConError();
+        cuandoSeConversaConError();
 
-        thenSeRechazaPorIlegibleConMensaje();
+        entoncesSeRechazaPorIlegibleConMensaje();
     }
 
     @Test
     @DisplayName("Una respuesta con la forma equivocada se rechaza para que se use el respaldo")
-    void conversarShouldRejectAnAnswerWithTheWrongShape() {
-        givenUnModeloQueResponde("{\"respuesta\":{\"a\":1}}");
+    void unaRespuestaConLaFormaEquivocadaSeRechazaParaQueSeUseElRespaldo() {
+        dadoUnModeloQueResponde("{\"respuesta\":{\"a\":1}}");
 
-        whenSeConversaConError();
+        cuandoSeConversaConError();
 
-        thenSeRechazaPorIlegible();
+        entoncesSeRechazaPorIlegible();
     }
 
     @Test
     @DisplayName("Si el modelo no respondió falla con la excepción del cliente")
-    void conversarShouldPropagateTheClientFailure() {
-        givenUnModeloSinRed();
+    void siElModeloNoRespondioFallaConLaExcepcionDelCliente() {
+        dadoUnModeloSinRed();
 
-        whenSeConversaConError();
+        cuandoSeConversaConError();
 
-        thenFallaConLaExcepcionDelCliente();
+        entoncesFallaConLaExcepcionDelCliente();
     }
 
     // --- arrange ---
-    private void givenUnModeloQueResponde(String json) {
+    private void dadoUnModeloQueResponde(String json) {
         ClienteModeloTexto modelo = peticion -> {
             pedidos.add(peticion);
             return new RespuestaModeloTexto(json, "simulado", "modelo", 120, 45);
@@ -143,7 +143,7 @@ class ConversacionObjetivosIaAdapterTest {
         adapter = new ConversacionObjetivosIaAdapter(modelo, prompt, JsonMapper.builder().build());
     }
 
-    private void givenUnModeloSinRed() {
+    private void dadoUnModeloSinRed() {
         ClienteModeloTexto roto = peticion -> {
             throw new IllegalArgumentException("sin red");
         };
@@ -151,16 +151,16 @@ class ConversacionObjetivosIaAdapterTest {
     }
 
     // --- act ---
-    private void whenSeConversa() {
+    private void cuandoSeConversa() {
         propuesta = adapter.conversar(consulta());
     }
 
-    private void whenSeConversaConError() {
-        error = catchThrowable(this::whenSeConversa);
+    private void cuandoSeConversaConError() {
+        error = catchThrowable(this::cuandoSeConversa);
     }
 
     // --- assert ---
-    private void thenSeLeeTodaLaRespuesta() {
+    private void entoncesSeLeeTodaLaRespuesta() {
         assertThat(propuesta.respuesta()).isEqualTo("Armé algo");
         assertThat(propuesta.entendido()).isEqualTo("Vender más");
         assertThat(propuesta.esMonetario()).isFalse();
@@ -174,51 +174,51 @@ class ConversacionObjetivosIaAdapterTest {
         assertThat(propuesta.elecciones().get(1).justificacion()).isEqualTo("Que te vean");
     }
 
-    private void thenSeLeeLoQueGastoElModelo() {
+    private void entoncesSeLeeLoQueGastoElModelo() {
         assertThat(propuesta.consumo().proveedor()).isEqualTo("simulado");
         assertThat(propuesta.consumo().modelo()).isEqualTo("modelo");
         assertThat(propuesta.consumo().tokensEntrada()).isEqualTo(120);
         assertThat(propuesta.consumo().tokensSalida()).isEqualTo(45);
     }
 
-    private void thenSeLeMandaAlModeloLaConversacionYElCatalogo() {
+    private void entoncesSeLeMandaAlModeloLaConversacionYElCatalogo() {
         assertThat(pedidos).singleElement().satisfies(pedido -> {
             assertThat(pedido.contexto()).contains("[persona] Quiero vender más", "c1: tipo SUBIR_PRECIO");
             assertThat(pedido.esquemaJson()).contains("minis");
         });
     }
 
-    private void thenEsMonetario() {
+    private void entoncesEsMonetario() {
         assertThat(propuesta.esMonetario()).isTrue();
     }
 
-    private void thenNoEsMonetario() {
+    private void entoncesNoEsMonetario() {
         assertThat(propuesta.esMonetario()).isFalse();
     }
 
-    private void thenNoHayElecciones() {
+    private void entoncesNoHayElecciones() {
         assertThat(propuesta.elecciones()).isEmpty();
     }
 
-    private void thenSoloQuedaLaEleccionDelCodigo(String codigo) {
+    private void entoncesSoloQuedaLaEleccionDelCodigo(String codigo) {
         assertThat(propuesta.elecciones()).singleElement()
                 .satisfies(eleccion -> assertThat(eleccion.codigo()).isEqualTo(codigo));
     }
 
-    private void thenLaRespuestaEs(String esperada) {
+    private void entoncesLaRespuestaEs(String esperada) {
         assertThat(propuesta.respuesta()).isEqualTo(esperada);
     }
 
-    private void thenSeRechazaPorIlegible() {
+    private void entoncesSeRechazaPorIlegible() {
         assertThat(error).isInstanceOf(IllegalStateException.class);
     }
 
-    private void thenSeRechazaPorIlegibleConMensaje() {
+    private void entoncesSeRechazaPorIlegibleConMensaje() {
         assertThat(error).isInstanceOf(IllegalStateException.class)
                 .hasMessage("La IA devolvió una respuesta ilegible");
     }
 
-    private void thenFallaConLaExcepcionDelCliente() {
+    private void entoncesFallaConLaExcepcionDelCliente() {
         assertThat(error).isInstanceOf(IllegalArgumentException.class).hasMessage("sin red");
     }
 }

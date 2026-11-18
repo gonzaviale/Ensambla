@@ -15,10 +15,10 @@ class TextoSeguroTest {
 
     @Test
     @DisplayName("Oculta los correos electrónicos")
-    void deShouldHideEmails() {
-        whenSeProtege("Escribile a juan.perez+tienda@mail.com.ar hoy");
+    void ocultaLosCorreosElectronicos() {
+        cuandoSeProtege("Escribile a juan.perez+tienda@mail.com.ar hoy");
 
-        thenElTextoEs("Escribile a [dato oculto] hoy");
+        entoncesElTextoEs("Escribile a [dato oculto] hoy");
     }
 
     @ParameterizedTest(name = "{0}")
@@ -27,18 +27,18 @@ class TextoSeguroTest {
             Llamalo al 11 5555 5555 | Llamalo al [dato oculto]
             o al +54 9 11 5555-5555 | o al [dato oculto]
             """)
-    void deShouldHidePhoneNumbers(String texto, String esperado) {
-        whenSeProtege(texto);
+    void ocultaLosTelefonosConEspaciosGuionesYPrefijo(String texto, String esperado) {
+        cuandoSeProtege(texto);
 
-        thenElTextoEs(esperado);
+        entoncesElTextoEs(esperado);
     }
 
     @Test
     @DisplayName("Oculta un DNI con puntos")
-    void deShouldHideDocumentNumbers() {
-        whenSeProtege("Su DNI es 12.345.678");
+    void ocultaUnDniConPuntos() {
+        cuandoSeProtege("Su DNI es 12.345.678");
 
-        thenElTextoEs("Su DNI es [dato oculto]");
+        entoncesElTextoEs("Su DNI es [dato oculto]");
     }
 
     @ParameterizedTest(name = "{0}")
@@ -47,27 +47,27 @@ class TextoSeguroTest {
             Quiero ganar $1.400.000 por mes
             o $400.000
             """)
-    void deShouldKeepAmounts(String texto) {
-        whenSeProtege(texto);
+    void noTocaUnImporteEnPesos(String texto) {
+        cuandoSeProtege(texto);
 
-        thenElTextoEs(texto);
+        entoncesElTextoEs(texto);
     }
 
     @Test
     @DisplayName("No toca un texto sin datos personales")
-    void deShouldKeepPlainText() {
-        whenSeProtege(TEXTO_SIN_DATOS_PERSONALES);
+    void noTocaUnTextoSinDatosPersonales() {
+        cuandoSeProtege(TEXTO_SIN_DATOS_PERSONALES);
 
-        thenElTextoEs(TEXTO_SIN_DATOS_PERSONALES);
+        entoncesElTextoEs(TEXTO_SIN_DATOS_PERSONALES);
     }
 
     // --- act ---
-    private void whenSeProtege(String texto) {
+    private void cuandoSeProtege(String texto) {
         resultado = TextoSeguro.de(texto);
     }
 
     // --- assert ---
-    private void thenElTextoEs(String esperado) {
+    private void entoncesElTextoEs(String esperado) {
         assertThat(resultado).isEqualTo(esperado);
     }
 }

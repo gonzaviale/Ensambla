@@ -33,51 +33,51 @@ class ListarSemanasResponseTest {
 
     @Test
     @DisplayName("El último cierre es la semana del primer resumen y se copia cada campo")
-    void deShouldCopyEverySummaryAndTakeTheNewestAsLastClose() {
-        whenSeResponde(
+    void elUltimoCierreEsLaSemanaDelPrimerResumenYSeCopiaCadaCampo() {
+        cuandoSeResponde(
                 resumenConUnReajusteSubidoA110(),
                 resumen(SEMANA.minusWeeks(1), List.of()));
 
-        thenElUltimoCierreEsLaSemanaMasNueva();
-        thenSeCopiaCadaCampoDeLaSemanaMasNueva();
+        entoncesElUltimoCierreEsLaSemanaMasNueva();
+        entoncesSeCopiaCadaCampoDeLaSemanaMasNueva();
     }
 
     @Test
     @DisplayName("Un reajuste cuyo mini-objetivo nuevo ya no existe queda sin «a»")
-    void deShouldLeaveTheFollowerEmptyWhenItNoLongerExists() {
-        whenSeResponde(resumen(SEMANA, List.of(reajuste(null, null))));
+    void unReajusteCuyoMiniObjetivoNuevoYaNoExisteQuedaSinA() {
+        cuandoSeResponde(resumen(SEMANA, List.of(reajuste(null, null))));
 
-        thenElReajusteNoTieneDestino();
+        entoncesElReajusteNoTieneDestino();
     }
 
     @Test
     @DisplayName("Sin resúmenes no hay último cierre")
-    void deShouldHaveNoLastCloseWhenThereAreNoSummaries() {
-        whenSeResponde();
+    void sinResumenesNoHayUltimoCierre() {
+        cuandoSeResponde();
 
-        thenNoHayUltimoCierreNiSemanas();
+        entoncesNoHayUltimoCierreNiSemanas();
     }
 
     @Test
     @DisplayName("Cada semana trae lo que la persona respondió de sus manuales, o que no respondió")
-    void deShouldCopyTheManualAnswers() {
-        whenSeResponde(resumenConManuales());
+    void cadaSemanaTraeLoQueLaPersonaRespondioDeSusManualesOQueNoRespondio() {
+        cuandoSeResponde(resumenConManuales());
 
-        thenCadaSemanaTraeLasRespuestasDeSusManuales();
+        entoncesCadaSemanaTraeLasRespuestasDeSusManuales();
     }
 
     // --- act ---
-    private void whenSeResponde(ResumenSemanal... resumenes) {
+    private void cuandoSeResponde(ResumenSemanal... resumenes) {
         respuesta = ListarSemanasResponse.de(List.of(resumenes));
     }
 
     // --- assert ---
-    private void thenElUltimoCierreEsLaSemanaMasNueva() {
+    private void entoncesElUltimoCierreEsLaSemanaMasNueva() {
         assertThat(respuesta.ultimoCierre()).isEqualTo(SEMANA);
         assertThat(respuesta.semanas()).extracting(SemanaItem::semana).containsExactly(SEMANA, SEMANA.minusWeeks(1));
     }
 
-    private void thenSeCopiaCadaCampoDeLaSemanaMasNueva() {
+    private void entoncesSeCopiaCadaCampoDeLaSemanaMasNueva() {
         SemanaItem semana = respuesta.semanas().get(0);
         assertThat(semana.resultado()).isEqualByComparingTo("180000");
         assertThat(semana.avance()).isEqualByComparingTo("0.45");
@@ -97,16 +97,16 @@ class ListarSemanasResponseTest {
         });
     }
 
-    private void thenElReajusteNoTieneDestino() {
+    private void entoncesElReajusteNoTieneDestino() {
         assertThat(respuesta.semanas().get(0).reajustes().get(0).a()).isNull();
     }
 
-    private void thenNoHayUltimoCierreNiSemanas() {
+    private void entoncesNoHayUltimoCierreNiSemanas() {
         assertThat(respuesta.ultimoCierre()).isNull();
         assertThat(respuesta.semanas()).isEmpty();
     }
 
-    private void thenCadaSemanaTraeLasRespuestasDeSusManuales() {
+    private void entoncesCadaSemanaTraeLasRespuestasDeSusManuales() {
         assertThat(respuesta.semanas().getFirst().manuales()).containsExactly(
                 new ListarSemanasResponse.ManualItem(MINI_ID, "Pedile a 3 clientes", HizoManual.SI, QuePaso.FUNCIONO),
                 new ListarSemanasResponse.ManualItem(OTRO_MINI_ID, "Un cartel", null, null));

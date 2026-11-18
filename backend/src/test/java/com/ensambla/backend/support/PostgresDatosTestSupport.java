@@ -49,7 +49,7 @@ public abstract class PostgresDatosTestSupport extends PostgresRepositoryTestSup
     @Autowired
     protected IRegistroJpaRepository registros;
 
-    protected UUID givenUsuario(String email) {
+    protected UUID dadoUsuario(String email) {
         return usuarios.saveAndFlush(UsuarioEntity.builder()
                 .nombre("Persona")
                 .email(email)
@@ -60,8 +60,8 @@ public abstract class PostgresDatosTestSupport extends PostgresRepositoryTestSup
                 .build()).getId();
     }
 
-    protected NegocioEntity givenNegocio(String emailDuenio) {
-        UsuarioId duenioId = UsuarioId.de(givenUsuario(emailDuenio));
+    protected NegocioEntity dadoNegocio(String emailDuenio) {
+        UsuarioId duenioId = UsuarioId.de(dadoUsuario(emailDuenio));
         return negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio de " + emailDuenio)
                 .duenioId(duenioId.valor())
@@ -70,7 +70,7 @@ public abstract class PostgresDatosTestSupport extends PostgresRepositoryTestSup
                 .build());
     }
 
-    protected UUID givenBloque(NegocioId negocioId, String nombre) {
+    protected UUID dadoBloque(NegocioId negocioId, String nombre) {
         UUID proyectoId = proyectos.saveAndFlush(ProyectoEntity.builder()
                 .negocioId(negocioId.valor())
                 .nombre("Proyecto " + nombre)
@@ -87,7 +87,7 @@ public abstract class PostgresDatosTestSupport extends PostgresRepositoryTestSup
                 .build()).getId();
     }
 
-    protected UUID givenCampo(NegocioId negocioId, BloqueId bloqueId, String nombre, TipoCampo tipo, int posicion) {
+    protected UUID dadoCampo(NegocioId negocioId, BloqueId bloqueId, String nombre, TipoCampo tipo, int posicion) {
         return campos.saveAndFlush(CampoEntity.builder()
                 .negocioId(negocioId.valor())
                 .bloqueId(bloqueId.valor())
@@ -101,7 +101,7 @@ public abstract class PostgresDatosTestSupport extends PostgresRepositoryTestSup
                 .build()).getId();
     }
 
-    protected UUID givenRegistro(NegocioId negocioId, BloqueId bloqueId, Map<String, Object> valores,
+    protected UUID dadoRegistro(NegocioId negocioId, BloqueId bloqueId, Map<String, Object> valores,
             OffsetDateTime creadoEn) {
         return registros.saveAndFlush(RegistroEntity.builder()
                 .negocioId(negocioId.valor())

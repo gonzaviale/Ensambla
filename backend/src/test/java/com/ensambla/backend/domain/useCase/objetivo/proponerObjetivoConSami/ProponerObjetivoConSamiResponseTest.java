@@ -39,62 +39,62 @@ class ProponerObjetivoConSamiResponseTest {
 
     @Test
     @DisplayName("Copia la respuesta, lo entendido, el tipo, los datos y lo que queda por escribir")
-    void deShouldCopyEveryField() {
-        whenSeRespondeConUnMedidoYDosDeCinco();
+    void copiaLaRespuestaLoEntendidoElTipoLosDatosYLoQueQuedaPorEscribir() {
+        cuandoSeRespondeConUnMedidoYDosDeCinco();
 
-        thenSeCopianLaRespuestaYLoEntendido();
-        thenSeCopianLosDatosYLaCuota();
+        entoncesSeCopianLaRespuestaYLoEntendido();
+        entoncesSeCopianLosDatosYLaCuota();
     }
 
     @Test
     @DisplayName("Un mini-objetivo medido trae su métrica y todos sus números")
-    void miniShouldCopyTheMeasuredMetric() {
-        whenSeArmaElItem(MiniObjetivoPropuesto.medido(candidato()));
+    void unMiniObjetivoMedidoTraeSuMetricaYTodosSusNumeros() {
+        cuandoSeArmaElItem(MiniObjetivoPropuesto.medido(candidato()));
 
-        thenElItemTraeLaMetricaYSusNumeros();
+        entoncesElItemTraeLaMetricaYSusNumeros();
     }
 
     @Test
     @DisplayName("Un mini-objetivo manual trae sólo su texto, sin métrica ni números")
-    void miniShouldCopyOnlyTheTextOfAManualMini() {
-        whenSeArmaElItemDeUnManual();
+    void unMiniObjetivoManualTraeSoloSuTextoSinMetricaNiNumeros() {
+        cuandoSeArmaElItemDeUnManual();
 
-        thenElItemTraeSoloElTexto();
+        entoncesElItemTraeSoloElTexto();
     }
 
     @Test
     @DisplayName("Una meta en pesos no tiene tipo y no se puede guardar")
-    void deShouldHaveNoTypeForAMonetaryGoal() {
-        whenSeRespondeUnaMetaEnPesosSinLimiteDeCuota();
+    void unaMetaEnPesosNoTieneTipoYNoSePuedeGuardar() {
+        cuandoSeRespondeUnaMetaEnPesosSinLimiteDeCuota();
 
-        thenNoHayTipoNiSePuedeGuardar();
-        thenLaCuotaNoTieneLimite();
+        entoncesNoHayTipoNiSePuedeGuardar();
+        entoncesLaCuotaNoTieneLimite();
     }
 
     // --- act ---
-    private void whenSeResponde(PropuestaObjetivo propuesta, CuotaObjetivosIa cuota, int mensajesRestantes) {
+    private void cuandoSeResponde(PropuestaObjetivo propuesta, CuotaObjetivosIa cuota, int mensajesRestantes) {
         respuesta = ProponerObjetivoConSamiResponse.de(
                 propuesta, List.of(new DatoUsado(FuenteDato.ZONA, false)), mensajesRestantes, cuota);
     }
 
-    private void whenSeRespondeConUnMedidoYDosDeCinco() {
-        whenSeResponde(propuestaConUnMedido(), new CuotaObjetivosIa(2, 5), MENSAJES_RESTANTES);
+    private void cuandoSeRespondeConUnMedidoYDosDeCinco() {
+        cuandoSeResponde(propuestaConUnMedido(), new CuotaObjetivosIa(2, 5), MENSAJES_RESTANTES);
     }
 
-    private void whenSeRespondeUnaMetaEnPesosSinLimiteDeCuota() {
-        whenSeResponde(propuestaMonetaria(), new CuotaObjetivosIa(0, null), 5);
+    private void cuandoSeRespondeUnaMetaEnPesosSinLimiteDeCuota() {
+        cuandoSeResponde(propuestaMonetaria(), new CuotaObjetivosIa(0, null), 5);
     }
 
-    private void whenSeArmaElItemDeUnManual() {
-        whenSeArmaElItem(MiniObjetivoPropuesto.manual(new AccionManual(TITULO_ACCION, JUSTIFICACION_ACCION), true));
+    private void cuandoSeArmaElItemDeUnManual() {
+        cuandoSeArmaElItem(MiniObjetivoPropuesto.manual(new AccionManual(TITULO_ACCION, JUSTIFICACION_ACCION), true));
     }
 
-    private void whenSeArmaElItem(MiniObjetivoPropuesto propuesto) {
+    private void cuandoSeArmaElItem(MiniObjetivoPropuesto propuesto) {
         mini = MiniPropuestoItem.de(propuesto);
     }
 
     // --- assert ---
-    private void thenSeCopianLaRespuestaYLoEntendido() {
+    private void entoncesSeCopianLaRespuestaYLoEntendido() {
         assertThat(respuesta.respuesta()).isEqualTo(RESPUESTA_IA);
         assertThat(respuesta.entendido()).isEqualTo(ENTENDIDO);
         assertThat(respuesta.tipo()).isEqualTo(TipoObjetivo.CON_DATOS);
@@ -104,7 +104,7 @@ class ProponerObjetivoConSamiResponseTest {
         assertThat(respuesta.puedeGuardar()).isTrue();
     }
 
-    private void thenSeCopianLosDatosYLaCuota() {
+    private void entoncesSeCopianLosDatosYLaCuota() {
         assertThat(respuesta.cuota().usadas()).isEqualTo(2);
         assertThat(respuesta.cuota().limite()).isEqualTo(5);
         assertThat(respuesta.cuota().restantes()).isEqualTo(3);
@@ -114,7 +114,7 @@ class ProponerObjetivoConSamiResponseTest {
         });
     }
 
-    private void thenElItemTraeLaMetricaYSusNumeros() {
+    private void entoncesElItemTraeLaMetricaYSusNumeros() {
         assertThat(mini.modo()).isEqualTo(ModoMiniObjetivo.MEDIDO);
         assertThat(mini.tipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
         assertThat(mini.registroId()).isEqualTo(PRODUCTO_ID);
@@ -127,7 +127,7 @@ class ProponerObjetivoConSamiResponseTest {
         assertThat(mini.textoConIa()).isFalse();
     }
 
-    private void thenElItemTraeSoloElTexto() {
+    private void entoncesElItemTraeSoloElTexto() {
         assertThat(mini.modo()).isEqualTo(ModoMiniObjetivo.MANUAL);
         assertThat(mini.titulo()).isEqualTo(TITULO_ACCION);
         assertThat(mini.justificacion()).isEqualTo(JUSTIFICACION_ACCION);
@@ -140,7 +140,7 @@ class ProponerObjetivoConSamiResponseTest {
         assertThat(mini.aporteEstimado()).isNull();
     }
 
-    private void thenNoHayTipoNiSePuedeGuardar() {
+    private void entoncesNoHayTipoNiSePuedeGuardar() {
         assertThat(respuesta.tipo()).isNull();
         assertThat(respuesta.entendido()).isNull();
         assertThat(respuesta.esMonetario()).isTrue();
@@ -148,7 +148,7 @@ class ProponerObjetivoConSamiResponseTest {
         assertThat(respuesta.minis()).isEmpty();
     }
 
-    private void thenLaCuotaNoTieneLimite() {
+    private void entoncesLaCuotaNoTieneLimite() {
         assertThat(respuesta.cuota().limite()).isNull();
         assertThat(respuesta.cuota().restantes()).isNull();
     }

@@ -42,144 +42,144 @@ class ObjetivosIaConfigTest {
 
     @Test
     @DisplayName("Arma el pedido con las instrucciones y el esquema de los archivos de la IA")
-    void promptObjetivosShouldLoadTheResources() {
-        whenSeCarganLosArchivosDelPromptDeObjetivos();
+    void armaElPedidoConLasInstruccionesYElEsquemaDeLosArchivosDeLaIa() {
+        cuandoSeCarganLosArchivosDelPromptDeObjetivos();
 
-        thenElPedidoDeObjetivosTieneLasInstrucciones();
+        entoncesElPedidoDeObjetivosTieneLasInstrucciones();
     }
 
     @Test
     @DisplayName("Con el proveedor simulado conecta el redactor, que no sabe escribir y deja el texto de reserva")
-    void redaccionObjetivosIaPortShouldUseTheSimulatedProvider() {
-        whenSeConectaElRedactorConProveedorSimulado();
+    void conElProveedorSimuladoConectaElRedactorQueNoSabeEscribirYDejaElTextoDe() {
+        cuandoSeConectaElRedactorConProveedorSimulado();
 
-        thenElRedactorEsElAdaptadorYNoSabeEscribir();
+        entoncesElRedactorEsElAdaptadorYNoSabeEscribir();
     }
 
     @Test
     @DisplayName("Con un proveedor que no existe no levanta")
-    void redaccionObjetivosIaPortShouldFailWhenTheProviderDoesNotExist() {
-        whenSeConectaElRedactorConProveedorInexistente();
+    void conUnProveedorQueNoExisteNoLevanta() {
+        cuandoSeConectaElRedactorConProveedorInexistente();
 
-        thenNoLevanta();
+        entoncesNoLevanta();
     }
 
     @Test
     @DisplayName("Arma el pedido de la conversación con las instrucciones y el esquema de los archivos de la IA")
-    void promptConversacionObjetivosShouldLoadTheResources() {
-        whenSeCarganLosArchivosDelPromptDeConversacion();
+    void armaElPedidoDeLaConversacionConLasInstruccionesYElEsquemaDeLosArchivosDeLa() {
+        cuandoSeCarganLosArchivosDelPromptDeConversacion();
 
-        thenElPedidoDeConversacionTieneLasInstrucciones();
+        entoncesElPedidoDeConversacionTieneLasInstrucciones();
     }
 
     @Test
     @DisplayName("Con el proveedor simulado la conversación propone una métrica del catálogo y una acción, sin costo")
-    void conversacionObjetivosIaPortShouldUseTheSimulatedProvider() {
-        whenSeConectaLaConversacionConProveedorSimulado();
+    void conElProveedorSimuladoLaConversacionProponeUnaMetricaDelCatalogoYUnaAccion() {
+        cuandoSeConectaLaConversacionConProveedorSimulado();
 
-        thenLaConversacionProponeUnaMetricaYUnaAccionSinCosto();
+        entoncesLaConversacionProponeUnaMetricaYUnaAccionSinCosto();
     }
 
     @Test
     @DisplayName("Con un proveedor que no existe la conversación no levanta")
-    void conversacionObjetivosIaPortShouldFailWhenTheProviderDoesNotExist() {
-        whenSeConectaLaConversacionConProveedorInexistente();
+    void conUnProveedorQueNoExisteLaConversacionNoLevanta() {
+        cuandoSeConectaLaConversacionConProveedorInexistente();
 
-        thenNoLevanta();
+        entoncesNoLevanta();
     }
 
     @Test
     @DisplayName("Arma el pedido de las renovaciones con las instrucciones y el esquema de los archivos de la IA")
-    void promptRenovacionManualesShouldLoadTheResources() {
-        whenSeCarganLosArchivosDelPromptDeRenovacion();
+    void armaElPedidoDeLasRenovacionesConLasInstruccionesYElEsquemaDeLosArchivosDeLa() {
+        cuandoSeCarganLosArchivosDelPromptDeRenovacion();
 
-        thenElPedidoDeRenovacionTieneLasInstrucciones();
+        entoncesElPedidoDeRenovacionTieneLasInstrucciones();
     }
 
     @Test
     @DisplayName("Con el proveedor simulado las renovaciones tienen un texto válido por cada una, sin costo")
-    void renovacionManualesIaPortShouldUseTheSimulatedProvider() {
-        whenSeConectaLaRenovacionConProveedorSimulado();
+    void conElProveedorSimuladoLasRenovacionesTienenUnTextoValidoPorCadaUnaSinCosto() {
+        cuandoSeConectaLaRenovacionConProveedorSimulado();
 
-        thenLaRenovacionTieneUnTextoPorCadaUnaSinCosto();
+        entoncesLaRenovacionTieneUnTextoPorCadaUnaSinCosto();
     }
 
     @Test
     @DisplayName("Con un proveedor que no existe las renovaciones no levantan")
-    void renovacionManualesIaPortShouldFailWhenTheProviderDoesNotExist() {
-        whenSeConectaLaRenovacionConProveedorInexistente();
+    void conUnProveedorQueNoExisteLasRenovacionesNoLevantan() {
+        cuandoSeConectaLaRenovacionConProveedorInexistente();
 
-        thenNoLevanta();
+        entoncesNoLevanta();
     }
 
     // --- act ---
-    private void whenSeCarganLosArchivosDelPromptDeObjetivos() {
+    private void cuandoSeCarganLosArchivosDelPromptDeObjetivos() {
         promptObjetivos = config.promptObjetivos();
     }
 
-    private void whenSeCarganLosArchivosDelPromptDeConversacion() {
+    private void cuandoSeCarganLosArchivosDelPromptDeConversacion() {
         promptConversacion = config.promptConversacionObjetivos();
     }
 
-    private void whenSeCarganLosArchivosDelPromptDeRenovacion() {
+    private void cuandoSeCarganLosArchivosDelPromptDeRenovacion() {
         promptRenovacion = config.promptRenovacionManuales();
     }
 
-    private void whenSeConectaElRedactorConProveedorSimulado() {
+    private void cuandoSeConectaElRedactorConProveedorSimulado() {
         redaccion = config.redaccionObjetivosIaPort(config.promptObjetivos(), JsonMapper.builder().build(), sami(),
                 propiedadesDelProveedor("simulado"), proveedoresSimulados());
     }
 
-    private void whenSeConectaElRedactorConProveedorInexistente() {
+    private void cuandoSeConectaElRedactorConProveedorInexistente() {
         error = catchThrowable(() -> config.redaccionObjetivosIaPort(config.promptObjetivos(),
                 JsonMapper.builder().build(), sami(), propiedadesDelProveedor("inexistente"),
                 new ProveedoresIa(List.of())));
     }
 
-    private void whenSeConectaLaConversacionConProveedorSimulado() {
+    private void cuandoSeConectaLaConversacionConProveedorSimulado() {
         conversacion = config.conversacionObjetivosIaPort(config.promptConversacionObjetivos(),
                 JsonMapper.builder().build(), sami(), propiedadesDelProveedor("simulado"), proveedoresSimulados());
         propuesta = conversacion.conversar(consulta());
     }
 
-    private void whenSeConectaLaConversacionConProveedorInexistente() {
+    private void cuandoSeConectaLaConversacionConProveedorInexistente() {
         error = catchThrowable(() -> config.conversacionObjetivosIaPort(config.promptConversacionObjetivos(),
                 JsonMapper.builder().build(), sami(), propiedadesDelProveedor("inexistente"),
                 new ProveedoresIa(List.of())));
     }
 
-    private void whenSeConectaLaRenovacionConProveedorSimulado() {
+    private void cuandoSeConectaLaRenovacionConProveedorSimulado() {
         renovacion = config.renovacionManualesIaPort(config.promptRenovacionManuales(),
                 JsonMapper.builder().build(), sami(), propiedadesDelProveedor("simulado"), proveedoresSimulados());
         textosRenovados = renovacion.renovar(List.of(pedidoDeRenovacion(), pedidoDeRenovacion()));
     }
 
-    private void whenSeConectaLaRenovacionConProveedorInexistente() {
+    private void cuandoSeConectaLaRenovacionConProveedorInexistente() {
         error = catchThrowable(() -> config.renovacionManualesIaPort(config.promptRenovacionManuales(),
                 JsonMapper.builder().build(), sami(), propiedadesDelProveedor("inexistente"),
                 new ProveedoresIa(List.of())));
     }
 
     // --- assert ---
-    private void thenElPedidoDeObjetivosTieneLasInstrucciones() {
+    private void entoncesElPedidoDeObjetivosTieneLasInstrucciones() {
         assertThat(promptObjetivos.peticion(List.of(candidato())).instrucciones()).contains("Sos Sami");
     }
 
-    private void thenElRedactorEsElAdaptadorYNoSabeEscribir() {
+    private void entoncesElRedactorEsElAdaptadorYNoSabeEscribir() {
         assertThat(redaccion).isInstanceOf(RedaccionObjetivosIaAdapter.class);
         assertThat(catchThrowable(() -> redaccion.redactar(List.of(candidato()))))
                 .isInstanceOf(IllegalStateException.class);
     }
 
-    private void thenNoLevanta() {
+    private void entoncesNoLevanta() {
         assertThat(error).isInstanceOf(IllegalStateException.class);
     }
 
-    private void thenElPedidoDeConversacionTieneLasInstrucciones() {
+    private void entoncesElPedidoDeConversacionTieneLasInstrucciones() {
         assertThat(promptConversacion.peticion(consulta()).instrucciones()).contains("Sos Sami");
     }
 
-    private void thenLaConversacionProponeUnaMetricaYUnaAccionSinCosto() {
+    private void entoncesLaConversacionProponeUnaMetricaYUnaAccionSinCosto() {
         assertThat(conversacion).isInstanceOf(ConversacionObjetivosIaAdapter.class);
         assertThat(PropuestaObjetivo.de(propuesta, consulta()).minis())
                 .extracting(MiniObjetivoPropuesto::modo)
@@ -187,11 +187,11 @@ class ObjetivosIaConfigTest {
         assertThat(propuesta.consumo().tokensEntrada()).isZero();
     }
 
-    private void thenElPedidoDeRenovacionTieneLasInstrucciones() {
+    private void entoncesElPedidoDeRenovacionTieneLasInstrucciones() {
         assertThat(promptRenovacion.peticion(List.of(pedidoDeRenovacion())).instrucciones()).contains("Sos Sami");
     }
 
-    private void thenLaRenovacionTieneUnTextoPorCadaUnaSinCosto() {
+    private void entoncesLaRenovacionTieneUnTextoPorCadaUnaSinCosto() {
         assertThat(renovacion).isInstanceOf(RenovacionManualesIaAdapter.class);
         assertThat(textosRenovados.textos()).hasSize(2);
         assertThat(textosRenovados.consumo().tokensEntrada()).isZero();

@@ -99,94 +99,94 @@ class CierreSemanalObjetivosPostgresIntegrationTest extends PostgresRepositoryTe
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        UUID usuarioId = givenUsuarioYNegocio();
+        UUID usuarioId = dadoUsuarioYNegocio();
         negocioId = negocioDe(usuarioId);
         AlmacenDeObjetivosDePrueba.guardar(sistemaRepository, negocioId);
-        sesion = givenSesion(usuarioId);
+        sesion = dadoSesion(usuarioId);
     }
 
     @Test
     @DisplayName("Cierra las semanas pasadas del objetivo, una sola vez aunque corra dos veces")
-    void cerrarShouldCloseEachPastWeekOnlyOnce() throws Exception {
-        givenUnObjetivoDeHaceDosSemanas();
+    void cierraLasSemanasPasadasDelObjetivoUnaSolaVezAunqueCorraDosVeces() throws Exception {
+        dadoUnObjetivoDeHaceDosSemanas();
 
-        whenSeCierraDosVeces();
+        cuandoSeCierraDosVeces();
 
-        thenCerroLasSemanasPasadasUnaSolaVez();
+        entoncesCerroLasSemanasPasadasUnaSolaVez();
     }
 
     @Test
     @DisplayName("Antes del horario de cierre, un objetivo de esta semana no tiene nada que cerrar")
-    void cerrarShouldNotCloseTheCurrentWeek() throws Exception {
-        givenUnObjetivoDeEstaSemana();
+    void antesDelHorarioDeCierreUnObjetivoDeEstaSemanaNoTieneNadaQueCerrar() throws Exception {
+        dadoUnObjetivoDeEstaSemana();
 
-        whenSeCierra();
+        cuandoSeCierra();
 
-        thenNoSeCerroNingunaSemana();
+        entoncesNoSeCerroNingunaSemana();
     }
 
     @Test
     @DisplayName("El cierre no crea avisos")
-    void cerrarShouldNotCreateNotices() throws Exception {
-        givenUnObjetivoDeHaceDosSemanas();
-        givenLosAvisosQueHabiaAntes();
+    void elCierreNoCreaAvisos() throws Exception {
+        dadoUnObjetivoDeHaceDosSemanas();
+        dadoLosAvisosQueHabiaAntes();
 
-        whenSeCierra();
+        cuandoSeCierra();
 
-        thenNoSeCrearonAvisos();
+        entoncesNoSeCrearonAvisos();
     }
 
     @Test
     @DisplayName("Las semanas del objetivo vienen de la más nueva a la más vieja con su resumen")
-    void semanasShouldReturnTheClosedWeeks() throws Exception {
-        givenUnObjetivoDeHaceDosSemanas();
-        givenElCierreYaCorrio();
+    void lasSemanasDelObjetivoVienenDeLaMasNuevaALaMasViejaConSuResumen() throws Exception {
+        dadoUnObjetivoDeHaceDosSemanas();
+        dadoElCierreYaCorrio();
 
-        whenSePidenLasSemanas();
+        cuandoSePidenLasSemanas();
 
-        thenLasSemanasVienenDeLaMasNuevaALaMasViejaConSuResumen();
+        entoncesLasSemanasVienenDeLaMasNuevaALaMasViejaConSuResumen();
     }
 
     @Test
     @DisplayName("El cierre renueva el manual respondido, deja sin renovar el que no y lo cuenta en el resumen")
-    void cerrarShouldRenewTheAnsweredManualAndKeepTheOtherOne() throws Exception {
-        givenUnObjetivoSinMetaConUnManualRespondidoYOtroSinRespuesta("SI", "FUNCIONO");
+    void elCierreRenuevaElManualRespondidoDejaSinRenovarElQueNoYLoCuentaEnElResumen() throws Exception {
+        dadoUnObjetivoSinMetaConUnManualRespondidoYOtroSinRespuesta("SI", "FUNCIONO");
 
-        whenSeCierra();
-        whenSePidenLasSemanas();
+        cuandoSeCierra();
+        cuandoSePidenLasSemanas();
 
-        thenSeRenuevaElManualRespondido();
-        thenQuedaSinRenovarElManualSinRespuesta();
-        thenElResumenCuentaLosManuales();
+        entoncesSeRenuevaElManualRespondido();
+        entoncesQuedaSinRenovarElManualSinRespuesta();
+        entoncesElResumenCuentaLosManuales();
     }
 
     @Test
     @DisplayName("Después del cierre Sami pregunta primero por el manual que sigue sin respuesta")
-    void pendientesShouldAskFirstForTheManualThatWasNeverAnswered() throws Exception {
-        givenUnObjetivoSinMetaConUnManualRespondidoYOtroSinRespuesta("EN_PARTE", "NO_TUVE_TIEMPO");
-        givenElCierreYaCorrio();
+    void despuesDelCierreSamiPreguntaPrimeroPorElManualQueSigueSinRespuesta() throws Exception {
+        dadoUnObjetivoSinMetaConUnManualRespondidoYOtroSinRespuesta("EN_PARTE", "NO_TUVE_TIEMPO");
+        dadoElCierreYaCorrio();
 
-        whenSePidenLosPendientes();
+        cuandoSePidenLosPendientes();
 
-        thenSePreguntaPrimeroPorElManualSinRespuesta();
+        entoncesSePreguntaPrimeroPorElManualSinRespuesta();
     }
 
     @Test
     @DisplayName("Las semanas de un objetivo inexistente o ajeno responden 404")
-    void semanasShouldReturn404ForAnUnknownObjetivo() throws Exception {
-        whenSePidenLasSemanasDe(UUID.randomUUID());
+    void lasSemanasDeUnObjetivoInexistenteOAjenoResponden404() throws Exception {
+        cuandoSePidenLasSemanasDe(UUID.randomUUID());
 
-        thenSeResponde404();
+        entoncesSeResponde404();
     }
 
     @Test
     @DisplayName("Las semanas sin sesión responden 401")
-    void semanasShouldRequireSession() throws Exception {
-        thenLasSemanasSinSesionRespondenCon401();
+    void lasSemanasSinSesionResponden401() throws Exception {
+        entoncesLasSemanasSinSesionRespondenCon401();
     }
 
     // --- arrange ---
-    private void givenUnObjetivoDeEstaSemana() throws Exception {
+    private void dadoUnObjetivoDeEstaSemana() throws Exception {
         String body = mockMvc.perform(post(OBJETIVOS).session(sesion).header("X-CSRF-TOKEN", csrfToken)
                         .contentType("application/json")
                         .content("{\"texto\":\"Quiero ganar más\",\"meta\":500000}"))
@@ -195,68 +195,68 @@ class CierreSemanalObjetivosPostgresIntegrationTest extends PostgresRepositoryTe
         objetivoId = UUID.fromString(JsonPath.read(body, "$.id"));
     }
 
-    private void givenUnObjetivoDeHaceDosSemanas() throws Exception {
-        givenUnObjetivoDeEstaSemana();
+    private void dadoUnObjetivoDeHaceDosSemanas() throws Exception {
+        dadoUnObjetivoDeEstaSemana();
         entityManager.flush();
         jdbcTemplate.update("UPDATE objetivo SET creado_en = now() - interval '15 days' WHERE id = ?", objetivoId);
         entityManager.clear();
     }
 
-    private void givenLosAvisosQueHabiaAntes() {
+    private void dadoLosAvisosQueHabiaAntes() {
         avisosAntes = contar("aviso");
     }
 
-    private void givenElCierreYaCorrio() {
+    private void dadoElCierreYaCorrio() {
         cerrarSemanasObjetivos.execute();
     }
 
-    private void givenUnObjetivoSinMetaConUnManualRespondidoYOtroSinRespuesta(String hizo, String quePaso) {
-        objetivoId = givenObjetivoSinMetaDeHaceDosSemanas();
-        respondido = givenManual(objetivoId, 1, MANUAL_RESPONDIDO);
-        sinRespuesta = givenManual(objetivoId, 2, MANUAL_SIN_RESPUESTA);
+    private void dadoUnObjetivoSinMetaConUnManualRespondidoYOtroSinRespuesta(String hizo, String quePaso) {
+        objetivoId = dadoObjetivoSinMetaDeHaceDosSemanas();
+        respondido = dadoManual(objetivoId, 1, MANUAL_RESPONDIDO);
+        sinRespuesta = dadoManual(objetivoId, 2, MANUAL_SIN_RESPUESTA);
         jdbcTemplate.update("INSERT INTO respuesta_mini_objetivo (negocio_id, objetivo_id, mini_objetivo_id, hizo, "
                 + "que_paso, semana_inicio, respondida_en) VALUES (?, ?, ?, ?, ?, current_date, now())",
                 negocioId, objetivoId, respondido, hizo, quePaso);
     }
 
     // --- act ---
-    private void whenSeCierra() {
+    private void cuandoSeCierra() {
         cerrarSemanasObjetivos.execute();
     }
 
-    private void whenSeCierraDosVeces() {
+    private void cuandoSeCierraDosVeces() {
         cerrarSemanasObjetivos.execute();
         cerradasLaPrimeraVez = resumenesDe(objetivoId);
         cerrarSemanasObjetivos.execute();
     }
 
-    private void whenSePidenLasSemanas() throws Exception {
-        whenSePidenLasSemanasDe(objetivoId);
+    private void cuandoSePidenLasSemanas() throws Exception {
+        cuandoSePidenLasSemanasDe(objetivoId);
     }
 
-    private void whenSePidenLasSemanasDe(UUID id) throws Exception {
+    private void cuandoSePidenLasSemanasDe(UUID id) throws Exception {
         respuestaSemanas = mockMvc.perform(get(OBJETIVOS + "/{id}/semanas", id).session(sesion));
     }
 
-    private void whenSePidenLosPendientes() throws Exception {
+    private void cuandoSePidenLosPendientes() throws Exception {
         respuestaPendientes = mockMvc.perform(get(OBJETIVOS + "/respuestas-pendientes").session(sesion));
     }
 
     // --- assert ---
-    private void thenCerroLasSemanasPasadasUnaSolaVez() {
+    private void entoncesCerroLasSemanasPasadasUnaSolaVez() {
         assertThat(cerradasLaPrimeraVez).isBetween(2, 3);
         assertThat(resumenesDe(objetivoId)).isEqualTo(cerradasLaPrimeraVez);
     }
 
-    private void thenNoSeCerroNingunaSemana() {
+    private void entoncesNoSeCerroNingunaSemana() {
         assertThat(resumenesDe(objetivoId)).isZero();
     }
 
-    private void thenNoSeCrearonAvisos() {
+    private void entoncesNoSeCrearonAvisos() {
         assertThat(contar("aviso")).isEqualTo(avisosAntes);
     }
 
-    private void thenLasSemanasVienenDeLaMasNuevaALaMasViejaConSuResumen() throws Exception {
+    private void entoncesLasSemanasVienenDeLaMasNuevaALaMasViejaConSuResumen() throws Exception {
         String body = respuestaSemanas
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.semanas[0].queFunciono").isNotEmpty())
@@ -266,7 +266,7 @@ class CierreSemanalObjetivosPostgresIntegrationTest extends PostgresRepositoryTe
         assertThat((String) JsonPath.read(body, "$.ultimoCierre")).isEqualTo(semanas.getFirst());
     }
 
-    private void thenSeRenuevaElManualRespondido() {
+    private void entoncesSeRenuevaElManualRespondido() {
         assertThat(estadoDe(respondido)).isEqualTo("LOGRADO");
         assertThat(jdbcTemplate.queryForObject("SELECT reemplazado_por FROM mini_objetivo WHERE id = ?", UUID.class,
                 respondido)).isNotNull();
@@ -275,11 +275,11 @@ class CierreSemanalObjetivosPostgresIntegrationTest extends PostgresRepositoryTe
                 objetivoId, respondido)).isEqualTo(1);
     }
 
-    private void thenQuedaSinRenovarElManualSinRespuesta() {
+    private void entoncesQuedaSinRenovarElManualSinRespuesta() {
         assertThat(estadoDe(sinRespuesta)).isEqualTo("EN_CURSO");
     }
 
-    private void thenElResumenCuentaLosManuales() throws Exception {
+    private void entoncesElResumenCuentaLosManuales() throws Exception {
         String semanas = respuestaSemanas.andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         assertThat(JsonPath.<List<String>>read(semanas, "$.semanas[*].reajustes[*].tipo"))
                 .containsExactly("SUBIR_META");
@@ -292,7 +292,7 @@ class CierreSemanalObjetivosPostgresIntegrationTest extends PostgresRepositoryTe
                 .anyMatch(texto -> texto.contains("No me contaste cómo te fue con «" + MANUAL_SIN_RESPUESTA + "»"));
     }
 
-    private void thenSePreguntaPrimeroPorElManualSinRespuesta() throws Exception {
+    private void entoncesSePreguntaPrimeroPorElManualSinRespuesta() throws Exception {
         respuestaPendientes
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
@@ -300,18 +300,18 @@ class CierreSemanalObjetivosPostgresIntegrationTest extends PostgresRepositoryTe
                 .andExpect(jsonPath("$[1].miniObjetivo.titulo").value(startsWith("Lo que faltó: ")));
     }
 
-    private void thenSeResponde404() throws Exception {
+    private void entoncesSeResponde404() throws Exception {
         respuestaSemanas.andExpect(status().isNotFound());
     }
 
-    private void thenLasSemanasSinSesionRespondenCon401() throws Exception {
+    private void entoncesLasSemanasSinSesionRespondenCon401() throws Exception {
         mockMvc.perform(get(OBJETIVOS + "/{id}/semanas", UUID.randomUUID()))
                 .andExpect(status().isUnauthorized());
     }
 
     // --- helpers ---
     /** Un objetivo armado con Sami, sin meta, creado hace 15 días (tiene semanas por cerrar). */
-    private UUID givenObjetivoSinMetaDeHaceDosSemanas() {
+    private UUID dadoObjetivoSinMetaDeHaceDosSemanas() {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO objetivo (id, negocio_id, texto, tipo, armado_con_sami, creado_en) "
                 + "VALUES (?, ?, 'Que me conozcan', 'SIN_DATOS', true, now() - interval '15 days')",
@@ -320,7 +320,7 @@ class CierreSemanalObjetivosPostgresIntegrationTest extends PostgresRepositoryTe
     }
 
     /** Un mini-objetivo manual en curso que empezó antes de la primera semana por cerrar. */
-    private UUID givenManual(UUID objetivo, int posicion, String titulo) {
+    private UUID dadoManual(UUID objetivo, int posicion, String titulo) {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO mini_objetivo (id, objetivo_id, negocio_id, posicion, modo, estado, "
                 + "semana_inicio, titulo, justificacion, creado_en, actualizado_en) "
@@ -334,7 +334,7 @@ class CierreSemanalObjetivosPostgresIntegrationTest extends PostgresRepositoryTe
                 miniObjetivoId);
     }
 
-    private UUID givenUsuarioYNegocio() {
+    private UUID dadoUsuarioYNegocio() {
         UUID usuarioId = UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO usuario (id, email, nombre) VALUES (?, ?, 'Cierre HTTP')",
                 usuarioId, usuarioId + "@example.test");
@@ -343,7 +343,7 @@ class CierreSemanalObjetivosPostgresIntegrationTest extends PostgresRepositoryTe
         return usuarioId;
     }
 
-    private MockHttpSession givenSesion(UUID usuarioId) throws Exception {
+    private MockHttpSession dadoSesion(UUID usuarioId) throws Exception {
         MockHttpSession session = new MockHttpSession();
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setSession(session);

@@ -70,7 +70,7 @@ class SistemaCasosDeUsoTest {
     @Test
     @DisplayName("Listar resuelve el negocio de la sesión y mapea los sistemas")
     void listarShouldMapSistemasOfSessionNegocio() {
-        givenNegocio();
+        dadoNegocio();
         when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(givenSistema()));
 
         List<SistemaItem> result = listarSistemas.execute(new ListarSistemasRequest(USUARIO_ID));
@@ -94,7 +94,7 @@ class SistemaCasosDeUsoTest {
     @Test
     @DisplayName("Guardar crea el sistema con el negocio de la sesión y la hora del reloj cuando el proyecto no existe")
     void guardarShouldCreateWithSessionNegocioAndClock() {
-        givenNegocio();
+        dadoNegocio();
         when(sistemaRepository.findNegocioIdByProyectoId(SISTEMA_ID)).thenReturn(Optional.empty());
 
         SistemaItem result = guardarSistema.execute(givenGuardar());
@@ -111,7 +111,7 @@ class SistemaCasosDeUsoTest {
     @Test
     @DisplayName("Guardar reemplaza el sistema sin validar el alta cuando el proyecto ya es del negocio")
     void guardarShouldReplaceWhenOwned() {
-        givenNegocio();
+        dadoNegocio();
         when(sistemaRepository.findNegocioIdByProyectoId(SISTEMA_ID)).thenReturn(Optional.of(NEGOCIO_ID));
 
         guardarSistema.execute(givenGuardar());
@@ -123,7 +123,7 @@ class SistemaCasosDeUsoTest {
     @Test
     @DisplayName("Guardar responde como si no existiera cuando el proyecto es de otro negocio")
     void guardarShouldHideForeignProyecto() {
-        givenNegocio();
+        dadoNegocio();
         when(sistemaRepository.findNegocioIdByProyectoId(SISTEMA_ID)).thenReturn(Optional.of(OTRO_NEGOCIO_ID));
 
         assertThatThrownBy(() -> guardarSistema.execute(givenGuardar()))
@@ -135,7 +135,7 @@ class SistemaCasosDeUsoTest {
     @Test
     @DisplayName("Guardar valida sólo el incremento de registros del sistema completo")
     void guardarShouldValidateOnlyAdditionalRows() {
-        givenNegocio();
+        dadoNegocio();
         when(sistemaRepository.findNegocioIdByProyectoId(SISTEMA_ID)).thenReturn(Optional.of(NEGOCIO_ID));
         when(usoPlanRepository.contarRegistrosProyecto(NEGOCIO_ID, SISTEMA_ID)).thenReturn(1L);
 
@@ -147,7 +147,7 @@ class SistemaCasosDeUsoTest {
     @Test
     @DisplayName("Guardar no valida registros cuando el reemplazo no suma filas")
     void guardarShouldNotValidateRowsWhenNoneAreAdded() {
-        givenNegocio();
+        dadoNegocio();
         when(sistemaRepository.findNegocioIdByProyectoId(SISTEMA_ID)).thenReturn(Optional.of(NEGOCIO_ID));
         when(usoPlanRepository.contarRegistrosProyecto(NEGOCIO_ID, SISTEMA_ID)).thenReturn(2L);
 
@@ -159,7 +159,7 @@ class SistemaCasosDeUsoTest {
     @Test
     @DisplayName("Eliminar traduce el id de la pantalla y borra en el negocio de la sesión sin comprobar que exista")
     void eliminarShouldDeleteInSessionNegocio() {
-        givenNegocio();
+        dadoNegocio();
 
         eliminarSistema.execute(new EliminarSistemaRequest(USUARIO_ID, "e" + SISTEMA_ID));
 
@@ -167,7 +167,7 @@ class SistemaCasosDeUsoTest {
     }
 
     // --- arrange ---
-    private void givenNegocio() {
+    private void dadoNegocio() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 

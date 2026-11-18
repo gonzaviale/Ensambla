@@ -37,102 +37,102 @@ class TextoResumenTest {
 
     @Test
     @DisplayName("La primera semana cuenta el resultado, que no hubo decisiones y cuánto falta")
-    void queFuncionoShouldTellTheResultWhenThereIsNoPreviousWeek() {
-        whenSeResumeLaSemana(Optional.empty(), NINGUNA, META, false, false);
+    void laPrimeraSemanaCuentaElResultadoQueNoHuboDecisionesYCuantoFalta() {
+        cuandoSeResumeLaSemana(Optional.empty(), NINGUNA, META, false, false);
 
-        thenElTextoEs("Al cerrar la semana, lo que te queda de los últimos 30 días es $180.000. "
+        entoncesElTextoEs("Al cerrar la semana, lo que te queda de los últimos 30 días es $180.000. "
                 + "No tomaste decisiones sobre tu objetivo. Te faltan $320.000 para tu meta.");
     }
 
     @Test
     @DisplayName("Si el resultado subió dice cuánto y lista las decisiones")
-    void queFuncionoShouldTellHowMuchTheResultRose() {
-        whenSeResumeLaSemana(Optional.of(RESULTADO_ANTERIOR_MENOR), UNA_APLICADA_Y_UNA_DESCARTADA, META, false,
+    void siElResultadoSubioDiceCuantoYListaLasDecisiones() {
+        cuandoSeResumeLaSemana(Optional.of(RESULTADO_ANTERIOR_MENOR), UNA_APLICADA_Y_UNA_DESCARTADA, META, false,
                 false);
 
-        thenElTextoEs("Esta semana tu resultado subió $4.100: de $175.900 a $180.000. "
+        entoncesElTextoEs("Esta semana tu resultado subió $4.100: de $175.900 a $180.000. "
                 + "Aplicaste 1 aviso y descartaste 1 aviso. Te faltan $320.000 para tu meta.");
     }
 
     @Test
     @DisplayName("Si el resultado bajó lo dice y, con la meta alcanzada, sugiere subirla")
-    void queFuncionoShouldTellTheResultFellAndCelebrateTheGoal() {
-        whenSeResumeLaSemana(Optional.of(RESULTADO_ANTERIOR_MAYOR), VARIAS_DECISIONES, META, true,
+    void siElResultadoBajoLoDiceYConLaMetaAlcanzadaSugiereSubirla() {
+        cuandoSeResumeLaSemana(Optional.of(RESULTADO_ANTERIOR_MAYOR), VARIAS_DECISIONES, META, true,
                 false);
 
-        thenElTextoEs("Esta semana tu resultado bajó $2.000: de $182.000 a $180.000. "
+        entoncesElTextoEs("Esta semana tu resultado bajó $2.000: de $182.000 a $180.000. "
                 + "Aplicaste 2 avisos, descartaste 1 aviso, aceptaste 1 paso y dejaste para después 3 pasos. "
                 + "¡Llegaste a tu meta! Podés subirla para seguir creciendo.");
     }
 
     @Test
     @DisplayName("Si el resultado no cambió y no hubo ventas, avisa que no se cambiaron los mini-objetivos")
-    void queFuncionoShouldTellNothingChangedWhenThereWereNoSales() {
-        whenSeResumeLaSemana(Optional.of(RESULTADO), UNA_POSTERGADA, META, false, true);
+    void siElResultadoNoCambioYNoHuboVentasAvisaQueNoSeCambiaronLosMiniObjetivos() {
+        cuandoSeResumeLaSemana(Optional.of(RESULTADO), UNA_POSTERGADA, META, false, true);
 
-        thenElTextoEs("Esta semana tu resultado se mantuvo en $180.000. Dejaste para después 1 paso. "
+        entoncesElTextoEs("Esta semana tu resultado se mantuvo en $180.000. Dejaste para después 1 paso. "
                 + "No hubo ventas esta semana, así que no cambiamos tus mini-objetivos.");
     }
 
     @Test
     @DisplayName("Sin meta en pesos no dice cuánto falta y sigue con los mini-objetivos")
-    void queFuncionoShouldNotTellWhatIsMissingWithoutGoal() {
-        whenSeResumeLaSemana(Optional.empty(), NINGUNA, null, false, false);
+    void sinMetaEnPesosNoDiceCuantoFaltaYSigueConLosMiniObjetivos() {
+        cuandoSeResumeLaSemana(Optional.empty(), NINGUNA, null, false, false);
 
-        thenElTextoNoDiceCuantoFalta();
-        thenElTextoTerminaCon("Seguí con tus mini-objetivos de la semana que viene.");
+        entoncesElTextoNoDiceCuantoFalta();
+        entoncesElTextoTerminaCon("Seguí con tus mini-objetivos de la semana que viene.");
     }
 
     @Test
     @DisplayName("Explica que quitaste un mini-objetivo y con cuál lo reemplazamos")
-    void motivoShouldExplainARemovedMini() {
-        givenUnAnteriorYUnNuevo();
+    void explicaQueQuitasteUnMiniObjetivoYConCualLoReemplazamos() {
+        dadoUnAnteriorYUnNuevo();
 
-        whenSeExplicaElMotivo(MotivoReajuste.QUITADO, BigDecimal.ZERO);
+        cuandoSeExplicaElMotivo(MotivoReajuste.QUITADO, BigDecimal.ZERO);
 
-        thenElTextoEs("Quitaste «Subile $250 a Yerba 1 kg». En su lugar te proponemos «Vender más».");
+        entoncesElTextoEs("Quitaste «Subile $250 a Yerba 1 kg». En su lugar te proponemos «Vender más».");
     }
 
     @Test
     @DisplayName("Explica que el producto ya no está en el cuaderno o le falta el precio o el costo")
-    void motivoShouldExplainAProductThatLeft() {
-        givenUnAnteriorYUnNuevo();
+    void explicaQueElProductoYaNoEstaEnElCuadernoOLeFaltaElPrecioOElCosto() {
+        dadoUnAnteriorYUnNuevo();
 
-        whenSeExplicaElMotivo(MotivoReajuste.PRODUCTO_FUERA, BigDecimal.ZERO);
+        cuandoSeExplicaElMotivo(MotivoReajuste.PRODUCTO_FUERA, BigDecimal.ZERO);
 
-        thenElTextoEs("«Yerba 1 kg» ya no está en tus secciones o le falta el precio o el costo. "
+        entoncesElTextoEs("«Yerba 1 kg» ya no está en tus secciones o le falta el precio o el costo. "
                 + "Lo cambiamos por «Vender más».");
     }
 
     @Test
     @DisplayName("Explica que la decisión aplicada no hizo subir las ventas")
-    void motivoShouldExplainADecisionWithoutEffect() {
-        givenUnAnteriorYUnNuevo();
+    void explicaQueLaDecisionAplicadaNoHizoSubirLasVentas() {
+        dadoUnAnteriorYUnNuevo();
 
-        whenSeExplicaElMotivo(MotivoReajuste.DECISION_SIN_EFECTO, BigDecimal.ZERO);
+        cuandoSeExplicaElMotivo(MotivoReajuste.DECISION_SIN_EFECTO, BigDecimal.ZERO);
 
-        thenElTextoEs("Aplicaste un aviso para «Subile $250 a Yerba 1 kg» y las ventas no subieron. "
+        entoncesElTextoEs("Aplicaste un aviso para «Subile $250 a Yerba 1 kg» y las ventas no subieron. "
                 + "Probamos con «Vender más».");
     }
 
     @Test
     @DisplayName("Explica que hace semanas que el mini-objetivo no avanza")
-    void motivoShouldExplainAMiniWithoutProgress() {
-        givenUnAnteriorYUnNuevo();
+    void explicaQueHaceSemanasQueElMiniObjetivoNoAvanza() {
+        dadoUnAnteriorYUnNuevo();
 
-        whenSeExplicaElMotivo(MotivoReajuste.SIN_AVANCE, BigDecimal.ZERO);
+        cuandoSeExplicaElMotivo(MotivoReajuste.SIN_AVANCE, BigDecimal.ZERO);
 
-        thenElTextoEs("Hace 2 semanas que «Subile $250 a Yerba 1 kg» no avanza. Lo cambiamos por «Vender más».");
+        entoncesElTextoEs("Hace 2 semanas que «Subile $250 a Yerba 1 kg» no avanza. Lo cambiamos por «Vender más».");
     }
 
     @Test
     @DisplayName("Uno logrado que ya no puede pedir más deja su lugar a otro")
-    void motivoShouldExplainAnAchievedMiniObjetivoThatCannotAskForMore() {
-        givenUnAnteriorLogradoDeMargen();
+    void unoLogradoQueYaNoPuedePedirMasDejaSuLugarAOtro() {
+        dadoUnAnteriorLogradoDeMargen();
 
-        whenSeExplicaElMotivo(MotivoReajuste.LOGRADO, MARGEN_LOGRADO);
+        cuandoSeExplicaElMotivo(MotivoReajuste.LOGRADO, MARGEN_LOGRADO);
 
-        thenElTextoEs("Lo lograste: llegaste a 60 %. Como ya no se puede pedir más, ahora probamos con "
+        entoncesElTextoEs("Lo lograste: llegaste a 60 %. Como ya no se puede pedir más, ahora probamos con "
                 + "«Vender más».");
     }
 
@@ -144,117 +144,117 @@ class TextoResumenTest {
             MOVER_PARADO    | 4     | 6     | Lo lograste: llegaste a 4 por semana. Ahora el objetivo es 6 por semana.
             MEJORAR_MARGEN  | 37.7  | 39.7  | Lo lograste: llegaste a 37,7 %. Ahora el objetivo es 39,7 %.
             """)
-    void metaSubidaShouldUseTheUnitOfEachType(TipoMiniObjetivo tipo, BigDecimal lograda, BigDecimal nueva,
+    void laMetaSubidaSeDiceEnPesosUnidadesOPuntosSegunElTipo(TipoMiniObjetivo tipo, BigDecimal lograda, BigDecimal nueva,
                                               String esperado) {
-        whenSeDiceLaMetaSubida(tipo, lograda, nueva);
+        cuandoSeDiceLaMetaSubida(tipo, lograda, nueva);
 
-        thenElTextoEs(esperado);
+        entoncesElTextoEs(esperado);
     }
 
     @Test
     @DisplayName("La meta subida de los productos bajo el mínimo se dice en esa unidad")
-    void metaSubidaShouldSpeakTheUnitOfProductsUnderTheMinimum() {
-        whenSeDiceLaMetaSubida(TipoMiniObjetivo.PRODUCTOS_BAJO_EL_MINIMO, BigDecimal.ZERO, BigDecimal.ZERO);
+    void laMetaSubidaDeLosProductosBajoElMinimoSeDiceEnEsaUnidad() {
+        cuandoSeDiceLaMetaSubida(TipoMiniObjetivo.PRODUCTOS_BAJO_EL_MINIMO, BigDecimal.ZERO, BigDecimal.ZERO);
 
-        thenElTextoContiene("0 productos bajo el mínimo");
+        entoncesElTextoContiene("0 productos bajo el mínimo");
     }
 
     @Test
     @DisplayName("La meta subida del capital parado se dice en pesos de mercadería parada")
-    void metaSubidaShouldSpeakTheUnitOfStuckCapital() {
-        whenSeDiceLaMetaSubida(TipoMiniObjetivo.CAPITAL_PARADO, CAPITAL_PARADO_LOGRADO, CAPITAL_PARADO_NUEVO);
+    void laMetaSubidaDelCapitalParadoSeDiceEnPesosDeMercaderiaParada() {
+        cuandoSeDiceLaMetaSubida(TipoMiniObjetivo.CAPITAL_PARADO, CAPITAL_PARADO_LOGRADO, CAPITAL_PARADO_NUEVO);
 
-        thenElTextoContiene("$24.000 en mercadería parada", "$18.000 en mercadería parada");
+        entoncesElTextoContiene("$24.000 en mercadería parada", "$18.000 en mercadería parada");
     }
 
     @Test
     @DisplayName("La meta subida de la variedad vendida se dice en productos distintos por semana")
-    void metaSubidaShouldSpeakTheUnitOfSoldVariety() {
-        whenSeDiceLaMetaSubida(TipoMiniObjetivo.VARIEDAD_VENDIDA, VARIEDAD_LOGRADA, VARIEDAD_NUEVA);
+    void laMetaSubidaDeLaVariedadVendidaSeDiceEnProductosDistintosPorSemana() {
+        cuandoSeDiceLaMetaSubida(TipoMiniObjetivo.VARIEDAD_VENDIDA, VARIEDAD_LOGRADA, VARIEDAD_NUEVA);
 
-        thenElTextoContiene("3 productos distintos por semana", "4 productos distintos por semana");
+        entoncesElTextoContiene("3 productos distintos por semana", "4 productos distintos por semana");
     }
 
     @Test
     @DisplayName("Sin mini-objetivos manuales el resumen no dice nada de ellos")
-    void manualesShouldBeEmptyWithoutManualMinis() {
-        whenSeResumenLosManuales(List.of());
+    void sinMiniObjetivosManualesElResumenNoDiceNadaDeEllos() {
+        cuandoSeResumenLosManuales(List.of());
 
-        thenElTextoEstaVacio();
+        entoncesElTextoEstaVacio();
     }
 
     @Test
     @DisplayName("Cuenta lo que la persona hizo, hizo en parte y no hizo")
-    void manualesShouldCountTheAnswers() {
-        whenSeResumenLosManuales(cuatroManualesRespondidos());
+    void cuentaLoQueLaPersonaHizoHizoEnParteYNoHizo() {
+        cuandoSeResumenLosManuales(cuatroManualesRespondidos());
 
-        thenElTextoEs("De tus acciones respondiste: 2 hechas, 1 en parte y 1 sin hacer.");
+        entoncesElTextoEs("De tus acciones respondiste: 2 hechas, 1 en parte y 1 sin hacer.");
     }
 
     @Test
     @DisplayName("Dice qué acciones quedaron sin respuesta y que no cambian hasta que responda")
-    void manualesShouldTellWhichOnesHaveNoAnswer() {
-        whenSeResumenLosManuales(unManualRespondidoYUnoSinRespuesta());
+    void diceQueAccionesQuedaronSinRespuestaYQueNoCambianHastaQueResponda() {
+        cuandoSeResumenLosManuales(unManualRespondidoYUnoSinRespuesta());
 
-        thenElTextoEs("De tus acciones respondiste: 1 hechas, 0 en parte y 0 sin hacer. "
+        entoncesElTextoEs("De tus acciones respondiste: 1 hechas, 0 en parte y 0 sin hacer. "
                 + "No me contaste cómo te fue con «Un cartel»: queda igual hasta que respondas.");
     }
 
     @Test
     @DisplayName("Si ninguna se respondió sólo dice cuáles esperan la respuesta")
-    void manualesShouldOnlyListTheMissingAnswers() {
-        whenSeResumenLosManuales(soloUnManualSinRespuesta());
+    void siNingunaSeRespondioSoloDiceCualesEsperanLaRespuesta() {
+        cuandoSeResumenLosManuales(soloUnManualSinRespuesta());
 
-        thenElTextoEs("No me contaste cómo te fue con «Un cartel»: queda igual hasta que respondas.");
+        entoncesElTextoEs("No me contaste cómo te fue con «Un cartel»: queda igual hasta que respondas.");
     }
 
     // --- arrange ---
-    private void givenUnAnteriorYUnNuevo() {
+    private void dadoUnAnteriorYUnNuevo() {
         anterior = miniObjetivo();
         nuevo = miniNuevo();
     }
 
-    private void givenUnAnteriorLogradoDeMargen() {
-        givenUnAnteriorYUnNuevo();
+    private void dadoUnAnteriorLogradoDeMargen() {
+        dadoUnAnteriorYUnNuevo();
         anterior.setTipo(TipoMiniObjetivo.MEJORAR_MARGEN);
     }
 
     // --- act ---
-    private void whenSeResumeLaSemana(Optional<BigDecimal> anteriorResultado, ConteoDecisiones decisiones,
+    private void cuandoSeResumeLaSemana(Optional<BigDecimal> anteriorResultado, ConteoDecisiones decisiones,
                                       BigDecimal meta, boolean llegoALaMeta, boolean sinVentas) {
         texto = TextoResumen.queFunciono(RESULTADO, anteriorResultado, decisiones, meta, llegoALaMeta, sinVentas);
     }
 
-    private void whenSeExplicaElMotivo(MotivoReajuste motivo, BigDecimal valor) {
+    private void cuandoSeExplicaElMotivo(MotivoReajuste motivo, BigDecimal valor) {
         texto = TextoResumen.motivo(motivo, anterior, valor, nuevo);
     }
 
-    private void whenSeDiceLaMetaSubida(TipoMiniObjetivo tipo, BigDecimal lograda, BigDecimal nueva) {
+    private void cuandoSeDiceLaMetaSubida(TipoMiniObjetivo tipo, BigDecimal lograda, BigDecimal nueva) {
         texto = TextoResumen.metaSubida(tipo, lograda, nueva);
     }
 
-    private void whenSeResumenLosManuales(List<ManualCierre> manuales) {
+    private void cuandoSeResumenLosManuales(List<ManualCierre> manuales) {
         texto = TextoResumen.manuales(manuales);
     }
 
     // --- assert ---
-    private void thenElTextoEs(String esperado) {
+    private void entoncesElTextoEs(String esperado) {
         assertThat(texto).isEqualTo(esperado);
     }
 
-    private void thenElTextoContiene(String... fragmentos) {
+    private void entoncesElTextoContiene(String... fragmentos) {
         assertThat(texto).contains(fragmentos);
     }
 
-    private void thenElTextoNoDiceCuantoFalta() {
+    private void entoncesElTextoNoDiceCuantoFalta() {
         assertThat(texto).doesNotContain("Te faltan");
     }
 
-    private void thenElTextoTerminaCon(String cierre) {
+    private void entoncesElTextoTerminaCon(String cierre) {
         assertThat(texto).endsWith(cierre);
     }
 
-    private void thenElTextoEstaVacio() {
+    private void entoncesElTextoEstaVacio() {
         assertThat(texto).isEmpty();
     }
 

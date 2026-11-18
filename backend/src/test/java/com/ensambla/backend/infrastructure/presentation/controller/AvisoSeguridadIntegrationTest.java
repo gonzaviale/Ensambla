@@ -99,15 +99,15 @@ class AvisoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        UUID usuarioId = givenUsuario();
-        negocioId = givenNegocio(usuarioId);
+        UUID usuarioId = dadoUsuario();
+        negocioId = dadoNegocio(usuarioId);
         sesion = givenSesion(usuarioId);
     }
 
     @Test
     @DisplayName("Listar devuelve sólo los avisos del negocio de la sesión, los pendientes primero")
     void listarShouldReturnOnlyOwnAvisosPendingFirst() throws Exception {
-        UUID ajeno = givenNegocio(givenUsuario());
+        UUID ajeno = dadoNegocio(dadoUsuario());
         givenAviso(ajeno, "ajeno", EstadoAviso.PENDIENTE, List.of());
         givenAviso(negocioId, "descartado", EstadoAviso.DESCARTADO, List.of());
         givenAviso(negocioId, "propio", EstadoAviso.PENDIENTE, List.of());
@@ -123,7 +123,7 @@ class AvisoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("El contador cuenta los pendientes propios y cuántos son urgentes")
     void contarShouldCountOwnPendingAvisos() throws Exception {
-        givenAviso(givenNegocio(givenUsuario()), "ajeno", EstadoAviso.PENDIENTE, List.of());
+        givenAviso(dadoNegocio(dadoUsuario()), "ajeno", EstadoAviso.PENDIENTE, List.of());
         givenAviso(negocioId, "uno", EstadoAviso.PENDIENTE, List.of());
         givenAviso(negocioId, "dos", EstadoAviso.DESCARTADO, List.of());
 
@@ -136,9 +136,9 @@ class AvisoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Aplicar cambia el precio del producto y cierra el aviso en una sola operación")
     void aplicarShouldEditRegistroAndCloseAviso() throws Exception {
-        UUID bloqueId = givenBloque();
-        UUID precioId = givenCampo(bloqueId, "Precio", "price");
-        UUID registroId = givenRegistro(bloqueId, Map.of(precioId.toString(), 3500));
+        UUID bloqueId = dadoBloque();
+        UUID precioId = dadoCampo(bloqueId, "Precio", "price");
+        UUID registroId = dadoRegistro(bloqueId, Map.of(precioId.toString(), 3500));
         UUID avisoId = givenAviso(negocioId, "precio", EstadoAviso.PENDIENTE, List.of(Map.of(
                 "tipo", "EDITAR_REGISTRO", "registroId", registroId.toString(), "valores", Map.of("price", 4200))));
 
@@ -166,7 +166,7 @@ class AvisoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Aplicar un aviso ajeno devuelve 404 y no lo toca")
     void aplicarShouldHideForeignAviso() throws Exception {
-        UUID ajeno = givenNegocio(givenUsuario());
+        UUID ajeno = dadoNegocio(dadoUsuario());
         UUID avisoId = givenAviso(ajeno, "ajeno", EstadoAviso.PENDIENTE, List.of());
 
         mockMvc.perform(post("/api/avisos/{id}/aplicar", avisoId).session(sesion).header("X-CSRF-TOKEN", csrfToken))
@@ -216,7 +216,7 @@ class AvisoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     // --- arrange ---
-    private UUID givenUsuario() {
+    private UUID dadoUsuario() {
         return usuarios.saveAndFlush(UsuarioEntity.builder()
                 .nombre("Persona")
                 .email(UUID.randomUUID() + "@example.com")
@@ -226,7 +226,7 @@ class AvisoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenNegocio(UUID usuarioId) {
+    private UUID dadoNegocio(UUID usuarioId) {
         UUID creado = negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(usuarioId)
@@ -237,7 +237,7 @@ class AvisoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
         return creado;
     }
 
-    private UUID givenBloque() {
+    private UUID dadoBloque() {
         UUID proyectoId = proyectos.saveAndFlush(ProyectoEntity.builder()
                 .negocioId(negocioId).nombre("Inventario").creadoEn(AHORA).actualizadoEn(AHORA)
                 .build()).getId();
@@ -247,7 +247,7 @@ class AvisoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenCampo(UUID bloqueId, String nombre, String clave) {
+    private UUID dadoCampo(UUID bloqueId, String nombre, String clave) {
         return campos.saveAndFlush(CampoEntity.builder()
                 .negocioId(negocioId).bloqueId(bloqueId).nombre(nombre).clave(clave).tipo(TipoCampo.MONEDA)
                 .obligatorio(false).opciones(List.of()).minimo(BigDecimal.ZERO).posicion((short) 0)
@@ -255,7 +255,7 @@ class AvisoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenRegistro(UUID bloqueId, Map<String, Object> valores) {
+    private UUID dadoRegistro(UUID bloqueId, Map<String, Object> valores) {
         return registros.saveAndFlush(RegistroEntity.builder()
                 .negocioId(negocioId).bloqueId(bloqueId).valores(new LinkedHashMap<>(valores))
                 .creadoEn(AHORA).actualizadoEn(AHORA)

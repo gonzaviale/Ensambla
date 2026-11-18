@@ -43,410 +43,410 @@ class MedidorMiniObjetivoTest {
 
     @Test
     @DisplayName("Hay ventas cuando se vendió algo en los últimos 30 días")
-    void hayVentasShouldBeTrueWhenThereWereSalesInTheLastThirtyDays() {
-        givenUnNegocio(almacen());
+    void hayVentasCuandoSeVendioAlgoEnLosUltimos30Dias() {
+        dadoUnNegocio(almacen());
 
-        whenSePreguntaSiHayVentas();
+        cuandoSePreguntaSiHayVentas();
 
-        thenLaRespuestaEs(true);
+        entoncesLaRespuestaEs(true);
     }
 
     @Test
     @DisplayName("Sin ventas en los últimos 30 días no hay ventas")
-    void hayVentasShouldBeFalseWhenThereWereNoSalesInTheLastThirtyDays() {
-        givenUnNegocio(conVentasViejas());
+    void sinVentasEnLosUltimos30DiasNoHayVentas() {
+        dadoUnNegocio(conVentasViejas());
 
-        whenSePreguntaSiHayVentas();
+        cuandoSePreguntaSiHayVentas();
 
-        thenLaRespuestaEs(false);
+        entoncesLaRespuestaEs(false);
     }
 
     @Test
     @DisplayName("Sin ventas en los últimos 30 días el resultado es cero")
-    void resultadoShouldBeZeroWhenThereWereNoSalesInTheLastThirtyDays() {
-        givenUnNegocio(conVentasViejas());
+    void sinVentasEnLosUltimos30DiasElResultadoEsCero() {
+        dadoUnNegocio(conVentasViejas());
 
-        whenSePideElResultado();
+        cuandoSePideElResultado();
 
-        thenElNumeroEs("0");
+        entoncesElNumeroEs("0");
     }
 
     @Test
     @DisplayName("Sin ventas en los últimos 30 días no hay margen")
-    void margenShouldBeEmptyWhenThereWereNoSalesInTheLastThirtyDays() {
-        givenUnNegocio(conVentasViejas());
+    void sinVentasEnLosUltimos30DiasNoHayMargen() {
+        dadoUnNegocio(conVentasViejas());
 
-        whenSePideElMargen();
+        cuandoSePideElMargen();
 
-        thenNoSePuedeMedir();
+        entoncesNoSePuedeMedir();
     }
 
     @Test
     @DisplayName("Lo vendido son las ventas de 30 días")
-    void vendisteShouldBeTheSalesOfThirtyDays() {
-        givenUnNegocio(almacen());
+    void loVendidoSonLasVentasDe30Dias() {
+        dadoUnNegocio(almacen());
 
-        whenSePideLoVendido();
+        cuandoSePideLoVendido();
 
-        thenElNumeroEs("309000");
+        entoncesElNumeroEs("309000");
     }
 
     @Test
     @DisplayName("El resultado es lo vendido menos la mercadería y los gastos sin la categoría Mercadería, de 30 días")
-    void resultadoShouldBeWhatIsLeftAfterMerchandiseAndExpenses() {
-        givenUnNegocio(almacen());
+    void elResultadoEsLoVendidoMenosLaMercaderiaYLosGastosSinLaCategoriaMercaderiaDe() {
+        dadoUnNegocio(almacen());
 
-        whenSePideElResultado();
+        cuandoSePideElResultado();
 
-        thenElNumeroEs("-27000");
+        entoncesElNumeroEs("-27000");
     }
 
     @Test
     @DisplayName("El margen es lo que queda de cada $100 vendidos después de pagar la mercadería")
-    void margenShouldBeWhatIsLeftOfEveryHundredAfterMerchandise() {
-        givenUnNegocio(almacen());
+    void elMargenEsLoQueQuedaDeCada100VendidosDespuesDePagarLaMercaderia() {
+        dadoUnNegocio(almacen());
 
-        whenSePideElMargen();
+        cuandoSePideElMargen();
 
-        thenLaMedidaEs("23.62");
+        entoncesLaMedidaEs("23.62");
     }
 
     @Test
     @DisplayName("Sin costos cargados no hay margen con qué calcularlo")
-    void margenShouldBeEmptyWhenThereAreNoCosts() {
-        givenUnNegocio(sinCostosCargados());
+    void sinCostosCargadosNoHayMargenConQueCalcularlo() {
+        dadoUnNegocio(sinCostosCargados());
 
-        whenSePideElMargen();
+        cuandoSePideElMargen();
 
-        thenNoSePuedeMedir();
+        entoncesNoSePuedeMedir();
     }
 
     @Test
     @DisplayName("Las ventas de la semana son lo vendido con precio en los últimos 7 días")
-    void ventasSemanaShouldAddThePricedSalesOfTheLastSevenDays() {
-        givenUnNegocio(almacen());
+    void lasVentasDeLaSemanaSonLoVendidoConPrecioEnLosUltimos7Dias() {
+        dadoUnNegocio(almacen());
 
-        whenSePidenLasVentasDeLaSemana();
+        cuandoSePidenLasVentasDeLaSemana();
 
-        thenElNumeroEs("73050");
+        entoncesElNumeroEs("73050");
     }
 
     @Test
     @DisplayName("Las ventas de la semana no cuentan las que no tienen precio")
-    void ventasSemanaShouldIgnoreSalesWithoutPrice() {
-        givenUnNegocio(conUnaVentaSinPrecio());
+    void lasVentasDeLaSemanaNoCuentanLasQueNoTienenPrecio() {
+        dadoUnNegocio(conUnaVentaSinPrecio());
 
-        whenSePidenLasVentasDeLaSemana();
+        cuandoSePidenLasVentasDeLaSemana();
 
-        thenElNumeroEs("0");
+        entoncesElNumeroEs("0");
     }
 
     @Test
     @DisplayName("Las unidades de la yerba en la semana cuentan la ventana de 7 días, hoy incluido")
-    void unidadesShouldCountTheWeekWindow() {
-        givenUnNegocio(almacen());
+    void lasUnidadesDeLaYerbaEnLaSemanaCuentanLaVentanaDe7DiasHoyIncluido() {
+        dadoUnNegocio(almacen());
 
-        whenSePidenLasUnidades(YERBA_ID, MedidorMiniObjetivo.DIAS_SEMANA);
+        cuandoSePidenLasUnidades(YERBA_ID, MedidorMiniObjetivo.DIAS_SEMANA);
 
-        thenElNumeroEs("14");
+        entoncesElNumeroEs("14");
     }
 
     @Test
     @DisplayName("Las unidades de la yerba en el mes cuentan la ventana de 30 días")
-    void unidadesShouldCountTheMonthWindow() {
-        givenUnNegocio(almacen());
+    void lasUnidadesDeLaYerbaEnElMesCuentanLaVentanaDe30Dias() {
+        dadoUnNegocio(almacen());
 
-        whenSePidenLasUnidades(YERBA_ID, MedidorMiniObjetivo.DIAS_MES);
+        cuandoSePidenLasUnidades(YERBA_ID, MedidorMiniObjetivo.DIAS_MES);
 
-        thenElNumeroEs("60");
+        entoncesElNumeroEs("60");
     }
 
     @Test
     @DisplayName("Las unidades de un producto que no se vendió son cero")
-    void unidadesShouldBeZeroForAProductThatDidNotSell() {
-        givenUnNegocio(almacen());
+    void lasUnidadesDeUnProductoQueNoSeVendioSonCero() {
+        dadoUnNegocio(almacen());
 
-        whenSePidenLasUnidades(FIDEOS_ID, MedidorMiniObjetivo.DIAS_MES);
+        cuandoSePidenLasUnidades(FIDEOS_ID, MedidorMiniObjetivo.DIAS_MES);
 
-        thenElNumeroEs("0");
+        entoncesElNumeroEs("0");
     }
 
     @Test
     @DisplayName("La ganancia de la semana es lo vendido al precio de cada venta menos el costo actual")
-    void gananciaSemanalShouldUseTheSalePriceMinusTheCurrentCost() {
-        givenUnNegocio(almacen());
+    void laGananciaDeLaSemanaEsLoVendidoAlPrecioDeCadaVentaMenosElCostoActual() {
+        dadoUnNegocio(almacen());
 
-        whenSePideLaGananciaSemanalDeLaYerba();
+        cuandoSePideLaGananciaSemanalDeLaYerba();
 
-        thenElNumeroEs("12600");
+        entoncesElNumeroEs("12600");
     }
 
     @Test
     @DisplayName("La ganancia de una venta sin precio usa el precio actual del producto")
-    void gananciaSemanalShouldUseTheCurrentPriceWhenTheSaleHasNone() {
-        givenUnNegocio(conUnaVentaSinPrecio());
+    void laGananciaDeUnaVentaSinPrecioUsaElPrecioActualDelProducto() {
+        dadoUnNegocio(conUnaVentaSinPrecio());
 
-        whenSePideLaGananciaSemanalDeLaYerba();
+        cuandoSePideLaGananciaSemanalDeLaYerba();
 
-        thenElNumeroEs("1800");
+        entoncesElNumeroEs("1800");
     }
 
     @Test
     @DisplayName("Los gastos son los de cada categoría en 30 días, sin la mercadería y sin lo anterior")
-    void gastosShouldBeThoseOfEachCategoryWithoutMerchandise() {
-        givenUnNegocio(almacen());
+    void losGastosSonLosDeCadaCategoriaEn30DiasSinLaMercaderiaYSinLoAnterior() {
+        dadoUnNegocio(almacen());
 
-        whenSePidenLosGastos();
+        cuandoSePidenLosGastos();
 
-        thenLosGastosSonAlquilerYServicios();
+        entoncesLosGastosSonAlquilerYServicios();
     }
 
     @Test
     @DisplayName("Suma la misma categoría de distintos cuadernos aunque esté escrita distinto, y salta lo que no gastó")
-    void gastosShouldAddTheSameCategoryAcrossNotebooks() {
-        givenVariosCuadernosConLaMismaCategoria();
+    void sumaLaMismaCategoriaDeDistintosCuadernosAunqueEsteEscritaDistintoYSaltaLo() {
+        dadoVariosCuadernosConLaMismaCategoria();
 
-        whenSePidenLosGastos();
+        cuandoSePidenLosGastos();
 
-        thenSeSumanLosServiciosDeLosCuadernos();
+        entoncesSeSumanLosServiciosDeLosCuadernos();
     }
 
     @Test
     @DisplayName("Sólo sirven los productos con nombre, precio y costo; sin stock cargado cuenta cero")
-    void productosShouldKeepOnlyThoseWithNamePriceAndCost() {
-        givenUnNegocio(conProductosIncompletos());
+    void soloSirvenLosProductosConNombrePrecioYCostoSinStockCargadoCuentaCero() {
+        dadoUnNegocio(conProductosIncompletos());
 
-        whenSePidenLosProductos();
+        cuandoSePidenLosProductos();
 
-        thenSoloQuedaLaYerbaConStockCero();
+        entoncesSoloQuedaLaYerbaConStockCero();
     }
 
     @Test
     @DisplayName("Subir un precio se mide con la ganancia semanal del producto")
-    void valorDeShouldMeasureTheWeeklyProfitOfAProduct() {
-        givenUnNegocio(almacen());
+    void subirUnPrecioSeMideConLaGananciaSemanalDelProducto() {
+        dadoUnNegocio(almacen());
 
-        whenSeMide(TipoMiniObjetivo.SUBIR_PRECIO, YERBA_ID, "Yerba 1 kg");
+        cuandoSeMide(TipoMiniObjetivo.SUBIR_PRECIO, YERBA_ID, "Yerba 1 kg");
 
-        thenLaMedidaEs("12600");
+        entoncesLaMedidaEs("12600");
     }
 
     @Test
     @DisplayName("Mover un parado se mide con las unidades de la semana del producto")
-    void valorDeShouldMeasureTheWeeklyUnitsOfAStalledProduct() {
-        givenUnNegocio(almacen());
+    void moverUnParadoSeMideConLasUnidadesDeLaSemanaDelProducto() {
+        dadoUnNegocio(almacen());
 
-        whenSeMide(TipoMiniObjetivo.MOVER_PARADO, FIDEOS_ID, "Fideos 500 g");
+        cuandoSeMide(TipoMiniObjetivo.MOVER_PARADO, FIDEOS_ID, "Fideos 500 g");
 
-        thenLaMedidaEs("0");
+        entoncesLaMedidaEs("0");
     }
 
     @Test
     @DisplayName("Poner a la vista se mide con las unidades de la semana del producto")
-    void valorDeShouldMeasureTheWeeklyUnitsOfAProductPutOnDisplay() {
-        givenUnNegocio(almacen());
+    void ponerALaVistaSeMideConLasUnidadesDeLaSemanaDelProducto() {
+        dadoUnNegocio(almacen());
 
-        whenSeMide(TipoMiniObjetivo.PONER_A_LA_VISTA, ACEITE_ID, "Aceite 900 ml");
+        cuandoSeMide(TipoMiniObjetivo.PONER_A_LA_VISTA, ACEITE_ID, "Aceite 900 ml");
 
-        thenLaMedidaEs("5");
+        entoncesLaMedidaEs("5");
     }
 
     @Test
     @DisplayName("Un producto que ya no está en el cuaderno no se puede medir")
-    void valorDeShouldBeEmptyWhenTheProductIsGone() {
-        givenUnNegocio(almacen());
+    void unProductoQueYaNoEstaEnElCuadernoNoSePuedeMedir() {
+        dadoUnNegocio(almacen());
 
-        whenSeMide(TipoMiniObjetivo.SUBIR_PRECIO, INEXISTENTE_ID, "Algo");
+        cuandoSeMide(TipoMiniObjetivo.SUBIR_PRECIO, INEXISTENTE_ID, "Algo");
 
-        thenNoSePuedeMedir();
+        entoncesNoSePuedeMedir();
     }
 
     @Test
     @DisplayName("Un mini-objetivo de producto sin producto no se puede medir")
-    void valorDeShouldBeEmptyWithoutProduct() {
-        givenUnNegocio(almacen());
+    void unMiniObjetivoDeProductoSinProductoNoSePuedeMedir() {
+        dadoUnNegocio(almacen());
 
-        whenSeMide(TipoMiniObjetivo.MOVER_PARADO, null, "Algo");
+        cuandoSeMide(TipoMiniObjetivo.MOVER_PARADO, null, "Algo");
 
-        thenNoSePuedeMedir();
+        entoncesNoSePuedeMedir();
     }
 
     @Test
     @DisplayName("Recortar un gasto se mide con lo gastado en la categoría, sin importar tildes ni mayúsculas")
-    void valorDeShouldMeasureTheSpendingOfACategory() {
-        givenUnNegocio(almacen());
+    void recortarUnGastoSeMideConLoGastadoEnLaCategoriaSinImportarTildesNiMayusculas() {
+        dadoUnNegocio(almacen());
 
-        whenSeMide(TipoMiniObjetivo.RECORTAR_GASTO, null, "SERVICIOS");
+        cuandoSeMide(TipoMiniObjetivo.RECORTAR_GASTO, null, "SERVICIOS");
 
-        thenLaMedidaEs("40000");
+        entoncesLaMedidaEs("40000");
     }
 
     @Test
     @DisplayName("Una categoría sin gastos en 30 días se mide como cero")
-    void valorDeShouldBeZeroForACategoryWithoutExpenses() {
-        givenUnNegocio(almacen());
+    void unaCategoriaSinGastosEn30DiasSeMideComoCero() {
+        dadoUnNegocio(almacen());
 
-        whenSeMide(TipoMiniObjetivo.RECORTAR_GASTO, null, "Impuestos");
+        cuandoSeMide(TipoMiniObjetivo.RECORTAR_GASTO, null, "Impuestos");
 
-        thenLaMedidaEs("0");
+        entoncesLaMedidaEs("0");
     }
 
     @Test
     @DisplayName("Mejorar el margen se mide con el margen del negocio")
-    void valorDeShouldMeasureTheMarginOfTheBusiness() {
-        givenUnNegocio(almacen());
+    void mejorarElMargenSeMideConElMargenDelNegocio() {
+        dadoUnNegocio(almacen());
 
-        whenSeMide(TipoMiniObjetivo.MEJORAR_MARGEN, null, null);
+        cuandoSeMide(TipoMiniObjetivo.MEJORAR_MARGEN, null, null);
 
-        thenLaMedidaEs("23.62");
+        entoncesLaMedidaEs("23.62");
     }
 
     @Test
     @DisplayName("Vender más por semana se mide con las ventas de la semana")
-    void valorDeShouldMeasureTheWeeklySales() {
-        givenUnNegocio(almacen());
+    void venderMasPorSemanaSeMideConLasVentasDeLaSemana() {
+        dadoUnNegocio(almacen());
 
-        whenSeMide(TipoMiniObjetivo.VENTAS_SEMANALES, null, null);
+        cuandoSeMide(TipoMiniObjetivo.VENTAS_SEMANALES, null, null);
 
-        thenLaMedidaEs("73050");
+        entoncesLaMedidaEs("73050");
     }
 
     @Test
     @DisplayName("El resultado por semana trae el de los 30 días que terminan cada semana, por su lunes, hasta hoy")
-    void resultadoPorSemanaShouldHaveTheResultOfEachOfTheLastWeeks() {
-        givenUnNegocio(almacen());
+    void elResultadoPorSemanaTraeElDeLos30DiasQueTerminanCadaSemanaPorSuLunesHasta() {
+        dadoUnNegocio(almacen());
 
-        whenSePideElResultadoPorSemana();
+        cuandoSePideElResultadoPorSemana();
 
-        thenElResultadoPorSemanaVaDesdeElPrimerLunesHastaHoy();
+        entoncesElResultadoPorSemanaVaDesdeElPrimerLunesHastaHoy();
     }
 
     @Test
     @DisplayName("Sin ventas no hay resultado por semana")
-    void resultadoPorSemanaShouldBeEmptyWithoutSales() {
-        givenUnNegocio(sinVentas());
+    void sinVentasNoHayResultadoPorSemana() {
+        dadoUnNegocio(sinVentas());
 
-        whenSePideElResultadoPorSemana();
+        cuandoSePideElResultadoPorSemana();
 
-        thenNoHayResultadoPorSemana();
+        entoncesNoHayResultadoPorSemana();
     }
 
     @Test
     @DisplayName("Productos bajo el mínimo cuenta los que están en el mínimo o por debajo, y sólo los que tienen uno")
-    void productosBajoElMinimoShouldCountTheOnesAtOrUnderTheirMinimum() {
-        givenUnNegocio(conAlgunosProductosBajoElMinimo());
+    void productosBajoElMinimoCuentaLosQueEstanEnElMinimoOPorDebajoYSoloLosQueTienen() {
+        dadoUnNegocio(conAlgunosProductosBajoElMinimo());
 
-        whenSeMide(TipoMiniObjetivo.PRODUCTOS_BAJO_EL_MINIMO, null, null);
+        cuandoSeMide(TipoMiniObjetivo.PRODUCTOS_BAJO_EL_MINIMO, null, null);
 
-        thenLaMedidaEs("2");
+        entoncesLaMedidaEs("2");
     }
 
     @Test
     @DisplayName("Sin ningún mínimo definido no hay datos de productos bajo el mínimo (no es cero)")
-    void productosBajoElMinimoShouldBeEmptyWithoutAnyMinimum() {
-        givenUnNegocio(almacen());
+    void sinNingunMinimoDefinidoNoHayDatosDeProductosBajoElMinimoNoEsCero() {
+        dadoUnNegocio(almacen());
 
-        whenSeMide(TipoMiniObjetivo.PRODUCTOS_BAJO_EL_MINIMO, null, null);
+        cuandoSeMide(TipoMiniObjetivo.PRODUCTOS_BAJO_EL_MINIMO, null, null);
 
-        thenNoSePuedeMedir();
+        entoncesNoSePuedeMedir();
     }
 
     @Test
     @DisplayName("Un mínimo en cero o negativo se toma como que no hay mínimo")
-    void productosBajoElMinimoShouldIgnoreAMinimumThatIsNotPositive() {
-        givenUnNegocio(conMinimoEnCero());
+    void unMinimoEnCeroONegativoSeTomaComoQueNoHayMinimo() {
+        dadoUnNegocio(conMinimoEnCero());
 
-        whenSeMide(TipoMiniObjetivo.PRODUCTOS_BAJO_EL_MINIMO, null, null);
+        cuandoSeMide(TipoMiniObjetivo.PRODUCTOS_BAJO_EL_MINIMO, null, null);
 
-        thenNoSePuedeMedir();
+        entoncesNoSePuedeMedir();
     }
 
     @Test
     @DisplayName("Un mínimo en cero o negativo deja al producto sin mínimo")
-    void productosShouldLeaveAProductWithoutMinimumWhenItIsNotPositive() {
-        givenUnNegocio(conMinimoEnCero());
+    void unMinimoEnCeroONegativoDejaAlProductoSinMinimo() {
+        dadoUnNegocio(conMinimoEnCero());
 
-        whenSePidenLosProductos();
+        cuandoSePidenLosProductos();
 
-        thenElProductoQuedaSinMinimo();
+        entoncesElProductoQuedaSinMinimo();
     }
 
     @Test
     @DisplayName("El capital parado es el costo del stock de lo que no se vendió en 30 días")
-    void capitalParadoShouldBeTheCostOfTheStockThatDidNotSell() {
-        givenUnNegocio(almacen());
+    void elCapitalParadoEsElCostoDelStockDeLoQueNoSeVendioEn30Dias() {
+        dadoUnNegocio(almacen());
 
-        whenSeMide(TipoMiniObjetivo.CAPITAL_PARADO, null, null);
+        cuandoSeMide(TipoMiniObjetivo.CAPITAL_PARADO, null, null);
 
-        thenLaMedidaEs("32000");
+        entoncesLaMedidaEs("32000");
     }
 
     @Test
     @DisplayName("Un producto sin stock no suma capital parado aunque no se venda")
-    void capitalParadoShouldIgnoreProductsWithoutStock() {
-        givenUnNegocio(conUnProductoSinStockQueNoSeVende());
+    void unProductoSinStockNoSumaCapitalParadoAunqueNoSeVenda() {
+        dadoUnNegocio(conUnProductoSinStockQueNoSeVende());
 
-        whenSeMide(TipoMiniObjetivo.CAPITAL_PARADO, null, null);
+        cuandoSeMide(TipoMiniObjetivo.CAPITAL_PARADO, null, null);
 
-        thenLaMedidaEs("0");
+        entoncesLaMedidaEs("0");
     }
 
     @Test
     @DisplayName("Sin ventas no hay datos de capital parado")
-    void capitalParadoShouldBeEmptyWithoutSales() {
-        givenUnNegocio(sinVentas());
+    void sinVentasNoHayDatosDeCapitalParado() {
+        dadoUnNegocio(sinVentas());
 
-        whenSeMide(TipoMiniObjetivo.CAPITAL_PARADO, null, null);
+        cuandoSeMide(TipoMiniObjetivo.CAPITAL_PARADO, null, null);
 
-        thenNoSePuedeMedir();
+        entoncesNoSePuedeMedir();
     }
 
     @Test
     @DisplayName("Sin productos con precio y costo no hay datos de capital parado")
-    void capitalParadoShouldBeEmptyWithoutProducts() {
-        givenUnNegocio(sinProductos());
+    void sinProductosConPrecioYCostoNoHayDatosDeCapitalParado() {
+        dadoUnNegocio(sinProductos());
 
-        whenSeMide(TipoMiniObjetivo.CAPITAL_PARADO, null, null);
+        cuandoSeMide(TipoMiniObjetivo.CAPITAL_PARADO, null, null);
 
-        thenNoSePuedeMedir();
+        entoncesNoSePuedeMedir();
     }
 
     @Test
     @DisplayName("Sin ventas no hay datos de variedad")
-    void variedadVendidaShouldBeEmptyWithoutSales() {
-        givenUnNegocio(sinVentas());
+    void sinVentasNoHayDatosDeVariedad() {
+        dadoUnNegocio(sinVentas());
 
-        whenSeMide(TipoMiniObjetivo.VARIEDAD_VENDIDA, null, null);
+        cuandoSeMide(TipoMiniObjetivo.VARIEDAD_VENDIDA, null, null);
 
-        thenNoSePuedeMedir();
+        entoncesNoSePuedeMedir();
     }
 
     @Test
     @DisplayName("Sin productos con precio y costo no hay datos de variedad")
-    void variedadVendidaShouldBeEmptyWithoutProducts() {
-        givenUnNegocio(sinProductos());
+    void sinProductosConPrecioYCostoNoHayDatosDeVariedad() {
+        dadoUnNegocio(sinProductos());
 
-        whenSeMide(TipoMiniObjetivo.VARIEDAD_VENDIDA, null, null);
+        cuandoSeMide(TipoMiniObjetivo.VARIEDAD_VENDIDA, null, null);
 
-        thenNoSePuedeMedir();
+        entoncesNoSePuedeMedir();
     }
 
     @Test
     @DisplayName("La variedad cuenta los productos distintos que se vendieron en los últimos 7 días")
-    void variedadVendidaShouldCountTheDistinctProductsSoldThisWeek() {
-        givenUnNegocio(almacen());
+    void laVariedadCuentaLosProductosDistintosQueSeVendieronEnLosUltimos7Dias() {
+        dadoUnNegocio(almacen());
 
-        whenSeMide(TipoMiniObjetivo.VARIEDAD_VENDIDA, null, null);
+        cuandoSeMide(TipoMiniObjetivo.VARIEDAD_VENDIDA, null, null);
 
-        thenLaMedidaEs("2");
+        entoncesLaMedidaEs("2");
     }
 
     // --- arrange ---
-    private void givenUnNegocio(DatosDeProyecto datos) {
+    private void dadoUnNegocio(DatosDeProyecto datos) {
         medidor = MedidorMiniObjetivo.de(List.of(datos), metricas(), HOY);
     }
 
-    private void givenVariosCuadernosConLaMismaCategoria() {
+    private void dadoVariosCuadernosConLaMismaCategoria() {
         DatosDeProyecto uno = conVentaYGasto("Almacén", "Servicios", 30000);
         DatosDeProyecto otro = conVentaYGasto("Kiosco", " servicios ", 12000);
         DatosDeProyecto sinTabla = NegocioDePrueba.cuaderno("Feria").sinTablaDeGastos().build();
@@ -455,82 +455,82 @@ class MedidorMiniObjetivoTest {
     }
 
     // --- act ---
-    private void whenSePreguntaSiHayVentas() {
+    private void cuandoSePreguntaSiHayVentas() {
         respuesta = medidor.hayVentas();
     }
 
-    private void whenSePideElResultado() {
+    private void cuandoSePideElResultado() {
         numero = medidor.resultado();
     }
 
-    private void whenSePideElMargen() {
+    private void cuandoSePideElMargen() {
         medida = medidor.margen();
     }
 
-    private void whenSePideLoVendido() {
+    private void cuandoSePideLoVendido() {
         numero = BigDecimal.valueOf(medidor.vendiste());
     }
 
-    private void whenSePidenLasVentasDeLaSemana() {
+    private void cuandoSePidenLasVentasDeLaSemana() {
         numero = medidor.ventasSemana();
     }
 
-    private void whenSePidenLasUnidades(RegistroId producto, int dias) {
+    private void cuandoSePidenLasUnidades(RegistroId producto, int dias) {
         numero = medidor.unidades(producto, dias);
     }
 
-    private void whenSePideLaGananciaSemanalDeLaYerba() {
+    private void cuandoSePideLaGananciaSemanalDeLaYerba() {
         numero = medidor.gananciaSemanal(productoDe(medidor, YERBA_ID));
     }
 
-    private void whenSePidenLosGastos() {
+    private void cuandoSePidenLosGastos() {
         gastos = medidor.gastos();
     }
 
-    private void whenSePidenLosProductos() {
+    private void cuandoSePidenLosProductos() {
         productos = medidor.productos();
     }
 
-    private void whenSeMide(TipoMiniObjetivo tipo, RegistroId producto, String referencia) {
+    private void cuandoSeMide(TipoMiniObjetivo tipo, RegistroId producto, String referencia) {
         medida = medidor.valorDe(tipo, producto, referencia);
     }
 
-    private void whenSePideElResultadoPorSemana() {
+    private void cuandoSePideElResultadoPorSemana() {
         resultadoPorSemana = medidor.resultadoPorSemana();
     }
 
     // --- assert ---
-    private void thenLaRespuestaEs(boolean esperada) {
+    private void entoncesLaRespuestaEs(boolean esperada) {
         assertThat(respuesta).isEqualTo(esperada);
     }
 
-    private void thenElNumeroEs(String esperado) {
+    private void entoncesElNumeroEs(String esperado) {
         assertThat(numero).isEqualByComparingTo(esperado);
     }
 
-    private void thenLaMedidaEs(String esperada) {
+    private void entoncesLaMedidaEs(String esperada) {
         assertThat(medida).hasValueSatisfying(valor -> assertThat(valor).isEqualByComparingTo(esperada));
     }
 
-    private void thenNoSePuedeMedir() {
+    private void entoncesNoSePuedeMedir() {
         assertThat(medida).isEmpty();
     }
 
-    private void thenLosGastosSonAlquilerYServicios() {
+    private void entoncesLosGastosSonAlquilerYServicios() {
         assertThat(gastos).extracting(Gasto::categoria).containsExactly("Alquiler", "Servicios");
         assertThat(gastos).extracting(Gasto::total).satisfiesExactly(
                 total -> assertThat(total).isEqualByComparingTo("60000"),
                 total -> assertThat(total).isEqualByComparingTo("40000"));
     }
 
-    private void thenSeSumanLosServiciosDeLosCuadernos() {
+    private void entoncesSeSumanLosServiciosDeLosCuadernos() {
         assertThat(gastos).singleElement().satisfies(gasto -> {
             assertThat(gasto.categoria()).isEqualTo("Servicios");
             assertThat(gasto.total()).isEqualByComparingTo("42000");
         });
     }
 
-    private void thenSoloQuedaLaYerbaConStockCero() {
+    private void entoncesSoloQuedaLaYerbaConStockCero() {
         assertThat(productos).singleElement().satisfies(producto -> {
             assertThat(producto.id()).isEqualTo(YERBA_ID);
             assertThat(producto.nombre()).isEqualTo("Yerba 1 kg");
@@ -539,18 +539,18 @@ class MedidorMiniObjetivoTest {
         });
     }
 
-    private void thenElResultadoPorSemanaVaDesdeElPrimerLunesHastaHoy() {
+    private void entoncesElResultadoPorSemanaVaDesdeElPrimerLunesHastaHoy() {
         assertThat(resultadoPorSemana).hasSize(ComoVieneElNegocio.SEMANAS_DE_HISTORIAL);
         assertThat(resultadoPorSemana.keySet()).first().isEqualTo(LocalDate.of(2026, 10, 5));
         assertThat(resultadoPorSemana.keySet()).last().isEqualTo(LocalDate.of(2026, 11, 9));
         assertThat(resultadoPorSemana.get(LocalDate.of(2026, 11, 9))).isEqualByComparingTo("-27000");
     }
 
-    private void thenNoHayResultadoPorSemana() {
+    private void entoncesNoHayResultadoPorSemana() {
         assertThat(resultadoPorSemana).isEmpty();
     }
 
-    private void thenElProductoQuedaSinMinimo() {
+    private void entoncesElProductoQuedaSinMinimo() {
         assertThat(productos).singleElement().satisfies(producto -> assertThat(producto.minimo()).isNull());
     }
 

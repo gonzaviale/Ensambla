@@ -23,87 +23,87 @@ class RespuestaMiniObjetivoTest {
 
     @Test
     @DisplayName("Arma la respuesta con el mini-objetivo, lo que contó la persona y la semana en que respondió")
-    void deShouldCopyEveryField() {
-        whenSeResponde(HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO, COMENTARIO);
+    void armaLaRespuestaConElMiniObjetivoLoQueContoLaPersonaYLaSemanaEnQueRespondio() {
+        cuandoSeResponde(HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO, COMENTARIO);
 
-        thenLaRespuestaCopiaTodosLosDatos();
+        entoncesLaRespuestaCopiaTodosLosDatos();
     }
 
     @Test
     @DisplayName("El comentario se guarda sin espacios en los extremos")
-    void deShouldStripTheComment() {
-        whenSeResponde(HizoManual.SI, QuePaso.FUNCIONO, "  Funcionó bien \n");
+    void elComentarioSeGuardaSinEspaciosEnLosExtremos() {
+        cuandoSeResponde(HizoManual.SI, QuePaso.FUNCIONO, "  Funcionó bien \n");
 
-        thenElComentarioEs("Funcionó bien");
+        entoncesElComentarioEs("Funcionó bien");
     }
 
     @Test
     @DisplayName("Un comentario en blanco queda sin comentario")
-    void deShouldDropABlankComment() {
-        whenSeResponde(HizoManual.SI, QuePaso.FUNCIONO, "   ");
+    void unComentarioEnBlancoQuedaSinComentario() {
+        cuandoSeResponde(HizoManual.SI, QuePaso.FUNCIONO, "   ");
 
-        thenNoHayComentario();
+        entoncesNoHayComentario();
     }
 
     @Test
     @DisplayName("Un comentario nulo queda sin comentario")
-    void deShouldDropANullComment() {
-        whenSeResponde(HizoManual.SI, QuePaso.FUNCIONO, null);
+    void unComentarioNuloQuedaSinComentario() {
+        cuandoSeResponde(HizoManual.SI, QuePaso.FUNCIONO, null);
 
-        thenNoHayComentario();
+        entoncesNoHayComentario();
     }
 
     @Test
     @DisplayName("Un comentario de justo 300 caracteres se acepta")
-    void deShouldAcceptACommentOfTheMaximumLength() {
-        whenSeResponde(HizoManual.NO, QuePaso.OTRA, "a".repeat(LARGO_MAXIMO_DE_COMENTARIO));
+    void unComentarioDeJusto300CaracteresSeAcepta() {
+        cuandoSeResponde(HizoManual.NO, QuePaso.OTRA, "a".repeat(LARGO_MAXIMO_DE_COMENTARIO));
 
-        thenElComentarioTieneLargo(LARGO_MAXIMO_DE_COMENTARIO);
+        entoncesElComentarioTieneLargo(LARGO_MAXIMO_DE_COMENTARIO);
     }
 
     @Test
     @DisplayName("Un comentario de más de 300 caracteres se rechaza")
-    void deShouldRejectACommentThatIsTooLong() {
-        whenSeRespondeConError(HizoManual.NO, QuePaso.OTRA, "a".repeat(LARGO_MAXIMO_DE_COMENTARIO + 1));
+    void unComentarioDeMasDe300CaracteresSeRechaza() {
+        cuandoSeRespondeConError(HizoManual.NO, QuePaso.OTRA, "a".repeat(LARGO_MAXIMO_DE_COMENTARIO + 1));
 
-        thenSeRechazaConMensaje("El comentario no puede tener más de 300 caracteres");
+        entoncesSeRechazaConMensaje("El comentario no puede tener más de 300 caracteres");
     }
 
     @Test
     @DisplayName("Decir que lo hizo y que no tuvo tiempo es contradictorio")
-    void deShouldRejectDoneWithoutTime() {
-        whenSeRespondeConError(HizoManual.SI, QuePaso.NO_TUVE_TIEMPO, null);
+    void decirQueLoHizoYQueNoTuvoTiempoEsContradictorio() {
+        cuandoSeRespondeConError(HizoManual.SI, QuePaso.NO_TUVE_TIEMPO, null);
 
-        thenSeRechazaConMensaje("Si lo hiciste, no puede ser que no hayas tenido tiempo");
+        entoncesSeRechazaConMensaje("Si lo hiciste, no puede ser que no hayas tenido tiempo");
     }
 
     @Test
     @DisplayName("Haberlo hecho en parte pero no tener tiempo es una respuesta válida")
-    void deShouldAcceptNoTimeWhenDoneInPart() {
-        whenSeResponde(HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO, null);
+    void haberloHechoEnPartePeroNoTenerTiempoEsUnaRespuestaValida() {
+        cuandoSeResponde(HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO, null);
 
-        thenQuePasoEs(QuePaso.NO_TUVE_TIEMPO);
+        entoncesQuePasoEs(QuePaso.NO_TUVE_TIEMPO);
     }
 
     @Test
     @DisplayName("No haberlo hecho y no tener tiempo es una respuesta válida")
-    void deShouldAcceptNoTimeWhenNotDone() {
-        whenSeResponde(HizoManual.NO, QuePaso.NO_TUVE_TIEMPO, null);
+    void noHaberloHechoYNoTenerTiempoEsUnaRespuestaValida() {
+        cuandoSeResponde(HizoManual.NO, QuePaso.NO_TUVE_TIEMPO, null);
 
-        thenHizoEs(HizoManual.NO);
+        entoncesHizoEs(HizoManual.NO);
     }
 
     // --- act ---
-    private void whenSeResponde(HizoManual hizo, QuePaso quePaso, String comentario) {
+    private void cuandoSeResponde(HizoManual hizo, QuePaso quePaso, String comentario) {
         respuesta = RespuestaMiniObjetivo.de(miniManual(), hizo, quePaso, comentario, AHORA);
     }
 
-    private void whenSeRespondeConError(HizoManual hizo, QuePaso quePaso, String comentario) {
-        error = catchThrowable(() -> whenSeResponde(hizo, quePaso, comentario));
+    private void cuandoSeRespondeConError(HizoManual hizo, QuePaso quePaso, String comentario) {
+        error = catchThrowable(() -> cuandoSeResponde(hizo, quePaso, comentario));
     }
 
     // --- assert ---
-    private void thenLaRespuestaCopiaTodosLosDatos() {
+    private void entoncesLaRespuestaCopiaTodosLosDatos() {
         assertThat(respuesta.id()).isNotNull();
         assertThat(respuesta.negocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(respuesta.objetivoId()).isEqualTo(OBJETIVO_ID);
@@ -115,27 +115,27 @@ class RespuestaMiniObjetivoTest {
         assertThat(respuesta.respondidaEn()).isEqualTo(AHORA);
     }
 
-    private void thenElComentarioEs(String esperado) {
+    private void entoncesElComentarioEs(String esperado) {
         assertThat(respuesta.comentario()).isEqualTo(esperado);
     }
 
-    private void thenNoHayComentario() {
+    private void entoncesNoHayComentario() {
         assertThat(respuesta.comentario()).isNull();
     }
 
-    private void thenElComentarioTieneLargo(int largo) {
+    private void entoncesElComentarioTieneLargo(int largo) {
         assertThat(respuesta.comentario()).hasSize(largo);
     }
 
-    private void thenQuePasoEs(QuePaso esperado) {
+    private void entoncesQuePasoEs(QuePaso esperado) {
         assertThat(respuesta.quePaso()).isEqualTo(esperado);
     }
 
-    private void thenHizoEs(HizoManual esperado) {
+    private void entoncesHizoEs(HizoManual esperado) {
         assertThat(respuesta.hizo()).isEqualTo(esperado);
     }
 
-    private void thenSeRechazaConMensaje(String mensaje) {
+    private void entoncesSeRechazaConMensaje(String mensaje) {
         assertThat(error).isInstanceOf(BusinessRuleException.class).hasMessage(mensaje);
     }
 }

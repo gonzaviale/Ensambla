@@ -24,12 +24,12 @@ class TipoMiniObjetivoTest {
             "CAPITAL_PARADO, BAJA",
             "VARIEDAD_VENDIDA, SUBE"})
     @DisplayName("Cada tipo sabe hacia dónde va su métrica")
-    void sentidoShouldMatchEachTipo(TipoMiniObjetivo tipoDelMini, SentidoMiniObjetivo esperado) {
-        givenUnTipo(tipoDelMini);
+    void cadaTipoSabeHaciaDondeVaSuMetrica(TipoMiniObjetivo tipoDelMini, SentidoMiniObjetivo esperado) {
+        dadoUnTipo(tipoDelMini);
 
-        whenSePreguntaHaciaDondeVa();
+        cuandoSePreguntaHaciaDondeVa();
 
-        thenSuMetricaVa(esperado);
+        entoncesSuMetricaVa(esperado);
     }
 
     @ParameterizedTest
@@ -44,34 +44,34 @@ class TipoMiniObjetivoTest {
             "CAPITAL_PARADO, false",
             "VARIEDAD_VENDIDA, false"})
     @DisplayName("Cada tipo sabe si apunta a un producto")
-    void esDeProductoShouldMatchEachTipo(TipoMiniObjetivo tipoDelMini, boolean esperado) {
-        givenUnTipo(tipoDelMini);
+    void cadaTipoSabeSiApuntaAUnProducto(TipoMiniObjetivo tipoDelMini, boolean esperado) {
+        dadoUnTipo(tipoDelMini);
 
-        whenSePreguntaSiApuntaAUnProducto();
+        cuandoSePreguntaSiApuntaAUnProducto();
 
-        thenApuntaAUnProducto(esperado);
+        entoncesApuntaAUnProducto(esperado);
     }
 
     // --- arrange ---
-    private void givenUnTipo(TipoMiniObjetivo tipoDelMini) {
+    private void dadoUnTipo(TipoMiniObjetivo tipoDelMini) {
         tipo = tipoDelMini;
     }
 
     // --- act ---
-    private void whenSePreguntaHaciaDondeVa() {
+    private void cuandoSePreguntaHaciaDondeVa() {
         sentido = tipo.sentido();
     }
 
-    private void whenSePreguntaSiApuntaAUnProducto() {
+    private void cuandoSePreguntaSiApuntaAUnProducto() {
         apuntaAUnProducto = tipo.esDeProducto();
     }
 
     // --- assert ---
-    private void thenSuMetricaVa(SentidoMiniObjetivo esperado) {
+    private void entoncesSuMetricaVa(SentidoMiniObjetivo esperado) {
         assertThat(sentido).isEqualTo(esperado);
     }
 
-    private void thenApuntaAUnProducto(boolean esperado) {
+    private void entoncesApuntaAUnProducto(boolean esperado) {
         assertThat(apuntaAUnProducto).isEqualTo(esperado);
     }
 }

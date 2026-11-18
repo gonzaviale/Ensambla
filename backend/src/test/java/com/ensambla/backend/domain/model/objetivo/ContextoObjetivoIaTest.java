@@ -26,71 +26,71 @@ class ContextoObjetivoIaTest {
 
     @Test
     @DisplayName("Arma el contexto con los totales, los productos, los gastos y la zona del negocio")
-    void deShouldBuildTheContextFromTheBusiness() {
-        givenUnAlmacen();
+    void armaElContextoConLosTotalesLosProductosLosGastosYLaZonaDelNegocio() {
+        dadoUnAlmacen();
 
-        whenSeArmaElContexto(zonaConBudin());
+        cuandoSeArmaElContexto(zonaConBudin());
 
-        thenElContextoTieneLosTotalesDelNegocio();
-        thenElContextoTieneLosProductosYLosGastos();
-        thenElContextoTieneLaZonaConBudin();
+        entoncesElContextoTieneLosTotalesDelNegocio();
+        entoncesElContextoTieneLosProductosYLosGastos();
+        entoncesElContextoTieneLaZonaConBudin();
     }
 
     @Test
     @DisplayName("Con datos de todo, todas las fuentes figuran como que hay")
-    void datosShouldSayEverythingIsAvailable() {
-        givenUnAlmacen();
+    void conDatosDeTodoTodasLasFuentesFiguranComoQueHay() {
+        dadoUnAlmacen();
 
-        whenSeArmaElContexto(zonaConBudin());
+        cuandoSeArmaElContexto(zonaConBudin());
 
-        thenLasFuentesSon(true, true, true, true, true);
+        entoncesLasFuentesSon(true, true, true, true, true);
     }
 
     @Test
     @DisplayName("Sin zona la fuente de la zona figura como que no hay")
-    void datosShouldSayThereIsNoZone() {
-        givenUnAlmacen();
+    void sinZonaLaFuenteDeLaZonaFiguraComoQueNoHay() {
+        dadoUnAlmacen();
 
-        whenSeArmaElContexto(AnalisisZona.sinZona());
+        cuandoSeArmaElContexto(AnalisisZona.sinZona());
 
-        thenNoHayZona();
-        thenLaFuenteDeZonaFiguraSinDatos();
+        entoncesNoHayZona();
+        entoncesLaFuenteDeZonaFiguraSinDatos();
     }
 
     @Test
     @DisplayName("Un negocio sin nada cargado dice que no hay ventas, margen, inventario ni gastos")
-    void datosShouldSayThereIsNothing() {
-        givenUnNegocioVacio();
+    void unNegocioSinNadaCargadoDiceQueNoHayVentasMargenInventarioNiGastos() {
+        dadoUnNegocioVacio();
 
-        whenSeArmaElContexto(AnalisisZona.sinZona());
+        cuandoSeArmaElContexto(AnalisisZona.sinZona());
 
-        thenNoHayVentasNiMargen();
-        thenLasFuentesSon(false, false, false, false, false);
+        entoncesNoHayVentasNiMargen();
+        entoncesLasFuentesSon(false, false, false, false, false);
     }
 
     // --- arrange ---
-    private void givenUnAlmacen() {
+    private void dadoUnAlmacen() {
         medidor = MedidorMiniObjetivo.de(List.of(almacen()), METRICAS, HOY);
     }
 
-    private void givenUnNegocioVacio() {
+    private void dadoUnNegocioVacio() {
         medidor = MedidorMiniObjetivo.de(List.of(NegocioDePrueba.cuaderno("Vacío").build()), METRICAS, HOY);
     }
 
     // --- act ---
-    private void whenSeArmaElContexto(AnalisisZona zona) {
+    private void cuandoSeArmaElContexto(AnalisisZona zona) {
         contexto = ContextoObjetivoIa.de(medidor, zona);
     }
 
     // --- assert ---
-    private void thenElContextoTieneLosTotalesDelNegocio() {
+    private void entoncesElContextoTieneLosTotalesDelNegocio() {
         assertThat(contexto.hayVentas()).isTrue();
         assertThat(contexto.resultado()).isEqualByComparingTo(medidor.resultado());
         assertThat(contexto.margen()).isEqualByComparingTo(medidor.margen().orElseThrow());
         assertThat(contexto.ventasSemana()).isEqualByComparingTo(medidor.ventasSemana());
     }
 
-    private void thenElContextoTieneLosProductosYLosGastos() {
+    private void entoncesElContextoTieneLosProductosYLosGastos() {
         assertThat(contexto.productos()).extracting(ContextoObjetivoIa.ProductoIa::nombre)
                 .containsExactlyInAnyOrder("Yerba 1 kg", "Fideos 500 g", "Aceite 900 ml");
         assertThat(contexto.productos()).filteredOn(producto -> producto.nombre().equals("Yerba 1 kg"))
@@ -104,7 +104,7 @@ class ContextoObjetivoIaTest {
                 .containsExactlyInAnyOrder("Servicios", "Alquiler");
     }
 
-    private void thenElContextoTieneLaZonaConBudin() {
+    private void entoncesElContextoTieneLaZonaConBudin() {
         assertThat(contexto.zona()).singleElement().satisfies(budin -> {
             assertThat(budin.nombre()).isEqualTo("Budín");
             assertThat(budin.comercios()).isEqualTo(4);
@@ -114,7 +114,7 @@ class ContextoObjetivoIaTest {
         });
     }
 
-    private void thenLasFuentesSon(boolean ventas, boolean margen, boolean inventario, boolean gastos,
+    private void entoncesLasFuentesSon(boolean ventas, boolean margen, boolean inventario, boolean gastos,
                                    boolean zona) {
         assertThat(contexto.datos()).containsExactly(
                 new DatoUsado(FuenteDato.VENTAS, ventas),
@@ -124,15 +124,15 @@ class ContextoObjetivoIaTest {
                 new DatoUsado(FuenteDato.ZONA, zona));
     }
 
-    private void thenNoHayZona() {
+    private void entoncesNoHayZona() {
         assertThat(contexto.zona()).isEmpty();
     }
 
-    private void thenLaFuenteDeZonaFiguraSinDatos() {
+    private void entoncesLaFuenteDeZonaFiguraSinDatos() {
         assertThat(contexto.datos()).contains(new DatoUsado(FuenteDato.ZONA, false));
     }
 
-    private void thenNoHayVentasNiMargen() {
+    private void entoncesNoHayVentasNiMargen() {
         assertThat(contexto.hayVentas()).isFalse();
         assertThat(contexto.margen()).isNull();
     }

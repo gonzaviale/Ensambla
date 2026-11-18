@@ -36,25 +36,25 @@ class RenovacionManualesIaAdapterTest {
 
     @Test
     @DisplayName("Devuelve un texto por renovación, en su orden, sin espacios en los extremos, y lo que gastó el modelo")
-    void renovarShouldReturnOneTextPerRenewalInOrder() {
-        givenUnModeloQueResponde("""
+    void devuelveUnTextoPorRenovacionEnSuOrdenSinEspaciosEnLosExtremosYLoQueGastoEl() {
+        dadoUnModeloQueResponde("""
                 {"minis":[
                   {"codigo":"r2","titulo":" Hablá con 2 vecinas ","justificacion":"Razón dos"},
                   {"codigo":"r1","titulo":"Poné el cartel","justificacion":" Razón uno "}]}""");
 
-        whenSeRenueva();
+        cuandoSeRenueva();
 
-        thenHayUnTextoPorRenovacionEnOrdenYSeLeeElGasto();
+        entoncesHayUnTextoPorRenovacionEnOrdenYSeLeeElGasto();
     }
 
     @Test
     @DisplayName("Le pide al modelo cada renovación por su código")
-    void renovarShouldAskTheModelWithShortCodes() {
-        givenUnModeloQueResponde(RESPUESTA_VALIDA);
+    void lePideAlModeloCadaRenovacionPorSuCodigo() {
+        dadoUnModeloQueResponde(RESPUESTA_VALIDA);
 
-        whenSeRenueva();
+        cuandoSeRenueva();
 
-        thenSeLePideAlModeloCadaRenovacionPorSuCodigo();
+        entoncesSeLePideAlModeloCadaRenovacionPorSuCodigo();
     }
 
     @ParameterizedTest
@@ -68,38 +68,38 @@ class RenovacionManualesIaAdapterTest {
             "{\"minis\":[{\"codigo\":\"r1\",\"titulo\":\"Uno\",\"justificacion\":null},"
                     + "{\"codigo\":\"r2\",\"titulo\":\"Dos\",\"justificacion\":\"R\"}]}"})
     @DisplayName("Una respuesta ilegible, incompleta, repetida o con un texto vacío se rechaza")
-    void renovarShouldRejectAnUnusableAnswer(String json) {
-        givenUnModeloQueResponde(json);
+    void unaRespuestaIlegibleIncompletaRepetidaOConUnTextoVacioSeRechaza(String json) {
+        dadoUnModeloQueResponde(json);
 
-        whenSeRenuevaConError();
+        cuandoSeRenuevaConError();
 
-        thenSeRechazaLaRespuesta();
+        entoncesSeRechazaLaRespuesta();
     }
 
     @Test
     @DisplayName("Un título o una justificación más largos de lo permitido se rechazan")
-    void renovarShouldRejectATextThatIsTooLong() {
-        givenUnModeloQueResponde("""
+    void unTituloOUnaJustificacionMasLargosDeLoPermitidoSeRechazan() {
+        dadoUnModeloQueResponde("""
                 {"minis":[{"codigo":"r1","titulo":"%s","justificacion":"R"},
                   {"codigo":"r2","titulo":"Dos","justificacion":"R"}]}""".formatted(TEXTO_LARGO_81));
 
-        whenSeRenuevaConError();
+        cuandoSeRenuevaConError();
 
-        thenSeRechazaPorTextoInvalido();
+        entoncesSeRechazaPorTextoInvalido();
     }
 
     @Test
     @DisplayName("Si el modelo no respondió falla con la excepción del cliente")
-    void renovarShouldPropagateTheClientFailure() {
-        givenUnModeloSinRed();
+    void siElModeloNoRespondioFallaConLaExcepcionDelCliente() {
+        dadoUnModeloSinRed();
 
-        whenSeRenuevaConError();
+        cuandoSeRenuevaConError();
 
-        thenFallaConLaExcepcionDelCliente();
+        entoncesFallaConLaExcepcionDelCliente();
     }
 
     // --- arrange ---
-    private void givenUnModeloQueResponde(String json) {
+    private void dadoUnModeloQueResponde(String json) {
         ClienteModeloTexto modelo = peticion -> {
             pedidos.add(peticion);
             return new RespuestaModeloTexto(json, "simulado", "modelo", 120, 45);
@@ -107,7 +107,7 @@ class RenovacionManualesIaAdapterTest {
         adapter = new RenovacionManualesIaAdapter(modelo, prompt, JsonMapper.builder().build());
     }
 
-    private void givenUnModeloSinRed() {
+    private void dadoUnModeloSinRed() {
         ClienteModeloTexto roto = peticion -> {
             throw new IllegalArgumentException("sin red");
         };
@@ -115,16 +115,16 @@ class RenovacionManualesIaAdapterTest {
     }
 
     // --- act ---
-    private void whenSeRenueva() {
+    private void cuandoSeRenueva() {
         redaccion = adapter.renovar(renovaciones);
     }
 
-    private void whenSeRenuevaConError() {
-        error = catchThrowable(this::whenSeRenueva);
+    private void cuandoSeRenuevaConError() {
+        error = catchThrowable(this::cuandoSeRenueva);
     }
 
     // --- assert ---
-    private void thenHayUnTextoPorRenovacionEnOrdenYSeLeeElGasto() {
+    private void entoncesHayUnTextoPorRenovacionEnOrdenYSeLeeElGasto() {
         assertThat(redaccion.textos()).hasSize(2);
         assertThat(redaccion.textos().get(0).titulo()).isEqualTo("Poné el cartel");
         assertThat(redaccion.textos().get(0).justificacion()).isEqualTo("Razón uno");
@@ -134,23 +134,23 @@ class RenovacionManualesIaAdapterTest {
         assertThat(redaccion.consumo().tokensSalida()).isEqualTo(45);
     }
 
-    private void thenSeLePideAlModeloCadaRenovacionPorSuCodigo() {
+    private void entoncesSeLePideAlModeloCadaRenovacionPorSuCodigo() {
         assertThat(pedidos).singleElement().satisfies(pedido -> {
             assertThat(pedido.contexto()).contains("r1: qué hacer: SE_DIVIDE", "r2: qué hacer: SE_DIVIDE");
             assertThat(pedido.instrucciones()).contains("Sos Sami");
         });
     }
 
-    private void thenSeRechazaLaRespuesta() {
+    private void entoncesSeRechazaLaRespuesta() {
         assertThat(error).isInstanceOf(IllegalStateException.class);
     }
 
-    private void thenSeRechazaPorTextoInvalido() {
+    private void entoncesSeRechazaPorTextoInvalido() {
         assertThat(error).isInstanceOf(IllegalStateException.class)
                 .hasMessage("La IA no redactó un texto válido para cada renovación");
     }
 
-    private void thenFallaConLaExcepcionDelCliente() {
+    private void entoncesFallaConLaExcepcionDelCliente() {
         assertThat(error).isInstanceOf(IllegalArgumentException.class).hasMessage("sin red");
     }
 

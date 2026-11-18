@@ -34,122 +34,122 @@ class ResumenSemanalTest {
 
     @Test
     @DisplayName("Arma el resumen con el avance hacia la meta y copias de las listas")
-    void deShouldBuildTheSummaryWithTheProgressTowardsTheGoal() {
-        givenCierres();
+    void armaElResumenConElAvanceHaciaLaMetaYCopiasDeLasListas() {
+        dadoCierres();
 
-        whenSeArmaElResumenConCierres(RESULTADO_DE_CIEN_MIL);
-        whenSeVacianLosCierresOriginales();
+        cuandoSeArmaElResumenConCierres(RESULTADO_DE_CIEN_MIL);
+        cuandoSeVacianLosCierresOriginales();
 
-        thenElResumenTieneElAvanceHaciaLaMeta();
+        entoncesElResumenTieneElAvanceHaciaLaMeta();
     }
 
     @Test
     @DisplayName("Un resultado negativo deja el avance en 0")
-    void avanceDeShouldNotBeBelowZero() {
-        whenSeCalculaElAvance(RESULTADO_NEGATIVO, BigDecimal.TEN);
+    void unResultadoNegativoDejaElAvanceEn0() {
+        cuandoSeCalculaElAvance(RESULTADO_NEGATIVO, BigDecimal.TEN);
 
-        thenElAvanceEs("0");
+        entoncesElAvanceEs("0");
     }
 
     @Test
     @DisplayName("Un resultado mayor que la meta deja el avance en 1")
-    void avanceDeShouldNotBeAboveOne() {
-        whenSeCalculaElAvance(RESULTADO_DE_QUINIENTOS, BigDecimal.TEN);
+    void unResultadoMayorQueLaMetaDejaElAvanceEn1() {
+        cuandoSeCalculaElAvance(RESULTADO_DE_QUINIENTOS, BigDecimal.TEN);
 
-        thenElAvanceEs("1");
+        entoncesElAvanceEs("1");
     }
 
     @Test
     @DisplayName("Una meta de cero ya está cumplida")
-    void avanceDeShouldBeOneForAZeroGoal() {
-        whenSeCalculaElAvance(RESULTADO_DE_QUINIENTOS, BigDecimal.ZERO);
+    void unaMetaDeCeroYaEstaCumplida() {
+        cuandoSeCalculaElAvance(RESULTADO_DE_QUINIENTOS, BigDecimal.ZERO);
 
-        thenElAvanceEs("1");
+        entoncesElAvanceEs("1");
     }
 
     @Test
     @DisplayName("Da el valor de un mini-objetivo al cierre")
-    void valorDeShouldReturnTheClosingValueOfAMiniObjetivo() {
-        givenCierres();
-        whenSeArmaElResumenConCierres(BigDecimal.ZERO);
+    void daElValorDeUnMiniObjetivoAlCierre() {
+        dadoCierres();
+        cuandoSeArmaElResumenConCierres(BigDecimal.ZERO);
 
-        whenSeBuscaElValorDe(MINI_ID);
+        cuandoSeBuscaElValorDe(MINI_ID);
 
-        thenElValorEs(VALOR_DE_CIERRE);
+        entoncesElValorEs(VALOR_DE_CIERRE);
     }
 
     @Test
     @DisplayName("Da vacío el valor de un mini-objetivo que no estaba al cierre")
-    void valorDeShouldBeEmptyForAMiniObjetivoThatWasNotThere() {
-        givenCierres();
-        whenSeArmaElResumenConCierres(BigDecimal.ZERO);
+    void daVacioElValorDeUnMiniObjetivoQueNoEstabaAlCierre() {
+        dadoCierres();
+        cuandoSeArmaElResumenConCierres(BigDecimal.ZERO);
 
-        whenSeBuscaElValorDe(OTRO_MINI_ID);
+        cuandoSeBuscaElValorDe(OTRO_MINI_ID);
 
-        thenNoHayValor();
+        entoncesNoHayValor();
     }
 
     @Test
     @DisplayName("Sin meta en pesos el avance es cero")
-    void avanceDeShouldBeZeroWithoutGoal() {
-        whenSeCalculaElAvanceSinMeta(RESULTADO_DE_QUINIENTOS);
+    void sinMetaEnPesosElAvanceEsCero() {
+        cuandoSeCalculaElAvanceSinMeta(RESULTADO_DE_QUINIENTOS);
 
-        thenElAvanceEs("0");
+        entoncesElAvanceEs("0");
     }
 
     @Test
     @DisplayName("El resumen guarda una copia de lo que la persona respondió de sus manuales")
-    void deShouldKeepACopyOfTheManualAnswers() {
-        givenManuales();
+    void elResumenGuardaUnaCopiaDeLoQueLaPersonaRespondioDeSusManuales() {
+        dadoManuales();
 
-        whenSeArmaElResumenConManuales();
-        whenSeVacianLosManualesOriginales();
+        cuandoSeArmaElResumenConManuales();
+        cuandoSeVacianLosManualesOriginales();
 
-        thenElResumenGuardaLaRespuestaDelManual();
+        entoncesElResumenGuardaLaRespuestaDelManual();
     }
 
     // --- arrange ---
-    private void givenCierres() {
+    private void dadoCierres() {
         cierres = new ArrayList<>(List.of(CIERRE));
     }
 
-    private void givenManuales() {
+    private void dadoManuales() {
         manuales = new ArrayList<>(List.of(new ManualCierre(MINI_ID, "Un cartel", HizoManual.SI, QuePaso.FUNCIONO)));
     }
 
     // --- act ---
-    private void whenSeArmaElResumenConCierres(BigDecimal resultado) {
+    private void cuandoSeArmaElResumenConCierres(BigDecimal resultado) {
         resumen = ResumenSemanal.de(objetivo(), SEMANA, resultado, CONTEO, cierres, "Esta semana…", List.of(),
                 List.of(), AHORA);
     }
 
-    private void whenSeArmaElResumenConManuales() {
+    private void cuandoSeArmaElResumenConManuales() {
         resumen = ResumenSemanal.de(objetivo(), SEMANA, BigDecimal.ZERO, CONTEO, List.of(), "", List.of(), manuales,
                 AHORA);
     }
 
-    private void whenSeVacianLosCierresOriginales() {
+    private void cuandoSeVacianLosCierresOriginales() {
         cierres.clear();
     }
 
-    private void whenSeVacianLosManualesOriginales() {
+    private void cuandoSeVacianLosManualesOriginales() {
         manuales.clear();
     }
 
-    private void whenSeCalculaElAvance(BigDecimal resultado, BigDecimal meta) {
+    private void cuandoSeCalculaElAvance(BigDecimal resultado, BigDecimal meta) {
         avance = ResumenSemanal.avanceDe(resultado, meta);
     }
 
-    private void whenSeCalculaElAvanceSinMeta(BigDecimal resultado) {
+    private void cuandoSeCalculaElAvanceSinMeta(BigDecimal resultado) {
         avance = ResumenSemanal.avanceDe(resultado, null);
     }
 
-    private void whenSeBuscaElValorDe(MiniObjetivoId id) {
+    private void cuandoSeBuscaElValorDe(MiniObjetivoId id) {
         valor = resumen.valorDe(id);
     }
 
     // --- assert ---
-    private void thenElResumenTieneElAvanceHaciaLaMeta() {
+    private void entoncesElResumenTieneElAvanceHaciaLaMeta() {
         assertThat(resumen.id()).isNotNull();
         assertThat(resumen.objetivoId()).isEqualTo(OBJETIVO_ID);
         assertThat(resumen.semanaInicio()).isEqualTo(SEMANA);
@@ -163,19 +163,19 @@ class ResumenSemanalTest {
         assertThat(resumen.reajustes()).isEmpty();
     }
 
-    private void thenElAvanceEs(String esperado) {
+    private void entoncesElAvanceEs(String esperado) {
         assertThat(avance).isEqualByComparingTo(esperado);
     }
 
-    private void thenElValorEs(BigDecimal esperado) {
+    private void entoncesElValorEs(BigDecimal esperado) {
         assertThat(valor).contains(esperado);
     }
 
-    private void thenNoHayValor() {
+    private void entoncesNoHayValor() {
         assertThat(valor).isEmpty();
     }
 
-    private void thenElResumenGuardaLaRespuestaDelManual() {
+    private void entoncesElResumenGuardaLaRespuestaDelManual() {
         assertThat(resumen.manuales()).singleElement().satisfies(manual -> {
             assertThat(manual.titulo()).isEqualTo("Un cartel");
             assertThat(manual.hizo()).isEqualTo(HizoManual.SI);

@@ -15,31 +15,31 @@ class ManualCierreTest {
 
     @Test
     @DisplayName("Un manual respondido trae lo que contó la persona")
-    void respondidoShouldCarryTheAnswer() {
-        whenSeCierraUnManualRespondido();
+    void unManualRespondidoTraeLoQueContoLaPersona() {
+        cuandoSeCierraUnManualRespondido();
 
-        thenElCierreTraeLoQueContoLaPersona();
+        entoncesElCierreTraeLoQueContoLaPersona();
     }
 
     @Test
     @DisplayName("Un manual sin respuesta no trae qué hizo ni qué pasó")
-    void sinRespuestaShouldHaveNoAnswer() {
-        whenSeCierraUnManualSinRespuesta();
+    void unManualSinRespuestaNoTraeQueHizoNiQuePaso() {
+        cuandoSeCierraUnManualSinRespuesta();
 
-        thenElCierreNoTraeRespuesta();
+        entoncesElCierreNoTraeRespuesta();
     }
 
     // --- act ---
-    private void whenSeCierraUnManualRespondido() {
+    private void cuandoSeCierraUnManualRespondido() {
         cierre = ManualCierre.respondido(miniManual(), respuesta());
     }
 
-    private void whenSeCierraUnManualSinRespuesta() {
+    private void cuandoSeCierraUnManualSinRespuesta() {
         cierre = ManualCierre.sinRespuesta(miniManual());
     }
 
     // --- assert ---
-    private void thenElCierreTraeLoQueContoLaPersona() {
+    private void entoncesElCierreTraeLoQueContoLaPersona() {
         assertThat(cierre.miniObjetivoId()).isEqualTo(OTRO_MINI_ID);
         assertThat(cierre.titulo()).isEqualTo(TITULO_MANUAL);
         assertThat(cierre.hizo()).isEqualTo(HizoManual.EN_PARTE);
@@ -47,7 +47,7 @@ class ManualCierreTest {
         assertThat(cierre.respondido()).isTrue();
     }
 
-    private void thenElCierreNoTraeRespuesta() {
+    private void entoncesElCierreNoTraeRespuesta() {
         assertThat(cierre.miniObjetivoId()).isEqualTo(OTRO_MINI_ID);
         assertThat(cierre.titulo()).isEqualTo(TITULO_MANUAL);
         assertThat(cierre.hizo()).isNull();

@@ -70,58 +70,58 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
 
     @Test
     @DisplayName("Carga las cuotas y el precio Premium aprobados para la renovación")
-    void findByCodigoShouldReadApprovedCatalog() {
-        whenSeLeeElCatalogo();
+    void cargaLasCuotasYElPrecioPremiumAprobadosParaLaRenovacion() {
+        cuandoSeLeeElCatalogo();
 
-        thenElGratuitoTieneSusCuotasAprobadas();
-        thenElPremiumTieneSuPrecioYSusCuotasAprobadas();
+        entoncesElGratuitoTieneSusCuotasAprobadas();
+        entoncesElPremiumTieneSuPrecioYSusCuotasAprobadas();
     }
 
     @Test
     @DisplayName("El registro asigna el plan gratuito y conserva las fechas en PostgreSQL")
-    void registrarShouldPersistFreeSubscriptionWithAccount() {
-        whenSeRegistraUnUsuario();
+    void elRegistroAsignaElPlanGratuitoYConservaLasFechasEnPostgresql() {
+        cuandoSeRegistraUnUsuario();
 
-        thenSeLeeLaSuscripcionGratuitaConSusFechas();
+        entoncesSeLeeLaSuscripcionGratuitaConSusFechas();
     }
 
     @Test
     @DisplayName("Buscar por negocio no devuelve la suscripción de otro negocio")
-    void findByNegocioIdShouldIsolateSubscriptions() {
-        givenUnaSuscripcionGratuitaParaA();
+    void buscarPorNegocioNoDevuelveLaSuscripcionDeOtroNegocio() {
+        dadoUnaSuscripcionGratuitaParaA();
 
-        whenSeBuscaLaSuscripcionDeB();
+        cuandoSeBuscaLaSuscripcionDeB();
 
-        thenNoSeEncuentraLaDeB();
-        thenSigueLaDeA();
+        entoncesNoSeEncuentraLaDeB();
+        entoncesSigueLaDeA();
     }
 
     @Test
     @DisplayName("La base rechaza una segunda suscripción actual para el mismo negocio")
-    void saveShouldRejectDuplicateSubscription() {
-        givenUnaSuscripcionGratuitaParaA();
+    void laBaseRechazaUnaSegundaSuscripcionActualParaElMismoNegocio() {
+        dadoUnaSuscripcionGratuitaParaA();
 
-        whenSeAsignaOtraVezElGratuitoAA();
+        cuandoSeAsignaOtraVezElGratuitoAA();
 
-        thenLaBaseLaRechaza();
+        entoncesLaBaseLaRechaza();
     }
 
     @Test
     @DisplayName("Borrar un negocio elimina su suscripción sin borrar el catálogo")
-    void deleteNegocioShouldCascadeSubscriptionOnly() {
-        givenUnaSuscripcionGratuitaParaA();
+    void borrarUnNegocioEliminaSuSuscripcionSinBorrarElCatalogo() {
+        dadoUnaSuscripcionGratuitaParaA();
 
-        whenSeBorraElNegocioA();
+        cuandoSeBorraElNegocioA();
 
-        thenSeBorraLaSuscripcionPeroNoElCatalogo();
+        entoncesSeBorraLaSuscripcionPeroNoElCatalogo();
     }
 
     @Test
     @DisplayName("Guarda y relee límites, moneda, funciones y precio cuando se define el catálogo")
-    void savePlanShouldPersistCommercialConfiguration() {
-        whenSeDefineLaConfiguracionComercialDelGratuito();
+    void guardaYReleeLimitesMonedaFuncionesYPrecioCuandoSeDefineElCatalogo() {
+        cuandoSeDefineLaConfiguracionComercialDelGratuito();
 
-        thenSeRelenLimitesMonedaFuncionesYPrecio();
+        entoncesSeRelenLimitesMonedaFuncionesYPrecio();
     }
 
     @ParameterizedTest
@@ -137,49 +137,49 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
             "precio_mensual = NULL"
     })
     @DisplayName("La base rechaza configuraciones de plan inválidas o incompletas")
-    void updatePlanShouldRejectInvalidConfiguration(String asignacion) {
-        whenSeActualizaElGratuitoCon(asignacion);
+    void laBaseRechazaConfiguracionesDePlanInvalidasOIncompletas(String asignacion) {
+        cuandoSeActualizaElGratuitoCon(asignacion);
 
-        thenLaBaseLaRechaza();
+        entoncesLaBaseLaRechaza();
     }
 
     @Test
     @DisplayName("La base rechaza un período que termina antes de empezar")
-    void saveSubscriptionShouldRejectInvalidPeriod() {
-        givenUnNegocioA();
+    void laBaseRechazaUnPeriodoQueTerminaAntesDeEmpezar() {
+        dadoUnNegocioA();
 
-        whenSeGuardaUnaSuscripcionQueTerminaAntesDeEmpezar();
+        cuandoSeGuardaUnaSuscripcionQueTerminaAntesDeEmpezar();
 
-        thenLaBaseLaRechaza();
+        entoncesLaBaseLaRechaza();
     }
 
     @Test
     @DisplayName("La base rechaza una suscripción para un negocio inexistente")
-    void saveSubscriptionShouldRejectMissingNegocio() {
-        whenSeGuardaUnaSuscripcionParaUnNegocioInexistente();
+    void laBaseRechazaUnaSuscripcionParaUnNegocioInexistente() {
+        cuandoSeGuardaUnaSuscripcionParaUnNegocioInexistente();
 
-        thenLaBaseLaRechaza();
+        entoncesLaBaseLaRechaza();
     }
 
     // --- arrange ---
-    private void givenUnNegocioA() {
-        negocioA = givenNegocio("planes-periodo@example.com").getId();
+    private void dadoUnNegocioA() {
+        negocioA = dadoNegocio("planes-periodo@example.com").getId();
     }
 
-    private void givenUnaSuscripcionGratuitaParaA() {
-        negocioA = givenNegocio("planes-a@example.com").getId();
-        negocioB = givenNegocio("planes-b@example.com").getId();
+    private void dadoUnaSuscripcionGratuitaParaA() {
+        negocioA = dadoNegocio("planes-a@example.com").getId();
+        negocioB = dadoNegocio("planes-b@example.com").getId();
         suscripcionId = suscripcionService.asignarGratuito(NegocioId.de(negocioA), AHORA).getId().valor();
         entityManager.clear();
     }
 
     // --- act ---
-    private void whenSeLeeElCatalogo() {
+    private void cuandoSeLeeElCatalogo() {
         gratuito = planes.findByCodigo(CodigoPlan.GRATUITO).orElseThrow();
         premium = planes.findByCodigo(CodigoPlan.PREMIUM).orElseThrow();
     }
 
-    private void whenSeRegistraUnUsuario() {
+    private void cuandoSeRegistraUnUsuario() {
         usuarioRegistrado = registrarUsuario.execute(new RegistrarUsuarioRequest(
                 "Persona", "Nuevo negocio", "planes-registro@example.com", "ClaveSegura123!"));
         UUID negocioId = negocios.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(usuarioRegistrado.id().valor())
@@ -189,21 +189,21 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
         negocioA = negocioId;
     }
 
-    private void whenSeBuscaLaSuscripcionDeB() {
+    private void cuandoSeBuscaLaSuscripcionDeB() {
         suscripcionBuscada = suscripciones.findByNegocioId(negocioB);
     }
 
-    private void whenSeAsignaOtraVezElGratuitoAA() {
+    private void cuandoSeAsignaOtraVezElGratuitoAA() {
         error = catchThrowable(() -> suscripcionService.asignarGratuito(NegocioId.de(negocioA), AHORA));
     }
 
-    private void whenSeBorraElNegocioA() {
+    private void cuandoSeBorraElNegocioA() {
         negocios.deleteById(negocioA);
         negocios.flush();
         entityManager.clear();
     }
 
-    private void whenSeDefineLaConfiguracionComercialDelGratuito() {
+    private void cuandoSeDefineLaConfiguracionComercialDelGratuito() {
         PlanEntity plan = planes.findByCodigo(CodigoPlan.GRATUITO).orElseThrow();
         plan.setConfigurado(true);
         plan.setMoneda("ARS");
@@ -216,12 +216,12 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
         planLeido = planes.findByCodigo(CodigoPlan.GRATUITO).orElseThrow();
     }
 
-    private void whenSeActualizaElGratuitoCon(String asignacion) {
+    private void cuandoSeActualizaElGratuitoCon(String asignacion) {
         UUID planId = planes.findByCodigo(CodigoPlan.GRATUITO).orElseThrow().getId();
         error = catchThrowable(() -> jdbcTemplate.update("UPDATE plan SET " + asignacion + " WHERE id = ?", planId));
     }
 
-    private void whenSeGuardaUnaSuscripcionQueTerminaAntesDeEmpezar() {
+    private void cuandoSeGuardaUnaSuscripcionQueTerminaAntesDeEmpezar() {
         UUID planId = planes.findByCodigo(CodigoPlan.GRATUITO).orElseThrow().getId();
         error = catchThrowable(() -> suscripciones.saveAndFlush(SuscripcionEntity.builder()
                 .negocioId(negocioA)
@@ -234,7 +234,7 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
                 .build()));
     }
 
-    private void whenSeGuardaUnaSuscripcionParaUnNegocioInexistente() {
+    private void cuandoSeGuardaUnaSuscripcionParaUnNegocioInexistente() {
         UUID planId = planes.findByCodigo(CodigoPlan.GRATUITO).orElseThrow().getId();
         error = catchThrowable(() -> suscripciones.saveAndFlush(SuscripcionEntity.builder()
                 .negocioId(NEGOCIO_INEXISTENTE)
@@ -247,10 +247,10 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
     }
 
     // --- assert ---
-    private void thenElGratuitoTieneSusCuotasAprobadas() {
+    private void entoncesElGratuitoTieneSusCuotasAprobadas() {
         assertThat(gratuito.getNombre()).isEqualTo("Gratuito");
         assertThat(gratuito.getPrecioMensual()).isEqualByComparingTo(BigDecimal.ZERO);
-        thenCommercialValuesPending(gratuito);
+        entoncesCommercialValuesPending(gratuito);
         assertThat(gratuito.getLimitesConfigurados()).isTrue();
         assertThat(gratuito.getLimiteProyectos()).isEqualTo(1);
         assertThat(gratuito.getLimiteRegistros()).isEqualTo(1000L);
@@ -259,7 +259,7 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
         assertThat(gratuito.getFunciones()).isEmpty();
     }
 
-    private void thenElPremiumTieneSuPrecioYSusCuotasAprobadas() {
+    private void entoncesElPremiumTieneSuPrecioYSusCuotasAprobadas() {
         assertThat(premium.getNombre()).isEqualTo("Premium");
         assertThat(premium.getPrecioMensual()).isEqualByComparingTo("14900.00");
         assertThat(premium.getMoneda()).isEqualTo("ARS");
@@ -273,7 +273,7 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
                 "RECETAS_COSTOS", "REPORTES_FILTRADOS", "EXPORTAR_EXCEL", "AVISOS_COMPLETOS", "ZONA_COMPLETA");
     }
 
-    private void thenSeLeeLaSuscripcionGratuitaConSusFechas() {
+    private void entoncesSeLeeLaSuscripcionGratuitaConSusFechas() {
         assertThat(suscripcionLeida.getId()).isNotNull();
         assertThat(suscripcionLeida.getNegocioId()).isEqualTo(NegocioId.de(negocioA));
         assertThat(suscripcionLeida.getPlanId())
@@ -285,24 +285,24 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
         assertThat(suscripcionLeida.getActualizadoEn()).isEqualTo(suscripcionLeida.getInicioEn());
     }
 
-    private void thenNoSeEncuentraLaDeB() {
+    private void entoncesNoSeEncuentraLaDeB() {
         assertThat(suscripcionBuscada).isEmpty();
     }
 
-    private void thenSigueLaDeA() {
+    private void entoncesSigueLaDeA() {
         assertThat(suscripciones.findByNegocioId(negocioA)).isPresent();
     }
 
-    private void thenLaBaseLaRechaza() {
+    private void entoncesLaBaseLaRechaza() {
         assertThat(error).isInstanceOf(DataIntegrityViolationException.class);
     }
 
-    private void thenSeBorraLaSuscripcionPeroNoElCatalogo() {
+    private void entoncesSeBorraLaSuscripcionPeroNoElCatalogo() {
         assertThat(suscripciones.findById(suscripcionId)).isEmpty();
         assertThat(planes.findByCodigo(CodigoPlan.GRATUITO)).isPresent();
     }
 
-    private void thenSeRelenLimitesMonedaFuncionesYPrecio() {
+    private void entoncesSeRelenLimitesMonedaFuncionesYPrecio() {
         assertThat(planLeido.getConfigurado()).isTrue();
         assertThat(planLeido.getMoneda()).isEqualTo("ARS");
         assertThat(planLeido.getLimiteProyectos()).isEqualTo(3);
@@ -312,7 +312,7 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
         assertThat(planLeido.getPrecioMensual()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
-    private void thenCommercialValuesPending(PlanEntity plan) {
+    private void entoncesCommercialValuesPending(PlanEntity plan) {
         assertThat(plan.getConfigurado()).isFalse();
         assertThat(plan.getMoneda()).isNull();
     }

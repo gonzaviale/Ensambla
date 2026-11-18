@@ -19,19 +19,19 @@ class ResponderMiniObjetivoResponseTest {
 
     @Test
     @DisplayName("Copia todos los datos de la respuesta")
-    void deShouldCopyEveryField() {
-        whenSeArmaLaRespuesta();
+    void copiaTodosLosDatosDeLaRespuesta() {
+        cuandoSeArmaLaRespuesta();
 
-        thenSeCopianTodosLosDatos();
+        entoncesSeCopianTodosLosDatos();
     }
 
     // --- act ---
-    private void whenSeArmaLaRespuesta() {
+    private void cuandoSeArmaLaRespuesta() {
         resultado = ResponderMiniObjetivoResponse.de(respuesta());
     }
 
     // --- assert ---
-    private void thenSeCopianTodosLosDatos() {
+    private void entoncesSeCopianTodosLosDatos() {
         assertThat(resultado.id()).isEqualTo(RESPUESTA_ID);
         assertThat(resultado.miniObjetivoId()).isEqualTo(OTRO_MINI_ID);
         assertThat(resultado.hizo()).isEqualTo(HizoManual.EN_PARTE);

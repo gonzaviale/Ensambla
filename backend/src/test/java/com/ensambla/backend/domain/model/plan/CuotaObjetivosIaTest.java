@@ -11,63 +11,63 @@ class CuotaObjetivosIaTest {
 
     @Test
     @DisplayName("Con cuota disponible dice cuántos objetivos quedan")
-    void restantesShouldBeTheLimitMinusTheUsed() {
-        whenSeArmaLaCuota(2, 5);
+    void conCuotaDisponibleDiceCuantosObjetivosQuedan() {
+        cuandoSeArmaLaCuota(2, 5);
 
-        thenQuedan(3);
-        thenNoEstaAgotada();
+        entoncesQuedan(3);
+        entoncesNoEstaAgotada();
     }
 
     @Test
     @DisplayName("Con todos los objetivos usados la cuota está agotada y no quedan")
-    void agotadaShouldBeTrueWhenTheLimitIsReached() {
-        whenSeArmaLaCuota(5, 5);
+    void conTodosLosObjetivosUsadosLaCuotaEstaAgotadaYNoQuedan() {
+        cuandoSeArmaLaCuota(5, 5);
 
-        thenNoQuedanObjetivos();
-        thenEstaAgotada();
+        entoncesNoQuedanObjetivos();
+        entoncesEstaAgotada();
     }
 
     @Test
     @DisplayName("Usar de más no da restantes negativos")
-    void restantesShouldNeverBeNegative() {
-        whenSeArmaLaCuota(7, 5);
+    void usarDeMasNoDaRestantesNegativos() {
+        cuandoSeArmaLaCuota(7, 5);
 
-        thenNoQuedanObjetivos();
-        thenEstaAgotada();
+        entoncesNoQuedanObjetivos();
+        entoncesEstaAgotada();
     }
 
     @Test
     @DisplayName("Sin límite nunca se agota y no hay restantes que contar")
-    void withoutLimitShouldNeverRunOut() {
-        whenSeArmaLaCuota(500, null);
+    void sinLimiteNuncaSeAgotaYNoHayRestantesQueContar() {
+        cuandoSeArmaLaCuota(500, null);
 
-        thenNoHayRestantesQueContar();
-        thenNoEstaAgotada();
+        entoncesNoHayRestantesQueContar();
+        entoncesNoEstaAgotada();
     }
 
     // --- act ---
-    private void whenSeArmaLaCuota(int usados, Integer limite) {
+    private void cuandoSeArmaLaCuota(int usados, Integer limite) {
         cuota = new CuotaObjetivosIa(usados, limite);
     }
 
     // --- assert ---
-    private void thenQuedan(int restantes) {
+    private void entoncesQuedan(int restantes) {
         assertThat(cuota.restantes()).isEqualTo(restantes);
     }
 
-    private void thenNoQuedanObjetivos() {
+    private void entoncesNoQuedanObjetivos() {
         assertThat(cuota.restantes()).isZero();
     }
 
-    private void thenNoHayRestantesQueContar() {
+    private void entoncesNoHayRestantesQueContar() {
         assertThat(cuota.restantes()).isNull();
     }
 
-    private void thenEstaAgotada() {
+    private void entoncesEstaAgotada() {
         assertThat(cuota.agotada()).isTrue();
     }
 
-    private void thenNoEstaAgotada() {
+    private void entoncesNoEstaAgotada() {
         assertThat(cuota.agotada()).isFalse();
     }
 }

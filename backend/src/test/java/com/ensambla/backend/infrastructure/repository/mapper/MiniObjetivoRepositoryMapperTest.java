@@ -35,66 +35,66 @@ class MiniObjetivoRepositoryMapperTest {
 
     @Test
     @DisplayName("Mapea la entidad al dominio con todos sus campos")
-    void toDomainShouldMapEveryField() {
-        givenUnaEntidadCompleta();
+    void mapeaLaEntidadAlDominioConTodosSusCampos() {
+        dadoUnaEntidadCompleta();
 
-        whenSeLeeLaEntidad();
+        cuandoSeLeeLaEntidad();
 
-        thenElDominioTraeTodosLosCampos();
+        entoncesElDominioTraeTodosLosCampos();
     }
 
     @Test
     @DisplayName("Una entidad sin ids se mapea con ids nulos")
-    void toDomainShouldKeepMissingIdsNull() {
-        givenUnaEntidadSinIds();
+    void unaEntidadSinIdsSeMapeaConIdsNulos() {
+        dadoUnaEntidadSinIds();
 
-        whenSeLeeLaEntidad();
+        cuandoSeLeeLaEntidad();
 
-        thenElDominioNoTieneIds();
+        entoncesElDominioNoTieneIds();
     }
 
     @Test
     @DisplayName("Mapea el dominio a la entidad con todos sus campos")
-    void toEntityShouldMapEveryField() {
-        givenUnMiniConReemplazoYSinAvance();
+    void mapeaElDominioALaEntidadConTodosSusCampos() {
+        dadoUnMiniConReemplazoYSinAvance();
 
-        whenSePasaElMiniALaEntidad();
+        cuandoSePasaElMiniALaEntidad();
 
-        thenLaEntidadTraeTodosLosCampos();
+        entoncesLaEntidadTraeTodosLosCampos();
     }
 
     @Test
     @DisplayName("Un mini-objetivo sin producto ni reemplazo se mapea con esos ids nulos")
-    void toEntityShouldKeepMissingIdsNull() {
-        givenUnMiniSinProductoNiReemplazo();
+    void unMiniObjetivoSinProductoNiReemplazoSeMapeaConEsosIdsNulos() {
+        dadoUnMiniSinProductoNiReemplazo();
 
-        whenSePasaElMiniALaEntidad();
+        cuandoSePasaElMiniALaEntidad();
 
-        thenLaEntidadNoTieneProductoNiReemplazo();
+        entoncesLaEntidadNoTieneProductoNiReemplazo();
     }
 
     @Test
     @DisplayName("Un mini-objetivo manual se mapea a la entidad sin métrica ni números")
-    void toEntityShouldKeepAManualMiniWithoutNumbers() {
+    void unMiniObjetivoManualSeMapeaALaEntidadSinMetricaNiNumeros() {
         mini = miniManual();
 
-        whenSePasaElMiniALaEntidad();
+        cuandoSePasaElMiniALaEntidad();
 
-        thenLaEntidadManualNoTieneMetricaNiNumeros();
+        entoncesLaEntidadManualNoTieneMetricaNiNumeros();
     }
 
     @Test
     @DisplayName("Una entidad manual se mapea al dominio como manual")
-    void toDomainShouldMapAManualEntity() {
-        givenUnaEntidadManual();
+    void unaEntidadManualSeMapeaAlDominioComoManual() {
+        dadoUnaEntidadManual();
 
-        whenSeLeeLaEntidad();
+        cuandoSeLeeLaEntidad();
 
-        thenElDominioEsManual();
+        entoncesElDominioEsManual();
     }
 
     // --- arrange ---
-    private void givenUnaEntidadCompleta() {
+    private void dadoUnaEntidadCompleta() {
         entidad = MiniObjetivoEntity.builder()
                 .id(MINI_ID.valor())
                 .objetivoId(OBJETIVO_ID.valor())
@@ -120,11 +120,11 @@ class MiniObjetivoRepositoryMapperTest {
                 .build();
     }
 
-    private void givenUnaEntidadSinIds() {
+    private void dadoUnaEntidadSinIds() {
         entidad = MiniObjetivoEntity.builder().build();
     }
 
-    private void givenUnMiniConReemplazoYSinAvance() {
+    private void dadoUnMiniConReemplazoYSinAvance() {
         mini = miniObjetivo();
         mini.setPosicion(2);
         mini.setTextoConIa(true);
@@ -132,27 +132,27 @@ class MiniObjetivoRepositoryMapperTest {
         mini.setSinAvanceDesde(SEMANA);
     }
 
-    private void givenUnMiniSinProductoNiReemplazo() {
+    private void dadoUnMiniSinProductoNiReemplazo() {
         mini = miniObjetivo();
         mini.setRegistroId(null);
         mini.setReemplazadoPor(null);
     }
 
-    private void givenUnaEntidadManual() {
+    private void dadoUnaEntidadManual() {
         entidad = mapper.toEntity(miniManual());
     }
 
     // --- act ---
-    private void whenSeLeeLaEntidad() {
+    private void cuandoSeLeeLaEntidad() {
         mini = mapper.toDomain(entidad);
     }
 
-    private void whenSePasaElMiniALaEntidad() {
+    private void cuandoSePasaElMiniALaEntidad() {
         entidad = mapper.toEntity(mini);
     }
 
     // --- assert ---
-    private void thenElDominioTraeTodosLosCampos() {
+    private void entoncesElDominioTraeTodosLosCampos() {
         assertThat(mini.getId()).isEqualTo(MINI_ID);
         assertThat(mini.getObjetivoId()).isEqualTo(OBJETIVO_ID);
         assertThat(mini.getNegocioId()).isEqualTo(NEGOCIO_ID);
@@ -176,7 +176,7 @@ class MiniObjetivoRepositoryMapperTest {
         assertThat(mini.getActualizadoEn()).isEqualTo(AHORA.plusDays(1));
     }
 
-    private void thenElDominioNoTieneIds() {
+    private void entoncesElDominioNoTieneIds() {
         assertThat(mini.getId()).isNull();
         assertThat(mini.getObjetivoId()).isNull();
         assertThat(mini.getNegocioId()).isNull();
@@ -184,7 +184,7 @@ class MiniObjetivoRepositoryMapperTest {
         assertThat(mini.getReemplazadoPor()).isNull();
     }
 
-    private void thenLaEntidadTraeTodosLosCampos() {
+    private void entoncesLaEntidadTraeTodosLosCampos() {
         assertThat(entidad.getId()).isEqualTo(MINI_ID.valor());
         assertThat(entidad.getObjetivoId()).isEqualTo(OBJETIVO_ID.valor());
         assertThat(entidad.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
@@ -207,12 +207,12 @@ class MiniObjetivoRepositoryMapperTest {
         assertThat(entidad.getActualizadoEn()).isEqualTo(AHORA);
     }
 
-    private void thenLaEntidadNoTieneProductoNiReemplazo() {
+    private void entoncesLaEntidadNoTieneProductoNiReemplazo() {
         assertThat(entidad.getRegistroId()).isNull();
         assertThat(entidad.getReemplazadoPor()).isNull();
     }
 
-    private void thenLaEntidadManualNoTieneMetricaNiNumeros() {
+    private void entoncesLaEntidadManualNoTieneMetricaNiNumeros() {
         assertThat(entidad.getModo()).isEqualTo(ModoMiniObjetivo.MANUAL);
         assertThat(entidad.getTipo()).isNull();
         assertThat(entidad.getMeta()).isNull();
@@ -222,7 +222,7 @@ class MiniObjetivoRepositoryMapperTest {
         assertThat(entidad.getTitulo()).isEqualTo(TITULO_MANUAL);
     }
 
-    private void thenElDominioEsManual() {
+    private void entoncesElDominioEsManual() {
         assertThat(mini.esManual()).isTrue();
         assertThat(mini.getTipo()).isNull();
         assertThat(mini.getJustificacion()).isEqualTo(JUSTIFICACION_MANUAL);

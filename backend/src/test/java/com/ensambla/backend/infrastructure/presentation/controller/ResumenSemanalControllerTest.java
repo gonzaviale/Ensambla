@@ -68,55 +68,55 @@ class ResumenSemanalControllerTest {
 
     @Test
     @DisplayName("GET devuelve el último cierre y cada semana con sus decisiones y reajustes")
-    void listarShouldReturnTheMappedWeeks() throws Exception {
-        givenUnaSemanaCerradaConUnReajuste();
+    void getDevuelveElUltimoCierreYCadaSemanaConSusDecisionesYReajustes() throws Exception {
+        dadoUnaSemanaCerradaConUnReajuste();
 
-        whenSePidenLasSemanas(RUTA);
+        cuandoSePidenLasSemanas(RUTA);
 
-        thenSeDevuelveLaSemanaConSusDecisionesYReajustes();
+        entoncesSeDevuelveLaSemanaConSusDecisionesYReajustes();
     }
 
     @Test
     @DisplayName("GET manda al caso de uso el usuario de la sesión y el objetivo de la ruta")
-    void listarShouldPassTheSessionUserAndTheObjetivo() throws Exception {
-        givenNingunaSemanaCerrada();
+    void getMandaAlCasoDeUsoElUsuarioDeLaSesionYElObjetivoDeLaRuta() throws Exception {
+        dadoNingunaSemanaCerrada();
 
-        whenSePidenLasSemanas(RUTA);
+        cuandoSePidenLasSemanas(RUTA);
 
-        thenElCasoDeUsoRecibeElUsuarioYElObjetivo();
+        entoncesElCasoDeUsoRecibeElUsuarioYElObjetivo();
     }
 
     @Test
     @DisplayName("GET responde 200 sin semanas cuando todavía no se cerró ninguna")
-    void listarShouldReturnNoWeeksWhenNoneWasClosed() throws Exception {
-        givenNingunaSemanaCerrada();
+    void getResponde200SinSemanasCuandoTodaviaNoSeCerroNinguna() throws Exception {
+        dadoNingunaSemanaCerrada();
 
-        whenSePidenLasSemanas(RUTA);
+        cuandoSePidenLasSemanas(RUTA);
 
-        thenSeResponde200SinSemanas();
+        entoncesSeResponde200SinSemanas();
     }
 
     @Test
     @DisplayName("GET responde 404 cuando el objetivo es de otro negocio o no existe")
-    void listarShouldReturn404WhenTheObjetivoIsNotFound() throws Exception {
-        givenUnObjetivoInexistente();
+    void getResponde404CuandoElObjetivoEsDeOtroNegocioONoExiste() throws Exception {
+        dadoUnObjetivoInexistente();
 
-        whenSePidenLasSemanas(RUTA);
+        cuandoSePidenLasSemanas(RUTA);
 
-        thenSeResponde404();
+        entoncesSeResponde404();
     }
 
     @Test
     @DisplayName("GET responde 400 cuando el id del objetivo no es un UUID")
-    void listarShouldReturn400WhenTheIdIsNotUuid() throws Exception {
-        whenSePidenLasSemanas(RUTA_CON_ID_INVALIDO);
+    void getResponde400CuandoElIdDelObjetivoNoEsUnUuid() throws Exception {
+        cuandoSePidenLasSemanas(RUTA_CON_ID_INVALIDO);
 
-        thenSeResponde400();
-        thenNoLlegaAlCasoDeUso();
+        entoncesSeResponde400();
+        entoncesNoLlegaAlCasoDeUso();
     }
 
     // --- arrange ---
-    private void givenUnaSemanaCerradaConUnReajuste() {
+    private void dadoUnaSemanaCerradaConUnReajuste() {
         ReajusteItem reajuste = new ReajusteItem(TipoReajuste.SUBIR_META, "Lo lograste",
                 new MiniItem("Vender más", new BigDecimal("100")), new MiniItem("Vender más", new BigDecimal("110")));
         when(listarSemanas.execute(any())).thenReturn(new ListarSemanasResponse(SEMANA, List.of(new SemanaItem(
@@ -124,21 +124,21 @@ class ResumenSemanalControllerTest {
                 "Esta semana…", false, List.of(reajuste), MANUALES))));
     }
 
-    private void givenNingunaSemanaCerrada() {
+    private void dadoNingunaSemanaCerrada() {
         when(listarSemanas.execute(any())).thenReturn(new ListarSemanasResponse(null, List.of()));
     }
 
-    private void givenUnObjetivoInexistente() {
+    private void dadoUnObjetivoInexistente() {
         when(listarSemanas.execute(any())).thenThrow(new ResourceNotFoundException("Objetivo no encontrado"));
     }
 
     // --- act ---
-    private void whenSePidenLasSemanas(String ruta) throws Exception {
+    private void cuandoSePidenLasSemanas(String ruta) throws Exception {
         resultado = mockMvc.perform(get(ruta).principal(principal));
     }
 
     // --- assert ---
-    private void thenSeDevuelveLaSemanaConSusDecisionesYReajustes() throws Exception {
+    private void entoncesSeDevuelveLaSemanaConSusDecisionesYReajustes() throws Exception {
         resultado.andExpect(status().isOk())
                 .andExpect(jsonPath("$.ultimoCierre").value("2026-11-09"))
                 .andExpect(jsonPath("$.semanas[0].semana").value("2026-11-09"))
@@ -162,7 +162,7 @@ class ResumenSemanalControllerTest {
                 .andExpect(jsonPath("$.semanas[0].reajustes[0].a.meta").value(110));
     }
 
-    private void thenElCasoDeUsoRecibeElUsuarioYElObjetivo() throws Exception {
+    private void entoncesElCasoDeUsoRecibeElUsuarioYElObjetivo() throws Exception {
         resultado.andExpect(status().isOk());
         ArgumentCaptor<ListarSemanasRequest> captor = ArgumentCaptor.forClass(ListarSemanasRequest.class);
         verify(listarSemanas).execute(captor.capture());
@@ -170,21 +170,21 @@ class ResumenSemanalControllerTest {
         assertThat(captor.getValue().objetivoId()).isEqualTo(OBJETIVO_ID);
     }
 
-    private void thenSeResponde200SinSemanas() throws Exception {
+    private void entoncesSeResponde200SinSemanas() throws Exception {
         resultado.andExpect(status().isOk())
                 .andExpect(jsonPath("$.ultimoCierre").doesNotExist())
                 .andExpect(jsonPath("$.semanas").isEmpty());
     }
 
-    private void thenSeResponde404() throws Exception {
+    private void entoncesSeResponde404() throws Exception {
         resultado.andExpect(status().isNotFound());
     }
 
-    private void thenSeResponde400() throws Exception {
+    private void entoncesSeResponde400() throws Exception {
         resultado.andExpect(status().isBadRequest());
     }
 
-    private void thenNoLlegaAlCasoDeUso() {
+    private void entoncesNoLlegaAlCasoDeUso() {
         verifyNoInteractions(listarSemanas);
     }
 }

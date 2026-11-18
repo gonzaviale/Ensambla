@@ -50,99 +50,99 @@ class ResumenSemanalRepositoryMapperTest {
 
     @Test
     @DisplayName("Pasa el resumen a la entidad con los mini-objetivos como JSON y el valor como texto")
-    void toEntityShouldMapEveryFieldAndTheMinisAsJson() {
-        whenSePasaElResumenALaEntidad();
+    void pasaElResumenALaEntidadConLosMiniObjetivosComoJsonYElValorComoTexto() {
+        cuandoSePasaElResumenALaEntidad();
 
-        thenLaEntidadTraeTodosLosCamposYLosMinisComoJson();
+        entoncesLaEntidadTraeTodosLosCamposYLosMinisComoJson();
     }
 
     @Test
     @DisplayName("Lee el resumen de la entidad con sus mini-objetivos y sus reajustes")
-    void toDomainShouldMapEveryFieldWithTheMinisAndReajustes() {
-        givenLaEntidadDelResumen();
+    void leeElResumenDeLaEntidadConSusMiniObjetivosYSusReajustes() {
+        dadoLaEntidadDelResumen();
 
-        whenSeLeeElResumenConUnReajuste();
+        cuandoSeLeeElResumenConUnReajuste();
 
-        thenSeLeeElResumenConSusMinisYReajustes();
+        entoncesSeLeeElResumenConSusMinisYReajustes();
     }
 
     @Test
     @DisplayName("Pasa el reajuste a la entidad colgado de su resumen")
-    void toEntityShouldMapTheReajusteWithItsResumen() {
-        whenSePasaElReajusteALaEntidad(reajuste());
+    void pasaElReajusteALaEntidadColgadoDeSuResumen() {
+        cuandoSePasaElReajusteALaEntidad(reajuste());
 
-        thenLaEntidadDelReajusteCuelgaDeSuResumen();
+        entoncesLaEntidadDelReajusteCuelgaDeSuResumen();
     }
 
     @Test
     @DisplayName("Un reajuste sin mini-objetivo nuevo se guarda con el nuevo vacío")
-    void reajusteShouldBeSavedWithTheNewMiniEmptyWhenThereIsNone() {
-        givenUnReajusteSinNuevo();
+    void unReajusteSinMiniObjetivoNuevoSeGuardaConElNuevoVacio() {
+        dadoUnReajusteSinNuevo();
 
-        whenSePasaElReajusteALaEntidad(reajusteSinNuevo);
+        cuandoSePasaElReajusteALaEntidad(reajusteSinNuevo);
 
-        thenLaEntidadNoTieneMiniNuevo();
+        entoncesLaEntidadNoTieneMiniNuevo();
     }
 
     @Test
     @DisplayName("Un reajuste sin mini-objetivo nuevo se lee con el nuevo vacío")
-    void reajusteShouldBeReadWithTheNewMiniEmptyWhenThereIsNone() {
-        givenUnReajusteSinNuevo();
+    void unReajusteSinMiniObjetivoNuevoSeLeeConElNuevoVacio() {
+        dadoUnReajusteSinNuevo();
 
-        whenSeLeeElReajusteGuardado();
+        cuandoSeLeeElReajusteGuardado();
 
-        thenSeLeeElMismoReajusteSinNuevo();
+        entoncesSeLeeElMismoReajusteSinNuevo();
     }
 
     @Test
     @DisplayName("Lee el reajuste de la entidad con todos sus campos")
-    void toDomainShouldMapEveryFieldOfTheReajuste() {
-        whenSeLeeElReajusteDeLaEntidad();
+    void leeElReajusteDeLaEntidadConTodosSusCampos() {
+        cuandoSeLeeElReajusteDeLaEntidad();
 
-        thenSeLeeElReajusteCompleto();
+        entoncesSeLeeElReajusteCompleto();
     }
 
     @Test
     @DisplayName("Pasa lo respondido de los manuales a JSON, con vacío cuando no respondió")
-    void toEntityShouldMapTheManualAnswersAsJson() {
-        whenSePasaElResumenALaEntidad();
+    void pasaLoRespondidoDeLosManualesAJsonConVacioCuandoNoRespondio() {
+        cuandoSePasaElResumenALaEntidad();
 
-        thenLosManualesVanComoJsonConVacioSiNoRespondio();
+        entoncesLosManualesVanComoJsonConVacioSiNoRespondio();
     }
 
     // --- arrange ---
-    private void givenLaEntidadDelResumen() {
+    private void dadoLaEntidadDelResumen() {
         entidadDelResumen = mapper.toEntity(resumen());
     }
 
-    private void givenUnReajusteSinNuevo() {
+    private void dadoUnReajusteSinNuevo() {
         reajusteSinNuevo = new ReajusteMiniObjetivo(REAJUSTE_ID, MINI_ID, null, TipoReajuste.REEMPLAZAR,
                 "Sin reemplazo", "Subile", BigDecimal.TEN, null, null, AHORA);
     }
 
     // --- act ---
-    private void whenSePasaElResumenALaEntidad() {
+    private void cuandoSePasaElResumenALaEntidad() {
         entidadDelResumen = mapper.toEntity(resumen());
     }
 
-    private void whenSeLeeElResumenConUnReajuste() {
+    private void cuandoSeLeeElResumenConUnReajuste() {
         resumenLeido = mapper.toDomain(entidadDelResumen, List.of(reajusteEntity(OTRO_MINI_ID.valor())));
     }
 
-    private void whenSePasaElReajusteALaEntidad(ReajusteMiniObjetivo reajuste) {
+    private void cuandoSePasaElReajusteALaEntidad(ReajusteMiniObjetivo reajuste) {
         entidadDelReajuste = mapper.toEntity(RESUMEN_ID, reajuste);
     }
 
-    private void whenSeLeeElReajusteGuardado() {
+    private void cuandoSeLeeElReajusteGuardado() {
         reajusteLeido = mapper.toDomain(mapper.toEntity(RESUMEN_ID, reajusteSinNuevo));
     }
 
-    private void whenSeLeeElReajusteDeLaEntidad() {
+    private void cuandoSeLeeElReajusteDeLaEntidad() {
         reajusteLeido = mapper.toDomain(reajusteEntity(OTRO_MINI_ID.valor()));
     }
 
     // --- assert ---
-    private void thenLaEntidadTraeTodosLosCamposYLosMinisComoJson() {
+    private void entoncesLaEntidadTraeTodosLosCamposYLosMinisComoJson() {
         assertThat(entidadDelResumen.getId()).isEqualTo(RESUMEN_ID.valor());
         assertThat(entidadDelResumen.getObjetivoId()).isEqualTo(OBJETIVO_ID.valor());
         assertThat(entidadDelResumen.getSemanaInicio()).isEqualTo(SEMANA);
@@ -159,30 +159,30 @@ class ResumenSemanalRepositoryMapperTest {
         assertThat(entidadDelResumen.getCerradoEn()).isEqualTo(AHORA);
     }
 
-    private void thenSeLeeElResumenConSusMinisYReajustes() {
+    private void entoncesSeLeeElResumenConSusMinisYReajustes() {
         assertThat(resumenLeido).usingRecursiveComparison().ignoringFields("reajustes").isEqualTo(resumen());
         assertThat(resumenLeido.valorDe(MINI_ID)).contains(VALOR);
         assertThat(resumenLeido.reajustes()).singleElement()
                 .satisfies(reajuste -> assertThat(reajuste.miniNuevoId()).isEqualTo(OTRO_MINI_ID));
     }
 
-    private void thenLaEntidadDelReajusteCuelgaDeSuResumen() {
+    private void entoncesLaEntidadDelReajusteCuelgaDeSuResumen() {
         assertThat(entidadDelReajuste).usingRecursiveComparison().isEqualTo(reajusteEntity(OTRO_MINI_ID.valor()));
     }
 
-    private void thenLaEntidadNoTieneMiniNuevo() {
+    private void entoncesLaEntidadNoTieneMiniNuevo() {
         assertThat(entidadDelReajuste.getMiniNuevoId()).isNull();
     }
 
-    private void thenSeLeeElMismoReajusteSinNuevo() {
+    private void entoncesSeLeeElMismoReajusteSinNuevo() {
         assertThat(reajusteLeido).isEqualTo(reajusteSinNuevo);
     }
 
-    private void thenSeLeeElReajusteCompleto() {
+    private void entoncesSeLeeElReajusteCompleto() {
         assertThat(reajusteLeido).isEqualTo(reajuste());
     }
 
-    private void thenLosManualesVanComoJsonConVacioSiNoRespondio() {
+    private void entoncesLosManualesVanComoJsonConVacioSiNoRespondio() {
         assertThat(entidadDelResumen.getManuales()).containsExactly(
                 new LinkedHashMap<>(Map.of("miniObjetivoId", MINI_ID.toString(), "titulo", "Pedile a 3 clientes",
                         "hizo", "EN_PARTE", "quePaso", "NO_TUVE_TIEMPO")),

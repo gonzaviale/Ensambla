@@ -82,7 +82,7 @@ class CobrarVentaTest {
     @Test
     @DisplayName("Repetir la misma operación devuelve el comprobante sin volver a descontar")
     void executeShouldReturnSameReceiptWhenRetried() {
-        givenUsuario();
+        dadoUsuario();
         CobrarVentaRequest request = CajaTestData.request("0.5");
         VentaCaja venta = ventaPrevia(request.huella());
         when(ventaCajaRepository.findByIdAndNegocioId(request.id(), CajaTestData.NEGOCIO))
@@ -97,7 +97,7 @@ class CobrarVentaTest {
     @Test
     @DisplayName("Reutilizar una operación con otros datos responde conflicto")
     void executeShouldRejectChangedRetry() {
-        givenUsuario();
+        dadoUsuario();
         when(ventaCajaRepository.findByIdAndNegocioId(CajaTestData.OPERACION, CajaTestData.NEGOCIO))
                 .thenReturn(Optional.of(ventaPrevia("otra huella")));
 
@@ -108,7 +108,7 @@ class CobrarVentaTest {
     @Test
     @DisplayName("Un sistema de otro negocio responde como inexistente")
     void executeShouldHideForeignSystem() {
-        givenUsuario();
+        dadoUsuario();
         when(sistemaRepository.findAllByNegocioId(CajaTestData.NEGOCIO)).thenReturn(List.of());
 
         assertThatThrownBy(() -> cobrarVenta.execute(CajaTestData.request("0.5")))
@@ -345,12 +345,12 @@ class CobrarVentaTest {
         assertThat(respuesta.clienteNombre()).isEqualTo("Ana López");
     }
 
-    private void givenUsuario() {
+    private void dadoUsuario() {
         when(negocioRepository.obtenerIdDelUsuario(CajaTestData.USUARIO)).thenReturn(CajaTestData.NEGOCIO);
     }
 
     private void givenCaja() {
-        givenUsuario();
+        dadoUsuario();
         when(sistemaRepository.findAllByNegocioId(CajaTestData.NEGOCIO)).thenReturn(List.of(sistema));
     }
 

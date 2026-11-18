@@ -76,188 +76,188 @@ class GuardarObjetivoConSamiTest {
         guardarObjetivoConSami = new GuardarObjetivoConSami(
                 negocioRepository, objetivoRepository, miniObjetivoRepository, propuestaMiniObjetivosService,
                 controlPlanService, usoPlanRepository, new TransaccionDirecta(), CLOCK);
-        givenUnNegocioQueGuardaSusObjetivosYMinis();
+        dadoUnNegocioQueGuardaSusObjetivosYMinis();
     }
 
     @Test
     @DisplayName("Guarda un objetivo híbrido sin meta, armado con Sami, con el texto recortado")
-    void executeShouldSaveAHybridObjetivo() {
-        whenSeGuarda(false, medido(TipoMiniObjetivo.VENTAS_SEMANALES, null, null), accion());
+    void guardaUnObjetivoHibridoSinMetaArmadoConSamiConElTextoRecortado() {
+        cuandoSeGuarda(false, medido(TipoMiniObjetivo.VENTAS_SEMANALES, null, null), accion());
 
-        thenSeGuardaUnObjetivoHibridoSinMetaArmadoConSami();
+        entoncesSeGuardaUnObjetivoHibridoSinMetaArmadoConSami();
     }
 
     @Test
     @DisplayName("Devuelve el objetivo guardado")
-    void executeShouldReturnTheSavedObjetivo() {
-        whenSeGuarda(false, medido(TipoMiniObjetivo.VENTAS_SEMANALES, null, null), accion());
+    void devuelveElObjetivoGuardado() {
+        cuandoSeGuarda(false, medido(TipoMiniObjetivo.VENTAS_SEMANALES, null, null), accion());
 
-        thenSeDevuelveElObjetivoHibridoGuardado();
+        entoncesSeDevuelveElObjetivoHibridoGuardado();
     }
 
     @Test
     @DisplayName("Los mini-objetivos entran en posiciones 1, 2… en la semana de hoy, después del objetivo")
-    void executeShouldSaveTheMinisInOrderAfterTheObjetivo() {
-        whenSeGuarda(false, medido(TipoMiniObjetivo.VENTAS_SEMANALES, null, null), accion());
+    void losMiniObjetivosEntranEnPosiciones12EnLaSemanaDeHoyDespuesDelObjetivo() {
+        cuandoSeGuarda(false, medido(TipoMiniObjetivo.VENTAS_SEMANALES, null, null), accion());
 
-        thenLosMinisEntranEnOrdenDespuesDelObjetivo();
+        entoncesLosMinisEntranEnOrdenDespuesDelObjetivo();
     }
 
     @Test
     @DisplayName("Los números de un mini-objetivo medido los pone el servidor con el catálogo de hoy")
-    void executeShouldTakeTheNumbersOfAMeasuredMiniFromTheCatalog() {
-        whenSeGuarda(false, medido(TipoMiniObjetivo.SUBIR_PRECIO, PRODUCTO_ID, PRODUCTO));
+    void losNumerosDeUnMiniObjetivoMedidoLosPoneElServidorConElCatalogoDeHoy() {
+        cuandoSeGuarda(false, medido(TipoMiniObjetivo.SUBIR_PRECIO, PRODUCTO_ID, PRODUCTO));
 
-        thenLosNumerosDelMiniSalenDelCatalogo();
+        entoncesLosNumerosDelMiniSalenDelCatalogo();
     }
 
     @Test
     @DisplayName("Con sólo mini-objetivos medidos el objetivo es con datos")
-    void executeShouldSaveAnObjetivoWithData() {
-        whenSeGuarda(false, medido(TipoMiniObjetivo.VENTAS_SEMANALES, null, null),
+    void conSoloMiniObjetivosMedidosElObjetivoEsConDatos() {
+        cuandoSeGuarda(false, medido(TipoMiniObjetivo.VENTAS_SEMANALES, null, null),
                 medido(TipoMiniObjetivo.MEJORAR_MARGEN, null, null));
 
-        thenElObjetivoEs(TipoObjetivo.CON_DATOS);
+        entoncesElObjetivoEs(TipoObjetivo.CON_DATOS);
     }
 
     @Test
     @DisplayName("Con sólo acciones el objetivo es sin datos y está armado con Sami")
-    void executeShouldSaveAnObjetivoWithoutData() {
-        whenSeGuarda(false, accion());
+    void conSoloAccionesElObjetivoEsSinDatosYEstaArmadoConSami() {
+        cuandoSeGuarda(false, accion());
 
-        thenElObjetivoEsSinDatosArmadoConSami();
+        entoncesElObjetivoEsSinDatosArmadoConSami();
     }
 
     @Test
     @DisplayName("Con sólo acciones no consulta el catálogo y el texto de la acción es de la IA")
-    void executeShouldNotLoadTheCatalogWithOnlyActions() {
-        whenSeGuarda(false, accion());
+    void conSoloAccionesNoConsultaElCatalogoYElTextoDeLaAccionEsDeLaIa() {
+        cuandoSeGuarda(false, accion());
 
-        thenNoSeConsultaElCatalogoYElTextoEsDeLaIa();
+        entoncesNoSeConsultaElCatalogoYElTextoEsDeLaIa();
     }
 
     @Test
     @DisplayName("El seguimiento manual no cuenta como armado con Sami")
-    void executeShouldNotCountTheManualFollowUpAsArmadoConSami() {
-        whenSeGuarda(true, medido(TipoMiniObjetivo.VENTAS_SEMANALES, null, null));
+    void elSeguimientoManualNoCuentaComoArmadoConSami() {
+        cuandoSeGuarda(true, medido(TipoMiniObjetivo.VENTAS_SEMANALES, null, null));
 
-        thenElObjetivoEsSinDatosYNoArmadoConSami();
+        entoncesElObjetivoEsSinDatosYNoArmadoConSami();
     }
 
     @Test
     @DisplayName("El seguimiento manual ignora los mini-objetivos recibidos y guarda un manual genérico")
-    void executeShouldIgnoreTheReceivedMinisOnTheManualFollowUp() {
-        whenSeGuarda(true, medido(TipoMiniObjetivo.VENTAS_SEMANALES, null, null));
+    void elSeguimientoManualIgnoraLosMiniObjetivosRecibidosYGuardaUnManualGenerico() {
+        cuandoSeGuarda(true, medido(TipoMiniObjetivo.VENTAS_SEMANALES, null, null));
 
-        thenSeGuardaSoloElManualGenerico();
+        entoncesSeGuardaSoloElManualGenerico();
     }
 
     @Test
     @DisplayName("Sin mini-objetivos no se guarda nada")
-    void executeShouldRejectWithoutMinis() {
-        whenSeGuarda(false);
+    void sinMiniObjetivosNoSeGuardaNada() {
+        cuandoSeGuarda(false);
 
-        thenSeRechazaPorLaCantidadDeMinisSinGuardarNada();
+        entoncesSeRechazaPorLaCantidadDeMinisSinGuardarNada();
     }
 
     @Test
     @DisplayName("Con más de 3 mini-objetivos no se guarda nada")
-    void executeShouldRejectMoreThanThreeMinis() {
-        whenSeGuarda(false, accion(), accion(), accion(), accion());
+    void conMasDe3MiniObjetivosNoSeGuardaNada() {
+        cuandoSeGuarda(false, accion(), accion(), accion(), accion());
 
-        thenSeRechazaPorLaCantidadDeMinisSinGuardarNada();
+        entoncesSeRechazaPorLaCantidadDeMinisSinGuardarNada();
     }
 
     @Test
     @DisplayName("Con una lista nula de mini-objetivos no se guarda nada")
-    void executeShouldRejectANullListOfMinis() {
-        whenSeGuardaConListaNula();
+    void conUnaListaNulaDeMiniObjetivosNoSeGuardaNada() {
+        cuandoSeGuardaConListaNula();
 
-        thenSeRechazaPorLaCantidadDeMinisSinGuardarNada();
+        entoncesSeRechazaPorLaCantidadDeMinisSinGuardarNada();
     }
 
     @Test
     @DisplayName("Un mini-objetivo medido que ya no está en el catálogo se rechaza y no se guarda nada")
-    void executeShouldRejectAMeasuredMiniThatIsNoLongerAvailable() {
-        whenSeGuarda(false, medido(TipoMiniObjetivo.RECORTAR_GASTO, null, "Luz"));
+    void unMiniObjetivoMedidoQueYaNoEstaEnElCatalogoSeRechazaYNoSeGuardaNada() {
+        cuandoSeGuarda(false, medido(TipoMiniObjetivo.RECORTAR_GASTO, null, "Luz"));
 
-        thenSeRechazaElMiniQueYaNoEstaDisponible();
+        entoncesSeRechazaElMiniQueYaNoEstaDisponible();
     }
 
     @Test
     @DisplayName("Dos mini-objetivos medidos que miden lo mismo se rechazan")
-    void executeShouldRejectTwoMeasuredMinisThatClash() {
-        whenSeGuarda(false,
+    void dosMiniObjetivosMedidosQueMidenLoMismoSeRechazan() {
+        cuandoSeGuarda(false,
                 medido(TipoMiniObjetivo.SUBIR_PRECIO, PRODUCTO_ID, PRODUCTO),
                 medido(TipoMiniObjetivo.PONER_A_LA_VISTA, PRODUCTO_ID, PRODUCTO));
 
-        thenSeRechazaPorqueDosMinisMidenLoMismo();
+        entoncesSeRechazaPorqueDosMinisMidenLoMismo();
     }
 
     @Test
     @DisplayName("Una acción con importes, o sin texto, se rechaza")
-    void executeShouldRejectAnInvalidAction() {
-        whenSeGuarda(false, accionConImporte());
+    void unaAccionConImportesOSinTextoSeRechaza() {
+        cuandoSeGuarda(false, accionConImporte());
 
-        thenSeRechazaLaAccionInvalida();
+        entoncesSeRechazaLaAccionInvalida();
     }
 
     @Test
     @DisplayName("Un usuario sin negocio responde como inexistente")
-    void executeShouldFailWithoutBusiness() {
-        givenUnUsuarioSinNegocio();
+    void unUsuarioSinNegocioRespondeComoInexistente() {
+        dadoUnUsuarioSinNegocio();
 
-        whenSeGuarda(false, accion());
+        cuandoSeGuarda(false, accion());
 
-        thenRespondeComoInexistenteSinGuardarNada();
+        entoncesRespondeComoInexistenteSinGuardarNada();
     }
 
     @Test
     @DisplayName("Una acción elegida antes no impide guardar después un mini-objetivo medido")
-    void executeShouldSaveAMeasuredMiniAfterAManualAction() {
-        whenSeGuarda(false, accion(), medido(TipoMiniObjetivo.VENTAS_SEMANALES, null, null));
+    void unaAccionElegidaAntesNoImpideGuardarDespuesUnMiniObjetivoMedido() {
+        cuandoSeGuarda(false, accion(), medido(TipoMiniObjetivo.VENTAS_SEMANALES, null, null));
 
-        thenSeGuardaUnObjetivoHibridoConDosMinis();
+        entoncesSeGuardaUnObjetivoHibridoConDosMinis();
     }
 
     @Test
     @DisplayName("Un objetivo armado con Sami gasta una unidad de la cuota: se valida antes de guardar y se anota después")
-    void executeShouldSpendOneUnitOfTheMonthlyAllowance() {
-        whenSeGuarda(false, accion());
+    void unObjetivoArmadoConSamiGastaUnaUnidadDeLaCuotaSeValidaAntesDeGuardarYSe() {
+        cuandoSeGuarda(false, accion());
 
-        thenLaCuotaSeValidaAntesDeGuardarYSeAnotaDespues();
+        entoncesLaCuotaSeValidaAntesDeGuardarYSeAnotaDespues();
     }
 
     @Test
     @DisplayName("Sin cuota del mes se rechaza con el límite del plan")
-    void executeShouldRejectWhenTheAllowanceIsUsed() {
-        givenLaCuotaDelMesAgotada();
+    void sinCuotaDelMesSeRechazaConElLimiteDelPlan() {
+        dadoLaCuotaDelMesAgotada();
 
-        whenSeGuarda(false, accion());
+        cuandoSeGuarda(false, accion());
 
-        thenSeRechazaPorElLimiteDelPlan();
+        entoncesSeRechazaPorElLimiteDelPlan();
     }
 
     @Test
     @DisplayName("Sin cuota del mes no guarda el objetivo ni ningún mini-objetivo ni gasta nada")
-    void executeShouldSaveNothingWhenTheAllowanceIsUsed() {
-        givenLaCuotaDelMesAgotada();
+    void sinCuotaDelMesNoGuardaElObjetivoNiNingunMiniObjetivoNiGastaNada() {
+        dadoLaCuotaDelMesAgotada();
 
-        whenSeGuarda(false, accion());
+        cuandoSeGuarda(false, accion());
 
-        thenNoSeGuardaNadaNiSeGastaCuota();
+        entoncesNoSeGuardaNadaNiSeGastaCuota();
     }
 
     @Test
     @DisplayName("El seguimiento manual no gasta ni consulta la cuota")
-    void executeShouldNotSpendTheAllowanceOnTheManualFollowUp() {
-        whenSeGuarda(true);
+    void elSeguimientoManualNoGastaNiConsultaLaCuota() {
+        cuandoSeGuarda(true);
 
-        thenNoSeGastaNiSeConsultaLaCuota();
+        entoncesNoSeGastaNiSeConsultaLaCuota();
     }
 
     // --- arrange ---
-    private void givenUnNegocioQueGuardaSusObjetivosYMinis() {
+    private void dadoUnNegocioQueGuardaSusObjetivosYMinis() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(objetivoRepository.save(any(Objetivo.class))).thenAnswer(call -> {
             Objetivo objetivo = call.getArgument(0);
@@ -269,30 +269,30 @@ class GuardarObjetivoConSamiTest {
                 .thenReturn(new CandidatosDelNegocio(new BigDecimal("180000"), catalogo()));
     }
 
-    private void givenUnUsuarioSinNegocio() {
+    private void dadoUnUsuarioSinNegocio() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID))
                 .thenThrow(new ResourceNotFoundException("Negocio no encontrado"));
     }
 
-    private void givenLaCuotaDelMesAgotada() {
+    private void dadoLaCuotaDelMesAgotada() {
         doThrow(new RestriccionPlanException("LIMITE_OBJETIVOS_IA", "Ya armaste los 5 objetivos"))
                 .when(controlPlanService).validarObjetivoIa(NEGOCIO_ID, AHORA);
     }
 
     // --- act ---
-    private void whenSeGuarda(boolean seguimientoManual, MiniElegido... minis) {
+    private void cuandoSeGuarda(boolean seguimientoManual, MiniElegido... minis) {
         error = catchThrowable(() -> objetivoGuardadoItem = guardarObjetivoConSami.execute(
                 new GuardarObjetivoConSamiRequest(
                         USUARIO_ID, "  " + OBJETIVO + " ", seguimientoManual, List.of(minis))));
     }
 
-    private void whenSeGuardaConListaNula() {
+    private void cuandoSeGuardaConListaNula() {
         error = catchThrowable(() -> objetivoGuardadoItem = guardarObjetivoConSami.execute(
                 new GuardarObjetivoConSamiRequest(USUARIO_ID, OBJETIVO, false, null)));
     }
 
     // --- assert ---
-    private void thenSeGuardaUnObjetivoHibridoSinMetaArmadoConSami() {
+    private void entoncesSeGuardaUnObjetivoHibridoSinMetaArmadoConSami() {
         Objetivo guardado = objetivoGuardado();
         assertThat(guardado.getTipo()).isEqualTo(TipoObjetivo.HIBRIDO);
         assertThat(guardado.getMeta()).isNull();
@@ -302,14 +302,14 @@ class GuardarObjetivoConSamiTest {
         assertThat(guardado.getCreadoEn()).isEqualTo(AHORA);
     }
 
-    private void thenSeDevuelveElObjetivoHibridoGuardado() {
+    private void entoncesSeDevuelveElObjetivoHibridoGuardado() {
         assertThat(objetivoGuardadoItem.id()).isEqualTo(OBJETIVO_ID);
         assertThat(objetivoGuardadoItem.tipo()).isEqualTo(TipoObjetivo.HIBRIDO);
         assertThat(objetivoGuardadoItem.meta()).isNull();
         assertThat(objetivoGuardadoItem.armadoConSami()).isTrue();
     }
 
-    private void thenLosMinisEntranEnOrdenDespuesDelObjetivo() {
+    private void entoncesLosMinisEntranEnOrdenDespuesDelObjetivo() {
         ArgumentCaptor<MiniObjetivo> captor = ArgumentCaptor.forClass(MiniObjetivo.class);
         InOrder orden = inOrder(objetivoRepository, miniObjetivoRepository);
         orden.verify(objetivoRepository).save(any(Objetivo.class));
@@ -324,7 +324,7 @@ class GuardarObjetivoConSamiTest {
         });
     }
 
-    private void thenLosNumerosDelMiniSalenDelCatalogo() {
+    private void entoncesLosNumerosDelMiniSalenDelCatalogo() {
         MiniObjetivo mini = unicoMiniGuardado();
         assertThat(mini.getMeta()).isEqualTo(catalogo().getFirst().meta());
         assertThat(mini.getValorInicial()).isEqualTo(catalogo().getFirst().valorInicial());
@@ -333,27 +333,27 @@ class GuardarObjetivoConSamiTest {
         assertThat(mini.isTextoConIa()).isFalse();
     }
 
-    private void thenElObjetivoEs(TipoObjetivo tipo) {
+    private void entoncesElObjetivoEs(TipoObjetivo tipo) {
         assertThat(objetivoGuardado().getTipo()).isEqualTo(tipo);
     }
 
-    private void thenElObjetivoEsSinDatosArmadoConSami() {
+    private void entoncesElObjetivoEsSinDatosArmadoConSami() {
         assertThat(objetivoGuardado().getTipo()).isEqualTo(TipoObjetivo.SIN_DATOS);
         assertThat(objetivoGuardado().isArmadoConSami()).isTrue();
     }
 
-    private void thenNoSeConsultaElCatalogoYElTextoEsDeLaIa() {
+    private void entoncesNoSeConsultaElCatalogoYElTextoEsDeLaIa() {
         verifyNoInteractions(propuestaMiniObjetivosService);
         assertThat(unicoMiniGuardado().isTextoConIa()).isTrue();
     }
 
-    private void thenElObjetivoEsSinDatosYNoArmadoConSami() {
+    private void entoncesElObjetivoEsSinDatosYNoArmadoConSami() {
         assertThat(objetivoGuardado().getTipo()).isEqualTo(TipoObjetivo.SIN_DATOS);
         assertThat(objetivoGuardado().isArmadoConSami()).isFalse();
         assertThat(objetivoGuardadoItem.armadoConSami()).isFalse();
     }
 
-    private void thenSeGuardaSoloElManualGenerico() {
+    private void entoncesSeGuardaSoloElManualGenerico() {
         MiniObjetivo mini = unicoMiniGuardado();
         assertThat(mini.esManual()).isTrue();
         assertThat(mini.getTitulo()).isEqualTo("Anotá cómo te fue con tu objetivo");
@@ -362,68 +362,68 @@ class GuardarObjetivoConSamiTest {
         verifyNoInteractions(propuestaMiniObjetivosService);
     }
 
-    private void thenSeRechazaPorLaCantidadDeMinisSinGuardarNada() {
+    private void entoncesSeRechazaPorLaCantidadDeMinisSinGuardarNada() {
         assertThat(error)
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("Elegí entre 1 y 3 mini-objetivos para guardar");
-        thenNoSeGuardaNadaDelObjetivo();
+        entoncesNoSeGuardaNadaDelObjetivo();
     }
 
-    private void thenSeRechazaElMiniQueYaNoEstaDisponible() {
+    private void entoncesSeRechazaElMiniQueYaNoEstaDisponible() {
         assertThat(error)
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("Ese mini-objetivo ya no está disponible: pedile otra propuesta a Sami");
         verify(objetivoRepository, never()).save(any());
     }
 
-    private void thenSeRechazaPorqueDosMinisMidenLoMismo() {
+    private void entoncesSeRechazaPorqueDosMinisMidenLoMismo() {
         assertThat(error)
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("Dos mini-objetivos no pueden medir lo mismo");
         verify(objetivoRepository, never()).save(any());
     }
 
-    private void thenSeRechazaLaAccionInvalida() {
+    private void entoncesSeRechazaLaAccionInvalida() {
         assertThat(error)
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageStartingWith("El texto de la acción no es válido");
         verify(objetivoRepository, never()).save(any());
     }
 
-    private void thenRespondeComoInexistenteSinGuardarNada() {
+    private void entoncesRespondeComoInexistenteSinGuardarNada() {
         assertThat(error).isInstanceOf(ResourceNotFoundException.class);
         verifyNoInteractions(objetivoRepository, miniObjetivoRepository);
     }
 
-    private void thenSeGuardaUnObjetivoHibridoConDosMinis() {
+    private void entoncesSeGuardaUnObjetivoHibridoConDosMinis() {
         assertThat(objetivoGuardado().getTipo()).isEqualTo(TipoObjetivo.HIBRIDO);
         verify(miniObjetivoRepository, times(2)).save(any(MiniObjetivo.class));
     }
 
-    private void thenLaCuotaSeValidaAntesDeGuardarYSeAnotaDespues() {
+    private void entoncesLaCuotaSeValidaAntesDeGuardarYSeAnotaDespues() {
         InOrder orden = inOrder(controlPlanService, objetivoRepository, usoPlanRepository);
         orden.verify(controlPlanService).validarObjetivoIa(NEGOCIO_ID, AHORA);
         orden.verify(objetivoRepository).save(any(Objetivo.class));
         orden.verify(usoPlanRepository).registrarObjetivoIa(NEGOCIO_ID, OBJETIVO_ID, AHORA);
     }
 
-    private void thenSeRechazaPorElLimiteDelPlan() {
+    private void entoncesSeRechazaPorElLimiteDelPlan() {
         assertThat(error)
                 .isInstanceOf(RestriccionPlanException.class)
                 .hasMessageContaining("Ya armaste los 5 objetivos");
     }
 
-    private void thenNoSeGuardaNadaNiSeGastaCuota() {
-        thenNoSeGuardaNadaDelObjetivo();
+    private void entoncesNoSeGuardaNadaNiSeGastaCuota() {
+        entoncesNoSeGuardaNadaDelObjetivo();
         verifyNoInteractions(usoPlanRepository);
     }
 
-    private void thenNoSeGastaNiSeConsultaLaCuota() {
+    private void entoncesNoSeGastaNiSeConsultaLaCuota() {
         verifyNoInteractions(controlPlanService, usoPlanRepository);
     }
 
     // --- helpers ---
-    private void thenNoSeGuardaNadaDelObjetivo() {
+    private void entoncesNoSeGuardaNadaDelObjetivo() {
         verify(objetivoRepository, never()).save(any());
         verify(miniObjetivoRepository, never()).save(any());
     }

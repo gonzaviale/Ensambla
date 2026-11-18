@@ -19,26 +19,26 @@ class MotivoReajusteTest {
             "PRODUCTO_FUERA, REEMPLAZAR",
             "SIN_AVANCE, REEMPLAZAR"})
     @DisplayName("Lo logrado sube la meta, la decisión sin efecto prueba otro camino y lo demás se reemplaza")
-    void tipoShouldMatchEachMotivo(MotivoReajuste motivoDelReajuste, TipoReajuste esperado) {
-        givenUnMotivo(motivoDelReajuste);
+    void loLogradoSubeLaMetaLaDecisionSinEfectoPruebaOtroCaminoYLoDemasSeReemplaza(MotivoReajuste motivoDelReajuste, TipoReajuste esperado) {
+        dadoUnMotivo(motivoDelReajuste);
 
-        whenSeClasificaElReajuste();
+        cuandoSeClasificaElReajuste();
 
-        thenElReajusteEs(esperado);
+        entoncesElReajusteEs(esperado);
     }
 
     // --- arrange ---
-    private void givenUnMotivo(MotivoReajuste motivoDelReajuste) {
+    private void dadoUnMotivo(MotivoReajuste motivoDelReajuste) {
         motivo = motivoDelReajuste;
     }
 
     // --- act ---
-    private void whenSeClasificaElReajuste() {
+    private void cuandoSeClasificaElReajuste() {
         tipo = motivo.tipo();
     }
 
     // --- assert ---
-    private void thenElReajusteEs(TipoReajuste esperado) {
+    private void entoncesElReajusteEs(TipoReajuste esperado) {
         assertThat(tipo).isEqualTo(esperado);
     }
 }

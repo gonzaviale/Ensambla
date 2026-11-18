@@ -40,77 +40,77 @@ class DecisionObjetivoPresentationMapperTest {
 
     @Test
     @DisplayName("Arma el pedido de decidir un paso con el usuario, el objetivo, el mini-objetivo y la respuesta")
-    void toRegistrarRequestShouldCarryEverything() {
-        whenSeArmaElPedidoDeRegistrar();
+    void armaElPedidoDeDecidirUnPasoConElUsuarioElObjetivoElMiniObjetivoYLaRespuesta() {
+        cuandoSeArmaElPedidoDeRegistrar();
 
-        thenElPedidoDeRegistrarTraeTodo();
+        entoncesElPedidoDeRegistrarTraeTodo();
     }
 
     @Test
     @DisplayName("Arma el pedido de listar con el usuario de la sesión y el objetivo de la ruta")
-    void toListarRequestShouldCarryTheUserAndTheObjetivo() {
-        whenSeArmaElPedidoDeListar();
+    void armaElPedidoDeListarConElUsuarioDeLaSesionYElObjetivoDeLaRuta() {
+        cuandoSeArmaElPedidoDeListar();
 
-        thenElPedidoDeListarTraeUsuarioYObjetivo();
+        entoncesElPedidoDeListarTraeUsuarioYObjetivo();
     }
 
     @Test
     @DisplayName("Copia todos los datos de la decisión")
-    void toResponseShouldCopyEveryFieldOfTheDecision() {
-        whenSeMapeaUnaDecisionMedida();
+    void copiaTodosLosDatosDeLaDecision() {
+        cuandoSeMapeaUnaDecisionMedida();
 
-        thenSeCopianTodosLosDatosDeLaDecision();
+        entoncesSeCopianTodosLosDatosDeLaDecision();
     }
 
     @Test
     @DisplayName("Conserva las semanas y el orden de las decisiones")
-    void toResponseShouldKeepTheWeeksAndTheirOrder() {
-        whenSeMapeanLasSemanas(unaSemanaConDosDecisiones());
+    void conservaLasSemanasYElOrdenDeLasDecisiones() {
+        cuandoSeMapeanLasSemanas(unaSemanaConDosDecisiones());
 
-        thenSeConservaLaSemanaConSusDosDecisiones();
+        entoncesSeConservaLaSemanaConSusDosDecisiones();
     }
 
     @Test
     @DisplayName("Sin decisiones devuelve una lista vacía")
-    void toResponseShouldReturnEmptyWeeks() {
-        whenSeMapeanLasSemanas(sinDecisiones());
+    void sinDecisionesDevuelveUnaListaVacia() {
+        cuandoSeMapeanLasSemanas(sinDecisiones());
 
-        thenNoHaySemanas();
+        entoncesNoHaySemanas();
     }
 
     // --- act ---
-    private void whenSeArmaElPedidoDeRegistrar() {
+    private void cuandoSeArmaElPedidoDeRegistrar() {
         pedidoDeRegistrar = mapper.toRegistrarRequest(
                 USUARIO_ID, OBJETIVO_ID, MINI_ID, new DecidirPasoWebRequest(DecisionPaso.IGNORADO));
     }
 
-    private void whenSeArmaElPedidoDeListar() {
+    private void cuandoSeArmaElPedidoDeListar() {
         pedidoDeListar = mapper.toListarRequest(USUARIO_ID, OBJETIVO_ID);
     }
 
-    private void whenSeMapeaUnaDecisionMedida() {
+    private void cuandoSeMapeaUnaDecisionMedida() {
         respuestaDeLaDecision = mapper.toResponse(DecisionItem.de(decision(TipoDecision.AVISO_APLICADO, AVISO_ID),
                 new EfectoDecision(EstadoEfecto.MEDIDO, new BigDecimal("350.00"))));
     }
 
-    private void whenSeMapeanLasSemanas(ListarDecisionesResponse semanas) {
+    private void cuandoSeMapeanLasSemanas(ListarDecisionesResponse semanas) {
         respuestaDeLasSemanas = mapper.toResponse(semanas);
     }
 
     // --- assert ---
-    private void thenElPedidoDeRegistrarTraeTodo() {
+    private void entoncesElPedidoDeRegistrarTraeTodo() {
         assertThat(pedidoDeRegistrar.usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(pedidoDeRegistrar.objetivoId()).isEqualTo(OBJETIVO_ID);
         assertThat(pedidoDeRegistrar.miniObjetivoId()).isEqualTo(MINI_ID);
         assertThat(pedidoDeRegistrar.decision()).isEqualTo(DecisionPaso.IGNORADO);
     }
 
-    private void thenElPedidoDeListarTraeUsuarioYObjetivo() {
+    private void entoncesElPedidoDeListarTraeUsuarioYObjetivo() {
         assertThat(pedidoDeListar.usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(pedidoDeListar.objetivoId()).isEqualTo(OBJETIVO_ID);
     }
 
-    private void thenSeCopianTodosLosDatosDeLaDecision() {
+    private void entoncesSeCopianTodosLosDatosDeLaDecision() {
         assertThat(respuestaDeLaDecision.id()).isEqualTo(DECISION_ID);
         assertThat(respuestaDeLaDecision.tipo()).isEqualTo(TipoDecision.AVISO_APLICADO);
         assertThat(respuestaDeLaDecision.miniObjetivoId()).isEqualTo(MINI_ID);
@@ -123,14 +123,14 @@ class DecisionObjetivoPresentationMapperTest {
         assertThat(respuestaDeLaDecision.deltaIngresoSemanal()).isEqualByComparingTo("350.00");
     }
 
-    private void thenSeConservaLaSemanaConSusDosDecisiones() {
+    private void entoncesSeConservaLaSemanaConSusDosDecisiones() {
         assertThat(respuestaDeLasSemanas.semanas()).singleElement().satisfies(semana -> {
             assertThat(semana.semanaInicio()).isEqualTo(SEMANA);
             assertThat(semana.decisiones()).hasSize(2);
         });
     }
 
-    private void thenNoHaySemanas() {
+    private void entoncesNoHaySemanas() {
         assertThat(respuestaDeLasSemanas.semanas()).isEmpty();
     }
 

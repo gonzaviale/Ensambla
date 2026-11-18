@@ -45,80 +45,80 @@ class SamiObjetivoPresentationMapperTest {
 
     @Test
     @DisplayName("Arma el pedido de la propuesta con el usuario de la sesión y los mensajes en su orden")
-    void toProponerRequestShouldCarryUsuarioAndMessages() {
-        whenSeArmaElPedidoDeProponer();
+    void armaElPedidoDeLaPropuestaConElUsuarioDeLaSesionYLosMensajesEnSuOrden() {
+        cuandoSeArmaElPedidoDeProponer();
 
-        thenElPedidoDeProponerTraeUsuarioYMensajesEnOrden();
+        entoncesElPedidoDeProponerTraeUsuarioYMensajesEnOrden();
     }
 
     @Test
     @DisplayName("Arma el pedido de guardar con el usuario de la sesión, el texto, el seguimiento y cada mini-objetivo")
-    void toGuardarRequestShouldCarryEveryField() {
-        whenSeArmaElPedidoDeGuardar(guardarConUnMedidoYUnManual());
+    void armaElPedidoDeGuardarConElUsuarioDeLaSesionElTextoElSeguimientoYCadaMini() {
+        cuandoSeArmaElPedidoDeGuardar(guardarConUnMedidoYUnManual());
 
-        thenElPedidoDeGuardarTraeTodosLosCampos();
+        entoncesElPedidoDeGuardarTraeTodosLosCampos();
     }
 
     @Test
     @DisplayName("Sin lista de mini-objetivos (el seguimiento) se manda una lista vacía")
-    void toGuardarRequestShouldUseAnEmptyListWithoutMinis() {
-        whenSeArmaElPedidoDeGuardar(seguimientoManualSinLista());
+    void sinListaDeMiniObjetivosElSeguimientoSeMandaUnaListaVacia() {
+        cuandoSeArmaElPedidoDeGuardar(seguimientoManualSinLista());
 
-        thenEsSeguimientoManualSinMinis();
+        entoncesEsSeguimientoManualSinMinis();
     }
 
     @Test
     @DisplayName("Mapea la propuesta con todos sus datos")
-    void toResponseShouldMapTheProposal() {
-        whenSeMapeaLaPropuesta();
+    void mapeaLaPropuestaConTodosSusDatos() {
+        cuandoSeMapeaLaPropuesta();
 
-        thenSeMapeaLaPropuestaConTodosSusDatos();
+        entoncesSeMapeaLaPropuestaConTodosSusDatos();
     }
 
     @Test
     @DisplayName("Mapea el objetivo guardado sin meta")
-    void toResponseShouldMapTheSavedObjetivo() {
-        whenSeMapeaElObjetivoGuardado();
+    void mapeaElObjetivoGuardadoSinMeta() {
+        cuandoSeMapeaElObjetivoGuardado();
 
-        thenElObjetivoNoTieneMetaYLoArmoSami();
+        entoncesElObjetivoNoTieneMetaYLoArmoSami();
     }
 
     @Test
     @DisplayName("Si el pedido no dice nada del seguimiento manual, es que no")
-    void toGuardarRequestShouldTreatAMissingFlagAsFalse() {
-        whenSeArmaElPedidoDeGuardar(guardarSinDecirElSeguimiento());
+    void siElPedidoNoDiceNadaDelSeguimientoManualEsQueNo() {
+        cuandoSeArmaElPedidoDeGuardar(guardarSinDecirElSeguimiento());
 
-        thenNoEsSeguimientoManual();
+        entoncesNoEsSeguimientoManual();
     }
 
     // --- act ---
-    private void whenSeArmaElPedidoDeProponer() {
+    private void cuandoSeArmaElPedidoDeProponer() {
         pedidoDeProponer = mapper.toProponerRequest(USUARIO_ID, new ProponerObjetivoWebRequest(List.of(
                 new MensajeWebRequest(RolMensaje.PERSONA, OBJETIVO),
                 new MensajeWebRequest(RolMensaje.SAMI, "¿Qué producto?"))));
     }
 
-    private void whenSeArmaElPedidoDeGuardar(GuardarObjetivoConSamiWebRequest web) {
+    private void cuandoSeArmaElPedidoDeGuardar(GuardarObjetivoConSamiWebRequest web) {
         pedidoDeGuardar = mapper.toGuardarRequest(USUARIO_ID, web);
     }
 
-    private void whenSeMapeaLaPropuesta() {
+    private void cuandoSeMapeaLaPropuesta() {
         propuestaMapeada = mapper.toResponse(propuestaDeSami());
     }
 
-    private void whenSeMapeaElObjetivoGuardado() {
+    private void cuandoSeMapeaElObjetivoGuardado() {
         objetivoMapeado = mapper.toResponse(ObjetivoItem.de(objetivoSinMeta()));
     }
 
     // --- assert ---
-    private void thenElPedidoDeProponerTraeUsuarioYMensajesEnOrden() {
+    private void entoncesElPedidoDeProponerTraeUsuarioYMensajesEnOrden() {
         assertThat(pedidoDeProponer.usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(pedidoDeProponer.mensajes()).containsExactly(
                 new MensajeObjetivo(RolMensaje.PERSONA, OBJETIVO),
                 new MensajeObjetivo(RolMensaje.SAMI, "¿Qué producto?"));
     }
 
-    private void thenElPedidoDeGuardarTraeTodosLosCampos() {
+    private void entoncesElPedidoDeGuardarTraeTodosLosCampos() {
         assertThat(pedidoDeGuardar.usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(pedidoDeGuardar.texto()).isEqualTo(OBJETIVO);
         assertThat(pedidoDeGuardar.seguimientoManual()).isFalse();
@@ -132,16 +132,16 @@ class SamiObjetivoPresentationMapperTest {
         assertThat(pedidoDeGuardar.minis().get(1).justificacion()).isEqualTo(JUSTIFICACION_ACCION);
     }
 
-    private void thenEsSeguimientoManualSinMinis() {
+    private void entoncesEsSeguimientoManualSinMinis() {
         assertThat(pedidoDeGuardar.seguimientoManual()).isTrue();
         assertThat(pedidoDeGuardar.minis()).isEmpty();
     }
 
-    private void thenNoEsSeguimientoManual() {
+    private void entoncesNoEsSeguimientoManual() {
         assertThat(pedidoDeGuardar.seguimientoManual()).isFalse();
     }
 
-    private void thenSeMapeaLaPropuestaConTodosSusDatos() {
+    private void entoncesSeMapeaLaPropuestaConTodosSusDatos() {
         assertThat(propuestaMapeada.respuesta()).isEqualTo(RESPUESTA_IA);
         assertThat(propuestaMapeada.entendido()).isEqualTo(ENTENDIDO);
         assertThat(propuestaMapeada.tipo()).isEqualTo(TipoObjetivo.HIBRIDO);
@@ -167,7 +167,7 @@ class SamiObjetivoPresentationMapperTest {
         });
     }
 
-    private void thenElObjetivoNoTieneMetaYLoArmoSami() {
+    private void entoncesElObjetivoNoTieneMetaYLoArmoSami() {
         assertThat(objetivoMapeado.id()).isEqualTo(OBJETIVO_ID);
         assertThat(objetivoMapeado.tipo()).isEqualTo(TipoObjetivo.SIN_DATOS);
         assertThat(objetivoMapeado.meta()).isNull();

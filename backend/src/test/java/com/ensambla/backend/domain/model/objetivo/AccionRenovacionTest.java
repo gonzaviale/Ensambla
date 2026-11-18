@@ -31,10 +31,10 @@ class AccionRenovacionTest {
             "NO, FUNCIONO, SE_SIMPLIFICA",
             "NO, NO_FUNCIONO, CAMBIA"})
     @DisplayName("Según lo que respondió la persona, el manual sube un paso, se divide, se simplifica o cambia")
-    void deShouldFollowTheRenewalTable(HizoManual hizo, QuePaso quePaso, AccionRenovacion esperada) {
-        whenSeElige(hizo, quePaso);
+    void segunLoQueRespondioLaPersonaElManualSubeUnPasoSeDivideSeSimplificaOCambia(HizoManual hizo, QuePaso quePaso, AccionRenovacion esperada) {
+        cuandoSeElige(hizo, quePaso);
 
-        thenLaRenovacionEs(esperada);
+        entoncesLaRenovacionEs(esperada);
     }
 
     @ParameterizedTest
@@ -44,45 +44,45 @@ class AccionRenovacionTest {
             "SE_SIMPLIFICA, REEMPLAZAR",
             "CAMBIA, PROBAR_OTRO_CAMINO"})
     @DisplayName("Cada renovación se anota en el resumen con su clase de cambio")
-    void tipoReajusteShouldMapEveryRenewal(AccionRenovacion accion, TipoReajuste esperado) {
-        whenSeAnotaElReajusteDe(accion);
+    void cadaRenovacionSeAnotaEnElResumenConSuClaseDeCambio(AccionRenovacion accion, TipoReajuste esperado) {
+        cuandoSeAnotaElReajusteDe(accion);
 
-        thenElReajusteEs(esperado);
+        entoncesElReajusteEs(esperado);
     }
 
     @Test
     @DisplayName("Subir un paso repite lo que salió bien y suma algo más ambicioso")
-    void textoDeReservaShouldAskForAStepUpWhenSubeUnPaso() {
-        whenSeArmaElTextoDeReserva(AccionRenovacion.SUBE_UN_PASO, TITULO_ANTERIOR);
+    void subirUnPasoRepiteLoQueSalioBienYSumaAlgoMasAmbicioso() {
+        cuandoSeArmaElTextoDeReserva(AccionRenovacion.SUBE_UN_PASO, TITULO_ANTERIOR);
 
-        thenElTextoDeReservaEs("Un paso más: Un cartel",
+        entoncesElTextoDeReservaEs("Un paso más: Un cartel",
                 "Te salió bien «Un cartel». Repetilo esta semana y sumale algo más ambicioso.");
     }
 
     @Test
     @DisplayName("Dividir pide terminar lo que faltó en un paso más chico")
-    void textoDeReservaShouldAskForWhatWasMissingWhenSeDivide() {
-        whenSeArmaElTextoDeReserva(AccionRenovacion.SE_DIVIDE, TITULO_ANTERIOR);
+    void dividirPideTerminarLoQueFaltoEnUnPasoMasChico() {
+        cuandoSeArmaElTextoDeReserva(AccionRenovacion.SE_DIVIDE, TITULO_ANTERIOR);
 
-        thenElTextoDeReservaEs("Lo que faltó: Un cartel",
+        entoncesElTextoDeReservaEs("Lo que faltó: Un cartel",
                 "Hiciste una parte de «Un cartel». Esta semana terminá lo que faltó, en un paso más chico.");
     }
 
     @Test
     @DisplayName("Simplificar propone una versión de diez minutos")
-    void textoDeReservaShouldAskForAShortVersionWhenSeSimplifica() {
-        whenSeArmaElTextoDeReserva(AccionRenovacion.SE_SIMPLIFICA, TITULO_ANTERIOR);
+    void simplificarProponeUnaVersionDeDiezMinutos() {
+        cuandoSeArmaElTextoDeReserva(AccionRenovacion.SE_SIMPLIFICA, TITULO_ANTERIOR);
 
-        thenElTextoDeReservaEs("Versión corta: Un cartel",
+        entoncesElTextoDeReservaEs("Versión corta: Un cartel",
                 "No llegaste con «Un cartel». Probá una versión de 10 minutos de lo mismo.");
     }
 
     @Test
     @DisplayName("Cambiar pide elegir otra acción hacia el mismo objetivo")
-    void textoDeReservaShouldAskForAnotherActionWhenCambia() {
-        whenSeArmaElTextoDeReserva(AccionRenovacion.CAMBIA, TITULO_ANTERIOR);
+    void cambiarPideElegirOtraAccionHaciaElMismoObjetivo() {
+        cuandoSeArmaElTextoDeReserva(AccionRenovacion.CAMBIA, TITULO_ANTERIOR);
 
-        thenElTextoDeReservaEs("Probá otra acción para tu objetivo",
+        entoncesElTextoDeReservaEs("Probá otra acción para tu objetivo",
                 "«Un cartel» no dio resultado. Elegí una acción distinta hacia el mismo objetivo y contale a Sami "
                         + "cuál fue.");
     }
@@ -90,18 +90,18 @@ class AccionRenovacionTest {
     @ParameterizedTest
     @EnumSource(AccionRenovacion.class)
     @DisplayName("El texto de reserva siempre es una acción válida, incluso con un título de 80 caracteres")
-    void textoDeReservaShouldAlwaysBeAValidAction(AccionRenovacion accion) {
-        whenSeArmaElTextoDeReserva(accion, tituloDeLargoMaximo());
+    void elTextoDeReservaSiempreEsUnaAccionValidaInclusoConUnTituloDe80Caracteres(AccionRenovacion accion) {
+        cuandoSeArmaElTextoDeReserva(accion, tituloDeLargoMaximo());
 
-        thenElTextoDeReservaEsUnaAccionValida();
+        entoncesElTextoDeReservaEsUnaAccionValida();
     }
 
     @Test
     @DisplayName("Un título que no entra se acorta con puntos suspensivos")
-    void textoDeReservaShouldCutALongTitle() {
-        whenSeArmaElTextoDeReserva(AccionRenovacion.SE_SIMPLIFICA, "b".repeat(80));
+    void unTituloQueNoEntraSeAcortaConPuntosSuspensivos() {
+        cuandoSeArmaElTextoDeReserva(AccionRenovacion.SE_SIMPLIFICA, "b".repeat(80));
 
-        thenElTituloQuedaAcortadoConPuntosSuspensivos();
+        entoncesElTituloQuedaAcortadoConPuntosSuspensivos();
     }
 
     @ParameterizedTest
@@ -111,53 +111,53 @@ class AccionRenovacionTest {
             "SE_SIMPLIFICA|No llegaste con «Viejo»: lo hacemos más simple, «Nuevo».",
             "CAMBIA|«Viejo» no dio resultado: probamos otra acción, «Nuevo»."})
     @DisplayName("El motivo cuenta qué se renovó y por qué")
-    void motivoShouldTellWhatWasRenewedAndWhy(AccionRenovacion accion, String esperado) {
-        whenSeCuentaElMotivoDe(accion);
+    void elMotivoCuentaQueSeRenovoYPorQue(AccionRenovacion accion, String esperado) {
+        cuandoSeCuentaElMotivoDe(accion);
 
-        thenElMotivoEs(esperado);
+        entoncesElMotivoEs(esperado);
     }
 
     // --- act ---
-    private void whenSeElige(HizoManual hizo, QuePaso quePaso) {
+    private void cuandoSeElige(HizoManual hizo, QuePaso quePaso) {
         renovacionElegida = AccionRenovacion.de(hizo, quePaso);
     }
 
-    private void whenSeAnotaElReajusteDe(AccionRenovacion accion) {
+    private void cuandoSeAnotaElReajusteDe(AccionRenovacion accion) {
         tipoDeReajuste = accion.tipoReajuste();
     }
 
-    private void whenSeArmaElTextoDeReserva(AccionRenovacion accion, String titulo) {
+    private void cuandoSeArmaElTextoDeReserva(AccionRenovacion accion, String titulo) {
         textoDeReserva = accion.textoDeReserva(titulo);
     }
 
-    private void whenSeCuentaElMotivoDe(AccionRenovacion accion) {
+    private void cuandoSeCuentaElMotivoDe(AccionRenovacion accion) {
         motivo = accion.motivo("Viejo", "Nuevo");
     }
 
     // --- assert ---
-    private void thenLaRenovacionEs(AccionRenovacion esperada) {
+    private void entoncesLaRenovacionEs(AccionRenovacion esperada) {
         assertThat(renovacionElegida).isEqualTo(esperada);
     }
 
-    private void thenElReajusteEs(TipoReajuste esperado) {
+    private void entoncesElReajusteEs(TipoReajuste esperado) {
         assertThat(tipoDeReajuste).isEqualTo(esperado);
     }
 
-    private void thenElTextoDeReservaEs(String titulo, String justificacion) {
+    private void entoncesElTextoDeReservaEs(String titulo, String justificacion) {
         assertThat(textoDeReserva).isEqualTo(new AccionManual(titulo, justificacion));
     }
 
-    private void thenElTextoDeReservaEsUnaAccionValida() {
+    private void entoncesElTextoDeReservaEsUnaAccionValida() {
         assertThat(AccionManual.de(textoDeReserva.titulo(), textoDeReserva.justificacion())).isPresent();
         assertThat(textoDeReserva.titulo()).hasSizeLessThanOrEqualTo(AccionManual.LARGO_MAXIMO_TITULO);
     }
 
-    private void thenElTituloQuedaAcortadoConPuntosSuspensivos() {
+    private void entoncesElTituloQuedaAcortadoConPuntosSuspensivos() {
         assertThat(textoDeReserva.titulo()).startsWith("Versión corta: bbb").endsWith("…")
                 .hasSize(AccionManual.LARGO_MAXIMO_TITULO);
     }
 
-    private void thenElMotivoEs(String esperado) {
+    private void entoncesElMotivoEs(String esperado) {
         assertThat(motivo).isEqualTo(esperado);
     }
 

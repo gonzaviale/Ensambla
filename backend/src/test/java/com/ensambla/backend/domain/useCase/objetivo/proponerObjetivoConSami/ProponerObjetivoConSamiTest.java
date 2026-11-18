@@ -91,239 +91,239 @@ class ProponerObjetivoConSamiTest {
 
     @Test
     @DisplayName("Contesta con lo que la IA respondió y cómo entendió el objetivo")
-    void executeShouldReturnWhatTheIaAnswered() {
-        givenLaIaResponde(respuestaIa(medido("c3"), manual(TITULO_ACCION, JUSTIFICACION_ACCION)));
+    void contestaConLoQueLaIaRespondioYComoEntendioElObjetivo() {
+        dadoLaIaResponde(respuestaIa(medido("c3"), manual(TITULO_ACCION, JUSTIFICACION_ACCION)));
 
-        whenSeProponeConIaHabilitada(mensajes());
+        cuandoSeProponeConIaHabilitada(mensajes());
 
-        thenSeContestaLoQueRespondioLaIa();
+        entoncesSeContestaLoQueRespondioLaIa();
     }
 
     @Test
     @DisplayName("Propone las métricas del catálogo y las acciones manuales que validó")
-    void executeShouldReturnTheValidatedMinisOfTheIa() {
-        givenLaIaResponde(respuestaIa(medido("c3"), manual(TITULO_ACCION, JUSTIFICACION_ACCION)));
+    void proponeLasMetricasDelCatalogoYLasAccionesManualesQueValido() {
+        dadoLaIaResponde(respuestaIa(medido("c3"), manual(TITULO_ACCION, JUSTIFICACION_ACCION)));
 
-        whenSeProponeConIaHabilitada(mensajes());
+        cuandoSeProponeConIaHabilitada(mensajes());
 
-        thenSeProponenLaMetricaDelCatalogoYLaAccionManual();
+        entoncesSeProponenLaMetricaDelCatalogoYLaAccionManual();
     }
 
     @Test
     @DisplayName("Con la cuota del mes agotada no consulta a la IA: explica y ofrece el seguimiento manual")
-    void executeShouldNotConsultTheIaWhenTheMonthlyAllowanceIsUsed() {
-        givenLaCuotaDelMesAgotada();
+    void conLaCuotaDelMesAgotadaNoConsultaALaIaExplicaYOfreceElSeguimientoManual() {
+        dadoLaCuotaDelMesAgotada();
 
-        whenSeProponeConIaHabilitada(mensajes());
+        cuandoSeProponeConIaHabilitada(mensajes());
 
-        thenSeExplicaQueSeAgotoLaCuotaYSeOfreceElSeguimientoManual();
+        entoncesSeExplicaQueSeAgotoLaCuotaYSeOfreceElSeguimientoManual();
     }
 
     @Test
     @DisplayName("Con la cuota del mes agotada no consulta nada de la IA ni de su consumo")
-    void executeShouldNotTouchTheIaNorItsConsumptionWhenTheMonthlyAllowanceIsUsed() {
-        givenLaCuotaDelMesAgotada();
+    void conLaCuotaDelMesAgotadaNoConsultaNadaDeLaIaNiDeSuConsumo() {
+        dadoLaCuotaDelMesAgotada();
 
-        whenSeProponeConIaHabilitada(mensajes());
+        cuandoSeProponeConIaHabilitada(mensajes());
 
-        thenNoSeConsultaLaIaNiSuConsumo();
+        entoncesNoSeConsultaLaIaNiSuConsumo();
     }
 
     @Test
     @DisplayName("En un plan sin límite la cuota viene sin límite ni restantes y no se agota")
-    void executeShouldReportAnUnlimitedAllowance() {
-        givenUnPlanSinLimiteDeObjetivosConIa();
-        givenLaIaResponde(respuestaIa());
+    void enUnPlanSinLimiteLaCuotaVieneSinLimiteNiRestantesYNoSeAgota() {
+        dadoUnPlanSinLimiteDeObjetivosConIa();
+        dadoLaIaResponde(respuestaIa());
 
-        whenSeProponeConIaHabilitada(mensajes());
+        cuandoSeProponeConIaHabilitada(mensajes());
 
-        thenLaCuotaVieneSinLimiteNiRestantes();
+        entoncesLaCuotaVieneSinLimiteNiRestantes();
     }
 
     @Test
     @DisplayName("Dice qué fuentes de datos tiene el negocio y cuáles no")
-    void executeShouldTellWhichDataSourcesThereAre() {
-        givenLaIaResponde(respuestaIa());
+    void diceQueFuentesDeDatosTieneElNegocioYCualesNo() {
+        dadoLaIaResponde(respuestaIa());
 
-        whenSeProponeConIaHabilitada(mensajes());
+        cuandoSeProponeConIaHabilitada(mensajes());
 
-        thenSeDiceQueFuentesDeDatosHay();
+        entoncesSeDiceQueFuentesDeDatosHay();
     }
 
     @Test
     @DisplayName("A la IA le manda la conversación sin datos personales")
-    void executeShouldSendTheIaTheSafeConversation() {
-        givenLaIaResponde(respuestaIa());
+    void aLaIaLeMandaLaConversacionSinDatosPersonales() {
+        dadoLaIaResponde(respuestaIa());
 
-        whenSeProponeConIaHabilitada(mensajeConUnCorreo());
+        cuandoSeProponeConIaHabilitada(mensajeConUnCorreo());
 
-        thenLaIaRecibeLaConversacionSinDatosPersonales();
+        entoncesLaIaRecibeLaConversacionSinDatosPersonales();
     }
 
     @Test
     @DisplayName("A la IA le manda el catálogo y los datos del negocio")
-    void executeShouldSendTheIaTheCatalogAndTheContext() {
-        givenLaIaResponde(respuestaIa());
+    void aLaIaLeMandaElCatalogoYLosDatosDelNegocio() {
+        dadoLaIaResponde(respuestaIa());
 
-        whenSeProponeConIaHabilitada(mensajes());
+        cuandoSeProponeConIaHabilitada(mensajes());
 
-        thenLaIaRecibeElCatalogoYLosDatosDelNegocio();
+        entoncesLaIaRecibeElCatalogoYLosDatosDelNegocio();
     }
 
     @Test
     @DisplayName("Al catálogo de la IA van como mucho las 12 métricas que más suman")
-    void executeShouldSendAtMostTwelveMetrics() {
-        givenUnCatalogoDeMasDeDoceMetricas();
-        givenLaIaResponde(respuestaIa());
+    void alCatalogoDeLaIaVanComoMuchoLas12MetricasQueMasSuman() {
+        dadoUnCatalogoDeMasDeDoceMetricas();
+        dadoLaIaResponde(respuestaIa());
 
-        whenSeProponeConIaHabilitada(mensajes());
+        cuandoSeProponeConIaHabilitada(mensajes());
 
-        thenLaIaRecibeComoMuchoDoceMetricas();
+        entoncesLaIaRecibeComoMuchoDoceMetricas();
     }
 
     @Test
     @DisplayName("Reserva una consulta del día y registra lo que gastó la IA")
-    void executeShouldReserveAndRegisterTheConsumption() {
-        givenLaIaResponde(respuestaIa());
+    void reservaUnaConsultaDelDiaYRegistraLoQueGastoLaIa() {
+        dadoLaIaResponde(respuestaIa());
 
-        whenSeProponeConIaHabilitada(mensajes());
+        cuandoSeProponeConIaHabilitada(mensajes());
 
-        thenSeReservaUnaConsultaYSeRegistraElConsumo();
+        entoncesSeReservaUnaConsultaYSeRegistraElConsumo();
     }
 
     @Test
     @DisplayName("Una meta en pesos no arma mini-objetivos y no se puede guardar")
-    void executeShouldReportAMonetaryGoal() {
-        givenLaIaProponeUnaMetaEnPesos();
+    void unaMetaEnPesosNoArmaMiniObjetivosYNoSePuedeGuardar() {
+        dadoLaIaProponeUnaMetaEnPesos();
 
-        whenSeProponeConIaHabilitada(mensajes());
+        cuandoSeProponeConIaHabilitada(mensajes());
 
-        thenLaMetaEnPesosNoArmaMinisNiSePuedeGuardar();
+        entoncesLaMetaEnPesosNoArmaMinisNiSePuedeGuardar();
     }
 
     @Test
     @DisplayName("Con la IA apagada propone el seguimiento manual de respaldo")
-    void executeShouldFallBackWhenTheIaIsDisabled() {
-        whenSeProponeConIaApagada(mensajes());
+    void conLaIaApagadaProponeElSeguimientoManualDeRespaldo() {
+        cuandoSeProponeConIaApagada(mensajes());
 
-        thenSeProponeElSeguimientoManualDeRespaldo();
+        entoncesSeProponeElSeguimientoManualDeRespaldo();
     }
 
     @Test
     @DisplayName("Con la IA apagada no consulta nada")
-    void executeShouldNotConsultAnythingWhenTheIaIsDisabled() {
-        whenSeProponeConIaApagada(mensajes());
+    void conLaIaApagadaNoConsultaNada() {
+        cuandoSeProponeConIaApagada(mensajes());
 
-        thenNoSeConsultaLaIaNiSuConsumo();
+        entoncesNoSeConsultaLaIaNiSuConsumo();
     }
 
     @Test
     @DisplayName("Sin acceso a la IA propone el respaldo y no la consulta")
-    void executeShouldFallBackWithoutAccessToTheIa() {
-        givenUnNegocioSinAccesoALaIa();
+    void sinAccesoALaIaProponeElRespaldoYNoLaConsulta() {
+        dadoUnNegocioSinAccesoALaIa();
 
-        whenSeProponeConIaHabilitada(mensajes());
+        cuandoSeProponeConIaHabilitada(mensajes());
 
-        thenSeProponeElRespaldoSinConsultarLaIa();
+        entoncesSeProponeElRespaldoSinConsultarLaIa();
     }
 
     @Test
     @DisplayName("Con el límite diario agotado propone el respaldo y no consulta a la IA")
-    void executeShouldFallBackWhenTheDailyLimitIsReached() {
-        givenElLimiteDiarioAgotado();
+    void conElLimiteDiarioAgotadoProponeElRespaldoYNoConsultaALaIa() {
+        dadoElLimiteDiarioAgotado();
 
-        whenSeProponeConIaHabilitada(mensajes());
+        cuandoSeProponeConIaHabilitada(mensajes());
 
-        thenSeProponeElRespaldoSinConsultarLaIaNiRegistrarConsumo();
+        entoncesSeProponeElRespaldoSinConsultarLaIaNiRegistrarConsumo();
     }
 
     @Test
     @DisplayName("Si la IA falla propone el respaldo y no registra consumo")
-    void executeShouldFallBackWhenTheIaFails() {
-        givenUnaIaQueFalla();
+    void siLaIaFallaProponeElRespaldoYNoRegistraConsumo() {
+        dadoUnaIaQueFalla();
 
-        whenSeProponeConIaHabilitada(mensajes());
+        cuandoSeProponeConIaHabilitada(mensajes());
 
-        thenSeProponeElRespaldoSinRegistrarConsumo();
+        entoncesSeProponeElRespaldoSinRegistrarConsumo();
     }
 
     @Test
     @DisplayName("Si la IA no da una respuesta válida propone el respaldo, y su consumo queda registrado")
-    void executeShouldFallBackWhenTheIaAnswerIsInvalid() {
-        givenLaIaRespondeEnBlanco();
+    void siLaIaNoDaUnaRespuestaValidaProponeElRespaldoYSuConsumoQuedaRegistrado() {
+        dadoLaIaRespondeEnBlanco();
 
-        whenSeProponeConIaHabilitada(mensajes());
+        cuandoSeProponeConIaHabilitada(mensajes());
 
-        thenSeProponeElRespaldoYSeRegistraElConsumo();
+        entoncesSeProponeElRespaldoYSeRegistraElConsumo();
     }
 
     @Test
     @DisplayName("Una conversación sin mensajes se rechaza antes de consultar nada")
-    void executeShouldRejectAnEmptyConversation() {
-        whenSeProponeConIaHabilitada(List.of());
+    void unaConversacionSinMensajesSeRechazaAntesDeConsultarNada() {
+        cuandoSeProponeConIaHabilitada(List.of());
 
-        thenSeRechazaLaConversacionVaciaSinConsultarNada();
+        entoncesSeRechazaLaConversacionVaciaSinConsultarNada();
     }
 
     @Test
     @DisplayName("Un usuario sin negocio responde como inexistente")
-    void executeShouldFailWithoutBusiness() {
-        givenUnUsuarioSinNegocio();
+    void unUsuarioSinNegocioRespondeComoInexistente() {
+        dadoUnUsuarioSinNegocio();
 
-        whenSeProponeConIaHabilitada(mensajes());
+        cuandoSeProponeConIaHabilitada(mensajes());
 
-        thenRespondeComoInexistenteSinConsultarLaIa();
+        entoncesRespondeComoInexistenteSinConsultarLaIa();
     }
 
     // --- arrange ---
-    private void givenLaIaResponde(PropuestaObjetivoIa respuesta) {
+    private void dadoLaIaResponde(PropuestaObjetivoIa respuesta) {
         when(consumoSamiRepository.reservar(NEGOCIO_ID, HOY, LIMITE_DIARIO, AHORA)).thenReturn(true);
         when(conversacionObjetivosIaPort.conversar(any(ConsultaObjetivoIa.class))).thenReturn(respuesta);
     }
 
-    private void givenUnaIaQueFalla() {
+    private void dadoUnaIaQueFalla() {
         when(consumoSamiRepository.reservar(NEGOCIO_ID, HOY, LIMITE_DIARIO, AHORA)).thenReturn(true);
         when(conversacionObjetivosIaPort.conversar(any(ConsultaObjetivoIa.class)))
                 .thenThrow(new IllegalStateException("La IA no respondió"));
     }
 
-    private void givenLaCuotaDelMesAgotada() {
+    private void dadoLaCuotaDelMesAgotada() {
         when(controlPlanService.cuotaObjetivosIa(NEGOCIO_ID, AHORA)).thenReturn(new CuotaObjetivosIa(5, 5));
     }
 
-    private void givenUnPlanSinLimiteDeObjetivosConIa() {
+    private void dadoUnPlanSinLimiteDeObjetivosConIa() {
         when(controlPlanService.cuotaObjetivosIa(NEGOCIO_ID, AHORA)).thenReturn(new CuotaObjetivosIa(40, null));
     }
 
-    private void givenUnCatalogoDeMasDeDoceMetricas() {
+    private void dadoUnCatalogoDeMasDeDoceMetricas() {
         when(propuestaMiniObjetivosService.candidatos(NEGOCIO_ID, medidor))
                 .thenReturn(Collections.nCopies(METRICAS_DE_SOBRA, catalogo().getFirst()));
     }
 
-    private void givenUnNegocioSinAccesoALaIa() {
+    private void dadoUnNegocioSinAccesoALaIa() {
         doThrow(new RestriccionPlanException("IA_NO_HABILITADA", "No habilitada"))
                 .when(controlPlanService).exigirIa(NEGOCIO_ID);
     }
 
-    private void givenElLimiteDiarioAgotado() {
+    private void dadoElLimiteDiarioAgotado() {
         when(consumoSamiRepository.reservar(NEGOCIO_ID, HOY, LIMITE_DIARIO, AHORA)).thenReturn(false);
     }
 
-    private void givenUnUsuarioSinNegocio() {
+    private void dadoUnUsuarioSinNegocio() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID))
                 .thenThrow(new ResourceNotFoundException("Negocio no encontrado"));
     }
 
     // --- act ---
-    private void whenSeProponeConIaHabilitada(List<MensajeObjetivo> mensajes) {
-        whenSePropone(true, mensajes);
+    private void cuandoSeProponeConIaHabilitada(List<MensajeObjetivo> mensajes) {
+        cuandoSePropone(true, mensajes);
     }
 
-    private void whenSeProponeConIaApagada(List<MensajeObjetivo> mensajes) {
-        whenSePropone(false, mensajes);
+    private void cuandoSeProponeConIaApagada(List<MensajeObjetivo> mensajes) {
+        cuandoSePropone(false, mensajes);
     }
 
-    private void whenSePropone(boolean iaHabilitada, List<MensajeObjetivo> mensajes) {
+    private void cuandoSePropone(boolean iaHabilitada, List<MensajeObjetivo> mensajes) {
         ProponerObjetivoConSami proponer = new ProponerObjetivoConSami(
                 negocioRepository, propuestaMiniObjetivosService, controlPlanService, consumoSamiRepository,
                 conversacionObjetivosIaPort, CLOCK, iaHabilitada, LIMITE_DIARIO, MAXIMO_MENSAJES);
@@ -332,7 +332,7 @@ class ProponerObjetivoConSamiTest {
     }
 
     // --- assert ---
-    private void thenSeContestaLoQueRespondioLaIa() {
+    private void entoncesSeContestaLoQueRespondioLaIa() {
         assertThat(propuesta.respuesta()).isEqualTo(RESPUESTA_IA);
         assertThat(propuesta.entendido()).isEqualTo(ENTENDIDO);
         assertThat(propuesta.origen()).isEqualTo(OrigenPropuesta.IA);
@@ -343,14 +343,14 @@ class ProponerObjetivoConSamiTest {
         assertThat(propuesta.cuota()).isEqualTo(new CuotaItem(2, 5, 3));
     }
 
-    private void thenSeProponenLaMetricaDelCatalogoYLaAccionManual() {
+    private void entoncesSeProponenLaMetricaDelCatalogoYLaAccionManual() {
         assertThat(propuesta.minis()).extracting(item -> item.modo())
                 .containsExactly(ModoMiniObjetivo.MEDIDO, ModoMiniObjetivo.MANUAL);
         assertThat(propuesta.minis().get(0).titulo()).isEqualTo(catalogo().get(2).titulo());
         assertThat(propuesta.minis().get(1).tipo()).isNull();
     }
 
-    private void thenSeExplicaQueSeAgotoLaCuotaYSeOfreceElSeguimientoManual() {
+    private void entoncesSeExplicaQueSeAgotoLaCuotaYSeOfreceElSeguimientoManual() {
         assertThat(propuesta.origen()).isEqualTo(OrigenPropuesta.RESPALDO);
         assertThat(propuesta.respuesta()).startsWith("Ya armaste los 5 objetivos con Sami").contains("«Planes»");
         assertThat(propuesta.tipo()).isEqualTo(TipoObjetivo.SIN_DATOS);
@@ -358,52 +358,52 @@ class ProponerObjetivoConSamiTest {
         assertThat(propuesta.cuota()).isEqualTo(new CuotaItem(5, 5, 0));
     }
 
-    private void thenNoSeConsultaLaIaNiSuConsumo() {
+    private void entoncesNoSeConsultaLaIaNiSuConsumo() {
         verifyNoInteractions(consumoSamiRepository, conversacionObjetivosIaPort);
         verify(controlPlanService, never()).exigirIa(any());
     }
 
-    private void thenLaCuotaVieneSinLimiteNiRestantes() {
+    private void entoncesLaCuotaVieneSinLimiteNiRestantes() {
         assertThat(propuesta.origen()).isEqualTo(OrigenPropuesta.IA);
         assertThat(propuesta.cuota()).isEqualTo(new CuotaItem(40, null, null));
     }
 
-    private void thenSeDiceQueFuentesDeDatosHay() {
+    private void entoncesSeDiceQueFuentesDeDatosHay() {
         assertThat(propuesta.datos()).extracting(dato -> dato.fuente(), dato -> dato.hay())
                 .contains(tuple(FuenteDato.VENTAS, true), tuple(FuenteDato.INVENTARIO, true),
                         tuple(FuenteDato.ZONA, false));
     }
 
-    private void thenLaIaRecibeLaConversacionSinDatosPersonales() {
+    private void entoncesLaIaRecibeLaConversacionSinDatosPersonales() {
         assertThat(consultaALaIa().mensajes()).extracting(MensajeObjetivo::texto)
                 .containsExactly("Quiero cobrarle a [dato oculto]");
     }
 
-    private void thenLaIaRecibeElCatalogoYLosDatosDelNegocio() {
+    private void entoncesLaIaRecibeElCatalogoYLosDatosDelNegocio() {
         ConsultaObjetivoIa consulta = consultaALaIa();
         assertThat(consulta.catalogo()).isEqualTo(catalogo());
         assertThat(consulta.contexto().hayVentas()).isTrue();
         assertThat(consulta.contexto().productos()).hasSize(3);
     }
 
-    private void thenLaIaRecibeComoMuchoDoceMetricas() {
+    private void entoncesLaIaRecibeComoMuchoDoceMetricas() {
         assertThat(consultaALaIa().catalogo()).hasSize(MAXIMO_DE_METRICAS_PARA_LA_IA);
     }
 
-    private void thenSeReservaUnaConsultaYSeRegistraElConsumo() {
+    private void entoncesSeReservaUnaConsultaYSeRegistraElConsumo() {
         verify(controlPlanService).exigirIa(NEGOCIO_ID);
         verify(consumoSamiRepository).reservar(NEGOCIO_ID, HOY, LIMITE_DIARIO, AHORA);
         verify(consumoSamiRepository).registrar(NEGOCIO_ID, HOY, CONSUMO, AHORA);
     }
 
-    private void thenLaMetaEnPesosNoArmaMinisNiSePuedeGuardar() {
+    private void entoncesLaMetaEnPesosNoArmaMinisNiSePuedeGuardar() {
         assertThat(propuesta.esMonetario()).isTrue();
         assertThat(propuesta.tipo()).isNull();
         assertThat(propuesta.minis()).isEmpty();
         assertThat(propuesta.puedeGuardar()).isFalse();
     }
 
-    private void thenSeProponeElSeguimientoManualDeRespaldo() {
+    private void entoncesSeProponeElSeguimientoManualDeRespaldo() {
         assertThat(propuesta.origen()).isEqualTo(OrigenPropuesta.RESPALDO);
         assertThat(propuesta.tipo()).isEqualTo(TipoObjetivo.SIN_DATOS);
         assertThat(propuesta.minis()).singleElement().satisfies(mini -> {
@@ -413,35 +413,35 @@ class ProponerObjetivoConSamiTest {
         assertThat(propuesta.puedeGuardar()).isTrue();
     }
 
-    private void thenSeProponeElRespaldoSinConsultarLaIa() {
+    private void entoncesSeProponeElRespaldoSinConsultarLaIa() {
         assertThat(propuesta.origen()).isEqualTo(OrigenPropuesta.RESPALDO);
         verifyNoInteractions(conversacionObjetivosIaPort, consumoSamiRepository);
     }
 
-    private void thenSeProponeElRespaldoSinConsultarLaIaNiRegistrarConsumo() {
+    private void entoncesSeProponeElRespaldoSinConsultarLaIaNiRegistrarConsumo() {
         assertThat(propuesta.origen()).isEqualTo(OrigenPropuesta.RESPALDO);
         verifyNoInteractions(conversacionObjetivosIaPort);
         verify(consumoSamiRepository, never()).registrar(any(), any(), any(), any());
     }
 
-    private void thenSeProponeElRespaldoSinRegistrarConsumo() {
+    private void entoncesSeProponeElRespaldoSinRegistrarConsumo() {
         assertThat(propuesta.origen()).isEqualTo(OrigenPropuesta.RESPALDO);
         assertThat(propuesta.puedeGuardar()).isTrue();
         verify(consumoSamiRepository, never()).registrar(any(), any(), any(), any());
     }
 
-    private void thenSeProponeElRespaldoYSeRegistraElConsumo() {
+    private void entoncesSeProponeElRespaldoYSeRegistraElConsumo() {
         assertThat(propuesta.origen()).isEqualTo(OrigenPropuesta.RESPALDO);
         verify(consumoSamiRepository).registrar(NEGOCIO_ID, HOY, CONSUMO, AHORA);
     }
 
-    private void thenSeRechazaLaConversacionVaciaSinConsultarNada() {
+    private void entoncesSeRechazaLaConversacionVaciaSinConsultarNada() {
         assertThat(error).isInstanceOf(BusinessRuleException.class);
         verifyNoInteractions(propuestaMiniObjetivosService, controlPlanService, consumoSamiRepository,
                 conversacionObjetivosIaPort);
     }
 
-    private void thenRespondeComoInexistenteSinConsultarLaIa() {
+    private void entoncesRespondeComoInexistenteSinConsultarLaIa() {
         assertThat(error).isInstanceOf(ResourceNotFoundException.class);
         verifyNoInteractions(conversacionObjetivosIaPort);
     }
@@ -457,11 +457,11 @@ class ProponerObjetivoConSamiTest {
         return List.of(new MensajeObjetivo(RolMensaje.PERSONA, "Quiero cobrarle a ana@mail.com"));
     }
 
-    private void givenLaIaProponeUnaMetaEnPesos() {
-        givenLaIaResponde(new PropuestaObjetivoIa(RESPUESTA_IA, ENTENDIDO, true, List.of(medido("c1")), CONSUMO));
+    private void dadoLaIaProponeUnaMetaEnPesos() {
+        dadoLaIaResponde(new PropuestaObjetivoIa(RESPUESTA_IA, ENTENDIDO, true, List.of(medido("c1")), CONSUMO));
     }
 
-    private void givenLaIaRespondeEnBlanco() {
-        givenLaIaResponde(new PropuestaObjetivoIa(" ", ENTENDIDO, false, List.of(), CONSUMO));
+    private void dadoLaIaRespondeEnBlanco() {
+        dadoLaIaResponde(new PropuestaObjetivoIa(" ", ENTENDIDO, false, List.of(), CONSUMO));
     }
 }

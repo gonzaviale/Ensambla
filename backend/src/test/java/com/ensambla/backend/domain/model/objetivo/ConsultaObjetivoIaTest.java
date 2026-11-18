@@ -19,56 +19,56 @@ class ConsultaObjetivoIaTest {
     @ParameterizedTest(name = "posición {0}")
     @DisplayName("El código de cada métrica es su lugar en la lista, empezando por c1")
     @CsvSource({"0, c1", "3, c4"})
-    void codigoShouldBeThePositionInTheList(int posicion, String esperado) {
-        whenSePideElCodigoDe(posicion);
+    void elCodigoDeCadaMetricaEsSuLugarEnLaListaEmpezandoPorC1(int posicion, String esperado) {
+        cuandoSePideElCodigoDe(posicion);
 
-        thenElCodigoEs(esperado);
+        entoncesElCodigoEs(esperado);
     }
 
     @ParameterizedTest(name = "{0}")
     @DisplayName("Encuentra la métrica del catálogo por su código")
     @CsvSource({"c1, 0", "c3, 2"})
-    void candidatoShouldFindTheMetricByCode(String codigoBuscado, int posicion) {
-        whenSeBuscaElCandidato(codigoBuscado);
+    void encuentraLaMetricaDelCatalogoPorSuCodigo(String codigoBuscado, int posicion) {
+        cuandoSeBuscaElCandidato(codigoBuscado);
 
-        thenElCandidatoEsElDelCatalogoEn(posicion);
+        entoncesElCandidatoEsElDelCatalogoEn(posicion);
     }
 
     @Test
     @DisplayName("Un código que no está en el catálogo no devuelve nada")
-    void candidatoShouldBeEmptyForAnUnknownCode() {
-        whenSeBuscaElCandidato("c9");
+    void unCodigoQueNoEstaEnElCatalogoNoDevuelveNada() {
+        cuandoSeBuscaElCandidato("c9");
 
-        thenNoHayCandidato();
+        entoncesNoHayCandidato();
     }
 
     @Test
     @DisplayName("Un código nulo no devuelve nada")
-    void candidatoShouldBeEmptyForANullCode() {
-        whenSeBuscaElCandidato(null);
+    void unCodigoNuloNoDevuelveNada() {
+        cuandoSeBuscaElCandidato(null);
 
-        thenNoHayCandidato();
+        entoncesNoHayCandidato();
     }
 
     // --- act ---
-    private void whenSePideElCodigoDe(int posicion) {
+    private void cuandoSePideElCodigoDe(int posicion) {
         codigo = ConsultaObjetivoIa.codigo(posicion);
     }
 
-    private void whenSeBuscaElCandidato(String codigoBuscado) {
+    private void cuandoSeBuscaElCandidato(String codigoBuscado) {
         candidato = consulta().candidato(codigoBuscado);
     }
 
     // --- assert ---
-    private void thenElCodigoEs(String esperado) {
+    private void entoncesElCodigoEs(String esperado) {
         assertThat(codigo).isEqualTo(esperado);
     }
 
-    private void thenElCandidatoEsElDelCatalogoEn(int posicion) {
+    private void entoncesElCandidatoEsElDelCatalogoEn(int posicion) {
         assertThat(candidato).contains(catalogo().get(posicion));
     }
 
-    private void thenNoHayCandidato() {
+    private void entoncesNoHayCandidato() {
         assertThat(candidato).isEmpty();
     }
 }

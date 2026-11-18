@@ -39,45 +39,45 @@ class ResumenSemanalPresentationMapperTest {
 
     @Test
     @DisplayName("Arma el pedido con el usuario de la sesión y el objetivo")
-    void toRequestShouldCarryTheUserAndTheObjetivo() {
-        whenSeArmaElPedido();
+    void armaElPedidoConElUsuarioDeLaSesionYElObjetivo() {
+        cuandoSeArmaElPedido();
 
-        thenElPedidoTraeUsuarioYObjetivo();
+        entoncesElPedidoTraeUsuarioYObjetivo();
     }
 
     @Test
     @DisplayName("Copia cada semana con sus decisiones y reajustes; un reajuste sin nuevo queda sin «a»")
-    void toResponseShouldCopyEveryWeek() {
-        whenSeMapeanLasSemanas(unaSemanaCerrada());
+    void copiaCadaSemanaConSusDecisionesYReajustesUnReajusteSinNuevoQuedaSinA() {
+        cuandoSeMapeanLasSemanas(unaSemanaCerrada());
 
-        thenSeCopiaLaSemanaConSusDecisionesYManuales();
-        thenSeCopiaElReajusteSinDestino();
+        entoncesSeCopiaLaSemanaConSusDecisionesYManuales();
+        entoncesSeCopiaElReajusteSinDestino();
     }
 
     @Test
     @DisplayName("Sin semanas devuelve una lista vacía")
-    void toResponseShouldReturnAnEmptyListWhenThereAreNoWeeks() {
-        whenSeMapeanLasSemanas(sinSemanas());
+    void sinSemanasDevuelveUnaListaVacia() {
+        cuandoSeMapeanLasSemanas(sinSemanas());
 
-        thenNoHayUltimoCierreNiSemanas();
+        entoncesNoHayUltimoCierreNiSemanas();
     }
 
     // --- act ---
-    private void whenSeArmaElPedido() {
+    private void cuandoSeArmaElPedido() {
         pedido = mapper.toRequest(USUARIO_ID, OBJETIVO_ID);
     }
 
-    private void whenSeMapeanLasSemanas(ListarSemanasResponse semanas) {
+    private void cuandoSeMapeanLasSemanas(ListarSemanasResponse semanas) {
         respuesta = mapper.toResponse(semanas);
     }
 
     // --- assert ---
-    private void thenElPedidoTraeUsuarioYObjetivo() {
+    private void entoncesElPedidoTraeUsuarioYObjetivo() {
         assertThat(pedido.usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(pedido.objetivoId()).isEqualTo(OBJETIVO_ID);
     }
 
-    private void thenSeCopiaLaSemanaConSusDecisionesYManuales() {
+    private void entoncesSeCopiaLaSemanaConSusDecisionesYManuales() {
         SemanaResponse semana = respuesta.semanas().get(0);
         assertThat(respuesta.ultimoCierre()).isEqualTo(SEMANA);
         assertThat(semana.semana()).isEqualTo(SEMANA);
@@ -98,7 +98,7 @@ class ResumenSemanalPresentationMapperTest {
         assertThat(semana.manuales().get(1).quePaso()).isNull();
     }
 
-    private void thenSeCopiaElReajusteSinDestino() {
+    private void entoncesSeCopiaElReajusteSinDestino() {
         assertThat(respuesta.semanas().get(0).reajustes()).singleElement().satisfies(reajuste -> {
             assertThat(reajuste.tipo()).isEqualTo(TipoReajuste.REEMPLAZAR);
             assertThat(reajuste.motivo()).isEqualTo("Sin avance");
@@ -108,7 +108,7 @@ class ResumenSemanalPresentationMapperTest {
         });
     }
 
-    private void thenNoHayUltimoCierreNiSemanas() {
+    private void entoncesNoHayUltimoCierreNiSemanas() {
         assertThat(respuesta.ultimoCierre()).isNull();
         assertThat(respuesta.semanas()).isEmpty();
     }
