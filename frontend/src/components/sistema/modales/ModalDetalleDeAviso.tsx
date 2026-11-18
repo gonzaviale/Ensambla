@@ -44,7 +44,6 @@ function useCerrarSiYaNoExiste(aviso: Aviso | undefined) {
 }
 
 function EncabezadoDelDetalle({ aviso }: { aviso: Aviso }) {
-  const detectado = cuandoSeDetecto(aviso.creadoEn);
   return (
     <header className="aviso-detalle-cabeza" data-tipo={aviso.tipo}>
       <span className={`aviso-fila-icono p${aviso.prioridad}`}>
@@ -54,7 +53,6 @@ function EncabezadoDelDetalle({ aviso }: { aviso: Aviso }) {
         <p className="aviso-detalle-meta">
           <span>{NOMBRE_DE_TIPO[aviso.tipo]}</span>
           <span>{NIVEL_DE_AVISO[aviso.prioridad]}</span>
-          {detectado && <span>{detectado}</span>}
         </p>
         <h2 id="modal-title">{aviso.titulo}</h2>
       </div>
@@ -100,6 +98,17 @@ function RazonDelAviso({ aviso }: { aviso: Aviso }) {
   );
 }
 
+function FechaDelAviso({ aviso }: { aviso: Aviso }) {
+  const detectado = cuandoSeDetecto(aviso.creadoEn);
+  if (!detectado) return null;
+  return (
+    <span className="aviso-detalle-fecha" title={`Aviso detectado: ${detectado.toLowerCase()}`}>
+      <Icon name="clock" />
+      {detectado}
+    </span>
+  );
+}
+
 function AccionesDelDetalle({
   aviso,
   onAccion,
@@ -116,6 +125,7 @@ function AccionesDelDetalle({
 
   return (
     <div className="modal-footer">
+      <FechaDelAviso aviso={aviso} />
       <Btn cls="ghost" onClick={cerrarModal}>
         Cerrar
       </Btn>

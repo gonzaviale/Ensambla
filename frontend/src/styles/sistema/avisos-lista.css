@@ -296,6 +296,23 @@
   text-transform: uppercase;
   color: var(--c-estructura);
 }
+.aviso-detalle-fecha {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--c-borde);
+  color: var(--c-estructura);
+  font-size: 12px;
+  font-weight: 700;
+}
+.aviso-detalle-fecha .icon {
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
 .aviso-detalle-cuerpo {
   display: grid;
   gap: 14px;
