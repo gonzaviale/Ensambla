@@ -1273,11 +1273,11 @@
   font-weight: 800;
   letter-spacing: -0.8px;
 }
-/* La sección del plan actual: color sólido y letra blanca. */
+/* La sección del plan actual: tarjeta blanca con borde naranja, sin relleno de color (es un componente grande). */
 .plan-current,
 .plan-current-trial {
-  border: 0;
-  background: var(--petrol);
+  border: 3px solid var(--orange);
+  background: #fff;
   box-shadow: none;
 }
 .plan-current h2,
@@ -1287,14 +1287,14 @@
 .plan-usage dd strong,
 .plan-usage dd span,
 .plan-usage-note {
-  color: #fff;
+  color: var(--petrol);
 }
 .plan-usage + .plan-usage {
-  border-left-color: #ffffff59;
+  border-left-color: var(--line);
 }
 .plan-usage progress,
 .plan-usage progress::-webkit-progress-bar {
-  background: #fff;
+  background: var(--soft);
 }
 .plan-usage progress::-webkit-progress-value {
   background: var(--orange);
@@ -1303,7 +1303,7 @@
   background: var(--orange);
 }
 .plan-current .btn.ghost {
-  border: 2px solid #fff;
+  border: 2px solid var(--petrol);
   border-radius: 999px;
   background: #fff;
   color: var(--petrol);
@@ -1341,11 +1341,7 @@
   border-top: 0;
 }
 
-/* Planes, segunda pasada: sección celeste, sin líneas, subtítulo en una línea y más aire. */
-.plan-current,
-.plan-current-trial {
-  background: var(--blue);
-}
+/* Planes, segunda pasada: sin líneas, subtítulo en una línea y más aire. */
 .plan-usage + .plan-usage {
   border-left: 0;
 }
@@ -1364,15 +1360,15 @@
   }
 }
 
-/* Barras de uso: relleno petróleo sobre fondo blanco, un poco más gruesas. */
+/* Barras de uso: relleno naranja sobre fondo suave, un poco más gruesas. */
 .plan-usage progress {
   height: 12px;
 }
 .plan-usage progress::-webkit-progress-value {
-  background: var(--petrol);
+  background: var(--orange);
 }
 .plan-usage progress::-moz-progress-bar {
-  background: var(--petrol);
+  background: var(--orange);
 }
 
 /* Bordes de los planes: Gratuito en petróleo y Premium en naranja, parejos por todos lados. */
@@ -1390,11 +1386,7 @@
   border-top-width: 8px;
 }
 
-/* Sección del plan vigente en coral y todos los renglones de los planes con el mismo tamaño de letra. */
-.plan-current,
-.plan-current-trial {
-  background: var(--coral);
-}
+/* Todos los renglones de los planes con el mismo tamaño de letra. */
 .plan-limits > div,
 .plan-limits dt,
 .plan-limits dd,
