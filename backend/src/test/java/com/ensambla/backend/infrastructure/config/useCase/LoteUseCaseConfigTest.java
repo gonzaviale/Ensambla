@@ -39,7 +39,7 @@ class LoteUseCaseConfigTest {
     @Test
     @DisplayName("El wiring de la subida conecta negocio, repositorio, almacenamiento y reloj")
     void subirLoteUseCaseShouldWireDependencies() {
-        dadoNegocio();
+        givenNegocio();
         when(loteSubidaRepository.saveConFotos(any())).thenReturn(LoteTestData.lote(List.of()));
 
         LoteItem result = config.subirLote(negocioRepository, loteSubidaRepository, mock(ArchivoCuadernoPort.class),
@@ -53,7 +53,7 @@ class LoteUseCaseConfigTest {
     @Test
     @DisplayName("El wiring de la consulta conecta negocio y servicio")
     void obtenerLoteUseCaseShouldWireDependencies() {
-        dadoNegocio();
+        givenNegocio();
         when(loteSubidaRepository.obtener(NEGOCIO_ID, LOTE_ID)).thenReturn(LoteTestData.lote(List.of()));
 
         LoteItem result = config.obtenerLote(negocioRepository, loteSubidaRepository)
@@ -63,7 +63,7 @@ class LoteUseCaseConfigTest {
     }
 
     // --- arrange ---
-    private void dadoNegocio() {
+    private void givenNegocio() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 }

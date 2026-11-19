@@ -47,7 +47,7 @@ class IRespuestaMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
 
     @BeforeEach
     void setUp() {
-        negocioA = dadoNegocio("a@example.com").getId();
+        negocioA = givenNegocio("a@example.com").getId();
         objetivoA = objetivos.saveAndFlush(ObjetivoEntity.builder()
                 .negocioId(negocioA)
                 .texto("Que me conozcan")
@@ -126,7 +126,7 @@ class IRespuestaMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
     @DisplayName("Lista las respuestas del objetivo del negocio y nunca las de otro negocio")
     void listaLasRespuestasDelObjetivoDelNegocioYNuncaLasDeOtroNegocio() {
         dadoUnaRespuestaGuardada(HizoManual.SI, QuePaso.FUNCIONO, null);
-        negocioB = dadoNegocio("b@example.com").getId();
+        negocioB = givenNegocio("b@example.com").getId();
 
         entoncesSoloElNegocioDuenoVeLaRespuesta();
     }

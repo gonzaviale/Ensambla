@@ -37,18 +37,18 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
 
     @BeforeEach
     void setUp() {
-        negocioA = dadoNegocio("a@example.com").getId();
-        negocioB = dadoNegocio("b@example.com").getId();
-        bloqueA = dadoBloque(NegocioId.de(negocioA), "Productos");
-        campoNombre = dadoCampo(NegocioId.de(negocioA), BloqueId.de(bloqueA), "Producto", TipoCampo.TEXTO, 0);
-        campoCantidad = dadoCampo(NegocioId.de(negocioA), BloqueId.de(bloqueA), "Cantidad", TipoCampo.NUMERO, 1);
-        campoActivo = dadoCampo(NegocioId.de(negocioA), BloqueId.de(bloqueA), "Activo", TipoCampo.SI_NO, 2);
+        negocioA = givenNegocio("a@example.com").getId();
+        negocioB = givenNegocio("b@example.com").getId();
+        bloqueA = givenBloque(NegocioId.de(negocioA), "Productos");
+        campoNombre = givenCampo(NegocioId.de(negocioA), BloqueId.de(bloqueA), "Producto", TipoCampo.TEXTO, 0);
+        campoCantidad = givenCampo(NegocioId.de(negocioA), BloqueId.de(bloqueA), "Cantidad", TipoCampo.NUMERO, 1);
+        campoActivo = givenCampo(NegocioId.de(negocioA), BloqueId.de(bloqueA), "Activo", TipoCampo.SI_NO, 2);
     }
 
     @Test
     @DisplayName("Encuentra el registro por id sólo dentro de su negocio")
     void findByIdAndNegocioIdShouldRespectNegocio() {
-        UUID registroId = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(0));
+        UUID registroId = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(0));
 
         Optional<RegistroEntity> propio = registros.findByIdAndNegocioId(registroId, negocioA);
         Optional<RegistroEntity> ajeno = registros.findByIdAndNegocioId(registroId, negocioB);
@@ -60,12 +60,12 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Lista los más nuevos primero y sólo los del bloque y negocio pedidos")
     void buscarDescendenteShouldListNewestFirstScopedToBloqueAndNegocio() {
-        UUID viejo = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(2));
-        UUID nuevo = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(1));
-        UUID otroBloque = dadoBloque(NegocioId.de(negocioA), "Clientes");
-        dadoRegistro(NegocioId.de(negocioA), BloqueId.de(otroBloque), Map.of(), hace(0));
-        UUID bloqueDeB = dadoBloque(NegocioId.de(negocioB), "Productos");
-        dadoRegistro(NegocioId.de(negocioB), BloqueId.de(bloqueDeB), Map.of(), hace(0));
+        UUID viejo = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(2));
+        UUID nuevo = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(1));
+        UUID otroBloque = givenBloque(NegocioId.de(negocioA), "Clientes");
+        givenRegistro(NegocioId.de(negocioA), BloqueId.de(otroBloque), Map.of(), hace(0));
+        UUID bloqueDeB = givenBloque(NegocioId.de(negocioB), "Productos");
+        givenRegistro(NegocioId.de(negocioB), BloqueId.de(bloqueDeB), Map.of(), hace(0));
 
         Page<RegistroEntity> result = registros.buscarDescendente(negocioA, bloqueA, null, null, PRIMERA);
 
@@ -76,7 +76,7 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("No devuelve registros cuando el bloque pertenece a otro negocio")
     void buscarShouldReturnNothingWhenBloqueBelongsToOtherNegocio() {
-        dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(0));
+        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(0));
 
         Page<RegistroEntity> result = registros.buscarDescendente(negocioB, bloqueA, null, null, PRIMERA);
 
@@ -87,8 +87,8 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Lista los más viejos primero en orden ascendente por fecha de carga")
     void buscarAscendenteShouldListOldestFirst() {
-        UUID viejo = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(2));
-        UUID nuevo = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(1));
+        UUID viejo = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(2));
+        UUID nuevo = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(1));
 
         Page<RegistroEntity> result = registros.buscarAscendente(negocioA, bloqueA, null, null, PRIMERA);
 
@@ -98,9 +98,9 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Busca el texto entre los valores sin distinguir mayúsculas")
     void buscarShouldMatchValuesIgnoringCase() {
-        UUID harina = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "Harina 000"),
+        UUID harina = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "Harina 000"),
                 hace(2));
-        dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "Azúcar"), hace(1));
+        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "Azúcar"), hace(1));
 
         Page<RegistroEntity> result = registros.buscarDescendente(negocioA, bloqueA, "%HARINA%", null, PRIMERA);
 
@@ -111,9 +111,9 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Busca también en valores numéricos")
     void buscarShouldMatchNumericValues() {
-        UUID conCantidad = dadoRegistro(NegocioId.de(negocioA), BloqueId
+        UUID conCantidad = givenRegistro(NegocioId.de(negocioA), BloqueId
             .de(bloqueA), valores(campoCantidad, 4500), hace(1));
-        dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 12), hace(0));
+        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 12), hace(0));
 
         Page<RegistroEntity> result = registros.buscarDescendente(negocioA, bloqueA, "%450%", null, PRIMERA);
 
@@ -123,7 +123,7 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("No busca entre los ids de los campos")
     void buscarShouldNotMatchFieldIds() {
-        dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "Harina"), hace(0));
+        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "Harina"), hace(0));
         String fragmentoDelId = campoNombre.toString().substring(0, 8);
 
         Page<RegistroEntity> result = registros.buscarDescendente(
@@ -135,9 +135,9 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Un patrón con comodines escapados busca el símbolo literal")
     void buscarShouldMatchEscapedWildcardsLiterally() {
-        UUID conPorcentaje = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA),
+        UUID conPorcentaje = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA),
                 valores(campoNombre, "Oferta 50% off"), hace(1));
-        dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "Oferta 50 off"), hace(0));
+        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "Oferta 50 off"), hace(0));
 
         Page<RegistroEntity> result = registros.buscarDescendente(negocioA, bloqueA, "%50\\%%", null, PRIMERA);
 
@@ -147,9 +147,9 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Ordena los números por valor y no como texto")
     void buscarAscendenteShouldOrderNumbersNumerically() {
-        UUID diez = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 10), hace(3));
-        UUID nueve = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 9), hace(2));
-        UUID cien = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 100), hace(1));
+        UUID diez = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 10), hace(3));
+        UUID nueve = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 9), hace(2));
+        UUID cien = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 100), hace(1));
 
         Page<RegistroEntity> result = registros.buscarAscendente(
                 negocioA, bloqueA, null, campoCantidad.toString(), PRIMERA);
@@ -160,9 +160,9 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Deja al final a los registros sin el dato, tanto en orden ascendente como descendente")
     void buscarShouldPutRegistrosWithoutValueLast() {
-        UUID sinDato = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(0));
-        UUID cinco = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 5), hace(2));
-        UUID siete = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 7), hace(1));
+        UUID sinDato = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(0));
+        UUID cinco = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 5), hace(2));
+        UUID siete = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 7), hace(1));
 
         Page<RegistroEntity> ascendente = registros.buscarAscendente(
                 negocioA, bloqueA, null, campoCantidad.toString(), PRIMERA);
@@ -176,10 +176,10 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Ordena los textos sin distinguir mayúsculas")
     void buscarAscendenteShouldOrderTextsIgnoringCase() {
-        UUID zeta = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "Zeta"), hace(3));
-        UUID banana = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "banana"),
+        UUID zeta = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "Zeta"), hace(3));
+        UUID banana = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "banana"),
                 hace(2));
-        UUID apple = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "Apple"),
+        UUID apple = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "Apple"),
                 hace(1));
 
         Page<RegistroEntity> result = registros.buscarAscendente(
@@ -191,8 +191,8 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Ordena los sí/no poniendo primero el no")
     void buscarAscendenteShouldOrderBooleansFalseFirst() {
-        UUID si = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoActivo, true), hace(2));
-        UUID no = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoActivo, false), hace(1));
+        UUID si = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoActivo, true), hace(2));
+        UUID no = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoActivo, false), hace(1));
 
         Page<RegistroEntity> result = registros.buscarAscendente(
                 negocioA, bloqueA, null, campoActivo.toString(), PRIMERA);
@@ -204,7 +204,7 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
     @DisplayName("Pagina los resultados e informa el total sin paginar")
     void buscarShouldPaginateAndCountTotal() {
         for (int i = 0; i < 5; i++) {
-            dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, i), hace(10 - i));
+            givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, i), hace(10 - i));
         }
 
         Page<RegistroEntity> ultima = registros.buscarAscendente(
@@ -230,9 +230,9 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Suma los valores numéricos de cada campo y no cuenta los registros que no lo cargaron")
     void sumarNumericosShouldAddNumbersPerCampo() {
-        dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 10), hace(3));
-        dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 5.5), hace(2));
-        dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "Sin cantidad"), hace(1));
+        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 10), hace(3));
+        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 5.5), hace(2));
+        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "Sin cantidad"), hace(1));
 
         Map<String, BigDecimal> sumas = sumasPorCampo(registros.sumarNumericos(
                 negocioA, bloqueA, null, List.of(campoCantidad.toString())));
@@ -244,11 +244,11 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Suma sólo lo que cumple la búsqueda y deja afuera otros bloques y otros negocios")
     void sumarNumericosShouldRespectSearchBloqueAndNegocio() {
-        dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), producto("Harina 000", 40), hace(4));
-        dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), producto("Azúcar", 7), hace(3));
-        dadoRegistro(NegocioId.de(negocioA), BloqueId.de(dadoBloque(NegocioId.de(negocioA), "Clientes")),
+        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), producto("Harina 000", 40), hace(4));
+        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), producto("Azúcar", 7), hace(3));
+        givenRegistro(NegocioId.de(negocioA), BloqueId.de(givenBloque(NegocioId.de(negocioA), "Clientes")),
                 producto("Harina 000", 100), hace(2));
-        dadoRegistro(NegocioId.de(negocioB), BloqueId.de(dadoBloque(NegocioId.de(negocioB), "Productos")),
+        givenRegistro(NegocioId.de(negocioB), BloqueId.de(givenBloque(NegocioId.de(negocioB), "Productos")),
                 producto("Harina 000", 1000), hace(1));
 
         Map<String, BigDecimal> conBusqueda = sumasPorCampo(registros.sumarNumericos(
@@ -265,7 +265,7 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
     void sumarNumericosShouldOnlyReturnRequestedCamposAndZeroWithoutNumbers() {
         Map<String, Object> registro = producto("Texto", 3);
         registro.put(campoActivo.toString(), true);
-        dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), registro, hace(1));
+        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), registro, hace(1));
 
         Map<String, BigDecimal> sumas = sumasPorCampo(registros.sumarNumericos(
                 negocioA, bloqueA, null, List.of(campoCantidad.toString(), campoNombre.toString())));
@@ -278,11 +278,11 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Trae sólo los ids pedidos del bloque y negocio, los más nuevos primero")
     void findAllByIdInShouldReturnRequestedRegistrosOfBloqueAndNegocioNewestFirst() {
-        UUID viejo = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(2));
-        UUID nuevo = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(1));
-        dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(0));
-        UUID otroBloque = dadoRegistro(NegocioId.de(negocioA), BloqueId
-                .de(dadoBloque(NegocioId.de(negocioA), "Clientes")), Map.of(), hace(0));
+        UUID viejo = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(2));
+        UUID nuevo = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(1));
+        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(0));
+        UUID otroBloque = givenRegistro(NegocioId.de(negocioA), BloqueId
+                .de(givenBloque(NegocioId.de(negocioA), "Clientes")), Map.of(), hace(0));
 
         List<RegistroEntity> result = registros.findAllByIdInAndBloqueIdAndNegocioIdOrderByCreadoEnDescIdDesc(
                 List.of(viejo, nuevo, otroBloque), bloqueA, negocioA);
@@ -293,7 +293,7 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("No trae registros pedidos por id con el negocio equivocado")
     void findAllByIdInShouldReturnNothingForOtherNegocio() {
-        UUID registroId = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(0));
+        UUID registroId = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(0));
 
         List<RegistroEntity> result = registros.findAllByIdInAndBloqueIdAndNegocioIdOrderByCreadoEnDescIdDesc(
                 List.of(registroId), bloqueA, negocioB);
@@ -316,11 +316,11 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("El reporte trae las filas del rango de fechas, las más nuevas primero, y respeta el límite")
     void buscarParaReporteShouldFilterByDateRangeNewestFirst() {
-        UUID viejo = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), producto("Viejo", 1),
+        UUID viejo = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), producto("Viejo", 1),
                 hace(60 * 24 * 10));
-        UUID medio = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), producto("Medio", 2),
+        UUID medio = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), producto("Medio", 2),
                 hace(60 * 24 * 5));
-        UUID nuevo = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), producto("Nuevo", 3), hace(60 * 24));
+        UUID nuevo = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), producto("Nuevo", 3), hace(60 * 24));
         String desde = AHORA.minusDays(6).toInstant().toString();
         String hasta = AHORA.minusDays(2).toInstant().toString();
 
@@ -338,10 +338,10 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("El reporte filtra por el texto y por el valor de una columna")
     void buscarParaReporteShouldFilterByTextAndColumnValue() {
-        UUID activoHarina = dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), activo("Harina 000", true),
+        UUID activoHarina = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), activo("Harina 000", true),
                 hace(3));
-        dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), activo("Harina integral", false), hace(2));
-        dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), activo("Azúcar", true), hace(1));
+        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), activo("Harina integral", false), hace(2));
+        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), activo("Azúcar", true), hace(1));
 
         List<RegistroEntity> result = registros.buscarParaReporte(
                 negocioA, bloqueA, "%harina%", null, null, campoActivo.toString(), "true", 100);
@@ -355,12 +355,12 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("La cantidad y las sumas del reporte coinciden con sus filtros y no incluyen a otros negocios")
     void reporteTotalsShouldMatchTheFiltersAndExcludeOtherNegocios() {
-        dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), activo("Harina", true, 40), hace(60 * 24 * 3));
-        dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), activo("Azúcar", true, 7), hace(60 * 24 * 3));
-        dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), activo("Sal", false, 100), hace(60 * 24 * 3));
-        dadoRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), activo("Harina vieja", true, 1000),
+        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), activo("Harina", true, 40), hace(60 * 24 * 3));
+        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), activo("Azúcar", true, 7), hace(60 * 24 * 3));
+        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), activo("Sal", false, 100), hace(60 * 24 * 3));
+        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), activo("Harina vieja", true, 1000),
                 hace(60 * 24 * 30));
-        dadoRegistro(NegocioId.de(negocioB), BloqueId.de(dadoBloque(NegocioId.de(negocioB), "Productos")),
+        givenRegistro(NegocioId.de(negocioB), BloqueId.de(givenBloque(NegocioId.de(negocioB), "Productos")),
                 activo("Harina", true, 5000), hace(60 * 24 * 3));
         String desde = AHORA.minusDays(10).toInstant().toString();
         String ids = campoCantidad.toString();

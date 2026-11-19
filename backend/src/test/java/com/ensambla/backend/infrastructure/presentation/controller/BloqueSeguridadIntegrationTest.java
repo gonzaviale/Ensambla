@@ -83,8 +83,8 @@ class BloqueSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        UsuarioId usuarioId = UsuarioId.de(dadoUsuario());
-        negocioId = NegocioId.de(dadoNegocio(usuarioId));
+        UsuarioId usuarioId = UsuarioId.de(givenUsuario());
+        negocioId = NegocioId.de(givenNegocio(usuarioId));
         sesion = givenSesion(usuarioId);
     }
 
@@ -92,7 +92,7 @@ class BloqueSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @DisplayName("Crear agrega el bloque al final del proyecto propio y lo deja guardado")
     void crearShouldPersistBloqueAtTheEnd() throws Exception {
         ProyectoId proyectoId = ProyectoId.de(givenProyecto(negocioId));
-        dadoBloque(negocioId, proyectoId, "Productos", 0);
+        givenBloque(negocioId, proyectoId, "Productos", 0);
 
         mockMvc.perform(post("/api/proyectos/{id}/bloques", proyectoId).session(sesion)
                         .header("X-CSRF-TOKEN", csrfToken)
@@ -111,7 +111,7 @@ class BloqueSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @DisplayName("Crear con un nombre que ya existe en el proyecto devuelve 409")
     void crearShouldRejectRepeatedName() throws Exception {
         ProyectoId proyectoId = ProyectoId.de(givenProyecto(negocioId));
-        dadoBloque(negocioId, proyectoId, "Productos", 0);
+        givenBloque(negocioId, proyectoId, "Productos", 0);
 
         mockMvc.perform(post("/api/proyectos/{id}/bloques", proyectoId).session(sesion)
                         .header("X-CSRF-TOKEN", csrfToken)
@@ -122,7 +122,7 @@ class BloqueSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Crear en un proyecto ajeno devuelve 404 y no guarda nada")
     void crearShouldHideForeignProyecto() throws Exception {
-        UUID ajenoNegocioId = dadoNegocio(UsuarioId.de(dadoUsuario()));
+        UUID ajenoNegocioId = givenNegocio(UsuarioId.de(givenUsuario()));
         UUID ajenoProyectoId = givenProyecto(NegocioId.de(ajenoNegocioId));
 
         mockMvc.perform(post("/api/proyectos/{id}/bloques", ajenoProyectoId).session(sesion)
@@ -137,9 +137,9 @@ class BloqueSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Listar los bloques de un proyecto ajeno devuelve 404")
     void listarShouldHideForeignProyecto() throws Exception {
-        UUID ajenoNegocioId = dadoNegocio(UsuarioId.de(dadoUsuario()));
+        UUID ajenoNegocioId = givenNegocio(UsuarioId.de(givenUsuario()));
         UUID ajenoProyectoId = givenProyecto(NegocioId.de(ajenoNegocioId));
-        dadoBloque(NegocioId.de(ajenoNegocioId), ProyectoId.de(ajenoProyectoId), "Secreto", 0);
+        givenBloque(NegocioId.de(ajenoNegocioId), ProyectoId.de(ajenoProyectoId), "Secreto", 0);
 
         mockMvc.perform(get("/api/proyectos/{id}/bloques", ajenoProyectoId).session(sesion))
                 .andExpect(status().isNotFound());
@@ -148,8 +148,8 @@ class BloqueSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Un PATCH a un bloque ajeno responde 404 y conserva el nombre")
     void renombrarShouldNotModifyForeignBloque() throws Exception {
-        UUID ajenoNegocioId = dadoNegocio(UsuarioId.de(dadoUsuario()));
-        UUID ajenoBloqueId = dadoBloque(NegocioId
+        UUID ajenoNegocioId = givenNegocio(UsuarioId.de(givenUsuario()));
+        UUID ajenoBloqueId = givenBloque(NegocioId
                 .de(ajenoNegocioId),
                 ProyectoId.de(givenProyecto(NegocioId.de(ajenoNegocioId))), "Ajeno", 0);
 
@@ -165,9 +165,9 @@ class BloqueSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Un DELETE a un bloque ajeno responde 404 y conserva el bloque")
     void eliminarShouldNotDeleteForeignBloque() throws Exception {
-        UUID ajenoNegocioId = dadoNegocio(UsuarioId
-            .de(dadoUsuario()));
-        UUID ajenoBloqueId = dadoBloque(NegocioId.de(ajenoNegocioId),
+        UUID ajenoNegocioId = givenNegocio(UsuarioId
+            .de(givenUsuario()));
+        UUID ajenoBloqueId = givenBloque(NegocioId.de(ajenoNegocioId),
                 ProyectoId.de(givenProyecto(NegocioId.de(ajenoNegocioId))), "Ajeno", 0);
 
         mockMvc.perform(delete("/api/bloques/{id}", ajenoBloqueId).session(sesion)
@@ -181,8 +181,8 @@ class BloqueSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @DisplayName("Un DELETE a una tabla que otra tabla usa en una conexión responde 400 y conserva la tabla")
     void eliminarShouldRejectBloqueUsedByConexion() throws Exception {
         ProyectoId proyectoId = ProyectoId.de(givenProyecto(negocioId));
-        UUID clientes = dadoBloque(negocioId, proyectoId, "Clientes", 0);
-        UUID pedidos = dadoBloque(negocioId, proyectoId, "Pedidos", 1);
+        UUID clientes = givenBloque(negocioId, proyectoId, "Clientes", 0);
+        UUID pedidos = givenBloque(negocioId, proyectoId, "Pedidos", 1);
         givenConexion(BloqueId.de(pedidos), "Cliente", clientes);
 
         mockMvc.perform(delete("/api/bloques/{id}", clientes).session(sesion)
@@ -197,7 +197,7 @@ class BloqueSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Un DELETE a una tabla que sólo se conecta consigo misma la borra")
     void eliminarShouldDeleteBloqueWithSelfConexion() throws Exception {
-        UUID clientes = dadoBloque(negocioId, ProyectoId.de(givenProyecto(negocioId)), "Clientes", 0);
+        UUID clientes = givenBloque(negocioId, ProyectoId.de(givenProyecto(negocioId)), "Clientes", 0);
         givenConexion(BloqueId.de(clientes), "Recomendado por", clientes);
 
         mockMvc.perform(delete("/api/bloques/{id}", clientes).session(sesion)
@@ -228,7 +228,7 @@ class BloqueSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     // --- arrange ---
-    private UUID dadoUsuario() {
+    private UUID givenUsuario() {
         return usuarios.saveAndFlush(UsuarioEntity.builder()
                 .nombre("Persona")
                 .email(UUID.randomUUID() + "@example.com")
@@ -238,7 +238,7 @@ class BloqueSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID dadoNegocio(UsuarioId usuarioId) {
+    private UUID givenNegocio(UsuarioId usuarioId) {
         return negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(usuarioId.valor())
@@ -256,7 +256,7 @@ class BloqueSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID dadoBloque(NegocioId negocioId, ProyectoId proyectoId, String nombre, int posicion) {
+    private UUID givenBloque(NegocioId negocioId, ProyectoId proyectoId, String nombre, int posicion) {
         return bloques.saveAndFlush(BloqueEntity.builder()
                 .negocioId(negocioId.valor())
                 .proyectoId(proyectoId.valor())

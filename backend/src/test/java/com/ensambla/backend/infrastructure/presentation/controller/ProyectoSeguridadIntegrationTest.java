@@ -82,8 +82,8 @@ class ProyectoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
         givenPlanGratuito();
-        UsuarioId usuarioId = UsuarioId.de(dadoUsuario());
-        negocioId = NegocioId.de(dadoNegocio(usuarioId));
+        UsuarioId usuarioId = UsuarioId.de(givenUsuario());
+        negocioId = NegocioId.de(givenNegocio(usuarioId));
         sesion = givenSesion(usuarioId);
     }
 
@@ -91,7 +91,7 @@ class ProyectoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @DisplayName("La lista HTTP contiene sólo proyectos del usuario autenticado")
     void listarShouldIsolateNegocios() throws Exception {
         givenProyecto(negocioId, "Propio");
-        givenProyecto(NegocioId.de(dadoNegocio(UsuarioId.de(dadoUsuario()))), "Ajeno");
+        givenProyecto(NegocioId.de(givenNegocio(UsuarioId.de(givenUsuario()))), "Ajeno");
 
         mockMvc.perform(get("/api/proyectos").session(sesion))
                 .andExpect(status().isOk())
@@ -102,7 +102,7 @@ class ProyectoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Consultar un proyecto ajeno devuelve 404")
     void obtenerShouldHideForeignProyecto() throws Exception {
-        UUID ajenoId = givenProyecto(NegocioId.de(dadoNegocio(UsuarioId.de(dadoUsuario()))), "Ajeno");
+        UUID ajenoId = givenProyecto(NegocioId.de(givenNegocio(UsuarioId.de(givenUsuario()))), "Ajeno");
 
         mockMvc.perform(get("/api/proyectos/{id}", ajenoId).session(sesion))
                 .andExpect(status().isNotFound());
@@ -111,7 +111,7 @@ class ProyectoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Crear ignora negocioId del body y persiste en el negocio de la sesión")
     void crearShouldUseSessionNegocio() throws Exception {
-        UUID ajenoId = dadoNegocio(UsuarioId.de(dadoUsuario()));
+        UUID ajenoId = givenNegocio(UsuarioId.de(givenUsuario()));
 
         mockMvc.perform(post("/api/proyectos").session(sesion).header("X-CSRF-TOKEN", csrfToken)
                         .contentType("application/json")
@@ -126,7 +126,7 @@ class ProyectoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Un PATCH ajeno responde 404 y conserva el nombre original")
     void renombrarShouldNotModifyForeignProyecto() throws Exception {
-        UUID ajenoNegocioId = dadoNegocio(UsuarioId.de(dadoUsuario()));
+        UUID ajenoNegocioId = givenNegocio(UsuarioId.de(givenUsuario()));
         UUID ajenoId = givenProyecto(NegocioId.de(ajenoNegocioId), "Ajeno");
 
         mockMvc.perform(patch("/api/proyectos/{id}", ajenoId).session(sesion).header("X-CSRF-TOKEN", csrfToken)
@@ -140,7 +140,7 @@ class ProyectoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Un DELETE ajeno responde 404 y conserva el proyecto")
     void eliminarShouldNotDeleteForeignProyecto() throws Exception {
-        UUID ajenoNegocioId = dadoNegocio(UsuarioId.de(dadoUsuario()));
+        UUID ajenoNegocioId = givenNegocio(UsuarioId.de(givenUsuario()));
         UUID ajenoId = givenProyecto(NegocioId.de(ajenoNegocioId), "Ajeno");
 
         mockMvc.perform(delete("/api/proyectos/{id}", ajenoId).session(sesion).header("X-CSRF-TOKEN", csrfToken))
@@ -168,7 +168,7 @@ class ProyectoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     // --- arrange ---
-    private UUID dadoUsuario() {
+    private UUID givenUsuario() {
         return usuarios.saveAndFlush(UsuarioEntity.builder()
                 .nombre("Persona")
                 .email(UUID.randomUUID() + "@example.com")
@@ -178,7 +178,7 @@ class ProyectoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID dadoNegocio(UsuarioId usuarioId) {
+    private UUID givenNegocio(UsuarioId usuarioId) {
         UUID creadoId = negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(usuarioId.valor())

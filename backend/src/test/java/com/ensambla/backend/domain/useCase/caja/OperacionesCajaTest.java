@@ -58,7 +58,7 @@ class OperacionesCajaTest {
     @Test
     @DisplayName("Cierra y vincula exactamente las ventas revisadas bajo el mismo bloqueo que los cobros")
     void cerrarShouldSaveAndAssignPeriod() {
-        dadoUsuario();
+        givenUsuario();
         when(ventas.listarAbiertas(CajaTestData.NEGOCIO, CajaTestData.PROYECTO, CajaTestData.INVENTARIO))
                 .thenReturn(List.of(CierreCajaTestData.venta()));
 
@@ -74,7 +74,7 @@ class OperacionesCajaTest {
     @Test
     @DisplayName("Reintentar el mismo cierre devuelve la copia original sin consumir ventas posteriores")
     void cerrarShouldReturnSameSnapshotWhenRetried() {
-        dadoUsuario();
+        givenUsuario();
         when(cierres.findByIdAndNegocioId(CierreCajaTestData.CIERRE, CajaTestData.NEGOCIO))
                 .thenReturn(Optional.of(CierreCajaTestData.cierre()));
 
@@ -88,7 +88,7 @@ class OperacionesCajaTest {
     @Test
     @DisplayName("El id de cierre no puede reutilizarse con datos distintos")
     void cerrarShouldRejectChangedRetry() {
-        dadoUsuario();
+        givenUsuario();
         CierreCaja anterior = CierreCajaTestData.cierre();
         when(cierres.findByIdAndNegocioId(CierreCajaTestData.CIERRE, CajaTestData.NEGOCIO))
                 .thenReturn(Optional.of(anterior));
@@ -104,7 +104,7 @@ class OperacionesCajaTest {
     @Test
     @DisplayName("El día argentino se consulta aparte del período abierto")
     void consultarShouldSeparateCalendarDayAndOpenPeriod() {
-        dadoUsuario();
+        givenUsuario();
         LocalDate fecha = ZonaNegocio.dia(CajaTestData.AHORA);
         when(ventas.listarAbiertas(CajaTestData.NEGOCIO, CajaTestData.PROYECTO, CajaTestData.INVENTARIO))
                 .thenReturn(List.of(CierreCajaTestData.venta()));
@@ -132,7 +132,7 @@ class OperacionesCajaTest {
     @Test
     @DisplayName("Permite consultar otra fecha y paginar los cierres")
     void consultarShouldSupportSelectedDayAndPagination() {
-        dadoUsuario();
+        givenUsuario();
         LocalDate fecha = LocalDate.of(2026, 10, 1);
         when(cierres.listar(CajaTestData.NEGOCIO, CajaTestData.PROYECTO, CajaTestData.INVENTARIO, 1))
                 .thenReturn(Collections.nCopies(20, CierreCajaTestData.cierre()));
@@ -148,7 +148,7 @@ class OperacionesCajaTest {
     @Test
     @DisplayName("El detalle de un cierre sólo se obtiene dentro del negocio autenticado")
     void obtenerShouldReturnOwnedSnapshot() {
-        dadoUsuario();
+        givenUsuario();
         when(cierres.findByIdAndNegocioId(CierreCajaTestData.CIERRE, CajaTestData.NEGOCIO))
                 .thenReturn(Optional.of(CierreCajaTestData.cierre()));
 
@@ -160,14 +160,14 @@ class OperacionesCajaTest {
     @Test
     @DisplayName("Un cierre ajeno responde como inexistente")
     void obtenerShouldHideForeignClosure() {
-        dadoUsuario();
+        givenUsuario();
 
         assertThatThrownBy(() -> obtener.execute(new ObtenerCierreRequest(CajaTestData.USUARIO, CierreCajaId.nuevo())))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     // --- arrange ---
-    private void dadoUsuario() {
+    private void givenUsuario() {
         when(negocios.obtenerIdDelUsuario(CajaTestData.USUARIO)).thenReturn(CajaTestData.NEGOCIO);
     }
 

@@ -88,7 +88,7 @@ class SistemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Guardar un sistema nuevo lo inserta entero con los ids de la pantalla, las filas en orden y las conexiones")
     void guardarShouldInsertWholeSistemaKeepingIds() {
-        UUID negocioId = dadoNegocio();
+        UUID negocioId = givenNegocio();
 
         guardar(negocioId, givenItem());
 
@@ -114,7 +114,7 @@ class SistemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Guardar dos veces el mismo sistema no duplica nada")
     void guardarShouldBeIdempotent() {
-        UUID negocioId = dadoNegocio();
+        UUID negocioId = givenNegocio();
 
         guardar(negocioId, givenItem());
         guardar(negocioId, givenItem());
@@ -129,7 +129,7 @@ class SistemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Guardar de nuevo aplica cambios: renombra, quita bloque, columna y fila, y una columna nueva puede reusar la clave de la quitada")
     void guardarShouldApplyChanges() {
-        UUID negocioId = dadoNegocio();
+        UUID negocioId = givenNegocio();
         guardar(negocioId, givenItem());
         RegistroId harinaId = registro(negocioId, HARINA);
         BloqueId productosId = IdSistema.aId(NegocioId.de(negocioId), PRODUCTOS, BloqueId::de);
@@ -154,8 +154,8 @@ class SistemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Los sistemas de otro negocio no aparecen ni se tocan")
     void findAllShouldNotLeakOtherNegocios() {
-        UUID negocioId = dadoNegocio();
-        UUID ajenoId = dadoNegocio();
+        UUID negocioId = givenNegocio();
+        UUID ajenoId = givenNegocio();
         guardar(negocioId, givenItem());
 
         assertThat(sistemaRepository.findAllByNegocioId(NegocioId.de(ajenoId))).isEmpty();
@@ -165,7 +165,7 @@ class SistemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Guardar conserva la descripción y la plantilla de un proyecto que ya existía")
     void guardarShouldKeepDescriptionOfExistingProyecto() {
-        UUID negocioId = dadoNegocio();
+        UUID negocioId = givenNegocio();
         guardar(negocioId, givenItem());
         var entidad = proyectos.findById(SISTEMA_ID).orElseThrow();
         entidad.setDescripcion("Creado a mano");
@@ -180,7 +180,7 @@ class SistemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Guardar con la hora de lectura conserva las filas que Sami cargó por WhatsApp después de esa lectura")
     void guardarShouldKeepWhatsappRowsLoadedAfterTheRead() {
-        UUID negocioId = dadoNegocio();
+        UUID negocioId = givenNegocio();
         guardar(negocioId, givenItem());
         UUID deWhatsapp = givenFilaCargadaDespues(negocioId, "WhatsApp");
 
@@ -192,7 +192,7 @@ class SistemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Guardar elimina la fila de WhatsApp si el cliente ya la conocía, y las que no son de WhatsApp siempre")
     void guardarShouldDeleteKnownWhatsappRowsAndAnyOtherRow() {
-        UUID negocioId = dadoNegocio();
+        UUID negocioId = givenNegocio();
         guardar(negocioId, givenItem());
         UUID conocida = givenFilaCargadaDespues(negocioId, "WhatsApp");
         UUID manual = givenFilaCargadaDespues(negocioId, null);
@@ -206,7 +206,7 @@ class SistemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Guardar sin hora de lectura es el reemplazo exacto de siempre, también con filas de WhatsApp")
     void guardarShouldReplaceExactlyWithoutReadTime() {
-        UUID negocioId = dadoNegocio();
+        UUID negocioId = givenNegocio();
         guardar(negocioId, givenItem());
         UUID deWhatsapp = givenFilaCargadaDespues(negocioId, "WhatsApp");
 
@@ -218,7 +218,7 @@ class SistemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("La posición de la próxima fila es una más que la última del bloque, o 0 si no tiene filas")
     void siguienteOrdenShouldBeOneAfterTheLast() {
-        UUID negocioId = dadoNegocio();
+        UUID negocioId = givenNegocio();
         guardar(negocioId, givenItem());
         BloqueId productosId = IdSistema.aId(NegocioId.de(negocioId), PRODUCTOS, BloqueId::de);
         BloqueId notasId = IdSistema.aId(NegocioId.de(negocioId), NOTAS, BloqueId::de);
@@ -301,7 +301,7 @@ class SistemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         return fila;
     }
 
-    private UUID dadoNegocio() {
+    private UUID givenNegocio() {
         UUID usuarioId = usuarios.saveAndFlush(UsuarioEntity.builder()
                 .nombre("Persona")
                 .email(UUID.randomUUID() + "@example.com")

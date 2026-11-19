@@ -41,9 +41,9 @@ class IProgresoObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
 
     @BeforeEach
     void setUp() {
-        negocio = dadoNegocio("a@example.com").getId();
+        negocio = givenNegocio("a@example.com").getId();
         objetivo = givenObjetivo(negocio);
-        otroObjetivo = givenObjetivo(dadoNegocio("b@example.com").getId());
+        otroObjetivo = givenObjetivo(givenNegocio("b@example.com").getId());
         mini = givenMini(objetivo, negocio);
     }
 

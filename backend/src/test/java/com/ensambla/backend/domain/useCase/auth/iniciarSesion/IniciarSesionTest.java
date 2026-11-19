@@ -31,7 +31,7 @@ class IniciarSesionTest {
     @Test
     @DisplayName("Autentica con email normalizado y contraseña correcta y devuelve la identidad")
     void executeShouldReturnIdentityWhenPasswordMatches() {
-        dadoUsuario(EstadoUsuario.ACTIVO);
+        givenUsuario(EstadoUsuario.ACTIVO);
         when(contraseniaPort.coincide(CONTRASENIA, HASH)).thenReturn(true);
 
         UsuarioResponse result = iniciarSesion();
@@ -52,7 +52,7 @@ class IniciarSesionTest {
     @Test
     @DisplayName("Rechaza un usuario suspendido sin validar la contraseña")
     void executeShouldRejectSuspendedUsuario() {
-        dadoUsuario(EstadoUsuario.SUSPENDIDO);
+        givenUsuario(EstadoUsuario.SUSPENDIDO);
 
         thenCredentialsRejected();
 
@@ -62,14 +62,14 @@ class IniciarSesionTest {
     @Test
     @DisplayName("Rechaza una contraseña incorrecta")
     void executeShouldRejectWrongPassword() {
-        dadoUsuario(EstadoUsuario.ACTIVO);
+        givenUsuario(EstadoUsuario.ACTIVO);
         when(contraseniaPort.coincide(CONTRASENIA, HASH)).thenReturn(false);
 
         thenCredentialsRejected();
     }
 
     // --- arrange ---
-    private void dadoUsuario(EstadoUsuario estado) {
+    private void givenUsuario(EstadoUsuario estado) {
         Usuario usuario = usuario();
         usuario.setEstado(estado);
         when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.of(usuario));

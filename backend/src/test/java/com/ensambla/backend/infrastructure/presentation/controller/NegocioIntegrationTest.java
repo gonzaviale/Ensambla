@@ -81,7 +81,7 @@ class NegocioIntegrationTest extends PostgresRepositoryTestSupport {
         when(geocodificadorPort.resolverLocalidades(any(), any(), any()))
                 .thenReturn(new LocalidadesDelPunto(List.of("San Justo")));
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        usuarioId = UsuarioId.de(dadoUsuario());
+        usuarioId = UsuarioId.de(givenUsuario());
         negocioId = NegocioId.nuevo();
         jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Mi negocio', ?)",
                 negocioId.valor(), usuarioId.valor());
@@ -234,7 +234,7 @@ class NegocioIntegrationTest extends PostgresRepositoryTestSupport {
     @DisplayName("Los ids enviados por el cliente nunca cambian el negocio de otro dueño")
     void actualizarShouldIgnoreForeignBusinessAndOwnerIds() throws Exception {
         UUID ajeno = UUID.randomUUID();
-        UUID otroUsuario = dadoUsuario();
+        UUID otroUsuario = givenUsuario();
         jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Ajeno', ?)", ajeno, otroUsuario);
 
         actualizar("{\"nombre\":\"Propio\",\"negocioId\":\"" + ajeno + "\",\"duenioId\":\"" + otroUsuario + "\"}")
@@ -250,7 +250,7 @@ class NegocioIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("No encuentra configuración para un usuario sin negocio propio")
     void obtenerShouldRejectUserWithoutBusiness() throws Exception {
-        MockHttpSession sinNegocio = givenSesion(dadoUsuario());
+        MockHttpSession sinNegocio = givenSesion(givenUsuario());
 
         mockMvc.perform(get(API).session(sinNegocio)).andExpect(status().isNotFound());
     }
@@ -258,7 +258,7 @@ class NegocioIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Un usuario sin negocio propio no puede editar otro negocio")
     void actualizarShouldRejectUserWithoutBusiness() throws Exception {
-        sesion = givenSesion(dadoUsuario());
+        sesion = givenSesion(givenUsuario());
 
         actualizar(CONFIGURACION).andExpect(status().isNotFound());
     }
@@ -283,7 +283,7 @@ class NegocioIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     // --- arrange ---
-    private UUID dadoUsuario() {
+    private UUID givenUsuario() {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO usuario (id, email, nombre) VALUES (?, ?, 'Persona')", id, id + "@example.test");
         return id;

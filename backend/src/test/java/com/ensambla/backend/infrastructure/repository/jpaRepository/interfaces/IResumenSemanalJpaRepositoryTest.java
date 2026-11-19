@@ -33,8 +33,8 @@ class IResumenSemanalJpaRepositoryTest extends PostgresDatosTestSupport {
 
     @BeforeEach
     void setUp() {
-        objetivo = givenObjetivo(dadoNegocio("a@example.com").getId());
-        otroObjetivo = givenObjetivo(dadoNegocio("b@example.com").getId());
+        objetivo = givenObjetivo(givenNegocio("a@example.com").getId());
+        otroObjetivo = givenObjetivo(givenNegocio("b@example.com").getId());
     }
 
     @Test

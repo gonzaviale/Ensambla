@@ -28,9 +28,9 @@ class ICampoJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Encuentra el campo dentro de su negocio")
     void findByIdAndNegocioIdShouldReturnCampoOfNegocio() {
-        UUID negocioId = dadoNegocio("a@example.com").getId();
-        UUID campoId = dadoCampo(NegocioId.de(negocioId), BloqueId
-                .de(dadoBloque(NegocioId.de(negocioId), "Productos")), "Precio", TipoCampo.NUMERO, 0);
+        UUID negocioId = givenNegocio("a@example.com").getId();
+        UUID campoId = givenCampo(NegocioId.de(negocioId), BloqueId
+                .de(givenBloque(NegocioId.de(negocioId), "Productos")), "Precio", TipoCampo.NUMERO, 0);
 
         Optional<CampoEntity> result = campos.findByIdAndNegocioId(campoId, negocioId);
 
@@ -40,10 +40,10 @@ class ICampoJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("No devuelve un campo de otro negocio")
     void findByIdAndNegocioIdShouldReturnEmptyWhenCampoBelongsToOtherNegocio() {
-        UUID negocioA = dadoNegocio("a@example.com").getId();
-        UUID negocioB = dadoNegocio("b@example.com").getId();
-        UUID campoDeA = dadoCampo(NegocioId.de(negocioA), BloqueId
-                .de(dadoBloque(NegocioId.de(negocioA), "Productos")), "Precio", TipoCampo.NUMERO, 0);
+        UUID negocioA = givenNegocio("a@example.com").getId();
+        UUID negocioB = givenNegocio("b@example.com").getId();
+        UUID campoDeA = givenCampo(NegocioId.de(negocioA), BloqueId
+                .de(givenBloque(NegocioId.de(negocioA), "Productos")), "Precio", TipoCampo.NUMERO, 0);
 
         Optional<CampoEntity> result = campos.findByIdAndNegocioId(campoDeA, negocioB);
 
@@ -53,8 +53,8 @@ class ICampoJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Guarda y relee las opciones, el valor inicial y la obligatoriedad de un campo de opción")
     void saveShouldRoundTripOpcionConfiguration() {
-        UUID negocioId = dadoNegocio("a@example.com").getId();
-        UUID bloqueId = dadoBloque(NegocioId.de(negocioId), "Productos");
+        UUID negocioId = givenNegocio("a@example.com").getId();
+        UUID bloqueId = givenBloque(NegocioId.de(negocioId), "Productos");
         UUID campoId = campos.saveAndFlush(CampoEntity.builder()
                 .negocioId(negocioId)
                 .bloqueId(bloqueId)
@@ -80,11 +80,11 @@ class ICampoJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Borrar un campo no borra los registros del bloque")
     void deleteByIdAndNegocioIdShouldKeepRegistros() {
-        UUID negocioId = dadoNegocio("a@example.com").getId();
-        UUID bloqueId = dadoBloque(NegocioId.de(negocioId), "Productos");
-        UUID campoId = dadoCampo(NegocioId
+        UUID negocioId = givenNegocio("a@example.com").getId();
+        UUID bloqueId = givenBloque(NegocioId.de(negocioId), "Productos");
+        UUID campoId = givenCampo(NegocioId
                 .de(negocioId), BloqueId.de(bloqueId), "Nombre", TipoCampo.TEXTO, 0);
-        UUID registroId = dadoRegistro(NegocioId.de(negocioId), BloqueId.de(bloqueId), Map
+        UUID registroId = givenRegistro(NegocioId.de(negocioId), BloqueId.de(bloqueId), Map
                 .of(campoId.toString(), "Vela"), AHORA);
 
         campos.deleteByIdAndNegocioId(campoId, negocioId);
@@ -97,10 +97,10 @@ class ICampoJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Borrar con el negocio equivocado no toca el campo ajeno")
     void deleteByIdAndNegocioIdShouldNotDeleteCampoOfOtherNegocio() {
-        UUID negocioA = dadoNegocio("a@example.com").getId();
-        UUID negocioB = dadoNegocio("b@example.com").getId();
-        UUID campoDeA = dadoCampo(NegocioId.de(negocioA), BloqueId
-                .de(dadoBloque(NegocioId.de(negocioA), "Productos")), "Precio", TipoCampo.NUMERO, 0);
+        UUID negocioA = givenNegocio("a@example.com").getId();
+        UUID negocioB = givenNegocio("b@example.com").getId();
+        UUID campoDeA = givenCampo(NegocioId.de(negocioA), BloqueId
+                .de(givenBloque(NegocioId.de(negocioA), "Productos")), "Precio", TipoCampo.NUMERO, 0);
 
         campos.deleteByIdAndNegocioId(campoDeA, negocioB);
 
@@ -110,10 +110,10 @@ class ICampoJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Encuentra los campos de otros bloques que se conectan con el bloque, sin contar la autorreferencia")
     void findRelacionesHaciaShouldReturnConexionesFromOtherBloques() {
-        UUID negocioId = dadoNegocio("a@example.com").getId();
-        UUID clientes = dadoBloque(NegocioId.de(negocioId), "Clientes");
-        UUID pedidos = dadoBloque(NegocioId.de(negocioId), "Pedidos");
-        dadoCampo(NegocioId.de(negocioId), BloqueId.de(pedidos), "Total", TipoCampo.NUMERO, 0);
+        UUID negocioId = givenNegocio("a@example.com").getId();
+        UUID clientes = givenBloque(NegocioId.de(negocioId), "Clientes");
+        UUID pedidos = givenBloque(NegocioId.de(negocioId), "Pedidos");
+        givenCampo(NegocioId.de(negocioId), BloqueId.de(pedidos), "Total", TipoCampo.NUMERO, 0);
         givenRelacion(negocioId, clientes, "Recomendado por", clientes);
         UUID cliente = givenRelacion(negocioId, pedidos, "Cliente", clientes);
 
@@ -125,10 +125,10 @@ class ICampoJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("No devuelve conexiones de otro negocio")
     void findRelacionesHaciaShouldReturnNothingForOtherNegocio() {
-        UUID negocioA = dadoNegocio("a@example.com").getId();
-        UUID negocioB = dadoNegocio("b@example.com").getId();
-        UUID clientes = dadoBloque(NegocioId.de(negocioA), "Clientes");
-        givenRelacion(negocioA, dadoBloque(NegocioId.de(negocioA), "Pedidos"), "Cliente", clientes);
+        UUID negocioA = givenNegocio("a@example.com").getId();
+        UUID negocioB = givenNegocio("b@example.com").getId();
+        UUID clientes = givenBloque(NegocioId.de(negocioA), "Clientes");
+        givenRelacion(negocioA, givenBloque(NegocioId.de(negocioA), "Pedidos"), "Cliente", clientes);
 
         List<CampoEntity> result = campos.findRelacionesHacia(clientes, negocioB);
 
@@ -138,9 +138,9 @@ class ICampoJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Guarda y relee la tabla con la que se conecta un campo de conexión")
     void saveShouldRoundTripBloqueRelacionado() {
-        UUID negocioId = dadoNegocio("a@example.com").getId();
-        UUID clientes = dadoBloque(NegocioId.de(negocioId), "Clientes");
-        UUID campoId = givenRelacion(negocioId, dadoBloque(NegocioId.de(negocioId), "Pedidos"), "Cliente", clientes);
+        UUID negocioId = givenNegocio("a@example.com").getId();
+        UUID clientes = givenBloque(NegocioId.de(negocioId), "Clientes");
+        UUID campoId = givenRelacion(negocioId, givenBloque(NegocioId.de(negocioId), "Pedidos"), "Cliente", clientes);
         entityManager.clear();
 
         CampoEntity result = campos.findByIdAndNegocioId(campoId, negocioId).orElseThrow();
@@ -152,8 +152,8 @@ class ICampoJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("La base rechaza un campo de conexión sin tabla")
     void saveShouldRejectRelacionWithoutBloque() {
-        UUID negocioId = dadoNegocio("a@example.com").getId();
-        UUID pedidos = dadoBloque(NegocioId.de(negocioId), "Pedidos");
+        UUID negocioId = givenNegocio("a@example.com").getId();
+        UUID pedidos = givenBloque(NegocioId.de(negocioId), "Pedidos");
 
         assertThatThrownBy(() -> givenRelacion(negocioId, pedidos, "Cliente", null))
                 .isInstanceOf(DataIntegrityViolationException.class);
@@ -162,9 +162,9 @@ class ICampoJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("La base rechaza una tabla conectada en un campo que no es de conexión")
     void saveShouldRejectBloqueRelacionadoOnOtherTipo() {
-        UUID negocioId = dadoNegocio("a@example.com").getId();
-        UUID clientes = dadoBloque(NegocioId.de(negocioId), "Clientes");
-        CampoEntity texto = campo(negocioId, dadoBloque(NegocioId.de(negocioId), "Pedidos"), "Cliente",
+        UUID negocioId = givenNegocio("a@example.com").getId();
+        UUID clientes = givenBloque(NegocioId.de(negocioId), "Clientes");
+        CampoEntity texto = campo(negocioId, givenBloque(NegocioId.de(negocioId), "Pedidos"), "Cliente",
                 TipoCampo.TEXTO, clientes);
 
         assertThatThrownBy(() -> campos.saveAndFlush(texto)).isInstanceOf(DataIntegrityViolationException.class);
@@ -173,10 +173,10 @@ class ICampoJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("La base rechaza conectar con una tabla de otro negocio")
     void saveShouldRejectBloqueRelacionadoOfOtherNegocio() {
-        UUID negocioA = dadoNegocio("a@example.com").getId();
-        UUID negocioB = dadoNegocio("b@example.com").getId();
-        UUID clientesDeB = dadoBloque(NegocioId.de(negocioB), "Clientes");
-        UUID pedidosDeA = dadoBloque(NegocioId.de(negocioA), "Pedidos");
+        UUID negocioA = givenNegocio("a@example.com").getId();
+        UUID negocioB = givenNegocio("b@example.com").getId();
+        UUID clientesDeB = givenBloque(NegocioId.de(negocioB), "Clientes");
+        UUID pedidosDeA = givenBloque(NegocioId.de(negocioA), "Pedidos");
 
         assertThatThrownBy(() -> givenRelacion(negocioA, pedidosDeA, "Cliente", clientesDeB))
                 .isInstanceOf(DataIntegrityViolationException.class);
@@ -185,9 +185,9 @@ class ICampoJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Borrar la tabla conectada borra en cascada el campo de conexión")
     void deleteBloqueShouldCascadeToRelacion() {
-        UUID negocioId = dadoNegocio("a@example.com").getId();
-        UUID clientes = dadoBloque(NegocioId.de(negocioId), "Clientes");
-        UUID campoId = givenRelacion(negocioId, dadoBloque(NegocioId.de(negocioId), "Pedidos"), "Cliente", clientes);
+        UUID negocioId = givenNegocio("a@example.com").getId();
+        UUID clientes = givenBloque(NegocioId.de(negocioId), "Clientes");
+        UUID campoId = givenRelacion(negocioId, givenBloque(NegocioId.de(negocioId), "Pedidos"), "Cliente", clientes);
 
         bloques.deleteByIdAndNegocioId(clientes, negocioId);
 

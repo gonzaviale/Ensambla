@@ -17,10 +17,10 @@ class IBloqueJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Borrar un bloque elimina en cascada sus campos y registros")
     void deleteByIdAndNegocioIdShouldCascadeToCamposAndRegistros() {
-        UUID negocioId = dadoNegocio("a@example.com").getId();
-        UUID bloqueId = dadoBloque(NegocioId.de(negocioId), "Productos");
-        UUID campoId = dadoCampo(NegocioId.de(negocioId), BloqueId.de(bloqueId), "Nombre", TipoCampo.TEXTO, 0);
-        UUID registroId = dadoRegistro(NegocioId.de(negocioId), BloqueId.de(bloqueId), Map
+        UUID negocioId = givenNegocio("a@example.com").getId();
+        UUID bloqueId = givenBloque(NegocioId.de(negocioId), "Productos");
+        UUID campoId = givenCampo(NegocioId.de(negocioId), BloqueId.de(bloqueId), "Nombre", TipoCampo.TEXTO, 0);
+        UUID registroId = givenRegistro(NegocioId.de(negocioId), BloqueId.de(bloqueId), Map
                 .of(campoId.toString(), "Vela"), AHORA);
 
         bloques.deleteByIdAndNegocioId(bloqueId, negocioId);
@@ -33,9 +33,9 @@ class IBloqueJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Borrar con el negocio equivocado no toca el bloque ajeno")
     void deleteByIdAndNegocioIdShouldNotDeleteBloqueOfOtherNegocio() {
-        UUID negocioA = dadoNegocio("a@example.com").getId();
-        UUID negocioB = dadoNegocio("b@example.com").getId();
-        UUID bloqueDeA = dadoBloque(NegocioId.de(negocioA), "Productos");
+        UUID negocioA = givenNegocio("a@example.com").getId();
+        UUID negocioB = givenNegocio("b@example.com").getId();
+        UUID bloqueDeA = givenBloque(NegocioId.de(negocioA), "Productos");
 
         bloques.deleteByIdAndNegocioId(bloqueDeA, negocioB);
 

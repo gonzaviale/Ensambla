@@ -45,7 +45,7 @@ class ListarVentasCajaTest {
     @Test
     @DisplayName("Lista ventas con su saldo actual y cobros posteriores del inventario del negocio")
     void executeShouldReturnSalesAndCollections() {
-        dadoUsuario();
+        givenUsuario();
         when(ventas.listarTodas(CajaTestData.NEGOCIO, CajaTestData.PROYECTO, CajaTestData.INVENTARIO))
                 .thenReturn(List.of(CobroCajaTestData.venta()));
         when(cobros.listarTodos(CajaTestData.NEGOCIO, CajaTestData.PROYECTO, CajaTestData.INVENTARIO))
@@ -60,7 +60,7 @@ class ListarVentasCajaTest {
     @Test
     @DisplayName("Un inventario sin movimientos devuelve listas vacías")
     void executeShouldReturnEmptyListsWhenNoMovementsExist() {
-        dadoUsuario();
+        givenUsuario();
 
         ListarVentasCajaResponse respuesta = listar.execute(request);
 
@@ -71,7 +71,7 @@ class ListarVentasCajaTest {
     @Test
     @DisplayName("Un inventario ajeno no expone cuentas ni deudas")
     void executeShouldHideForeignInventory() {
-        dadoUsuario();
+        givenUsuario();
         doThrow(new ResourceNotFoundException("Inventario no encontrado")).when(sistemas)
                 .obtenerInventarioCaja(any(), any(), any());
 
@@ -79,7 +79,7 @@ class ListarVentasCajaTest {
     }
 
     // --- arrange ---
-    private void dadoUsuario() {
+    private void givenUsuario() {
         when(negocios.obtenerIdDelUsuario(CajaTestData.USUARIO)).thenReturn(CajaTestData.NEGOCIO);
     }
 }

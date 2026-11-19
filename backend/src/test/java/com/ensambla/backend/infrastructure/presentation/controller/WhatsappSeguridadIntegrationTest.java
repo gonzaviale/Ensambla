@@ -86,8 +86,8 @@ class WhatsappSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        usuarioId = dadoUsuario();
-        negocioId = dadoNegocio(usuarioId);
+        usuarioId = givenUsuario();
+        negocioId = givenNegocio(usuarioId);
         sesion = givenSesion(usuarioId);
     }
 
@@ -211,7 +211,7 @@ class WhatsappSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
         return ((MensajeriaWhatsappSimulada) mensajeria).enviados();
     }
 
-    private UUID dadoUsuario() {
+    private UUID givenUsuario() {
         return usuarios.saveAndFlush(UsuarioEntity.builder()
                 .nombre("Persona")
                 .email(UUID.randomUUID() + "@example.com")
@@ -221,7 +221,7 @@ class WhatsappSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID dadoNegocio(UUID duenioId) {
+    private UUID givenNegocio(UUID duenioId) {
         return negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(duenioId)

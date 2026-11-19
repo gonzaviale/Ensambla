@@ -21,7 +21,7 @@ class IConsultasPorNegocioJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Encuentra el negocio por el id de su dueño")
     void findFirstByDuenioIdShouldReturnNegocioOfTheOwner() {
-        NegocioEntity negocio = dadoNegocio("dueña@example.com");
+        NegocioEntity negocio = givenNegocio("dueña@example.com");
 
         Optional<NegocioEntity> result = negocios.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(negocio.getDuenioId());
 
@@ -31,7 +31,7 @@ class IConsultasPorNegocioJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Encuentra el email del dueño del negocio y nada si el negocio no existe")
     void findEmailDuenioByIdShouldReturnOwnerEmail() {
-        NegocioEntity negocio = dadoNegocio("dueña@example.com");
+        NegocioEntity negocio = givenNegocio("dueña@example.com");
 
         assertThat(negocios.findEmailDuenioById(negocio.getId())).contains("dueña@example.com");
         assertThat(negocios.findEmailDuenioById(UUID.randomUUID())).isEmpty();
@@ -40,7 +40,7 @@ class IConsultasPorNegocioJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("No devuelve negocio para un usuario que no es dueño de ninguno")
     void findFirstByDuenioIdShouldReturnEmptyWhenUsuarioOwnsNothing() {
-        UUID usuarioSinNegocio = dadoUsuario("sin-negocio@example.com");
+        UUID usuarioSinNegocio = givenUsuario("sin-negocio@example.com");
 
         assertThat(negocios.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(usuarioSinNegocio)).isEmpty();
     }
@@ -48,7 +48,7 @@ class IConsultasPorNegocioJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Con más de un negocio devuelve el más antiguo")
     void findFirstByDuenioIdShouldReturnOldestWhenOwnerHasSeveral() {
-        NegocioEntity primero = dadoNegocio("dueña@example.com");
+        NegocioEntity primero = givenNegocio("dueña@example.com");
         negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Segundo negocio")
                 .duenioId(primero.getDuenioId())
@@ -64,9 +64,9 @@ class IConsultasPorNegocioJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Encuentra el bloque sólo dentro de su negocio")
     void findByIdAndNegocioIdShouldRespectNegocioForBloques() {
-        UUID negocioA = dadoNegocio("a@example.com").getId();
-        UUID negocioB = dadoNegocio("b@example.com").getId();
-        UUID bloqueId = dadoBloque(NegocioId.de(negocioA), "Productos");
+        UUID negocioA = givenNegocio("a@example.com").getId();
+        UUID negocioB = givenNegocio("b@example.com").getId();
+        UUID bloqueId = givenBloque(NegocioId.de(negocioA), "Productos");
 
         Optional<BloqueEntity> propio = bloques.findByIdAndNegocioId(bloqueId, negocioA);
         Optional<BloqueEntity> ajeno = bloques.findByIdAndNegocioId(bloqueId, negocioB);
@@ -78,11 +78,11 @@ class IConsultasPorNegocioJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Lista los campos del bloque por posición y no mezcla los de otro negocio")
     void findByBloqueIdAndNegocioIdShouldListCamposByPosicionScopedToNegocio() {
-        UUID negocioA = dadoNegocio("a@example.com").getId();
-        UUID negocioB = dadoNegocio("b@example.com").getId();
-        UUID bloqueId = dadoBloque(NegocioId.de(negocioA), "Productos");
-        dadoCampo(NegocioId.de(negocioA), BloqueId.de(bloqueId), "Segundo", TipoCampo.NUMERO, 1);
-        dadoCampo(NegocioId.de(negocioA), BloqueId.de(bloqueId), "Primero", TipoCampo.TEXTO, 0);
+        UUID negocioA = givenNegocio("a@example.com").getId();
+        UUID negocioB = givenNegocio("b@example.com").getId();
+        UUID bloqueId = givenBloque(NegocioId.de(negocioA), "Productos");
+        givenCampo(NegocioId.de(negocioA), BloqueId.de(bloqueId), "Segundo", TipoCampo.NUMERO, 1);
+        givenCampo(NegocioId.de(negocioA), BloqueId.de(bloqueId), "Primero", TipoCampo.TEXTO, 0);
 
         List<CampoEntity> propios = campos.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(bloqueId, negocioA);
         List<CampoEntity> ajenos = campos.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(bloqueId, negocioB);

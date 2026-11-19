@@ -324,13 +324,13 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     // --- arrange ---
     private void dadoDosBloquesYNuevecientosNoventaYNueveRegistros() {
-        bloqueA = dadoBloque("Productos");
+        bloqueA = givenBloque("Productos");
         bloqueB = dadoBloqueInSameProyecto(bloqueA, "Ventas");
         dadoRegistros(bloqueA, 999);
     }
 
     private void dadoUnBloqueConRegistros(int cantidad) {
-        bloqueA = dadoBloque("Productos");
+        bloqueA = givenBloque("Productos");
         dadoRegistros(bloqueA, cantidad);
     }
 
@@ -577,7 +577,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         return usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId), desde, hasta);
     }
 
-    private UUID dadoBloque(String nombre) {
+    private UUID givenBloque(String nombre) {
         UUID proyectoId = proyectosDePrueba.crear(NegocioId.de(negocioId), "Sistema", null, AHORA).getId().valor();
         UUID bloqueId = UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO bloque (id, negocio_id, proyecto_id, nombre) VALUES (?, ?, ?, ?)",

@@ -106,8 +106,8 @@ class LoteIntegrationTest extends PostgresRepositoryTestSupport {
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        UsuarioId usuarioId = UsuarioId.de(dadoUsuario());
-        negocioId = NegocioId.de(dadoNegocio(usuarioId));
+        UsuarioId usuarioId = UsuarioId.de(givenUsuario());
+        negocioId = NegocioId.de(givenNegocio(usuarioId));
         sesion = givenSesion(usuarioId);
     }
 
@@ -177,7 +177,7 @@ class LoteIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     // --- arrange ---
-    private UUID dadoUsuario() {
+    private UUID givenUsuario() {
         return usuarios.saveAndFlush(UsuarioEntity.builder()
                 .nombre("Persona")
                 .email(UUID.randomUUID() + "@example.com")
@@ -187,7 +187,7 @@ class LoteIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID dadoNegocio(UsuarioId usuarioId) {
+    private UUID givenNegocio(UsuarioId usuarioId) {
         UUID creadoId = negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(usuarioId.valor())
@@ -199,8 +199,8 @@ class LoteIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     private UUID givenUsuarioConNegocio() {
-        UsuarioId usuarioId = UsuarioId.de(dadoUsuario());
-        dadoNegocio(usuarioId);
+        UsuarioId usuarioId = UsuarioId.de(givenUsuario());
+        givenNegocio(usuarioId);
         return usuarioId.valor();
     }
 

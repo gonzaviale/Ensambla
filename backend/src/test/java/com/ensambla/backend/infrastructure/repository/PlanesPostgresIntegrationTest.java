@@ -163,12 +163,12 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
 
     // --- arrange ---
     private void dadoUnNegocioA() {
-        negocioA = dadoNegocio("planes-periodo@example.com").getId();
+        negocioA = givenNegocio("planes-periodo@example.com").getId();
     }
 
     private void dadoUnaSuscripcionGratuitaParaA() {
-        negocioA = dadoNegocio("planes-a@example.com").getId();
-        negocioB = dadoNegocio("planes-b@example.com").getId();
+        negocioA = givenNegocio("planes-a@example.com").getId();
+        negocioB = givenNegocio("planes-b@example.com").getId();
         suscripcionId = suscripcionService.asignarGratuito(NegocioId.de(negocioA), AHORA).getId().valor();
         entityManager.clear();
     }

@@ -42,7 +42,7 @@ class NegocioRepositoryTest {
     @DisplayName("Devuelve el negocio del usuario")
     void obtenerNegocioDelUsuarioShouldReturnOwnNegocio() {
         Negocio negocio = Negocio.builder().id(NEGOCIO_ID).build();
-        dadoNegocio(Optional.of(negocio));
+        givenNegocio(Optional.of(negocio));
 
         assertThat(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID)).isSameAs(negocio);
     }
@@ -50,7 +50,7 @@ class NegocioRepositoryTest {
     @Test
     @DisplayName("Responde no encontrado al pedir el negocio de un usuario sin negocio")
     void obtenerNegocioDelUsuarioShouldRejectMissingNegocio() {
-        dadoNegocio(Optional.empty());
+        givenNegocio(Optional.empty());
 
         assertThatThrownBy(() -> negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID))
                 .isInstanceOf(ResourceNotFoundException.class)
@@ -62,7 +62,7 @@ class NegocioRepositoryTest {
         doReturn(id).when(negocioRepository).findIdByDuenioId(USUARIO_ID);
     }
 
-    private void dadoNegocio(Optional<Negocio> negocio) {
+    private void givenNegocio(Optional<Negocio> negocio) {
         doReturn(negocio).when(negocioRepository).findByDuenioId(USUARIO_ID);
     }
 }

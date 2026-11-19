@@ -53,8 +53,8 @@ class IDecisionObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
 
     @BeforeEach
     void setUp() {
-        negocioA = dadoNegocio("a@example.com").getId();
-        negocioB = dadoNegocio("b@example.com").getId();
+        negocioA = givenNegocio("a@example.com").getId();
+        negocioB = givenNegocio("b@example.com").getId();
         objetivoA = givenObjetivo(negocioA);
         objetivoB = givenObjetivo(negocioB);
     }

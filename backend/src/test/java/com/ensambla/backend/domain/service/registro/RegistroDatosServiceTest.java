@@ -96,7 +96,7 @@ class RegistroDatosServiceTest {
     @Test
     @DisplayName("Anota el cambio de precio cuando se edita el precio de un producto del inventario")
     void editarShouldRecordPriceChangeWhenInventoryPriceChanges() {
-        dadoBloque(TipoBloque.INVENTARIO);
+        givenBloque(TipoBloque.INVENTARIO);
         Registro registro = registroConPrecio(1000);
 
         registroDatosService.editar(registro, camposConPrecio(), Map.of(PRECIO_ID.toString(), 1200), AHORA);
@@ -107,7 +107,7 @@ class RegistroDatosServiceTest {
     @Test
     @DisplayName("Anota el primer precio sin precio anterior")
     void editarShouldRecordFirstPriceWithoutPreviousPrice() {
-        dadoBloque(TipoBloque.INVENTARIO);
+        givenBloque(TipoBloque.INVENTARIO);
 
         registroDatosService.editar(registro(), camposConPrecio(), Map.of(PRECIO_ID.toString(), 1200), AHORA);
 
@@ -139,7 +139,7 @@ class RegistroDatosServiceTest {
     @Test
     @DisplayName("No anota el precio de una fila de ventas: sólo cuenta el del inventario")
     void editarShouldNotRecordPriceOfNonInventoryBlock() {
-        dadoBloque(TipoBloque.VENTAS);
+        givenBloque(TipoBloque.VENTAS);
 
         registroDatosService.editar(registroConPrecio(1000), camposConPrecio(), Map.of(PRECIO_ID.toString(), 1200),
                 AHORA);
@@ -218,7 +218,7 @@ class RegistroDatosServiceTest {
         when(registroRepository.findAllByIdsAndBloque(buscados, CLIENTES_ID, NEGOCIO_ID)).thenReturn(filas);
     }
 
-    private void dadoBloque(TipoBloque tipo) {
+    private void givenBloque(TipoBloque tipo) {
         when(registroRepository.save(any(Registro.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(bloqueRepository.findByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID))
                 .thenReturn(Optional.of(Bloque.builder().id(BLOQUE_ID).tipo(tipo).build()));

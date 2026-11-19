@@ -44,8 +44,8 @@ class IObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
 
     @BeforeEach
     void setUp() {
-        negocioA = dadoNegocio("a@example.com").getId();
-        negocioB = dadoNegocio("b@example.com").getId();
+        negocioA = givenNegocio("a@example.com").getId();
+        negocioB = givenNegocio("b@example.com").getId();
     }
 
     @Test
@@ -218,7 +218,7 @@ class IObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
     }
 
     private void dadoTresObjetivosEnDosNegociosYOtroNegocioSinObjetivos() {
-        negocioSinObjetivos = dadoNegocio("c@example.com").getId();
+        negocioSinObjetivos = givenNegocio("c@example.com").getId();
         dadoUnObjetivoGuardado(negocioA, "Uno", AHORA);
         dadoUnObjetivoGuardado(negocioA, "Dos", AHORA.plusDays(1));
         dadoUnObjetivoGuardado(negocioB, "Tres", AHORA);
