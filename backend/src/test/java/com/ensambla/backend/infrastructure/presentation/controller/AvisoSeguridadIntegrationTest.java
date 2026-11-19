@@ -7,7 +7,6 @@ import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
-import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;
 import com.ensambla.backend.infrastructure.repository.entity.AvisoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.BloqueEntity;
 import com.ensambla.backend.infrastructure.repository.entity.CampoEntity;
@@ -23,6 +22,7 @@ import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.I
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IRegistroJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IUsuarioJpaRepository;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
+import com.ensambla.backend.support.SesionHttpDePrueba;
 import com.ensambla.backend.support.SuscripcionesDePrueba;
 import jakarta.servlet.Filter;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,20 +30,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.mock.web.MockHttpSession;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.security.web.csrf.DefaultCsrfToken;
-import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
@@ -94,8 +85,7 @@ class AvisoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     private MockMvc mockMvc;
     private UUID negocioId;
-    private MockHttpSession sesion;
-    private String csrfToken;
+    private SesionHttpDePrueba sesion;
     private UUID avisoId;
     private UUID registroId;
     private UUID precioId;
@@ -106,7 +96,7 @@ class AvisoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
         UUID usuarioId = crearUsuario();
         negocioId = crearNegocio(usuarioId);
-        sesion = crearSesion(usuarioId);
+        sesion = SesionHttpDePrueba.autenticada(mockMvc, usuarioId.toString());
     }
 
     @Test
@@ -231,29 +221,29 @@ class AvisoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     // --- cuando ---
 
     private void cuandoSeListanLosAvisos() throws Exception {
-        respuesta = mockMvc.perform(get("/api/avisos").session(sesion));
+        respuesta = mockMvc.perform(get("/api/avisos").session(sesion.sesion()));
     }
 
     private void cuandoSeListanLosAvisosSinUsuario() throws Exception {
-        respuesta = mockMvc.perform(get("/api/avisos").session(crearSesionSinUsuario()));
+        respuesta = mockMvc.perform(get("/api/avisos").session(SesionHttpDePrueba.anonima(mockMvc).sesion()));
     }
 
     private void cuandoSePideElContadorDeAvisos() throws Exception {
-        respuesta = mockMvc.perform(get("/api/avisos/contador").session(sesion));
+        respuesta = mockMvc.perform(get("/api/avisos/contador").session(sesion.sesion()));
     }
 
     private void cuandoSeAplicaElAviso() throws Exception {
         respuesta = mockMvc.perform(post("/api/avisos/{id}/aplicar", avisoId)
-                .session(sesion).header("X-CSRF-TOKEN", csrfToken));
+                .session(sesion.sesion()).header("X-CSRF-TOKEN", sesion.tokenCsrf()));
     }
 
     private void cuandoSeDescartaElAviso() throws Exception {
         respuesta = mockMvc.perform(post("/api/avisos/{id}/descartar", avisoId)
-                .session(sesion).header("X-CSRF-TOKEN", csrfToken));
+                .session(sesion.sesion()).header("X-CSRF-TOKEN", sesion.tokenCsrf()));
     }
 
     private void cuandoSeDescartaElAvisoSinCsrf() throws Exception {
-        respuesta = mockMvc.perform(post("/api/avisos/{id}/descartar", avisoId).session(sesion));
+        respuesta = mockMvc.perform(post("/api/avisos/{id}/descartar", avisoId).session(sesion.sesion()));
     }
 
     // --- entonces ---
@@ -366,26 +356,5 @@ class AvisoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .resueltoEn(pendiente ? null : AHORA)
                 .creadoEn(pendiente ? AHORA : AHORA.minusHours(1)).actualizadoEn(AHORA)
                 .build()).getId();
-    }
-
-    private MockHttpSession crearSesion(UUID usuarioId) throws Exception {
-        MockHttpSession session = crearSesionSinUsuario();
-        var securityContext = SecurityContextHolder.createEmptyContext();
-        securityContext.setAuthentication(
-                UsernamePasswordAuthenticationToken.authenticated(usuarioId.toString(), null, List.of()));
-        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, securityContext);
-        return session;
-    }
-
-    private MockHttpSession crearSesionSinUsuario() throws Exception {
-        MockHttpSession session = new MockHttpSession();
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setSession(session);
-        new HttpSessionCsrfTokenRepository().saveToken(
-                new DefaultCsrfToken("X-CSRF-TOKEN", "_csrf", "token"), request, new MockHttpServletResponse());
-        String cuerpo = mockMvc.perform(get("/api/auth/csrf").session(session))
-                .andReturn().getResponse().getContentAsString();
-        csrfToken = JsonMapper.builder().build().readValue(cuerpo, CsrfResponse.class).token();
-        return session;
     }
 }
