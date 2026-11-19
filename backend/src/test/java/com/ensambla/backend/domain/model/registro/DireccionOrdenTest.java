@@ -5,29 +5,57 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class DireccionOrdenTest {
 
+    private DireccionOrden direccion;
+    private Throwable rechazo;
+
     @Test
     @DisplayName("Sin valor ordena de forma descendente")
-    void desdeShouldReturnDescWhenValueIsNullOrBlank() {
-        assertThat(DireccionOrden.desde(null)).isEqualTo(DireccionOrden.DESC);
-        assertThat(DireccionOrden.desde("  ")).isEqualTo(DireccionOrden.DESC);
+    void sinValorOrdenaDeFormaDescendente() {
+        cuandoSeInterpreta(null);
+        entoncesLaDireccionEs(DireccionOrden.DESC);
+
+        cuandoSeInterpreta("  ");
+        entoncesLaDireccionEs(DireccionOrden.DESC);
     }
 
     @Test
     @DisplayName("Interpreta asc y desc sin distinguir mayúsculas ni espacios")
-    void desdeShouldParseAscAndDesc() {
-        assertThat(DireccionOrden.desde("ASC")).isEqualTo(DireccionOrden.ASC);
-        assertThat(DireccionOrden.desde(" desc ")).isEqualTo(DireccionOrden.DESC);
+    void interpretaAscYDescSinDistinguirMayusculasNiEspacios() {
+        cuandoSeInterpreta("ASC");
+        entoncesLaDireccionEs(DireccionOrden.ASC);
+
+        cuandoSeInterpreta(" desc ");
+        entoncesLaDireccionEs(DireccionOrden.DESC);
     }
 
     @Test
     @DisplayName("Rechaza cualquier otro valor")
-    void desdeShouldRejectUnknownValue() {
-        assertThatThrownBy(() -> DireccionOrden.desde("arriba"))
-                .isInstanceOf(BusinessRuleException.class)
+    void rechazaCualquierOtroValor() {
+        cuandoSeIntentaInterpretar("arriba");
+
+        entoncesSeRechazaPorDireccionInvalida();
+    }
+
+    // --- cuando ---
+    private void cuandoSeInterpreta(String valor) {
+        direccion = DireccionOrden.desde(valor);
+    }
+
+    private void cuandoSeIntentaInterpretar(String valor) {
+        rechazo = catchThrowable(() -> cuandoSeInterpreta(valor));
+    }
+
+    // --- entonces ---
+    private void entoncesLaDireccionEs(DireccionOrden esperada) {
+        assertThat(direccion).isEqualTo(esperada);
+    }
+
+    private void entoncesSeRechazaPorDireccionInvalida() {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class)
                 .hasMessage("La dirección del orden tiene que ser asc o desc");
     }
 }

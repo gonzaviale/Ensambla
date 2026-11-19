@@ -9,32 +9,56 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class MovimientoDeStockTest {
 
+    private MovimientoDeStock movimiento;
+
     @Test
     @DisplayName("Una entrada suma las unidades al stock")
-    void aplicarShouldAddAnEntry() {
-        MovimientoDeStock movimiento = MovimientoDeStock.aplicar("Leche", new BigDecimal("5"), new BigDecimal("10"), 1);
+    void unaEntradaSumaLasUnidadesAlStock() {
+        cuandoSeAplica("5", "10", 1);
 
-        assertThat(movimiento.despues()).isEqualTo(new BigDecimal("15"));
-        assertThat(movimiento.noAlcanzo()).isFalse();
+        entoncesElStockQuedaEn("15");
+        entoncesElStockAlcanzo();
     }
 
     @Test
     @DisplayName("Una venta descuenta las unidades del stock")
-    void aplicarShouldSubtractASale() {
-        MovimientoDeStock movimiento = MovimientoDeStock.aplicar("Leche", new BigDecimal("5"), new BigDecimal("5"), -1);
+    void unaVentaDescuentaLasUnidadesDelStock() {
+        cuandoSeAplica("5", "5", -1);
 
-        assertThat(movimiento.despues()).isEqualTo(BigDecimal.ZERO);
-        assertThat(movimiento.noAlcanzo()).isFalse();
+        entoncesElStockQuedaEn("0");
+        entoncesElStockAlcanzo();
     }
 
     @Test
     @DisplayName("Una venta de más unidades que las que hay deja el stock en 0 y avisa que no alcanzó")
-    void aplicarShouldStopAtZeroWhenTheStockIsShort() {
-        MovimientoDeStock movimiento = MovimientoDeStock.aplicar("Leche", new BigDecimal("1"), new BigDecimal("3"), -1);
+    void unaVentaDeMasUnidadesQueLasQueHayDejaElStockEnCeroYAvisaQueNoAlcanzo() {
+        cuandoSeAplica("1", "3", -1);
 
-        assertThat(movimiento.despues()).isEqualTo(BigDecimal.ZERO);
+        entoncesElStockQuedaEn("0");
+        entoncesElMovimientoPartioDeUnoYPidioTres();
+        entoncesElStockNoAlcanzo();
+    }
+
+    // --- cuando ---
+    private void cuandoSeAplica(String antes, String pedido, int signo) {
+        movimiento = MovimientoDeStock.aplicar("Leche", new BigDecimal(antes), new BigDecimal(pedido), signo);
+    }
+
+    // --- entonces ---
+    private void entoncesElStockQuedaEn(String esperado) {
+        assertThat(movimiento.despues()).isEqualTo(new BigDecimal(esperado));
+    }
+
+    private void entoncesElStockAlcanzo() {
+        assertThat(movimiento.noAlcanzo()).isFalse();
+    }
+
+    private void entoncesElStockNoAlcanzo() {
+        assertThat(movimiento.noAlcanzo()).isTrue();
+    }
+
+    private void entoncesElMovimientoPartioDeUnoYPidioTres() {
         assertThat(movimiento.antes()).isEqualTo(new BigDecimal("1"));
         assertThat(movimiento.pedido()).isEqualTo(new BigDecimal("3"));
-        assertThat(movimiento.noAlcanzo()).isTrue();
     }
 }
