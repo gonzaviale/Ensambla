@@ -22,6 +22,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 
+import org.springframework.test.web.servlet.ResultActions;
 import java.math.BigDecimal;
 import java.security.Principal;
 import java.util.List;
@@ -37,6 +38,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class RecetaControllerTest {
+
+    private String cuerpo;
+    private ResultActions resultado;
 
     private static final UsuarioId USUARIO_ID = UsuarioId.de("b9000000-0000-4000-8000-000000000001");
     private static final RegistroId PRODUCTO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
@@ -70,67 +74,138 @@ class RecetaControllerTest {
     @Test
     @DisplayName("GET devuelve la receta con el costo y pasa el usuario de la sesión")
     void gETDevuelveLaRecetaConElCostoYPasaElUsuarioDeLaSesion() throws Exception {
-        when(obtenerReceta.execute(any(ObtenerRecetaRequest.class))).thenReturn(ITEM);
+        dadoElEscenarioDeGETDevuelveLaRecetaConElCostoYPasaElUsuarioDeLaSesion();
 
-        mockMvc.perform(get("/api/registros/{id}/receta", PRODUCTO_ID).principal(sesion))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.bloqueInsumosId").value(BLOQUE_INSUMOS_ID.toString()))
-                .andExpect(jsonPath("$.campoPrecioId").value(PRECIO_ID.toString()))
-                .andExpect(jsonPath("$.costo").value(600))
-                .andExpect(jsonPath("$.incompleta").value(false))
-                .andExpect(jsonPath("$.lineas[0].insumo").value("Harina"))
-                .andExpect(jsonPath("$.lineas[0].cantidad").value(0.5))
-                .andExpect(jsonPath("$.lineas[0].precioUnitario").value(1200))
-                .andExpect(jsonPath("$.lineas[0].subtotal").value(600));
-        verify(obtenerReceta).execute(new ObtenerRecetaRequest(USUARIO_ID, PRODUCTO_ID));
+        cuandoSeEjecutaGETDevuelveLaRecetaConElCostoYPasaElUsuarioDeLaSesion();
+
+        entoncesSeVerificaGETDevuelveLaRecetaConElCostoYPasaElUsuarioDeLaSesion();
     }
 
     @Test
     @DisplayName("GET de un producto ajeno responde 404")
     void gETDeUnProductoAjenoResponde404() throws Exception {
-        when(obtenerReceta.execute(any(ObtenerRecetaRequest.class)))
-                .thenThrow(new ResourceNotFoundException("El registro no existe"));
+        dadoElEscenarioDeGETDeUnProductoAjenoResponde404();
 
-        mockMvc.perform(get("/api/registros/{id}/receta", PRODUCTO_ID).principal(sesion))
-                .andExpect(status().isNotFound());
+        cuandoSeEjecutaGETDeUnProductoAjenoResponde404();
+
+        entoncesSeVerificaGETDeUnProductoAjenoResponde404();
     }
 
     @Test
     @DisplayName("PUT guarda la receta con las líneas y devuelve el costo")
     void pUTGuardaLaRecetaConLasLineasYDevuelveElCosto() throws Exception {
-        when(guardarReceta.execute(any(GuardarRecetaRequest.class))).thenReturn(ITEM);
-        String cuerpo = "{\"campoPrecioId\":\"" + PRECIO_ID + "\",\"lineas\":[{\"insumoId\":\"" + HARINA_ID
-                + "\",\"cantidad\":0.5,\"unidad\":\"kg\"}]}";
+        dadoElEscenarioDePUTGuardaLaRecetaConLasLineasYDevuelveElCosto();
 
-        mockMvc.perform(put("/api/registros/{id}/receta", PRODUCTO_ID)
-                        .principal(sesion).contentType(MediaType.APPLICATION_JSON).content(cuerpo))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.costo").value(600));
-        verify(guardarReceta).execute(new GuardarRecetaRequest(
-                USUARIO_ID, PRODUCTO_ID, PRECIO_ID,
-                List.of(new LineaRecetaRequest(HARINA_ID, new BigDecimal("0.5"), "kg"))));
+        cuandoSeEjecutaPUTGuardaLaRecetaConLasLineasYDevuelveElCosto();
+
+        entoncesSeVerificaPUTGuardaLaRecetaConLasLineasYDevuelveElCosto();
     }
 
     @Test
     @DisplayName("PUT sin líneas quita la receta")
     void pUTSinLineasQuitaLaReceta() throws Exception {
-        when(guardarReceta.execute(any(GuardarRecetaRequest.class))).thenReturn(ITEM);
+        dadoElEscenarioDePUTSinLineasQuitaLaReceta();
 
-        mockMvc.perform(put("/api/registros/{id}/receta", PRODUCTO_ID)
-                        .principal(sesion).contentType(MediaType.APPLICATION_JSON).content("{}"))
-                .andExpect(status().isOk());
-        verify(guardarReceta).execute(new GuardarRecetaRequest(USUARIO_ID, PRODUCTO_ID, null, List.of()));
+        cuandoSeEjecutaPUTSinLineasQuitaLaReceta();
+
+        entoncesSeVerificaPUTSinLineasQuitaLaReceta();
     }
 
     @Test
     @DisplayName("PUT con datos inválidos responde 400 con el mensaje de cada línea")
     void pUTConDatosInvalidosResponde400ConElMensajeDeCadaLinea() throws Exception {
-        when(guardarReceta.execute(any(GuardarRecetaRequest.class)))
-                .thenThrow(new RegistroInvalidoException(Map.of("lineas[0]", "Escribí la cantidad")));
+        dadoElEscenarioDePUTConDatosInvalidosResponde400ConElMensajeDeCadaLinea();
 
-        mockMvc.perform(put("/api/registros/{id}/receta", PRODUCTO_ID)
-                        .principal(sesion).contentType(MediaType.APPLICATION_JSON).content("{}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors['lineas[0]']").value("Escribí la cantidad"));
+        cuandoSeEjecutaPUTConDatosInvalidosResponde400ConElMensajeDeCadaLinea();
+
+        entoncesSeVerificaPUTConDatosInvalidosResponde400ConElMensajeDeCadaLinea();
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeGETDevuelveLaRecetaConElCostoYPasaElUsuarioDeLaSesion() throws Exception {
+        when(obtenerReceta.execute(any(ObtenerRecetaRequest.class))).thenReturn(ITEM);
+    }
+
+    private void dadoElEscenarioDeGETDeUnProductoAjenoResponde404() throws Exception {
+        when(obtenerReceta.execute(any(ObtenerRecetaRequest.class)))
+                        .thenThrow(new ResourceNotFoundException("El registro no existe"));
+    }
+
+    private void dadoElEscenarioDePUTGuardaLaRecetaConLasLineasYDevuelveElCosto() throws Exception {
+        when(guardarReceta.execute(any(GuardarRecetaRequest.class))).thenReturn(ITEM);
+        cuerpo = "{\"campoPrecioId\":\"" + PRECIO_ID + "\",\"lineas\":[{\"insumoId\":\"" + HARINA_ID
+                        + "\",\"cantidad\":0.5,\"unidad\":\"kg\"}]}";
+    }
+
+    private void dadoElEscenarioDePUTSinLineasQuitaLaReceta() throws Exception {
+        when(guardarReceta.execute(any(GuardarRecetaRequest.class))).thenReturn(ITEM);
+    }
+
+    private void dadoElEscenarioDePUTConDatosInvalidosResponde400ConElMensajeDeCadaLinea() throws Exception {
+        when(guardarReceta.execute(any(GuardarRecetaRequest.class)))
+                        .thenThrow(new RegistroInvalidoException(Map.of("lineas[0]", "Escribí la cantidad")));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaGETDevuelveLaRecetaConElCostoYPasaElUsuarioDeLaSesion() throws Exception {
+        resultado = mockMvc.perform(get("/api/registros/{id}/receta", PRODUCTO_ID).principal(sesion));
+    }
+
+    private void cuandoSeEjecutaGETDeUnProductoAjenoResponde404() throws Exception {
+        resultado = mockMvc.perform(get("/api/registros/{id}/receta", PRODUCTO_ID).principal(sesion));
+    }
+
+    private void cuandoSeEjecutaPUTGuardaLaRecetaConLasLineasYDevuelveElCosto() throws Exception {
+        resultado = mockMvc.perform(put("/api/registros/{id}/receta", PRODUCTO_ID)
+                                .principal(sesion).contentType(MediaType.APPLICATION_JSON).content(cuerpo));
+    }
+
+    private void cuandoSeEjecutaPUTSinLineasQuitaLaReceta() throws Exception {
+        resultado = mockMvc.perform(put("/api/registros/{id}/receta", PRODUCTO_ID)
+                                .principal(sesion).contentType(MediaType.APPLICATION_JSON).content("{}"));
+    }
+
+    private void cuandoSeEjecutaPUTConDatosInvalidosResponde400ConElMensajeDeCadaLinea() throws Exception {
+        resultado = mockMvc.perform(put("/api/registros/{id}/receta", PRODUCTO_ID)
+                                .principal(sesion).contentType(MediaType.APPLICATION_JSON).content("{}"));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaGETDevuelveLaRecetaConElCostoYPasaElUsuarioDeLaSesion() throws Exception {
+        resultado.andExpect(status().isOk())
+                        .andExpect(jsonPath("$.bloqueInsumosId").value(BLOQUE_INSUMOS_ID.toString()))
+                        .andExpect(jsonPath("$.campoPrecioId").value(PRECIO_ID.toString()))
+                        .andExpect(jsonPath("$.costo").value(600))
+                        .andExpect(jsonPath("$.incompleta").value(false))
+                        .andExpect(jsonPath("$.lineas[0].insumo").value("Harina"))
+                        .andExpect(jsonPath("$.lineas[0].cantidad").value(0.5))
+                        .andExpect(jsonPath("$.lineas[0].precioUnitario").value(1200))
+                        .andExpect(jsonPath("$.lineas[0].subtotal").value(600));
+        verify(obtenerReceta).execute(new ObtenerRecetaRequest(USUARIO_ID, PRODUCTO_ID));
+    }
+
+    private void entoncesSeVerificaGETDeUnProductoAjenoResponde404() throws Exception {
+        resultado.andExpect(status().isNotFound());
+    }
+
+    private void entoncesSeVerificaPUTGuardaLaRecetaConLasLineasYDevuelveElCosto() throws Exception {
+        resultado.andExpect(status().isOk())
+                        .andExpect(jsonPath("$.costo").value(600));
+        verify(guardarReceta).execute(new GuardarRecetaRequest(
+                        USUARIO_ID, PRODUCTO_ID, PRECIO_ID,
+                        List.of(new LineaRecetaRequest(HARINA_ID, new BigDecimal("0.5"), "kg"))));
+    }
+
+    private void entoncesSeVerificaPUTSinLineasQuitaLaReceta() throws Exception {
+        resultado.andExpect(status().isOk());
+        verify(guardarReceta).execute(new GuardarRecetaRequest(USUARIO_ID, PRODUCTO_ID, null, List.of()));
+    }
+
+    private void entoncesSeVerificaPUTConDatosInvalidosResponde400ConElMensajeDeCadaLinea() throws Exception {
+        resultado.andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.errors['lineas[0]']").value("Escribí la cantidad"));
     }
 }

@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 
+import org.springframework.test.web.servlet.ResultActions;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +30,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class PreferenciaControllerTest {
+
+    private ResultActions resultado;
 
     private static final UsuarioId USUARIO_ID = UsuarioId.de("b0000000-0000-4000-8000-000000000001");
 
@@ -50,50 +53,104 @@ class PreferenciaControllerTest {
     @Test
     @DisplayName("GET devuelve las preferencias del usuario de sesión")
     void gETDevuelveLasPreferenciasDelUsuarioDeSesion() throws Exception {
-        when(obtenerPreferencias.execute(any())).thenReturn(
-                new PreferenciasItem(List.of("a1"), Map.of("STOCK", false), true, "Gonza"));
+        dadoElEscenarioDeGETDevuelveLasPreferenciasDelUsuarioDeSesion();
 
-        mockMvc.perform(get("/api/preferencias").principal(principal))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.descartadas[0]").value("a1"))
-                .andExpect(jsonPath("$.grupos.STOCK").value(false))
-                .andExpect(jsonPath("$.bienvenidaVista").value(true))
-                .andExpect(jsonPath("$.nombre").value("Gonza"));
-        verify(obtenerPreferencias).execute(new ObtenerPreferenciasRequest(USUARIO_ID));
+        cuandoSeEjecutaGETDevuelveLasPreferenciasDelUsuarioDeSesion();
+
+        entoncesSeVerificaGETDevuelveLasPreferenciasDelUsuarioDeSesion();
     }
 
     @Test
     @DisplayName("GET omite el nombre cuando no hay uno elegido")
     void gETOmiteElNombreCuandoNoHayUnoElegido() throws Exception {
-        when(obtenerPreferencias.execute(any())).thenReturn(
-                new PreferenciasItem(List.of(), Map.of(), false, null));
+        dadoElEscenarioDeGETOmiteElNombreCuandoNoHayUnoElegido();
 
-        mockMvc.perform(get("/api/preferencias").principal(principal))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nombre").doesNotExist());
+        cuandoSeEjecutaGETOmiteElNombreCuandoNoHayUnoElegido();
+
+        entoncesSeVerificaGETOmiteElNombreCuandoNoHayUnoElegido();
     }
 
     @Test
     @DisplayName("PUT guarda las preferencias con el usuario de sesión")
     void pUTGuardaLasPreferenciasConElUsuarioDeSesion() throws Exception {
-        when(guardarPreferencias.execute(any())).thenReturn(
-                new PreferenciasItem(List.of("a1"), Map.of(), true, "Gonza"));
+        dadoElEscenarioDePUTGuardaLasPreferenciasConElUsuarioDeSesion();
 
-        mockMvc.perform(put("/api/preferencias").principal(principal).contentType("application/json")
-                        .content("{\"descartadas\":[\"a1\"],\"grupos\":{},\"bienvenidaVista\":true,\"nombre\":\"Gonza\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nombre").value("Gonza"));
-        verify(guardarPreferencias)
-                .execute(new GuardarPreferenciasRequest(USUARIO_ID, List.of("a1"), Map.of(), true, "Gonza"));
+        cuandoSeEjecutaPUTGuardaLasPreferenciasConElUsuarioDeSesion();
+
+        entoncesSeVerificaPUTGuardaLasPreferenciasConElUsuarioDeSesion();
     }
 
     @Test
     @DisplayName("PUT rechaza un cuerpo inválido sin tocar el caso de uso")
     void pUTRechazaUnCuerpoInvalidoSinTocarElCasoDeUso() throws Exception {
-        mockMvc.perform(put("/api/preferencias").principal(principal).contentType("application/json")
-                        .content("{\"descartadas\":[],\"grupos\":{},\"bienvenidaVista\":true,"
-                                + "\"nombre\":\"un nombre que supera por mucho los cuarenta caracteres\"}"))
-                .andExpect(status().isBadRequest());
+        cuandoSeEjecutaPUTRechazaUnCuerpoInvalidoSinTocarElCasoDeUso();
+
+        entoncesSeVerificaPUTRechazaUnCuerpoInvalidoSinTocarElCasoDeUso();
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeGETDevuelveLasPreferenciasDelUsuarioDeSesion() throws Exception {
+        when(obtenerPreferencias.execute(any())).thenReturn(
+                        new PreferenciasItem(List.of("a1"), Map.of("STOCK", false), true, "Gonza"));
+    }
+
+    private void dadoElEscenarioDeGETOmiteElNombreCuandoNoHayUnoElegido() throws Exception {
+        when(obtenerPreferencias.execute(any())).thenReturn(
+                        new PreferenciasItem(List.of(), Map.of(), false, null));
+    }
+
+    private void dadoElEscenarioDePUTGuardaLasPreferenciasConElUsuarioDeSesion() throws Exception {
+        when(guardarPreferencias.execute(any())).thenReturn(
+                        new PreferenciasItem(List.of("a1"), Map.of(), true, "Gonza"));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaGETDevuelveLasPreferenciasDelUsuarioDeSesion() throws Exception {
+        resultado = mockMvc.perform(get("/api/preferencias").principal(principal));
+    }
+
+    private void cuandoSeEjecutaGETOmiteElNombreCuandoNoHayUnoElegido() throws Exception {
+        resultado = mockMvc.perform(get("/api/preferencias").principal(principal));
+    }
+
+    private void cuandoSeEjecutaPUTGuardaLasPreferenciasConElUsuarioDeSesion() throws Exception {
+        resultado = mockMvc.perform(put("/api/preferencias").principal(principal).contentType("application/json")
+                                .content("{\"descartadas\":[\"a1\"],\"grupos\":{},\"bienvenidaVista\":true,\"nombre\":\"Gonza\"}"));
+    }
+
+    private void cuandoSeEjecutaPUTRechazaUnCuerpoInvalidoSinTocarElCasoDeUso() throws Exception {
+        resultado = mockMvc.perform(put("/api/preferencias").principal(principal).contentType("application/json")
+                                .content("{\"descartadas\":[],\"grupos\":{},\"bienvenidaVista\":true,"
+                                        + "\"nombre\":\"un nombre que supera por mucho los cuarenta caracteres\"}"));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaGETDevuelveLasPreferenciasDelUsuarioDeSesion() throws Exception {
+        resultado.andExpect(status().isOk())
+                        .andExpect(jsonPath("$.descartadas[0]").value("a1"))
+                        .andExpect(jsonPath("$.grupos.STOCK").value(false))
+                        .andExpect(jsonPath("$.bienvenidaVista").value(true))
+                        .andExpect(jsonPath("$.nombre").value("Gonza"));
+        verify(obtenerPreferencias).execute(new ObtenerPreferenciasRequest(USUARIO_ID));
+    }
+
+    private void entoncesSeVerificaGETOmiteElNombreCuandoNoHayUnoElegido() throws Exception {
+        resultado.andExpect(status().isOk())
+                        .andExpect(jsonPath("$.nombre").doesNotExist());
+    }
+
+    private void entoncesSeVerificaPUTGuardaLasPreferenciasConElUsuarioDeSesion() throws Exception {
+        resultado.andExpect(status().isOk())
+                        .andExpect(jsonPath("$.nombre").value("Gonza"));
+        verify(guardarPreferencias)
+                        .execute(new GuardarPreferenciasRequest(USUARIO_ID, List.of("a1"), Map.of(), true, "Gonza"));
+    }
+
+    private void entoncesSeVerificaPUTRechazaUnCuerpoInvalidoSinTocarElCasoDeUso() throws Exception {
+        resultado.andExpect(status().isBadRequest());
         verifyNoInteractions(guardarPreferencias);
     }
 }

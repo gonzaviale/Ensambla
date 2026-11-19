@@ -24,6 +24,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class PlantillaControllerTest {
 
+    private ResultActions result;
+
     private static final PlantillaId PLANTILLA_ID = PlantillaId.de("c0000000-0000-4000-8000-000000000001");
 
     private ListarPlantillas listarPlantillas;
@@ -41,26 +43,56 @@ class PlantillaControllerTest {
     @Test
     @DisplayName("Lista las plantillas activas con su estructura")
     void listaLasPlantillasActivasConSuEstructura() throws Exception {
-        when(listarPlantillas.execute()).thenReturn(new ListarPlantillasResponse(List.of(
-                new PlantillaItem(PLANTILLA_ID, "Inventario", "Controlá tu stock", "box",
-                        Map.of("bloques", List.of())))));
+        dadoElEscenarioDeListaLasPlantillasActivasConSuEstructura();
 
-        ResultActions result = mockMvc.perform(get("/api/plantillas"));
+        cuandoSeEjecutaListaLasPlantillasActivasConSuEstructura();
 
-        result.andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(PLANTILLA_ID.toString()))
-                .andExpect(jsonPath("$[0].nombre").value("Inventario"))
-                .andExpect(jsonPath("$[0].icono").value("box"))
-                .andExpect(jsonPath("$[0].estructura.bloques").isArray());
+        entoncesSeVerificaListaLasPlantillasActivasConSuEstructura();
     }
 
     @Test
     @DisplayName("Devuelve una lista vacía cuando no hay plantillas")
     void devuelveUnaListaVaciaCuandoNoHayPlantillas() throws Exception {
+        dadoElEscenarioDeDevuelveUnaListaVaciaCuandoNoHayPlantillas();
+
+        cuandoSeEjecutaDevuelveUnaListaVaciaCuandoNoHayPlantillas();
+
+        entoncesSeVerificaDevuelveUnaListaVaciaCuandoNoHayPlantillas();
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeListaLasPlantillasActivasConSuEstructura() throws Exception {
+        when(listarPlantillas.execute()).thenReturn(new ListarPlantillasResponse(List.of(
+                        new PlantillaItem(PLANTILLA_ID, "Inventario", "Controlá tu stock", "box",
+                                Map.of("bloques", List.of())))));
+    }
+
+    private void dadoElEscenarioDeDevuelveUnaListaVaciaCuandoNoHayPlantillas() throws Exception {
         when(listarPlantillas.execute()).thenReturn(new ListarPlantillasResponse(List.of()));
+    }
 
-        ResultActions result = mockMvc.perform(get("/api/plantillas"));
+    // --- cuando ---
 
+    private void cuandoSeEjecutaListaLasPlantillasActivasConSuEstructura() throws Exception {
+        result = mockMvc.perform(get("/api/plantillas"));
+    }
+
+    private void cuandoSeEjecutaDevuelveUnaListaVaciaCuandoNoHayPlantillas() throws Exception {
+        result = mockMvc.perform(get("/api/plantillas"));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaListaLasPlantillasActivasConSuEstructura() throws Exception {
+        result.andExpect(status().isOk())
+                        .andExpect(jsonPath("$[0].id").value(PLANTILLA_ID.toString()))
+                        .andExpect(jsonPath("$[0].nombre").value("Inventario"))
+                        .andExpect(jsonPath("$[0].icono").value("box"))
+                        .andExpect(jsonPath("$[0].estructura.bloques").isArray());
+    }
+
+    private void entoncesSeVerificaDevuelveUnaListaVaciaCuandoNoHayPlantillas() throws Exception {
         result.andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
     }
 }

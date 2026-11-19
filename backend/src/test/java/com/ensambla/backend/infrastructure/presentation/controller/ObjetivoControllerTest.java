@@ -49,6 +49,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class ObjetivoControllerTest {
 
+    private ResultActions result;
+    private ResultActions resultado;
+
     private final ListarObjetivos listarObjetivos = mock(ListarObjetivos.class);
     private final CrearObjetivo crearObjetivo = mock(CrearObjetivo.class);
     private final EliminarObjetivo eliminarObjetivo = mock(EliminarObjetivo.class);
@@ -180,38 +183,35 @@ class ObjetivoControllerTest {
     @Test
     @DisplayName("DELETE devuelve 204 y delega con el usuario de la sesión y el id de la ruta")
     void dELETEDevuelve204YDelegaConElUsuarioDeLaSesionYElIdDeLaRuta() throws Exception {
-        ResultActions result = mockMvc.perform(delete("/api/objetivos/{id}", OBJETIVO_ID).principal(principal));
+        cuandoSeEjecutaDELETEDevuelve204YDelegaConElUsuarioDeLaSesionYElIdDeLaRuta();
 
-        result.andExpect(status().isNoContent());
-        verify(eliminarObjetivo).execute(new EliminarObjetivoRequest(USUARIO_ID, OBJETIVO_ID));
+        entoncesSeVerificaDELETEDevuelve204YDelegaConElUsuarioDeLaSesionYElIdDeLaRuta();
     }
 
     @Test
     @DisplayName("DELETE de un objetivo ajeno o inexistente devuelve el 404 estándar")
     void dELETEDeUnObjetivoAjenoOInexistenteDevuelveEl404Estandar() throws Exception {
-        doThrow(new ResourceNotFoundException("Objetivo no encontrado")).when(eliminarObjetivo).execute(any());
+        dadoElEscenarioDeDELETEDeUnObjetivoAjenoOInexistenteDevuelveEl404Estandar();
 
-        ResultActions result = mockMvc.perform(delete("/api/objetivos/{id}", OBJETIVO_ID).principal(principal));
+        cuandoSeEjecutaDELETEDeUnObjetivoAjenoOInexistenteDevuelveEl404Estandar();
 
-        result.andExpect(status().isNotFound()).andExpect(jsonPath("$.status").value(404));
+        entoncesSeVerificaDELETEDeUnObjetivoAjenoOInexistenteDevuelveEl404Estandar();
     }
 
     @Test
     @DisplayName("DELETE con un id que no es UUID devuelve 400 sin llegar al caso de uso")
     void dELETEConUnIdQueNoEsUUIDDevuelve400SinLlegarAlCasoDeUso() throws Exception {
-        ResultActions result = mockMvc.perform(delete("/api/objetivos/invalido").principal(principal));
+        cuandoSeEjecutaDELETEConUnIdQueNoEsUUIDDevuelve400SinLlegarAlCasoDeUso();
 
-        result.andExpect(status().isBadRequest());
-        verifyNoInteractions(eliminarObjetivo);
+        entoncesSeVerificaDELETEConUnIdQueNoEsUUIDDevuelve400SinLlegarAlCasoDeUso();
     }
 
     @Test
     @DisplayName("POST medir mide los objetivos del negocio de la sesión y devuelve 204")
     void pOSTMedirMideLosObjetivosDelNegocioDeLaSesionYDevuelve204() throws Exception {
-        mockMvc.perform(post("/api/objetivos/medir").principal(principal))
-                .andExpect(status().isNoContent());
+        cuandoSeEjecutaPOSTMedirMideLosObjetivosDelNegocioDeLaSesionYDevuelve204();
 
-        verify(medirObjetivos).execute(new MedirObjetivosRequest(USUARIO_ID));
+        entoncesSeVerificaPOSTMedirMideLosObjetivosDelNegocioDeLaSesionYDevuelve204();
     }
 
     // --- dado ---
@@ -233,30 +233,21 @@ class ObjetivoControllerTest {
     @Test
     @DisplayName("GET pasos devuelve los productos reales con el rango de zona")
     void gETPasosDevuelveLosProductosRealesConElRangoDeZona() throws Exception {
-        when(obtenerPasos.execute(any())).thenReturn(response());
+        dadoElEscenarioDeGETPasosDevuelveLosProductosRealesConElRangoDeZona();
 
-        mockMvc.perform(get("/api/objetivos/pasos").principal(principal))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].tipo").value("SUBIR_PRECIO"))
-                .andExpect(jsonPath("$[0].nombre").value("Yerba"))
-                .andExpect(jsonPath("$[0].precio").value(3600))
-                .andExpect(jsonPath("$[0].costo").value(2700))
-                .andExpect(jsonPath("$[0].stock").value(4))
-                .andExpect(jsonPath("$[0].vendidas30Dias").value(60))
-                .andExpect(jsonPath("$[0].precioZona.minimo").value(3500))
-                .andExpect(jsonPath("$[0].precioZona.promedio").value(3900))
-                .andExpect(jsonPath("$[0].precioZona.maximo").value(4300));
-        verify(obtenerPasos).execute(new ObtenerPasosRequest(USUARIO_ID));
+        cuandoSeEjecutaGETPasosDevuelveLosProductosRealesConElRangoDeZona();
+
+        entoncesSeVerificaGETPasosDevuelveLosProductosRealesConElRangoDeZona();
     }
 
     @Test
     @DisplayName("GET pasos devuelve una lista vacía cuando no hay productos para recomendar")
     void gETPasosDevuelveUnaListaVaciaCuandoNoHayProductosParaRecomendar() throws Exception {
-        when(obtenerPasos.execute(any())).thenReturn(new ObtenerPasosResponse(List.of()));
+        dadoElEscenarioDeGETPasosDevuelveUnaListaVaciaCuandoNoHayProductosParaRecomendar();
 
-        mockMvc.perform(get("/api/objetivos/pasos").principal(principal))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isEmpty());
+        cuandoSeEjecutaGETPasosDevuelveUnaListaVaciaCuandoNoHayProductosParaRecomendar();
+
+        entoncesSeVerificaGETPasosDevuelveUnaListaVaciaCuandoNoHayProductosParaRecomendar();
     }
 
     private ObtenerPasosResponse response() {
@@ -272,5 +263,85 @@ class ObjetivoControllerTest {
 
     private BigDecimal decimal(String valor) {
         return new BigDecimal(valor);
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeDELETEDeUnObjetivoAjenoOInexistenteDevuelveEl404Estandar() throws Exception {
+        doThrow(new ResourceNotFoundException("Objetivo no encontrado")).when(eliminarObjetivo).execute(any());
+    }
+
+    private void dadoElEscenarioDeGETPasosDevuelveLosProductosRealesConElRangoDeZona() throws Exception {
+        when(obtenerPasos.execute(any())).thenReturn(response());
+    }
+
+    private void dadoElEscenarioDeGETPasosDevuelveUnaListaVaciaCuandoNoHayProductosParaRecomendar() throws Exception {
+        when(obtenerPasos.execute(any())).thenReturn(new ObtenerPasosResponse(List.of()));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaDELETEDevuelve204YDelegaConElUsuarioDeLaSesionYElIdDeLaRuta() throws Exception {
+        result = mockMvc.perform(delete("/api/objetivos/{id}", OBJETIVO_ID).principal(principal));
+    }
+
+    private void cuandoSeEjecutaDELETEDeUnObjetivoAjenoOInexistenteDevuelveEl404Estandar() throws Exception {
+        result = mockMvc.perform(delete("/api/objetivos/{id}", OBJETIVO_ID).principal(principal));
+    }
+
+    private void cuandoSeEjecutaDELETEConUnIdQueNoEsUUIDDevuelve400SinLlegarAlCasoDeUso() throws Exception {
+        result = mockMvc.perform(delete("/api/objetivos/invalido").principal(principal));
+    }
+
+    private void cuandoSeEjecutaPOSTMedirMideLosObjetivosDelNegocioDeLaSesionYDevuelve204() throws Exception {
+        resultado = mockMvc.perform(post("/api/objetivos/medir").principal(principal));
+    }
+
+    private void cuandoSeEjecutaGETPasosDevuelveLosProductosRealesConElRangoDeZona() throws Exception {
+        resultado = mockMvc.perform(get("/api/objetivos/pasos").principal(principal));
+    }
+
+    private void cuandoSeEjecutaGETPasosDevuelveUnaListaVaciaCuandoNoHayProductosParaRecomendar() throws Exception {
+        resultado = mockMvc.perform(get("/api/objetivos/pasos").principal(principal));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaDELETEDevuelve204YDelegaConElUsuarioDeLaSesionYElIdDeLaRuta() throws Exception {
+        result.andExpect(status().isNoContent());
+        verify(eliminarObjetivo).execute(new EliminarObjetivoRequest(USUARIO_ID, OBJETIVO_ID));
+    }
+
+    private void entoncesSeVerificaDELETEDeUnObjetivoAjenoOInexistenteDevuelveEl404Estandar() throws Exception {
+        result.andExpect(status().isNotFound()).andExpect(jsonPath("$.status").value(404));
+    }
+
+    private void entoncesSeVerificaDELETEConUnIdQueNoEsUUIDDevuelve400SinLlegarAlCasoDeUso() throws Exception {
+        result.andExpect(status().isBadRequest());
+        verifyNoInteractions(eliminarObjetivo);
+    }
+
+    private void entoncesSeVerificaPOSTMedirMideLosObjetivosDelNegocioDeLaSesionYDevuelve204() throws Exception {
+        resultado.andExpect(status().isNoContent());
+        verify(medirObjetivos).execute(new MedirObjetivosRequest(USUARIO_ID));
+    }
+
+    private void entoncesSeVerificaGETPasosDevuelveLosProductosRealesConElRangoDeZona() throws Exception {
+        resultado.andExpect(status().isOk())
+                        .andExpect(jsonPath("$[0].tipo").value("SUBIR_PRECIO"))
+                        .andExpect(jsonPath("$[0].nombre").value("Yerba"))
+                        .andExpect(jsonPath("$[0].precio").value(3600))
+                        .andExpect(jsonPath("$[0].costo").value(2700))
+                        .andExpect(jsonPath("$[0].stock").value(4))
+                        .andExpect(jsonPath("$[0].vendidas30Dias").value(60))
+                        .andExpect(jsonPath("$[0].precioZona.minimo").value(3500))
+                        .andExpect(jsonPath("$[0].precioZona.promedio").value(3900))
+                        .andExpect(jsonPath("$[0].precioZona.maximo").value(4300));
+        verify(obtenerPasos).execute(new ObtenerPasosRequest(USUARIO_ID));
+    }
+
+    private void entoncesSeVerificaGETPasosDevuelveUnaListaVaciaCuandoNoHayProductosParaRecomendar() throws Exception {
+        resultado.andExpect(status().isOk())
+                        .andExpect(jsonPath("$").isEmpty());
     }
 }

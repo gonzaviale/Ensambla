@@ -23,6 +23,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 
+import org.springframework.test.web.servlet.ResultActions;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class SistemaControllerTest {
+
+    private ResultActions resultado;
 
     private static final UsuarioId USUARIO_ID = UsuarioId.de("b0000000-0000-4000-8000-000000000001");
     private static final String SISTEMA_ID = "d0000000-0000-4000-8000-000000000001";
@@ -64,154 +67,95 @@ class SistemaControllerTest {
     @Test
     @DisplayName("GET lista los sistemas con la forma que valida el front y omite lo que falta")
     void gETListaLosSistemasConLaFormaQueValidaElFrontYOmiteLoQueFalta() throws Exception {
-        when(listarSistemas.execute(any())).thenReturn(List.of(dadoItem()));
+        dadoElEscenarioDeGETListaLosSistemasConLaFormaQueValidaElFrontYOmiteLoQueFalta();
 
-        mockMvc.perform(get("/api/sistemas").principal(principal))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(SISTEMA_ID))
-                .andExpect(jsonPath("$[0].name").value("Mi almacén"))
-                .andExpect(jsonPath("$[0].createdAt").value("2026-01-10T09:00:00Z"))
-                .andExpect(jsonPath("$[0].template").value("shop"))
-                .andExpect(jsonPath("$[0].layout").value("mosaic"))
-                .andExpect(jsonPath("$[0].options.movements").value(true))
-                .andExpect(jsonPath("$[0].demoAlmacen").value(false))
-                .andExpect(jsonPath("$[0].sections[0].name").value("Vista general"))
-                .andExpect(jsonPath("$[0].sections[0].blocks[0].type").value("inventory"))
-                .andExpect(jsonPath("$[0].sections[0].blocks[0].stockDirection").doesNotExist())
-                .andExpect(jsonPath("$[0].sections[0].blocks[0].fields[0].key").value("name"))
-                .andExpect(jsonPath("$[0].sections[0].blocks[0].fields[0].required").value(true))
-                .andExpect(jsonPath("$[0].sections[0].blocks[0].fields[0].options").doesNotExist())
-                .andExpect(jsonPath("$[0].sections[0].blocks[0].fields[1].min").value(0))
-                .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[0].name").value("Harina"))
-                .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[0].price").doesNotExist());
-        verify(listarSistemas).execute(new ListarSistemasRequest(USUARIO_ID));
+        cuandoSeEjecutaGETListaLosSistemasConLaFormaQueValidaElFrontYOmiteLoQueFalta();
+
+        entoncesSeVerificaGETListaLosSistemasConLaFormaQueValidaElFrontYOmiteLoQueFalta();
     }
 
     @Test
     @DisplayName("GET manda a qué hora se leyeron los sistemas para que el cliente la devuelva al guardar")
     void gETMandaAQueHoraSeLeyeronLosSistemasParaQueElClienteLaDevuelvaAlGuardar() throws Exception {
-        when(listarSistemas.execute(any())).thenReturn(List.of(dadoItem()));
+        dadoElEscenarioDeGETMandaAQueHoraSeLeyeronLosSistemasParaQueElClienteLaDevuelvaAl();
 
-        mockMvc.perform(get("/api/sistemas").principal(principal))
-                .andExpect(status().isOk())
-                .andExpect(header().string(SistemaController.HEADER_LEIDO_EN, org.hamcrest.Matchers.matchesPattern(
-                        "20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z")));
+        cuandoSeEjecutaGETMandaAQueHoraSeLeyeronLosSistemasParaQueElClienteLaDevuelvaAl();
+
+        entoncesSeVerificaGETMandaAQueHoraSeLeyeronLosSistemasParaQueElClienteLaDevuelvaAl();
     }
 
     @Test
     @DisplayName("PUT con X-Leido-En pasa la hora de lectura para no borrar lo que Sami cargó después")
     void pUTConXLeidoEnPasaLaHoraDeLecturaParaNoBorrarLoQueSamiCargoDespues() throws Exception {
-        when(guardarSistema.execute(any())).thenReturn(dadoItem());
+        dadoElEscenarioDePUTConXLeidoEnPasaLaHoraDeLecturaParaNoBorrarLoQueSamiCargoDespues();
 
-        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
-                        .header(SistemaController.HEADER_LEIDO_EN, "2026-10-27T15:00:00Z")
-                        .contentType("application/json").content(dadoBody()))
-                .andExpect(status().isOk());
+        cuandoSeEjecutaPUTConXLeidoEnPasaLaHoraDeLecturaParaNoBorrarLoQueSamiCargoDespues();
 
-        ArgumentCaptor<GuardarSistemaRequest> captor = ArgumentCaptor.forClass(GuardarSistemaRequest.class);
-        verify(guardarSistema).execute(captor.capture());
-        assertThat(captor.getValue().leidoEn()).isEqualTo(java.time.OffsetDateTime.parse("2026-10-27T15:00:00Z"));
+        entoncesSeVerificaPUTConXLeidoEnPasaLaHoraDeLecturaParaNoBorrarLoQueSamiCargoDespues();
     }
 
     @Test
     @DisplayName("PUT sin X-Leido-En reemplaza el sistema exacto, como antes")
     void pUTSinXLeidoEnReemplazaElSistemaExactoComoAntes() throws Exception {
-        when(guardarSistema.execute(any())).thenReturn(dadoItem());
+        dadoElEscenarioDePUTSinXLeidoEnReemplazaElSistemaExactoComoAntes();
 
-        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
-                        .contentType("application/json").content(dadoBody()))
-                .andExpect(status().isOk());
+        cuandoSeEjecutaPUTSinXLeidoEnReemplazaElSistemaExactoComoAntes();
 
-        ArgumentCaptor<GuardarSistemaRequest> captor = ArgumentCaptor.forClass(GuardarSistemaRequest.class);
-        verify(guardarSistema).execute(captor.capture());
-        assertThat(captor.getValue().leidoEn()).isNull();
+        entoncesSeVerificaPUTSinXLeidoEnReemplazaElSistemaExactoComoAntes();
     }
 
     @Test
     @DisplayName("PUT con una hora de lectura mal escrita responde 400")
     void pUTConUnaHoraDeLecturaMalEscritaResponde400() throws Exception {
-        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
-                        .header(SistemaController.HEADER_LEIDO_EN, "ayer")
-                        .contentType("application/json").content(dadoBody()))
-                .andExpect(status().isBadRequest());
+        cuandoSeEjecutaPUTConUnaHoraDeLecturaMalEscritaResponde400();
 
-        verifyNoInteractions(guardarSistema);
+        entoncesSeVerificaPUTConUnaHoraDeLecturaMalEscritaResponde400();
     }
 
     @Test
     @DisplayName("PUT guarda el sistema entero con el id de la URL y el usuario de la sesión")
     void pUTGuardaElSistemaEnteroConElIdDeLaURLYElUsuarioDeLaSesion() throws Exception {
-        when(guardarSistema.execute(any())).thenReturn(dadoItem());
+        dadoElEscenarioDePUTGuardaElSistemaEnteroConElIdDeLaURLYElUsuarioDeLaSesion();
 
-        mockMvc.perform(put("/api/sistemas/{id}", "e" + SISTEMA_ID).principal(principal)
-                        .contentType("application/json").content(dadoBody()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(SISTEMA_ID));
+        cuandoSeEjecutaPUTGuardaElSistemaEnteroConElIdDeLaURLYElUsuarioDeLaSesion();
 
-        ArgumentCaptor<GuardarSistemaRequest> captor = ArgumentCaptor.forClass(GuardarSistemaRequest.class);
-        verify(guardarSistema).execute(captor.capture());
-        GuardarSistemaRequest request = captor.getValue();
-        assertThat(request.usuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(request.id()).isEqualTo("e" + SISTEMA_ID);
-        SistemaItem sistema = request.sistema();
-        assertThat(sistema.template()).isEqualTo("shop");
-        assertThat(sistema.options()).isEqualTo(new OpcionesItem(true, false));
-        assertThat(sistema.demoAlmacen()).isTrue();
-        BloqueItem bloque = sistema.sections().getFirst().blocks().getFirst();
-        assertThat(bloque.fields()).singleElement().satisfies(campo -> {
-            assertThat(campo.key()).isEqualTo("name");
-            assertThat(campo.label()).isEqualTo("Producto");
-            assertThat(campo.required()).isTrue();
-            assertThat(campo.min()).isEqualByComparingTo("0");
-        });
-        assertThat(bloque.rows()).singleElement().satisfies(fila ->
-                assertThat(fila).containsEntry("name", "Harina").containsEntry("price", 1200));
+        entoncesSeVerificaPUTGuardaElSistemaEnteroConElIdDeLaURLYElUsuarioDeLaSesion();
     }
 
     @Test
     @DisplayName("PUT acepta un sistema sin opciones ni demo")
     void pUTAceptaUnSistemaSinOpcionesNiDemo() throws Exception {
-        when(guardarSistema.execute(any())).thenReturn(dadoItem());
+        dadoElEscenarioDePUTAceptaUnSistemaSinOpcionesNiDemo();
 
-        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
-                        .contentType("application/json")
-                        .content("{\"id\":\"" + SISTEMA_ID + "\",\"name\":\"Solo\",\"sections\":"
-                                + "[{\"id\":\"s1\",\"name\":\"Vista\",\"blocks\":[]}]}"))
-                .andExpect(status().isOk());
+        cuandoSeEjecutaPUTAceptaUnSistemaSinOpcionesNiDemo();
 
-        ArgumentCaptor<GuardarSistemaRequest> captor = ArgumentCaptor.forClass(GuardarSistemaRequest.class);
-        verify(guardarSistema).execute(captor.capture());
-        assertThat(captor.getValue().sistema().options()).isNull();
-        assertThat(captor.getValue().sistema().demoAlmacen()).isFalse();
+        entoncesSeVerificaPUTAceptaUnSistemaSinOpcionesNiDemo();
     }
 
     @Test
     @DisplayName("PUT rechaza un sistema sin secciones sin tocar el caso de uso")
     void pUTRechazaUnSistemaSinSeccionesSinTocarElCasoDeUso() throws Exception {
-        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
-                        .contentType("application/json")
-                        .content("{\"id\":\"" + SISTEMA_ID + "\",\"name\":\"Solo\",\"sections\":[]}"))
-                .andExpect(status().isBadRequest());
-        verifyNoInteractions(guardarSistema);
+        cuandoSeEjecutaPUTRechazaUnSistemaSinSeccionesSinTocarElCasoDeUso();
+
+        entoncesSeVerificaPUTRechazaUnSistemaSinSeccionesSinTocarElCasoDeUso();
     }
 
     @Test
     @DisplayName("PUT de un sistema ajeno responde 404")
     void pUTDeUnSistemaAjenoResponde404() throws Exception {
-        when(guardarSistema.execute(any())).thenThrow(new ResourceNotFoundException("Sistema no encontrado"));
+        dadoElEscenarioDePUTDeUnSistemaAjenoResponde404();
 
-        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
-                        .contentType("application/json").content(dadoBody()))
-                .andExpect(status().isNotFound());
+        cuandoSeEjecutaPUTDeUnSistemaAjenoResponde404();
+
+        entoncesSeVerificaPUTDeUnSistemaAjenoResponde404();
     }
 
     @Test
     @DisplayName("DELETE responde 204 y delega con el id de la URL")
     void dELETEResponde204YDelegaConElIdDeLaURL() throws Exception {
-        mockMvc.perform(delete("/api/sistemas/{id}", "e" + SISTEMA_ID).principal(principal))
-                .andExpect(status().isNoContent());
+        cuandoSeEjecutaDELETEResponde204YDelegaConElIdDeLaURL();
 
-        verify(eliminarSistema).execute(new EliminarSistemaRequest(USUARIO_ID, "e" + SISTEMA_ID));
+        entoncesSeVerificaDELETEResponde204YDelegaConElIdDeLaURL();
     }
 
     // --- dado ---
@@ -234,5 +178,182 @@ class SistemaControllerTest {
         return new SistemaItem(SISTEMA_ID, "Mi almacén", "2026-01-10T09:00:00Z", "2026-10-21T10:00:00Z",
                 List.of(new SeccionItem("s1", "Vista general", List.of(inventario))), "shop",
                 new OpcionesItem(true, false), "mosaic", false);
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeGETListaLosSistemasConLaFormaQueValidaElFrontYOmiteLoQueFalta() throws Exception {
+        when(listarSistemas.execute(any())).thenReturn(List.of(dadoItem()));
+    }
+
+    private void dadoElEscenarioDeGETMandaAQueHoraSeLeyeronLosSistemasParaQueElClienteLaDevuelvaAl() throws Exception {
+        when(listarSistemas.execute(any())).thenReturn(List.of(dadoItem()));
+    }
+
+    private void dadoElEscenarioDePUTConXLeidoEnPasaLaHoraDeLecturaParaNoBorrarLoQueSamiCargoDespues() throws Exception {
+        when(guardarSistema.execute(any())).thenReturn(dadoItem());
+    }
+
+    private void dadoElEscenarioDePUTSinXLeidoEnReemplazaElSistemaExactoComoAntes() throws Exception {
+        when(guardarSistema.execute(any())).thenReturn(dadoItem());
+    }
+
+    private void dadoElEscenarioDePUTGuardaElSistemaEnteroConElIdDeLaURLYElUsuarioDeLaSesion() throws Exception {
+        when(guardarSistema.execute(any())).thenReturn(dadoItem());
+    }
+
+    private void dadoElEscenarioDePUTAceptaUnSistemaSinOpcionesNiDemo() throws Exception {
+        when(guardarSistema.execute(any())).thenReturn(dadoItem());
+    }
+
+    private void dadoElEscenarioDePUTDeUnSistemaAjenoResponde404() throws Exception {
+        when(guardarSistema.execute(any())).thenThrow(new ResourceNotFoundException("Sistema no encontrado"));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaGETListaLosSistemasConLaFormaQueValidaElFrontYOmiteLoQueFalta() throws Exception {
+        resultado = mockMvc.perform(get("/api/sistemas").principal(principal));
+    }
+
+    private void cuandoSeEjecutaGETMandaAQueHoraSeLeyeronLosSistemasParaQueElClienteLaDevuelvaAl() throws Exception {
+        resultado = mockMvc.perform(get("/api/sistemas").principal(principal));
+    }
+
+    private void cuandoSeEjecutaPUTConXLeidoEnPasaLaHoraDeLecturaParaNoBorrarLoQueSamiCargoDespues() throws Exception {
+        resultado = mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
+                                .header(SistemaController.HEADER_LEIDO_EN, "2026-10-27T15:00:00Z")
+                                .contentType("application/json").content(dadoBody()));
+    }
+
+    private void cuandoSeEjecutaPUTSinXLeidoEnReemplazaElSistemaExactoComoAntes() throws Exception {
+        resultado = mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
+                                .contentType("application/json").content(dadoBody()));
+    }
+
+    private void cuandoSeEjecutaPUTConUnaHoraDeLecturaMalEscritaResponde400() throws Exception {
+        resultado = mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
+                                .header(SistemaController.HEADER_LEIDO_EN, "ayer")
+                                .contentType("application/json").content(dadoBody()));
+    }
+
+    private void cuandoSeEjecutaPUTGuardaElSistemaEnteroConElIdDeLaURLYElUsuarioDeLaSesion() throws Exception {
+        resultado = mockMvc.perform(put("/api/sistemas/{id}", "e" + SISTEMA_ID).principal(principal)
+                                .contentType("application/json").content(dadoBody()));
+    }
+
+    private void cuandoSeEjecutaPUTAceptaUnSistemaSinOpcionesNiDemo() throws Exception {
+        resultado = mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
+                                .contentType("application/json")
+                                .content("{\"id\":\"" + SISTEMA_ID + "\",\"name\":\"Solo\",\"sections\":"
+                                        + "[{\"id\":\"s1\",\"name\":\"Vista\",\"blocks\":[]}]}"));
+    }
+
+    private void cuandoSeEjecutaPUTRechazaUnSistemaSinSeccionesSinTocarElCasoDeUso() throws Exception {
+        resultado = mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
+                                .contentType("application/json")
+                                .content("{\"id\":\"" + SISTEMA_ID + "\",\"name\":\"Solo\",\"sections\":[]}"));
+    }
+
+    private void cuandoSeEjecutaPUTDeUnSistemaAjenoResponde404() throws Exception {
+        resultado = mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
+                                .contentType("application/json").content(dadoBody()));
+    }
+
+    private void cuandoSeEjecutaDELETEResponde204YDelegaConElIdDeLaURL() throws Exception {
+        resultado = mockMvc.perform(delete("/api/sistemas/{id}", "e" + SISTEMA_ID).principal(principal));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaGETListaLosSistemasConLaFormaQueValidaElFrontYOmiteLoQueFalta() throws Exception {
+        resultado.andExpect(status().isOk())
+                        .andExpect(jsonPath("$[0].id").value(SISTEMA_ID))
+                        .andExpect(jsonPath("$[0].name").value("Mi almacén"))
+                        .andExpect(jsonPath("$[0].createdAt").value("2026-01-10T09:00:00Z"))
+                        .andExpect(jsonPath("$[0].template").value("shop"))
+                        .andExpect(jsonPath("$[0].layout").value("mosaic"))
+                        .andExpect(jsonPath("$[0].options.movements").value(true))
+                        .andExpect(jsonPath("$[0].demoAlmacen").value(false))
+                        .andExpect(jsonPath("$[0].sections[0].name").value("Vista general"))
+                        .andExpect(jsonPath("$[0].sections[0].blocks[0].type").value("inventory"))
+                        .andExpect(jsonPath("$[0].sections[0].blocks[0].stockDirection").doesNotExist())
+                        .andExpect(jsonPath("$[0].sections[0].blocks[0].fields[0].key").value("name"))
+                        .andExpect(jsonPath("$[0].sections[0].blocks[0].fields[0].required").value(true))
+                        .andExpect(jsonPath("$[0].sections[0].blocks[0].fields[0].options").doesNotExist())
+                        .andExpect(jsonPath("$[0].sections[0].blocks[0].fields[1].min").value(0))
+                        .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[0].name").value("Harina"))
+                        .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[0].price").doesNotExist());
+        verify(listarSistemas).execute(new ListarSistemasRequest(USUARIO_ID));
+    }
+
+    private void entoncesSeVerificaGETMandaAQueHoraSeLeyeronLosSistemasParaQueElClienteLaDevuelvaAl() throws Exception {
+        resultado.andExpect(status().isOk())
+                        .andExpect(header().string(SistemaController.HEADER_LEIDO_EN, org.hamcrest.Matchers.matchesPattern(
+                                "20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z")));
+    }
+
+    private void entoncesSeVerificaPUTConXLeidoEnPasaLaHoraDeLecturaParaNoBorrarLoQueSamiCargoDespues() throws Exception {
+        resultado.andExpect(status().isOk());
+        ArgumentCaptor<GuardarSistemaRequest> captor = ArgumentCaptor.forClass(GuardarSistemaRequest.class);
+        verify(guardarSistema).execute(captor.capture());
+        assertThat(captor.getValue().leidoEn()).isEqualTo(java.time.OffsetDateTime.parse("2026-10-27T15:00:00Z"));
+    }
+
+    private void entoncesSeVerificaPUTSinXLeidoEnReemplazaElSistemaExactoComoAntes() throws Exception {
+        resultado.andExpect(status().isOk());
+        ArgumentCaptor<GuardarSistemaRequest> captor = ArgumentCaptor.forClass(GuardarSistemaRequest.class);
+        verify(guardarSistema).execute(captor.capture());
+        assertThat(captor.getValue().leidoEn()).isNull();
+    }
+
+    private void entoncesSeVerificaPUTConUnaHoraDeLecturaMalEscritaResponde400() throws Exception {
+        resultado.andExpect(status().isBadRequest());
+        verifyNoInteractions(guardarSistema);
+    }
+
+    private void entoncesSeVerificaPUTGuardaElSistemaEnteroConElIdDeLaURLYElUsuarioDeLaSesion() throws Exception {
+        resultado.andExpect(status().isOk())
+                        .andExpect(jsonPath("$.id").value(SISTEMA_ID));
+        ArgumentCaptor<GuardarSistemaRequest> captor = ArgumentCaptor.forClass(GuardarSistemaRequest.class);
+        verify(guardarSistema).execute(captor.capture());
+        GuardarSistemaRequest request = captor.getValue();
+        assertThat(request.usuarioId()).isEqualTo(USUARIO_ID);
+        assertThat(request.id()).isEqualTo("e" + SISTEMA_ID);
+        SistemaItem sistema = request.sistema();
+        assertThat(sistema.template()).isEqualTo("shop");
+        assertThat(sistema.options()).isEqualTo(new OpcionesItem(true, false));
+        assertThat(sistema.demoAlmacen()).isTrue();
+        BloqueItem bloque = sistema.sections().getFirst().blocks().getFirst();
+        assertThat(bloque.fields()).singleElement().satisfies(campo -> {
+                    assertThat(campo.key()).isEqualTo("name");
+                    assertThat(campo.label()).isEqualTo("Producto");
+                    assertThat(campo.required()).isTrue();
+                    assertThat(campo.min()).isEqualByComparingTo("0");
+                });
+        assertThat(bloque.rows()).singleElement().satisfies(fila ->
+                        assertThat(fila).containsEntry("name", "Harina").containsEntry("price", 1200));
+    }
+
+    private void entoncesSeVerificaPUTAceptaUnSistemaSinOpcionesNiDemo() throws Exception {
+        resultado.andExpect(status().isOk());
+        ArgumentCaptor<GuardarSistemaRequest> captor = ArgumentCaptor.forClass(GuardarSistemaRequest.class);
+        verify(guardarSistema).execute(captor.capture());
+        assertThat(captor.getValue().sistema().options()).isNull();
+        assertThat(captor.getValue().sistema().demoAlmacen()).isFalse();
+    }
+
+    private void entoncesSeVerificaPUTRechazaUnSistemaSinSeccionesSinTocarElCasoDeUso() throws Exception {
+        resultado.andExpect(status().isBadRequest());
+        verifyNoInteractions(guardarSistema);
+    }
+
+    private void entoncesSeVerificaPUTDeUnSistemaAjenoResponde404() throws Exception {
+        resultado.andExpect(status().isNotFound());
+    }
+
+    private void entoncesSeVerificaDELETEResponde204YDelegaConElIdDeLaURL() throws Exception {
+        resultado.andExpect(status().isNoContent());
+        verify(eliminarSistema).execute(new EliminarSistemaRequest(USUARIO_ID, "e" + SISTEMA_ID));
     }
 }

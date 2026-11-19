@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 
+import org.springframework.test.web.servlet.ResultActions;
 import java.math.BigDecimal;
 import java.security.Principal;
 import java.time.LocalDate;
@@ -30,6 +31,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class PanelNegocioControllerTest {
+
+    private ResultActions resultado;
 
     private static final UsuarioId USUARIO_ID = UsuarioId.de("b9000000-0000-4000-8000-000000000001");
     private static final ProyectoId PROYECTO_ID = ProyectoId.de("c0000000-0000-4000-8000-000000000001");
@@ -53,60 +56,118 @@ class PanelNegocioControllerTest {
     @Test
     @DisplayName("GET devuelve las métricas y el flujo de caja, y pasa el sistema y los días con el usuario de la sesión")
     void gETDevuelveLasMetricasYElFlujoDeCajaYPasaElSistemaYLosDiasConElUsuarioDeLaSesion() throws Exception {
-        when(obtenerPanelNegocio.execute(any(ObtenerPanelNegocioRequest.class))).thenReturn(
-                new ObtenerPanelNegocioResponse(DESDE, HASTA, 7, true,
-                        new ObtenerPanelNegocioResponse.Metricas(new BigDecimal("1000"), null, null,
-                                new BigDecimal("1000"), BigDecimal.ZERO, null, new BigDecimal("250"), null),
-                        List.of(new ObtenerPanelNegocioResponse.Semana(DESDE, HASTA, new BigDecimal("1000"),
-                                BigDecimal.ZERO, new BigDecimal("1000"), new BigDecimal("1000")))));
+        dadoElEscenarioDeGETDevuelveLasMetricasYElFlujoDeCajaYPasaElSistemaYLosDiasConElUsuario();
 
-        mockMvc.perform(get("/api/negocio/panel").param("proyectoId", PROYECTO_ID.toString())
-                        .param("dias", "7").principal(sesion))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.desde").value("2026-10-01"))
-                .andExpect(jsonPath("$.hasta").value("2026-10-07"))
-                .andExpect(jsonPath("$.hayDatos").value(true))
-                .andExpect(jsonPath("$.dias").value(7))
-                .andExpect(jsonPath("$.metricas.vendiste").value(1000))
-                .andExpect(jsonPath("$.metricas.gastos").doesNotExist())
-                .andExpect(jsonPath("$.flujoDeCaja[0].desde").value("2026-10-01"))
-                .andExpect(jsonPath("$.flujoDeCaja[0].saldoAcumulado").value(1000));
-        verify(obtenerPanelNegocio).execute(new ObtenerPanelNegocioRequest(USUARIO_ID, PROYECTO_ID, 7));
+        cuandoSeEjecutaGETDevuelveLasMetricasYElFlujoDeCajaYPasaElSistemaYLosDiasConElUsuario();
+
+        entoncesSeVerificaGETDevuelveLasMetricasYElFlujoDeCajaYPasaElSistemaYLosDiasConElUsuario();
     }
 
     @Test
     @DisplayName("GET de un sistema sin ventas devuelve el panel vacío")
     void gETDeUnSistemaSinVentasDevuelveElPanelVacio() throws Exception {
-        when(obtenerPanelNegocio.execute(any(ObtenerPanelNegocioRequest.class))).thenReturn(
-                new ObtenerPanelNegocioResponse(DESDE, HASTA, 7, false, null, List.of()));
+        dadoElEscenarioDeGETDeUnSistemaSinVentasDevuelveElPanelVacio();
 
-        mockMvc.perform(get("/api/negocio/panel").param("proyectoId", PROYECTO_ID.toString()).principal(sesion))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.hayDatos").value(false))
-                .andExpect(jsonPath("$.flujoDeCaja").isEmpty());
-        verify(obtenerPanelNegocio).execute(new ObtenerPanelNegocioRequest(USUARIO_ID, PROYECTO_ID, null));
+        cuandoSeEjecutaGETDeUnSistemaSinVentasDevuelveElPanelVacio();
+
+        entoncesSeVerificaGETDeUnSistemaSinVentasDevuelveElPanelVacio();
     }
 
     @Test
     @DisplayName("GET de un sistema ajeno responde 404")
     void gETDeUnSistemaAjenoResponde404() throws Exception {
-        when(obtenerPanelNegocio.execute(any(ObtenerPanelNegocioRequest.class)))
-                .thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
+        dadoElEscenarioDeGETDeUnSistemaAjenoResponde404();
 
-        mockMvc.perform(get("/api/negocio/panel").param("proyectoId", PROYECTO_ID.toString()).principal(sesion))
-                .andExpect(status().isNotFound());
+        cuandoSeEjecutaGETDeUnSistemaAjenoResponde404();
+
+        entoncesSeVerificaGETDeUnSistemaAjenoResponde404();
     }
 
     @Test
     @DisplayName("GET con días inválidos o un id mal escrito responde 400")
     void gETConDiasInvalidosOUnIdMalEscritoResponde400() throws Exception {
-        when(obtenerPanelNegocio.execute(any(ObtenerPanelNegocioRequest.class)))
-                .thenThrow(new BusinessRuleException("La cantidad de días tiene que ser mayor a cero"));
+        dadoElEscenarioDeGETConDiasInvalidosOUnIdMalEscritoResponde400();
 
-        mockMvc.perform(get("/api/negocio/panel").param("proyectoId", PROYECTO_ID.toString())
-                        .param("dias", "0").principal(sesion))
-                .andExpect(status().isBadRequest());
-        mockMvc.perform(get("/api/negocio/panel").param("proyectoId", "no-es-un-id").principal(sesion))
-                .andExpect(status().isBadRequest());
+        cuandoSeEjecutaGETConDiasInvalidosOUnIdMalEscritoResponde400();
+
+        entoncesSeVerificaGETConDiasInvalidosOUnIdMalEscritoResponde400();
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeGETDevuelveLasMetricasYElFlujoDeCajaYPasaElSistemaYLosDiasConElUsuario() throws Exception {
+        when(obtenerPanelNegocio.execute(any(ObtenerPanelNegocioRequest.class))).thenReturn(
+                        new ObtenerPanelNegocioResponse(DESDE, HASTA, 7, true,
+                                new ObtenerPanelNegocioResponse.Metricas(new BigDecimal("1000"), null, null,
+                                        new BigDecimal("1000"), BigDecimal.ZERO, null, new BigDecimal("250"), null),
+                                List.of(new ObtenerPanelNegocioResponse.Semana(DESDE, HASTA, new BigDecimal("1000"),
+                                        BigDecimal.ZERO, new BigDecimal("1000"), new BigDecimal("1000")))));
+    }
+
+    private void dadoElEscenarioDeGETDeUnSistemaSinVentasDevuelveElPanelVacio() throws Exception {
+        when(obtenerPanelNegocio.execute(any(ObtenerPanelNegocioRequest.class))).thenReturn(
+                        new ObtenerPanelNegocioResponse(DESDE, HASTA, 7, false, null, List.of()));
+    }
+
+    private void dadoElEscenarioDeGETDeUnSistemaAjenoResponde404() throws Exception {
+        when(obtenerPanelNegocio.execute(any(ObtenerPanelNegocioRequest.class)))
+                        .thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
+    }
+
+    private void dadoElEscenarioDeGETConDiasInvalidosOUnIdMalEscritoResponde400() throws Exception {
+        when(obtenerPanelNegocio.execute(any(ObtenerPanelNegocioRequest.class)))
+                        .thenThrow(new BusinessRuleException("La cantidad de días tiene que ser mayor a cero"));
+        resultado = mockMvc.perform(get("/api/negocio/panel").param("proyectoId", PROYECTO_ID.toString())
+                                .param("dias", "0").principal(sesion));
+        resultado.andExpect(status().isBadRequest());
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaGETDevuelveLasMetricasYElFlujoDeCajaYPasaElSistemaYLosDiasConElUsuario() throws Exception {
+        resultado = mockMvc.perform(get("/api/negocio/panel").param("proyectoId", PROYECTO_ID.toString())
+                                .param("dias", "7").principal(sesion));
+    }
+
+    private void cuandoSeEjecutaGETDeUnSistemaSinVentasDevuelveElPanelVacio() throws Exception {
+        resultado = mockMvc.perform(get("/api/negocio/panel").param("proyectoId", PROYECTO_ID.toString()).principal(sesion));
+    }
+
+    private void cuandoSeEjecutaGETDeUnSistemaAjenoResponde404() throws Exception {
+        resultado = mockMvc.perform(get("/api/negocio/panel").param("proyectoId", PROYECTO_ID.toString()).principal(sesion));
+    }
+
+    private void cuandoSeEjecutaGETConDiasInvalidosOUnIdMalEscritoResponde400() throws Exception {
+        resultado = mockMvc.perform(get("/api/negocio/panel").param("proyectoId", "no-es-un-id").principal(sesion));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaGETDevuelveLasMetricasYElFlujoDeCajaYPasaElSistemaYLosDiasConElUsuario() throws Exception {
+        resultado.andExpect(status().isOk())
+                        .andExpect(jsonPath("$.desde").value("2026-10-01"))
+                        .andExpect(jsonPath("$.hasta").value("2026-10-07"))
+                        .andExpect(jsonPath("$.hayDatos").value(true))
+                        .andExpect(jsonPath("$.dias").value(7))
+                        .andExpect(jsonPath("$.metricas.vendiste").value(1000))
+                        .andExpect(jsonPath("$.metricas.gastos").doesNotExist())
+                        .andExpect(jsonPath("$.flujoDeCaja[0].desde").value("2026-10-01"))
+                        .andExpect(jsonPath("$.flujoDeCaja[0].saldoAcumulado").value(1000));
+        verify(obtenerPanelNegocio).execute(new ObtenerPanelNegocioRequest(USUARIO_ID, PROYECTO_ID, 7));
+    }
+
+    private void entoncesSeVerificaGETDeUnSistemaSinVentasDevuelveElPanelVacio() throws Exception {
+        resultado.andExpect(status().isOk())
+                        .andExpect(jsonPath("$.hayDatos").value(false))
+                        .andExpect(jsonPath("$.flujoDeCaja").isEmpty());
+        verify(obtenerPanelNegocio).execute(new ObtenerPanelNegocioRequest(USUARIO_ID, PROYECTO_ID, null));
+    }
+
+    private void entoncesSeVerificaGETDeUnSistemaAjenoResponde404() throws Exception {
+        resultado.andExpect(status().isNotFound());
+    }
+
+    private void entoncesSeVerificaGETConDiasInvalidosOUnIdMalEscritoResponde400() throws Exception {
+        resultado.andExpect(status().isBadRequest());
     }
 }

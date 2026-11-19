@@ -42,6 +42,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class ProgresoObjetivoControllerTest {
 
+    private ResultActions result;
+    private ResultActions resultado;
+
     private static final String RUTA = "/api/objetivos/" + OBJETIVO_ID + "/progreso";
     private static final LocalDate SEMANA = LocalDate.of(2026, 11, 9);
 
@@ -62,69 +65,132 @@ class ProgresoObjetivoControllerTest {
     @Test
     @DisplayName("GET devuelve la meta, el hito y la serie semanal del objetivo y de sus mini-objetivos")
     void gETDevuelveLaMetaElHitoYLaSerieSemanalDelObjetivoYDeSusMiniObjetivos() throws Exception {
-        when(obtenerProgreso.execute(any())).thenReturn(new ObtenerProgresoResponse(
-                META,
-                HitoObjetivo.OBJETIVO_ALCANZADO,
-                List.of(new PuntoSemanal(SEMANA, new BigDecimal("-27000"), true)),
-                List.of(new MiniProgreso(MiniObjetivoItem.de(miniObjetivo()), HitoObjetivo.SIN_AVANCE,
-                        List.of(new PuntoSemanal(SEMANA, new BigDecimal("12600"), false))))));
+        dadoElEscenarioDeGETDevuelveLaMetaElHitoYLaSerieSemanalDelObjetivoYDeSusMiniObjetivos();
 
-        ResultActions result = mockMvc.perform(get(RUTA).principal(principal));
+        cuandoSeEjecutaGETDevuelveLaMetaElHitoYLaSerieSemanalDelObjetivoYDeSusMiniObjetivos();
 
-        result.andExpect(status().isOk())
-                .andExpect(jsonPath("$.meta").value(400000.0))
-                .andExpect(jsonPath("$.hito").value("OBJETIVO_ALCANZADO"))
-                .andExpect(jsonPath("$.semanas[0].semana").value("2026-11-09"))
-                .andExpect(jsonPath("$.semanas[0].valor").value(-27000.0))
-                .andExpect(jsonPath("$.semanas[0].estimado").value(true))
-                .andExpect(jsonPath("$.minis[0].mini.id").value(MINI_ID.toString()))
-                .andExpect(jsonPath("$.minis[0].mini.titulo").value(TITULO))
-                .andExpect(jsonPath("$.minis[0].hito").value("SIN_AVANCE"))
-                .andExpect(jsonPath("$.minis[0].semanas[0].valor").value(12600.0))
-                .andExpect(jsonPath("$.minis[0].semanas[0].estimado").value(false));
+        entoncesSeVerificaGETDevuelveLaMetaElHitoYLaSerieSemanalDelObjetivoYDeSusMiniObjetivos();
     }
 
     @Test
     @DisplayName("GET manda al caso de uso el usuario de la sesión y el objetivo de la ruta")
     void gETMandaAlCasoDeUsoElUsuarioDeLaSesionYElObjetivoDeLaRuta() throws Exception {
+        dadoElEscenarioDeGETMandaAlCasoDeUsoElUsuarioDeLaSesionYElObjetivoDeLaRuta();
+
+        cuandoSeEjecutaGETMandaAlCasoDeUsoElUsuarioDeLaSesionYElObjetivoDeLaRuta();
+
+        entoncesSeVerificaGETMandaAlCasoDeUsoElUsuarioDeLaSesionYElObjetivoDeLaRuta();
+    }
+
+    @Test
+    @DisplayName("GET responde 200 con listas vacías cuando todavía no hay nada medido")
+    void gETResponde200ConListasVaciasCuandoTodaviaNoHayNadaMedido() throws Exception {
+        dadoElEscenarioDeGETResponde200ConListasVaciasCuandoTodaviaNoHayNadaMedido();
+
+        cuandoSeEjecutaGETResponde200ConListasVaciasCuandoTodaviaNoHayNadaMedido();
+
+        entoncesSeVerificaGETResponde200ConListasVaciasCuandoTodaviaNoHayNadaMedido();
+    }
+
+    @Test
+    @DisplayName("GET responde 404 cuando el objetivo es de otro negocio o no existe")
+    void gETResponde404CuandoElObjetivoEsDeOtroNegocioONoExiste() throws Exception {
+        dadoElEscenarioDeGETResponde404CuandoElObjetivoEsDeOtroNegocioONoExiste();
+
+        cuandoSeEjecutaGETResponde404CuandoElObjetivoEsDeOtroNegocioONoExiste();
+
+        entoncesSeVerificaGETResponde404CuandoElObjetivoEsDeOtroNegocioONoExiste();
+    }
+
+    @Test
+    @DisplayName("GET responde 400 cuando el id del objetivo no es un UUID")
+    void gETResponde400CuandoElIdDelObjetivoNoEsUnUUID() throws Exception {
+        cuandoSeEjecutaGETResponde400CuandoElIdDelObjetivoNoEsUnUUID();
+
+        entoncesSeVerificaGETResponde400CuandoElIdDelObjetivoNoEsUnUUID();
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeGETDevuelveLaMetaElHitoYLaSerieSemanalDelObjetivoYDeSusMiniObjetivos() throws Exception {
+        when(obtenerProgreso.execute(any())).thenReturn(new ObtenerProgresoResponse(
+                        META,
+                        HitoObjetivo.OBJETIVO_ALCANZADO,
+                        List.of(new PuntoSemanal(SEMANA, new BigDecimal("-27000"), true)),
+                        List.of(new MiniProgreso(MiniObjetivoItem.de(miniObjetivo()), HitoObjetivo.SIN_AVANCE,
+                                List.of(new PuntoSemanal(SEMANA, new BigDecimal("12600"), false))))));
+    }
+
+    private void dadoElEscenarioDeGETMandaAlCasoDeUsoElUsuarioDeLaSesionYElObjetivoDeLaRuta() throws Exception {
         when(obtenerProgreso.execute(any())).thenReturn(new ObtenerProgresoResponse(META, null, List.of(), List.of()));
+    }
 
-        mockMvc.perform(get(RUTA).principal(principal)).andExpect(status().isOk());
+    private void dadoElEscenarioDeGETResponde200ConListasVaciasCuandoTodaviaNoHayNadaMedido() throws Exception {
+        when(obtenerProgreso.execute(any())).thenReturn(new ObtenerProgresoResponse(META, null, List.of(), List.of()));
+    }
 
+    private void dadoElEscenarioDeGETResponde404CuandoElObjetivoEsDeOtroNegocioONoExiste() throws Exception {
+        when(obtenerProgreso.execute(any())).thenThrow(new ResourceNotFoundException("Objetivo no encontrado"));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaGETDevuelveLaMetaElHitoYLaSerieSemanalDelObjetivoYDeSusMiniObjetivos() throws Exception {
+        result = mockMvc.perform(get(RUTA).principal(principal));
+    }
+
+    private void cuandoSeEjecutaGETMandaAlCasoDeUsoElUsuarioDeLaSesionYElObjetivoDeLaRuta() throws Exception {
+        resultado = mockMvc.perform(get(RUTA).principal(principal));
+    }
+
+    private void cuandoSeEjecutaGETResponde200ConListasVaciasCuandoTodaviaNoHayNadaMedido() throws Exception {
+        result = mockMvc.perform(get(RUTA).principal(principal));
+    }
+
+    private void cuandoSeEjecutaGETResponde404CuandoElObjetivoEsDeOtroNegocioONoExiste() throws Exception {
+        result = mockMvc.perform(get(RUTA).principal(principal));
+    }
+
+    private void cuandoSeEjecutaGETResponde400CuandoElIdDelObjetivoNoEsUnUUID() throws Exception {
+        result = mockMvc.perform(get("/api/objetivos/no-es-un-uuid/progreso").principal(principal));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaGETDevuelveLaMetaElHitoYLaSerieSemanalDelObjetivoYDeSusMiniObjetivos() throws Exception {
+        result.andExpect(status().isOk())
+                        .andExpect(jsonPath("$.meta").value(400000.0))
+                        .andExpect(jsonPath("$.hito").value("OBJETIVO_ALCANZADO"))
+                        .andExpect(jsonPath("$.semanas[0].semana").value("2026-11-09"))
+                        .andExpect(jsonPath("$.semanas[0].valor").value(-27000.0))
+                        .andExpect(jsonPath("$.semanas[0].estimado").value(true))
+                        .andExpect(jsonPath("$.minis[0].mini.id").value(MINI_ID.toString()))
+                        .andExpect(jsonPath("$.minis[0].mini.titulo").value(TITULO))
+                        .andExpect(jsonPath("$.minis[0].hito").value("SIN_AVANCE"))
+                        .andExpect(jsonPath("$.minis[0].semanas[0].valor").value(12600.0))
+                        .andExpect(jsonPath("$.minis[0].semanas[0].estimado").value(false));
+    }
+
+    private void entoncesSeVerificaGETMandaAlCasoDeUsoElUsuarioDeLaSesionYElObjetivoDeLaRuta() throws Exception {
+        resultado.andExpect(status().isOk());
         ArgumentCaptor<ObtenerProgresoRequest> captor = ArgumentCaptor.forClass(ObtenerProgresoRequest.class);
         verify(obtenerProgreso).execute(captor.capture());
         assertThat(captor.getValue().usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(captor.getValue().objetivoId()).isEqualTo(OBJETIVO_ID);
     }
 
-    @Test
-    @DisplayName("GET responde 200 con listas vacías cuando todavía no hay nada medido")
-    void gETResponde200ConListasVaciasCuandoTodaviaNoHayNadaMedido() throws Exception {
-        when(obtenerProgreso.execute(any())).thenReturn(new ObtenerProgresoResponse(META, null, List.of(), List.of()));
-
-        ResultActions result = mockMvc.perform(get(RUTA).principal(principal));
-
+    private void entoncesSeVerificaGETResponde200ConListasVaciasCuandoTodaviaNoHayNadaMedido() throws Exception {
         result.andExpect(status().isOk())
-                .andExpect(jsonPath("$.semanas").isEmpty())
-                .andExpect(jsonPath("$.minis").isEmpty())
-                .andExpect(jsonPath("$.hito").doesNotExist());
+                        .andExpect(jsonPath("$.semanas").isEmpty())
+                        .andExpect(jsonPath("$.minis").isEmpty())
+                        .andExpect(jsonPath("$.hito").doesNotExist());
     }
 
-    @Test
-    @DisplayName("GET responde 404 cuando el objetivo es de otro negocio o no existe")
-    void gETResponde404CuandoElObjetivoEsDeOtroNegocioONoExiste() throws Exception {
-        when(obtenerProgreso.execute(any())).thenThrow(new ResourceNotFoundException("Objetivo no encontrado"));
-
-        ResultActions result = mockMvc.perform(get(RUTA).principal(principal));
-
+    private void entoncesSeVerificaGETResponde404CuandoElObjetivoEsDeOtroNegocioONoExiste() throws Exception {
         result.andExpect(status().isNotFound());
     }
 
-    @Test
-    @DisplayName("GET responde 400 cuando el id del objetivo no es un UUID")
-    void gETResponde400CuandoElIdDelObjetivoNoEsUnUUID() throws Exception {
-        ResultActions result = mockMvc.perform(get("/api/objetivos/no-es-un-uuid/progreso").principal(principal));
-
+    private void entoncesSeVerificaGETResponde400CuandoElIdDelObjetivoNoEsUnUUID() throws Exception {
         result.andExpect(status().isBadRequest());
         verifyNoInteractions(obtenerProgreso);
     }
