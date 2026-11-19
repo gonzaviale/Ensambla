@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -22,24 +22,58 @@ class RegistroRepositoryTest {
 
     private final RegistroRepository registroRepository = mock(RegistroRepository.class, CALLS_REAL_METHODS);
 
+    private Registro registro;
+    private Registro obtenido;
+    private Throwable rechazo;
+
     @Test
     @DisplayName("Devuelve el registro del negocio")
-    void obtenerShouldReturnRegistroOfNegocio() {
-        Registro registro = Registro.builder().id(REGISTRO_ID).negocioId(NEGOCIO_ID).build();
-        when(registroRepository.findByIdAndNegocioId(REGISTRO_ID, NEGOCIO_ID)).thenReturn(Optional.of(registro));
+    void devuelveElRegistroDelNegocio() {
+        dadoUnRegistroDelNegocio();
 
-        Registro result = registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID);
+        cuandoSeObtieneElRegistro();
 
-        assertThat(result).isSameAs(registro);
+        entoncesSeDevuelveElMismoRegistro();
     }
 
     @Test
     @DisplayName("Responde 'no existe' cuando el registro es de otro negocio o no existe")
-    void obtenerShouldThrowWhenRegistroIsNotFound() {
-        when(registroRepository.findByIdAndNegocioId(REGISTRO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+    void respondeNoExisteCuandoElRegistroEsDeOtroNegocioONoExiste() {
+        dadoQueElRegistroNoExiste();
 
-        assertThatThrownBy(() -> registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("El registro no existe");
+        cuandoSeIntentaObtenerElRegistro();
+
+        entoncesSeRespondeQueElRegistroNoExiste();
+    }
+
+    // --- dado ---
+
+    private void dadoUnRegistroDelNegocio() {
+        registro = Registro.builder().id(REGISTRO_ID).negocioId(NEGOCIO_ID).build();
+        when(registroRepository.findByIdAndNegocioId(REGISTRO_ID, NEGOCIO_ID)).thenReturn(Optional.of(registro));
+    }
+
+    private void dadoQueElRegistroNoExiste() {
+        when(registroRepository.findByIdAndNegocioId(REGISTRO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeObtieneElRegistro() {
+        obtenido = registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID);
+    }
+
+    private void cuandoSeIntentaObtenerElRegistro() {
+        rechazo = catchThrowable(this::cuandoSeObtieneElRegistro);
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeDevuelveElMismoRegistro() {
+        assertThat(obtenido).isSameAs(registro);
+    }
+
+    private void entoncesSeRespondeQueElRegistroNoExiste() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class).hasMessage("El registro no existe");
     }
 }

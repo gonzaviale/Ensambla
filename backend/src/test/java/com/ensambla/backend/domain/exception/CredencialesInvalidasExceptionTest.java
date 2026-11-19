@@ -7,17 +7,26 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class CredencialesInvalidasExceptionTest {
 
+    private CredencialesInvalidasException excepcion;
+
     @Test
     @DisplayName("El error de acceso usa mensaje genérico y no contiene credenciales")
-    void constructorShouldUseGenericMessage() {
-        CredencialesInvalidasException exception = new CredencialesInvalidasException();
+    void elErrorDeAccesoUsaMensajeGenericoYNoContieneCredenciales() {
+        cuandoSeCreaElErrorDeAcceso();
 
-        thenConstructorShouldUseGenericMessage(exception);
+        entoncesUsaElMensajeGenericoSinCausa();
     }
 
-    // --- assert ---
-    private void thenConstructorShouldUseGenericMessage(CredencialesInvalidasException exception) {
-        assertThat(exception).isInstanceOf(DomainException.class)
+    // --- cuando ---
+
+    private void cuandoSeCreaElErrorDeAcceso() {
+        excepcion = new CredencialesInvalidasException();
+    }
+
+    // --- entonces ---
+
+    private void entoncesUsaElMensajeGenericoSinCausa() {
+        assertThat(excepcion).isInstanceOf(DomainException.class)
                 .hasMessage("No se pudo autenticar el acceso").hasNoCause();
     }
 }

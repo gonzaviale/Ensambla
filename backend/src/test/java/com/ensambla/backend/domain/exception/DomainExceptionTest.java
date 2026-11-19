@@ -7,68 +7,72 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class DomainExceptionTest {
 
-    private static final String BUSINESS_MESSAGE = "Operación no disponible";
-    private static final String TECHNICAL_DETAIL = "Detalle técnico";
+    private static final String MENSAJE_DE_NEGOCIO = "Operación no disponible";
+    private static final String DETALLE_TECNICO = "Detalle técnico";
+
+    private DomainException excepcion;
+    private Throwable causa;
 
     @Test
     @DisplayName("Conserva el mensaje y no tiene causa cuando se crea sin causa")
-    void constructorShouldKeepMessageWithoutCauseWhenCreatedWithMessageOnly() {
-        DomainException exception = domainException(BUSINESS_MESSAGE);
+    void conservaElMensajeYNoTieneCausaCuandoSeCreaSinCausa() {
+        cuandoSeCreaConElMensaje(MENSAJE_DE_NEGOCIO);
 
-        thenHasMessageAndNoCause(exception);
+        entoncesTieneElMensajeYNingunaCausa();
     }
 
     @Test
     @DisplayName("Conserva la causa sin perder el mensaje de negocio")
-    void constructorShouldKeepCauseAndMessageWhenCreatedWithCause() {
-        IllegalStateException cause = new IllegalStateException(TECHNICAL_DETAIL);
+    void conservaLaCausaSinPerderElMensajeDeNegocio() {
+        cuandoSeCreaConElMensajeYUnaCausaTecnica();
 
-        DomainException exception = domainException(BUSINESS_MESSAGE, cause);
-
-        thenHasMessageAndCause(exception, cause);
+        entoncesTieneElMensajeYLaCausa();
     }
 
     @Test
     @DisplayName("Es una excepción no verificada")
-    void domainExceptionShouldBeRuntimeException() {
-        DomainException exception = domainException(BUSINESS_MESSAGE);
+    void esUnaExcepcionNoVerificada() {
+        cuandoSeCreaConElMensaje(MENSAJE_DE_NEGOCIO);
 
-        thenIsRuntimeException(exception);
+        entoncesEsUnaExcepcionNoVerificada();
     }
 
     @Test
     @DisplayName("Admite un mensaje nulo")
-    void constructorShouldAllowNullMessageWhenMessageIsNull() {
-        DomainException exception = domainException(null);
+    void admiteUnMensajeNulo() {
+        cuandoSeCreaConElMensaje(null);
 
-        thenHasNullMessage(exception);
+        entoncesNoTieneMensaje();
     }
 
-    // --- act ---
-    private DomainException domainException(String message) {
-        return new DomainException(message) {
+    // --- cuando ---
+
+    private void cuandoSeCreaConElMensaje(String mensaje) {
+        excepcion = new DomainException(mensaje) {
         };
     }
 
-    private DomainException domainException(String message, Throwable cause) {
-        return new DomainException(message, cause) {
+    private void cuandoSeCreaConElMensajeYUnaCausaTecnica() {
+        causa = new IllegalStateException(DETALLE_TECNICO);
+        excepcion = new DomainException(MENSAJE_DE_NEGOCIO, causa) {
         };
     }
 
-    // --- assert ---
-    private void thenHasMessageAndNoCause(DomainException exception) {
-        assertThat(exception).hasMessage(BUSINESS_MESSAGE).hasNoCause();
+    // --- entonces ---
+
+    private void entoncesTieneElMensajeYNingunaCausa() {
+        assertThat(excepcion).hasMessage(MENSAJE_DE_NEGOCIO).hasNoCause();
     }
 
-    private void thenHasMessageAndCause(DomainException exception, Throwable cause) {
-        assertThat(exception).hasMessage(BUSINESS_MESSAGE).hasCause(cause);
+    private void entoncesTieneElMensajeYLaCausa() {
+        assertThat(excepcion).hasMessage(MENSAJE_DE_NEGOCIO).hasCause(causa);
     }
 
-    private void thenIsRuntimeException(DomainException exception) {
-        assertThat(exception).isInstanceOf(RuntimeException.class);
+    private void entoncesEsUnaExcepcionNoVerificada() {
+        assertThat(excepcion).isInstanceOf(RuntimeException.class);
     }
 
-    private void thenHasNullMessage(DomainException exception) {
-        assertThat(exception.getMessage()).isNull();
+    private void entoncesNoTieneMensaje() {
+        assertThat(excepcion.getMessage()).isNull();
     }
 }
