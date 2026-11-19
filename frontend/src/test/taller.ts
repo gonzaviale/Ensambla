@@ -1,6 +1,9 @@
 import { screen, within } from '@testing-library/react';
 import userEvent, { type UserEvent } from '@testing-library/user-event';
 import { expect } from 'vitest';
+import { makeTemplate } from '@/lib/sistema/core';
+import type { Sistema } from '@/lib/sistema/tipos';
+import { estado } from '@/mocks/db/estado';
 import { renderApp } from '@/test/renderApp';
 import {
   ESPERA,
@@ -35,6 +38,26 @@ export const dadoQueSamiArmoUnaPropuestaDeAlmacen = async () => {
   await dadoQueSeAbreElTaller();
   await clickButton(user, /Almacén o kiosco/);
   await screen.findByLabelText('Nombre de tu sección', {}, ESPERA);
+};
+
+let sistemaAjustado: Sistema;
+
+export const elSistemaQueSeAjusta = () => sistemaAjustado;
+
+/** Abre «Ajustar con Sami» sobre un almacén de Ana; `preparar` le deja los datos que la prueba necesita. */
+export const dadoQueSeAjustaConSamiUnAlmacenDeAna = async (
+  preparar: (sistema: Sistema) => void = () => undefined,
+) => {
+  const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+  sistemaAjustado = makeTemplate('shop', {}, false);
+  sistemaAjustado.name = 'Almacén de Ana';
+  preparar(sistemaAjustado);
+  estado.sistemas.set(usuario.email, [sistemaAjustado]);
+  router = renderApp(`/sistemas/${sistemaAjustado.id}?modo=usar`);
+  await screen.findByRole('heading', { level: 1, name: /Almacén de Ana/ }, ESPERA);
+  user = userEvent.setup();
+  await clickButton(user, /Ajustar con Sami/);
+  await verifyHeadingPresentAsync('Construyamos juntos');
 };
 
 export const campoDeLaConversacion = () =>
