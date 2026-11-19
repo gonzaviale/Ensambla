@@ -11,17 +11,19 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.IntStream;
 
+import static com.ensambla.backend.support.MapasDePrueba.mapa;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ConversarEnTallerHerramientasTest {
 
     private TallerDePrueba taller;
     private EstadoTaller estado;
+    private List<LlamadaHerramienta> llamadas = List.of();
+    private ValidacionTaller validacion;
 
     @BeforeEach
     void setUp() {
@@ -35,376 +37,538 @@ class ConversarEnTallerHerramientasTest {
 
     @Test
     @DisplayName("Ignora una herramienta que no existe y la cuenta como descartada")
-    void validarShouldDiscardUnknownTool() {
-        ValidacionTaller result = validar(llamada("borrar_todo", Map.of()));
+    void ignoraUnaHerramientaQueNoExisteYLaCuentaComoDescartada() {
+        dadoLasLlamadas(llamada("borrar_todo"));
 
-        assertThat(result.acciones()).isEmpty();
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeDescartaTodo();
     }
 
     @Test
     @DisplayName("Sin llamadas no hay acciones ni opciones")
-    void validarShouldReturnNothingWithoutCalls() {
-        ValidacionTaller result = validar();
+    void sinLlamadasNoHayAccionesNiOpciones() {
+        dadoLasLlamadas();
 
-        assertThat(result.acciones()).isEmpty();
-        assertThat(result.preguntas()).isEmpty();
+        cuandoSeValidanLasLlamadas();
+
+        entoncesNoHayAccionesNiOpciones();
     }
 
     @Test
     @DisplayName("Suma una pieza del catálogo sin importar mayúsculas")
-    void agregarPiezaShouldAcceptCatalogType() {
-        ValidacionTaller result = validar(llamada("agregar_pieza", Map.of("tipo", " EXPENSES ")));
+    void sumaUnaPiezaDelCatalogoSinImportarMayusculas() {
+        dadoLasLlamadas(llamada("agregar_pieza", "tipo", " EXPENSES "));
 
-        assertThat(result.acciones()).containsExactly(accion("agregar_pieza", Map.of("tipo", "expenses")));
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeAcepta(accion("agregar_pieza", "tipo", "expenses"));
     }
 
     @Test
     @DisplayName("No suma tipos inventados, ya presentes, vacíos ni que no sean texto")
-    void agregarPiezaShouldRejectInvalidTypes() {
-        ValidacionTaller result = validar(
-                llamada("agregar_pieza", Map.of("tipo", "turnos")),
-                llamada("agregar_pieza", Map.of("tipo", "inventory")),
-                llamada("agregar_pieza", Map.of("tipo", "  ")),
-                llamada("agregar_pieza", Map.of("tipo", 5)),
-                llamada("agregar_pieza", Map.of()));
+    void noSumaTiposInventadosYaPresentesVaciosNiQueNoSeanTexto() {
+        dadoQueSePidenPiezasConTiposInvalidos();
 
-        assertThat(result.acciones()).isEmpty();
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeDescartaTodo();
     }
 
     @Test
     @DisplayName("No suma dos veces el mismo tipo en un turno")
-    void agregarPiezaShouldNotAddSameTypeTwiceInOneTurn() {
-        ValidacionTaller result = validar(
-                llamada("agregar_pieza", Map.of("tipo", "expenses")),
-                llamada("agregar_pieza", Map.of("tipo", "expenses")));
+    void noSumaDosVecesElMismoTipoEnUnTurno() {
+        dadoLasLlamadas(llamada("agregar_pieza", "tipo", "expenses"), llamada("agregar_pieza", "tipo", "expenses"));
 
-        assertThat(result.acciones()).hasSize(1);
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeAceptaUnaSolaAccion();
     }
 
     @Test
     @DisplayName("Quita una pieza por id, por nombre o por tipo y ya no la encuentra después")
-    void quitarPiezaShouldResolveByIdNameOrType() {
-        ValidacionTaller result = validar(
-                llamada("quitar_pieza", Map.of("pieza", "e1")),
-                llamada("quitar_pieza", Map.of("pieza", "CLIENTES")),
-                llamada("quitar_pieza", Map.of("pieza", "inventory")));
+    void quitaUnaPiezaPorIdPorNombreOPorTipoYYaNoLaEncuentraDespues() {
+        dadoQueSeQuitaLaMismaPiezaPorIdPorNombreYPorTipo();
 
-        assertThat(result.acciones()).containsExactly(
-                accion("quitar_pieza", Map.of("pieza", "e1")),
-                accion("quitar_pieza", Map.of("pieza", "e2")));
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeQuitanLasDosPiezasUnaSolaVezCadaUna();
     }
 
     @Test
     @DisplayName("Encuentra una pieza por su tipo aunque venga en mayúsculas")
-    void quitarPiezaShouldResolveByTypeIgnoringCase() {
-        ValidacionTaller result = validar(llamada("quitar_pieza", Map.of("pieza", "CLIENTS")));
+    void encuentraUnaPiezaPorSuTipoAunqueVengaEnMayusculas() {
+        dadoLasLlamadas(llamada("quitar_pieza", "pieza", "CLIENTS"));
 
-        assertThat(result.acciones()).containsExactly(accion("quitar_pieza", Map.of("pieza", "e2")));
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeAcepta(accion("quitar_pieza", "pieza", "e2"));
     }
 
     @Test
     @DisplayName("Quita por tipo una pieza que se sumó en el mismo turno")
-    void quitarPiezaShouldUseTypeForPiecesAddedInTheSameTurn() {
-        ValidacionTaller result = validar(
-                llamada("agregar_pieza", Map.of("tipo", "sales")),
-                llamada("quitar_pieza", Map.of("pieza", "Ventas")));
+    void quitaPorTipoUnaPiezaQueSeSumoEnElMismoTurno() {
+        dadoQueSeSumaYSeQuitaLaPiezaDeVentasEnElMismoTurno();
 
-        assertThat(result.acciones()).extracting(AccionTaller::herramienta)
-                .containsExactly("agregar_pieza", "quitar_pieza");
-        assertThat(result.acciones().get(1).argumentos()).containsEntry("pieza", "sales");
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeQuitaLaPiezaDeVentasPorSuTipo();
     }
 
     @Test
     @DisplayName("No quita una pieza inexistente o sin referencia")
-    void quitarPiezaShouldRejectUnknownPiece() {
-        ValidacionTaller result = validar(
-                llamada("quitar_pieza", Map.of("pieza", "fantasma")),
-                llamada("quitar_pieza", Map.of()));
+    void noQuitaUnaPiezaInexistenteOSinReferencia() {
+        dadoLasLlamadas(llamada("quitar_pieza", "pieza", "fantasma"), llamada("quitar_pieza"));
 
-        assertThat(result.acciones()).isEmpty();
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeDescartaTodo();
     }
 
     @Test
     @DisplayName("Renombra una pieza con un nombre válido")
-    void renombrarPiezaShouldAcceptValidName() {
-        ValidacionTaller result = validar(llamada("renombrar_pieza", Map.of("pieza", "Clientes", "nombre", " Mis socios ")));
+    void renombraUnaPiezaConUnNombreValido() {
+        dadoLasLlamadas(llamada("renombrar_pieza", "pieza", "Clientes", "nombre", " Mis socios "));
 
-        assertThat(result.acciones())
-                .containsExactly(accion("renombrar_pieza", Map.of("pieza", "e2", "nombre", "Mis socios")));
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeAcepta(accion("renombrar_pieza", "pieza", "e2", "nombre", "Mis socios"));
     }
 
     @Test
     @DisplayName("No renombra sin nombre, con un nombre muy largo o una pieza inexistente")
-    void renombrarPiezaShouldRejectInvalidInput() {
-        ValidacionTaller result = validar(
-                llamada("renombrar_pieza", Map.of("pieza", "e2")),
-                llamada("renombrar_pieza", Map.of("pieza", "e2", "nombre", "x".repeat(61))),
-                llamada("renombrar_pieza", Map.of("pieza", "nada", "nombre", "Otro")));
+    void noRenombraSinNombreConUnNombreMuyLargoOUnaPiezaInexistente() {
+        dadoQueSePideRenombrarConDatosInvalidos();
 
-        assertThat(result.acciones()).isEmpty();
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeDescartaTodo();
     }
 
     @Test
     @DisplayName("Renombra el sistema y rechaza un nombre vacío")
-    void renombrarSistemaShouldAcceptOnlyNonBlankNames() {
-        ValidacionTaller result = validar(
-                llamada("renombrar_sistema", Map.of("nombre", "Velas de Ana")),
-                llamada("renombrar_sistema", Map.of("nombre", " ")));
+    void renombraElSistemaYRechazaUnNombreVacio() {
+        dadoLasLlamadas(llamada("renombrar_sistema", "nombre", "Velas de Ana"),
+                llamada("renombrar_sistema", "nombre", " "));
 
-        assertThat(result.acciones()).containsExactly(accion("renombrar_sistema", Map.of("nombre", "Velas de Ana")));
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeAcepta(accion("renombrar_sistema", "nombre", "Velas de Ana"));
     }
 
     @Test
     @DisplayName("Suma un dato de texto a una pieza y no manda opciones")
-    void agregarCampoShouldAddTextField() {
-        ValidacionTaller result = validar(llamada("agregar_campo", Map.of(
-                "pieza", "e1", "etiqueta", "Proveedor", "tipo", "TEXT", "opciones", List.of("ignorada"))));
+    void sumaUnDatoDeTextoAUnaPiezaYNoMandaOpciones() {
+        dadoLasLlamadas(llamada("agregar_campo", "pieza", "e1", "etiqueta", "Proveedor", "tipo", "TEXT",
+                "opciones", List.of("ignorada")));
 
-        assertThat(result.acciones()).containsExactly(accion(
-                "agregar_campo", Map.of("pieza", "e1", "etiqueta", "Proveedor", "tipo", "text")));
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeAcepta(accion("agregar_campo", "pieza", "e1", "etiqueta", "Proveedor", "tipo", "text"));
     }
 
     @Test
     @DisplayName("Suma un dato de lista con sus opciones sin repetir")
-    void agregarCampoShouldAddSelectFieldWithOptions() {
-        ValidacionTaller result = validar(llamada("agregar_campo", Map.of(
-                "pieza", "e1", "etiqueta", "Rubro", "tipo", "select",
-                "opciones", List.of("Insumos", "Terminados", "Insumos", " "))));
+    void sumaUnDatoDeListaConSusOpcionesSinRepetir() {
+        dadoLasLlamadas(llamada("agregar_campo", "pieza", "e1", "etiqueta", "Rubro", "tipo", "select",
+                "opciones", List.of("Insumos", "Terminados", "Insumos", " ")));
 
-        assertThat(result.acciones()).hasSize(1);
-        assertThat(result.acciones().getFirst().argumentos())
-                .containsEntry("opciones", List.of("Insumos", "Terminados"));
+        cuandoSeValidanLasLlamadas();
+
+        entoncesLasOpcionesDelDatoSon(List.of("Insumos", "Terminados"));
     }
 
     @Test
     @DisplayName("Rechaza datos sin etiqueta, de tipo inválido, repetidos o de lista con menos de dos opciones")
-    void agregarCampoShouldRejectInvalidFields() {
-        ValidacionTaller result = validar(
-                llamada("agregar_campo", Map.of("pieza", "e1", "tipo", "text")),
-                llamada("agregar_campo", Map.of("pieza", "e1", "etiqueta", "X")),
-                llamada("agregar_campo", Map.of("pieza", "e1", "etiqueta", "X", "tipo", "color")),
-                llamada("agregar_campo", Map.of("pieza", "e1", "etiqueta", "producto", "tipo", "text")),
-                llamada("agregar_campo", Map.of("pieza", "e1", "etiqueta", "Rubro", "tipo", "select",
-                        "opciones", List.of("Una sola"))),
-                llamada("agregar_campo", Map.of("pieza", "nada", "etiqueta", "Y", "tipo", "text")));
+    void rechazaDatosSinEtiquetaDeTipoInvalidoRepetidosODeListaConMenosDeDosOpciones() {
+        dadoQueSePidenDatosInvalidos();
 
-        assertThat(result.acciones()).isEmpty();
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeDescartaTodo();
     }
 
     @Test
     @DisplayName("No pasa de doce datos por pieza")
-    void agregarCampoShouldRespectFieldLimit() {
-        List<CampoTaller> campos = new ArrayList<>();
-        for (int i = 1; i <= 12; i++) {
-            campos.add(new CampoTaller("Dato " + i, "text"));
-        }
-        EstadoTaller lleno = new EstadoTaller("Lleno", "mosaic", List.of(
-                new PiezaTaller("e9", "inventory", "Inventario", null, campos)));
+    void noPasaDeDoceDatosPorPieza() {
+        dadoUnaPiezaConDoceDatosYSePideUnoMas();
 
-        ValidacionTaller result = taller.validar(
-                List.of(llamada("agregar_campo", Map.of("pieza", "e9", "etiqueta", "Uno más", "tipo", "text"))), lleno);
+        cuandoSeValidanLasLlamadas();
 
-        assertThat(result.acciones()).isEmpty();
+        entoncesSeDescartaTodo();
     }
 
     @Test
     @DisplayName("Un dato recién sumado cuenta: no se puede repetir ni se puede quitar en el mismo turno")
-    void agregarCampoShouldTrackFieldsWithinTheTurn() {
-        ValidacionTaller result = validar(
-                llamada("agregar_campo", Map.of("pieza", "e1", "etiqueta", "Proveedor", "tipo", "text")),
-                llamada("agregar_campo", Map.of("pieza", "e1", "etiqueta", "PROVEEDOR", "tipo", "text")),
-                llamada("quitar_campo", Map.of("pieza", "e1", "campo", "proveedor")));
+    void unDatoRecienSumadoCuentaNoSePuedeRepetirNiSePuedeQuitarEnElMismoTurno() {
+        dadoQueSeSumaRepiteYQuitaElMismoDatoEnElMismoTurno();
 
-        assertThat(result.acciones()).extracting(AccionTaller::herramienta)
-                .containsExactly("agregar_campo", "quitar_campo");
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeSumaYSeQuitaElDatoUnaVez();
     }
 
     @Test
     @DisplayName("Quita un dato con la etiqueta exacta que tiene la pieza")
-    void quitarCampoShouldUseExistingLabel() {
-        ValidacionTaller result = validar(llamada("quitar_campo", Map.of("pieza", "e1", "campo", "precio")));
+    void quitaUnDatoConLaEtiquetaExactaQueTieneLaPieza() {
+        dadoLasLlamadas(llamada("quitar_campo", "pieza", "e1", "campo", "precio"));
 
-        assertThat(result.acciones())
-                .containsExactly(accion("quitar_campo", Map.of("pieza", "e1", "campo", "Precio")));
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeAcepta(accion("quitar_campo", "pieza", "e1", "campo", "Precio"));
     }
 
     @Test
     @DisplayName("No quita un dato obligatorio del componente ni un vínculo")
-    void quitarCampoShouldKeepRequiredFieldsAndLinks() {
-        EstadoTaller conVinculo = new EstadoTaller("S", "mosaic", List.of(
-                new PiezaTaller("e1", "sales", "Ventas", null, List.of(
-                        new CampoTaller("Producto", "relation"), new CampoTaller("Cantidad", "number"),
-                        new CampoTaller("Cliente", "text"))),
-                new PiezaTaller("e2", "calendar", "Agenda", null, List.of(new CampoTaller("Cantidad", "number")))));
+    void noQuitaUnDatoObligatorioDelComponenteNiUnVinculo() {
+        dadoUnaVentaConVinculoYUnaAgendaYSePideQuitarSusDatos();
 
-        ValidacionTaller result = taller.validar(List.of(
-                llamada("quitar_campo", Map.of("pieza", "e1", "campo", "Producto")),
-                llamada("quitar_campo", Map.of("pieza", "e1", "campo", "Cantidad")),
-                llamada("quitar_campo", Map.of("pieza", "e1", "campo", "Cliente")),
-                llamada("quitar_campo", Map.of("pieza", "e2", "campo", "Cantidad"))), conVinculo);
+        cuandoSeValidanLasLlamadas();
 
-        assertThat(result.acciones()).containsExactly(
-                accion("quitar_campo", Map.of("pieza", "e1", "campo", "Cliente")),
-                accion("quitar_campo", Map.of("pieza", "e2", "campo", "Cantidad")));
+        entoncesSoloSeQuitanLosDatosOpcionales();
     }
 
     @Test
     @DisplayName("No quita un dato inexistente, sin nombre o de una pieza que no existe")
-    void quitarCampoShouldRejectInvalidInput() {
-        ValidacionTaller result = validar(
-                llamada("quitar_campo", Map.of("pieza", "e1", "campo", "Color")),
-                llamada("quitar_campo", Map.of("pieza", "e1")),
-                llamada("quitar_campo", Map.of("pieza", "nada", "campo", "Producto")));
+    void noQuitaUnDatoInexistenteSinNombreODeUnaPiezaQueNoExiste() {
+        dadoQueSePideQuitarDatosInvalidos();
 
-        assertThat(result.acciones()).isEmpty();
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeDescartaTodo();
     }
 
     @Test
     @DisplayName("Separa una pieza en una sección con nombre y rechaza la que no lo tiene")
-    void separarEnSeccionShouldRequireSectionName() {
-        ValidacionTaller result = validar(
-                llamada("separar_en_seccion", Map.of("pieza", "e2", "seccion", "Mis clientes")),
-                llamada("separar_en_seccion", Map.of("pieza", "e2")),
-                llamada("separar_en_seccion", Map.of("pieza", "nada", "seccion", "X")));
+    void separaUnaPiezaEnUnaSeccionConNombreYRechazaLaQueNoLoTiene() {
+        dadoQueSePideSepararConYSinNombreDeSeccion();
 
-        assertThat(result.acciones())
-                .containsExactly(accion("separar_en_seccion", Map.of("pieza", "e2", "seccion", "Mis clientes")));
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeAcepta(accion("separar_en_seccion", "pieza", "e2", "seccion", "Mis clientes"));
     }
 
     @Test
     @DisplayName("Cambia la distribución sólo a una del catálogo")
-    void cambiarDistribucionShouldAcceptOnlyCatalogLayouts() {
-        ValidacionTaller result = validar(
-                llamada("cambiar_distribucion", Map.of("layout", "TWO")),
-                llamada("cambiar_distribucion", Map.of("layout", "diagonal")),
-                llamada("cambiar_distribucion", Map.of()));
+    void cambiaLaDistribucionSoloAUnaDelCatalogo() {
+        dadoLasLlamadas(llamada("cambiar_distribucion", "layout", "TWO"),
+                llamada("cambiar_distribucion", "layout", "diagonal"),
+                llamada("cambiar_distribucion"));
 
-        assertThat(result.acciones()).containsExactly(accion("cambiar_distribucion", Map.of("layout", "two")));
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeAcepta(accion("cambiar_distribucion", "layout", "two"));
     }
 
     @Test
     @DisplayName("Una pregunta con opciones válidas llega como botonera y no cuenta como acción")
-    void ofrecerOpcionesShouldReturnOptions() {
-        ValidacionTaller result = validar(llamada("ofrecer_opciones", Map.of(
-                "pregunta", " ¿Qué querés sumar? ", "opciones", List.of("Gastos", " Clientes ", "Gastos"))));
+    void unaPreguntaConOpcionesValidasLlegaComoBotoneraYNoCuentaComoAccion() {
+        dadoLasLlamadas(llamada("ofrecer_opciones", "pregunta", " ¿Qué querés sumar? ",
+                "opciones", List.of("Gastos", " Clientes ", "Gastos")));
 
-        assertThat(result.acciones()).isEmpty();
-        assertThat(result.preguntas()).hasSize(1);
-        assertThat(result.preguntas().getFirst().pregunta()).isEqualTo("¿Qué querés sumar?");
-        assertThat(result.preguntas().getFirst().opciones()).containsExactly("Gastos", "Clientes");
+        cuandoSeValidanLasLlamadas();
+
+        entoncesLlegaUnaBotoneraConLasOpcionesSinRepetirYNingunaAccion();
     }
 
     @Test
     @DisplayName("Se queda con las primeras seis opciones")
-    void ofrecerOpcionesShouldKeepAtMostSixOptions() {
-        List<String> muchas = List.of("1", "2", "3", "4", "5", "6", "7", "8");
+    void seQuedaConLasPrimerasSeisOpciones() {
+        dadoLasLlamadas(llamada("ofrecer_opciones", "pregunta", "¿Cuál?",
+                "opciones", List.of("1", "2", "3", "4", "5", "6", "7", "8")));
 
-        ValidacionTaller result = validar(llamada("ofrecer_opciones", Map.of("pregunta", "¿Cuál?", "opciones", muchas)));
+        cuandoSeValidanLasLlamadas();
 
-        assertThat(result.preguntas().getFirst().opciones()).containsExactly("1", "2", "3", "4", "5", "6");
+        entoncesLaBotoneraTieneLasPrimerasSeisOpciones();
     }
 
     @Test
     @DisplayName("Descarta preguntas sin texto, con menos de dos opciones o con opciones que no son una lista")
-    void ofrecerOpcionesShouldRejectInvalidOptions() {
-        Map<String, Object> noEsLista = new HashMap<>();
-        noEsLista.put("pregunta", "¿Cuál?");
-        noEsLista.put("opciones", "Gastos");
-        ValidacionTaller result = validar(
-                llamada("ofrecer_opciones", Map.of("opciones", List.of("A", "B"))),
-                llamada("ofrecer_opciones", Map.of("pregunta", "¿Cuál?", "opciones", List.of("Sola"))),
-                llamada("ofrecer_opciones", Map.of("pregunta", "¿Cuál?", "opciones", List.of("A", 5, " "))),
-                llamada("ofrecer_opciones", noEsLista));
+    void descartaPreguntasSinTextoConMenosDeDosOpcionesOConOpcionesQueNoSonUnaLista() {
+        dadoQueSePidenPreguntasInvalidas();
 
-        assertThat(result.preguntas()).isEmpty();
+        cuandoSeValidanLasLlamadas();
+
+        entoncesNoHayBotonera();
     }
 
     @Test
     @DisplayName("Una pregunta inválida posterior no pisa a la anterior")
-    void ofrecerOpcionesShouldKeepPreviousValidQuestion() {
-        ValidacionTaller result = validar(
-                llamada("ofrecer_opciones", Map.of("pregunta", "¿Cuál?", "opciones", List.of("A", "B"))),
-                llamada("ofrecer_opciones", Map.of("pregunta", "¿Otra?", "opciones", List.of("A"))));
+    void unaPreguntaInvalidaPosteriorNoPisaALaAnterior() {
+        dadoUnaPreguntaValidaSeguidaDeUnaInvalida();
 
-        assertThat(result.preguntas()).extracting("pregunta").containsExactly("¿Cuál?");
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSoloQuedaLaPrimeraPregunta();
     }
 
     @Test
     @DisplayName("Aplica como mucho doce acciones por turno y descarta el resto")
-    void validarShouldCapActionsPerTurn() {
-        List<LlamadaHerramienta> catorce = new ArrayList<>();
-        for (int i = 0; i < 14; i++) {
-            catorce.add(llamada("cambiar_distribucion", Map.of("layout", "single")));
-        }
+    void aplicaComoMuchoDoceAccionesPorTurnoYDescartaElResto() {
+        dadoCatorceCambiosDeDistribucion();
 
-        ValidacionTaller result = taller.validar(catorce, estado);
+        cuandoSeValidanLasLlamadas();
 
-        assertThat(result.acciones()).hasSize(12);
+        entoncesSeAplicanSoloDoceAcciones();
     }
 
     @Test
     @DisplayName("Busca una pieza primero por id, después por tipo y por último por nombre")
-    void validarShouldResolvePiecesByIdThenTypeThenName() {
-        EstadoTaller cruzado = new EstadoTaller("Cruzado", "mosaic", List.of(
-                new PiezaTaller("e1", "inventory", "Sales", null, List.of()),
-                new PiezaTaller("e2", "sales", "Caja", null, List.of()),
-                new PiezaTaller("e2b", "clients", "e2", null, List.of())));
+    void buscaUnaPiezaPrimeroPorIdDespuesPorTipoYPorUltimoPorNombre() {
+        dadoPiezasCuyosNombresYTiposSeCruzan();
 
-        ValidacionTaller result = taller.validar(List.of(
-                llamada("separar_en_seccion", Map.of("pieza", "sales", "seccion", "Caja")),
-                llamada("separar_en_seccion", Map.of("pieza", "e2", "seccion", "Otra")),
-                llamada("separar_en_seccion", Map.of("pieza", "«Sales»", "seccion", "Depósito"))), cruzado);
+        cuandoSeValidanLasLlamadas();
 
-        assertThat(result.acciones()).containsExactly(
-                accion("separar_en_seccion", Map.of("pieza", "e2", "seccion", "Caja")),
-                accion("separar_en_seccion", Map.of("pieza", "e2", "seccion", "Otra")),
-                accion("separar_en_seccion", Map.of("pieza", "e1", "seccion", "Depósito")));
+        entoncesCadaReferenciaSeResuelvePorIdLuegoPorTipoYLuegoPorNombre();
     }
 
     @Test
     @DisplayName("Encuentra una pieza por su nombre sin importar tildes, mayúsculas ni plural")
-    void validarShouldResolveNamesIgnoringAccentsAndPlural() {
-        EstadoTaller conDeudores = new EstadoTaller("Velas", "mosaic", List.of(
-                new PiezaTaller("e7", "clients", "Quién me debe", null, List.of()),
-                new PiezaTaller("e8", "form", "Material", null, List.of())));
+    void encuentraUnaPiezaPorSuNombreSinImportarTildesMayusculasNiPlural() {
+        dadoPiezasLlamadasQuienMeDebeYMaterial();
 
-        ValidacionTaller result = taller.validar(List.of(
-                llamada("quitar_pieza", Map.of("pieza", "QUIEN ME DEBE")),
-                llamada("quitar_pieza", Map.of("pieza", "materiales"))), conDeudores);
+        cuandoSeValidanLasLlamadas();
 
-        assertThat(result.acciones()).containsExactly(
-                accion("quitar_pieza", Map.of("pieza", "e7")),
-                accion("quitar_pieza", Map.of("pieza", "e8")));
+        entoncesSeQuitanLasDosPiezasPorSuNombre();
     }
 
     @Test
     @DisplayName("Un dato de lista se queda con las primeras seis opciones")
-    void agregarCampoShouldKeepAtMostSixOptions() {
-        ValidacionTaller result = validar(llamada("agregar_campo", Map.of("pieza", "e1", "etiqueta", "Talle",
-                "tipo", "select", "opciones", List.of("XS", "S", "M", "L", "XL", "XXL", "3XL"))));
+    void unDatoDeListaSeQuedaConLasPrimerasSeisOpciones() {
+        dadoLasLlamadas(llamada("agregar_campo", "pieza", "e1", "etiqueta", "Talle", "tipo", "select",
+                "opciones", List.of("XS", "S", "M", "L", "XL", "XXL", "3XL")));
 
-        assertThat(result.acciones().getFirst().argumentos())
-                .containsEntry("opciones", List.of("XS", "S", "M", "L", "XL", "XXL"));
+        cuandoSeValidanLasLlamadas();
+
+        entoncesLasOpcionesDelDatoSon(List.of("XS", "S", "M", "L", "XL", "XXL"));
     }
 
     @Test
     @DisplayName("No suma un vínculo como dato común: eso es conectar")
-    void agregarCampoShouldRejectRelationType() {
-        ValidacionTaller result = validar(
-                llamada("agregar_campo", Map.of("pieza", "e1", "etiqueta", "Cliente", "tipo", "relation")));
+    void noSumaUnVinculoComoDatoComunEsoEsConectar() {
+        dadoLasLlamadas(llamada("agregar_campo", "pieza", "e1", "etiqueta", "Cliente", "tipo", "relation"));
 
-        assertThat(result.acciones()).isEmpty();
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeDescartaTodo();
     }
 
-    private ValidacionTaller validar(LlamadaHerramienta... llamadas) {
-        return taller.validar(List.of(llamadas), estado);
+    // --- dado ---
+
+    private void dadoQueSePidenPiezasConTiposInvalidos() {
+        dadoLasLlamadas(
+                llamada("agregar_pieza", "tipo", "turnos"),
+                llamada("agregar_pieza", "tipo", "inventory"),
+                llamada("agregar_pieza", "tipo", "  "),
+                llamada("agregar_pieza", "tipo", 5),
+                llamada("agregar_pieza"));
     }
 
-    private LlamadaHerramienta llamada(String nombre, Map<String, Object> argumentos) {
-        return new LlamadaHerramienta(nombre, argumentos);
+    private void dadoQueSeQuitaLaMismaPiezaPorIdPorNombreYPorTipo() {
+        dadoLasLlamadas(
+                llamada("quitar_pieza", "pieza", "e1"),
+                llamada("quitar_pieza", "pieza", "CLIENTES"),
+                llamada("quitar_pieza", "pieza", "inventory"));
     }
 
-    private AccionTaller accion(String herramienta, Map<String, Object> argumentos) {
-        return new AccionTaller(herramienta, argumentos);
+    private void dadoQueSeSumaYSeQuitaLaPiezaDeVentasEnElMismoTurno() {
+        dadoLasLlamadas(llamada("agregar_pieza", "tipo", "sales"), llamada("quitar_pieza", "pieza", "Ventas"));
+    }
+
+    private void dadoQueSePideRenombrarConDatosInvalidos() {
+        dadoLasLlamadas(
+                llamada("renombrar_pieza", "pieza", "e2"),
+                llamada("renombrar_pieza", "pieza", "e2", "nombre", "x".repeat(61)),
+                llamada("renombrar_pieza", "pieza", "nada", "nombre", "Otro"));
+    }
+
+    private void dadoQueSePidenDatosInvalidos() {
+        dadoLasLlamadas(
+                llamada("agregar_campo", "pieza", "e1", "tipo", "text"),
+                llamada("agregar_campo", "pieza", "e1", "etiqueta", "X"),
+                llamada("agregar_campo", "pieza", "e1", "etiqueta", "X", "tipo", "color"),
+                llamada("agregar_campo", "pieza", "e1", "etiqueta", "producto", "tipo", "text"),
+                llamada("agregar_campo", "pieza", "e1", "etiqueta", "Rubro", "tipo", "select",
+                        "opciones", List.of("Una sola")),
+                llamada("agregar_campo", "pieza", "nada", "etiqueta", "Y", "tipo", "text"));
+    }
+
+    private void dadoUnaPiezaConDoceDatosYSePideUnoMas() {
+        List<CampoTaller> campos = IntStream.rangeClosed(1, 12)
+                .mapToObj(numero -> new CampoTaller("Dato " + numero, "text")).toList();
+        estado = new EstadoTaller("Lleno", "mosaic", List.of(
+                new PiezaTaller("e9", "inventory", "Inventario", null, campos)));
+        dadoLasLlamadas(llamada("agregar_campo", "pieza", "e9", "etiqueta", "Uno más", "tipo", "text"));
+    }
+
+    private void dadoQueSeSumaRepiteYQuitaElMismoDatoEnElMismoTurno() {
+        dadoLasLlamadas(
+                llamada("agregar_campo", "pieza", "e1", "etiqueta", "Proveedor", "tipo", "text"),
+                llamada("agregar_campo", "pieza", "e1", "etiqueta", "PROVEEDOR", "tipo", "text"),
+                llamada("quitar_campo", "pieza", "e1", "campo", "proveedor"));
+    }
+
+    private void dadoUnaVentaConVinculoYUnaAgendaYSePideQuitarSusDatos() {
+        estado = new EstadoTaller("S", "mosaic", List.of(
+                new PiezaTaller("e1", "sales", "Ventas", null, List.of(
+                        new CampoTaller("Producto", "relation"), new CampoTaller("Cantidad", "number"),
+                        new CampoTaller("Cliente", "text"))),
+                new PiezaTaller("e2", "calendar", "Agenda", null, List.of(new CampoTaller("Cantidad", "number")))));
+        dadoLasLlamadas(
+                llamada("quitar_campo", "pieza", "e1", "campo", "Producto"),
+                llamada("quitar_campo", "pieza", "e1", "campo", "Cantidad"),
+                llamada("quitar_campo", "pieza", "e1", "campo", "Cliente"),
+                llamada("quitar_campo", "pieza", "e2", "campo", "Cantidad"));
+    }
+
+    private void dadoQueSePideQuitarDatosInvalidos() {
+        dadoLasLlamadas(
+                llamada("quitar_campo", "pieza", "e1", "campo", "Color"),
+                llamada("quitar_campo", "pieza", "e1"),
+                llamada("quitar_campo", "pieza", "nada", "campo", "Producto"));
+    }
+
+    private void dadoQueSePideSepararConYSinNombreDeSeccion() {
+        dadoLasLlamadas(
+                llamada("separar_en_seccion", "pieza", "e2", "seccion", "Mis clientes"),
+                llamada("separar_en_seccion", "pieza", "e2"),
+                llamada("separar_en_seccion", "pieza", "nada", "seccion", "X"));
+    }
+
+    private void dadoQueSePidenPreguntasInvalidas() {
+        dadoLasLlamadas(
+                llamada("ofrecer_opciones", "opciones", List.of("A", "B")),
+                llamada("ofrecer_opciones", "pregunta", "¿Cuál?", "opciones", List.of("Sola")),
+                llamada("ofrecer_opciones", "pregunta", "¿Cuál?", "opciones", List.of("A", 5, " ")),
+                llamada("ofrecer_opciones", "pregunta", "¿Cuál?", "opciones", "Gastos"));
+    }
+
+    private void dadoUnaPreguntaValidaSeguidaDeUnaInvalida() {
+        dadoLasLlamadas(
+                llamada("ofrecer_opciones", "pregunta", "¿Cuál?", "opciones", List.of("A", "B")),
+                llamada("ofrecer_opciones", "pregunta", "¿Otra?", "opciones", List.of("A")));
+    }
+
+    private void dadoCatorceCambiosDeDistribucion() {
+        llamadas = Collections.nCopies(14, llamada("cambiar_distribucion", "layout", "single"));
+    }
+
+    private void dadoPiezasCuyosNombresYTiposSeCruzan() {
+        estado = new EstadoTaller("Cruzado", "mosaic", List.of(
+                new PiezaTaller("e1", "inventory", "Sales", null, List.of()),
+                new PiezaTaller("e2", "sales", "Caja", null, List.of()),
+                new PiezaTaller("e2b", "clients", "e2", null, List.of())));
+        dadoLasLlamadas(
+                llamada("separar_en_seccion", "pieza", "sales", "seccion", "Caja"),
+                llamada("separar_en_seccion", "pieza", "e2", "seccion", "Otra"),
+                llamada("separar_en_seccion", "pieza", "«Sales»", "seccion", "Depósito"));
+    }
+
+    private void dadoPiezasLlamadasQuienMeDebeYMaterial() {
+        estado = new EstadoTaller("Velas", "mosaic", List.of(
+                new PiezaTaller("e7", "clients", "Quién me debe", null, List.of()),
+                new PiezaTaller("e8", "form", "Material", null, List.of())));
+        dadoLasLlamadas(
+                llamada("quitar_pieza", "pieza", "QUIEN ME DEBE"),
+                llamada("quitar_pieza", "pieza", "materiales"));
+    }
+
+    private void dadoLasLlamadas(LlamadaHerramienta... pedidas) {
+        llamadas = List.of(pedidas);
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeValidanLasLlamadas() {
+        validacion = taller.validar(llamadas, estado);
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeDescartaTodo() {
+        assertThat(validacion.acciones()).isEmpty();
+    }
+
+    private void entoncesNoHayAccionesNiOpciones() {
+        assertThat(validacion.acciones()).isEmpty();
+        assertThat(validacion.preguntas()).isEmpty();
+    }
+
+    private void entoncesSeAcepta(AccionTaller... esperadas) {
+        assertThat(validacion.acciones()).containsExactly(esperadas);
+    }
+
+    private void entoncesSeAceptaUnaSolaAccion() {
+        assertThat(validacion.acciones()).hasSize(1);
+    }
+
+    private void entoncesSeQuitanLasDosPiezasUnaSolaVezCadaUna() {
+        entoncesSeAcepta(accion("quitar_pieza", "pieza", "e1"), accion("quitar_pieza", "pieza", "e2"));
+    }
+
+    private void entoncesSeQuitaLaPiezaDeVentasPorSuTipo() {
+        assertThat(validacion.acciones()).extracting(AccionTaller::herramienta)
+                .containsExactly("agregar_pieza", "quitar_pieza");
+        assertThat(validacion.acciones().get(1).argumentos()).containsEntry("pieza", "sales");
+    }
+
+    private void entoncesLasOpcionesDelDatoSon(List<String> opciones) {
+        assertThat(validacion.acciones()).hasSize(1);
+        assertThat(validacion.acciones().getFirst().argumentos()).containsEntry("opciones", opciones);
+    }
+
+    private void entoncesSeSumaYSeQuitaElDatoUnaVez() {
+        assertThat(validacion.acciones()).extracting(AccionTaller::herramienta)
+                .containsExactly("agregar_campo", "quitar_campo");
+    }
+
+    private void entoncesSoloSeQuitanLosDatosOpcionales() {
+        entoncesSeAcepta(
+                accion("quitar_campo", "pieza", "e1", "campo", "Cliente"),
+                accion("quitar_campo", "pieza", "e2", "campo", "Cantidad"));
+    }
+
+    private void entoncesLlegaUnaBotoneraConLasOpcionesSinRepetirYNingunaAccion() {
+        assertThat(validacion.acciones()).isEmpty();
+        assertThat(validacion.preguntas()).hasSize(1);
+        assertThat(validacion.preguntas().getFirst().pregunta()).isEqualTo("¿Qué querés sumar?");
+        assertThat(validacion.preguntas().getFirst().opciones()).containsExactly("Gastos", "Clientes");
+    }
+
+    private void entoncesLaBotoneraTieneLasPrimerasSeisOpciones() {
+        assertThat(validacion.preguntas().getFirst().opciones()).containsExactly("1", "2", "3", "4", "5", "6");
+    }
+
+    private void entoncesNoHayBotonera() {
+        assertThat(validacion.preguntas()).isEmpty();
+    }
+
+    private void entoncesSoloQuedaLaPrimeraPregunta() {
+        assertThat(validacion.preguntas()).extracting("pregunta").containsExactly("¿Cuál?");
+    }
+
+    private void entoncesSeAplicanSoloDoceAcciones() {
+        assertThat(validacion.acciones()).hasSize(12);
+    }
+
+    private void entoncesCadaReferenciaSeResuelvePorIdLuegoPorTipoYLuegoPorNombre() {
+        entoncesSeAcepta(
+                accion("separar_en_seccion", "pieza", "e2", "seccion", "Caja"),
+                accion("separar_en_seccion", "pieza", "e2", "seccion", "Otra"),
+                accion("separar_en_seccion", "pieza", "e1", "seccion", "Depósito"));
+    }
+
+    private void entoncesSeQuitanLasDosPiezasPorSuNombre() {
+        entoncesSeAcepta(accion("quitar_pieza", "pieza", "e7"), accion("quitar_pieza", "pieza", "e8"));
+    }
+
+    // --- datos ---
+
+    private static LlamadaHerramienta llamada(String nombre, Object... argumentos) {
+        return new LlamadaHerramienta(nombre, mapa(argumentos));
+    }
+
+    private static AccionTaller accion(String herramienta, Object... argumentos) {
+        return new AccionTaller(herramienta, mapa(argumentos));
     }
 }
