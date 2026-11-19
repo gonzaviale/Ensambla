@@ -141,9 +141,9 @@ export function TallerPage() {
       if (estado.taller?.sistemaId !== sistema.id) {
         estado.iniciarTaller(saludoParaAjustar(sistema.name), sistema);
       }
-    } else if (!estado.taller || estado.taller.sistemaId) {
-      estado.iniciarTaller(saludoDeSami(nombre));
+      return;
     }
+    if (!estado.taller || estado.taller.sistemaId) estado.iniciarTaller(saludoDeSami(nombre));
   }, [nombre, sistemaDeLaUrl]);
 
   // Si la persona llegó con una foto (desde cualquier «traer datos de una foto»), Sami la mira apenas se abre.
