@@ -45,7 +45,7 @@ class DatosDeProyectoServiceTest {
 
     @Test
     @DisplayName("Carga las tablas de inventario, ventas, gastos y entradas con sus campos por clave y sin las filas de ejemplo")
-    void cargarShouldLoadInventoryExpensesAndSalesWithoutExamples() {
+    void cargaLasTablasDeInventarioVentasGastosYEntradasConSusCamposPorClaveYSinLasFilasDeEjemplo() {
         Registro real = registro(INVENTARIO_ID, false);
         Registro ejemplo = registro(INVENTARIO_ID, true);
         Registro venta = registro(VENTAS_ID, false);
@@ -86,7 +86,7 @@ class DatosDeProyectoServiceTest {
 
     @Test
     @DisplayName("Sin tabla de entradas el inventario no la nombra, y una tabla de gastos sin importe no se puede sumar")
-    void cargarShouldAllowProjectsWithoutEntriesOrExpenseAmount() {
+    void sinTablaDeEntradasElInventarioNoLaNombraYUnaTablaDeGastosSinImporteNoSePuedeSumar() {
         when(registroRepository.findAllByBloqueIdAndNegocioId(INVENTARIO_ID, NEGOCIO_ID)).thenReturn(List.of());
         when(registroRepository.findAllByBloqueIdAndNegocioId(GASTOS_ID, NEGOCIO_ID)).thenReturn(List.of());
         Proyecto proyecto = Proyecto.builder().nombre("Almacén").bloques(List.of(
@@ -101,7 +101,7 @@ class DatosDeProyectoServiceTest {
 
     @Test
     @DisplayName("Carga el nombre de cada fila de las tablas de clientes, sin las de ejemplo ni las sin nombre")
-    void cargarShouldLoadClientNamesById() {
+    void cargaElNombreDeCadaFilaDeLasTablasDeClientesSinLasDeEjemploNiLasSinNombre() {
         CampoId nombreId = CampoId.de("f0000000-0000-4000-8000-000000000031");
         BloqueId clientesId = BloqueId.de("b0000000-0000-4000-8000-000000000006");
         BloqueId clientesSinNombreId = BloqueId.de("b0000000-0000-4000-8000-000000000007");
@@ -125,7 +125,7 @@ class DatosDeProyectoServiceTest {
 
     @Test
     @DisplayName("Reutiliza las filas de un sistema cargado y excluye sus ejemplos sin consultar el repositorio")
-    void cargarShouldReuseLoadedSystemWithoutRepositoryQueries() {
+    void reutilizaLasFilasDeUnSistemaCargadoYExcluyeSusEjemplosSinConsultarElRepositorio() {
         Registro real = registro(INVENTARIO_ID, false);
         Registro ejemplo = registro(INVENTARIO_ID, true);
         Bloque inventario = bloque(INVENTARIO_ID, TipoBloque.INVENTARIO, campo("name"));
@@ -141,7 +141,7 @@ class DatosDeProyectoServiceTest {
 
     @Test
     @DisplayName("Carga ventas y cobros de todas las cajas del proyecto dentro del negocio")
-    void cargarShouldLoadScopedSalesAndCollections() {
+    void cargaVentasYCobrosDeTodasLasCajasDelProyectoDentroDelNegocio() {
         Sistema sistema = CajaTestData.sistema();
         when(ventaCajaRepository.listarPorProyecto(CajaTestData.NEGOCIO, CajaTestData.PROYECTO))
                 .thenReturn(List.of(CobroCajaTestData.venta()));

@@ -35,11 +35,11 @@ class PlanControllerTest {
 
     @Test
     @DisplayName("Devuelve el período premium y envía el usuario autenticado al caso de uso")
-    void iniciarPruebaShouldReturnTrialDetails() throws Exception {
+    void devuelveElPeriodoPremiumYEnviaElUsuarioAutenticadoAlCasoDeUso() throws Exception {
         when(iniciarPrueba.execute(new IniciarPruebaRequest(USUARIO_ID)))
                 .thenReturn(new PruebaPremiumResponse(INSTANTE, INSTANTE.plusDays(7), 0, 10));
 
-        mockMvc.perform(post("/api/planes/prueba").principal(givenAuthentication()))
+        mockMvc.perform(post("/api/planes/prueba").principal(dadoAuthentication()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.limitePaginasIa").value(10))
                 .andExpect(jsonPath("$.paginasIaUtilizadas").value(0))
@@ -50,17 +50,17 @@ class PlanControllerTest {
 
     @Test
     @DisplayName("Una prueba ya utilizada devuelve 403 con un código estable")
-    void iniciarPruebaShouldReturnRestrictionCode() throws Exception {
+    void unaPruebaYaUtilizadaDevuelve403ConUnCodigoEstable() throws Exception {
         when(iniciarPrueba.execute(new IniciarPruebaRequest(USUARIO_ID)))
                 .thenThrow(new RestriccionPlanException("PRUEBA_UTILIZADA", "Ya utilizada"));
 
-        mockMvc.perform(post("/api/planes/prueba").principal(givenAuthentication()))
+        mockMvc.perform(post("/api/planes/prueba").principal(dadoAuthentication()))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.codigo").value("PRUEBA_UTILIZADA"));
     }
 
-    // --- arrange ---
-    private UsernamePasswordAuthenticationToken givenAuthentication() {
+    // --- dado ---
+    private UsernamePasswordAuthenticationToken dadoAuthentication() {
         return UsernamePasswordAuthenticationToken.authenticated(NEGOCIO_ID.toString(), null, List.of());
     }
 }

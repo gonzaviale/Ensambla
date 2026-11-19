@@ -74,10 +74,10 @@ class ObjetivoControllerTest {
 
     @Test
     @DisplayName("GET lista los objetivos y mapea todos sus datos a JSON")
-    void listarShouldReturnMappedObjetivos() throws Exception {
-        when(listarObjetivos.execute(any())).thenReturn(List.of(givenItem()));
+    void gETListaLosObjetivosYMapeaTodosSusDatosAJSON() throws Exception {
+        when(listarObjetivos.execute(any())).thenReturn(List.of(dadoItem()));
 
-        ResultActions result = whenGetListar();
+        ResultActions result = cuandoGetListar();
 
         result.andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(OBJETIVO_ID.toString()))
@@ -88,30 +88,30 @@ class ObjetivoControllerTest {
 
     @Test
     @DisplayName("GET delega en el caso de uso con el usuario de la sesión")
-    void listarShouldPassSessionUsuario() throws Exception {
+    void gETDelegaEnElCasoDeUsoConElUsuarioDeLaSesion() throws Exception {
         when(listarObjetivos.execute(any())).thenReturn(List.of());
 
-        whenGetListar();
+        cuandoGetListar();
 
         verify(listarObjetivos).execute(new ListarObjetivosRequest(USUARIO_ID));
     }
 
     @Test
     @DisplayName("GET devuelve una lista vacía cuando no hay objetivos")
-    void listarShouldReturnEmptyList() throws Exception {
+    void gETDevuelveUnaListaVaciaCuandoNoHayObjetivos() throws Exception {
         when(listarObjetivos.execute(any())).thenReturn(List.of());
 
-        ResultActions result = whenGetListar();
+        ResultActions result = cuandoGetListar();
 
         result.andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
     }
 
     @Test
     @DisplayName("POST crea el objetivo y devuelve 201 con su ubicación")
-    void crearShouldReturn201WithLocation() throws Exception {
-        when(crearObjetivo.execute(any())).thenReturn(givenItem());
+    void pOSTCreaElObjetivoYDevuelve201ConSuUbicacion() throws Exception {
+        when(crearObjetivo.execute(any())).thenReturn(dadoItem());
 
-        ResultActions result = whenPostCrear("{\"texto\":\"" + TEXTO + "\",\"meta\":400000.50}");
+        ResultActions result = cuandoPostCrear("{\"texto\":\"" + TEXTO + "\",\"meta\":400000.50}");
 
         result.andExpect(status().isCreated())
                 .andExpect(header().string("Location", "/api/objetivos/" + OBJETIVO_ID))
@@ -121,20 +121,20 @@ class ObjetivoControllerTest {
 
     @Test
     @DisplayName("POST pasa el texto y la meta al caso de uso con el usuario de la sesión")
-    void crearShouldPassRequestToUseCase() throws Exception {
-        when(crearObjetivo.execute(any())).thenReturn(givenItem());
+    void pOSTPasaElTextoYLaMetaAlCasoDeUsoConElUsuarioDeLaSesion() throws Exception {
+        when(crearObjetivo.execute(any())).thenReturn(dadoItem());
 
-        whenPostCrear("{\"texto\":\"" + TEXTO + "\",\"meta\":400000.50}");
+        cuandoPostCrear("{\"texto\":\"" + TEXTO + "\",\"meta\":400000.50}");
 
         verify(crearObjetivo).execute(new CrearObjetivoRequest(USUARIO_ID, TEXTO, new BigDecimal("400000.50")));
     }
 
     @Test
     @DisplayName("POST ignora el negocio que indique el navegador")
-    void crearShouldIgnoreClientNegocio() throws Exception {
-        when(crearObjetivo.execute(any())).thenReturn(givenItem());
+    void pOSTIgnoraElNegocioQueIndiqueElNavegador() throws Exception {
+        when(crearObjetivo.execute(any())).thenReturn(dadoItem());
 
-        ResultActions result = whenPostCrear(
+        ResultActions result = cuandoPostCrear(
                 "{\"texto\":\"" + TEXTO + "\",\"meta\":400000.50,\"negocioId\":\"otro\"}");
 
         result.andExpect(status().isCreated());
@@ -143,8 +143,8 @@ class ObjetivoControllerTest {
 
     @Test
     @DisplayName("POST rechaza un texto vacío antes de invocar el caso de uso")
-    void crearShouldRejectBlankText() throws Exception {
-        ResultActions result = whenPostCrear("{\"texto\":\"  \",\"meta\":400000}");
+    void pOSTRechazaUnTextoVacioAntesDeInvocarElCasoDeUso() throws Exception {
+        ResultActions result = cuandoPostCrear("{\"texto\":\"  \",\"meta\":400000}");
 
         result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.texto").exists());
         verifyNoInteractions(crearObjetivo);
@@ -152,8 +152,8 @@ class ObjetivoControllerTest {
 
     @Test
     @DisplayName("POST rechaza un texto de más de 500 caracteres")
-    void crearShouldRejectTooLongText() throws Exception {
-        ResultActions result = whenPostCrear("{\"texto\":\"" + "a".repeat(501) + "\",\"meta\":400000}");
+    void pOSTRechazaUnTextoDeMasDe500Caracteres() throws Exception {
+        ResultActions result = cuandoPostCrear("{\"texto\":\"" + "a".repeat(501) + "\",\"meta\":400000}");
 
         result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.texto").exists());
         verifyNoInteractions(crearObjetivo);
@@ -161,8 +161,8 @@ class ObjetivoControllerTest {
 
     @Test
     @DisplayName("POST rechaza un body sin meta")
-    void crearShouldRejectMissingMeta() throws Exception {
-        ResultActions result = whenPostCrear("{\"texto\":\"" + TEXTO + "\"}");
+    void pOSTRechazaUnBodySinMeta() throws Exception {
+        ResultActions result = cuandoPostCrear("{\"texto\":\"" + TEXTO + "\"}");
 
         result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.meta").exists());
         verifyNoInteractions(crearObjetivo);
@@ -170,8 +170,8 @@ class ObjetivoControllerTest {
 
     @Test
     @DisplayName("POST rechaza una meta menor a 1")
-    void crearShouldRejectMetaBelowOne() throws Exception {
-        ResultActions result = whenPostCrear("{\"texto\":\"" + TEXTO + "\",\"meta\":0}");
+    void pOSTRechazaUnaMetaMenorA1() throws Exception {
+        ResultActions result = cuandoPostCrear("{\"texto\":\"" + TEXTO + "\",\"meta\":0}");
 
         result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.meta").exists());
         verifyNoInteractions(crearObjetivo);
@@ -179,7 +179,7 @@ class ObjetivoControllerTest {
 
     @Test
     @DisplayName("DELETE devuelve 204 y delega con el usuario de la sesión y el id de la ruta")
-    void eliminarShouldReturn204() throws Exception {
+    void dELETEDevuelve204YDelegaConElUsuarioDeLaSesionYElIdDeLaRuta() throws Exception {
         ResultActions result = mockMvc.perform(delete("/api/objetivos/{id}", OBJETIVO_ID).principal(principal));
 
         result.andExpect(status().isNoContent());
@@ -188,7 +188,7 @@ class ObjetivoControllerTest {
 
     @Test
     @DisplayName("DELETE de un objetivo ajeno o inexistente devuelve el 404 estándar")
-    void eliminarShouldReturn404WhenNotOwned() throws Exception {
+    void dELETEDeUnObjetivoAjenoOInexistenteDevuelveEl404Estandar() throws Exception {
         doThrow(new ResourceNotFoundException("Objetivo no encontrado")).when(eliminarObjetivo).execute(any());
 
         ResultActions result = mockMvc.perform(delete("/api/objetivos/{id}", OBJETIVO_ID).principal(principal));
@@ -198,7 +198,7 @@ class ObjetivoControllerTest {
 
     @Test
     @DisplayName("DELETE con un id que no es UUID devuelve 400 sin llegar al caso de uso")
-    void eliminarShouldReturn400WhenIdIsNotUuid() throws Exception {
+    void dELETEConUnIdQueNoEsUUIDDevuelve400SinLlegarAlCasoDeUso() throws Exception {
         ResultActions result = mockMvc.perform(delete("/api/objetivos/invalido").principal(principal));
 
         result.andExpect(status().isBadRequest());
@@ -207,24 +207,24 @@ class ObjetivoControllerTest {
 
     @Test
     @DisplayName("POST medir mide los objetivos del negocio de la sesión y devuelve 204")
-    void medirShouldReturn204AndPassSessionUsuario() throws Exception {
+    void pOSTMedirMideLosObjetivosDelNegocioDeLaSesionYDevuelve204() throws Exception {
         mockMvc.perform(post("/api/objetivos/medir").principal(principal))
                 .andExpect(status().isNoContent());
 
         verify(medirObjetivos).execute(new MedirObjetivosRequest(USUARIO_ID));
     }
 
-    // --- arrange ---
-    private ObjetivoItem givenItem() {
+    // --- dado ---
+    private ObjetivoItem dadoItem() {
         return ObjetivoItem.de(objetivo());
     }
 
-    // --- act ---
-    private ResultActions whenGetListar() throws Exception {
+    // --- cuando ---
+    private ResultActions cuandoGetListar() throws Exception {
         return mockMvc.perform(get("/api/objetivos").principal(principal));
     }
 
-    private ResultActions whenPostCrear(String body) throws Exception {
+    private ResultActions cuandoPostCrear(String body) throws Exception {
         return mockMvc.perform(post("/api/objetivos").principal(principal)
                 .contentType("application/json")
                 .content(body));
@@ -232,7 +232,7 @@ class ObjetivoControllerTest {
 
     @Test
     @DisplayName("GET pasos devuelve los productos reales con el rango de zona")
-    void pasosShouldReturnRealProductsWithZoneRange() throws Exception {
+    void gETPasosDevuelveLosProductosRealesConElRangoDeZona() throws Exception {
         when(obtenerPasos.execute(any())).thenReturn(response());
 
         mockMvc.perform(get("/api/objetivos/pasos").principal(principal))
@@ -251,7 +251,7 @@ class ObjetivoControllerTest {
 
     @Test
     @DisplayName("GET pasos devuelve una lista vacía cuando no hay productos para recomendar")
-    void pasosShouldReturnEmptyListWithoutCandidates() throws Exception {
+    void gETPasosDevuelveUnaListaVaciaCuandoNoHayProductosParaRecomendar() throws Exception {
         when(obtenerPasos.execute(any())).thenReturn(new ObtenerPasosResponse(List.of()));
 
         mockMvc.perform(get("/api/objetivos/pasos").principal(principal))

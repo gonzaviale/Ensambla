@@ -43,9 +43,9 @@ class PlanUseCaseConfigTest {
     private final RenovacionPremiumRepository renovacionPremiumRepository = mock(RenovacionPremiumRepository.class);
     @Test
     @DisplayName("El wiring conecta la consulta con usuario, catálogo, uso y reloj")
-    void consultarPlanesUseCaseShouldWireDependencies() {
-        givenNegocio();
-        givenCatalogo();
+    void elWiringConectaLaConsultaConUsuarioCatalogoUsoYReloj() {
+        dadoNegocio();
+        dadoCatalogo();
         Suscripcion suscripcion = suscripcion();
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
         when(planRepository.findById(suscripcion.getPlanId())).thenReturn(Optional.of(plan()));
@@ -61,9 +61,9 @@ class PlanUseCaseConfigTest {
 
     @Test
     @DisplayName("El wiring conecta usuario, catálogo, suscripción y reloj al inicio de prueba")
-    void iniciarPruebaUseCaseShouldWireDependencies() {
-        givenNegocio();
-        givenCatalogo();
+    void elWiringConectaUsuarioCatalogoSuscripcionYRelojAlInicioDePrueba() {
+        dadoNegocio();
+        dadoCatalogo();
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
         when(pruebaPremiumRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -78,7 +78,7 @@ class PlanUseCaseConfigTest {
 
     @Test
     @DisplayName("El wiring conecta reloj, candidatos y suscripción al vencimiento automático")
-    void vencerPruebasUseCaseShouldWireDependencies() {
+    void elWiringConectaRelojCandidatosYSuscripcionAlVencimientoAutomatico() {
         when(pruebaPremiumRepository.findNegociosVencidos(INSTANTE)).thenReturn(List.of(NEGOCIO_ID));
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
 
@@ -88,12 +88,12 @@ class PlanUseCaseConfigTest {
         verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
     }
 
-    // --- arrange ---
-    private void givenNegocio() {
+    // --- dado ---
+    private void dadoNegocio() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
-    private void givenCatalogo() {
+    private void dadoCatalogo() {
         when(planRepository.findByCodigo(CodigoPlan.GRATUITO)).thenReturn(Optional.of(plan()));
         when(planRepository.findByCodigo(CodigoPlan.PREMIUM)).thenReturn(Optional.of(premium()));
     }

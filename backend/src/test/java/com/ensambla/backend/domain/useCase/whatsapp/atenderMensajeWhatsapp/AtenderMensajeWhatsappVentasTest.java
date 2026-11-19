@@ -141,7 +141,7 @@ class AtenderMensajeWhatsappVentasTest {
     private final List<Registro> guardados = new ArrayList<>();
 
     @BeforeEach
-    void givenNegocioConProductosClientesYVentas() {
+    void dadoNegocioConProductosClientesYVentas() {
         when(vinculoRepository.findByTelefono(TELEFONO)).thenReturn(Optional.of(
                 VinculoWhatsapp.nuevo(USUARIO_ID, NEGOCIO_ID, new TelefonoWhatsapp(TELEFONO), AHORA)));
         when(procesamientoRepository.tablas(NEGOCIO_ID)).thenReturn(List.of(productos, clientes, ventas, medidas, pedidos));
@@ -162,37 +162,37 @@ class AtenderMensajeWhatsappVentasTest {
 
     @Test
     @DisplayName("«Agregá 10» a un producto escrito distinto muestra cómo queda el stock y no crea otro producto")
-    void executeShouldProposeToAddToTheStockOfTheExistingProduct() {
-        givenTexto("agregá 10 unidades de leche serenisima 1l");
-        givenInterpretacion(PRODUCTOS_ID, Map.of(NOMBRE_ID, "leche serenisima 1l", STOCK_ID, "+10"));
+    void agrega10AUnProductoEscritoDistintoMuestraComoQuedaElStockYNoCreaOtroProducto() {
+        dadoTexto("agregá 10 unidades de leche serenisima 1l");
+        dadoInterpretacion(PRODUCTOS_ID, Map.of(NOMBRE_ID, "leche serenisima 1l", STOCK_ID, "+10"));
 
         atender.execute();
 
-        FilaPropuesta fila = thenPropuestaGuardada().getFilas().getFirst();
+        FilaPropuesta fila = entoncesPropuestaGuardada().getFilas().getFirst();
         assertThat(fila.registroId()).isEqualTo(LECHE_ID.toString());
-        assertThat(thenRespuesta()).contains("Actualizo *Leche La Serenísima 1 L*: Cantidad: 5 → 15 (+10)");
+        assertThat(entoncesRespuesta()).contains("Actualizo *Leche La Serenísima 1 L*: Cantidad: 5 → 15 (+10)");
     }
 
     @Test
     @DisplayName("Al confirmar, lo que se agrega se suma al stock que había en vez de pisarlo")
-    void executeShouldAddToTheStockOnConfirm() {
-        givenTexto("sí");
-        givenPendiente(PRODUCTOS_ID, List.of(new FilaPropuesta(Map.of(NOMBRE_ID.toString(), "leche",
+    void alConfirmarLoQueSeAgregaSeSumaAlStockQueHabiaEnVezDePisarlo() {
+        dadoTexto("sí");
+        dadoPendiente(PRODUCTOS_ID, List.of(new FilaPropuesta(Map.of(NOMBRE_ID.toString(), "leche",
                 STOCK_ID.toString(), "+10"), Set.of()).actualizando(LECHE_ID.toString(), "Leche La Serenísima 1 L",
                 NOMBRE_ID.toString(), leche.getValores())));
-        givenTablaGuardable(PRODUCTOS_ID, "Productos", null, camposDeProductos());
+        dadoTablaGuardable(PRODUCTOS_ID, "Productos", null, camposDeProductos());
 
         atender.execute();
 
         assertThat(leche.getValores()).containsEntry(STOCK_ID.toString(), new BigDecimal("15"));
-        assertThat(thenRespuesta()).contains("actualicé 1 fila en *Productos*");
+        assertThat(entoncesRespuesta()).contains("actualicé 1 fila en *Productos*");
     }
 
     @Test
     @DisplayName("La IA recibe los nombres de las tablas de cosas y de las que se vinculan, para copiarlos tal cual")
-    void executeShouldGiveTheExistingNamesToTheIa() {
-        givenTexto("agregá 10 de leche");
-        givenInterpretacion(PRODUCTOS_ID, Map.of(NOMBRE_ID, "leche", STOCK_ID, "+10"));
+    void laIARecibeLosNombresDeLasTablasDeCosasYDeLasQueSeVinculanParaCopiarlosTalCual() {
+        dadoTexto("agregá 10 de leche");
+        dadoInterpretacion(PRODUCTOS_ID, Map.of(NOMBRE_ID, "leche", STOCK_ID, "+10"));
 
         atender.execute();
 
@@ -206,44 +206,44 @@ class AtenderMensajeWhatsappVentasTest {
 
     @Test
     @DisplayName("Una venta se vincula al producto aunque esté mal escrito y propone sumar el cliente nuevo")
-    void executeShouldLinkTheSaleToItsProductAndCustomer() {
-        givenTexto("vendí 2 lechee serenisima a Marta y 1 sin producto");
+    void unaVentaSeVinculaAlProductoAunqueEsteMalEscritoYProponeSumarElClienteNuevo() {
+        dadoTexto("vendí 2 lechee serenisima a Marta y 1 sin producto");
         when(interpreteIa.interpretar(any())).thenReturn(new InterpretacionRegistros(VENTAS_ID, List.of(
                 Map.of(PRODUCTO_ID, "lechee serenisima", CANTIDAD_ID, "2", CLIENTE_ID, "Marta"),
                 Map.of(CANTIDAD_ID, "1")), 0.9, consumo()));
 
         atender.execute();
 
-        FilaPropuesta venta = thenPropuestaGuardada().getFilas().getFirst();
+        FilaPropuesta venta = entoncesPropuestaGuardada().getFilas().getFirst();
         assertThat(venta.vinculos().get(PRODUCTO_ID.toString()).registroId()).isEqualTo(LECHE_ID.toString());
         assertThat(venta.vinculos().get(CLIENTE_ID.toString()).esNuevo()).isTrue();
-        assertThat(thenRespuesta()).contains("Producto: Leche La Serenísima 1 L",
+        assertThat(entoncesRespuesta()).contains("Producto: Leche La Serenísima 1 L",
                 "Cliente: Marta (nuevo, lo sumo a Clientes)");
     }
 
     @Test
     @DisplayName("Un vínculo a una tabla sin nombre para sus filas, o que no está, no se carga")
-    void executeShouldDropLinksThatCannotBeResolved() {
-        givenTexto("vendí 2 leches en botella");
+    void unVinculoAUnaTablaSinNombreParaSusFilasOQueNoEstaNoSeCarga() {
+        dadoTexto("vendí 2 leches en botella");
         when(interpreteIa.interpretar(any())).thenReturn(new InterpretacionRegistros(VENTAS_ID, List.of(
                 Map.of(PRODUCTO_ID, "leche", CANTIDAD_ID, "2", MEDIDA_ID, "botella")), 0.9, consumo()));
 
         atender.execute();
 
-        assertThat(thenPropuestaGuardada().getFilas().getFirst().valores()).doesNotContainKey(MEDIDA_ID.toString())
+        assertThat(entoncesPropuestaGuardada().getFilas().getFirst().valores()).doesNotContainKey(MEDIDA_ID.toString())
                 .containsKey(PRODUCTO_ID.toString());
     }
 
     @Test
     @DisplayName("Al confirmar una venta se suma el cliente nuevo una sola vez y se descuenta el stock hasta 0")
-    void executeShouldCreateTheNewCustomerAndMoveTheStockOnConfirm() {
-        givenTexto("sí");
+    void alConfirmarUnaVentaSeSumaElClienteNuevoUnaSolaVezYSeDescuentaElStockHasta0() {
+        dadoTexto("sí");
         VinculoPropuesto lecheVinculada = new VinculoPropuesto("Leche La Serenísima 1 L", LECHE_ID.toString(),
                 PRODUCTOS_ID.toString(), "Productos");
-        givenPendiente(VENTAS_ID, List.of(
+        dadoPendiente(VENTAS_ID, List.of(
                 venta("2", lecheVinculada, new VinculoPropuesto("Marta", null, CLIENTES_ID.toString(), "Clientes")),
                 venta("4", lecheVinculada, new VinculoPropuesto("marta", null, CLIENTES_ID.toString(), "Clientes"))));
-        givenTablaGuardable(VENTAS_ID, "Ventas", (short) -1, camposDeVentas(true));
+        dadoTablaGuardable(VENTAS_ID, "Ventas", (short) -1, camposDeVentas(true));
         when(campoRepository.findByBloqueIdAndNegocioId(CLIENTES_ID, NEGOCIO_ID)).thenReturn(List.of(
                 campo(CLIENTE_NOMBRE_ID, TipoCampo.TEXTO, null)));
         when(campoRepository.findByBloqueIdAndNegocioId(PRODUCTOS_ID, NEGOCIO_ID)).thenReturn(camposDeProductos());
@@ -258,20 +258,20 @@ class AtenderMensajeWhatsappVentasTest {
         verify(registroRepository).saveAll(List.of(leche));
         verify(controlPlanService).validarAltaRegistros(NEGOCIO_ID, 1, AHORA);
         verify(controlPlanService).validarAltaRegistros(NEGOCIO_ID, 2, AHORA);
-        assertThat(thenRespuesta()).contains("guardé 2 filas en *Ventas*", "También sumé Marta en Clientes.",
+        assertThat(entoncesRespuesta()).contains("guardé 2 filas en *Ventas*", "También sumé Marta en Clientes.",
                 "Stock de Leche La Serenísima 1 L: 5 → 3.",
                 "Stock de Leche La Serenísima 1 L: 3 → 0. No alcanzaba para 4: lo dejé en 0.");
     }
 
     @Test
     @DisplayName("Si el producto vinculado ya no está en su tabla, se suma de nuevo con sus valores iniciales")
-    void executeShouldRecreateAProductThatIsNoLongerThere() {
-        givenTexto("sí");
+    void siElProductoVinculadoYaNoEstaEnSuTablaSeSumaDeNuevoConSusValoresIniciales() {
+        dadoTexto("sí");
         Registro deOtraTabla = registro(LECHE_ID, CLIENTES_ID, Map.of());
         when(registroRepository.findByIdAndNegocioId(LECHE_ID, NEGOCIO_ID)).thenReturn(Optional.of(deOtraTabla));
-        givenPendiente(VENTAS_ID, List.of(venta("1", new VinculoPropuesto("Leche", LECHE_ID.toString(),
+        dadoPendiente(VENTAS_ID, List.of(venta("1", new VinculoPropuesto("Leche", LECHE_ID.toString(),
                 PRODUCTOS_ID.toString(), "Productos"), null)));
-        givenTablaGuardable(VENTAS_ID, "Ventas", (short) -1, camposDeVentas(true));
+        dadoTablaGuardable(VENTAS_ID, "Ventas", (short) -1, camposDeVentas(true));
         when(campoRepository.findByBloqueIdAndNegocioId(PRODUCTOS_ID, NEGOCIO_ID)).thenReturn(camposDeProductos());
 
         atender.execute();
@@ -282,16 +282,16 @@ class AtenderMensajeWhatsappVentasTest {
                 .containsEntry(PRECIO_ID.toString(), new BigDecimal("100"))
                 .doesNotContainKey(RUBRO_ID.toString()));
         verify(registroRepository, never()).saveAll(List.of(deOtraTabla));
-        assertThat(thenRespuesta()).contains("También sumé Leche en Productos.").doesNotContain("Stock de");
+        assertThat(entoncesRespuesta()).contains("También sumé Leche en Productos.").doesNotContain("Stock de");
     }
 
     @Test
     @DisplayName("Un vínculo nuevo a una tabla sin columna de texto no se puede sumar y no guarda nada")
-    void executeShouldRejectANewLinkToATableWithoutName() {
-        givenTexto("sí");
-        givenPendiente(VENTAS_ID, List.of(venta("1", new VinculoPropuesto("botella", null, MEDIDAS_ID.toString(),
+    void unVinculoNuevoAUnaTablaSinColumnaDeTextoNoSePuedeSumarYNoGuardaNada() {
+        dadoTexto("sí");
+        dadoPendiente(VENTAS_ID, List.of(venta("1", new VinculoPropuesto("botella", null, MEDIDAS_ID.toString(),
                 "Medidas"), null)));
-        givenTablaGuardable(VENTAS_ID, "Ventas", (short) -1, camposDeVentas(false));
+        dadoTablaGuardable(VENTAS_ID, "Ventas", (short) -1, camposDeVentas(false));
         when(campoRepository.findByBloqueIdAndNegocioId(MEDIDAS_ID, NEGOCIO_ID)).thenReturn(List.of(
                 campo(LITROS_ID, TipoCampo.NUMERO, null)));
 
@@ -299,51 +299,51 @@ class AtenderMensajeWhatsappVentasTest {
 
         assertThat(guardados).isEmpty();
         verify(registroRepository, never()).saveAll(anyList());
-        assertThat(thenRespuesta()).contains(TextosWhatsapp.TABLA_INEXISTENTE);
+        assertThat(entoncesRespuesta()).contains(TextosWhatsapp.TABLA_INEXISTENTE);
     }
 
     // --- cuándo no se mueve el stock ---
 
     @Test
     @DisplayName("Una tabla de movimientos sin producto vinculado o sin cantidad no mueve el stock")
-    void executeShouldNotMoveTheStockWithoutProductOrQuantity() {
-        givenTexto("sí");
-        givenPendiente(VENTAS_ID, List.of(new FilaPropuesta(Map.of(CANTIDAD_ID.toString(), "2"), Set.of())));
+    void unaTablaDeMovimientosSinProductoVinculadoOSinCantidadNoMueveElStock() {
+        dadoTexto("sí");
+        dadoPendiente(VENTAS_ID, List.of(new FilaPropuesta(Map.of(CANTIDAD_ID.toString(), "2"), Set.of())));
         Campo productoComoTexto = campo(PRODUCTO_ID, TipoCampo.TEXTO, "product");
-        givenTablaGuardable(VENTAS_ID, "Ventas", (short) -1, List.of(productoComoTexto,
+        dadoTablaGuardable(VENTAS_ID, "Ventas", (short) -1, List.of(productoComoTexto,
                 campo(CANTIDAD_ID, TipoCampo.NUMERO, "quantity")));
 
         atender.execute();
 
         verify(registroRepository, never()).findByIdAndNegocioId(any(), any());
-        assertThat(thenRespuesta()).doesNotContain("Stock de");
+        assertThat(entoncesRespuesta()).doesNotContain("Stock de");
     }
 
     @Test
     @DisplayName("Sin la columna de cantidad tampoco se mueve el stock")
-    void executeShouldNotMoveTheStockWithoutAQuantityColumn() {
-        givenTexto("sí");
-        givenPendiente(VENTAS_ID, List.of(new FilaPropuesta(Map.of(), Set.of())));
-        givenTablaGuardable(VENTAS_ID, "Ventas", (short) -1, List.of(campo(PRODUCTO_ID, TipoCampo.RELACION,
+    void sinLaColumnaDeCantidadTampocoSeMueveElStock() {
+        dadoTexto("sí");
+        dadoPendiente(VENTAS_ID, List.of(new FilaPropuesta(Map.of(), Set.of())));
+        dadoTablaGuardable(VENTAS_ID, "Ventas", (short) -1, List.of(campo(PRODUCTO_ID, TipoCampo.RELACION,
                 "product")));
 
         atender.execute();
 
-        assertThat(thenRespuesta()).contains("guardé 1 fila en *Ventas*").doesNotContain("Stock de");
+        assertThat(entoncesRespuesta()).contains("guardé 1 fila en *Ventas*").doesNotContain("Stock de");
     }
 
     @Test
     @DisplayName("Una venta sin producto o sin cantidad, o de un producto sin stock ni nombre, no mueve nada")
-    void executeShouldSkipRowsThatCannotMoveTheStock() {
-        givenTexto("sí");
+    void unaVentaSinProductoOSinCantidadODeUnProductoSinStockNiNombreNoMueveNada() {
+        dadoTexto("sí");
         VinculoPropuesto lecheVinculada = new VinculoPropuesto("Leche", LECHE_ID.toString(), PRODUCTOS_ID.toString(),
                 "Productos");
-        givenPendiente(VENTAS_ID, List.of(
+        dadoPendiente(VENTAS_ID, List.of(
                 new FilaPropuesta(Map.of(CANTIDAD_ID.toString(), "2"), Set.of()),
                 new FilaPropuesta(Map.of(PRODUCTO_ID.toString(), "leche"), Set.of())
                         .vinculando(PRODUCTO_ID.toString(), lecheVinculada),
                 venta("1", lecheVinculada, null)));
-        givenTablaGuardable(VENTAS_ID, "Ventas", (short) 1, camposDeVentas(false));
+        dadoTablaGuardable(VENTAS_ID, "Ventas", (short) 1, camposDeVentas(false));
         when(campoRepository.findByBloqueIdAndNegocioId(PRODUCTOS_ID, NEGOCIO_ID)).thenReturn(List.of(
                 campo(NOMBRE_ID, TipoCampo.TEXTO, null)));
 
@@ -351,44 +351,44 @@ class AtenderMensajeWhatsappVentasTest {
 
         assertThat(leche.getValores()).containsEntry(STOCK_ID.toString(), new BigDecimal("5"));
         verify(registroRepository, times(1)).saveAll(anyList());
-        assertThat(thenRespuesta()).contains("guardé 3 filas en *Ventas*").doesNotContain("Stock de");
+        assertThat(entoncesRespuesta()).contains("guardé 3 filas en *Ventas*").doesNotContain("Stock de");
     }
 
     @Test
     @DisplayName("Una entrada suma al stock y nombra al producto aunque su tabla no tenga columna de texto")
-    void executeShouldAddEntriesToTheStock() {
-        givenTexto("sí");
-        givenPendiente(VENTAS_ID, List.of(venta("3", new VinculoPropuesto("Leche", LECHE_ID.toString(),
+    void unaEntradaSumaAlStockYNombraAlProductoAunqueSuTablaNoTengaColumnaDeTexto() {
+        dadoTexto("sí");
+        dadoPendiente(VENTAS_ID, List.of(venta("3", new VinculoPropuesto("Leche", LECHE_ID.toString(),
                 PRODUCTOS_ID.toString(), "Productos"), null)));
-        givenTablaGuardable(VENTAS_ID, "Entradas", (short) 1, camposDeVentas(false));
+        dadoTablaGuardable(VENTAS_ID, "Entradas", (short) 1, camposDeVentas(false));
         when(campoRepository.findByBloqueIdAndNegocioId(PRODUCTOS_ID, NEGOCIO_ID)).thenReturn(List.of(
                 campo(STOCK_ID, TipoCampo.NUMERO, "quantity")));
 
         atender.execute();
 
         assertThat(leche.getValores()).containsEntry(STOCK_ID.toString(), new BigDecimal("8"));
-        assertThat(thenRespuesta()).contains("Stock de el producto: 5 → 8.");
+        assertThat(entoncesRespuesta()).contains("Stock de el producto: 5 → 8.");
     }
 
     // --- arrange / assert ---
 
-    private void givenTexto(String texto) {
+    private void dadoTexto(String texto) {
         when(mensajeRepository.reclamarSiguiente(any(), any())).thenReturn(Optional.of(MensajeWhatsapp.builder()
                 .negocioId(NEGOCIO_ID).telefono(TELEFONO).idExterno("T1").tipo(TipoMensajeWhatsapp.TEXTO)
                 .texto(texto).recibidoEn(AHORA).build()));
     }
 
-    private void givenInterpretacion(BloqueId bloqueId, Map<CampoId, String> fila) {
+    private void dadoInterpretacion(BloqueId bloqueId, Map<CampoId, String> fila) {
         when(interpreteIa.interpretar(any())).thenReturn(new InterpretacionRegistros(bloqueId, List.of(fila), 0.9,
                 consumo()));
     }
 
-    private void givenPendiente(BloqueId bloqueId, List<FilaPropuesta> filas) {
+    private void dadoPendiente(BloqueId bloqueId, List<FilaPropuesta> filas) {
         when(propuestaRepository.findAbiertaByTelefono(TELEFONO)).thenReturn(Optional.of(PropuestaWhatsapp.pendiente(
                 NEGOCIO_ID, TELEFONO, OrigenPropuestaWhatsapp.TEXTO, "x", bloqueId, filas, AHORA)));
     }
 
-    private void givenTablaGuardable(BloqueId bloqueId, String nombre, Short direccionStock, List<Campo> campos) {
+    private void dadoTablaGuardable(BloqueId bloqueId, String nombre, Short direccionStock, List<Campo> campos) {
         when(bloqueRepository.findByIdAndNegocioId(bloqueId, NEGOCIO_ID)).thenReturn(Optional.of(Bloque.builder()
                 .id(bloqueId).negocioId(NEGOCIO_ID).nombre(nombre).direccionStock(direccionStock).build()));
         when(campoRepository.findByBloqueIdAndNegocioId(bloqueId, NEGOCIO_ID)).thenReturn(campos);
@@ -442,13 +442,13 @@ class AtenderMensajeWhatsappVentasTest {
         return new ConsumoIaSami("simulado", "demo", 10, 20);
     }
 
-    private PropuestaWhatsapp thenPropuestaGuardada() {
+    private PropuestaWhatsapp entoncesPropuestaGuardada() {
         ArgumentCaptor<PropuestaWhatsapp> captor = ArgumentCaptor.forClass(PropuestaWhatsapp.class);
         verify(propuestaRepository, atLeastOnce()).save(captor.capture());
         return captor.getValue();
     }
 
-    private String thenRespuesta() {
+    private String entoncesRespuesta() {
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(mensajeria, atLeastOnce()).enviarTexto(eq(TELEFONO), captor.capture());
         return String.join("\n", captor.getAllValues());

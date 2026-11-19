@@ -109,7 +109,7 @@ class RegistroControllerTest {
 
     @Test
     @DisplayName("POST crea el registro con el usuario de la sesión y responde 201")
-    void crearShouldReturn201AndPassSessionUserToUseCase() throws Exception {
+    void pOSTCreaElRegistroConElUsuarioDeLaSesionYResponde201() throws Exception {
         when(crearRegistro.execute(any(CrearRegistroRequest.class)))
                 .thenReturn(new CrearRegistroResponse(ITEM));
 
@@ -129,7 +129,7 @@ class RegistroControllerTest {
 
     @Test
     @DisplayName("GET de la foto de origen devuelve sus bytes y pasa el usuario de la sesión")
-    void fotoOrigenShouldReturnBytesAndPassSessionUser() throws Exception {
+    void gETDeLaFotoDeOrigenDevuelveSusBytesYPasaElUsuarioDeLaSesion() throws Exception {
         byte[] bytes = {1, 2, 3};
         when(obtenerFotoOrigen.execute(any(ObtenerFotoOrigenRequest.class)))
                 .thenReturn(new FotoArchivoResponse(bytes, "image/png"));
@@ -144,7 +144,7 @@ class RegistroControllerTest {
 
     @Test
     @DisplayName("GET de la foto de origen devuelve 404 cuando el registro no tiene foto")
-    void fotoOrigenShouldReturn404WhenRegistroHasNoFoto() throws Exception {
+    void gETDeLaFotoDeOrigenDevuelve404CuandoElRegistroNoTieneFoto() throws Exception {
         when(obtenerFotoOrigen.execute(any(ObtenerFotoOrigenRequest.class)))
                 .thenThrow(new ResourceNotFoundException("El registro no tiene foto de origen"));
 
@@ -155,7 +155,7 @@ class RegistroControllerTest {
 
     @Test
     @DisplayName("POST responde 400 con el error de cada campo cuando los valores no son válidos")
-    void crearShouldReturn400WithErrorsPerField() throws Exception {
+    void pOSTResponde400ConElErrorDeCadaCampoCuandoLosValoresNoSonValidos() throws Exception {
         when(crearRegistro.execute(any(CrearRegistroRequest.class)))
                 .thenThrow(new RegistroInvalidoException(Map.of("campo-1", "Este dato es obligatorio")));
 
@@ -169,7 +169,7 @@ class RegistroControllerTest {
 
     @Test
     @DisplayName("POST responde 400 cuando falta el objeto de valores")
-    void crearShouldReturn400WhenValoresAreMissing() throws Exception {
+    void pOSTResponde400CuandoFaltaElObjetoDeValores() throws Exception {
         ResultActions result = mockMvc.perform(post("/api/bloques/{id}/registros", BLOQUE_ID)
                 .principal(sesion).contentType(MediaType.APPLICATION_JSON).content("{}"));
 
@@ -180,7 +180,7 @@ class RegistroControllerTest {
 
     @Test
     @DisplayName("POST responde 400 cuando el id del bloque no es un UUID")
-    void crearShouldReturn400WhenBloqueIdIsNotUuid() throws Exception {
+    void pOSTResponde400CuandoElIdDelBloqueNoEsUnUUID() throws Exception {
         ResultActions result = mockMvc.perform(post("/api/bloques/no-es-uuid/registros")
                 .principal(sesion).contentType(MediaType.APPLICATION_JSON).content(CUERPO));
 
@@ -190,7 +190,7 @@ class RegistroControllerTest {
 
     @Test
     @DisplayName("GET lista la página con las claves que espera el frontend")
-    void listarShouldReturnPageWithFrontendKeys() throws Exception {
+    void gETListaLaPaginaConLasClavesQueEsperaElFrontend() throws Exception {
         when(listarRegistros.execute(any(ListarRegistrosRequest.class)))
                 .thenReturn(new ListarRegistrosResponse(List.of(ITEM), 0, 20, 1, 1,
                         new TotalesItem(1, Map.of(CAMPO_ID, new BigDecimal("1500.5")))));
@@ -211,7 +211,7 @@ class RegistroControllerTest {
 
     @Test
     @DisplayName("GET pasa la búsqueda, el orden y la página al caso de uso")
-    void listarShouldPassQueryParametersToUseCase() throws Exception {
+    void gETPasaLaBusquedaElOrdenYLaPaginaAlCasoDeUso() throws Exception {
         when(listarRegistros.execute(any(ListarRegistrosRequest.class)))
                 .thenReturn(new ListarRegistrosResponse(List.of(), 1, 5, 0, 1, new TotalesItem(0, Map.of())));
 
@@ -232,7 +232,7 @@ class RegistroControllerTest {
 
     @Test
     @DisplayName("GET responde 404 cuando el bloque no es del negocio")
-    void listarShouldReturn404WhenBloqueIsNotFound() throws Exception {
+    void gETResponde404CuandoElBloqueNoEsDelNegocio() throws Exception {
         when(listarRegistros.execute(any(ListarRegistrosRequest.class)))
                 .thenThrow(new ResourceNotFoundException("El bloque no existe"));
 
@@ -243,7 +243,7 @@ class RegistroControllerTest {
 
     @Test
     @DisplayName("GET de referencias devuelve id y etiqueta de cada fila y pasa el texto buscado")
-    void referenciasShouldReturnItemsAndPassTexto() throws Exception {
+    void gETDeReferenciasDevuelveIdYEtiquetaDeCadaFilaYPasaElTextoBuscado() throws Exception {
         when(listarReferencias.execute(any(ListarReferenciasRequest.class)))
                 .thenReturn(List.of(new ReferenciaItem(REGISTRO_ID, "Ana")));
 
@@ -258,7 +258,7 @@ class RegistroControllerTest {
 
     @Test
     @DisplayName("GET de referencias pasa los ids separados por coma")
-    void referenciasShouldPassCommaSeparatedIds() throws Exception {
+    void gETDeReferenciasPasaLosIdsSeparadosPorComa() throws Exception {
         when(listarReferencias.execute(any(ListarReferenciasRequest.class))).thenReturn(List.of());
 
         ResultActions result = mockMvc.perform(get("/api/bloques/{id}/referencias", BLOQUE_ID)
@@ -271,7 +271,7 @@ class RegistroControllerTest {
 
     @Test
     @DisplayName("GET de referencias devuelve 404 cuando el bloque no es del negocio")
-    void referenciasShouldReturn404WhenBloqueIsNotFound() throws Exception {
+    void gETDeReferenciasDevuelve404CuandoElBloqueNoEsDelNegocio() throws Exception {
         when(listarReferencias.execute(any(ListarReferenciasRequest.class)))
                 .thenThrow(new ResourceNotFoundException("El bloque no existe"));
 
@@ -282,7 +282,7 @@ class RegistroControllerTest {
 
     @Test
     @DisplayName("GET de referencias devuelve 400 cuando un id no es un UUID")
-    void referenciasShouldReturn400WhenIdIsNotUuid() throws Exception {
+    void gETDeReferenciasDevuelve400CuandoUnIdNoEsUnUUID() throws Exception {
         ResultActions result = mockMvc.perform(get("/api/bloques/{id}/referencias", BLOQUE_ID)
                 .principal(sesion).param("ids", "no-es-uuid"));
 
@@ -292,7 +292,7 @@ class RegistroControllerTest {
 
     @Test
     @DisplayName("GET devuelve el registro")
-    void obtenerShouldReturnRegistro() throws Exception {
+    void gETDevuelveElRegistro() throws Exception {
         when(obtenerRegistro.execute(any(ObtenerRegistroRequest.class)))
                 .thenReturn(new ObtenerRegistroResponse(ITEM));
 
@@ -307,7 +307,7 @@ class RegistroControllerTest {
 
     @Test
     @DisplayName("GET responde 404 cuando el registro no es del negocio")
-    void obtenerShouldReturn404WhenRegistroIsNotFound() throws Exception {
+    void gETResponde404CuandoElRegistroNoEsDelNegocio() throws Exception {
         when(obtenerRegistro.execute(any(ObtenerRegistroRequest.class)))
                 .thenThrow(new ResourceNotFoundException("El registro no existe"));
 
@@ -318,7 +318,7 @@ class RegistroControllerTest {
 
     @Test
     @DisplayName("PATCH edita el registro con el usuario de la sesión")
-    void editarShouldReturnEditedRegistro() throws Exception {
+    void pATCHEditaElRegistroConElUsuarioDeLaSesion() throws Exception {
         when(editarRegistro.execute(any(EditarRegistroRequest.class)))
                 .thenReturn(new EditarRegistroResponse(ITEM));
 
@@ -335,7 +335,7 @@ class RegistroControllerTest {
 
     @Test
     @DisplayName("PATCH responde 400 con el error por campo cuando los datos no son válidos")
-    void editarShouldReturn400WithErrorsPerField() throws Exception {
+    void pATCHResponde400ConElErrorPorCampoCuandoLosDatosNoSonValidos() throws Exception {
         when(editarRegistro.execute(any(EditarRegistroRequest.class)))
                 .thenThrow(new RegistroInvalidoException(Map.of("campo-1", "Tiene que ser un número")));
 
@@ -348,7 +348,7 @@ class RegistroControllerTest {
 
     @Test
     @DisplayName("DELETE elimina el registro y responde 204 sin cuerpo")
-    void eliminarShouldReturn204() throws Exception {
+    void dELETEEliminaElRegistroYResponde204SinCuerpo() throws Exception {
         ResultActions result = mockMvc.perform(delete("/api/registros/{id}", REGISTRO_ID).principal(sesion));
 
         result.andExpect(status().isNoContent());
@@ -360,7 +360,7 @@ class RegistroControllerTest {
 
     @Test
     @DisplayName("DELETE responde 404 cuando el registro no es del negocio")
-    void eliminarShouldReturn404WhenRegistroIsNotFound() throws Exception {
+    void dELETEResponde404CuandoElRegistroNoEsDelNegocio() throws Exception {
         doThrow(new ResourceNotFoundException("El registro no existe"))
                 .when(eliminarRegistro).execute(any(EliminarRegistroRequest.class));
 

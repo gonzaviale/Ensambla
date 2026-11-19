@@ -75,14 +75,14 @@ class ObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("El endpoint exige la sesión del negocio")
-    void pasosShouldRequireSession() throws Exception {
+    void elEndpointExigeLaSesionDelNegocio() throws Exception {
         mockMvc.perform(get(API))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     @DisplayName("Devuelve desde PostgreSQL los tres productos elegidos para el almacén de demostración")
-    void pasosShouldReturnProductsFromPostgres() throws Exception {
+    void devuelveDesdePostgreSQLLosTresProductosElegidosParaElAlmacenDeDemostracion() throws Exception {
         mockMvc.perform(get(API).session(sesion))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(3))
@@ -99,7 +99,7 @@ class ObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(jsonPath("$[2].nombre").value("Coca-Cola 2,25 L"));
     }
 
-    // --- arrange ---
+    // --- dado ---
     private void guardarSistema(UUID negocioId) {
         String sistemaId = UUID.randomUUID().toString();
         String seccionId = frontId();

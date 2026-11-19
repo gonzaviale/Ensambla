@@ -59,7 +59,7 @@ class UbicacionControllerTest {
 
     @Test
     @DisplayName("La búsqueda devuelve opciones completas y prohíbe la caché del navegador")
-    void buscarShouldReturnDirectionsWithoutBrowserCache() throws Exception {
+    void laBusquedaDevuelveOpcionesCompletasYProhibeLaCacheDelNavegador() throws Exception {
         when(buscarDirecciones.execute(REQUEST)).thenReturn(new BuscarDireccionesResponse(List.of(
                 new DireccionItem(CONSULTA, new BigDecimal("-34.67"), new BigDecimal("-58.56"), "San Justo"))));
 
@@ -77,7 +77,7 @@ class UbicacionControllerTest {
 
     @Test
     @DisplayName("La localidad del punto se devuelve sin caché del navegador")
-    void resolverLocalidadShouldReturnLocalitiesWithoutBrowserCache() throws Exception {
+    void laLocalidadDelPuntoSeDevuelveSinCacheDelNavegador() throws Exception {
         when(resolverLocalidad.execute(PUNTO)).thenReturn(
                 new ResolverLocalidadResponse("San Justo", List.of("San Justo", "Villa Luzuriaga")));
 
@@ -91,7 +91,7 @@ class UbicacionControllerTest {
 
     @Test
     @DisplayName("Un punto sin localidad reconocida responde localidad nula y lista vacía")
-    void resolverLocalidadShouldReturnEmptyLocalities() throws Exception {
+    void unPuntoSinLocalidadReconocidaRespondeLocalidadNulaYListaVacia() throws Exception {
         when(resolverLocalidad.execute(PUNTO)).thenReturn(new ResolverLocalidadResponse(null, List.of()));
 
         mockMvc.perform(post("/api/ubicacion/localidad").contentType(MediaType.APPLICATION_JSON)
@@ -108,7 +108,7 @@ class UbicacionControllerTest {
             "{\"latitud\":0,\"longitud\":181}", "{\"latitud\":0,\"longitud\":-181}"
     })
     @DisplayName("Un punto inválido no llega al caso de uso")
-    void resolverLocalidadShouldRejectInvalidPoint(String body) throws Exception {
+    void unPuntoInvalidoNoLlegaAlCasoDeUso(String body) throws Exception {
         mockMvc.perform(post("/api/ubicacion/localidad").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest());
 
@@ -117,7 +117,7 @@ class UbicacionControllerTest {
 
     @Test
     @DisplayName("El proveedor caído al resolver la localidad responde 503")
-    void resolverLocalidadShouldReturn503WhenProviderUnavailable() throws Exception {
+    void elProveedorCaidoAlResolverLaLocalidadResponde503() throws Exception {
         when(resolverLocalidad.execute(PUNTO)).thenThrow(new ServicioUbicacionException("Sin servicio"));
 
         mockMvc.perform(post("/api/ubicacion/localidad").contentType(MediaType.APPLICATION_JSON)
@@ -128,7 +128,7 @@ class UbicacionControllerTest {
 
     @Test
     @DisplayName("La búsqueda sin coincidencias responde con una lista vacía")
-    void buscarShouldReturnEmptyResults() throws Exception {
+    void laBusquedaSinCoincidenciasRespondeConUnaListaVacia() throws Exception {
         when(buscarDirecciones.execute(REQUEST)).thenReturn(new BuscarDireccionesResponse(List.of()));
 
         mockMvc.perform(post("/api/ubicacion/direcciones").contentType(MediaType.APPLICATION_JSON)
@@ -139,7 +139,7 @@ class UbicacionControllerTest {
     @ParameterizedTest
     @ValueSource(strings = {"{}", "{\"consulta\":null}", "{\"consulta\":\"    \"}", "{\"consulta\":\"abcd\"}"})
     @DisplayName("Una dirección inválida no llega al caso de uso")
-    void buscarShouldRejectInvalidBody(String body) throws Exception {
+    void unaDireccionInvalidaNoLlegaAlCasoDeUso(String body) throws Exception {
         mockMvc.perform(post("/api/ubicacion/direcciones").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.consulta").exists());
 
@@ -148,7 +148,7 @@ class UbicacionControllerTest {
 
     @Test
     @DisplayName("El proveedor caído responde 503 con el formato de error de la aplicación")
-    void buscarShouldReturn503WhenProviderUnavailable() throws Exception {
+    void elProveedorCaidoResponde503ConElFormatoDeErrorDeLaAplicacion() throws Exception {
         when(buscarDirecciones.execute(REQUEST)).thenThrow(new ServicioUbicacionException("Sin servicio"));
 
         mockMvc.perform(post("/api/ubicacion/direcciones").contentType(MediaType.APPLICATION_JSON)
@@ -160,7 +160,7 @@ class UbicacionControllerTest {
 
     @Test
     @DisplayName("El catálogo devuelve código estable y nombre legible")
-    void listarRubrosShouldReturnCatalog() throws Exception {
+    void elCatalogoDevuelveCodigoEstableYNombreLegible() throws Exception {
         when(listarRubros.execute()).thenReturn(new ListarRubrosResponse(List.of(
                 new RubroItem("ALMACEN", "Almacén"), new RubroItem("OTRO", "Otro"))));
 
@@ -173,7 +173,7 @@ class UbicacionControllerTest {
 
     @Test
     @DisplayName("El listado respeta un catálogo vacío")
-    void listarRubrosShouldReturnEmptyCatalog() throws Exception {
+    void elListadoRespetaUnCatalogoVacio() throws Exception {
         when(listarRubros.execute()).thenReturn(new ListarRubrosResponse(List.of()));
 
         mockMvc.perform(get("/api/ubicacion/rubros"))

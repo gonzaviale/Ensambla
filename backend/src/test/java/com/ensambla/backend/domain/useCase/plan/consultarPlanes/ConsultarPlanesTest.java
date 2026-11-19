@@ -53,15 +53,15 @@ class ConsultarPlanesTest {
     private final RenovacionPremiumRepository renovacionPremiumRepository = mock(RenovacionPremiumRepository.class);
 
     @BeforeEach
-    void givenNegocioDelUsuario() {
+    void dadoNegocioDelUsuario() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @Test
     @DisplayName("El gratuito muestra catálogo, uso del mes argentino y disponibilidad de prueba bajo el mismo bloqueo")
-    void executeShouldReturnFreePlanAndArgentinaMonth() {
-        Plan gratuito = givenCatalogo();
-        givenSuscripcion(gratuito, EstadoSuscripcion.ACTIVA, AHORA.plusDays(30));
+    void elGratuitoMuestraCatalogoUsoDelMesArgentinoYDisponibilidadDePruebaBajoElMismoBloqueo() {
+        Plan gratuito = dadoCatalogo();
+        dadoSuscripcion(gratuito, EstadoSuscripcion.ACTIVA, AHORA.plusDays(30));
         LocalDate inicio = LocalDate.parse("2026-11-01");
         when(usoPlanRepository.contarProyectos(NEGOCIO_ID)).thenReturn(2L);
         when(usoPlanRepository.contarRegistros(NEGOCIO_ID)).thenReturn(1001L);
@@ -83,9 +83,9 @@ class ConsultarPlanesTest {
 
     @Test
     @DisplayName("La prueba usa sus diez páginas totales y fechas originales aunque cruce de mes")
-    void executeShouldUseTrialTotalInsteadOfMonthlyUsage() {
-        givenCatalogo();
-        givenSuscripcion(premium(), EstadoSuscripcion.PRUEBA, AHORA.plusDays(4));
+    void laPruebaUsaSusDiezPaginasTotalesYFechasOriginalesAunqueCruceDeMes() {
+        dadoCatalogo();
+        dadoSuscripcion(premium(), EstadoSuscripcion.PRUEBA, AHORA.plusDays(4));
         when(pruebaPremiumRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(prueba()));
 
         ConsultarPlanesResponse result = consultar(AHORA);
@@ -103,9 +103,9 @@ class ConsultarPlanesTest {
 
     @Test
     @DisplayName("Premium vigente sin historial no ofrece una prueba ni altera sus cien páginas mensuales")
-    void executeShouldKeepPaidPremiumAndDisallowTrial() {
-        givenCatalogo();
-        givenSuscripcion(premium(), EstadoSuscripcion.ACTIVA, AHORA.plusDays(30));
+    void premiumVigenteSinHistorialNoOfreceUnaPruebaNiAlteraSusCienPaginasMensuales() {
+        dadoCatalogo();
+        dadoSuscripcion(premium(), EstadoSuscripcion.ACTIVA, AHORA.plusDays(30));
 
         ConsultarPlanesResponse result = consultar(AHORA);
 
@@ -118,9 +118,9 @@ class ConsultarPlanesTest {
 
     @Test
     @DisplayName("Al vencer la prueba muestra gratuito y conserva el historial sin esperar al job")
-    void executeShouldFallBackAtExactTrialExpiry() {
-        givenCatalogo();
-        givenSuscripcion(premium(), EstadoSuscripcion.PRUEBA, AHORA);
+    void alVencerLaPruebaMuestraGratuitoYConservaElHistorialSinEsperarAlJob() {
+        dadoCatalogo();
+        dadoSuscripcion(premium(), EstadoSuscripcion.PRUEBA, AHORA);
         when(pruebaPremiumRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(prueba()));
 
         ConsultarPlanesResponse result = consultar(AHORA);
@@ -134,9 +134,9 @@ class ConsultarPlanesTest {
 
     @Test
     @DisplayName("Una suscripción futura usa el gratuito y conserva la disponibilidad de prueba no usada")
-    void executeShouldTreatFutureSubscriptionAsFree() {
-        givenCatalogo();
-        Suscripcion suscripcion = givenSuscripcion(premium(), EstadoSuscripcion.CANCELADA, AHORA.plusDays(30));
+    void unaSuscripcionFuturaUsaElGratuitoYConservaLaDisponibilidadDePruebaNoUsada() {
+        dadoCatalogo();
+        Suscripcion suscripcion = dadoSuscripcion(premium(), EstadoSuscripcion.CANCELADA, AHORA.plusDays(30));
         suscripcion.setEstado(EstadoSuscripcion.ACTIVA);
         suscripcion.setInicioEn(AHORA.plusDays(1));
 
@@ -148,13 +148,13 @@ class ConsultarPlanesTest {
 
     @Test
     @DisplayName("No ofrece prueba si las capacidades premium aún no están configuradas")
-    void executeShouldNotOfferUnconfiguredTrial() {
+    void noOfrecePruebaSiLasCapacidadesPremiumAunNoEstanConfiguradas() {
         Plan gratuito = plan();
         Plan premium = premium();
         premium.setLimitesConfigurados(false);
         when(planRepository.findByCodigo(CodigoPlan.GRATUITO)).thenReturn(Optional.of(gratuito));
         when(planRepository.findByCodigo(CodigoPlan.PREMIUM)).thenReturn(Optional.of(premium));
-        givenSuscripcion(gratuito, EstadoSuscripcion.ACTIVA, AHORA.plusDays(30));
+        dadoSuscripcion(gratuito, EstadoSuscripcion.ACTIVA, AHORA.plusDays(30));
 
         ConsultarPlanesResponse result = consultar(AHORA);
 
@@ -163,7 +163,7 @@ class ConsultarPlanesTest {
 
     @Test
     @DisplayName("Un catálogo ausente falla sin consultar datos privados")
-    void executeShouldRejectMissingCatalog() {
+    void unCatalogoAusenteFallaSinConsultarDatosPrivados() {
         assertThatThrownBy(() -> consultar(AHORA))
                 .isInstanceOf(ResourceNotFoundException.class).hasMessage("Plan no encontrado");
 
@@ -172,8 +172,8 @@ class ConsultarPlanesTest {
 
     @Test
     @DisplayName("Responde recurso inexistente cuando el negocio no tiene suscripción")
-    void executeShouldRejectMissingSubscription() {
-        givenCatalogo();
+    void respondeRecursoInexistenteCuandoElNegocioNoTieneSuscripcion() {
+        dadoCatalogo();
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> consultar(AHORA))
@@ -182,8 +182,8 @@ class ConsultarPlanesTest {
 
     @Test
     @DisplayName("Una referencia a un plan inexistente no se presenta como premium")
-    void executeShouldRejectMissingAssignedPlan() {
-        givenCatalogo();
+    void unaReferenciaAUnPlanInexistenteNoSePresentaComoPremium() {
+        dadoCatalogo();
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
 
         assertThatThrownBy(() -> consultar(AHORA))
@@ -192,9 +192,9 @@ class ConsultarPlanesTest {
 
     @Test
     @DisplayName("Una prueba activa sin historial no devuelve capacidades incompletas")
-    void executeShouldRejectMissingTrialHistory() {
-        givenCatalogo();
-        givenSuscripcion(premium(), EstadoSuscripcion.PRUEBA, AHORA.plusDays(4));
+    void unaPruebaActivaSinHistorialNoDevuelveCapacidadesIncompletas() {
+        dadoCatalogo();
+        dadoSuscripcion(premium(), EstadoSuscripcion.PRUEBA, AHORA.plusDays(4));
 
         assertThatThrownBy(() -> consultar(AHORA))
                 .isInstanceOf(ResourceNotFoundException.class).hasMessage("Prueba no encontrada");
@@ -202,17 +202,17 @@ class ConsultarPlanesTest {
 
     @Test
     @DisplayName("Un plan efectivo sin límites configurados falla de forma cerrada")
-    void executeShouldRejectUnconfiguredEffectivePlan() {
-        Plan gratuito = givenCatalogo();
+    void unPlanEfectivoSinLimitesConfiguradosFallaDeFormaCerrada() {
+        Plan gratuito = dadoCatalogo();
         gratuito.setLimitesConfigurados(false);
-        givenSuscripcion(gratuito, EstadoSuscripcion.ACTIVA, AHORA.plusDays(30));
+        dadoSuscripcion(gratuito, EstadoSuscripcion.ACTIVA, AHORA.plusDays(30));
 
         assertThatThrownBy(() -> consultar(AHORA)).isInstanceOf(RestriccionPlanException.class);
     }
 
     @Test
     @DisplayName("Un usuario sin negocio no consulta planes de otro usuario")
-    void executeShouldPropagateMissingBusiness() {
+    void unUsuarioSinNegocioNoConsultaPlanesDeOtroUsuario() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID))
                 .thenThrow(new ResourceNotFoundException("Negocio no encontrado"));
 
@@ -222,15 +222,15 @@ class ConsultarPlanesTest {
         verifyNoInteractions(planRepository, suscripcionRepository, usoPlanRepository);
     }
 
-    // --- arrange ---
-    private Plan givenCatalogo() {
+    // --- dado ---
+    private Plan dadoCatalogo() {
         Plan gratuito = plan();
         when(planRepository.findByCodigo(CodigoPlan.GRATUITO)).thenReturn(Optional.of(gratuito));
         when(planRepository.findByCodigo(CodigoPlan.PREMIUM)).thenReturn(Optional.of(premium()));
         return gratuito;
     }
 
-    private Suscripcion givenSuscripcion(Plan plan, EstadoSuscripcion estado, OffsetDateTime fin) {
+    private Suscripcion dadoSuscripcion(Plan plan, EstadoSuscripcion estado, OffsetDateTime fin) {
         Suscripcion suscripcion = suscripcion();
         suscripcion.setPlanId(plan.getId());
         suscripcion.setEstado(estado);
@@ -243,7 +243,7 @@ class ConsultarPlanesTest {
         return suscripcion;
     }
 
-    // --- act ---
+    // --- cuando ---
     private ConsultarPlanesResponse consultar(OffsetDateTime ahora) {
         return new ConsultarPlanes(negocioRepository, suscripcionRepository,
                 planRepository, pruebaPremiumRepository,

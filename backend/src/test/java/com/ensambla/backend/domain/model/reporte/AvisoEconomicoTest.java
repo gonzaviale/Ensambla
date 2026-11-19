@@ -18,8 +18,8 @@ class AvisoEconomicoTest {
 
     @Test
     @DisplayName("No avisa nada si la semana anterior no tuvo ventas")
-    void compararShouldReturnNullWhenThePreviousWeekHasNoSales() {
-        AvisoEconomico aviso = whenComparar(
+    void noAvisaNadaSiLaSemanaAnteriorNoTuvoVentas() {
+        AvisoEconomico aviso = cuandoComparar(
                 resumen("1000", "300", List.of(producto("Yerba", "1000", "300"))),
                 resumen("0", null, List.of()));
 
@@ -28,8 +28,8 @@ class AvisoEconomicoTest {
 
     @Test
     @DisplayName("Avisa con prioridad alta cuando vendió más pero ganó menos, con los productos que más bajaron")
-    void compararShouldWarnWhenSalesGoUpButProfitGoesDown() {
-        AvisoEconomico aviso = whenComparar(
+    void avisaConPrioridadAltaCuandoVendioMasPeroGanoMenosConLosProductosQueMasBajaron() {
+        AvisoEconomico aviso = cuandoComparar(
                 resumen("12000", "2700", List.of(
                         producto("Yerba", "6000", "1000"),
                         producto("Aceite", "4000", "1200"),
@@ -55,8 +55,8 @@ class AvisoEconomicoTest {
 
     @Test
     @DisplayName("Avisa con prioridad media cuando vendió menos y ganó menos")
-    void compararShouldWarnWhenSalesAndProfitGoDown() {
-        AvisoEconomico aviso = whenComparar(
+    void avisaConPrioridadMediaCuandoVendioMenosYGanoMenos() {
+        AvisoEconomico aviso = cuandoComparar(
                 resumen("8000", "2000", List.of(producto("Yerba", "8000", "2000"))),
                 resumen("10000", "3000", List.of(producto("Yerba", "10000", "3000"))));
 
@@ -68,8 +68,8 @@ class AvisoEconomicoTest {
 
     @Test
     @DisplayName("Avisa que está mejorando cuando vendió más y ganó más, con los productos que más subieron")
-    void compararShouldSayItIsImprovingWhenSalesAndProfitGoUp() {
-        AvisoEconomico aviso = whenComparar(
+    void avisaQueEstaMejorandoCuandoVendioMasYGanoMasConLosProductosQueMasSubieron() {
+        AvisoEconomico aviso = cuandoComparar(
                 resumen("11000", "3300", List.of(
                         producto("Yerba", "6000", "1800"),
                         producto("Fideos", "5000", "1500"))),
@@ -86,8 +86,8 @@ class AvisoEconomicoTest {
 
     @Test
     @DisplayName("Avisa que está mejorando cuando vendió menos pero ganó más")
-    void compararShouldSayItIsImprovingWhenSalesGoDownButProfitGoesUp() {
-        AvisoEconomico aviso = whenComparar(
+    void avisaQueEstaMejorandoCuandoVendioMenosPeroGanoMas() {
+        AvisoEconomico aviso = cuandoComparar(
                 resumen("9000", "3600", List.of(producto("Yerba", "9000", "3600"))),
                 resumen("10000", "3000", List.of(producto("Yerba", "10000", "3000"))));
 
@@ -99,8 +99,8 @@ class AvisoEconomicoTest {
 
     @Test
     @DisplayName("Sin costos compara sólo las ventas, pide cargar los costos y ordena los productos por lo vendido")
-    void compararShouldUseOnlySalesWhenThereAreNoCosts() {
-        AvisoEconomico aviso = whenComparar(
+    void sinCostosComparaSoloLasVentasPideCargarLosCostosYOrdenaLosProductosPorLoVendido() {
+        AvisoEconomico aviso = cuandoComparar(
                 resumen("12000", null, List.of(
                         producto("Yerba", "7000", null),
                         producto("Fideos", "5000", null))),
@@ -122,8 +122,8 @@ class AvisoEconomicoTest {
 
     @Test
     @DisplayName("Sin costos y con menos ventas avisa con prioridad media")
-    void compararShouldWarnWhenSalesGoDownWithoutCosts() {
-        AvisoEconomico aviso = whenComparar(
+    void sinCostosYConMenosVentasAvisaConPrioridadMedia() {
+        AvisoEconomico aviso = cuandoComparar(
                 resumen("0", null, List.of()),
                 resumen("10000", null, List.of(producto("Yerba", "10000", null))));
 
@@ -137,8 +137,8 @@ class AvisoEconomicoTest {
 
     @Test
     @DisplayName("No calcula la ganancia si la semana anterior no tiene costos")
-    void compararShouldSkipProfitWhenThePreviousWeekHasNoCosts() {
-        AvisoEconomico aviso = whenComparar(
+    void noCalculaLaGananciaSiLaSemanaAnteriorNoTieneCostos() {
+        AvisoEconomico aviso = cuandoComparar(
                 resumen("12000", "3000", List.of(producto("Yerba", "12000", "3000"))),
                 resumen("10000", null, List.of(producto("Yerba", "10000", null))));
 
@@ -147,8 +147,8 @@ class AvisoEconomicoTest {
 
     @Test
     @DisplayName("No calcula la ganancia si la semana anterior no dejó ganancia")
-    void compararShouldSkipProfitWhenThePreviousWeekHadNoProfit() {
-        AvisoEconomico aviso = whenComparar(
+    void noCalculaLaGananciaSiLaSemanaAnteriorNoDejoGanancia() {
+        AvisoEconomico aviso = cuandoComparar(
                 resumen("12000", "3000", List.of(producto("Yerba", "12000", "3000"))),
                 resumen("10000", "0", List.of(producto("Yerba", "10000", "0"))));
 
@@ -157,8 +157,8 @@ class AvisoEconomicoTest {
 
     @Test
     @DisplayName("La confianza es media si sólo una parte de lo vendido tiene costo")
-    void compararShouldReturnMediumConfidenceWhenSomeProductsHaveNoCost() {
-        AvisoEconomico aviso = whenComparar(
+    void laConfianzaEsMediaSiSoloUnaParteDeLoVendidoTieneCosto() {
+        AvisoEconomico aviso = cuandoComparar(
                 resumen("12000", "3000", List.of(
                         producto("Yerba", "4000", "1000"),
                         producto("Aceite", "4000", "2000"),
@@ -170,8 +170,8 @@ class AvisoEconomicoTest {
 
     @Test
     @DisplayName("La confianza es baja si casi nada de lo vendido tiene costo")
-    void compararShouldReturnLowConfidenceWhenFewProductsHaveCost() {
-        AvisoEconomico aviso = whenComparar(
+    void laConfianzaEsBajaSiCasiNadaDeLoVendidoTieneCosto() {
+        AvisoEconomico aviso = cuandoComparar(
                 resumen("12000", "3000", List.of(
                         producto("Yerba", "4000", "3000"),
                         producto("Aceite", "4000", null),
@@ -183,8 +183,8 @@ class AvisoEconomicoTest {
 
     @Test
     @DisplayName("Muestra hasta tres productos, primero los que más cambiaron y a igual cambio por nombre")
-    void compararShouldLimitProductsToThreeOrderedByChange() {
-        AvisoEconomico aviso = whenComparar(
+    void muestraHastaTresProductosPrimeroLosQueMasCambiaronYAIgualCambioPorNombre() {
+        AvisoEconomico aviso = cuandoComparar(
                 resumen("20000", "6000", List.of(
                         producto("Yerba", "5000", "2000"),
                         producto("Aceite", "5000", "1500"),
@@ -195,8 +195,8 @@ class AvisoEconomicoTest {
         assertThat(aviso.productos()).containsExactly("Yerba", "Aceite", "Leche");
     }
 
-    // --- act ---
-    private static AvisoEconomico whenComparar(ResumenNegocio actual, ResumenNegocio anterior) {
+    // --- cuando ---
+    private static AvisoEconomico cuandoComparar(ResumenNegocio actual, ResumenNegocio anterior) {
         return AvisoEconomico.comparar(actual, anterior);
     }
 

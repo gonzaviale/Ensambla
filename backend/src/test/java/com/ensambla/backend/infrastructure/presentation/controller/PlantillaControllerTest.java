@@ -40,7 +40,7 @@ class PlantillaControllerTest {
 
     @Test
     @DisplayName("Lista las plantillas activas con su estructura")
-    void listarShouldReturnPlantillas() throws Exception {
+    void listaLasPlantillasActivasConSuEstructura() throws Exception {
         when(listarPlantillas.execute()).thenReturn(new ListarPlantillasResponse(List.of(
                 new PlantillaItem(PLANTILLA_ID, "Inventario", "Controlá tu stock", "box",
                         Map.of("bloques", List.of())))));
@@ -56,7 +56,7 @@ class PlantillaControllerTest {
 
     @Test
     @DisplayName("Devuelve una lista vacía cuando no hay plantillas")
-    void listarShouldReturnEmptyArrayWhenThereAreNoPlantillas() throws Exception {
+    void devuelveUnaListaVaciaCuandoNoHayPlantillas() throws Exception {
         when(listarPlantillas.execute()).thenReturn(new ListarPlantillasResponse(List.of()));
 
         ResultActions result = mockMvc.perform(get("/api/plantillas"));

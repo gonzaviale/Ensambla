@@ -79,7 +79,7 @@ class ReporteUseCaseConfigTest {
 
     @Test
     @DisplayName("El wiring de generar conecta los servicios y el mapper")
-    void generarReporteUseCaseShouldWireCollaborators() {
+    void elWiringDeGenerarConectaLosServiciosYElMapper() {
         GenerarReporteResponse response = config.generarReporte(
                         negocioRepository, mock(ControlPlanService.class), Clock.systemUTC(),
                         bloqueRepository, campoRepository, reporteService)
@@ -91,7 +91,7 @@ class ReporteUseCaseConfigTest {
 
     @Test
     @DisplayName("El wiring de exportar conecta los servicios, el puerto del archivo, el mapper y el reloj")
-    void exportarReporteUseCaseShouldWireCollaborators() {
+    void elWiringDeExportarConectaLosServiciosElPuertoDelArchivoElMapperYElReloj() {
         ExportadorReportePort exportador = tabla -> new byte[] {1, 2};
 
         ExportarReporteResponse response = config.exportarReporte(
@@ -105,7 +105,7 @@ class ReporteUseCaseConfigTest {
 
     @Test
     @DisplayName("El wiring del resumen conecta el servicio de datos, la zona, los avisos y el generador del PDF")
-    void exportarResumenNegocioUseCaseShouldWireCollaborators() {
+    void elWiringDelResumenConectaElServicioDeDatosLaZonaLosAvisosYElGeneradorDelPDF() {
         ProyectoId proyectoId = ProyectoId.de("c0000000-0000-4000-8000-000000000001");
         ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
         Negocio negocio = Negocio.builder().id(NEGOCIO_ID).nombre("Almacén de Ana").build();
@@ -131,7 +131,7 @@ class ReporteUseCaseConfigTest {
 
     @Test
     @DisplayName("El wiring de las métricas del inicio conecta el servicio de datos y el reloj")
-    void obtenerResumenInicioUseCaseShouldWireCollaborators() {
+    void elWiringDeLasMetricasDelInicioConectaElServicioDeDatosYElReloj() {
         ProyectoId proyectoId = ProyectoId.de("c0000000-0000-4000-8000-000000000001");
         ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
         Negocio negocio = Negocio.builder().id(NEGOCIO_ID).nombre("Almacén de Ana").build();
@@ -151,7 +151,7 @@ class ReporteUseCaseConfigTest {
 
     @Test
     @DisplayName("El wiring de las métricas detalladas conecta el servicio de datos, la zona, los avisos y el reloj")
-    void obtenerMetricasUseCaseShouldWireCollaborators() {
+    void elWiringDeLasMetricasDetalladasConectaElServicioDeDatosLaZonaLosAvisosYElReloj() {
         ProyectoId proyectoId = ProyectoId.de("c0000000-0000-4000-8000-000000000001");
         ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
         Negocio negocio = Negocio.builder().id(NEGOCIO_ID).nombre("Almacén de Ana").build();
@@ -173,7 +173,7 @@ class ReporteUseCaseConfigTest {
 
     @Test
     @DisplayName("El wiring del aviso económico conecta el servicio de datos y el reloj")
-    void obtenerAvisoEconomicoUseCaseShouldWireCollaborators() {
+    void elWiringDelAvisoEconomicoConectaElServicioDeDatosYElReloj() {
         ProyectoId proyectoId = ProyectoId.de("c0000000-0000-4000-8000-000000000001");
         ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
         Negocio negocio = Negocio.builder().id(NEGOCIO_ID).nombre("Almacén de Ana").build();

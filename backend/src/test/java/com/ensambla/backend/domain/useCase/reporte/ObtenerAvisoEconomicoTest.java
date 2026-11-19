@@ -60,8 +60,8 @@ class ObtenerAvisoEconomicoTest {
 
     @Test
     @DisplayName("Compara los últimos 7 días, en hora argentina, con los 7 anteriores")
-    void executeShouldCompareThisWeekWithThePreviousOne() {
-        givenVentas(
+    void comparaLosUltimos7DiasEnHoraArgentinaConLos7Anteriores() {
+        dadoVentas(
                 venta(3, 3400, "2026-10-19"),
                 venta(1, 3400, "2026-10-13"),
                 venta(2, 3400, "2026-10-12"),
@@ -69,7 +69,7 @@ class ObtenerAvisoEconomicoTest {
                 venta(9, 3400, "2026-10-05"),
                 venta(9, 3400, "2026-10-20"));
 
-        ObtenerAvisoEconomicoResponse response = whenObtener();
+        ObtenerAvisoEconomicoResponse response = cuandoObtener();
 
         assertThat(response.aviso().prioridad()).isEqualTo("BAJA");
         assertThat(response.aviso().tendencia()).isEqualTo("MEJORA");
@@ -84,24 +84,24 @@ class ObtenerAvisoEconomicoTest {
 
     @Test
     @DisplayName("No devuelve aviso si la semana anterior no tuvo ventas")
-    void executeShouldReturnNoNoticeWhenThePreviousWeekHasNoSales() {
-        givenVentas(venta(3, 3400, "2026-10-19"));
+    void noDevuelveAvisoSiLaSemanaAnteriorNoTuvoVentas() {
+        dadoVentas(venta(3, 3400, "2026-10-19"));
 
-        ObtenerAvisoEconomicoResponse response = whenObtener();
+        ObtenerAvisoEconomicoResponse response = cuandoObtener();
 
         assertThat(response.aviso()).isNull();
     }
 
-    // --- arrange ---
-    private void givenVentas(Registro... ventas) {
+    // --- dado ---
+    private void dadoVentas(Registro... ventas) {
         BloqueVentas bloque = new BloqueVentas(AvisoTestData.bloqueVentas(),
                 AvisoTestData.camposPorClave(AvisoTestData.bloqueVentas()), List.of(ventas));
         when(datosDeProyectoService.cargar(proyecto, NEGOCIO_ID)).thenReturn(new DatosDeProyecto(
                 "Almacén de prueba", List.of(AvisoTestData.inventarioConPrecios(yerba())), List.of(bloque), List.of()));
     }
 
-    // --- act ---
-    private ObtenerAvisoEconomicoResponse whenObtener() {
+    // --- cuando ---
+    private ObtenerAvisoEconomicoResponse cuandoObtener() {
         return obtenerAvisoEconomico.execute(new ObtenerAvisoEconomicoRequest(USUARIO_ID, PROYECTO_ID));
     }
 

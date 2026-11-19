@@ -47,14 +47,14 @@ class ReporteServiceTest {
 
     @Test
     @DisplayName("Genera las filas con las fórmulas calculadas y los totales de todas las que cumplen el filtro")
-    void generarShouldReturnRowsWithFormulasAndTotalsOfAll() {
+    void generaLasFilasConLasFormulasCalculadasYLosTotalesDeTodasLasQueCumplenElFiltro() {
         Registro fila = Registro.builder().id(BETO_ID).valores(Map.of(CANTIDAD_ID.toString(), 4)).build();
         when(registroRepository.buscarFiltrados(filtro, 10)).thenReturn(List.of(fila));
         when(registroRepository.contarFiltrados(filtro)).thenReturn(3L);
         when(registroRepository.sumarNumericos(filtro, List.of(CANTIDAD_ID)))
                 .thenReturn(Map.of(CANTIDAD_ID, new BigDecimal("9")));
 
-        ReporteRegistros result = reporteService.generar(filtro, givenCampos(), 10);
+        ReporteRegistros result = reporteService.generar(filtro, dadoCampos(), 10);
 
         assertThat(result.filas()).singleElement().satisfies(calculada ->
                 assertThat(calculada.getValores()).containsEntry(TOTAL_ID.toString(), new BigDecimal("8")));
@@ -65,12 +65,12 @@ class ReporteServiceTest {
 
     @Test
     @DisplayName("Avisa que está truncado cuando hay más filas que el límite")
-    void generarShouldFlagTruncatedWhenThereAreMoreRowsThanTheLimit() {
+    void avisaQueEstaTruncadoCuandoHayMasFilasQueElLimite() {
         when(registroRepository.buscarFiltrados(filtro, 2)).thenReturn(List.of());
         when(registroRepository.contarFiltrados(filtro)).thenReturn(3L);
         when(registroRepository.sumarNumericos(filtro, List.of(CANTIDAD_ID))).thenReturn(Map.of());
 
-        ReporteRegistros result = reporteService.generar(filtro, givenCampos(), 2);
+        ReporteRegistros result = reporteService.generar(filtro, dadoCampos(), 2);
 
         assertThat(result.truncado()).isTrue();
         assertThat(result.totales().sumas().get(CANTIDAD_ID)).isEqualByComparingTo("0");
@@ -78,15 +78,15 @@ class ReporteServiceTest {
 
     @Test
     @DisplayName("Una cantidad igual al límite no está truncada")
-    void generarShouldNotFlagTruncatedWhenCountEqualsTheLimit() {
+    void unaCantidadIgualAlLimiteNoEstaTruncada() {
         when(registroRepository.buscarFiltrados(filtro, 3)).thenReturn(List.of());
         when(registroRepository.contarFiltrados(filtro)).thenReturn(3L);
         when(registroRepository.sumarNumericos(filtro, List.of(CANTIDAD_ID))).thenReturn(Map.of());
 
-        assertThat(reporteService.generar(filtro, givenCampos(), 3).truncado()).isFalse();
+        assertThat(reporteService.generar(filtro, dadoCampos(), 3).truncado()).isFalse();
     }
 
-    private static List<Campo> givenCampos() {
+    private static List<Campo> dadoCampos() {
         return List.of(
                 Campo.builder().id(CANTIDAD_ID).tipo(TipoCampo.NUMERO).posicion((short) 0).build(),
                 Campo.builder().id(TOTAL_ID).tipo(TipoCampo.FORMULA).posicion((short) 1)

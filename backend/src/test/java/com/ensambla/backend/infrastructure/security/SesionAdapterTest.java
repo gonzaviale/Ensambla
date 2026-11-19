@@ -17,6 +17,10 @@ class SesionAdapterTest {
 
     private final SesionAdapter sesionAdapter = new SesionAdapter();
 
+    private MockHttpServletRequest peticion = new MockHttpServletRequest();
+
+    private final MockHttpServletResponse respuesta = new MockHttpServletResponse();
+
     @AfterEach
     void clearContext() {
         SecurityContextHolder.clearContext();
@@ -24,69 +28,87 @@ class SesionAdapterTest {
 
     @Test
     @DisplayName("Rota una sesión existente y persiste solo identidad y rol")
-    void iniciarShouldRotateSessionAndPersistIdentity() {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        MockHttpSession session = new MockHttpSession();
-        request.setSession(session);
-        String previousId = session.getId();
-        sesionAdapter.iniciar(USUARIO_ID, "PERSONA", request, new MockHttpServletResponse());
+    void rotaUnaSesionExistenteYPersisteSoloIdentidadYRol() {
+        MockHttpSession sesion = dadoUnaPeticionConSesionAbierta();
+        String idAnterior = sesion.getId();
 
-        thenIniciarShouldRotateSessionAndPersistIdentity(session, previousId);
+        cuandoIniciaSesionUnaPersona();
+
+        entoncesLaSesionRotaYGuardaSoloLaIdentidadYElRol(sesion, idAnterior);
     }
 
     @Test
     @DisplayName("Crea una sesión autenticada si no había una sesión previa")
-    void iniciarShouldCreateSessionWhenMissing() {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        sesionAdapter.iniciar(USUARIO_ID, "PERSONA", request, new MockHttpServletResponse());
+    void creaUnaSesionAutenticadaSiNoHabiaUnaSesionPrevia() {
+        dadoUnaPeticionSinSesion();
 
-        thenIniciarShouldCreateSessionWhenMissing(request);
+        cuandoIniciaSesionUnaPersona();
+
+        entoncesQuedaUnaSesionAbierta();
     }
 
     @Test
     @DisplayName("Invalida la sesión y elimina la cookie al cerrar el acceso")
-    void cerrarShouldInvalidateSessionAndClearCookie() {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        MockHttpSession session = new MockHttpSession();
-        request.setSession(session);
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        sesionAdapter.cerrar(request, response);
+    void invalidaLaSesionYEliminaLaCookieAlCerrarElAcceso() {
+        MockHttpSession sesion = dadoUnaPeticionConSesionAbierta();
 
-        thenCerrarShouldInvalidateSessionAndClearCookie(session, response);
+        cuandoCierraSesionLaPersona();
+
+        entoncesLaSesionQuedaInvalidaSinCookie(sesion);
     }
 
     @Test
     @DisplayName("Cerrar una sesión inexistente no produce error")
-    void cerrarShouldBeIdempotentWhenSessionIsMissing() {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        sesionAdapter.cerrar(request, new MockHttpServletResponse());
+    void cerrarUnaSesionInexistenteNoProduceError() {
+        dadoUnaPeticionSinSesion();
 
-        thenCerrarShouldBeIdempotentWhenSessionIsMissing(request);
+        cuandoCierraSesionLaPersona();
+
+        entoncesNoQuedaNingunaSesion();
     }
 
-    // --- assert ---
-    private void thenIniciarShouldRotateSessionAndPersistIdentity(MockHttpSession session, String previousId) {
-        assertThat(session.getId()).isNotEqualTo(previousId);
-        SecurityContext context = (SecurityContext) session.getAttribute(
+    // --- dado ---
+    private MockHttpSession dadoUnaPeticionConSesionAbierta() {
+        MockHttpSession sesion = new MockHttpSession();
+        peticion.setSession(sesion);
+        return sesion;
+    }
+
+    private void dadoUnaPeticionSinSesion() {
+        peticion = new MockHttpServletRequest();
+    }
+
+    // --- cuando ---
+    private void cuandoIniciaSesionUnaPersona() {
+        sesionAdapter.iniciar(USUARIO_ID, "PERSONA", peticion, respuesta);
+    }
+
+    private void cuandoCierraSesionLaPersona() {
+        sesionAdapter.cerrar(peticion, respuesta);
+    }
+
+    // --- entonces ---
+    private void entoncesLaSesionRotaYGuardaSoloLaIdentidadYElRol(MockHttpSession sesion, String idAnterior) {
+        assertThat(sesion.getId()).isNotEqualTo(idAnterior);
+        SecurityContext contexto = (SecurityContext) sesion.getAttribute(
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
-        assertThat(context.getAuthentication().getName()).isEqualTo(USUARIO_ID.toString());
-        assertThat(context.getAuthentication().getCredentials()).isNull();
-        assertThat(context.getAuthentication().getAuthorities()).extracting("authority")
+        assertThat(contexto.getAuthentication().getName()).isEqualTo(USUARIO_ID.toString());
+        assertThat(contexto.getAuthentication().getCredentials()).isNull();
+        assertThat(contexto.getAuthentication().getAuthorities()).extracting("authority")
                 .containsExactly("ROLE_PERSONA");
     }
 
-    private void thenIniciarShouldCreateSessionWhenMissing(MockHttpServletRequest request) {
-        assertThat(request.getSession(false)).isNotNull();
+    private void entoncesQuedaUnaSesionAbierta() {
+        assertThat(peticion.getSession(false)).isNotNull();
     }
 
-    private void thenCerrarShouldInvalidateSessionAndClearCookie(
-            MockHttpSession session, MockHttpServletResponse response) {
-        assertThat(session.isInvalid()).isTrue();
-        assertThat(response.getCookie("ENSAMBLA_SESSION").getMaxAge()).isZero();
+    private void entoncesLaSesionQuedaInvalidaSinCookie(MockHttpSession sesion) {
+        assertThat(sesion.isInvalid()).isTrue();
+        assertThat(respuesta.getCookie("ENSAMBLA_SESSION").getMaxAge()).isZero();
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
 
-    private void thenCerrarShouldBeIdempotentWhenSessionIsMissing(MockHttpServletRequest request) {
-        assertThat(request.getSession(false)).isNull();
+    private void entoncesNoQuedaNingunaSesion() {
+        assertThat(peticion.getSession(false)).isNull();
     }
 }

@@ -81,7 +81,7 @@ class RenovacionPremiumSincronizacionTest {
 
     @Test
     @DisplayName("Un contrato en preparación sin resultado remoto no se crea de nuevo")
-    void sincronizarShouldNotRecreateUnknownContract() {
+    void unContratoEnPreparacionSinResultadoRemotoNoSeCreaDeNuevo() {
         RenovacionPremium renovacion = renovacion();
         renovacion.setProveedorId(null);
         when(renovacionPremiumRepository.findById(RENOVACION_ID)).thenReturn(Optional.of(renovacion));
@@ -97,10 +97,10 @@ class RenovacionPremiumSincronizacionTest {
     @ParameterizedTest
     @ValueSource(ints = {0, 1, 2, 3, 4})
     @DisplayName("Un pago con referencia, contrato, importe, moneda o fecha ajenos no habilita acceso")
-    void sincronizarShouldRejectMismatchedInvoice(int caso) {
-        RenovacionPremium renovacion = givenRenovacionSincronizada();
+    void unPagoConReferenciaContratoImporteMonedaOFechaAjenosNoHabilitaAcceso(int caso) {
+        RenovacionPremium renovacion = dadoRenovacionSincronizada();
         PagoRemoto base = pago(renovacion, "factura", "approved", AHORA, AHORA);
-        givenPagos(new PagoRemoto(base.facturaId(), base.pagoId(), caso == 1 ? "otro" : base.contratoId(),
+        dadoPagos(new PagoRemoto(base.facturaId(), base.pagoId(), caso == 1 ? "otro" : base.contratoId(),
                 caso == 0 ? RenovacionId.nuevo() : base.referencia(), caso == 2 ? BigDecimal.ONE : base.importe(),
                 caso == 3 ? "USD" : base.moneda(), base.estado(), caso == 4 ? AHORA.minusSeconds(1) : AHORA, AHORA));
 
@@ -113,9 +113,9 @@ class RenovacionPremiumSincronizacionTest {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     @DisplayName("Una factura existente no puede cambiar de negocio ni de período")
-    void sincronizarShouldRejectInvoiceReassignment(boolean otroContrato) {
-        RenovacionPremium renovacion = givenRenovacionSincronizada();
-        givenPagos(pago(renovacion, "factura", "approved", AHORA, AHORA));
+    void unaFacturaExistenteNoPuedeCambiarDeNegocioNiDePeriodo(boolean otroContrato) {
+        RenovacionPremium renovacion = dadoRenovacionSincronizada();
+        dadoPagos(pago(renovacion, "factura", "approved", AHORA, AHORA));
         when(pagoPremiumRepository.findByFacturaId("factura")).thenReturn(Optional.of(PagoPremium.builder()
                 .renovacionId(otroContrato ? RenovacionId.nuevo() : RENOVACION_ID)
                 .inicioEn(otroContrato ? AHORA : AHORA.minusDays(1)).build()));
@@ -127,10 +127,10 @@ class RenovacionPremiumSincronizacionTest {
 
     @Test
     @DisplayName("Una suscripción Premium heredada no se degrada sin historial de pagos de esta integración")
-    void sincronizarShouldPreserveLegacyPremium() {
-        givenRenovacionSincronizada();
-        givenPagos();
-        givenRecalculo(suscripcion(EstadoSuscripcion.ACTIVA));
+    void unaSuscripcionPremiumHeredadaNoSeDegradaSinHistorialDePagosDeEstaIntegracion() {
+        dadoRenovacionSincronizada();
+        dadoPagos();
+        dadoRecalculo(suscripcion(EstadoSuscripcion.ACTIVA));
         when(planRepository.findByCodigo(CodigoPlan.PREMIUM)).thenReturn(Optional.of(premium()));
         when(pagoPremiumRepository.existeByNegocioId(NEGOCIO_ID)).thenReturn(false);
 
@@ -141,10 +141,10 @@ class RenovacionPremiumSincronizacionTest {
 
     @Test
     @DisplayName("Una prueba sin pagos conserva su vigencia al conciliar")
-    void sincronizarShouldPreserveTrial() {
-        givenRenovacionSincronizada();
-        givenPagos();
-        givenRecalculo(suscripcion(EstadoSuscripcion.PRUEBA));
+    void unaPruebaSinPagosConservaSuVigenciaAlConciliar() {
+        dadoRenovacionSincronizada();
+        dadoPagos();
+        dadoRecalculo(suscripcion(EstadoSuscripcion.PRUEBA));
 
         renovacionPremiumService.sincronizar(RENOVACION_ID, AHORA);
 
@@ -152,8 +152,8 @@ class RenovacionPremiumSincronizacionTest {
         verify(suscripcionRepository, never()).save(any());
     }
 
-    // --- arrange ---
-    private RenovacionPremium givenRenovacionSincronizada() {
+    // --- dado ---
+    private RenovacionPremium dadoRenovacionSincronizada() {
         RenovacionPremium renovacion = renovacion();
         when(renovacionPremiumRepository.findById(RENOVACION_ID)).thenReturn(Optional.of(renovacion));
         when(renovacionPremiumRepository.findNegocioIdById(RENOVACION_ID)).thenReturn(Optional.of(NEGOCIO_ID));
@@ -162,11 +162,11 @@ class RenovacionPremiumSincronizacionTest {
         return renovacion;
     }
 
-    private void givenPagos(PagoRemoto... pagos) {
+    private void dadoPagos(PagoRemoto... pagos) {
         when(pasarelaSuscripcionesPort.listarPagos(PROVEEDOR_ID)).thenReturn(List.of(pagos));
     }
 
-    private void givenRecalculo(Suscripcion suscripcion) {
+    private void dadoRecalculo(Suscripcion suscripcion) {
         when(pagoPremiumRepository.findVigente(NEGOCIO_ID, AHORA)).thenReturn(Optional.empty());
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
     }

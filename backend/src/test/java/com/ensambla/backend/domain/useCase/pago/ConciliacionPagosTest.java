@@ -49,10 +49,10 @@ class ConciliacionPagosTest {
 
     @Test
     @DisplayName("La conciliación continúa con otros negocios cuando un proveedor falla y rota los intentos")
-    void executeShouldContinueAfterProviderFailure() {
+    void laConciliacionContinuaConOtrosNegociosCuandoUnProveedorFallaYRotaLosIntentos() {
         RenovacionId segundo = RenovacionId.nuevo();
-        RenovacionPremium primera = givenRenovacion(RENOVACION_ID);
-        RenovacionPremium otra = givenRenovacion(segundo);
+        RenovacionPremium primera = dadoRenovacion(RENOVACION_ID);
+        RenovacionPremium otra = dadoRenovacion(segundo);
         when(renovacionPremiumRepository.listarParaSincronizar()).thenReturn(List.of(RENOVACION_ID, segundo));
         doThrow(new PasarelaPagoException()).when(renovacionPremiumService).sincronizar(RENOVACION_ID, AHORA);
         doNothing().when(renovacionPremiumService).sincronizar(segundo, AHORA);
@@ -70,7 +70,7 @@ class ConciliacionPagosTest {
 
     @Test
     @DisplayName("Una notificación de un contrato desconocido no afecta al negocio de otra cuenta")
-    void executeShouldIgnoreUnknownNotification() {
+    void unaNotificacionDeUnContratoDesconocidoNoAfectaAlNegocioDeOtraCuenta() {
         when(pasarelaSuscripcionesPort.identificarContrato("payment", "123")).thenReturn("otro");
         when(renovacionPremiumRepository.findByProveedorId("otro")).thenReturn(Optional.empty());
         RecibirNotificacionPago useCase = new RecibirNotificacionPago(pasarelaSuscripcionesPort,
@@ -82,8 +82,8 @@ class ConciliacionPagosTest {
         verify(renovacionPremiumService, never()).sincronizar(any(), any());
     }
 
-    // --- arrange ---
-    private RenovacionPremium givenRenovacion(RenovacionId id) {
+    // --- dado ---
+    private RenovacionPremium dadoRenovacion(RenovacionId id) {
         RenovacionPremium renovacion = renovacion();
         renovacion.setId(id);
         renovacion.setSincronizadoEn(null);

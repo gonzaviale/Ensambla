@@ -40,8 +40,8 @@ class VencerPruebasTest {
 
     @Test
     @DisplayName("El vencimiento devuelve el gratuito con el reloj del servidor sin borrar el historial de prueba")
-    void executeShouldRestoreFreePlanAtExactEnd() {
-        Suscripcion suscripcion = givenPruebaQueTermina(INSTANTE);
+    void elVencimientoDevuelveElGratuitoConElRelojDelServidorSinBorrarElHistorialDePrueba() {
+        Suscripcion suscripcion = dadoPruebaQueTermina(INSTANTE);
         Plan gratuito = plan();
         when(planRepository.findByCodigo(CodigoPlan.GRATUITO)).thenReturn(Optional.of(gratuito));
 
@@ -59,8 +59,8 @@ class VencerPruebasTest {
 
     @Test
     @DisplayName("El proceso no vence una prueba antes de su fecha de fin")
-    void executeShouldKeepUnexpiredTrial() {
-        givenPruebaQueTermina(INSTANTE.plusDays(1));
+    void elProcesoNoVenceUnaPruebaAntesDeSuFechaDeFin() {
+        dadoPruebaQueTermina(INSTANTE.plusDays(1));
 
         vencerA(INSTANTE);
 
@@ -70,8 +70,8 @@ class VencerPruebasTest {
 
     @Test
     @DisplayName("Un pago activado después de listar candidatos no es degradado por el job")
-    void executeShouldPreserveSubscriptionActivatedAfterSelection() {
-        givenCandidato();
+    void unPagoActivadoDespuesDeListarCandidatosNoEsDegradadoPorElJob() {
+        dadoCandidato();
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
 
         vencerA(INSTANTE.plusDays(30));
@@ -82,7 +82,7 @@ class VencerPruebasTest {
 
     @Test
     @DisplayName("Un lote sin pruebas vencidas no modifica suscripciones")
-    void executeShouldSkipEmptyBatch() {
+    void unLoteSinPruebasVencidasNoModificaSuscripciones() {
         when(pruebaPremiumRepository.findNegociosVencidos(INSTANTE)).thenReturn(List.of());
 
         vencerA(INSTANTE);
@@ -90,9 +90,9 @@ class VencerPruebasTest {
         verifyNoInteractions(suscripcionRepository, usoPlanRepository);
     }
 
-    // --- arrange ---
-    private Suscripcion givenPruebaQueTermina(OffsetDateTime fin) {
-        givenCandidato();
+    // --- dado ---
+    private Suscripcion dadoPruebaQueTermina(OffsetDateTime fin) {
+        dadoCandidato();
         Suscripcion suscripcion = suscripcion();
         suscripcion.setEstado(EstadoSuscripcion.PRUEBA);
         suscripcion.setFinEn(fin);
@@ -100,11 +100,11 @@ class VencerPruebasTest {
         return suscripcion;
     }
 
-    private void givenCandidato() {
+    private void dadoCandidato() {
         when(pruebaPremiumRepository.findNegociosVencidos(any())).thenReturn(List.of(NEGOCIO_ID));
     }
 
-    // --- act ---
+    // --- cuando ---
     private void vencerA(OffsetDateTime ahora) {
         new VencerPruebas(planRepository, pruebaPremiumRepository,
                 suscripcionRepository, usoPlanRepository, new TransaccionDirecta(),

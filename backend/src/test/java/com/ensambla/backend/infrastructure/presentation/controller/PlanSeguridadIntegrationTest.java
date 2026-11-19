@@ -109,12 +109,12 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 bloqueId.valor(), negocioId.valor(), proyectoId.valor());
         jdbcTemplate.update("INSERT INTO registro (id, negocio_id, bloque_id, valores) VALUES (?, ?, ?, '{}')",
                 registroId.valor(), negocioId.valor(), bloqueId.valor());
-        sesion = givenSesion();
+        sesion = dadoSesion();
     }
 
     @Test
     @DisplayName("El receptor real de contenidos admite seis claves y rechaza la séptima sin reiniciar el cupo")
-    void contenidosShouldEnforceMonthlyQuotaOverHttp() throws Exception {
+    void elReceptorRealDeContenidosAdmiteSeisClavesYRechazaLaSeptimaSinReiniciarElCupo() throws Exception {
         mockMvc.perform(post("/api/planes/contenidos").session(sesion).header("X-CSRF-TOKEN", csrfToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"tipo\":\"AVISOS\",\"claves\":[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\"]}"))
@@ -132,7 +132,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("El desbloqueo exige autenticación y CSRF")
-    void contenidosShouldRequireAuthenticationAndCsrf() throws Exception {
+    void elDesbloqueoExigeAutenticacionYCSRF() throws Exception {
         mockMvc.perform(post("/api/planes/contenidos").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"tipo\":\"AVISOS\",\"claves\":[]}"))
                 .andExpect(status().isUnauthorized());
@@ -144,7 +144,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @ParameterizedTest
     @ValueSource(strings = {"receta", "reporte", "excel"})
     @DisplayName("El gratuito recibe 403 y un código claro al pedir una función premium")
-    void obtenerShouldRejectPremiumFeatureOnFreePlan(String funcion) throws Exception {
+    void elGratuitoRecibe403YUnCodigoClaroAlPedirUnaFuncionPremium(String funcion) throws Exception {
         mockMvc.perform(get(ruta(funcion)).session(sesion))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.codigo").value("FUNCION_PREMIUM"))
@@ -156,16 +156,16 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @ParameterizedTest
     @ValueSource(strings = {"receta", "reporte", "excel"})
     @DisplayName("Un premium activo puede consultar las funciones disponibles")
-    void obtenerShouldAllowPremiumFeatureOnActivePlan(String funcion) throws Exception {
-        givenPremium(ahora.plusDays(30));
+    void unPremiumActivoPuedeConsultarLasFuncionesDisponibles(String funcion) throws Exception {
+        dadoPremium(ahora.plusDays(30));
 
         mockMvc.perform(get(ruta(funcion)).session(sesion)).andExpect(status().isOk());
     }
 
     @Test
     @DisplayName("Una suscripción vencida pierde el acceso premium sin depender de un job")
-    void obtenerShouldRejectPremiumAtExpiry() throws Exception {
-        givenPremium(ahora.minusSeconds(1));
+    void unaSuscripcionVencidaPierdeElAccesoPremiumSinDependerDeUnJob() throws Exception {
+        dadoPremium(ahora.minusSeconds(1));
 
         mockMvc.perform(get(ruta("receta")).session(sesion))
                 .andExpect(status().isForbidden())
@@ -174,14 +174,14 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Una receta ajena sigue respondiendo 404 antes de comprobar el plan")
-    void obtenerShouldPreserveNotFoundForForeignResources() throws Exception {
+    void unaRecetaAjenaSigueRespondiendo404AntesDeComprobarElPlan() throws Exception {
         mockMvc.perform(get("/api/registros/{id}/receta", UUID.randomUUID()).session(sesion))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     @DisplayName("La segunda alta de sistema se rechaza y la consulta básica conserva el existente")
-    void crearProyectoShouldRejectQuotaButPreserveRead() throws Exception {
+    void laSegundaAltaDeSistemaSeRechazaYLaConsultaBasicaConservaElExistente() throws Exception {
         mockMvc.perform(post("/api/proyectos").session(sesion).header("X-CSRF-TOKEN", csrfToken)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"nombre\":\"Segundo\"}"))
                 .andExpect(status().isForbidden())
@@ -193,7 +193,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("El límite de filas bloquea altas pero permite editar las existentes")
-    void crearRegistroShouldRejectQuotaButPreserveEditing() throws Exception {
+    void elLimiteDeFilasBloqueaAltasPeroPermiteEditarLasExistentes() throws Exception {
         jdbcTemplate.update("""
                 INSERT INTO registro (negocio_id, bloque_id, valores)
                 SELECT ?, ?, '{}'::jsonb FROM generate_series(1, 999)
@@ -214,8 +214,8 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("La lectura inmediata no puede eludir la cuota mensual ni elegir otro negocio")
-    void leerImagenShouldRejectMonthlyQuotaFromSession() throws Exception {
-        givenMonthlyQuotaFull();
+    void laLecturaInmediataNoPuedeEludirLaCuotaMensualNiElegirOtroNegocio() throws Exception {
+        dadoMonthlyQuotaFull();
         MockMultipartFile imagen = new MockMultipartFile("imagen", "foto.jpg", "image/jpeg", ImagenTestData.jpeg());
         MockMultipartFile pedido = new MockMultipartFile(
                 "pedido", "", "application/json", PEDIDO.getBytes(StandardCharsets.UTF_8));
@@ -231,8 +231,8 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("La subida rechaza una cuota mensual agotada antes de guardar archivos y lotes")
-    void subirLoteShouldRejectMonthlyQuotaBeforeSavingFiles() throws Exception {
-        givenMonthlyQuotaFull();
+    void laSubidaRechazaUnaCuotaMensualAgotadaAntesDeGuardarArchivosYLotes() throws Exception {
+        dadoMonthlyQuotaFull();
         MockMultipartFile foto = new MockMultipartFile("fotos", "foto.jpg", "image/jpeg", JPEG);
 
         mockMvc.perform(multipart("/api/lotes").file(foto).session(sesion)
@@ -245,8 +245,8 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Un reintento de IA también respeta la cuota mensual agotada")
-    void reintentarShouldRejectMonthlyQuota() throws Exception {
-        givenMonthlyQuotaFull();
+    void unReintentoDeIATambienRespetaLaCuotaMensualAgotada() throws Exception {
+        dadoMonthlyQuotaFull();
         LoteId loteId = LoteId.nuevo();
         jdbcTemplate.update("""
                 INSERT INTO lote_subida (id, negocio_id, estado, motivo_error) VALUES (?, ?, 'ERROR', 'Fallo')
@@ -259,7 +259,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("La lectura inmediata exige sesión antes de recibir el negocio")
-    void leerImagenShouldRequireSession() throws Exception {
+    void laLecturaInmediataExigeSesionAntesDeRecibirElNegocio() throws Exception {
         mockMvc.perform(multipart("/api/importaciones/lectura")
                         .file(new MockMultipartFile("imagen", new byte[] {1})))
                 .andExpect(status().isUnauthorized());
@@ -267,14 +267,14 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("El inicio de prueba exige una sesión autenticada")
-    void iniciarPruebaShouldRequireSession() throws Exception {
+    void elInicioDePruebaExigeUnaSesionAutenticada() throws Exception {
         mockMvc.perform(post("/api/planes/prueba"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     @DisplayName("El inicio de prueba exige el token CSRF de la sesión")
-    void iniciarPruebaShouldRequireCsrfToken() throws Exception {
+    void elInicioDePruebaExigeElTokenCSRFDeLaSesion() throws Exception {
         mockMvc.perform(post("/api/planes/prueba").session(sesion))
                 .andExpect(status().isForbidden());
 
@@ -284,7 +284,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("La prueba ignora plan, fechas y negocio enviados por el cliente")
-    void iniciarPruebaShouldUseSessionBusinessAndServerPolicy() throws Exception {
+    void laPruebaIgnoraPlanFechasYNegocioEnviadosPorElCliente() throws Exception {
         UUID ajenoId = UUID.randomUUID();
 
         mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken)
@@ -305,7 +305,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Repetir el inicio devuelve una restricción clara sin renovar la prueba")
-    void iniciarPruebaShouldRejectRepeatedRequest() throws Exception {
+    void repetirElInicioDevuelveUnaRestriccionClaraSinRenovarLaPrueba() throws Exception {
         mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
                 .andExpect(status().isOk());
 
@@ -316,7 +316,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("El consumo agotado de prueba devuelve su código propio en la ruta de IA")
-    void leerImagenShouldRejectExhaustedTrialQuota() throws Exception {
+    void elConsumoAgotadoDePruebaDevuelveSuCodigoPropioEnLaRutaDeIA() throws Exception {
         mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
                 .andExpect(status().isOk());
         jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 10 WHERE negocio_id = ?", negocioId.valor());
@@ -332,13 +332,13 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Consultar planes exige sesión")
-    void consultarPlanesShouldRequireSession() throws Exception {
+    void consultarPlanesExigeSesion() throws Exception {
         mockMvc.perform(get("/api/planes")).andExpect(status().isUnauthorized());
     }
 
     @Test
     @DisplayName("El gratuito consulta catálogo y uso del negocio sin activar la prueba")
-    void consultarPlanesShouldReturnFreePlanAndUsageFromSession() throws Exception {
+    void elGratuitoConsultaCatalogoYUsoDelNegocioSinActivarLaPrueba() throws Exception {
         mockMvc.perform(get("/api/planes").session(sesion).param("negocioId", UUID.randomUUID().toString()))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Cache-Control", "no-store"))
@@ -361,7 +361,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Consultar después de activar muestra diez páginas totales y las fechas persistidas")
-    void consultarPlanesShouldReflectTrialActivation() throws Exception {
+    void consultarDespuesDeActivarMuestraDiezPaginasTotalesYLasFechasPersistidas() throws Exception {
         mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
                 .andExpect(status().isOk());
         jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 8 WHERE negocio_id = ?", negocioId.valor());
@@ -381,7 +381,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Una prueba agotada mantiene premium y no ofrece otra activación")
-    void consultarPlanesShouldKeepPremiumWhenTrialPagesAreExhausted() throws Exception {
+    void unaPruebaAgotadaMantienePremiumYNoOfreceOtraActivacion() throws Exception {
         mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
                 .andExpect(status().isOk());
         jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 10 WHERE negocio_id = ?", negocioId.valor());
@@ -396,7 +396,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Una prueba vencida aparece gratuita sin depender del worker y conserva su historial")
-    void consultarPlanesShouldFallBackBeforeExpirationWorkerRuns() throws Exception {
+    void unaPruebaVencidaApareceGratuitaSinDependerDelWorkerYConservaSuHistorial() throws Exception {
         mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
                 .andExpect(status().isOk());
         jdbcTemplate.update("UPDATE suscripcion SET inicio_en = ?, fin_en = ? WHERE negocio_id = ?",
@@ -416,8 +416,8 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Premium vigente mantiene cien páginas mensuales y no ofrece prueba")
-    void consultarPlanesShouldReturnPaidPremiumWithoutOfferingTrial() throws Exception {
-        givenPremium(ahora.plusDays(30));
+    void premiumVigenteMantieneCienPaginasMensualesYNoOfrecePrueba() throws Exception {
+        dadoPremium(ahora.plusDays(30));
 
         mockMvc.perform(get("/api/planes").session(sesion))
                 .andExpect(status().isOk())
@@ -428,8 +428,8 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(jsonPath("$.uso.limitePaginasIa").value(100));
     }
 
-    // --- arrange ---
-    private void givenPremium(OffsetDateTime fin) {
+    // --- dado ---
+    private void dadoPremium(OffsetDateTime fin) {
         jdbcTemplate.update("""
                 UPDATE suscripcion SET plan_id = (SELECT id FROM plan WHERE codigo = 'PREMIUM'),
                     inicio_en = ?, fin_en = ? WHERE negocio_id = ?
@@ -437,13 +437,13 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
         entityManager.clear();
     }
 
-    private void givenMonthlyQuotaFull() {
+    private void dadoMonthlyQuotaFull() {
         jdbcTemplate.update("""
                 INSERT INTO consumo_ia_diario (negocio_id, fecha, paginas, reservadas) VALUES (?, ?, 10, 0)
                 """, negocioId.valor(), ZonaNegocio.dia(ahora));
     }
 
-    private MockHttpSession givenSesion() throws Exception {
+    private MockHttpSession dadoSesion() throws Exception {
         MockHttpSession session = new MockHttpSession();
         var securityContext = SecurityContextHolder.createEmptyContext();
         securityContext.setAuthentication(

@@ -66,7 +66,7 @@ class WhatsappControllersTest {
 
     @Test
     @DisplayName("POST codigo devuelve el código, cuándo vence y el número del bot")
-    void generarCodigoShouldReturnCode() throws Exception {
+    void pOSTCodigoDevuelveElCodigoCuandoVenceYElNumeroDelBot() throws Exception {
         when(generarCodigo.execute(new GenerarCodigoVinculacionRequest(USUARIO_ID)))
                 .thenReturn(new GenerarCodigoVinculacionResponse("ABC234", AHORA, "5491100000000"));
 
@@ -78,7 +78,7 @@ class WhatsappControllersTest {
 
     @Test
     @DisplayName("GET devuelve el número vinculado")
-    void consultarShouldReturnLink() throws Exception {
+    void gETDevuelveElNumeroVinculado() throws Exception {
         when(consultar.execute(new ConsultarVinculacionWhatsappRequest(USUARIO_ID)))
                 .thenReturn(new ConsultarVinculacionWhatsappResponse("5491122334455", AHORA, "5491100000000"));
 
@@ -89,7 +89,7 @@ class WhatsappControllersTest {
 
     @Test
     @DisplayName("GET responde 404 si no hay número vinculado")
-    void consultarShouldReturnNotFoundWithoutLink() throws Exception {
+    void gETResponde404SiNoHayNumeroVinculado() throws Exception {
         when(consultar.execute(new ConsultarVinculacionWhatsappRequest(USUARIO_ID))).thenThrow(new ResourceNotFoundException("No hay un número vinculado"));
 
         vinculacion().perform(get("/api/whatsapp/vinculacion").principal(principal))
@@ -98,7 +98,7 @@ class WhatsappControllersTest {
 
     @Test
     @DisplayName("DELETE desvincula el número y responde 204")
-    void desvincularShouldReturnNoContent() throws Exception {
+    void dELETEDesvinculaElNumeroYResponde204() throws Exception {
         vinculacion().perform(delete("/api/whatsapp/vinculacion").principal(principal))
                 .andExpect(status().isNoContent());
 
@@ -107,7 +107,7 @@ class WhatsappControllersTest {
 
     @Test
     @DisplayName("El webhook con el token correcto procesa el mensaje y responde 200")
-    void webhookShouldProcessMessageWithValidToken() throws Exception {
+    void elWebhookConElTokenCorrectoProcesaElMensajeYResponde200() throws Exception {
         webhook(TOKEN).perform(post("/api/whatsapp/webhook").header(WhatsappWebhookController.HEADER_TOKEN, TOKEN)
                         .contentType(MediaType.APPLICATION_JSON).content(MENSAJE))
                 .andExpect(status().isOk());
@@ -117,7 +117,7 @@ class WhatsappControllersTest {
 
     @Test
     @DisplayName("POST verificacion manda el código por WhatsApp y devuelve cuándo vence y cuándo se puede reenviar")
-    void solicitarVerificacionShouldReturnExpiry() throws Exception {
+    void pOSTVerificacionMandaElCodigoPorWhatsAppYDevuelveCuandoVenceYCuandoSePuedeReenviar() throws Exception {
         when(solicitar.execute(new SolicitarVerificacionWhatsappRequest(USUARIO_ID, "+54 9 11 2233 4455")))
                 .thenReturn(new SolicitarVerificacionWhatsappResponse("5491122334455", AHORA.plusMinutes(10),
                         AHORA.plusMinutes(1)));
@@ -131,7 +131,7 @@ class WhatsappControllersTest {
 
     @Test
     @DisplayName("POST verificacion rechaza con 400 un teléfono vacío o con letras")
-    void solicitarVerificacionShouldRejectInvalidPhone() throws Exception {
+    void pOSTVerificacionRechazaCon400UnTelefonoVacioOConLetras() throws Exception {
         vinculacion().perform(post("/api/whatsapp/verificacion").principal(principal)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"telefono\":\"abc\"}"))
                 .andExpect(status().isBadRequest());
@@ -144,7 +144,7 @@ class WhatsappControllersTest {
 
     @Test
     @DisplayName("POST verificacion/confirmar vincula el número y devuelve el número del bot")
-    void confirmarVerificacionShouldReturnLink() throws Exception {
+    void pOSTVerificacionConfirmarVinculaElNumeroYDevuelveElNumeroDelBot() throws Exception {
         when(confirmar.execute(new ConfirmarVerificacionWhatsappRequest(USUARIO_ID, "123456")))
                 .thenReturn(new ConfirmarVerificacionWhatsappResponse("5491122334455", AHORA, "5491100000000"));
 
@@ -157,7 +157,7 @@ class WhatsappControllersTest {
 
     @Test
     @DisplayName("POST verificacion/confirmar responde 400 si el código no tiene 6 dígitos o es incorrecto")
-    void confirmarVerificacionShouldRejectWrongCode() throws Exception {
+    void pOSTVerificacionConfirmarResponde400SiElCodigoNoTiene6DigitosOEsIncorrecto() throws Exception {
         vinculacion().perform(post("/api/whatsapp/verificacion/confirmar").principal(principal)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"codigo\":\"12\"}"))
                 .andExpect(status().isBadRequest());
@@ -171,7 +171,7 @@ class WhatsappControllersTest {
 
     @Test
     @DisplayName("El webhook acepta el token como parámetro, porque Evolution no manda headers en el webhook global")
-    void webhookShouldAcceptTokenAsQueryParameter() throws Exception {
+    void elWebhookAceptaElTokenComoParametroPorqueEvolutionNoMandaHeadersEnElWebhookGlobal() throws Exception {
         webhook(TOKEN).perform(post("/api/whatsapp/webhook").param("token", TOKEN)
                         .contentType(MediaType.APPLICATION_JSON).content(MENSAJE))
                 .andExpect(status().isOk());
@@ -184,7 +184,7 @@ class WhatsappControllersTest {
 
     @Test
     @DisplayName("El webhook responde 200 y no procesa nada si el evento no es un mensaje")
-    void webhookShouldIgnoreOtherEventsWithOk() throws Exception {
+    void elWebhookResponde200YNoProcesaNadaSiElEventoNoEsUnMensaje() throws Exception {
         webhook(TOKEN).perform(post("/api/whatsapp/webhook").header(WhatsappWebhookController.HEADER_TOKEN, TOKEN)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"event\":\"connection.update\"}"))
                 .andExpect(status().isOk());
@@ -194,7 +194,7 @@ class WhatsappControllersTest {
 
     @Test
     @DisplayName("El webhook rechaza con 401 un token incorrecto o ausente")
-    void webhookShouldRejectWrongOrMissingToken() throws Exception {
+    void elWebhookRechazaCon401UnTokenIncorrectoOAusente() throws Exception {
         webhook(TOKEN).perform(post("/api/whatsapp/webhook").header(WhatsappWebhookController.HEADER_TOKEN, "otro")
                         .contentType(MediaType.APPLICATION_JSON).content(MENSAJE))
                 .andExpect(status().isUnauthorized());
@@ -207,7 +207,7 @@ class WhatsappControllersTest {
 
     @Test
     @DisplayName("Sin secreto configurado el webhook rechaza todo, incluso un token vacío")
-    void webhookShouldRejectEverythingWithoutConfiguredSecret() throws Exception {
+    void sinSecretoConfiguradoElWebhookRechazaTodoInclusoUnTokenVacio() throws Exception {
         webhook("").perform(post("/api/whatsapp/webhook").header(WhatsappWebhookController.HEADER_TOKEN, "")
                         .contentType(MediaType.APPLICATION_JSON).content(MENSAJE))
                 .andExpect(status().isUnauthorized());

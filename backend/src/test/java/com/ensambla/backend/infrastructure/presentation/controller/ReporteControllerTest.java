@@ -64,7 +64,7 @@ class ReporteControllerTest {
 
     @Test
     @DisplayName("GET devuelve las filas, los totales y pasa los filtros con el usuario de la sesión")
-    void generarShouldReturnRowsAndPassFilters() throws Exception {
+    void gETDevuelveLasFilasLosTotalesYPasaLosFiltrosConElUsuarioDeLaSesion() throws Exception {
         when(generarReporte.execute(any(GenerarReporteRequest.class))).thenReturn(new GenerarReporteResponse(
                 List.of(new RegistroItem(REGISTRO_ID, BLOQUE_ID, Map.of("k", "v"), null, AHORA, AHORA)),
                 new TotalesItem(7, Map.of(CAMPO_ID, new BigDecimal("12.5"))),
@@ -89,7 +89,7 @@ class ReporteControllerTest {
 
     @Test
     @DisplayName("GET sin filtros pasa todo vacío")
-    void generarShouldPassNullFiltersWhenThereAreNone() throws Exception {
+    void gETSinFiltrosPasaTodoVacio() throws Exception {
         when(generarReporte.execute(any(GenerarReporteRequest.class))).thenReturn(
                 new GenerarReporteResponse(List.of(), new TotalesItem(0, Map.of()), false, 50));
 
@@ -102,7 +102,7 @@ class ReporteControllerTest {
 
     @Test
     @DisplayName("GET con un filtro inválido responde 400 y una fecha mal escrita también")
-    void generarShouldReturn400ForInvalidFilters() throws Exception {
+    void gETConUnFiltroInvalidoResponde400YUnaFechaMalEscritaTambien() throws Exception {
         when(generarReporte.execute(any(GenerarReporteRequest.class)))
                 .thenThrow(new BusinessRuleException("No se puede filtrar por ese campo"));
 
@@ -114,7 +114,7 @@ class ReporteControllerTest {
 
     @Test
     @DisplayName("GET de la descarga devuelve el XLSX con su nombre y pasa los mismos filtros")
-    void descargarShouldReturnTheSpreadsheetAsAttachment() throws Exception {
+    void gETDeLaDescargaDevuelveElXLSXConSuNombreYPasaLosMismosFiltros() throws Exception {
         byte[] contenido = {1, 2, 3};
         when(exportarReporte.execute(any(GenerarReporteRequest.class)))
                 .thenReturn(new ExportarReporteResponse(contenido, "reporte-pedidos-20261013.xlsx"));

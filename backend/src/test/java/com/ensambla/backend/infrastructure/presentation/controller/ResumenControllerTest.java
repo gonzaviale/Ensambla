@@ -68,7 +68,7 @@ class ResumenControllerTest {
 
     @Test
     @DisplayName("GET devuelve el PDF como archivo adjunto y pasa el período con el usuario de la sesión")
-    void descargarShouldReturnThePdfAsAttachment() throws Exception {
+    void gETDevuelveElPDFComoArchivoAdjuntoYPasaElPeriodoConElUsuarioDeLaSesion() throws Exception {
         byte[] contenido = {'%', 'P', 'D', 'F'};
         when(exportarResumenNegocio.execute(any(ExportarResumenRequest.class)))
                 .thenReturn(new ExportarResumenResponse(contenido, "resumen-almacen-20261019.pdf"));
@@ -85,7 +85,7 @@ class ResumenControllerTest {
 
     @Test
     @DisplayName("GET sin fechas las pasa vacías, para que el caso de uso use los últimos 30 días")
-    void descargarShouldPassNullDatesWhenThereAreNone() throws Exception {
+    void gETSinFechasLasPasaVaciasParaQueElCasoDeUsoUseLosUltimos30Dias() throws Exception {
         when(exportarResumenNegocio.execute(any(ExportarResumenRequest.class)))
                 .thenReturn(new ExportarResumenResponse(new byte[0], "resumen-20261019.pdf"));
 
@@ -96,7 +96,7 @@ class ResumenControllerTest {
 
     @Test
     @DisplayName("GET con un período inválido o una fecha mal escrita responde 400")
-    void descargarShouldReturn400ForInvalidPeriod() throws Exception {
+    void gETConUnPeriodoInvalidoOUnaFechaMalEscritaResponde400() throws Exception {
         when(exportarResumenNegocio.execute(any(ExportarResumenRequest.class)))
                 .thenThrow(new BusinessRuleException("La fecha desde no puede ser posterior a la fecha hasta"));
 
@@ -108,7 +108,7 @@ class ResumenControllerTest {
 
     @Test
     @DisplayName("GET inicio devuelve las métricas del sistema y pasa el usuario de la sesión")
-    void inicioShouldReturnTheHomeMetrics() throws Exception {
+    void gETInicioDevuelveLasMetricasDelSistemaYPasaElUsuarioDeLaSesion() throws Exception {
         when(obtenerResumenInicio.execute(any(ObtenerResumenInicioRequest.class))).thenReturn(respuestaDeInicio());
 
         mockMvc.perform(get("/api/proyectos/{id}/resumen/inicio", PROYECTO_ID).principal(sesion))
@@ -124,7 +124,7 @@ class ResumenControllerTest {
 
     @Test
     @DisplayName("GET métricas sin período pide la semana y devuelve los números del sistema")
-    void metricasShouldUseTheWeekByDefault() throws Exception {
+    void gETMetricasSinPeriodoPideLaSemanaYDevuelveLosNumerosDelSistema() throws Exception {
         when(obtenerMetricas.execute(any(ObtenerMetricasRequest.class))).thenReturn(respuestaDeMetricas());
 
         mockMvc.perform(get("/api/proyectos/{id}/resumen/metricas", PROYECTO_ID).principal(sesion))
@@ -136,7 +136,7 @@ class ResumenControllerTest {
 
     @Test
     @DisplayName("GET métricas pasa el período que se pidió")
-    void metricasShouldPassTheRequestedPeriod() throws Exception {
+    void gETMetricasPasaElPeriodoQueSePidio() throws Exception {
         when(obtenerMetricas.execute(any(ObtenerMetricasRequest.class))).thenReturn(respuestaDeMetricas());
 
         mockMvc.perform(get("/api/proyectos/{id}/resumen/metricas", PROYECTO_ID).param("periodo", "MES")
@@ -147,7 +147,7 @@ class ResumenControllerTest {
 
     @Test
     @DisplayName("GET métricas con un período que no existe responde 400 sin llegar al caso de uso")
-    void metricasShouldReturn400ForUnknownPeriod() throws Exception {
+    void gETMetricasConUnPeriodoQueNoExisteResponde400SinLlegarAlCasoDeUso() throws Exception {
         mockMvc.perform(get("/api/proyectos/{id}/resumen/metricas", PROYECTO_ID).param("periodo", "ANIO")
                         .principal(sesion))
                 .andExpect(status().isBadRequest());
@@ -156,7 +156,7 @@ class ResumenControllerTest {
 
     @Test
     @DisplayName("GET aviso económico devuelve el aviso de la semana y pasa el usuario de la sesión")
-    void avisoEconomicoShouldReturnTheWeeklyNotice() throws Exception {
+    void gETAvisoEconomicoDevuelveElAvisoDeLaSemanaYPasaElUsuarioDeLaSesion() throws Exception {
         when(obtenerAvisoEconomico.execute(any(ObtenerAvisoEconomicoRequest.class))).thenReturn(respuestaDeAviso());
 
         mockMvc.perform(get("/api/proyectos/{id}/resumen/aviso-economico", PROYECTO_ID).principal(sesion))
@@ -171,7 +171,7 @@ class ResumenControllerTest {
 
     @Test
     @DisplayName("GET aviso económico devuelve el aviso vacío cuando no hay con qué comparar")
-    void avisoEconomicoShouldReturnNullWhenThereIsNothingToCompare() throws Exception {
+    void gETAvisoEconomicoDevuelveElAvisoVacioCuandoNoHayConQueComparar() throws Exception {
         when(obtenerAvisoEconomico.execute(any(ObtenerAvisoEconomicoRequest.class)))
                 .thenReturn(new ObtenerAvisoEconomicoResponse(null));
 
@@ -182,7 +182,7 @@ class ResumenControllerTest {
 
     @Test
     @DisplayName("GET aviso económico con un id inválido responde 400 sin llegar al caso de uso")
-    void avisoEconomicoShouldReturn400WhenIdIsNotUuid() throws Exception {
+    void gETAvisoEconomicoConUnIdInvalidoResponde400SinLlegarAlCasoDeUso() throws Exception {
         mockMvc.perform(get("/api/proyectos/{id}/resumen/aviso-economico", "id-invalido").principal(sesion))
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(obtenerAvisoEconomico);

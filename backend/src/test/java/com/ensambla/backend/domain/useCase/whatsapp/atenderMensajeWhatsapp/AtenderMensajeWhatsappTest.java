@@ -116,7 +116,7 @@ class AtenderMensajeWhatsappTest {
             new CampoConocido(PRODUCTO_ID, "Producto", TipoCampo.TEXTO, List.of()))), "Mi panadería");
 
     @BeforeEach
-    void givenNegocioVinculadoConTablas() {
+    void dadoNegocioVinculadoConTablas() {
         when(vinculoRepository.findByTelefono(TELEFONO)).thenReturn(Optional.of(
                 VinculoWhatsapp.nuevo(USUARIO_ID, NEGOCIO_ID, new TelefonoWhatsapp(TELEFONO), AHORA)));
         when(procesamientoRepository.tablas(NEGOCIO_ID)).thenReturn(List.of(gastos, ventas));
@@ -127,7 +127,7 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Sin mensajes en la cola no hace nada y avisa que no había")
-    void executeShouldReturnFalseWhenQueueIsEmpty() {
+    void sinMensajesEnLaColaNoHaceNadaYAvisaQueNoHabia() {
         when(mensajeRepository.reclamarSiguiente(any(), any())).thenReturn(Optional.empty());
 
         assertThat(atender.execute()).isFalse();
@@ -137,8 +137,8 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Un mensaje reclamado que nunca terminó se marca fallido y la persona recibe el aviso")
-    void executeShouldFailLostMessages() {
-        MensajeWhatsapp perdido = givenTexto("hola");
+    void unMensajeReclamadoQueNuncaTerminoSeMarcaFallidoYLaPersonaRecibeElAviso() {
+        MensajeWhatsapp perdido = dadoTexto("hola");
         when(mensajeRepository.vencidos(any())).thenReturn(List.of(perdido));
         when(mensajeRepository.reclamarSiguiente(any(), any())).thenReturn(Optional.empty());
 
@@ -150,9 +150,9 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Si el número se desvinculó mientras esperaba en la cola, recibe las instrucciones")
-    void executeShouldAnswerUnlinkedNumber() {
+    void siElNumeroSeDesvinculoMientrasEsperabaEnLaColaRecibeLasInstrucciones() {
         when(vinculoRepository.findByTelefono(TELEFONO)).thenReturn(Optional.empty());
-        MensajeWhatsapp mensaje = givenReclamado(givenTexto("gasté 5000"));
+        MensajeWhatsapp mensaje = dadoReclamado(dadoTexto("gasté 5000"));
 
         assertThat(atender.execute()).isTrue();
 
@@ -163,8 +163,8 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Una nota de voz recibe la respuesta de que por ahora sólo se entienden textos y fotos")
-    void executeShouldAnswerVoiceNote() {
-        givenReclamado(MensajeWhatsapp.builder().negocioId(NEGOCIO_ID).telefono(TELEFONO).idExterno("A1")
+    void unaNotaDeVozRecibeLaRespuestaDeQuePorAhoraSoloSeEntiendenTextosYFotos() {
+        dadoReclamado(MensajeWhatsapp.builder().negocioId(NEGOCIO_ID).telefono(TELEFONO).idExterno("A1")
                 .tipo(TipoMensajeWhatsapp.AUDIO).mimeMedia("audio/ogg").recibidoEn(AHORA).build());
 
         atender.execute();
@@ -176,40 +176,40 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Un texto claro arma una propuesta pendiente con el resumen y descuenta una consulta de Sami")
-    void executeShouldProposeRowsFromClearText() {
-        MensajeWhatsapp mensaje = givenReclamado(givenTexto("gasté 5000 en harina"));
-        givenInterpretacion(GASTOS_ID, 0.9);
+    void unTextoClaroArmaUnaPropuestaPendienteConElResumenYDescuentaUnaConsultaDeSami() {
+        MensajeWhatsapp mensaje = dadoReclamado(dadoTexto("gasté 5000 en harina"));
+        dadoInterpretacion(GASTOS_ID, 0.9);
 
         atender.execute();
 
-        PropuestaWhatsapp propuesta = thenPropuestaGuardada();
+        PropuestaWhatsapp propuesta = entoncesPropuestaGuardada();
         assertThat(propuesta.getEstado()).isEqualTo(EstadoPropuestaWhatsapp.PENDIENTE);
         assertThat(propuesta.getBloqueId()).isEqualTo(GASTOS_ID);
         assertThat(propuesta.getFilas().getFirst().valores())
                 .containsEntry(MONTO_ID.toString(), "5000").containsEntry(CONCEPTO_ID.toString(), "harina");
-        assertThat(thenRespuesta()).contains("Para *Gastos* (Mi panadería) entendí:", "Monto: 5000", "SÍ");
+        assertThat(entoncesRespuesta()).contains("Para *Gastos* (Mi panadería) entendí:", "Monto: 5000", "SÍ");
         assertThat(mensaje.getEstado()).isEqualTo(EstadoMensajeWhatsapp.ATENDIDO);
         verify(consumoSamiRepository).registrar(eq(NEGOCIO_ID), any(), any(ConsumoIaSami.class), any());
     }
 
     @Test
     @DisplayName("Si la IA no está segura de la tabla, ofrece la lista numerada con la sugerida primero")
-    void executeShouldAskTableWhenConfidenceIsLow() {
-        givenReclamado(givenTexto("5000 de harina"));
-        givenInterpretacion(GASTOS_ID, 0.3);
+    void siLaIANoEstaSeguraDeLaTablaOfreceLaListaNumeradaConLaSugeridaPrimero() {
+        dadoReclamado(dadoTexto("5000 de harina"));
+        dadoInterpretacion(GASTOS_ID, 0.3);
 
         atender.execute();
 
-        PropuestaWhatsapp propuesta = thenPropuestaGuardada();
+        PropuestaWhatsapp propuesta = entoncesPropuestaGuardada();
         assertThat(propuesta.getEstado()).isEqualTo(EstadoPropuestaWhatsapp.ELIGIENDO_TABLA);
         assertThat(propuesta.getOpciones()).containsExactly(GASTOS_ID, VENTAS_ID);
-        assertThat(thenRespuesta()).contains("Respondé con el número", "1) Mi panadería › Gastos");
+        assertThat(entoncesRespuesta()).contains("Respondé con el número", "1) Mi panadería › Gastos");
     }
 
     @Test
     @DisplayName("Si ninguna tabla corresponde pide aclaración y no guarda ninguna propuesta")
-    void executeShouldAskForClarificationWhenNoTableFits() {
-        givenReclamado(givenTexto("hola"));
+    void siNingunaTablaCorrespondePideAclaracionYNoGuardaNingunaPropuesta() {
+        dadoReclamado(dadoTexto("hola"));
         when(interpreteIa.interpretar(any())).thenReturn(InterpretacionRegistros.sinResultado(consumo()));
 
         atender.execute();
@@ -221,8 +221,8 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Con la IA no habilitada para el dueño responde el motivo y no llama a la IA")
-    void executeShouldRejectWhenIaIsNotEnabledForTheOwner() {
-        MensajeWhatsapp mensaje = givenReclamado(givenTexto("gasté 5000 en harina"));
+    void conLaIANoHabilitadaParaElDuenoRespondeElMotivoYNoLlamaALaIA() {
+        MensajeWhatsapp mensaje = dadoReclamado(dadoTexto("gasté 5000 en harina"));
         doThrow(new RestriccionPlanException("IA_NO_HABILITADA", "La IA no está habilitada para tu cuenta."))
                 .when(controlPlanService).exigirIa(NEGOCIO_ID);
 
@@ -235,8 +235,8 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Con el límite diario de Sami agotado responde el motivo y no llama a la IA")
-    void executeShouldRejectWhenSamiLimitIsReached() {
-        MensajeWhatsapp mensaje = givenReclamado(givenTexto("gasté 5000 en harina"));
+    void conElLimiteDiarioDeSamiAgotadoRespondeElMotivoYNoLlamaALaIA() {
+        MensajeWhatsapp mensaje = dadoReclamado(dadoTexto("gasté 5000 en harina"));
         when(consumoSamiRepository.reservar(eq(NEGOCIO_ID), any(), eq(60), any())).thenReturn(false);
 
         atender.execute();
@@ -248,9 +248,9 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Un negocio sin tablas recibe el aviso de que arme su sistema primero")
-    void executeShouldExplainWhenBusinessHasNoTables() {
+    void unNegocioSinTablasRecibeElAvisoDeQueArmeSuSistemaPrimero() {
         when(procesamientoRepository.tablas(NEGOCIO_ID)).thenReturn(List.of());
-        givenReclamado(givenTexto("gasté 5000 en harina"));
+        dadoReclamado(dadoTexto("gasté 5000 en harina"));
 
         atender.execute();
 
@@ -259,8 +259,8 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Un error inesperado deja el mensaje fallido, avisa a la persona y no se reintenta")
-    void executeShouldFailTheMessageOnUnexpectedError() {
-        MensajeWhatsapp mensaje = givenReclamado(givenTexto("gasté 5000 en harina"));
+    void unErrorInesperadoDejaElMensajeFallidoAvisaALaPersonaYNoSeReintenta() {
+        MensajeWhatsapp mensaje = dadoReclamado(dadoTexto("gasté 5000 en harina"));
         when(interpreteIa.interpretar(any())).thenThrow(new IllegalStateException("se cayó el proveedor"));
 
         atender.execute();
@@ -274,12 +274,12 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Responder sí guarda las filas al final de la tabla, marcadas como cargadas por WhatsApp")
-    void executeShouldSaveRowsWhenUserConfirms() {
-        givenReclamado(givenTexto("Sí"));
-        PropuestaWhatsapp propuesta = givenPendiente(List.of(
+    void responderSiGuardaLasFilasAlFinalDeLaTablaMarcadasComoCargadasPorWhatsApp() {
+        dadoReclamado(dadoTexto("Sí"));
+        PropuestaWhatsapp propuesta = dadoPendiente(List.of(
                 new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "harina", MONTO_ID.toString(), "5000"), Set.of()),
                 new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "huevos", MONTO_ID.toString(), "2500"), Set.of())));
-        givenTablaGuardable(3);
+        dadoTablaGuardable(3);
 
         atender.execute();
 
@@ -289,31 +289,31 @@ class AtenderMensajeWhatsappTest {
         assertThat(captor.getValue()).extracting(Registro::getOrigen).containsOnly("WhatsApp");
         assertThat(captor.getValue().getFirst().getValores()).containsEntry(CONCEPTO_ID.toString(), "harina");
         assertThat(propuesta.getEstado()).isEqualTo(EstadoPropuestaWhatsapp.CONFIRMADA);
-        assertThat(thenRespuesta()).contains("guardé 2 filas en *Gastos*");
+        assertThat(entoncesRespuesta()).contains("guardé 2 filas en *Gastos*");
         verify(controlPlanService).validarAltaRegistros(NEGOCIO_ID, 2, AHORA);
     }
 
     @Test
     @DisplayName("Si una fila no cumple las reglas del campo no guarda nada y dice cuál campo está mal")
-    void executeShouldExplainInvalidRows() {
-        givenReclamado(givenTexto("sí"));
-        PropuestaWhatsapp propuesta = givenPendiente(List.of(
+    void siUnaFilaNoCumpleLasReglasDelCampoNoGuardaNadaYDiceCualCampoEstaMal() {
+        dadoReclamado(dadoTexto("sí"));
+        PropuestaWhatsapp propuesta = dadoPendiente(List.of(
                 new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "harina", MONTO_ID.toString(), "mucho"), Set.of())));
-        givenTablaGuardable(0);
+        dadoTablaGuardable(0);
 
         atender.execute();
 
         verify(registroRepository, never()).saveAll(any());
-        assertThat(thenRespuesta()).contains("No guardé nada", "Monto (tiene que ser un número)");
+        assertThat(entoncesRespuesta()).contains("No guardé nada", "Monto (tiene que ser un número)");
         assertThat(propuesta.getEstado()).isEqualTo(EstadoPropuestaWhatsapp.PENDIENTE);
     }
 
     @Test
     @DisplayName("Si el plan no admite más registros responde la restricción y no guarda")
-    void executeShouldRespectTheRecordLimit() {
-        givenReclamado(givenTexto("sí"));
-        givenPendiente(List.of(new FilaPropuesta(Map.of(MONTO_ID.toString(), "5000"), Set.of())));
-        givenTablaGuardable(0);
+    void siElPlanNoAdmiteMasRegistrosRespondeLaRestriccionYNoGuarda() {
+        dadoReclamado(dadoTexto("sí"));
+        dadoPendiente(List.of(new FilaPropuesta(Map.of(MONTO_ID.toString(), "5000"), Set.of())));
+        dadoTablaGuardable(0);
         doThrow(new RestriccionPlanException("LIMITE_REGISTROS", "Llegaste al límite de registros de tu plan"))
                 .when(controlPlanService).validarAltaRegistros(NEGOCIO_ID, 1, AHORA);
 
@@ -325,9 +325,9 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Si la tabla ya no existe al confirmar lo avisa y no guarda")
-    void executeShouldExplainWhenTheTableWasDeleted() {
-        givenReclamado(givenTexto("sí"));
-        givenPendiente(List.of(new FilaPropuesta(Map.of(MONTO_ID.toString(), "5000"), Set.of())));
+    void siLaTablaYaNoExisteAlConfirmarLoAvisaYNoGuarda() {
+        dadoReclamado(dadoTexto("sí"));
+        dadoPendiente(List.of(new FilaPropuesta(Map.of(MONTO_ID.toString(), "5000"), Set.of())));
         when(bloqueRepository.findByIdAndNegocioId(GASTOS_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
 
         atender.execute();
@@ -338,9 +338,9 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Responder no descarta la propuesta sin guardar nada")
-    void executeShouldDiscardWhenUserAnswersNo() {
-        givenReclamado(givenTexto("NO"));
-        PropuestaWhatsapp propuesta = givenPendiente(List.of());
+    void responderNoDescartaLaPropuestaSinGuardarNada() {
+        dadoReclamado(dadoTexto("NO"));
+        PropuestaWhatsapp propuesta = dadoPendiente(List.of());
 
         atender.execute();
 
@@ -351,10 +351,10 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Un mensaje nuevo mientras hay una propuesta abierta la descarta, lo avisa y atiende el mensaje")
-    void executeShouldDiscardPreviousProposalOnNewMessage() {
-        givenReclamado(givenTexto("vendí 3 tortas"));
-        PropuestaWhatsapp anterior = givenPendiente(List.of());
-        givenInterpretacion(GASTOS_ID, 0.9);
+    void unMensajeNuevoMientrasHayUnaPropuestaAbiertaLaDescartaLoAvisaYAtiendeElMensaje() {
+        dadoReclamado(dadoTexto("vendí 3 tortas"));
+        PropuestaWhatsapp anterior = dadoPendiente(List.of());
+        dadoInterpretacion(GASTOS_ID, 0.9);
 
         atender.execute();
 
@@ -365,8 +365,8 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Responder sí a una propuesta vencida avisa que venció y no guarda")
-    void executeShouldExplainExpiredProposal() {
-        givenReclamado(givenTexto("sí"));
+    void responderSiAUnaPropuestaVencidaAvisaQueVencioYNoGuarda() {
+        dadoReclamado(dadoTexto("sí"));
         PropuestaWhatsapp vencida = PropuestaWhatsapp.pendiente(NEGOCIO_ID, TELEFONO, OrigenPropuestaWhatsapp.TEXTO,
                 "gasté", GASTOS_ID, List.of(), AHORA.minusHours(1));
         when(propuestaRepository.findAbiertaByTelefono(TELEFONO)).thenReturn(Optional.of(vencida));
@@ -380,12 +380,12 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Un texto nuevo con una propuesta vencida la cierra y se atiende como mensaje nuevo")
-    void executeShouldIgnoreExpiredProposalOnNewText() {
-        givenReclamado(givenTexto("gasté 5000 en harina"));
+    void unTextoNuevoConUnaPropuestaVencidaLaCierraYSeAtiendeComoMensajeNuevo() {
+        dadoReclamado(dadoTexto("gasté 5000 en harina"));
         PropuestaWhatsapp vencida = PropuestaWhatsapp.pendiente(NEGOCIO_ID, TELEFONO, OrigenPropuestaWhatsapp.TEXTO,
                 "gasté", GASTOS_ID, List.of(), AHORA.minusHours(1));
         when(propuestaRepository.findAbiertaByTelefono(TELEFONO)).thenReturn(Optional.of(vencida));
-        givenInterpretacion(GASTOS_ID, 0.9);
+        dadoInterpretacion(GASTOS_ID, 0.9);
 
         atender.execute();
 
@@ -396,12 +396,12 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Elegir la tabla por su número vuelve a interpretar el texto con esa tabla y queda pendiente")
-    void executeShouldResolveTableChoiceForText() {
-        givenReclamado(givenTexto("2"));
+    void elegirLaTablaPorSuNumeroVuelveAInterpretarElTextoConEsaTablaYQuedaPendiente() {
+        dadoReclamado(dadoTexto("2"));
         PropuestaWhatsapp eligiendo = PropuestaWhatsapp.eligiendoTabla(NEGOCIO_ID, TELEFONO,
                 OrigenPropuestaWhatsapp.TEXTO, "5000 de harina", null, List.of(VENTAS_ID, GASTOS_ID), AHORA);
         when(propuestaRepository.findAbiertaByTelefono(TELEFONO)).thenReturn(Optional.of(eligiendo));
-        givenInterpretacion(GASTOS_ID, 0.9);
+        dadoInterpretacion(GASTOS_ID, 0.9);
 
         atender.execute();
 
@@ -410,13 +410,13 @@ class AtenderMensajeWhatsappTest {
         verify(interpreteIa).interpretar(consulta.capture());
         assertThat(consulta.getValue().destino()).isEqualTo(GASTOS_ID);
         assertThat(eligiendo.getEstado()).isEqualTo(EstadoPropuestaWhatsapp.PENDIENTE);
-        assertThat(thenRespuesta()).contains("Para *Gastos*");
+        assertThat(entoncesRespuesta()).contains("Para *Gastos*");
     }
 
     @Test
     @DisplayName("Elegir un número que no está en la lista lo pide de nuevo y mantiene la propuesta")
-    void executeShouldRejectNumberOutsideTheList() {
-        givenReclamado(givenTexto("7"));
+    void elegirUnNumeroQueNoEstaEnLaListaLoPideDeNuevoYMantieneLaPropuesta() {
+        dadoReclamado(dadoTexto("7"));
         PropuestaWhatsapp eligiendo = PropuestaWhatsapp.eligiendoTabla(NEGOCIO_ID, TELEFONO,
                 OrigenPropuestaWhatsapp.TEXTO, "5000", null, List.of(VENTAS_ID, GASTOS_ID), AHORA);
         when(propuestaRepository.findAbiertaByTelefono(TELEFONO)).thenReturn(Optional.of(eligiendo));
@@ -431,8 +431,8 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Una foto cuya estructura coincide con una tabla arma la propuesta y marca lo dudoso con (?)")
-    void executeShouldProposeRowsFromPhoto() {
-        givenReclamado(givenFoto(null));
+    void unaFotoCuyaEstructuraCoincideConUnaTablaArmaLaPropuestaYMarcaLoDudosoCon() {
+        dadoReclamado(dadoFoto(null));
         when(mensajeria.descargarMedia("F1")).thenReturn(new ArchivoWhatsapp(ImagenTestData.jpeg(), "image/jpeg"));
         when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(lectura("Gastos",
                 new FilaLeida(1, 1, Map.of("concepto", new DatoLeido("harina", 0.9),
@@ -442,23 +442,23 @@ class AtenderMensajeWhatsappTest {
 
         verify(controlPlanService).reservarPaginaIaInmediata(NEGOCIO_ID, 100, AHORA);
         verify(mensajeria).enviarTexto(TELEFONO, TextosWhatsapp.LEYENDO_FOTO);
-        PropuestaWhatsapp propuesta = thenPropuestaGuardada();
+        PropuestaWhatsapp propuesta = entoncesPropuestaGuardada();
         assertThat(propuesta.getOrigen()).isEqualTo(OrigenPropuestaWhatsapp.FOTO);
         assertThat(propuesta.getFilas().getFirst().dudosos()).containsExactly(MONTO_ID.toString());
-        assertThat(thenRespuesta()).contains("Monto: 5000 (?)", "(?) = dato que no pude leer bien.");
+        assertThat(entoncesRespuesta()).contains("Monto: 5000 (?)", "(?) = dato que no pude leer bien.");
     }
 
     @Test
     @DisplayName("Una foto que no se parece a ninguna tabla ofrece la lista y guarda la lectura para no leerla de nuevo")
-    void executeShouldAskTableForAmbiguousPhoto() {
-        givenReclamado(givenFoto(null));
+    void unaFotoQueNoSePareceANingunaTablaOfreceLaListaYGuardaLaLecturaParaNoLeerlaDeNuevo() {
+        dadoReclamado(dadoFoto(null));
         when(mensajeria.descargarMedia("F1")).thenReturn(new ArchivoWhatsapp(ImagenTestData.jpeg(), "image/jpeg"));
         when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(lectura("Hoja",
                 new FilaLeida(1, 1, Map.of("concepto", new DatoLeido("harina", 0.9)))));
 
         atender.execute();
 
-        PropuestaWhatsapp propuesta = thenPropuestaGuardada();
+        PropuestaWhatsapp propuesta = entoncesPropuestaGuardada();
         assertThat(propuesta.getEstado()).isEqualTo(EstadoPropuestaWhatsapp.ELIGIENDO_TABLA);
         assertThat(propuesta.getLectura()).isNotNull();
         assertThat(propuesta.getOpciones()).containsExactly(GASTOS_ID, VENTAS_ID);
@@ -466,8 +466,8 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Elegir la tabla de una foto la asigna sin volver a leerla ni cobrar otra página")
-    void executeShouldRemapPhotoWithoutReadingAgain() {
-        givenReclamado(givenTexto("1"));
+    void elegirLaTablaDeUnaFotoLaAsignaSinVolverALeerlaNiCobrarOtraPagina() {
+        dadoReclamado(dadoTexto("1"));
         PropuestaWhatsapp eligiendo = PropuestaWhatsapp.eligiendoTabla(NEGOCIO_ID, TELEFONO,
                 OrigenPropuestaWhatsapp.FOTO, null, lectura("Hoja", new FilaLeida(1, 1, Map.of("concepto",
                         new DatoLeido("harina", 0.9), "monto", new DatoLeido("5000", 0.9)))),
@@ -483,8 +483,8 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Si el pie de la foto nombra una tabla, la lectura se hace contra esa tabla")
-    void executeShouldUseTableNamedInCaption() {
-        givenReclamado(givenFoto("las ventas de hoy"));
+    void siElPieDeLaFotoNombraUnaTablaLaLecturaSeHaceContraEsaTabla() {
+        dadoReclamado(dadoFoto("las ventas de hoy"));
         when(mensajeria.descargarMedia("F1")).thenReturn(new ArchivoWhatsapp(ImagenTestData.jpeg(), "image/jpeg"));
         when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(lectura("Ventas",
                 new FilaLeida(1, 1, Map.of("producto", new DatoLeido("torta", 0.9)))));
@@ -492,13 +492,13 @@ class AtenderMensajeWhatsappTest {
         atender.execute();
 
         verify(lectorCuadernoPort).leer(any(), any(), eq(VENTAS_ID));
-        assertThat(thenPropuestaGuardada().getBloqueId()).isEqualTo(VENTAS_ID);
+        assertThat(entoncesPropuestaGuardada().getBloqueId()).isEqualTo(VENTAS_ID);
     }
 
     @Test
     @DisplayName("Si la foto no se puede descargar no se cobra la página y se pide mandarla de nuevo")
-    void executeShouldNotChargeWhenDownloadFails() {
-        givenReclamado(givenFoto(null));
+    void siLaFotoNoSePuedeDescargarNoSeCobraLaPaginaYSePideMandarlaDeNuevo() {
+        dadoReclamado(dadoFoto(null));
         when(mensajeria.descargarMedia("F1")).thenThrow(new IllegalStateException("sin archivo"));
 
         atender.execute();
@@ -509,8 +509,8 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Con el cupo mensual de fotos agotado responde la restricción y no llama a la IA")
-    void executeShouldRespectThePhotoQuota() {
-        givenReclamado(givenFoto(null));
+    void conElCupoMensualDeFotosAgotadoRespondeLaRestriccionYNoLlamaALaIA() {
+        dadoReclamado(dadoFoto(null));
         when(mensajeria.descargarMedia("F1")).thenReturn(new ArchivoWhatsapp(ImagenTestData.jpeg(), "image/jpeg"));
         doThrow(new RestriccionPlanException("LIMITE_IA_MENSUAL", "Llegaste al límite de análisis de foto de tu plan"))
                 .when(controlPlanService).reservarPaginaIaInmediata(NEGOCIO_ID, 100, AHORA);
@@ -523,8 +523,8 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Una foto que no es JPG, PNG ni WEBP se rechaza antes de cobrar")
-    void executeShouldRejectUnreadableImage() {
-        givenReclamado(givenFoto(null));
+    void unaFotoQueNoEsJPGPNGNiWEBPSeRechazaAntesDeCobrar() {
+        dadoReclamado(dadoFoto(null));
         when(mensajeria.descargarMedia("F1")).thenReturn(new ArchivoWhatsapp(new byte[]{1, 2, 3}, "image/gif"));
 
         atender.execute();
@@ -537,9 +537,9 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Una foto con una propuesta abierta la descarta y lo avisa antes de leer la foto nueva")
-    void executeShouldDiscardOpenProposalOnPhoto() {
-        givenReclamado(givenFoto(null));
-        PropuestaWhatsapp anterior = givenPendiente(List.of());
+    void unaFotoConUnaPropuestaAbiertaLaDescartaYLoAvisaAntesDeLeerLaFotoNueva() {
+        dadoReclamado(dadoFoto(null));
+        PropuestaWhatsapp anterior = dadoPendiente(List.of());
         when(mensajeria.descargarMedia("F1")).thenReturn(new ArchivoWhatsapp(ImagenTestData.jpeg(), "image/jpeg"));
         when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(lectura("Gastos",
                 new FilaLeida(1, 1, Map.of("concepto", new DatoLeido("harina", 0.9)))));
@@ -552,8 +552,8 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Una nota de voz con una propuesta vencida no se toma como respuesta")
-    void executeShouldTreatAudioAsNewMessageWhenProposalExpired() {
-        givenReclamado(MensajeWhatsapp.builder().negocioId(NEGOCIO_ID).telefono(TELEFONO).idExterno("A2")
+    void unaNotaDeVozConUnaPropuestaVencidaNoSeTomaComoRespuesta() {
+        dadoReclamado(MensajeWhatsapp.builder().negocioId(NEGOCIO_ID).telefono(TELEFONO).idExterno("A2")
                 .tipo(TipoMensajeWhatsapp.AUDIO).mimeMedia("audio/ogg").recibidoEn(AHORA).build());
         PropuestaWhatsapp vencida = PropuestaWhatsapp.pendiente(NEGOCIO_ID, TELEFONO, OrigenPropuestaWhatsapp.TEXTO,
                 "gasté", GASTOS_ID, List.of(), AHORA.minusHours(1));
@@ -567,10 +567,10 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Un número mientras hay una carga pendiente es un mensaje nuevo, no la elección de una tabla")
-    void executeShouldTreatNumberAsNewTextWhenProposalIsPending() {
-        givenReclamado(givenTexto("2"));
-        PropuestaWhatsapp pendiente = givenPendiente(List.of());
-        givenInterpretacion(GASTOS_ID, 0.9);
+    void unNumeroMientrasHayUnaCargaPendienteEsUnMensajeNuevoNoLaEleccionDeUnaTabla() {
+        dadoReclamado(dadoTexto("2"));
+        PropuestaWhatsapp pendiente = dadoPendiente(List.of());
+        dadoInterpretacion(GASTOS_ID, 0.9);
 
         atender.execute();
 
@@ -580,11 +580,11 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Una tabla sin filas o con una fila sin datos cargables pide aclaración")
-    void executeShouldAskClarificationWhenNoUsableRows() {
-        givenReclamado(givenTexto("algo"));
+    void unaTablaSinFilasOConUnaFilaSinDatosCargablesPideAclaracion() {
+        dadoReclamado(dadoTexto("algo"));
         when(interpreteIa.interpretar(any())).thenReturn(new InterpretacionRegistros(GASTOS_ID, List.of(), 0.9, null));
         atender.execute();
-        when(mensajeRepository.reclamarSiguiente(any(), any())).thenReturn(Optional.of(givenTexto("otra")));
+        when(mensajeRepository.reclamarSiguiente(any(), any())).thenReturn(Optional.of(dadoTexto("otra")));
         when(interpreteIa.interpretar(any())).thenReturn(new InterpretacionRegistros(GASTOS_ID,
                 List.of(Map.of(PRODUCTO_AJENO_ID, "x", CONCEPTO_ID, " ")), 0.9, null));
 
@@ -596,8 +596,8 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Una foto cuyas filas no traen datos cargables pide aclaración en lugar de proponer")
-    void executeShouldAskClarificationWhenPhotoHasNoUsableRows() {
-        givenReclamado(givenFoto(null));
+    void unaFotoCuyasFilasNoTraenDatosCargablesPideAclaracionEnLugarDeProponer() {
+        dadoReclamado(dadoFoto(null));
         when(mensajeria.descargarMedia("F1")).thenReturn(new ArchivoWhatsapp(ImagenTestData.jpeg(), "image/jpeg"));
         when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(lectura("Gastos",
                 new FilaLeida(1, 1, Map.of("concepto", new DatoLeido(" ", 0.9), "monto", new DatoLeido(null, 0.9)))));
@@ -609,13 +609,13 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Un pie que nombra dos tablas o está en blanco no elige ninguna")
-    void executeShouldIgnoreAmbiguousOrBlankCaption() {
-        givenReclamado(givenFoto("gastos y ventas"));
+    void unPieQueNombraDosTablasOEstaEnBlancoNoEligeNinguna() {
+        dadoReclamado(dadoFoto("gastos y ventas"));
         when(mensajeria.descargarMedia("F1")).thenReturn(new ArchivoWhatsapp(ImagenTestData.jpeg(), "image/jpeg"));
         when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(lectura("Gastos",
                 new FilaLeida(1, 1, Map.of("concepto", new DatoLeido("harina", 0.9)))));
         atender.execute();
-        when(mensajeRepository.reclamarSiguiente(any(), any())).thenReturn(Optional.of(givenFoto("   ")));
+        when(mensajeRepository.reclamarSiguiente(any(), any())).thenReturn(Optional.of(dadoFoto("   ")));
         atender.execute();
 
         verify(lectorCuadernoPort, org.mockito.Mockito.times(2)).leer(any(), any(),
@@ -624,8 +624,8 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Elegir una tabla que ya no existe lo avisa")
-    void executeShouldExplainWhenChosenTableNoLongerExists() {
-        givenReclamado(givenTexto("1"));
+    void elegirUnaTablaQueYaNoExisteLoAvisa() {
+        dadoReclamado(dadoTexto("1"));
         PropuestaWhatsapp eligiendo = PropuestaWhatsapp.eligiendoTabla(NEGOCIO_ID, TELEFONO,
                 OrigenPropuestaWhatsapp.TEXTO, "5000", null, List.of(BloqueId.nuevo()), AHORA);
         when(propuestaRepository.findAbiertaByTelefono(TELEFONO)).thenReturn(Optional.of(eligiendo));
@@ -637,8 +637,8 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Elegir una tabla cuyo texto no deja filas descarta la propuesta y pide aclaración")
-    void executeShouldDiscardWhenChosenTableYieldsNoRows() {
-        givenReclamado(givenTexto("1"));
+    void elegirUnaTablaCuyoTextoNoDejaFilasDescartaLaPropuestaYPideAclaracion() {
+        dadoReclamado(dadoTexto("1"));
         PropuestaWhatsapp eligiendo = PropuestaWhatsapp.eligiendoTabla(NEGOCIO_ID, TELEFONO,
                 OrigenPropuestaWhatsapp.TEXTO, "5000", null, List.of(GASTOS_ID), AHORA);
         when(propuestaRepository.findAbiertaByTelefono(TELEFONO)).thenReturn(Optional.of(eligiendo));
@@ -652,24 +652,24 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Las columnas calculadas o conectadas no se cargan por WhatsApp")
-    void executeShouldSkipFormulaAndRelationColumns() {
+    void lasColumnasCalculadasOConectadasNoSeCarganPorWhatsApp() {
         TablaDisponible conCalculadas = new TablaDisponible(new BloqueLectura(GASTOS_ID, "Gastos", List.of(
                 new CampoConocido(CONCEPTO_ID, "Concepto", TipoCampo.TEXTO, List.of()),
                 new CampoConocido(MONTO_ID, "Total", TipoCampo.FORMULA, List.of()),
                 new CampoConocido(PRODUCTO_ID, "Cliente", TipoCampo.RELACION, List.of()))), "Mi panadería");
         when(procesamientoRepository.tablas(NEGOCIO_ID)).thenReturn(List.of(conCalculadas));
-        givenReclamado(givenTexto("gasté 5000 en harina"));
-        givenInterpretacion(GASTOS_ID, 0.9);
+        dadoReclamado(dadoTexto("gasté 5000 en harina"));
+        dadoInterpretacion(GASTOS_ID, 0.9);
 
         atender.execute();
 
-        assertThat(thenPropuestaGuardada().getFilas().getFirst().valores()).containsOnlyKeys(CONCEPTO_ID.toString());
+        assertThat(entoncesPropuestaGuardada().getFilas().getFirst().valores()).containsOnlyKeys(CONCEPTO_ID.toString());
     }
 
     @Test
     @DisplayName("En una foto las columnas nuevas sin mapear se ignoran")
-    void executeShouldIgnoreUnmappedColumnsInPhoto() {
-        givenReclamado(givenFoto(null));
+    void enUnaFotoLasColumnasNuevasSinMapearSeIgnoran() {
+        dadoReclamado(dadoFoto(null));
         when(mensajeria.descargarMedia("F1")).thenReturn(new ArchivoWhatsapp(ImagenTestData.jpeg(), "image/jpeg"));
         when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(lectura("Gastos",
                 new FilaLeida(1, 1, Map.of("concepto", new DatoLeido("harina", 0.9),
@@ -677,13 +677,13 @@ class AtenderMensajeWhatsappTest {
 
         atender.execute();
 
-        assertThat(thenPropuestaGuardada().getFilas().getFirst().valores()).containsOnlyKeys(CONCEPTO_ID.toString());
+        assertThat(entoncesPropuestaGuardada().getFilas().getFirst().valores()).containsOnlyKeys(CONCEPTO_ID.toString());
     }
 
     @Test
     @DisplayName("Un valor nulo en la respuesta de la IA se descarta")
-    void executeShouldDropNullValuesFromTheInterpretation() {
-        givenReclamado(givenTexto("gasté 5000 en harina"));
+    void unValorNuloEnLaRespuestaDeLaIASeDescarta() {
+        dadoReclamado(dadoTexto("gasté 5000 en harina"));
         Map<CampoId, String> fila = new java.util.HashMap<>();
         fila.put(CONCEPTO_ID, "harina");
         fila.put(MONTO_ID, null);
@@ -692,17 +692,17 @@ class AtenderMensajeWhatsappTest {
 
         atender.execute();
 
-        assertThat(thenPropuestaGuardada().getFilas().getFirst().valores()).containsOnlyKeys(CONCEPTO_ID.toString());
+        assertThat(entoncesPropuestaGuardada().getFilas().getFirst().valores()).containsOnlyKeys(CONCEPTO_ID.toString());
     }
 
     @Test
     @DisplayName("En una foto una columna que corresponde a un campo calculado no se carga")
-    void executeShouldNotLoadPhotoColumnsMappedToFormulaFields() {
+    void enUnaFotoUnaColumnaQueCorrespondeAUnCampoCalculadoNoSeCarga() {
         TablaDisponible conFormula = new TablaDisponible(new BloqueLectura(GASTOS_ID, "Gastos", List.of(
                 new CampoConocido(CONCEPTO_ID, "Concepto", TipoCampo.TEXTO, List.of()),
                 new CampoConocido(MONTO_ID, "Total", TipoCampo.FORMULA, List.of()))), "Mi panadería");
         when(procesamientoRepository.tablas(NEGOCIO_ID)).thenReturn(List.of(conFormula));
-        givenReclamado(givenFoto("gastos"));
+        dadoReclamado(dadoFoto("gastos"));
         when(mensajeria.descargarMedia("F1")).thenReturn(new ArchivoWhatsapp(ImagenTestData.jpeg(), "image/jpeg"));
         when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(new LecturaCuaderno(
                 TipoRegistroCuaderno.OTRO, new BloquePropuesto("Gastos", null, List.of(
@@ -714,37 +714,37 @@ class AtenderMensajeWhatsappTest {
 
         atender.execute();
 
-        assertThat(thenPropuestaGuardada().getFilas().getFirst().valores()).containsOnlyKeys(CONCEPTO_ID.toString());
+        assertThat(entoncesPropuestaGuardada().getFilas().getFirst().valores()).containsOnlyKeys(CONCEPTO_ID.toString());
     }
 
     // --- actualizar filas existentes ---
 
     @Test
     @DisplayName("Si el producto ya existe, aunque lo escriban a medias, propone actualizarlo sin tocar su nombre")
-    void executeShouldProposeUpdatingTheExistingRow() {
-        givenFilaExistente("Harina 000", "1000");
-        givenReclamado(givenTexto("harina 5000"));
+    void siElProductoYaExisteAunqueLoEscribanAMediasProponeActualizarloSinTocarSuNombre() {
+        dadoFilaExistente("Harina 000", "1000");
+        dadoReclamado(dadoTexto("harina 5000"));
         when(interpreteIa.interpretar(any())).thenReturn(new InterpretacionRegistros(GASTOS_ID,
                 List.of(Map.of(CONCEPTO_ID, "harina", MONTO_ID, "5000")), 0.9, consumo()));
 
         atender.execute();
 
-        FilaPropuesta fila = thenPropuestaGuardada().getFilas().getFirst();
+        FilaPropuesta fila = entoncesPropuestaGuardada().getFilas().getFirst();
         assertThat(fila.actualizaUnaFila()).isTrue();
         assertThat(fila.registroId()).isEqualTo(REGISTRO_ID.toString());
         assertThat(fila.nombreExistente()).isEqualTo("Harina 000");
-        assertThat(thenRespuesta()).contains("1) Actualizo *Harina 000*: Monto: 5000").doesNotContain("Concepto");
+        assertThat(entoncesRespuesta()).contains("1) Actualizo *Harina 000*: Monto: 5000").doesNotContain("Concepto");
     }
 
     @Test
     @DisplayName("Confirmar una actualización cambia sólo los datos que vinieron y no agrega una fila nueva")
-    void executeShouldUpdateTheExistingRowOnConfirm() {
-        givenReclamado(givenTexto("sí"));
-        Registro existente = givenFilaExistente("Harina 000", "1000");
-        givenPendiente(List.of(new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "harina",
+    void confirmarUnaActualizacionCambiaSoloLosDatosQueVinieronYNoAgregaUnaFilaNueva() {
+        dadoReclamado(dadoTexto("sí"));
+        Registro existente = dadoFilaExistente("Harina 000", "1000");
+        dadoPendiente(List.of(new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "harina",
                 MONTO_ID.toString(), "5000"), Set.of()).actualizando(REGISTRO_ID.toString(), "Harina 000",
                 CONCEPTO_ID.toString(), Map.of())));
-        givenTablaGuardable(3);
+        dadoTablaGuardable(3);
         when(registroRepository.findByIdAndNegocioId(any(), eq(NEGOCIO_ID))).thenReturn(Optional.of(existente));
 
         atender.execute();
@@ -754,122 +754,122 @@ class AtenderMensajeWhatsappTest {
         assertThat(existente.getActualizadoEn()).isEqualTo(AHORA);
         verify(registroRepository).saveAll(List.of(existente));
         verify(controlPlanService, never()).validarAltaRegistros(any(), org.mockito.ArgumentMatchers.anyLong(), any());
-        assertThat(thenRespuesta()).contains("actualicé 1 fila en *Gastos*");
+        assertThat(entoncesRespuesta()).contains("actualicé 1 fila en *Gastos*");
     }
 
     @Test
     @DisplayName("Una confirmación con filas nuevas y actualizadas hace las dos cosas y descuenta sólo las nuevas")
-    void executeShouldMixUpdatesAndAdditions() {
-        givenReclamado(givenTexto("sí"));
-        Registro existente = givenFilaExistente("Harina 000", "1000");
-        givenPendiente(List.of(new FilaPropuesta(Map.of(MONTO_ID.toString(), "5000"), Set.of())
+    void unaConfirmacionConFilasNuevasYActualizadasHaceLasDosCosasYDescuentaSoloLasNuevas() {
+        dadoReclamado(dadoTexto("sí"));
+        Registro existente = dadoFilaExistente("Harina 000", "1000");
+        dadoPendiente(List.of(new FilaPropuesta(Map.of(MONTO_ID.toString(), "5000"), Set.of())
                         .actualizando(REGISTRO_ID.toString(), "Harina 000", CONCEPTO_ID.toString(), Map.of()),
                 new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "azúcar", MONTO_ID.toString(), "800"), Set.of())));
-        givenTablaGuardable(3);
+        dadoTablaGuardable(3);
         when(registroRepository.findByIdAndNegocioId(any(), eq(NEGOCIO_ID))).thenReturn(Optional.of(existente));
 
         atender.execute();
 
         verify(controlPlanService).validarAltaRegistros(NEGOCIO_ID, 1, AHORA);
-        assertThat(thenRespuesta()).contains("actualicé 1 y agregué 1 filas en *Gastos*");
+        assertThat(entoncesRespuesta()).contains("actualicé 1 y agregué 1 filas en *Gastos*");
     }
 
     @Test
     @DisplayName("Si la fila a actualizar se borró o es de otra tabla, el dato se agrega como fila nueva")
-    void executeShouldAddAsNewWhenTheExistingRowIsGone() {
-        givenReclamado(givenTexto("sí"));
+    void siLaFilaAActualizarSeBorroOEsDeOtraTablaElDatoSeAgregaComoFilaNueva() {
+        dadoReclamado(dadoTexto("sí"));
         Registro deOtraTabla = Registro.nuevo(NEGOCIO_ID, VENTAS_ID, Map.of(), AHORA);
-        givenPendiente(List.of(new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "harina", MONTO_ID.toString(), "5000"),
+        dadoPendiente(List.of(new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "harina", MONTO_ID.toString(), "5000"),
                 Set.of()).actualizando(REGISTRO_ID.toString(), "Harina 000", CONCEPTO_ID.toString(), Map.of())));
-        givenTablaGuardable(0);
+        dadoTablaGuardable(0);
         when(registroRepository.findByIdAndNegocioId(any(), eq(NEGOCIO_ID))).thenReturn(Optional.empty(),
                 Optional.of(deOtraTabla));
 
         atender.execute();
 
         verify(controlPlanService).validarAltaRegistros(NEGOCIO_ID, 1, AHORA);
-        assertThat(thenRespuesta()).contains("guardé 1 fila en *Gastos*");
+        assertThat(entoncesRespuesta()).contains("guardé 1 fila en *Gastos*");
     }
 
     @Test
     @DisplayName("Una actualización cuyo resultado no cumple las reglas del campo no guarda nada")
-    void executeShouldValidateTheMergedRow() {
-        givenReclamado(givenTexto("sí"));
-        Registro existente = givenFilaExistente("Harina 000", "1000");
-        givenPendiente(List.of(new FilaPropuesta(Map.of(MONTO_ID.toString(), "mucho"), Set.of())
+    void unaActualizacionCuyoResultadoNoCumpleLasReglasDelCampoNoGuardaNada() {
+        dadoReclamado(dadoTexto("sí"));
+        Registro existente = dadoFilaExistente("Harina 000", "1000");
+        dadoPendiente(List.of(new FilaPropuesta(Map.of(MONTO_ID.toString(), "mucho"), Set.of())
                 .actualizando(REGISTRO_ID.toString(), "Harina 000", CONCEPTO_ID.toString(), Map.of())));
-        givenTablaGuardable(0);
+        dadoTablaGuardable(0);
         when(registroRepository.findByIdAndNegocioId(any(), eq(NEGOCIO_ID))).thenReturn(Optional.of(existente));
 
         atender.execute();
 
         verify(registroRepository, never()).saveAll(any());
-        assertThat(thenRespuesta()).contains("No guardé nada", "Monto");
+        assertThat(entoncesRespuesta()).contains("No guardé nada", "Monto");
     }
 
     @Test
     @DisplayName("Una tabla de movimientos (gastos) suma una fila nueva aunque ya haya otra con el mismo nombre")
-    void executeShouldNotUpdateInMovementTables() {
+    void unaTablaDeMovimientosGastosSumaUnaFilaNuevaAunqueYaHayaOtraConElMismoNombre() {
         TablaDisponible movimientos = new TablaDisponible(gastos.bloque(), "Mi panadería",
                 com.ensambla.backend.domain.model.bloque.TipoBloque.GASTOS);
         when(procesamientoRepository.tablas(NEGOCIO_ID)).thenReturn(List.of(movimientos));
-        givenFilaExistente("harina", "1000");
-        givenReclamado(givenTexto("gasté 5000 en harina"));
-        givenInterpretacion(GASTOS_ID, 0.9);
+        dadoFilaExistente("harina", "1000");
+        dadoReclamado(dadoTexto("gasté 5000 en harina"));
+        dadoInterpretacion(GASTOS_ID, 0.9);
 
         atender.execute();
 
-        assertThat(thenPropuestaGuardada().getFilas().getFirst().actualizaUnaFila()).isFalse();
-        assertThat(thenRespuesta()).contains("1) Agrego:");
+        assertThat(entoncesPropuestaGuardada().getFilas().getFirst().actualizaUnaFila()).isFalse();
+        assertThat(entoncesRespuesta()).contains("1) Agrego:");
     }
 
     @Test
     @DisplayName("Si no hay un producto parecido, o hay dos igual de parecidos, se agrega una fila nueva")
-    void executeShouldAddWhenNoClearMatch() {
-        givenFilaExistente("Harina 000", "1000");
-        givenFilaExistente("Harina 0000", "1200");
-        givenReclamado(givenTexto("harina 5000"));
+    void siNoHayUnProductoParecidoOHayDosIgualDeParecidosSeAgregaUnaFilaNueva() {
+        dadoFilaExistente("Harina 000", "1000");
+        dadoFilaExistente("Harina 0000", "1200");
+        dadoReclamado(dadoTexto("harina 5000"));
         when(interpreteIa.interpretar(any())).thenReturn(new InterpretacionRegistros(GASTOS_ID,
                 List.of(Map.of(CONCEPTO_ID, "harina", MONTO_ID, "5000"), Map.of(CONCEPTO_ID, "manteca",
                         MONTO_ID, "900")), 0.9, consumo()));
 
         atender.execute();
 
-        assertThat(thenPropuestaGuardada().getFilas()).noneMatch(FilaPropuesta::actualizaUnaFila);
+        assertThat(entoncesPropuestaGuardada().getFilas()).noneMatch(FilaPropuesta::actualizaUnaFila);
     }
 
     @Test
     @DisplayName("Un dato sin nombre de producto, o sólo con el nombre, queda como fila nueva")
-    void executeShouldKeepRowsWithoutNameOrWithOnlyTheName() {
-        givenFilaExistente("Harina 000", "1000");
-        givenReclamado(givenTexto("cosas"));
+    void unDatoSinNombreDeProductoOSoloConElNombreQuedaComoFilaNueva() {
+        dadoFilaExistente("Harina 000", "1000");
+        dadoReclamado(dadoTexto("cosas"));
         when(interpreteIa.interpretar(any())).thenReturn(new InterpretacionRegistros(GASTOS_ID,
                 List.of(Map.of(MONTO_ID, "700"), Map.of(CONCEPTO_ID, "harina")), 0.9, consumo()));
 
         atender.execute();
 
-        assertThat(thenPropuestaGuardada().getFilas()).noneMatch(FilaPropuesta::actualizaUnaFila);
+        assertThat(entoncesPropuestaGuardada().getFilas()).noneMatch(FilaPropuesta::actualizaUnaFila);
     }
 
     @Test
     @DisplayName("Una tabla sin columna de texto no tiene cómo nombrar sus filas y siempre agrega")
-    void executeShouldAddWhenTheTableHasNoTextColumn() {
+    void unaTablaSinColumnaDeTextoNoTieneComoNombrarSusFilasYSiempreAgrega() {
         TablaDisponible sinTexto = new TablaDisponible(new BloqueLectura(GASTOS_ID, "Solo montos", List.of(
                 new CampoConocido(MONTO_ID, "Monto", TipoCampo.MONEDA, List.of()))), "Mi panadería");
         when(procesamientoRepository.tablas(NEGOCIO_ID)).thenReturn(List.of(sinTexto));
-        givenReclamado(givenTexto("5000"));
-        givenInterpretacion(GASTOS_ID, 0.9);
+        dadoReclamado(dadoTexto("5000"));
+        dadoInterpretacion(GASTOS_ID, 0.9);
 
         atender.execute();
 
-        assertThat(thenPropuestaGuardada().getFilas().getFirst().actualizaUnaFila()).isFalse();
+        assertThat(entoncesPropuestaGuardada().getFilas().getFirst().actualizaUnaFila()).isFalse();
     }
 
     @Test
     @DisplayName("En una foto también actualiza el producto existente en lugar de sumar uno nuevo")
-    void executeShouldUpdateExistingRowsFromPhotos() {
-        givenFilaExistente("Harina 000", "1000");
-        givenReclamado(givenFoto("gastos"));
+    void enUnaFotoTambienActualizaElProductoExistenteEnLugarDeSumarUnoNuevo() {
+        dadoFilaExistente("Harina 000", "1000");
+        dadoReclamado(dadoFoto("gastos"));
         when(mensajeria.descargarMedia("F1")).thenReturn(new ArchivoWhatsapp(ImagenTestData.jpeg(), "image/jpeg"));
         when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(lectura("Gastos",
                 new FilaLeida(1, 1, Map.of("concepto", new DatoLeido("harina", 0.9),
@@ -877,14 +877,14 @@ class AtenderMensajeWhatsappTest {
 
         atender.execute();
 
-        assertThat(thenPropuestaGuardada().getFilas().getFirst().nombreExistente()).isEqualTo("Harina 000");
+        assertThat(entoncesPropuestaGuardada().getFilas().getFirst().nombreExistente()).isEqualTo("Harina 000");
     }
 
     @Test
     @DisplayName("Al elegir la tabla de un texto también empareja con las filas existentes")
-    void executeShouldMatchExistingRowsWhenChoosingTheTable() {
-        givenFilaExistente("Harina 000", "1000");
-        givenReclamado(givenTexto("1"));
+    void alElegirLaTablaDeUnTextoTambienEmparejaConLasFilasExistentes() {
+        dadoFilaExistente("Harina 000", "1000");
+        dadoReclamado(dadoTexto("1"));
         PropuestaWhatsapp eligiendo = PropuestaWhatsapp.eligiendoTabla(NEGOCIO_ID, TELEFONO,
                 OrigenPropuestaWhatsapp.TEXTO, "harina 5000", null, List.of(GASTOS_ID), AHORA);
         when(propuestaRepository.findAbiertaByTelefono(TELEFONO)).thenReturn(Optional.of(eligiendo));
@@ -898,21 +898,21 @@ class AtenderMensajeWhatsappTest {
 
     @Test
     @DisplayName("Las filas existentes sin nombre se ignoran al buscar el producto")
-    void executeShouldIgnoreExistingRowsWithoutAName() {
+    void lasFilasExistentesSinNombreSeIgnoranAlBuscarElProducto() {
         Registro sinNombre = Registro.nuevo(NEGOCIO_ID, GASTOS_ID, Map.of(MONTO_ID.toString(), 10), AHORA);
         sinNombre.setId(RegistroId.nuevo());
         existentes.add(sinNombre);
-        givenFilaExistente("Harina 000", "1000");
-        givenReclamado(givenTexto("harina 5000"));
+        dadoFilaExistente("Harina 000", "1000");
+        dadoReclamado(dadoTexto("harina 5000"));
         when(interpreteIa.interpretar(any())).thenReturn(new InterpretacionRegistros(GASTOS_ID,
                 List.of(Map.of(CONCEPTO_ID, "harina", MONTO_ID, "5000")), 0.9, consumo()));
 
         atender.execute();
 
-        assertThat(thenPropuestaGuardada().getFilas().getFirst().nombreExistente()).isEqualTo("Harina 000");
+        assertThat(entoncesPropuestaGuardada().getFilas().getFirst().nombreExistente()).isEqualTo("Harina 000");
     }
 
-    private Registro givenFilaExistente(String nombre, String monto) {
+    private Registro dadoFilaExistente(String nombre, String monto) {
         Registro registro = Registro.nuevo(NEGOCIO_ID, GASTOS_ID, new java.util.HashMap<>(Map.of(
                 CONCEPTO_ID.toString(), nombre, MONTO_ID.toString(), new java.math.BigDecimal(monto))), AHORA);
         registro.setId(existentes.isEmpty() ? REGISTRO_ID : RegistroId.nuevo());
@@ -923,34 +923,34 @@ class AtenderMensajeWhatsappTest {
 
     // --- arrange / assert ---
 
-    private MensajeWhatsapp givenTexto(String texto) {
+    private MensajeWhatsapp dadoTexto(String texto) {
         return MensajeWhatsapp.builder().negocioId(NEGOCIO_ID).telefono(TELEFONO).idExterno("T1")
                 .tipo(TipoMensajeWhatsapp.TEXTO).texto(texto).recibidoEn(AHORA).build();
     }
 
-    private MensajeWhatsapp givenFoto(String pie) {
+    private MensajeWhatsapp dadoFoto(String pie) {
         return MensajeWhatsapp.builder().negocioId(NEGOCIO_ID).telefono(TELEFONO).idExterno("F1")
                 .tipo(TipoMensajeWhatsapp.IMAGEN).texto(pie).mimeMedia("image/jpeg").recibidoEn(AHORA).build();
     }
 
-    private MensajeWhatsapp givenReclamado(MensajeWhatsapp mensaje) {
+    private MensajeWhatsapp dadoReclamado(MensajeWhatsapp mensaje) {
         when(mensajeRepository.reclamarSiguiente(any(), any())).thenReturn(Optional.of(mensaje));
         return mensaje;
     }
 
-    private void givenInterpretacion(BloqueId bloqueId, double confianza) {
+    private void dadoInterpretacion(BloqueId bloqueId, double confianza) {
         when(interpreteIa.interpretar(any())).thenReturn(new InterpretacionRegistros(bloqueId,
                 List.of(Map.of(CONCEPTO_ID, "harina", MONTO_ID, "5000")), confianza, consumo()));
     }
 
-    private PropuestaWhatsapp givenPendiente(List<FilaPropuesta> filas) {
+    private PropuestaWhatsapp dadoPendiente(List<FilaPropuesta> filas) {
         PropuestaWhatsapp propuesta = PropuestaWhatsapp.pendiente(NEGOCIO_ID, TELEFONO, OrigenPropuestaWhatsapp.TEXTO,
                 "gasté", GASTOS_ID, filas, AHORA);
         when(propuestaRepository.findAbiertaByTelefono(TELEFONO)).thenReturn(Optional.of(propuesta));
         return propuesta;
     }
 
-    private void givenTablaGuardable(int ordenSiguiente) {
+    private void dadoTablaGuardable(int ordenSiguiente) {
         Bloque bloque = Bloque.builder().id(GASTOS_ID).negocioId(NEGOCIO_ID).nombre("Gastos").build();
         when(bloqueRepository.findByIdAndNegocioId(GASTOS_ID, NEGOCIO_ID)).thenReturn(Optional.of(bloque));
         when(campoRepository.findByBloqueIdAndNegocioId(GASTOS_ID, NEGOCIO_ID)).thenReturn(List.of(
@@ -972,13 +972,13 @@ class AtenderMensajeWhatsappTest {
         return new ConsumoIaSami("simulado", "demo", 10, 20);
     }
 
-    private PropuestaWhatsapp thenPropuestaGuardada() {
+    private PropuestaWhatsapp entoncesPropuestaGuardada() {
         ArgumentCaptor<PropuestaWhatsapp> captor = ArgumentCaptor.forClass(PropuestaWhatsapp.class);
         verify(propuestaRepository).save(captor.capture());
         return captor.getValue();
     }
 
-    private String thenRespuesta() {
+    private String entoncesRespuesta() {
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(mensajeria, org.mockito.Mockito.atLeastOnce()).enviarTexto(eq(TELEFONO), captor.capture());
         return String.join("\n", captor.getAllValues());

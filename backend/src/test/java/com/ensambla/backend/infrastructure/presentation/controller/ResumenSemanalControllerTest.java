@@ -57,7 +57,7 @@ class ResumenSemanalControllerTest {
 
     @Test
     @DisplayName("GET devuelve el último cierre y cada semana con sus decisiones y reajustes")
-    void listarShouldReturnTheMappedWeeks() throws Exception {
+    void gETDevuelveElUltimoCierreYCadaSemanaConSusDecisionesYReajustes() throws Exception {
         when(listarSemanas.execute(any())).thenReturn(new ListarSemanasResponse(SEMANA, List.of(new SemanaItem(
                 SEMANA, new BigDecimal("180000"), new BigDecimal("0.45"), new DecisionesItem(1, 2, 3, 4),
                 "Esta semana…", false, List.of(new ReajusteItem(TipoReajuste.SUBIR_META, "Lo lograste",
@@ -86,7 +86,7 @@ class ResumenSemanalControllerTest {
 
     @Test
     @DisplayName("GET manda al caso de uso el usuario de la sesión y el objetivo de la ruta")
-    void listarShouldPassTheSessionUserAndTheObjetivo() throws Exception {
+    void gETMandaAlCasoDeUsoElUsuarioDeLaSesionYElObjetivoDeLaRuta() throws Exception {
         when(listarSemanas.execute(any())).thenReturn(new ListarSemanasResponse(null, List.of()));
 
         mockMvc.perform(get(RUTA).principal(principal)).andExpect(status().isOk());
@@ -99,7 +99,7 @@ class ResumenSemanalControllerTest {
 
     @Test
     @DisplayName("GET responde 200 sin semanas cuando todavía no se cerró ninguna")
-    void listarShouldReturnNoWeeksWhenNoneWasClosed() throws Exception {
+    void gETResponde200SinSemanasCuandoTodaviaNoSeCerroNinguna() throws Exception {
         when(listarSemanas.execute(any())).thenReturn(new ListarSemanasResponse(null, List.of()));
 
         ResultActions result = mockMvc.perform(get(RUTA).principal(principal));
@@ -111,7 +111,7 @@ class ResumenSemanalControllerTest {
 
     @Test
     @DisplayName("GET responde 404 cuando el objetivo es de otro negocio o no existe")
-    void listarShouldReturn404WhenTheObjetivoIsNotFound() throws Exception {
+    void gETResponde404CuandoElObjetivoEsDeOtroNegocioONoExiste() throws Exception {
         when(listarSemanas.execute(any())).thenThrow(new ResourceNotFoundException("Objetivo no encontrado"));
 
         ResultActions result = mockMvc.perform(get(RUTA).principal(principal));
@@ -121,7 +121,7 @@ class ResumenSemanalControllerTest {
 
     @Test
     @DisplayName("GET responde 400 cuando el id del objetivo no es un UUID")
-    void listarShouldReturn400WhenTheIdIsNotUuid() throws Exception {
+    void gETResponde400CuandoElIdDelObjetivoNoEsUnUUID() throws Exception {
         ResultActions result = mockMvc.perform(get("/api/objetivos/id-invalido/semanas").principal(principal));
 
         result.andExpect(status().isBadRequest());

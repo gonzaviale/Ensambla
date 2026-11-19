@@ -19,7 +19,7 @@ class BloqueEntradasTest {
 
     @Test
     @DisplayName("Lee el valor de una fila por la clave del campo, o nada si la tabla no tiene ese campo")
-    void valorDeShouldReadByKey() {
+    void leeElValorDeUnaFilaPorLaClaveDelCampoONadaSiLaTablaNoTieneEseCampo() {
         Campo cantidad = Campo.builder().id(CANTIDAD_ID).clave("quantity").build();
         Registro registro = Registro.builder().id(RegistroId.nuevo())
                 .valores(Map.of(CANTIDAD_ID.toString(), 5)).build();

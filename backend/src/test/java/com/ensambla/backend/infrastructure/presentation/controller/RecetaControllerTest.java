@@ -69,7 +69,7 @@ class RecetaControllerTest {
 
     @Test
     @DisplayName("GET devuelve la receta con el costo y pasa el usuario de la sesión")
-    void obtenerShouldReturnRecetaAndPassSessionUser() throws Exception {
+    void gETDevuelveLaRecetaConElCostoYPasaElUsuarioDeLaSesion() throws Exception {
         when(obtenerReceta.execute(any(ObtenerRecetaRequest.class))).thenReturn(ITEM);
 
         mockMvc.perform(get("/api/registros/{id}/receta", PRODUCTO_ID).principal(sesion))
@@ -87,7 +87,7 @@ class RecetaControllerTest {
 
     @Test
     @DisplayName("GET de un producto ajeno responde 404")
-    void obtenerShouldReturn404ForForeignProduct() throws Exception {
+    void gETDeUnProductoAjenoResponde404() throws Exception {
         when(obtenerReceta.execute(any(ObtenerRecetaRequest.class)))
                 .thenThrow(new ResourceNotFoundException("El registro no existe"));
 
@@ -97,7 +97,7 @@ class RecetaControllerTest {
 
     @Test
     @DisplayName("PUT guarda la receta con las líneas y devuelve el costo")
-    void guardarShouldPassLinesAndReturnCost() throws Exception {
+    void pUTGuardaLaRecetaConLasLineasYDevuelveElCosto() throws Exception {
         when(guardarReceta.execute(any(GuardarRecetaRequest.class))).thenReturn(ITEM);
         String cuerpo = "{\"campoPrecioId\":\"" + PRECIO_ID + "\",\"lineas\":[{\"insumoId\":\"" + HARINA_ID
                 + "\",\"cantidad\":0.5,\"unidad\":\"kg\"}]}";
@@ -113,7 +113,7 @@ class RecetaControllerTest {
 
     @Test
     @DisplayName("PUT sin líneas quita la receta")
-    void guardarWithoutLinesShouldRemoveTheReceta() throws Exception {
+    void pUTSinLineasQuitaLaReceta() throws Exception {
         when(guardarReceta.execute(any(GuardarRecetaRequest.class))).thenReturn(ITEM);
 
         mockMvc.perform(put("/api/registros/{id}/receta", PRODUCTO_ID)
@@ -124,7 +124,7 @@ class RecetaControllerTest {
 
     @Test
     @DisplayName("PUT con datos inválidos responde 400 con el mensaje de cada línea")
-    void guardarShouldReturn400WithLineErrors() throws Exception {
+    void pUTConDatosInvalidosResponde400ConElMensajeDeCadaLinea() throws Exception {
         when(guardarReceta.execute(any(GuardarRecetaRequest.class)))
                 .thenThrow(new RegistroInvalidoException(Map.of("lineas[0]", "Escribí la cantidad")));
 

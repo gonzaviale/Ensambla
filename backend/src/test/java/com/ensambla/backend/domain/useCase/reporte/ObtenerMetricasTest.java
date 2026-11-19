@@ -103,15 +103,15 @@ class ObtenerMetricasTest {
 
     @Test
     @DisplayName("Arma las métricas de la semana: ventas, día por día, productos, stock, clientes y fiado")
-    void executeShouldSummarizeTheWeek() {
-        givenDatos(List.of(
+    void armaLasMetricasDeLaSemanaVentasDiaPorDiaProductosStockClientesYFiado() {
+        dadoDatos(List.of(
                 ventaAFiado(YERBA, 2, 3400, "2026-10-19"),
                 venta(YERBA, 1, 3400, "2026-10-15"),
                 venta(MERMELADA, 3, null, "2026-10-14"),
                 venta(YERBA, 1, 3400, "2026-10-12"),
                 venta(YERBA, 9, 3400, "2026-10-20")), List.of());
 
-        ObtenerMetricasResponse response = whenObtener(PeriodoMetricas.SEMANA);
+        ObtenerMetricasResponse response = cuandoObtener(PeriodoMetricas.SEMANA);
 
         assertThat(response.sistema()).isEqualTo("Almacén de prueba");
         assertThat(response.periodo()).isEqualTo(PeriodoMetricas.SEMANA);
@@ -147,13 +147,13 @@ class ObtenerMetricasTest {
 
     @Test
     @DisplayName("Hoy se compara con el mismo día de la semana pasada")
-    void executeShouldCompareTodayWithTheSameDayLastWeek() {
-        givenDatos(List.of(
+    void hoySeComparaConElMismoDiaDeLaSemanaPasada() {
+        dadoDatos(List.of(
                 venta(YERBA, 2, 3400, "2026-10-19"),
                 venta(YERBA, 5, 3400, "2026-10-18"),
                 venta(YERBA, 1, 3400, "2026-10-12")), List.of());
 
-        ObtenerMetricasResponse response = whenObtener(PeriodoMetricas.HOY);
+        ObtenerMetricasResponse response = cuandoObtener(PeriodoMetricas.HOY);
 
         assertThat(response.ventas().ingresos()).isEqualByComparingTo("6800");
         assertThat(response.ventas().ingresosAnteriores()).isEqualByComparingTo("3400");
@@ -162,10 +162,10 @@ class ObtenerMetricasTest {
 
     @Test
     @DisplayName("Con dos semanas de ventas lista los productos parados; antes no")
-    void executeShouldListStoppedProductsOnlyWithTwoWeeksOfSales() {
-        givenDatos(List.of(venta(YERBA, 1, 3400, "2026-09-01"), venta(YERBA, 1, 3400, "2026-10-18")), List.of());
+    void conDosSemanasDeVentasListaLosProductosParadosAntesNo() {
+        dadoDatos(List.of(venta(YERBA, 1, 3400, "2026-09-01"), venta(YERBA, 1, 3400, "2026-10-18")), List.of());
 
-        ObtenerMetricasResponse conHistoria = whenObtener(PeriodoMetricas.MES);
+        ObtenerMetricasResponse conHistoria = cuandoObtener(PeriodoMetricas.MES);
 
         assertThat(conHistoria.parados()).extracting(ObtenerMetricasResponse.Parado::nombre)
                 .containsExactly("Mermelada");
@@ -174,22 +174,22 @@ class ObtenerMetricasTest {
 
     @Test
     @DisplayName("Sin dos semanas de ventas no dice que un producto está parado")
-    void executeShouldNotListStoppedProductsWithoutTwoWeeksOfSales() {
-        givenDatos(List.of(venta(YERBA, 1, 3400, "2026-10-18")), List.of());
+    void sinDosSemanasDeVentasNoDiceQueUnProductoEstaParado() {
+        dadoDatos(List.of(venta(YERBA, 1, 3400, "2026-10-18")), List.of());
 
-        ObtenerMetricasResponse response = whenObtener(PeriodoMetricas.MES);
+        ObtenerMetricasResponse response = cuandoObtener(PeriodoMetricas.MES);
 
         assertThat(response.parados()).isEmpty();
     }
 
     @Test
     @DisplayName("Con una tabla de gastos suma lo gastado por categoría y el resultado")
-    void executeShouldSummarizeExpenses() {
-        givenDatos(List.of(venta(YERBA, 2, 3400, "2026-10-19")), List.of(
+    void conUnaTablaDeGastosSumaLoGastadoPorCategoriaYElResultado() {
+        dadoDatos(List.of(venta(YERBA, 2, 3400, "2026-10-19")), List.of(
                 gasto("2026-10-18", 1000, "Servicios"),
                 gasto("2026-10-17", 500, "Mercadería")));
 
-        ObtenerMetricasResponse response = whenObtener(PeriodoMetricas.SEMANA);
+        ObtenerMetricasResponse response = cuandoObtener(PeriodoMetricas.SEMANA);
 
         assertThat(response.gastos().total()).isEqualByComparingTo("1500");
         assertThat(response.gastos().cantidad()).isEqualTo(2);
@@ -201,10 +201,10 @@ class ObtenerMetricasTest {
 
     @Test
     @DisplayName("Sin zona asignada ni avisos deja la zona en null y los avisos en cero")
-    void executeShouldLeaveZoneEmptyWithoutZoneOrAvisos() {
-        givenDatos(List.of(venta(YERBA, 1, 3400, "2026-10-15")), List.of());
+    void sinZonaAsignadaNiAvisosDejaLaZonaEnNullYLosAvisosEnCero() {
+        dadoDatos(List.of(venta(YERBA, 1, 3400, "2026-10-15")), List.of());
 
-        ObtenerMetricasResponse response = whenObtener(PeriodoMetricas.SEMANA);
+        ObtenerMetricasResponse response = cuandoObtener(PeriodoMetricas.SEMANA);
 
         assertThat(response.zona()).isNull();
         assertThat(response.avisos().totalPendientes()).isZero();
@@ -214,15 +214,15 @@ class ObtenerMetricasTest {
 
     @Test
     @DisplayName("Compara los precios con el rango de la zona del negocio")
-    void executeShouldComparePricesWithTheZone() {
+    void comparaLosPreciosConElRangoDeLaZonaDelNegocio() {
         Zona zona = Zona.builder().id(ZONA_ID).nombre("San Justo").build();
         when(negocioRepository.findZonaIdById(NEGOCIO_ID)).thenReturn(Optional.of(ZONA_ID));
         when(zonaRepository.findById(ZONA_ID)).thenReturn(Optional.of(zona));
         when(agregadoZonaRepository.analizar(zona)).thenReturn(new AnalisisZona("San Justo", 8, List.of(
                 rango("Yerba", "3500", "4800"), rango("Mermelada", "1700", "3000"))));
-        givenDatos(List.of(venta(YERBA, 1, 3400, "2026-10-15")), List.of());
+        dadoDatos(List.of(venta(YERBA, 1, 3400, "2026-10-15")), List.of());
 
-        ObtenerMetricasResponse response = whenObtener(PeriodoMetricas.SEMANA);
+        ObtenerMetricasResponse response = cuandoObtener(PeriodoMetricas.SEMANA);
 
         assertThat(response.zona().nombre()).isEqualTo("San Justo");
         assertThat(response.zona().comercios()).isEqualTo(8);
@@ -240,7 +240,7 @@ class ObtenerMetricasTest {
 
     @Test
     @DisplayName("Cuenta los avisos pendientes por tipo y lo aplicado o descartado, sólo del sistema pedido")
-    void executeShouldSummarizeAvisosOfTheProject() {
+    void cuentaLosAvisosPendientesPorTipoYLoAplicadoODescartadoSoloDelSistemaPedido() {
         OffsetDateTime hace3Dias = OffsetDateTime.parse("2026-10-16T15:00:00Z");
         when(avisoRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(List.of(
                 aviso(PROYECTO_ID, TipoAviso.STOCK, EstadoAviso.PENDIENTE, null),
@@ -248,9 +248,9 @@ class ObtenerMetricasTest {
                 aviso(PROYECTO_ID, TipoAviso.STOCK, EstadoAviso.APLICADO, hace3Dias),
                 aviso(PROYECTO_ID, TipoAviso.STOCK, EstadoAviso.DESCARTADO, hace3Dias),
                 aviso(OTRO_PROYECTO_ID, TipoAviso.STOCK, EstadoAviso.PENDIENTE, null)));
-        givenDatos(List.of(venta(YERBA, 1, 3400, "2026-10-15")), List.of());
+        dadoDatos(List.of(venta(YERBA, 1, 3400, "2026-10-15")), List.of());
 
-        ObtenerMetricasResponse response = whenObtener(PeriodoMetricas.SEMANA);
+        ObtenerMetricasResponse response = cuandoObtener(PeriodoMetricas.SEMANA);
 
         assertThat(response.avisos().totalPendientes()).isEqualTo(2);
         assertThat(response.avisos().pendientes())
@@ -267,10 +267,10 @@ class ObtenerMetricasTest {
 
     @Test
     @DisplayName("Sin ventas anotadas avisa que no hay ventas")
-    void executeShouldSayThereAreNoSales() {
-        givenDatos(List.of(), List.of());
+    void sinVentasAnotadasAvisaQueNoHayVentas() {
+        dadoDatos(List.of(), List.of());
 
-        ObtenerMetricasResponse response = whenObtener(PeriodoMetricas.SEMANA);
+        ObtenerMetricasResponse response = cuandoObtener(PeriodoMetricas.SEMANA);
 
         assertThat(response.hayVentas()).isFalse();
         assertThat(response.masVendidos()).isEmpty();
@@ -278,7 +278,7 @@ class ObtenerMetricasTest {
 
     @Test
     @DisplayName("Un sistema de otro negocio responde como inexistente")
-    void executeShouldNotFindForeignProject() {
+    void unSistemaDeOtroNegocioRespondeComoInexistente() {
         when(proyectoRepository.obtener(NEGOCIO_ID, OTRO_PROYECTO_ID))
                 .thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
 
@@ -287,8 +287,8 @@ class ObtenerMetricasTest {
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
-    // --- arrange ---
-    private void givenDatos(List<Registro> ventas, List<Registro> gastos) {
+    // --- dado ---
+    private void dadoDatos(List<Registro> ventas, List<Registro> gastos) {
         List<BloqueGastos> tablasDeGastos = gastos.isEmpty() ? List.of() : List.of(bloqueDeGastos(gastos));
         when(datosDeProyectoService.cargar(proyecto, NEGOCIO_ID)).thenReturn(new DatosDeProyecto(
                 "Almacén de prueba",
@@ -299,8 +299,8 @@ class ObtenerMetricasTest {
                 tablasDeGastos));
     }
 
-    // --- act ---
-    private ObtenerMetricasResponse whenObtener(PeriodoMetricas periodo) {
+    // --- cuando ---
+    private ObtenerMetricasResponse cuandoObtener(PeriodoMetricas periodo) {
         return obtenerMetricas.execute(new ObtenerMetricasRequest(USUARIO_ID, PROYECTO_ID, periodo));
     }
 

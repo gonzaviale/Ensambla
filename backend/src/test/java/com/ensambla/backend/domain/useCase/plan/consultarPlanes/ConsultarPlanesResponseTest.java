@@ -13,7 +13,7 @@ class ConsultarPlanesResponseTest {
 
     @Test
     @DisplayName("Mapea catálogo completo, suscripción efectiva, uso e historial de prueba")
-    void deShouldMapEveryField() {
+    void mapeaCatalogoCompletoSuscripcionEfectivaUsoEHistorialDePrueba() {
         ConsultaPlanes consulta = consulta(true);
 
         ConsultarPlanesResponse result = ConsultarPlanesResponse.de(consulta, AHORA);
@@ -21,7 +21,7 @@ class ConsultarPlanesResponseTest {
         assertThat(result.consultadoEn()).isEqualTo(AHORA);
         assertThat(result.planes()).hasSize(2);
         for (int indice = 0; indice < consulta.planes().size(); indice++) {
-            thenPlanMatches(result.planes().get(indice), consulta.planes().get(indice));
+            entoncesPlanMatches(result.planes().get(indice), consulta.planes().get(indice));
         }
         assertThat(result.suscripcion().codigoPlanActual()).isEqualTo("GRATUITO");
         assertThat(result.suscripcion().pruebaActiva()).isFalse();
@@ -43,15 +43,15 @@ class ConsultarPlanesResponseTest {
 
     @Test
     @DisplayName("Un negocio que nunca inició prueba conserva historial nulo y elegibilidad")
-    void deShouldPreserveAbsentHistory() {
+    void unNegocioQueNuncaInicioPruebaConservaHistorialNuloYElegibilidad() {
         ConsultarPlanesResponse result = ConsultarPlanesResponse.de(consulta(false), AHORA);
 
         assertThat(result.prueba()).isNull();
         assertThat(result.suscripcion().puedeIniciarPrueba()).isTrue();
     }
 
-    // --- assert ---
-    private void thenPlanMatches(PlanItem actual, Plan esperado) {
+    // --- entonces ---
+    private void entoncesPlanMatches(PlanItem actual, Plan esperado) {
         assertThat(actual.codigo()).isEqualTo(esperado.getCodigo().name());
         assertThat(actual.nombre()).isEqualTo(esperado.getNombre());
         assertThat(actual.precioConfigurado()).isEqualTo(esperado.getConfigurado());

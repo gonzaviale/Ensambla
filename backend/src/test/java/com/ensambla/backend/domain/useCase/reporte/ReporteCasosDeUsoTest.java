@@ -99,13 +99,13 @@ class ReporteCasosDeUsoTest {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID))
                 .thenReturn(Bloque.builder().id(BLOQUE_ID).nombre("Pedidos").build());
-        lenient().when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(givenCampos());
+        lenient().when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(dadoCampos());
     }
 
     @Test
     @DisplayName("Generar devuelve las primeras 50 filas del filtro y los totales de todas")
-    void generarShouldReturnFirstRowsAndTotalsOfTheFilter() {
-        givenReporte(60, new BigDecimal("125.5"));
+    void generarDevuelveLasPrimeras50FilasDelFiltroYLosTotalesDeTodas() {
+        dadoReporte(60, new BigDecimal("125.5"));
 
         GenerarReporteResponse response = generarReporte.execute(request(null));
 
@@ -123,7 +123,7 @@ class ReporteCasosDeUsoTest {
 
     @Test
     @DisplayName("Generar rechaza un filtro inválido antes de consultar las filas")
-    void generarShouldRejectInvalidFilterBeforeQuerying() {
+    void generarRechazaUnFiltroInvalidoAntesDeConsultarLasFilas() {
         GenerarReporteRequest alReves = new GenerarReporteRequest(
                 USUARIO_ID, BLOQUE_ID, null, LocalDate.parse("2026-10-02"), LocalDate.parse("2026-10-01"), null, null);
 
@@ -132,7 +132,7 @@ class ReporteCasosDeUsoTest {
 
     @Test
     @DisplayName("Generar responde 'no existe' si el bloque es de otro negocio")
-    void generarShouldPropagateNotFound() {
+    void generarRespondeNoExisteSiElBloqueEsDeOtroNegocio() {
         when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenThrow(new ResourceNotFoundException("no existe"));
 
         assertThatThrownBy(() -> generarReporte.execute(request(null)))
@@ -141,8 +141,8 @@ class ReporteCasosDeUsoTest {
 
     @Test
     @DisplayName("Los totales del archivo descargado coinciden con los de la pantalla y con el filtro")
-    void exportedTotalsShouldMatchTheScreenTotals() throws IOException {
-        givenReporte(2, new BigDecimal("125.5"));
+    void losTotalesDelArchivoDescargadoCoincidenConLosDeLaPantallaYConElFiltro() throws IOException {
+        dadoReporte(2, new BigDecimal("125.5"));
 
         GenerarReporteResponse enPantalla = generarReporte.execute(request(null));
         ExportarReporteResponse archivo = exportarReporte.execute(request(null));
@@ -160,7 +160,7 @@ class ReporteCasosDeUsoTest {
 
     @Test
     @DisplayName("No descarga un archivo incompleto cuando hay más filas que el máximo")
-    void exportarShouldRejectReportsOverTheMaximum() {
+    void noDescargaUnArchivoIncompletoCuandoHayMasFilasQueElMaximo() {
         when(registroRepository.buscarFiltrados(any(), anyInt())).thenReturn(List.of());
         when(registroRepository.contarFiltrados(any())).thenReturn(10_001L);
         when(registroRepository.sumarNumericos(any(FiltroReporte.class), any())).thenReturn(Map.of());
@@ -172,13 +172,13 @@ class ReporteCasosDeUsoTest {
 
     @Test
     @DisplayName("El archivo nombra las filas conectadas pidiendo una vez cada tabla conectada")
-    void exportarShouldNameConnectedRowsQueryingOncePerTable() throws IOException {
+    void elArchivoNombraLasFilasConectadasPidiendoUnaVezCadaTablaConectada() throws IOException {
         Campo cliente = Campo.builder().id(CLIENTE_CAMPO_ID).nombre("Cliente").tipo(TipoCampo.RELACION)
                 .bloqueRelacionadoId(CLIENTES_ID).posicion((short) 3).build();
         when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID))
-                .thenReturn(List.of(givenCampos().get(0), cliente));
+                .thenReturn(List.of(dadoCampos().get(0), cliente));
         when(registroRepository.buscarFiltrados(any(), anyInt())).thenReturn(List.of(
-                givenFilaDe(BETO_ID.valor()), givenFilaDe(ANA_ID.valor()),
+                dadoFilaDe(BETO_ID.valor()), dadoFilaDe(ANA_ID.valor()),
                 Registro.builder().id(RegistroId.nuevo()).creadoEn(OffsetDateTime.parse("2026-10-12T12:00:00Z"))
                         .valores(Map.of()).build()));
         when(registroRepository.contarFiltrados(any())).thenReturn(3L);
@@ -200,20 +200,20 @@ class ReporteCasosDeUsoTest {
 
     @Test
     @DisplayName("Sin columnas de conexión el archivo no consulta otras tablas")
-    void exportarShouldNotQueryOtherTablesWithoutConnections() {
-        givenReporte(2, new BigDecimal("125.5"));
+    void sinColumnasDeConexionElArchivoNoConsultaOtrasTablas() {
+        dadoReporte(2, new BigDecimal("125.5"));
 
         exportarReporte.execute(request(null));
 
         verify(registroRepository, never()).findAllByIdsAndBloque(any(), any(), any());
     }
 
-    private static Registro givenFilaDe(UUID clienteId) {
+    private static Registro dadoFilaDe(UUID clienteId) {
         return Registro.builder().id(RegistroId.nuevo()).creadoEn(OffsetDateTime.parse("2026-10-12T12:00:00Z"))
                 .valores(Map.of(CLIENTE_CAMPO_ID.toString(), clienteId.toString())).build();
     }
 
-    private void givenReporte(long cantidad, BigDecimal suma) {
+    private void dadoReporte(long cantidad, BigDecimal suma) {
         List<Registro> filas = List.of(
                 Registro.builder().id(RegistroId.nuevo()).creadoEn(OffsetDateTime.parse("2026-10-12T12:00:00Z"))
                         .valores(Map.of(NOMBRE_ID.toString(), "Pan", CANTIDAD_ID.toString(), 2.5,
@@ -232,7 +232,7 @@ class ReporteCasosDeUsoTest {
                 USUARIO_ID, BLOQUE_ID, "pan", LocalDate.parse("2026-10-01"), null, campoId, null);
     }
 
-    private static List<Campo> givenCampos() {
+    private static List<Campo> dadoCampos() {
         return List.of(
                 Campo.builder().id(NOMBRE_ID).nombre("Nombre").tipo(TipoCampo.TEXTO).posicion((short) 0).build(),
                 Campo.builder().id(CANTIDAD_ID).nombre("Cantidad").tipo(TipoCampo.NUMERO).posicion((short) 1).build(),

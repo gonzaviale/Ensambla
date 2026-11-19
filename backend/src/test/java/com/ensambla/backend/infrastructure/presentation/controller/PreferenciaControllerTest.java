@@ -49,7 +49,7 @@ class PreferenciaControllerTest {
 
     @Test
     @DisplayName("GET devuelve las preferencias del usuario de sesión")
-    void obtenerShouldReturnPreferencias() throws Exception {
+    void gETDevuelveLasPreferenciasDelUsuarioDeSesion() throws Exception {
         when(obtenerPreferencias.execute(any())).thenReturn(
                 new PreferenciasItem(List.of("a1"), Map.of("STOCK", false), true, "Gonza"));
 
@@ -64,7 +64,7 @@ class PreferenciaControllerTest {
 
     @Test
     @DisplayName("GET omite el nombre cuando no hay uno elegido")
-    void obtenerShouldOmitMissingNombre() throws Exception {
+    void gETOmiteElNombreCuandoNoHayUnoElegido() throws Exception {
         when(obtenerPreferencias.execute(any())).thenReturn(
                 new PreferenciasItem(List.of(), Map.of(), false, null));
 
@@ -75,7 +75,7 @@ class PreferenciaControllerTest {
 
     @Test
     @DisplayName("PUT guarda las preferencias con el usuario de sesión")
-    void guardarShouldSaveForSessionUsuario() throws Exception {
+    void pUTGuardaLasPreferenciasConElUsuarioDeSesion() throws Exception {
         when(guardarPreferencias.execute(any())).thenReturn(
                 new PreferenciasItem(List.of("a1"), Map.of(), true, "Gonza"));
 
@@ -89,7 +89,7 @@ class PreferenciaControllerTest {
 
     @Test
     @DisplayName("PUT rechaza un cuerpo inválido sin tocar el caso de uso")
-    void guardarShouldRejectInvalidBody() throws Exception {
+    void pUTRechazaUnCuerpoInvalidoSinTocarElCasoDeUso() throws Exception {
         mockMvc.perform(put("/api/preferencias").principal(principal).contentType("application/json")
                         .content("{\"descartadas\":[],\"grupos\":{},\"bienvenidaVista\":true,"
                                 + "\"nombre\":\"un nombre que supera por mucho los cuarenta caracteres\"}"))

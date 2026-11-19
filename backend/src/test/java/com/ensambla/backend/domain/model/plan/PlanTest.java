@@ -14,7 +14,7 @@ class PlanTest {
 
     @Test
     @DisplayName("Permite el primer sistema y rechaza el siguiente al alcanzar el límite")
-    void validarProyectosShouldEnforceLimit() {
+    void permiteElPrimerSistemaYRechazaElSiguienteAlAlcanzarElLimite() {
         Plan plan = plan();
         plan.setLimiteProyectos(1);
 
@@ -26,7 +26,7 @@ class PlanTest {
 
     @Test
     @DisplayName("Un límite nulo permite sistemas sin límite comercial")
-    void validarProyectosShouldAllowUnlimitedConfiguredPlan() {
+    void unLimiteNuloPermiteSistemasSinLimiteComercial() {
         Plan plan = plan();
         plan.setLimiteProyectos(null);
 
@@ -35,7 +35,7 @@ class PlanTest {
 
     @Test
     @DisplayName("Valida todas las filas del lote antes de permitir el alta")
-    void validarRegistrosShouldCheckWholeBatch() {
+    void validaTodasLasFilasDelLoteAntesDePermitirElAlta() {
         Plan plan = plan();
         plan.setLimiteRegistros(1000L);
 
@@ -47,7 +47,7 @@ class PlanTest {
 
     @Test
     @DisplayName("Un lote vacío no exige eliminar registros cuando el negocio ya superó su cuota")
-    void validarRegistrosShouldAllowEmptyBatchAboveLimit() {
+    void unLoteVacioNoExigeEliminarRegistrosCuandoElNegocioYaSuperoSuCuota() {
         Plan plan = plan();
         plan.setLimiteRegistros(1000L);
 
@@ -59,7 +59,7 @@ class PlanTest {
 
     @Test
     @DisplayName("La cuota mensual de IA incluye páginas procesadas y reservadas")
-    void validarPaginasIaShouldEnforceMonthlyAllowance() {
+    void laCuotaMensualDeIAIncluyePaginasProcesadasYReservadas() {
         Plan plan = plan();
         plan.setLimitePaginasIaMensuales(10);
 
@@ -71,7 +71,7 @@ class PlanTest {
 
     @Test
     @DisplayName("No habilita límites comerciales pendientes de configuración")
-    void validarLimitesConfiguradosShouldFailClosedWhenFalse() {
+    void noHabilitaLimitesComercialesPendientesDeConfiguracion() {
         Plan plan = plan();
         plan.setLimitesConfigurados(false);
 
@@ -81,7 +81,7 @@ class PlanTest {
 
     @Test
     @DisplayName("No interpreta una configuración nula como un plan ilimitado")
-    void validarLimitesConfiguradosShouldFailClosedWhenNull() {
+    void noInterpretaUnaConfiguracionNulaComoUnPlanIlimitado() {
         Plan plan = plan();
         plan.setLimitesConfigurados(null);
 
@@ -90,7 +90,7 @@ class PlanTest {
 
     @Test
     @DisplayName("Permite usar capacidades aprobadas aunque el precio siga pendiente")
-    void validarLimitesConfiguradosShouldAllowCapabilitiesWithoutPrice() {
+    void permiteUsarCapacidadesAprobadasAunqueElPrecioSigaPendiente() {
         Plan plan = plan();
         plan.setConfigurado(false);
 
@@ -99,7 +99,7 @@ class PlanTest {
 
     @Test
     @DisplayName("Permite sólo las funciones incluidas explícitamente en el catálogo")
-    void validarFuncionShouldRespectEnabledFeatures() {
+    void permiteSoloLasFuncionesIncluidasExplicitamenteEnElCatalogo() {
         Plan plan = plan();
         plan.setFunciones(List.of(FuncionPlan.RECETAS_COSTOS.name()));
 

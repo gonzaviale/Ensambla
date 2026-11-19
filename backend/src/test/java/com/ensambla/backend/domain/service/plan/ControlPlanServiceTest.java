@@ -79,8 +79,8 @@ class ControlPlanServiceTest {
 
     @Test
     @DisplayName("Bloquea el negocio antes de contar y autorizar un sistema")
-    void validarAltaProyectoShouldLockBeforeCounting() {
-        givenActivePlan();
+    void bloqueaElNegocioAntesDeContarYAutorizarUnSistema() {
+        dadoActivePlan();
 
         controlPlanService.validarAltaProyecto(NEGOCIO_ID, INSTANTE);
 
@@ -92,8 +92,8 @@ class ControlPlanServiceTest {
 
     @Test
     @DisplayName("Rechaza todas las filas del lote cuando no entran en la cuota")
-    void validarAltaRegistrosShouldRejectWholeBatch() {
-        givenActivePlan();
+    void rechazaTodasLasFilasDelLoteCuandoNoEntranEnLaCuota() {
+        dadoActivePlan();
         when(usoPlanRepository.contarRegistros(NEGOCIO_ID)).thenReturn(99L);
 
         assertThatThrownBy(() -> controlPlanService.validarAltaRegistros(NEGOCIO_ID, 2, INSTANTE))
@@ -102,7 +102,7 @@ class ControlPlanServiceTest {
 
     @Test
     @DisplayName("Calcula el mes por el día argentino aunque en UTC ya sea el mes siguiente")
-    void validarPaginasIaShouldUseArgentinaMonth() {
+    void calculaElMesPorElDiaArgentinoAunqueEnUTCYaSeaElMesSiguiente() {
         Suscripcion suscripcion = suscripcion();
         suscripcion.setInicioEn(INSTANTE.minusMonths(1));
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
@@ -118,8 +118,8 @@ class ControlPlanServiceTest {
 
     @Test
     @DisplayName("Una función incluida se permite sin bloquear ni contar las altas")
-    void validarFuncionShouldAllowEnabledFeature() {
-        Plan plan = givenActivePlan();
+    void unaFuncionIncluidaSePermiteSinBloquearNiContarLasAltas() {
+        Plan plan = dadoActivePlan();
         plan.setFunciones(List.of(FuncionPlan.RECETAS_COSTOS.name()));
 
         assertThatCode(() -> controlPlanService.validarFuncion(
@@ -130,10 +130,10 @@ class ControlPlanServiceTest {
 
     @Test
     @DisplayName("La suscripción vencida usa el gratuito aunque todavía figure activa en persistencia")
-    void validarFuncionShouldFallBackAtExactExpiry() {
+    void laSuscripcionVencidaUsaElGratuitoAunqueTodaviaFigureActivaEnPersistencia() {
         Suscripcion suscripcion = suscripcion();
         suscripcion.setFinEn(INSTANTE);
-        givenFallback(suscripcion);
+        dadoFallback(suscripcion);
 
         assertThatThrownBy(() -> controlPlanService.validarFuncion(
                 NEGOCIO_ID, FuncionPlan.RECETAS_COSTOS, INSTANTE))
@@ -142,10 +142,10 @@ class ControlPlanServiceTest {
 
     @Test
     @DisplayName("Una suscripción cancelada conserva los límites de alta del gratuito")
-    void validarAltaProyectoShouldUseFreePlanWhenCancelled() {
+    void unaSuscripcionCanceladaConservaLosLimitesDeAltaDelGratuito() {
         Suscripcion suscripcion = suscripcion();
         suscripcion.setEstado(EstadoSuscripcion.CANCELADA);
-        givenFallback(suscripcion);
+        dadoFallback(suscripcion);
 
         controlPlanService.validarAltaProyecto(NEGOCIO_ID, INSTANTE);
 
@@ -154,7 +154,7 @@ class ControlPlanServiceTest {
 
     @Test
     @DisplayName("Un negocio sin suscripción no recibe capacidades por defecto")
-    void validarFuncionShouldRejectMissingSubscription() {
+    void unNegocioSinSuscripcionNoRecibeCapacidadesPorDefecto() {
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> controlPlanService.validarFuncion(
@@ -166,7 +166,7 @@ class ControlPlanServiceTest {
 
     @Test
     @DisplayName("No habilita un plan referido que ya no existe")
-    void validarFuncionShouldRejectMissingAssignedPlan() {
+    void noHabilitaUnPlanReferidoQueYaNoExiste() {
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
         when(planRepository.findById(PLAN_ID)).thenReturn(Optional.empty());
 
@@ -177,7 +177,7 @@ class ControlPlanServiceTest {
 
     @Test
     @DisplayName("Una suscripción vencida no habilita funciones si falta el catálogo gratuito")
-    void validarFuncionShouldRejectMissingFallbackPlan() {
+    void unaSuscripcionVencidaNoHabilitaFuncionesSiFaltaElCatalogoGratuito() {
         Suscripcion suscripcion = suscripcion();
         suscripcion.setEstado(EstadoSuscripcion.VENCIDA);
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
@@ -190,8 +190,8 @@ class ControlPlanServiceTest {
 
     @Test
     @DisplayName("Una prueba sin historial persistido falla sin autorizar páginas")
-    void validarPaginasIaShouldRejectTrialWithoutHistory() {
-        givenActivePlan();
+    void unaPruebaSinHistorialPersistidoFallaSinAutorizarPaginas() {
+        dadoActivePlan();
         Suscripcion prueba = suscripcion();
         prueba.setEstado(EstadoSuscripcion.PRUEBA);
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(prueba));
@@ -202,8 +202,8 @@ class ControlPlanServiceTest {
 
     @Test
     @DisplayName("Una foto inmediata valida el mes, reserva en el día argentino con el límite diario y no lanza si entra")
-    void reservarPaginaIaInmediataShouldReserveInTheArgentinaDay() {
-        givenActivePlan();
+    void unaFotoInmediataValidaElMesReservaEnElDiaArgentinoConElLimiteDiarioYNoLanzaSiEntra() {
+        dadoActivePlan();
         OffsetDateTime enArgentina = INSTANTE.withOffsetSameInstant(ZoneOffset.ofHours(-3));
         LocalDate diaArgentino = ZonaNegocio.dia(INSTANTE);
         when(usoPlanRepository.registrarPaginaInmediata(NEGOCIO_ID, diaArgentino, 100, enArgentina)).thenReturn(true);
@@ -215,8 +215,8 @@ class ControlPlanServiceTest {
 
     @Test
     @DisplayName("Una foto inmediata con el límite diario agotado responde la restricción del día")
-    void reservarPaginaIaInmediataShouldRejectWhenDailyLimitIsReached() {
-        givenActivePlan();
+    void unaFotoInmediataConElLimiteDiarioAgotadoRespondeLaRestriccionDelDia() {
+        dadoActivePlan();
         when(usoPlanRepository.registrarPaginaInmediata(any(), any(), anyInt(), any())).thenReturn(false);
 
         assertThatThrownBy(() -> controlPlanService.reservarPaginaIaInmediata(NEGOCIO_ID, 100, INSTANTE))
@@ -226,18 +226,18 @@ class ControlPlanServiceTest {
 
     @Test
     @DisplayName("La reserva de páginas tampoco admite un negocio sin suscripción")
-    void reservarPaginasIaShouldRejectMissingSubscription() {
+    void laReservaDePaginasTampocoAdmiteUnNegocioSinSuscripcion() {
         assertThatThrownBy(() -> controlPlanService.reservarPaginasIa(NEGOCIO_ID, 1, INSTANTE, () -> true))
                 .isInstanceOf(ResourceNotFoundException.class).hasMessage("Suscripción no encontrada");
     }
 
     @Test
     @DisplayName("Una prueba vencida usa la cuota mensual gratuita y no incrementa el historial de prueba")
-    void reservarPaginasIaShouldIgnoreExpiredTrial() {
+    void unaPruebaVencidaUsaLaCuotaMensualGratuitaYNoIncrementaElHistorialDePrueba() {
         Suscripcion prueba = suscripcion();
         prueba.setEstado(EstadoSuscripcion.PRUEBA);
         prueba.setFinEn(INSTANTE);
-        givenFallback(prueba);
+        dadoFallback(prueba);
 
         boolean result = controlPlanService.reservarPaginasIa(NEGOCIO_ID, 1, INSTANTE, () -> true);
 
@@ -248,8 +248,8 @@ class ControlPlanServiceTest {
 
     @Test
     @DisplayName("Valida la cuota de la prueba antes de la reserva diaria y, si entra, la descuenta de la prueba")
-    void reservarPaginasIaShouldValidateReserveAndChargeTrialInOrder() {
-        PruebaPremium prueba = givenPruebaVigente();
+    void validaLaCuotaDeLaPruebaAntesDeLaReservaDiariaYSiEntraLaDescuentaDeLaPrueba() {
+        PruebaPremium prueba = dadoPruebaVigente();
         BooleanSupplier reserva = mock(BooleanSupplier.class);
         when(reserva.getAsBoolean()).thenReturn(true);
 
@@ -264,8 +264,8 @@ class ControlPlanServiceTest {
 
     @Test
     @DisplayName("Una reserva diaria que no entra no descuenta páginas de la prueba")
-    void reservarPaginasIaShouldNotChargeTrialWhenReservationFails() {
-        givenPruebaVigente();
+    void unaReservaDiariaQueNoEntraNoDescuentaPaginasDeLaPrueba() {
+        dadoPruebaVigente();
 
         boolean result = controlPlanService.reservarPaginasIa(NEGOCIO_ID, 2, INSTANTE, () -> false);
 
@@ -275,8 +275,8 @@ class ControlPlanServiceTest {
 
     @Test
     @DisplayName("Un rechazo de la cuota mensual no llega a hacer la reserva diaria")
-    void reservarPaginasIaShouldNotReserveWhenMonthlyQuotaIsFull() {
-        givenActivePlan();
+    void unRechazoDeLaCuotaMensualNoLlegaAHacerLaReservaDiaria() {
+        dadoActivePlan();
         when(usoPlanRepository.paginasEnPeriodo(any(), any(), any())).thenReturn(10L);
         BooleanSupplier reserva = mock(BooleanSupplier.class);
 
@@ -285,15 +285,15 @@ class ControlPlanServiceTest {
         verifyNoInteractions(reserva);
     }
 
-    // --- arrange ---
-    private Plan givenActivePlan() {
+    // --- dado ---
+    private Plan dadoActivePlan() {
         Plan plan = plan();
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
         when(planRepository.findById(PLAN_ID)).thenReturn(Optional.of(plan));
         return plan;
     }
 
-    private PruebaPremium givenPruebaVigente() {
+    private PruebaPremium dadoPruebaVigente() {
         Suscripcion suscripcion = suscripcion();
         suscripcion.setEstado(EstadoSuscripcion.PRUEBA);
         PruebaPremium prueba = PruebaPremium.nueva(NEGOCIO_ID, INSTANTE);
@@ -303,7 +303,7 @@ class ControlPlanServiceTest {
         return prueba;
     }
 
-    private void givenFallback(Suscripcion suscripcion) {
+    private void dadoFallback(Suscripcion suscripcion) {
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
         when(planRepository.findByCodigo(CodigoPlan.GRATUITO)).thenReturn(Optional.of(plan()));
     }

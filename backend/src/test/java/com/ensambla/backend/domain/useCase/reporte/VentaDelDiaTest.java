@@ -19,7 +19,7 @@ class VentaDelDiaTest {
 
     @Test
     @DisplayName("Suma lo que entró cada día con precio y deja en cero los días sin ventas")
-    void serieShouldSumEachDayAndFillDaysWithoutSales() {
+    void sumaLoQueEntroCadaDiaConPrecioYDejaEnCeroLosDiasSinVentas() {
         List<VentaDelDia> serie = VentaDelDia.serie(List.of(
                 venta(2, "3400", "2026-10-17"),
                 venta(1, "3400", "2026-10-17"),

@@ -60,8 +60,8 @@ class ZonaControllerTest {
 
     @Test
     @DisplayName("GET agregados devuelve la zona con la forma que espera el front")
-    void agregadosShouldReturnZoneShape() throws Exception {
-        when(obtenerZona.execute(any())).thenReturn(givenZona());
+    void gETAgregadosDevuelveLaZonaConLaFormaQueEsperaElFront() throws Exception {
+        when(obtenerZona.execute(any())).thenReturn(dadoZona());
 
         mockMvc.perform(get("/api/zona/agregados").principal(principal))
                 .andExpect(status().isOk())
@@ -79,8 +79,8 @@ class ZonaControllerTest {
 
     @Test
     @DisplayName("GET agregados con vista=cerca pide la pantalla Qué se vende cerca")
-    void agregadosShouldDelegateNearbyView() throws Exception {
-        when(obtenerZona.execute(any())).thenReturn(givenZona());
+    void gETAgregadosConVistaCercaPideLaPantallaQueSeVendeCerca() throws Exception {
+        when(obtenerZona.execute(any())).thenReturn(dadoZona());
 
         mockMvc.perform(get("/api/zona/agregados").param("vista", "cerca").principal(principal))
                 .andExpect(status().isOk());
@@ -89,7 +89,7 @@ class ZonaControllerTest {
 
     @Test
     @DisplayName("GET agregados rechaza una vista desconocida sin tocar el caso de uso")
-    void agregadosShouldRejectUnknownView() throws Exception {
+    void gETAgregadosRechazaUnaVistaDesconocidaSinTocarElCasoDeUso() throws Exception {
         mockMvc.perform(get("/api/zona/agregados").param("vista", "otra").principal(principal))
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(obtenerZona);
@@ -97,8 +97,8 @@ class ZonaControllerTest {
 
     @Test
     @DisplayName("POST análisis delega el lugar escrito")
-    void analizarShouldDelegatePlace() throws Exception {
-        when(analizarZona.execute(any())).thenReturn(givenZona());
+    void pOSTAnalisisDelegaElLugarEscrito() throws Exception {
+        when(analizarZona.execute(any())).thenReturn(dadoZona());
 
         mockMvc.perform(post("/api/zona/analisis").principal(principal).contentType("application/json")
                         .content("{\"lugar\":\"San Justo\"}"))
@@ -109,8 +109,8 @@ class ZonaControllerTest {
 
     @Test
     @DisplayName("POST análisis delega el punto del mapa")
-    void analizarShouldDelegatePoint() throws Exception {
-        when(analizarZona.execute(any())).thenReturn(givenZona());
+    void pOSTAnalisisDelegaElPuntoDelMapa() throws Exception {
+        when(analizarZona.execute(any())).thenReturn(dadoZona());
 
         mockMvc.perform(post("/api/zona/analisis").principal(principal).contentType("application/json")
                         .content("{\"latitud\":-34.6703,\"longitud\":-58.5628}"))
@@ -122,7 +122,7 @@ class ZonaControllerTest {
 
     @Test
     @DisplayName("POST análisis devuelve la zona sin productos cuando no hay datos suficientes")
-    void analizarShouldReturnEmptyProducts() throws Exception {
+    void pOSTAnalisisDevuelveLaZonaSinProductosCuandoNoHayDatosSuficientes() throws Exception {
         when(analizarZona.execute(any())).thenReturn(new ZonaItem("Villa Crespo", 2, List.of()));
 
         mockMvc.perform(post("/api/zona/analisis").principal(principal).contentType("application/json")
@@ -134,7 +134,7 @@ class ZonaControllerTest {
 
     @Test
     @DisplayName("POST análisis rechaza un pedido sin lugar ni punto sin tocar el caso de uso")
-    void analizarShouldRejectWhenNothingIsIndicated() throws Exception {
+    void pOSTAnalisisRechazaUnPedidoSinLugarNiPuntoSinTocarElCasoDeUso() throws Exception {
         mockMvc.perform(post("/api/zona/analisis").principal(principal).contentType("application/json")
                         .content("{}"))
                 .andExpect(status().isBadRequest());
@@ -143,7 +143,7 @@ class ZonaControllerTest {
 
     @Test
     @DisplayName("POST análisis rechaza una latitud fuera de rango sin tocar el caso de uso")
-    void analizarShouldRejectLatitudeOutOfRange() throws Exception {
+    void pOSTAnalisisRechazaUnaLatitudFueraDeRangoSinTocarElCasoDeUso() throws Exception {
         mockMvc.perform(post("/api/zona/analisis").principal(principal).contentType("application/json")
                         .content("{\"latitud\":95,\"longitud\":-58.5628}"))
                 .andExpect(status().isBadRequest());
@@ -152,7 +152,7 @@ class ZonaControllerTest {
 
     @Test
     @DisplayName("POST análisis rechaza una longitud fuera de rango sin tocar el caso de uso")
-    void analizarShouldRejectLongitudeOutOfRange() throws Exception {
+    void pOSTAnalisisRechazaUnaLongitudFueraDeRangoSinTocarElCasoDeUso() throws Exception {
         mockMvc.perform(post("/api/zona/analisis").principal(principal).contentType("application/json")
                         .content("{\"latitud\":-34.6703,\"longitud\":-200}"))
                 .andExpect(status().isBadRequest());
@@ -161,7 +161,7 @@ class ZonaControllerTest {
 
     @Test
     @DisplayName("POST análisis responde 404 cuando no hay datos de esa zona")
-    void analizarShouldReturnNotFoundWithoutData() throws Exception {
+    void pOSTAnalisisResponde404CuandoNoHayDatosDeEsaZona() throws Exception {
         when(analizarZona.execute(any()))
                 .thenThrow(new ResourceNotFoundException("Todavía no tenemos datos de esa zona"));
 
@@ -172,7 +172,7 @@ class ZonaControllerTest {
 
     @Test
     @DisplayName("POST análisis rechaza un lugar demasiado corto sin tocar el caso de uso")
-    void analizarShouldRejectShortPlace() throws Exception {
+    void pOSTAnalisisRechazaUnLugarDemasiadoCortoSinTocarElCasoDeUso() throws Exception {
         mockMvc.perform(post("/api/zona/analisis").principal(principal).contentType("application/json")
                         .content("{\"lugar\":\"a\"}"))
                 .andExpect(status().isBadRequest());
@@ -181,8 +181,8 @@ class ZonaControllerTest {
 
     @Test
     @DisplayName("POST dónde abrir toma el usuario de la sesión y devuelve el ranking")
-    void dondeAbrirShouldDelegateAuthenticatedBusiness() throws Exception {
-        when(explorarDondeAbrir.execute(any())).thenReturn(givenDondeAbrir());
+    void pOSTDondeAbrirTomaElUsuarioDeLaSesionYDevuelveElRanking() throws Exception {
+        when(explorarDondeAbrir.execute(any())).thenReturn(dadoDondeAbrir());
 
         mockMvc.perform(post("/api/zona/donde-abrir").principal(principal).contentType("application/json")
                         .content("""
@@ -202,21 +202,21 @@ class ZonaControllerTest {
 
     @Test
     @DisplayName("POST dónde abrir valida rubro y público antes de ejecutar")
-    void dondeAbrirShouldValidateRequiredFields() throws Exception {
+    void pOSTDondeAbrirValidaRubroYPublicoAntesDeEjecutar() throws Exception {
         mockMvc.perform(post("/api/zona/donde-abrir").principal(principal).contentType("application/json")
                         .content("{}"))
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(explorarDondeAbrir);
     }
 
-    // --- arrange ---
-    private ZonaItem givenZona() {
+    // --- dado ---
+    private ZonaItem dadoZona() {
         return new ZonaItem("San Justo - UNLaM", 10, List.of(new ProductoItem("Yerba 1kg", 8,
                 new BigDecimal("2800.00"), new BigDecimal("3100.00"), new BigDecimal("3400.00"), 6,
                 new BigDecimal("12.50"))));
     }
 
-    private ExplorarDondeAbrirResponse givenDondeAbrir() {
+    private ExplorarDondeAbrirResponse dadoDondeAbrir() {
         var negocio = new ExplorarDondeAbrirResponse.NegocioActual(
                 "Almacén", RubroNegocio.ALMACEN, "Arieta 1", new BigDecimal("-34.67"),
                 new BigDecimal("-58.56"), null);

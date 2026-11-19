@@ -75,8 +75,8 @@ class ObtenerResumenInicioTest {
 
     @Test
     @DisplayName("Suma lo vendido hoy, en hora argentina, y lo compara con el mismo día de la semana pasada")
-    void executeShouldSumTodaysSalesAndCompareWithLastWeek() {
-        givenDatos(
+    void sumaLoVendidoHoyEnHoraArgentinaYLoComparaConElMismoDiaDeLaSemanaPasada() {
+        dadoDatos(
                 List.of(
                         venta(YERBA, 2, 3400, "2026-10-19"),
                         venta(YERBA, 1, 3400, "2026-10-19"),
@@ -85,7 +85,7 @@ class ObtenerResumenInicioTest {
                         venta(YERBA, 9, 3400, "2026-10-20")),
                 yerba());
 
-        ObtenerResumenInicioResponse response = whenObtener();
+        ObtenerResumenInicioResponse response = cuandoObtener();
 
         assertThat(response.sistema()).isEqualTo("Almacén de prueba");
         assertThat(response.hoy()).isEqualTo(HOY);
@@ -104,8 +104,8 @@ class ObtenerResumenInicioTest {
 
     @Test
     @DisplayName("Suma lo vendido en la semana y en el mes, lo compara con el período anterior y cuenta el fiado")
-    void executeShouldSumTheWeekAndTheMonthWithTheirComparisonAndCredit() {
-        givenDatos(
+    void sumaLoVendidoEnLaSemanaYEnElMesLoComparaConElPeriodoAnteriorYCuentaElFiado() {
+        dadoDatos(
                 List.of(
                         ventaAFiado(YERBA, 2, 3400, "2026-10-19"),
                         venta(YERBA, 1, 3400, "2026-10-15"),
@@ -114,7 +114,7 @@ class ObtenerResumenInicioTest {
                         venta(YERBA, 4, 3400, "2026-09-01")),
                 yerba());
 
-        ObtenerResumenInicioResponse response = whenObtener();
+        ObtenerResumenInicioResponse response = cuandoObtener();
 
         assertThat(response.ventas().hoy().fiado()).isEqualByComparingTo("6800");
         assertThat(response.ventas().semana().ingresos()).isEqualByComparingTo("10200");
@@ -131,14 +131,14 @@ class ObtenerResumenInicioTest {
 
     @Test
     @DisplayName("Sin ventas hoy devuelve cero y el último día en que se anotó una venta")
-    void executeShouldReturnTheLastDayWithSalesWhenThereAreNoneToday() {
-        givenDatos(
+    void sinVentasHoyDevuelveCeroYElUltimoDiaEnQueSeAnotoUnaVenta() {
+        dadoDatos(
                 List.of(
                         venta(YERBA, 2, 3400, "2026-10-16"),
                         venta(YERBA, 1, 3400, "2026-10-10")),
                 yerba());
 
-        ObtenerResumenInicioResponse response = whenObtener();
+        ObtenerResumenInicioResponse response = cuandoObtener();
 
         assertThat(response.ventas().hoy().ingresos()).isEqualByComparingTo("0");
         assertThat(response.ventas().hoy().cantidad()).isZero();
@@ -148,10 +148,10 @@ class ObtenerResumenInicioTest {
 
     @Test
     @DisplayName("Un sistema sin ventas ni productos no tiene nada para mostrar")
-    void executeShouldReturnEmptyMetricsWhenThereIsNothingLoaded() {
-        givenDatos(List.of());
+    void unSistemaSinVentasNiProductosNoTieneNadaParaMostrar() {
+        dadoDatos(List.of());
 
-        ObtenerResumenInicioResponse response = whenObtener();
+        ObtenerResumenInicioResponse response = cuandoObtener();
 
         assertThat(response.hayVentas()).isFalse();
         assertThat(response.hayProductos()).isFalse();
@@ -164,15 +164,15 @@ class ObtenerResumenInicioTest {
 
     @Test
     @DisplayName("Devuelve el producto que más salió en los últimos 30 días con su ganancia")
-    void executeShouldReturnTheBestSellerOfTheLastThirtyDays() {
-        givenDatos(
+    void devuelveElProductoQueMasSalioEnLosUltimos30DiasConSuGanancia() {
+        dadoDatos(
                 List.of(
                         venta(YERBA, 5, 3400, "2026-10-10"),
                         venta(FIDEOS, 9, 1700, "2026-10-11"),
                         venta(MERMELADA, 50, 2600, "2026-08-01")),
                 yerba(), fideos(), mermelada());
 
-        ObtenerResumenInicioResponse response = whenObtener();
+        ObtenerResumenInicioResponse response = cuandoObtener();
 
         assertThat(response.hayProductos()).isTrue();
         assertThat(response.masVendido().nombre()).isEqualTo("Fideos Luchetti");
@@ -183,8 +183,8 @@ class ObtenerResumenInicioTest {
 
     @Test
     @DisplayName("Avisa los tres productos más urgentes y cuenta todos los que faltan")
-    void executeShouldListTheThreeMostUrgentMissingProducts() {
-        givenDatos(
+    void avisaLosTresProductosMasUrgentesYCuentaTodosLosQueFaltan() {
+        dadoDatos(
                 List.of(),
                 producto(YERBA, "Yerba", 0, 3400, 2700, 10),
                 producto(FIDEOS, "Fideos", 1, 1700, null, 6),
@@ -192,7 +192,7 @@ class ObtenerResumenInicioTest {
                 producto(ACEITE, "Aceite", 3, 2800, null, 6),
                 producto(ARROZ, "Arroz", 50, 900, null, 6));
 
-        ObtenerResumenInicioResponse response = whenObtener();
+        ObtenerResumenInicioResponse response = cuandoObtener();
 
         assertThat(response.faltantes().total()).isEqualTo(4);
         assertThat(response.faltantes().primeros()).hasSize(3);
@@ -203,8 +203,8 @@ class ObtenerResumenInicioTest {
 
     @Test
     @DisplayName("Lista los tres productos parados con más plata invertida cuando ya hay dos semanas de ventas")
-    void executeShouldListTheStoppedProductsWhenThereAreTwoWeeksOfSales() {
-        givenDatos(
+    void listaLosTresProductosParadosConMasPlataInvertidaCuandoYaHayDosSemanasDeVentas() {
+        dadoDatos(
                 List.of(
                         venta(ARROZ, 1, 900, "2026-09-01"),
                         venta(ARROZ, 1, 900, "2026-10-18")),
@@ -214,7 +214,7 @@ class ObtenerResumenInicioTest {
                 producto(FIDEOS, "Fideos", 8, 1700, 1000, null),
                 producto(ARROZ, "Arroz", 50, 900, 600, null));
 
-        ObtenerResumenInicioResponse response = whenObtener();
+        ObtenerResumenInicioResponse response = cuandoObtener();
 
         assertThat(response.parados()).hasSize(3);
         assertThat(response.parados().get(0).nombre()).isEqualTo("Yerba");
@@ -225,20 +225,20 @@ class ObtenerResumenInicioTest {
 
     @Test
     @DisplayName("No dice que un producto está parado si el sistema todavía no tiene dos semanas de ventas")
-    void executeShouldNotListStoppedProductsWithLessThanTwoWeeksOfSales() {
-        givenDatos(
+    void noDiceQueUnProductoEstaParadoSiElSistemaTodaviaNoTieneDosSemanasDeVentas() {
+        dadoDatos(
                 List.of(venta(ARROZ, 1, 900, "2026-10-15")),
                 producto(YERBA, "Yerba", 40, 3400, 2700, null),
                 producto(ARROZ, "Arroz", 50, 900, 600, null));
 
-        ObtenerResumenInicioResponse response = whenObtener();
+        ObtenerResumenInicioResponse response = cuandoObtener();
 
         assertThat(response.parados()).isEmpty();
     }
 
     @Test
     @DisplayName("Un sistema de otro negocio responde como inexistente")
-    void executeShouldNotFindForeignProject() {
+    void unSistemaDeOtroNegocioRespondeComoInexistente() {
         when(proyectoRepository.obtener(NEGOCIO_ID, OTRO_PROYECTO_ID))
                 .thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
 
@@ -247,8 +247,8 @@ class ObtenerResumenInicioTest {
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
-    // --- arrange ---
-    private void givenDatos(List<Registro> ventas, Registro... productos) {
+    // --- dado ---
+    private void dadoDatos(List<Registro> ventas, Registro... productos) {
         BloqueVentas ventasDelSistema = bloqueDeVentas(ventas);
         List<BloqueInventario> inventarios = productos.length == 0
                 ? List.of()
@@ -257,8 +257,8 @@ class ObtenerResumenInicioTest {
                 "Almacén de prueba", inventarios, List.of(ventasDelSistema), List.of()));
     }
 
-    // --- act ---
-    private ObtenerResumenInicioResponse whenObtener() {
+    // --- cuando ---
+    private ObtenerResumenInicioResponse cuandoObtener() {
         return obtenerResumenInicio.execute(new ObtenerResumenInicioRequest(USUARIO_ID, PROYECTO_ID));
     }
 

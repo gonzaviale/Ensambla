@@ -52,7 +52,7 @@ class PanelNegocioControllerTest {
 
     @Test
     @DisplayName("GET devuelve las métricas y el flujo de caja, y pasa el sistema y los días con el usuario de la sesión")
-    void obtenerShouldReturnThePanel() throws Exception {
+    void gETDevuelveLasMetricasYElFlujoDeCajaYPasaElSistemaYLosDiasConElUsuarioDeLaSesion() throws Exception {
         when(obtenerPanelNegocio.execute(any(ObtenerPanelNegocioRequest.class))).thenReturn(
                 new ObtenerPanelNegocioResponse(DESDE, HASTA, 7, true,
                         new ObtenerPanelNegocioResponse.Metricas(new BigDecimal("1000"), null, null,
@@ -76,7 +76,7 @@ class PanelNegocioControllerTest {
 
     @Test
     @DisplayName("GET de un sistema sin ventas devuelve el panel vacío")
-    void obtenerShouldReturnAnEmptyPanel() throws Exception {
+    void gETDeUnSistemaSinVentasDevuelveElPanelVacio() throws Exception {
         when(obtenerPanelNegocio.execute(any(ObtenerPanelNegocioRequest.class))).thenReturn(
                 new ObtenerPanelNegocioResponse(DESDE, HASTA, 7, false, null, List.of()));
 
@@ -89,7 +89,7 @@ class PanelNegocioControllerTest {
 
     @Test
     @DisplayName("GET de un sistema ajeno responde 404")
-    void obtenerShouldReturn404ForForeignProject() throws Exception {
+    void gETDeUnSistemaAjenoResponde404() throws Exception {
         when(obtenerPanelNegocio.execute(any(ObtenerPanelNegocioRequest.class)))
                 .thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
 
@@ -99,7 +99,7 @@ class PanelNegocioControllerTest {
 
     @Test
     @DisplayName("GET con días inválidos o un id mal escrito responde 400")
-    void obtenerShouldReturn400ForInvalidParameters() throws Exception {
+    void gETConDiasInvalidosOUnIdMalEscritoResponde400() throws Exception {
         when(obtenerPanelNegocio.execute(any(ObtenerPanelNegocioRequest.class)))
                 .thenThrow(new BusinessRuleException("La cantidad de días tiene que ser mayor a cero"));
 

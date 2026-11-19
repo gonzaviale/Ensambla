@@ -92,8 +92,8 @@ class ExportarResumenNegocioTest {
 
     @Test
     @DisplayName("Devuelve el PDF con el nombre del sistema y la fecha argentina, para los últimos 30 días")
-    void executeShouldReturnThePdfOfTheLastThirtyDays() {
-        ExportarResumenResponse response = whenExportar(null, null);
+    void devuelveElPDFConElNombreDelSistemaYLaFechaArgentinaParaLosUltimos30Dias() {
+        ExportarResumenResponse response = cuandoExportar(null, null);
 
         assertThat(response.contenido()).isEqualTo(PDF);
         assertThat(response.nombreArchivo()).isEqualTo("resumen-almacen-de-prueba-20261019.pdf");
@@ -107,19 +107,19 @@ class ExportarResumenNegocioTest {
 
     @Test
     @DisplayName("Usa el período que pidió la persona")
-    void executeShouldUseTheRequestedPeriod() {
-        whenExportar(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 7));
+    void usaElPeriodoQuePidioLaPersona() {
+        cuandoExportar(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 7));
 
         assertThat(resumenGenerado().periodo().dias()).isEqualTo(7);
     }
 
     @Test
     @DisplayName("Exige la función de reportes del plan antes de armar nada")
-    void executeShouldRequireTheReportsPlanFeature() {
+    void exigeLaFuncionDeReportesDelPlanAntesDeArmarNada() {
         doThrow(new BusinessRuleException("Es una función Premium")).when(controlPlanService)
                 .validarFuncion(any(), any(), any());
 
-        assertThatThrownBy(() -> whenExportar(null, null)).isInstanceOf(BusinessRuleException.class);
+        assertThatThrownBy(() -> cuandoExportar(null, null)).isInstanceOf(BusinessRuleException.class);
 
         verify(controlPlanService).validarFuncion(NEGOCIO_ID, FuncionPlan.REPORTES_FILTRADOS,
                 OffsetDateTime.ofInstant(INSTANTE, ZoneOffset.UTC));
@@ -128,7 +128,7 @@ class ExportarResumenNegocioTest {
 
     @Test
     @DisplayName("Un sistema de otro negocio responde como inexistente")
-    void executeShouldNotFindForeignProject() {
+    void unSistemaDeOtroNegocioRespondeComoInexistente() {
         when(proyectoRepository.obtener(NEGOCIO_ID, OTRO_PROYECTO_ID))
                 .thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
 
@@ -140,17 +140,17 @@ class ExportarResumenNegocioTest {
 
     @Test
     @DisplayName("Rechaza un período al revés o de más de un año sin generar el PDF")
-    void executeShouldRejectInvalidPeriod() {
-        assertThatThrownBy(() -> whenExportar(LocalDate.of(2026, 10, 8), LocalDate.of(2026, 10, 7)))
+    void rechazaUnPeriodoAlRevesODeMasDeUnAnoSinGenerarElPDF() {
+        assertThatThrownBy(() -> cuandoExportar(LocalDate.of(2026, 10, 8), LocalDate.of(2026, 10, 7)))
                 .isInstanceOf(BusinessRuleException.class);
-        assertThatThrownBy(() -> whenExportar(LocalDate.of(2025, 1, 1), LocalDate.of(2026, 10, 7)))
+        assertThatThrownBy(() -> cuandoExportar(LocalDate.of(2025, 1, 1), LocalDate.of(2026, 10, 7)))
                 .isInstanceOf(BusinessRuleException.class);
         verify(generador, never()).generar(any());
     }
 
     @Test
     @DisplayName("Le pasa al resumen los agregados de la zona del negocio")
-    void executeShouldPassTheZoneOfTheNegocio() {
+    void lePasaAlResumenLosAgregadosDeLaZonaDelNegocio() {
         Zona zona = Zona.builder().id(ZONA_ID).nombre("San Justo").build();
         AnalisisZona analisis = new AnalisisZona("San Justo", 8, List.of(new AgregadoZonaProducto("Yerba", 8, 8,
                 BigDecimal.ONE, BigDecimal.TWO, BigDecimal.TEN, BigDecimal.TEN)));
@@ -158,24 +158,24 @@ class ExportarResumenNegocioTest {
         when(zonaRepository.findById(ZONA_ID)).thenReturn(Optional.of(zona));
         when(agregadoZonaRepository.analizar(zona)).thenReturn(analisis);
 
-        whenExportar(null, null);
+        cuandoExportar(null, null);
 
         verify(agregadoZonaRepository).analizar(zona);
     }
 
     @Test
     @DisplayName("Sólo cuenta los avisos del sistema pedido")
-    void executeShouldOnlyCountAvisosOfTheProject() {
+    void soloCuentaLosAvisosDelSistemaPedido() {
         when(avisoRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(List.of(
                 aviso(PROYECTO_ID), aviso(OTRO_PROYECTO_ID), aviso(null)));
 
-        whenExportar(null, null);
+        cuandoExportar(null, null);
 
         assertThat(resumenGenerado().avisos().totalPendientes()).isEqualTo(1);
     }
 
-    // --- act ---
-    private ExportarResumenResponse whenExportar(LocalDate desde, LocalDate hasta) {
+    // --- cuando ---
+    private ExportarResumenResponse cuandoExportar(LocalDate desde, LocalDate hasta) {
         return exportarResumenNegocio.execute(new ExportarResumenRequest(USUARIO_ID, PROYECTO_ID, desde, hasta));
     }
 

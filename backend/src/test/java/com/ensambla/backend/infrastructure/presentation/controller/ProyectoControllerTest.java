@@ -71,8 +71,8 @@ class ProyectoControllerTest {
 
     @Test
     @DisplayName("GET lista proyectos y mapea todos los datos del árbol a JSON")
-    void listarShouldReturnMappedTree() throws Exception {
-        when(listarProyectos.execute(any())).thenReturn(List.of(givenResponse()));
+    void gETListaProyectosYMapeaTodosLosDatosDelArbolAJSON() throws Exception {
+        when(listarProyectos.execute(any())).thenReturn(List.of(dadoResponse()));
 
         mockMvc.perform(get("/api/proyectos").principal(principal))
                 .andExpect(status().isOk())
@@ -96,7 +96,7 @@ class ProyectoControllerTest {
 
     @Test
     @DisplayName("GET devuelve una lista vacía cuando no hay proyectos")
-    void listarShouldReturnEmptyList() throws Exception {
+    void gETDevuelveUnaListaVaciaCuandoNoHayProyectos() throws Exception {
         when(listarProyectos.execute(any())).thenReturn(List.of());
 
         mockMvc.perform(get("/api/proyectos").principal(principal))
@@ -105,8 +105,8 @@ class ProyectoControllerTest {
 
     @Test
     @DisplayName("GET por id delega usando el usuario de sesión")
-    void obtenerShouldPassSessionUsuario() throws Exception {
-        when(obtenerProyecto.execute(any())).thenReturn(givenResponse());
+    void gETPorIdDelegaUsandoElUsuarioDeSesion() throws Exception {
+        when(obtenerProyecto.execute(any())).thenReturn(dadoResponse());
 
         mockMvc.perform(get("/api/proyectos/{id}", PROYECTO_ID).principal(principal))
                 .andExpect(status().isOk());
@@ -115,8 +115,8 @@ class ProyectoControllerTest {
 
     @Test
     @DisplayName("POST crea en blanco sin aceptar el negocio indicado por el navegador")
-    void crearShouldIgnoreClientNegocio() throws Exception {
-        when(crearProyecto.execute(any())).thenReturn(givenResponse());
+    void pOSTCreaEnBlancoSinAceptarElNegocioIndicadoPorElNavegador() throws Exception {
+        when(crearProyecto.execute(any())).thenReturn(dadoResponse());
 
         mockMvc.perform(post("/api/proyectos").principal(principal).contentType("application/json")
                         .content("{\"nombre\":\"Nuevo\",\"descripcion\":null,\"negocioId\":\"otro\"}"))
@@ -127,8 +127,8 @@ class ProyectoControllerTest {
 
     @Test
     @DisplayName("POST desde plantilla usa el id de plantilla y devuelve la ubicación creada")
-    void desdePlantillaShouldCreateProyecto() throws Exception {
-        when(crearProyectoDesdePlantilla.execute(any())).thenReturn(givenResponse());
+    void pOSTDesdePlantillaUsaElIdDePlantillaYDevuelveLaUbicacionCreada() throws Exception {
+        when(crearProyectoDesdePlantilla.execute(any())).thenReturn(dadoResponse());
 
         mockMvc.perform(post("/api/proyectos/desde-plantilla/{id}", PLANTILLA_ID).principal(principal))
                 .andExpect(status().isCreated());
@@ -138,8 +138,8 @@ class ProyectoControllerTest {
 
     @Test
     @DisplayName("PATCH delega el nuevo nombre junto con el id y el usuario")
-    void renombrarShouldPassRequest() throws Exception {
-        when(renombrarProyecto.execute(any())).thenReturn(givenResponse());
+    void pATCHDelegaElNuevoNombreJuntoConElIdYElUsuario() throws Exception {
+        when(renombrarProyecto.execute(any())).thenReturn(dadoResponse());
 
         mockMvc.perform(patch("/api/proyectos/{id}", PROYECTO_ID).principal(principal)
                         .contentType("application/json").content("{\"nombre\":\"Otro\"}"))
@@ -149,7 +149,7 @@ class ProyectoControllerTest {
 
     @Test
     @DisplayName("DELETE devuelve 204 después de delegar el borrado")
-    void eliminarShouldReturn204() throws Exception {
+    void dELETEDevuelve204DespuesDeDelegarElBorrado() throws Exception {
         mockMvc.perform(delete("/api/proyectos/{id}", PROYECTO_ID).principal(principal))
                 .andExpect(status().isNoContent());
 
@@ -158,7 +158,7 @@ class ProyectoControllerTest {
 
     @Test
     @DisplayName("Un UUID inválido no llega al caso de uso")
-    void obtenerShouldRejectInvalidUuid() throws Exception {
+    void unUUIDInvalidoNoLlegaAlCasoDeUso() throws Exception {
         mockMvc.perform(get("/api/proyectos/invalido").principal(principal)).andExpect(status().isBadRequest());
 
         verifyNoInteractions(obtenerProyecto);
@@ -166,7 +166,7 @@ class ProyectoControllerTest {
 
     @Test
     @DisplayName("Crear rechaza un nombre vacío antes de invocar el caso de uso")
-    void crearShouldRejectBlankName() throws Exception {
+    void crearRechazaUnNombreVacioAntesDeInvocarElCasoDeUso() throws Exception {
         mockMvc.perform(post("/api/proyectos").principal(principal)
                         .contentType("application/json").content("{\"nombre\":\"  \"}"))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.nombre").exists());
@@ -176,7 +176,7 @@ class ProyectoControllerTest {
 
     @Test
     @DisplayName("Renombrar rechaza un nombre vacío antes de invocar el caso de uso")
-    void renombrarShouldRejectBlankName() throws Exception {
+    void renombrarRechazaUnNombreVacioAntesDeInvocarElCasoDeUso() throws Exception {
         mockMvc.perform(patch("/api/proyectos/{id}", PROYECTO_ID).principal(principal)
                         .contentType("application/json").content("{\"nombre\":\"\"}"))
                 .andExpect(status().isBadRequest());
@@ -186,15 +186,15 @@ class ProyectoControllerTest {
 
     @Test
     @DisplayName("Un proyecto ajeno devuelve 404 estándar")
-    void obtenerShouldReturn404() throws Exception {
+    void unProyectoAjenoDevuelve404Estandar() throws Exception {
         when(obtenerProyecto.execute(any())).thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
 
         mockMvc.perform(get("/api/proyectos/{id}", PROYECTO_ID).principal(principal))
                 .andExpect(status().isNotFound()).andExpect(jsonPath("$.status").value(404));
     }
 
-    // --- arrange ---
-    private ProyectoItem givenResponse() {
+    // --- dado ---
+    private ProyectoItem dadoResponse() {
         return ProyectoItem.de(ProyectoTestData.proyecto());
     }
 }

@@ -61,7 +61,7 @@ class ProgresoObjetivoControllerTest {
 
     @Test
     @DisplayName("GET devuelve la meta, el hito y la serie semanal del objetivo y de sus mini-objetivos")
-    void obtenerShouldReturnTheMappedProgress() throws Exception {
+    void gETDevuelveLaMetaElHitoYLaSerieSemanalDelObjetivoYDeSusMiniObjetivos() throws Exception {
         when(obtenerProgreso.execute(any())).thenReturn(new ObtenerProgresoResponse(
                 META,
                 HitoObjetivo.OBJETIVO_ALCANZADO,
@@ -86,7 +86,7 @@ class ProgresoObjetivoControllerTest {
 
     @Test
     @DisplayName("GET manda al caso de uso el usuario de la sesión y el objetivo de la ruta")
-    void obtenerShouldPassTheSessionUserAndTheObjetivo() throws Exception {
+    void gETMandaAlCasoDeUsoElUsuarioDeLaSesionYElObjetivoDeLaRuta() throws Exception {
         when(obtenerProgreso.execute(any())).thenReturn(new ObtenerProgresoResponse(META, null, List.of(), List.of()));
 
         mockMvc.perform(get(RUTA).principal(principal)).andExpect(status().isOk());
@@ -99,7 +99,7 @@ class ProgresoObjetivoControllerTest {
 
     @Test
     @DisplayName("GET responde 200 con listas vacías cuando todavía no hay nada medido")
-    void obtenerShouldReturnEmptyListsWhenNothingWasMeasured() throws Exception {
+    void gETResponde200ConListasVaciasCuandoTodaviaNoHayNadaMedido() throws Exception {
         when(obtenerProgreso.execute(any())).thenReturn(new ObtenerProgresoResponse(META, null, List.of(), List.of()));
 
         ResultActions result = mockMvc.perform(get(RUTA).principal(principal));
@@ -112,7 +112,7 @@ class ProgresoObjetivoControllerTest {
 
     @Test
     @DisplayName("GET responde 404 cuando el objetivo es de otro negocio o no existe")
-    void obtenerShouldReturn404WhenTheObjetivoIsNotFound() throws Exception {
+    void gETResponde404CuandoElObjetivoEsDeOtroNegocioONoExiste() throws Exception {
         when(obtenerProgreso.execute(any())).thenThrow(new ResourceNotFoundException("Objetivo no encontrado"));
 
         ResultActions result = mockMvc.perform(get(RUTA).principal(principal));
@@ -122,7 +122,7 @@ class ProgresoObjetivoControllerTest {
 
     @Test
     @DisplayName("GET responde 400 cuando el id del objetivo no es un UUID")
-    void obtenerShouldReturn400WhenTheIdIsNotAUuid() throws Exception {
+    void gETResponde400CuandoElIdDelObjetivoNoEsUnUUID() throws Exception {
         ResultActions result = mockMvc.perform(get("/api/objetivos/no-es-un-uuid/progreso").principal(principal));
 
         result.andExpect(status().isBadRequest());

@@ -66,7 +66,7 @@ class CancelarRenovacionTest {
 
     @Test
     @DisplayName("Pide la cancelación con el negocio bloqueado y la confirma con la pasarela al sincronizar")
-    void executeShouldRequestCancellationAndSync() {
+    void pideLaCancelacionConElNegocioBloqueadoYLaConfirmaConLaPasarelaAlSincronizar() {
         RenovacionPremium renovacion = renovacion();
         when(renovacionPremiumService.consultar(NEGOCIO_ID)).thenReturn(Optional.of(renovacion));
         when(renovacionPremiumRepository.save(renovacion)).thenReturn(renovacion);
@@ -84,7 +84,7 @@ class CancelarRenovacionTest {
 
     @Test
     @DisplayName("No se puede cancelar una renovación inexistente del negocio")
-    void executeShouldRejectMissingContract() {
+    void noSePuedeCancelarUnaRenovacionInexistenteDelNegocio() {
         when(renovacionPremiumService.consultar(NEGOCIO_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> cancelarRenovacion.execute(USUARIO_ID))

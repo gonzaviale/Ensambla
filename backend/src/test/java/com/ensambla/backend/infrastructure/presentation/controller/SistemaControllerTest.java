@@ -63,8 +63,8 @@ class SistemaControllerTest {
 
     @Test
     @DisplayName("GET lista los sistemas con la forma que valida el front y omite lo que falta")
-    void listarShouldReturnDocumentShape() throws Exception {
-        when(listarSistemas.execute(any())).thenReturn(List.of(givenItem()));
+    void gETListaLosSistemasConLaFormaQueValidaElFrontYOmiteLoQueFalta() throws Exception {
+        when(listarSistemas.execute(any())).thenReturn(List.of(dadoItem()));
 
         mockMvc.perform(get("/api/sistemas").principal(principal))
                 .andExpect(status().isOk())
@@ -89,8 +89,8 @@ class SistemaControllerTest {
 
     @Test
     @DisplayName("GET manda a qué hora se leyeron los sistemas para que el cliente la devuelva al guardar")
-    void listarShouldReturnReadTimeHeader() throws Exception {
-        when(listarSistemas.execute(any())).thenReturn(List.of(givenItem()));
+    void gETMandaAQueHoraSeLeyeronLosSistemasParaQueElClienteLaDevuelvaAlGuardar() throws Exception {
+        when(listarSistemas.execute(any())).thenReturn(List.of(dadoItem()));
 
         mockMvc.perform(get("/api/sistemas").principal(principal))
                 .andExpect(status().isOk())
@@ -100,12 +100,12 @@ class SistemaControllerTest {
 
     @Test
     @DisplayName("PUT con X-Leido-En pasa la hora de lectura para no borrar lo que Sami cargó después")
-    void guardarShouldPassReadTimeHeader() throws Exception {
-        when(guardarSistema.execute(any())).thenReturn(givenItem());
+    void pUTConXLeidoEnPasaLaHoraDeLecturaParaNoBorrarLoQueSamiCargoDespues() throws Exception {
+        when(guardarSistema.execute(any())).thenReturn(dadoItem());
 
         mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
                         .header(SistemaController.HEADER_LEIDO_EN, "2026-10-27T15:00:00Z")
-                        .contentType("application/json").content(givenBody()))
+                        .contentType("application/json").content(dadoBody()))
                 .andExpect(status().isOk());
 
         ArgumentCaptor<GuardarSistemaRequest> captor = ArgumentCaptor.forClass(GuardarSistemaRequest.class);
@@ -115,11 +115,11 @@ class SistemaControllerTest {
 
     @Test
     @DisplayName("PUT sin X-Leido-En reemplaza el sistema exacto, como antes")
-    void guardarShouldWorkWithoutReadTimeHeader() throws Exception {
-        when(guardarSistema.execute(any())).thenReturn(givenItem());
+    void pUTSinXLeidoEnReemplazaElSistemaExactoComoAntes() throws Exception {
+        when(guardarSistema.execute(any())).thenReturn(dadoItem());
 
         mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
-                        .contentType("application/json").content(givenBody()))
+                        .contentType("application/json").content(dadoBody()))
                 .andExpect(status().isOk());
 
         ArgumentCaptor<GuardarSistemaRequest> captor = ArgumentCaptor.forClass(GuardarSistemaRequest.class);
@@ -129,10 +129,10 @@ class SistemaControllerTest {
 
     @Test
     @DisplayName("PUT con una hora de lectura mal escrita responde 400")
-    void guardarShouldRejectInvalidReadTime() throws Exception {
+    void pUTConUnaHoraDeLecturaMalEscritaResponde400() throws Exception {
         mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
                         .header(SistemaController.HEADER_LEIDO_EN, "ayer")
-                        .contentType("application/json").content(givenBody()))
+                        .contentType("application/json").content(dadoBody()))
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(guardarSistema);
@@ -140,11 +140,11 @@ class SistemaControllerTest {
 
     @Test
     @DisplayName("PUT guarda el sistema entero con el id de la URL y el usuario de la sesión")
-    void guardarShouldPassDocumentAndPathId() throws Exception {
-        when(guardarSistema.execute(any())).thenReturn(givenItem());
+    void pUTGuardaElSistemaEnteroConElIdDeLaURLYElUsuarioDeLaSesion() throws Exception {
+        when(guardarSistema.execute(any())).thenReturn(dadoItem());
 
         mockMvc.perform(put("/api/sistemas/{id}", "e" + SISTEMA_ID).principal(principal)
-                        .contentType("application/json").content(givenBody()))
+                        .contentType("application/json").content(dadoBody()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(SISTEMA_ID));
 
@@ -170,8 +170,8 @@ class SistemaControllerTest {
 
     @Test
     @DisplayName("PUT acepta un sistema sin opciones ni demo")
-    void guardarShouldAcceptMissingOptionalData() throws Exception {
-        when(guardarSistema.execute(any())).thenReturn(givenItem());
+    void pUTAceptaUnSistemaSinOpcionesNiDemo() throws Exception {
+        when(guardarSistema.execute(any())).thenReturn(dadoItem());
 
         mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
                         .contentType("application/json")
@@ -187,7 +187,7 @@ class SistemaControllerTest {
 
     @Test
     @DisplayName("PUT rechaza un sistema sin secciones sin tocar el caso de uso")
-    void guardarShouldRejectSistemaWithoutSections() throws Exception {
+    void pUTRechazaUnSistemaSinSeccionesSinTocarElCasoDeUso() throws Exception {
         mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
                         .contentType("application/json")
                         .content("{\"id\":\"" + SISTEMA_ID + "\",\"name\":\"Solo\",\"sections\":[]}"))
@@ -197,25 +197,25 @@ class SistemaControllerTest {
 
     @Test
     @DisplayName("PUT de un sistema ajeno responde 404")
-    void guardarShouldReturnNotFoundForForeignSistema() throws Exception {
+    void pUTDeUnSistemaAjenoResponde404() throws Exception {
         when(guardarSistema.execute(any())).thenThrow(new ResourceNotFoundException("Sistema no encontrado"));
 
         mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
-                        .contentType("application/json").content(givenBody()))
+                        .contentType("application/json").content(dadoBody()))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     @DisplayName("DELETE responde 204 y delega con el id de la URL")
-    void eliminarShouldReturnNoContent() throws Exception {
+    void dELETEResponde204YDelegaConElIdDeLaURL() throws Exception {
         mockMvc.perform(delete("/api/sistemas/{id}", "e" + SISTEMA_ID).principal(principal))
                 .andExpect(status().isNoContent());
 
         verify(eliminarSistema).execute(new EliminarSistemaRequest(USUARIO_ID, "e" + SISTEMA_ID));
     }
 
-    // --- arrange ---
-    private String givenBody() {
+    // --- dado ---
+    private String dadoBody() {
         return """
                 {"id":"%s","name":"Mi almacén","createdAt":"2026-01-10T09:00:00Z","updatedAt":"2026-10-21T10:00:00Z",
                  "template":"shop","layout":"mosaic","options":{"movements":true,"expenses":false},"demoAlmacen":true,
@@ -226,7 +226,7 @@ class SistemaControllerTest {
                 """.formatted(SISTEMA_ID);
     }
 
-    private SistemaItem givenItem() {
+    private SistemaItem dadoItem() {
         BloqueItem inventario = new BloqueItem("b1", "inventory", "Productos", "", "orange", "half",
                 List.of(new CampoItem("name", "Producto", "text", true, null, null, null),
                         new CampoItem("price", "Precio", "currency", false, null, BigDecimal.ZERO, null)),
