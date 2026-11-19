@@ -30,56 +30,63 @@ const todos = (selector: string) => [...document.querySelectorAll<HTMLElement>(s
 const porMarca = (marca: string, id?: string | null) =>
   todos(`[data-tour~="${marca}"]`).filter((nodo) => !id || nodo.dataset.tourId === id);
 
+type MarcaDelPaso = [marca: string, id: string | null];
+type PedidoDeMarcas = { bloqueId: string | null; pensando: boolean };
+
+/** «Tus piezas» se ve abierta o, fuera del celular, fijada al costado; si no, se señala «Bloques». */
+function bibliotecaDePiezasVisible() {
+  return (
+    !!document.querySelector('.block-library.mobile-open') ||
+    (window.innerWidth > 680 && !!document.querySelector('.block-library.fijada'))
+  );
+}
+
+function marcasParaAgregarUnaPieza(): MarcaDelPaso[] {
+  if (!bibliotecaDePiezasVisible()) {
+    return [
+      ['agregar-pieza-movil', null],
+      ['agregar-pieza-vacio', null],
+      ['lienzo', null],
+    ];
+  }
+  return [
+    ['agregar-pieza', null],
+    ['lienzo', null],
+    ['agregar-pieza-vacio', null],
+  ];
+}
+
+const marcaDelMismoPaso = (paso: PasoDeTutorial) => (): MarcaDelPaso[] => [[paso, null]];
+const marcaDelModal = (): MarcaDelPaso[] => [['modal', null]];
+const marcaDelBloque =
+  (paso: PasoDeTutorial) =>
+  ({ bloqueId }: PedidoDeMarcas): MarcaDelPaso[] => [[paso, bloqueId]];
+
+/** Cada paso sabe qué señala: agregar un paso sin sus marcas no compila. */
+const marcasPorPaso: Record<PasoDeTutorial, (pedido: PedidoDeMarcas) => MarcaDelPaso[]> = {
+  choose: marcaDelMismoPaso('choose'),
+  review: marcaDelMismoPaso('review'),
+  create: marcaDelMismoPaso('create'),
+  pickTemplate: marcaDelMismoPaso('pickTemplate'),
+  rename: marcaDelMismoPaso('rename'),
+  fillRecord: marcaDelMismoPaso('fillRecord'),
+  describe: ({ pensando }) => [[pensando ? 'describe-pensando' : 'describe', null]],
+  useTemplate: marcaDelModal,
+  blankConfirm: marcaDelModal,
+  addBlock: marcasParaAgregarUnaPieza,
+  addSecond: marcasParaAgregarUnaPieza,
+  customize: marcaDelBloque('customize'),
+  openRecord: marcaDelBloque('openRecord'),
+  done: marcaDelBloque('done'),
+  move: ({ bloqueId }) => [
+    ['move', bloqueId],
+    ['lienzo', null],
+  ],
+};
+
 /** Los elementos que el paso señala: lo único que se puede tocar (más lo que cada paso permite aparte). */
 export function objetivosDelPaso(paso: PasoDeTutorial, bloqueId: string | null, pensando: boolean) {
-  let marcas: [string, string | null][] = [];
-  switch (paso) {
-    case 'choose':
-    case 'review':
-    case 'create':
-    case 'pickTemplate':
-    case 'rename':
-    case 'fillRecord':
-      marcas = [[paso, null]];
-      break;
-    case 'describe':
-      marcas = [[pensando ? 'describe-pensando' : 'describe', null]];
-      break;
-    case 'useTemplate':
-    case 'blankConfirm':
-      marcas = [['modal', null]];
-      break;
-    case 'addBlock':
-    case 'addSecond': {
-      // «Tus piezas» se ve abierta o, fuera del celular, fijada al costado; si no, se señala «Bloques».
-      const bibliotecaVisible =
-        !!document.querySelector('.block-library.mobile-open') ||
-        (window.innerWidth > 680 && !!document.querySelector('.block-library.fijada'));
-      marcas = !bibliotecaVisible
-        ? [
-            ['agregar-pieza-movil', null],
-            ['agregar-pieza-vacio', null],
-            ['lienzo', null],
-          ]
-        : [
-            ['agregar-pieza', null],
-            ['lienzo', null],
-            ['agregar-pieza-vacio', null],
-          ];
-      break;
-    }
-    case 'customize':
-    case 'openRecord':
-    case 'done':
-      marcas = [[paso, bloqueId]];
-      break;
-    case 'move':
-      marcas = [
-        ['move', bloqueId],
-        ['lienzo', null],
-      ];
-      break;
-  }
+  const marcas = marcasPorPaso[paso]({ bloqueId, pensando });
   return [...new Set(marcas.flatMap(([marca, id]) => porMarca(marca, id)))];
 }
 
