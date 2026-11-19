@@ -5,10 +5,15 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-/** Campos ausentes o null conservan su valor; ubicacion exige sus cuatro datos si se envía. */
+/**
+ * Campos ausentes o null conservan su valor; ubicacion exige sus cuatro datos si se envía. El alias y el titular de
+ * cobro van juntos: si llega alguno se reemplazan los dos, y un alias vacío quita el destino.
+ */
 public record ActualizarNegocioWebRequest(
         @Size(max = 120) @Pattern(regexp = "(?s).*\\S.*") String nombre,
         RubroNegocio rubro,
         @Valid UbicacionNegocioWeb ubicacion,
-        Boolean comparteDatosZona) {
+        Boolean comparteDatosZona,
+        @Size(max = 120) String cobroAlias,
+        @Size(max = 120) String cobroTitular) {
 }

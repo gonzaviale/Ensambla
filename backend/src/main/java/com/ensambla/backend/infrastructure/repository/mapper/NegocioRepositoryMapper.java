@@ -23,6 +23,8 @@ public class NegocioRepositoryMapper {
                 .longitud(entity.getLongitud())
                 .zonaId(Identificador.opcional(entity.getZonaId(), ZonaId::de))
                 .comparteDatosZona(entity.getComparteDatosZona())
+                .cobroAlias(entity.getCobroAlias())
+                .cobroTitular(entity.getCobroTitular())
                 .creadoEn(entity.getCreadoEn())
                 .actualizadoEn(entity.getActualizadoEn())
                 .build();
@@ -40,6 +42,8 @@ public class NegocioRepositoryMapper {
                 .longitud(negocio.getLongitud())
                 .zonaId(Identificador.valorDe(negocio.getZonaId()))
                 .comparteDatosZona(negocio.getComparteDatosZona())
+                .cobroAlias(negocio.getCobroAlias())
+                .cobroTitular(negocio.getCobroTitular())
                 .creadoEn(negocio.getCreadoEn())
                 .actualizadoEn(negocio.getActualizadoEn())
                 .build();

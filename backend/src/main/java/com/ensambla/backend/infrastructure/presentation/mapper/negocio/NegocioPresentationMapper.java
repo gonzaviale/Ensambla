@@ -22,7 +22,7 @@ public class NegocioPresentationMapper {
         UbicacionNegocioItem ubicacion = punto == null ? null : new UbicacionNegocioItem(
                 punto.direccion(), punto.localidad(), punto.latitud(), punto.longitud());
         return new ActualizarNegocioRequest(usuarioId, request.nombre(), request.rubro(),
-                ubicacion, request.comparteDatosZona());
+                ubicacion, request.comparteDatosZona(), request.cobroAlias(), request.cobroTitular());
     }
 
     public ConfiguracionNegocioWebResponse toResponse(ConfiguracionNegocioResponse response) {
@@ -30,6 +30,7 @@ public class NegocioPresentationMapper {
         UbicacionNegocioWeb ubicacion = punto == null ? null : new UbicacionNegocioWeb(
                 punto.direccion(), punto.localidad(), punto.latitud(), punto.longitud());
         return new ConfiguracionNegocioWebResponse(response.nombre(), response.rubro().name(),
-                ubicacion, response.comparteDatosZona(), response.zona());
+                ubicacion, response.comparteDatosZona(), response.zona(),
+                response.cobroAlias(), response.cobroTitular());
     }
 }

@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.useCase.negocio.actualizarNegocio;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.exception.ServicioUbicacionException;
+import com.ensambla.backend.domain.model.negocio.DestinoDeCobro;
 import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.negocio.RubroNegocio;
 import com.ensambla.backend.domain.model.ubicacion.LocalidadesDelPunto;
@@ -25,6 +26,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
+import static com.ensambla.backend.support.NegociosDePrueba.unNegocioConDestinoDeCobro;
 import static com.ensambla.backend.support.NegociosDePrueba.unNegocioConPuntoSinZona;
 import static com.ensambla.backend.support.NegociosDePrueba.unNegocioConPuntoYZona;
 import static com.ensambla.backend.support.NegociosDePrueba.unNegocioLlamado;
@@ -159,6 +161,58 @@ class ActualizarNegocioTest {
     }
 
     @Test
+    @DisplayName("Guarda el alias y el titular de cobro y los devuelve en la configuración")
+    void guardaElAliasYElTitularDeCobroYLosDevuelveEnLaConfiguracion() {
+        dadoUnNegocioSinUbicacion();
+
+        cuandoSeActualizaElDestinoDeCobro("  mi.alias.mp  ", "Ana Pérez");
+
+        entoncesElNegocioGuardadoCobraEn("mi.alias.mp", "Ana Pérez");
+        entoncesLaRespuestaMuestraElCobroEn("mi.alias.mp", "Ana Pérez");
+    }
+
+    @Test
+    @DisplayName("Un alias vacío quita el destino de cobro guardado")
+    void unAliasVacioQuitaElDestinoDeCobroGuardado() {
+        dadoUnNegocioParaActualizar(unNegocioConDestinoDeCobro("mi.alias.mp", "Ana Pérez"));
+
+        cuandoSeActualizaElDestinoDeCobro("   ", "Ana Pérez");
+
+        entoncesElNegocioGuardadoNoTieneDestinoDeCobro();
+    }
+
+    @Test
+    @DisplayName("Un titular sin alias también quita el destino de cobro guardado")
+    void unTitularSinAliasTambienQuitaElDestinoDeCobroGuardado() {
+        dadoUnNegocioParaActualizar(unNegocioConDestinoDeCobro("mi.alias.mp", "Ana Pérez"));
+
+        cuandoSeActualizaElDestinoDeCobro(null, "Ana Pérez");
+
+        entoncesElNegocioGuardadoNoTieneDestinoDeCobro();
+    }
+
+    @Test
+    @DisplayName("Sin alias ni titular conserva el destino de cobro guardado")
+    void sinAliasNiTitularConservaElDestinoDeCobroGuardado() {
+        dadoUnNegocioParaActualizar(unNegocioConDestinoDeCobro("mi.alias.mp", "Ana Pérez"));
+
+        cuandoSeActualizaSoloElNombreYElRubro();
+
+        entoncesElNegocioGuardadoCobraEn("mi.alias.mp", "Ana Pérez");
+    }
+
+    @Test
+    @DisplayName("Rechaza un alias de cobro demasiado largo sin guardar el negocio")
+    void rechazaUnAliasDeCobroDemasiadoLargoSinGuardarElNegocio() {
+        dadoUnNegocioSinUbicacion();
+
+        cuandoSeIntentaActualizarElDestinoDeCobro("a".repeat(121), null);
+
+        entoncesSeRechazaPorque("El alias o CVU no puede superar los 120 caracteres");
+        entoncesNoSeGuardaNingunNegocio();
+    }
+
+    @Test
     @DisplayName("Responde no encontrado al actualizar la configuración de un usuario sin negocio")
     void respondeNoEncontradoAlActualizarLaConfiguracionDeUnUsuarioSinNegocio() {
         dadoUnUsuarioSinNegocio();
@@ -237,7 +291,7 @@ class ActualizarNegocioTest {
 
     // --- cuando ---
     private void cuandoSeActualizaLaUbicacion() {
-        respuesta = actualizarNegocio.execute(new ActualizarNegocioRequest(USUARIO_ID, null, null, UBICACION, null));
+        respuesta = actualizarNegocio.execute(new ActualizarNegocioRequest(USUARIO_ID, null, null, UBICACION, null, null, null));
     }
 
     private void cuandoSeIntentaActualizarLaUbicacion() {
@@ -246,20 +300,42 @@ class ActualizarNegocioTest {
 
     private void cuandoSeActualizaLaLocalidadEscritaComo(String localidad) {
         respuesta = actualizarNegocio.execute(new ActualizarNegocioRequest(USUARIO_ID, null, null,
-                new UbicacionNegocioItem("Calle 123", localidad, LATITUD, LONGITUD), null));
+                new UbicacionNegocioItem("Calle 123", localidad, LATITUD, LONGITUD), null, null, null));
     }
 
     private void cuandoSeActualizaSoloElNombreYElRubro() {
         respuesta = actualizarNegocio.execute(
-                new ActualizarNegocioRequest(USUARIO_ID, "Nuevo nombre", RubroNegocio.KIOSCO, null, null));
+                new ActualizarNegocioRequest(USUARIO_ID, "Nuevo nombre", RubroNegocio.KIOSCO, null, null, null, null));
+    }
+
+    private void cuandoSeActualizaElDestinoDeCobro(String alias, String titular) {
+        respuesta = actualizarNegocio.execute(
+                new ActualizarNegocioRequest(USUARIO_ID, null, null, null, null, alias, titular));
+    }
+
+    private void cuandoSeIntentaActualizarElDestinoDeCobro(String alias, String titular) {
+        rechazo = catchThrowable(() -> cuandoSeActualizaElDestinoDeCobro(alias, titular));
     }
 
     private void cuandoSeIntentaActualizarSinCambios() {
         rechazo = catchThrowable(() -> actualizarNegocio.execute(
-                new ActualizarNegocioRequest(USUARIO_ID, null, null, null, null)));
+                new ActualizarNegocioRequest(USUARIO_ID, null, null, null, null, null, null)));
     }
 
     // --- entonces ---
+    private void entoncesElNegocioGuardadoCobraEn(String alias, String titular) {
+        assertThat(negocioGuardado().destinoDeCobro()).isEqualTo(new DestinoDeCobro(alias, titular));
+    }
+
+    private void entoncesElNegocioGuardadoNoTieneDestinoDeCobro() {
+        assertThat(negocioGuardado().destinoDeCobro()).isEqualTo(DestinoDeCobro.SIN_CARGAR);
+    }
+
+    private void entoncesLaRespuestaMuestraElCobroEn(String alias, String titular) {
+        assertThat(respuesta.cobroAlias()).isEqualTo(alias);
+        assertThat(respuesta.cobroTitular()).isEqualTo(titular);
+    }
+
     private void entoncesElNegocioGuardadoQuedaEnLaZona() {
         assertThat(negocioGuardado().getZonaId()).isEqualTo(zona.getId());
     }
