@@ -30,3 +30,7 @@ export type ConfiguracionUbicacion = {
   rubro: Rubro;
   ajustado: boolean;
 };
+
+// Cada solapa de la pantalla se guarda por separado, con su propio PATCH.
+export type SeccionUbicacion = 'comercio' | 'ubicacion' | 'rubro';
+export type PorSeccion<T> = Record<SeccionUbicacion, T>;
