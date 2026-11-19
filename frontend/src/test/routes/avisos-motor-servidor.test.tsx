@@ -38,6 +38,8 @@ const delNavegador = (tipo: string) =>
 // plan haya habilitado los avisos (el acceso se resolvió) para saber que los del navegador ya tuvieron su oportunidad.
 const hayDelNavegador = () => useSistemaStore.getState().accesoAvisos !== null;
 
+const hayDelServidor = () => useSistemaStore.getState().avisos.some((aviso) => aviso.servidorId);
+
 describe('avisos con el motor del servidor activo', () => {
   it('un aviso de estancado descartado no vuelve como copia del navegador', async () => {
     const { usuario, sistema } = await abrirAlmacen();
@@ -64,7 +66,7 @@ describe('avisos con el motor del servidor activo', () => {
     server.use(
       http.get('/api/avisos', async () => {
         await retenida;
-        return HttpResponse.json([]);
+        return HttpResponse.json([avisoDelServidor({ tipo: 'STOCK', grupo: 'STOCK' })]);
       }),
     );
     renderApp(`/sistemas/${sistema.id}?modo=usar`);
@@ -74,7 +76,8 @@ describe('avisos con el motor del servidor activo', () => {
     expect(delNavegador('estancado')).toBe(false);
 
     liberar();
-    await new Promise((resolver) => setTimeout(resolver, 150));
+    await waitFor(() => expect(hayDelServidor()).toBe(true), ESPERA);
+
     expect(delNavegador('estancado')).toBe(false);
   });
 

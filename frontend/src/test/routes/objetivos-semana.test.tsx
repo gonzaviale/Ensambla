@@ -56,7 +56,7 @@ describe('la semana de un objetivo que se autogestiona', () => {
       'aria-expanded',
       'true',
     );
-    const recorrido = document.getElementById('recorrido-semanas') as HTMLElement;
+    const recorrido = screen.getByRole('region', { name: 'Recorrido de las semanas' });
     recorrido.scrollTop = 200;
     await userEvent.click(semana.getByRole('button', { name: 'Ver solo las últimas' }));
     expect(recorrido.scrollTop).toBe(0);

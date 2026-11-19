@@ -122,7 +122,7 @@ describe('planes y activación de prueba', () => {
     expect(cuerpo).toBe('');
     expect(screen.getByRole('button', { name: 'Prueba activa' })).toBeDisabled();
     expect(screen.getByText(/Los 10 análisis de foto valen para toda la prueba/)).toBeVisible();
-    expect(document.getElementById('main')).toHaveFocus();
+    expect(screen.getByRole('main')).toHaveFocus();
   });
 
   it('al agotar diez páginas conserva premium y muestra el aviso del cupo total', async () => {
