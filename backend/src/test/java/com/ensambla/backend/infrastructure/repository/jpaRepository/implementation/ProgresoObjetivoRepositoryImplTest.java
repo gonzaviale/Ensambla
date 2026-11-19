@@ -29,52 +29,65 @@ class ProgresoObjetivoRepositoryImplTest {
     private final ProgresoObjetivoRepositoryImpl repository =
             new ProgresoObjetivoRepositoryImpl(jpa, new ProgresoObjetivoRepositoryMapper());
 
+    private static final UUID OTRA_FOTO_ID = UUID.fromString("00000000-0000-4000-8000-0000000000e2");
+
+    private ProgresoObjetivo foto;
+    private List<ProgresoObjetivo> fotos;
+
     @Test
     @DisplayName("Registra la foto de un mini-objetivo pasando al JPA los UUID y los valores")
-    void registrarShouldPassTheUuidsAndValues() {
-        ProgresoObjetivo foto = ProgresoObjetivo.de(OBJETIVO_ID, MINI_ID, DIA, VALOR, AHORA);
+    void registraLaFotoDeUnMiniObjetivoPasandoAlJpaLosUuidYLosValores() {
+        dadoUnaFotoDeUnMiniObjetivo();
 
-        repository.registrar(foto);
+        cuandoSeRegistraLaFoto();
 
-        verify(jpa).registrar(foto.id().valor(), OBJETIVO_ID.valor(), MINI_ID.valor(), DIA, VALOR, AHORA);
+        entoncesSePasaronAlJpaLosUuidYLosValores(MINI_ID.valor());
     }
 
     @Test
     @DisplayName("Registra la foto del objetivo mayor con el mini-objetivo vacío")
-    void registrarShouldPassNullForTheObjetivoPhoto() {
-        ProgresoObjetivo foto = ProgresoObjetivo.de(OBJETIVO_ID, null, DIA, VALOR, AHORA);
+    void registraLaFotoDelObjetivoMayorConElMiniObjetivoVacio() {
+        dadoUnaFotoDelObjetivoMayor();
 
-        repository.registrar(foto);
+        cuandoSeRegistraLaFoto();
 
-        verify(jpa).registrar(foto.id().valor(), OBJETIVO_ID.valor(), null, DIA, VALOR, AHORA);
+        entoncesSePasaronAlJpaLosUuidYLosValores(null);
     }
 
     @Test
     @DisplayName("Lista las fotos del objetivo en el orden de la consulta y las mapea al dominio")
-    void findAllByObjetivoIdShouldMapInOrder() {
-        UUID otraFoto = UUID.fromString("00000000-0000-4000-8000-0000000000e2");
-        when(jpa.findAllByObjetivoIdOrderByDiaAscMedidoEnAsc(OBJETIVO_ID.valor()))
-                .thenReturn(List.of(entity(UUID.randomUUID(), null), entity(otraFoto, MINI_ID.valor())));
+    void listaLasFotosDelObjetivoEnElOrdenDeLaConsultaYLasMapeaAlDominio() {
+        dadoQueElObjetivoTieneUnaFotoMayorYUnaDeMiniObjetivo();
 
-        List<ProgresoObjetivo> result = repository.findAllByObjetivoId(OBJETIVO_ID);
+        cuandoSeListanLasFotosDelObjetivo();
 
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).esDelObjetivo()).isTrue();
-        assertThat(result.get(1).id().valor()).isEqualTo(otraFoto);
-        assertThat(result.get(1).miniObjetivoId()).isEqualTo(MINI_ID);
+        entoncesSeListanLasDosFotosEnOrden();
     }
 
     @Test
     @DisplayName("Devuelve una lista vacía cuando el objetivo no tiene fotos")
-    void findAllByObjetivoIdShouldReturnEmpty() {
+    void devuelveUnaListaVaciaCuandoElObjetivoNoTieneFotos() {
         when(jpa.findAllByObjetivoIdOrderByDiaAscMedidoEnAsc(OBJETIVO_ID.valor())).thenReturn(List.of());
 
-        List<ProgresoObjetivo> result = repository.findAllByObjetivoId(OBJETIVO_ID);
+        cuandoSeListanLasFotosDelObjetivo();
 
-        assertThat(result).isEmpty();
+        entoncesNoSeListaNingunaFoto();
     }
 
-    // --- helpers ---
+    // --- dado ---
+    private void dadoUnaFotoDeUnMiniObjetivo() {
+        foto = ProgresoObjetivo.de(OBJETIVO_ID, MINI_ID, DIA, VALOR, AHORA);
+    }
+
+    private void dadoUnaFotoDelObjetivoMayor() {
+        foto = ProgresoObjetivo.de(OBJETIVO_ID, null, DIA, VALOR, AHORA);
+    }
+
+    private void dadoQueElObjetivoTieneUnaFotoMayorYUnaDeMiniObjetivo() {
+        when(jpa.findAllByObjetivoIdOrderByDiaAscMedidoEnAsc(OBJETIVO_ID.valor()))
+                .thenReturn(List.of(entity(UUID.randomUUID(), null), entity(OTRA_FOTO_ID, MINI_ID.valor())));
+    }
+
     private static ProgresoObjetivoEntity entity(UUID id, UUID miniObjetivoId) {
         return ProgresoObjetivoEntity.builder()
                 .id(id)
@@ -84,5 +97,30 @@ class ProgresoObjetivoRepositoryImplTest {
                 .valor(VALOR)
                 .medidoEn(AHORA)
                 .build();
+    }
+
+    // --- cuando ---
+    private void cuandoSeRegistraLaFoto() {
+        repository.registrar(foto);
+    }
+
+    private void cuandoSeListanLasFotosDelObjetivo() {
+        fotos = repository.findAllByObjetivoId(OBJETIVO_ID);
+    }
+
+    // --- entonces ---
+    private void entoncesSePasaronAlJpaLosUuidYLosValores(UUID miniObjetivoId) {
+        verify(jpa).registrar(foto.id().valor(), OBJETIVO_ID.valor(), miniObjetivoId, DIA, VALOR, AHORA);
+    }
+
+    private void entoncesSeListanLasDosFotosEnOrden() {
+        assertThat(fotos).hasSize(2);
+        assertThat(fotos.get(0).esDelObjetivo()).isTrue();
+        assertThat(fotos.get(1).id().valor()).isEqualTo(OTRA_FOTO_ID);
+        assertThat(fotos.get(1).miniObjetivoId()).isEqualTo(MINI_ID);
+    }
+
+    private void entoncesNoSeListaNingunaFoto() {
+        assertThat(fotos).isEmpty();
     }
 }
