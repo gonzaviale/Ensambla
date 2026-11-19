@@ -13,41 +13,51 @@ export type Filtros = Record<string, FiltroDeColumna>;
 
 export type ClaseDeFiltro = 'opcion' | 'si-no' | 'fecha' | 'numero' | 'texto';
 
-export const claseDeFiltro = (campo: Campo): ClaseDeFiltro => {
-  if (campo.type === 'select') return 'opcion';
-  if (campo.type === 'checkbox') return 'si-no';
-  if (campo.type === 'date') return 'fecha';
-  if (campo.type === 'number' || campo.type === 'currency') return 'numero';
-  return 'texto';
+const CLASE_POR_TIPO: Partial<Record<Campo['type'], ClaseDeFiltro>> = {
+  select: 'opcion',
+  checkbox: 'si-no',
+  date: 'fecha',
+  number: 'numero',
+  currency: 'numero',
 };
+
+export const claseDeFiltro = (campo: Campo): ClaseDeFiltro => CLASE_POR_TIPO[campo.type] ?? 'texto';
 
 const vacio = (valor: Valor) => valor === '' || valor == null;
 
-function cumpleElFiltro(sistema: Sistema, campo: Campo, valor: Valor, filtro: FiltroDeColumna) {
-  switch (claseDeFiltro(campo)) {
-    case 'opcion':
-      return !filtro.opcion || String(valor ?? '') === filtro.opcion;
-    case 'si-no':
-      return !filtro.opcion || Boolean(valor) === (filtro.opcion === 'si');
-    case 'fecha': {
-      const fecha = vacio(valor) ? '' : String(valor);
-      if (filtro.desde && (!fecha || fecha < filtro.desde)) return false;
-      if (filtro.hasta && (!fecha || fecha > filtro.hasta)) return false;
-      return true;
-    }
-    case 'numero': {
-      const numero = vacio(valor) ? Number.NaN : Number(valor);
-      if (filtro.desde && !(numero >= Number(filtro.desde))) return false;
-      if (filtro.hasta && !(numero <= Number(filtro.hasta))) return false;
-      return true;
-    }
-    case 'texto':
-      return (
-        !filtro.texto ||
-        normalize(textoPlano(sistema, campo, valor)).includes(normalize(filtro.texto))
-      );
-  }
-}
+type Criterio = (sistema: Sistema, campo: Campo, valor: Valor, filtro: FiltroDeColumna) => boolean;
+
+const cumpleLaOpcion: Criterio = (_sistema, _campo, valor, filtro) =>
+  !filtro.opcion || String(valor ?? '') === filtro.opcion;
+
+const cumpleSiNo: Criterio = (_sistema, _campo, valor, filtro) =>
+  !filtro.opcion || Boolean(valor) === (filtro.opcion === 'si');
+
+const cumpleElRangoDeFechas: Criterio = (_sistema, _campo, valor, { desde, hasta }) => {
+  const fecha = vacio(valor) ? '' : String(valor);
+  if (desde && (!fecha || fecha < desde)) return false;
+  return !(hasta && (!fecha || fecha > hasta));
+};
+
+const cumpleElRangoNumerico: Criterio = (_sistema, _campo, valor, { desde, hasta }) => {
+  const numero = vacio(valor) ? Number.NaN : Number(valor);
+  if (desde && !(numero >= Number(desde))) return false;
+  return !(hasta && !(numero <= Number(hasta)));
+};
+
+const cumpleElTexto: Criterio = (sistema, campo, valor, filtro) =>
+  !filtro.texto || normalize(textoPlano(sistema, campo, valor)).includes(normalize(filtro.texto));
+
+const CRITERIOS: Record<ClaseDeFiltro, Criterio> = {
+  opcion: cumpleLaOpcion,
+  'si-no': cumpleSiNo,
+  fecha: cumpleElRangoDeFechas,
+  numero: cumpleElRangoNumerico,
+  texto: cumpleElTexto,
+};
+
+const cumpleElFiltro: Criterio = (sistema, campo, valor, filtro) =>
+  CRITERIOS[claseDeFiltro(campo)](sistema, campo, valor, filtro);
 
 /** Si hay algo escrito en la búsqueda o en algún filtro. */
 export const hayFiltros = (consulta: string, filtros: Filtros) =>
