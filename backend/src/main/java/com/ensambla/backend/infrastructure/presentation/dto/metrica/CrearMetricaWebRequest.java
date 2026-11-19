@@ -16,7 +16,12 @@ public record CrearMetricaWebRequest(
         @NotNull CalculoMetrica calculo,
         AgrupacionMetrica agrupar,
         PeriodoMetrica periodo,
-        boolean soloFiado,
+        Boolean soloFiado,
         @NotNull AutoriaMetrica autoria
 ) {
+
+    /** Sin {@code soloFiado}, la receta mira todas las ventas. */
+    public CrearMetricaWebRequest {
+        soloFiado = Boolean.TRUE.equals(soloFiado);
+    }
 }

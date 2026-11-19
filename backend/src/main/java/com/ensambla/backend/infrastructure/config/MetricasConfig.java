@@ -27,14 +27,22 @@ public class MetricasConfig {
     }
 
     static CatalogoMetricas cargar(Resource recurso, ObjectMapper objectMapper) {
+        CatalogoMetricas catalogo = leer(recurso, objectMapper).aCatalogo();
+        validarTodas(catalogo);
+        return catalogo;
+    }
+
+    private static CatalogoMetricasJson leer(Resource recurso, ObjectMapper objectMapper) {
         try {
-            CatalogoMetricas catalogo = objectMapper.readValue(
-                    recurso.getContentAsString(StandardCharsets.UTF_8), CatalogoMetricas.class);
-            catalogo.base().forEach(DefinicionMetrica::validar);
-            catalogo.porRubro().values().forEach(definiciones -> definiciones.forEach(DefinicionMetrica::validar));
-            return catalogo;
+            return objectMapper.readValue(recurso.getContentAsString(StandardCharsets.UTF_8),
+                    CatalogoMetricasJson.class);
         } catch (IOException e) {
             throw new IllegalStateException("No se pudo leer el catálogo de métricas " + recurso.getDescription(), e);
         }
+    }
+
+    private static void validarTodas(CatalogoMetricas catalogo) {
+        catalogo.base().forEach(DefinicionMetrica::validar);
+        catalogo.porRubro().values().forEach(definiciones -> definiciones.forEach(DefinicionMetrica::validar));
     }
 }
