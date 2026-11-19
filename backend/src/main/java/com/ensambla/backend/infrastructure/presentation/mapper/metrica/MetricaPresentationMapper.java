@@ -6,6 +6,8 @@ import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.metrica.DefinicionItem;
 import com.ensambla.backend.domain.useCase.metrica.MetricaItem;
 import com.ensambla.backend.domain.useCase.metrica.ResultadoItem;
+import com.ensambla.backend.domain.useCase.metrica.ResultadoItem.DeDondeSaleItem;
+import com.ensambla.backend.domain.useCase.metrica.ResultadoItem.FilaItem;
 import com.ensambla.backend.domain.useCase.metrica.SugeridaItem;
 import com.ensambla.backend.domain.useCase.metrica.crearMetrica.CrearMetricaRequest;
 import com.ensambla.backend.domain.useCase.metrica.eliminarMetrica.EliminarMetricaRequest;
@@ -64,24 +66,25 @@ public class MetricaPresentationMapper {
     }
 
     public List<SugeridaResponse> toSugeridasResponse(List<SugeridaItem> sugeridas) {
-        return sugeridas.stream()
-                .map(sugerida -> new SugeridaResponse(
-                        toResponse(sugerida.definicion()), toResponse(sugerida.resultado())))
-                .toList();
+        return sugeridas.stream().map(this::toResponse).toList();
     }
 
     public ResultadoResponse toResponse(ResultadoItem resultado) {
-        return new ResultadoResponse(
-                resultado.formato(),
-                resultado.valor(),
-                resultado.filas().stream().map(fila -> new FilaResponse(fila.etiqueta(), fila.valor())).toList(),
-                resultado.motivo(),
-                new DeDondeSaleResponse(
-                        resultado.deDondeSale().fuente(),
-                        resultado.deDondeSale().filasUsadas(),
-                        resultado.deDondeSale().filasSinDato(),
-                        resultado.deDondeSale().desde(),
-                        resultado.deDondeSale().hasta()));
+        return new ResultadoResponse(resultado.formato(), resultado.valor(), toFilasResponse(resultado.filas()),
+                resultado.motivo(), toResponse(resultado.deDondeSale()));
+    }
+
+    private SugeridaResponse toResponse(SugeridaItem sugerida) {
+        return new SugeridaResponse(toResponse(sugerida.definicion()), toResponse(sugerida.resultado()));
+    }
+
+    private List<FilaResponse> toFilasResponse(List<FilaItem> filas) {
+        return filas.stream().map(fila -> new FilaResponse(fila.etiqueta(), fila.valor())).toList();
+    }
+
+    private DeDondeSaleResponse toResponse(DeDondeSaleItem deDondeSale) {
+        return new DeDondeSaleResponse(deDondeSale.fuente(), deDondeSale.filasUsadas(), deDondeSale.filasSinDato(),
+                deDondeSale.desde(), deDondeSale.hasta());
     }
 
     private DefinicionResponse toResponse(DefinicionItem definicion) {
