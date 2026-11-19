@@ -36,8 +36,9 @@ public final class MedidorMiniObjetivo {
     /** La categoría de la compra de mercadería ya se descuenta al vender: no es un gasto que recortar. */
     private static final String MERCADERIA = TextoNormalizado.de("Mercadería");
 
-    /** Un producto del inventario con nombre, precio y costo cargados. */
-    public record Producto(RegistroId id, String nombre, BigDecimal precio, BigDecimal costo, BigDecimal stock) {
+    /** Un producto del inventario con nombre, precio y costo cargados; {@code minimo} vacío si no definió uno. */
+    public record Producto(
+            RegistroId id, String nombre, BigDecimal precio, BigDecimal costo, BigDecimal stock, BigDecimal minimo) {
 
         public BigDecimal gananciaPorUnidad() {
             return precio.subtract(costo);
@@ -149,21 +150,54 @@ public final class MedidorMiniObjetivo {
     }
 
     /**
+     * Cuántos productos están en el mínimo que definió el negocio o por debajo; vacío si ningún producto tiene un mínimo
+     * definido (sin datos, no cero).
+     */
+    public Optional<BigDecimal> productosBajoElMinimo() {
+        List<Producto> conMinimo = productos.values().stream().filter(producto -> producto.minimo() != null).toList();
+        if (conMinimo.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(BigDecimal.valueOf(conMinimo.stream()
+                .filter(producto -> producto.stock().compareTo(producto.minimo()) <= 0)
+                .count()));
+    }
+
+    /**
+     * La mercadería con stock que no se vendió en los últimos 30 días, a su costo actual; vacío si no hubo ventas o no
+     * hay productos con qué compararlas (sin ventas todo parecería parado).
+     */
+    public Optional<BigDecimal> capitalParado() {
+        if (!hayVentas() || productos.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(productos.values().stream()
+                .filter(producto -> producto.stock().signum() > 0 && unidades(producto.id(), DIAS_MES).signum() == 0)
+                .map(producto -> producto.costo().multiply(producto.stock()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+    }
+
+    /** Cuántos productos distintos se vendieron en los últimos 7 días; vacío si no hubo ventas o no hay productos. */
+    public Optional<BigDecimal> variedadVendida() {
+        if (!hayVentas() || productos.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(BigDecimal.valueOf(productos.values().stream()
+                .filter(producto -> unidades(producto.id(), DIAS_SEMANA).signum() > 0)
+                .count()));
+    }
+
+    /**
      * El valor de la métrica de un mini-objetivo hoy; vacío si ya no se puede medir (el producto salió del cuaderno o
      * perdió su precio o su costo, o no hay costos para el margen).
      */
     public Optional<BigDecimal> valorDe(TipoMiniObjetivo tipo, RegistroId productoId, String referencia) {
         Optional<Producto> producto = Optional.ofNullable(productoId).map(productos::get);
-        return switch (tipo) {
-            case SUBIR_PRECIO -> producto.map(this::gananciaSemanal);
-            case MOVER_PARADO, PONER_A_LA_VISTA -> producto.map(dato -> unidades(dato.id(), DIAS_SEMANA));
-            case RECORTAR_GASTO -> Optional.of(gastoDe(referencia));
-            case MEJORAR_MARGEN -> margen();
-            case VENTAS_SEMANALES -> Optional.of(ventasSemana());
-        };
+        return tipo.medirEn(this, producto, referencia);
     }
 
-    private BigDecimal gastoDe(String categoria) {
+    /** Lo gastado en los últimos 30 días en la categoría; cero si no hubo. */
+    public BigDecimal gastoDe(String categoria) {
         String clave = TextoNormalizado.de(categoria);
         return gastos.stream()
                 .filter(gasto -> TextoNormalizado.de(gasto.categoria()).equals(clave))
@@ -198,7 +232,8 @@ public final class MedidorMiniObjetivo {
         }
         BigDecimal stock = numero(inventario.valorDe(registro, "quantity"));
         return Optional.of(new Producto(
-                registro.getId(), nombre.trim(), precio, costo, stock == null ? BigDecimal.ZERO : stock));
+                registro.getId(), nombre.trim(), precio, costo, stock == null ? BigDecimal.ZERO : stock,
+                positivo(inventario.valorDe(registro, "minimum"))));
     }
 
     /** El gasto de cada categoría en los últimos 30 días, de todos los sistemas, sin la mercadería. */

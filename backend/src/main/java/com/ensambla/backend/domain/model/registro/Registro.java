@@ -109,20 +109,30 @@ public class Registro {
     public static Map<String, Object> validar(List<Campo> campos, Map<String, Object> valores) {
         Map<String, String> errores = new LinkedHashMap<>();
         Map<String, Object> limpios = new LinkedHashMap<>();
-        for (Campo campo : campos.stream().filter(campo -> !campo.esFormula()).toList()) {
-            String clave = campo.getId().toString();
-            Object valor = sinVacios(valores.get(clave));
-            if (valor == null) {
-                registrarFaltante(campo, clave, errores);
-            } else {
-                campo.errorDe(valor).ifPresentOrElse(error -> errores.put(clave, error),
-                        () -> limpios.put(clave, valor));
-            }
+        camposCargables(campos).forEach(campo -> validarCampo(campo, valores, limpios, errores));
+        exigirSinErrores(errores);
+        return limpios;
+    }
+
+    private static List<Campo> camposCargables(List<Campo> campos) {
+        return campos.stream().filter(campo -> !campo.esFormula()).toList();
+    }
+
+    private static void validarCampo(Campo campo, Map<String, Object> valores, Map<String, Object> limpios,
+                                     Map<String, String> errores) {
+        String clave = campo.getId().toString();
+        Object valor = sinVacios(valores.get(clave));
+        if (valor == null) {
+            registrarFaltante(campo, clave, errores);
+            return;
         }
+        campo.errorDe(valor).ifPresentOrElse(error -> errores.put(clave, error), () -> limpios.put(clave, valor));
+    }
+
+    private static void exigirSinErrores(Map<String, String> errores) {
         if (!errores.isEmpty()) {
             throw new RegistroInvalidoException(errores);
         }
-        return limpios;
     }
 
     /**

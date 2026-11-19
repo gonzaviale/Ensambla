@@ -32,7 +32,7 @@ export function RangoDePrecios({ minimo, promedio, maximo, mio }: Props) {
       role="img"
       aria-label={`De ${pesos(minimo)} a ${pesos(maximo)}, promedio ${pesos(promedio)}. En línea entre ${pesos(enLineaDesde)} y ${pesos(enLineaHasta)}${mio ? `, tu precio ${pesos(mio)}` : ''}`}
       style={{
-        background: `linear-gradient(to right, var(--yellow) 0 ${corteBajo}%, var(--blue) ${corteBajo}% ${corteAlto}%, var(--coral) ${corteAlto}% 100%)`,
+        background: `linear-gradient(to right, var(--blue) 0 ${corteBajo}%, var(--yellow) ${corteBajo}% ${corteAlto}%, var(--coral) ${corteAlto}% 100%)`,
       }}
     >
       <span className="minimo" style={{ left: lugar(minimo) }}>

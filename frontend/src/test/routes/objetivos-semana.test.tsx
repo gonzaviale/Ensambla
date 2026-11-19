@@ -22,7 +22,7 @@ const conObjetivoDeEjemplo = () => {
 };
 
 const minis = async () =>
-  within(await screen.findByRole('region', { name: 'Tus 3 mini-objetivos' }, ESPERA));
+  within(await screen.findByRole('region', { name: 'Tus mini-objetivos' }, ESPERA));
 
 describe('la semana de un objetivo que se autogestiona', () => {
   it('con seis semanas simuladas muestra los 3 minis, el gráfico con las decisiones y los reajustes con su motivo', async () => {
@@ -35,7 +35,9 @@ describe('la semana de un objetivo que se autogestiona', () => {
       screen.getByText(/Si cumplís estos mini-objetivos sumás cerca de \$[\d.]+ por mes/),
     ).toBeVisible();
     expect(lista.getByRole('heading', { name: 'Subile $250 a Yerba 1 kg' })).toBeVisible();
-    expect(lista.getByRole('heading', { name: 'Mové 6 Fernet por semana' })).toBeVisible();
+    expect(
+      lista.getByRole('heading', { name: 'Volvé a vender 6 Fernet por semana' }),
+    ).toBeVisible();
 
     const semana = within(screen.getByRole('region', { name: 'Cómo te fue cada semana' }));
     expect(
@@ -64,7 +66,7 @@ describe('la semana de un objetivo que se autogestiona', () => {
       await cambios.findByText(/Ahora el objetivo es \$16\.000 por semana/, {}, ESPERA),
     ).toBeVisible();
     expect(
-      cambios.getByText(/no avanza\. Lo cambiamos por «Mové 6 Fernet por semana»/),
+      cambios.getByText(/no avanza\. Lo cambiamos por «Volvé a vender 6 Fernet por semana»/),
     ).toBeVisible();
     expect(screen.queryByText(/Camino combinado/)).not.toBeInTheDocument();
   });
@@ -135,17 +137,6 @@ describe('la semana de un objetivo que se autogestiona', () => {
     ]);
   });
 
-  it('el recuadro de Sami cuenta qué hace con el objetivo, no un «Sami está listo» genérico', async () => {
-    conObjetivoDeEjemplo();
-    renderApp(DETALLE);
-
-    await minis();
-    expect(screen.queryByText('Sami está listo')).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/Sami sigue tu semana|Tu resumen está listo|Sami espera tus ventas/),
-    ).toBeVisible();
-  });
-
   it('si el servidor no trae los mini-objetivos lo explica sin romper la pantalla', async () => {
     conObjetivoDeEjemplo();
     setupServerError('get', `/objetivos/${ID_OBJETIVO_DE_EJEMPLO}/mini-objetivos`, 503, 'Caído');
@@ -159,7 +150,14 @@ describe('la semana de un objetivo que se autogestiona', () => {
   it('el objetivo de otra cuenta no se muestra', async () => {
     setupUsuarioConSesion();
     guardarObjetivosDe('otra@ensambla.test', [
-      { id: 'ajeno', texto: 'Ajeno', meta: 100000, creadoEn: '2026-10-01T12:00:00' },
+      {
+        id: 'ajeno',
+        texto: 'Ajeno',
+        tipo: 'MONETARIO',
+        meta: 100000,
+        armadoConSami: false,
+        creadoEn: '2026-10-01T12:00:00',
+      },
     ]);
     renderApp('/objetivos/ajeno');
 

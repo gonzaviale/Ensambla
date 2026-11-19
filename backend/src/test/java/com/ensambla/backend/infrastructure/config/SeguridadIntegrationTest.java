@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.RequestBuilder;
+import org.springframework.test.web.servlet.ResultActions;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -19,56 +21,87 @@ class SeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Autowired
     private MockMvc mockMvc;
 
+    private ResultActions respuesta;
+
     @Test
     @DisplayName("El catálogo de rubros exige sesión")
-    void rubrosShouldRequireSession() throws Exception {
-        mockMvc.perform(get("/api/ubicacion/rubros"))
-                .andExpect(status().isUnauthorized());
+    void elCatalogoDeRubrosExigeSesion() throws Exception {
+        cuandoSePideSinSesion(get("/api/ubicacion/rubros"));
+
+        entoncesFaltaLaSesion();
     }
 
     @Test
     @DisplayName("La búsqueda geográfica exige sesión incluso antes de validar CSRF")
-    void direccionesShouldRequireSession() throws Exception {
-        mockMvc.perform(post("/api/ubicacion/direcciones"))
-                .andExpect(status().isUnauthorized());
+    void laBusquedaGeograficaExigeSesionAntesDelCsrf() throws Exception {
+        cuandoSePideSinSesion(post("/api/ubicacion/direcciones"));
+
+        entoncesFaltaLaSesion();
     }
 
     @Test
     @DisplayName("Un endpoint privado sin sesión responde 401 con el cuerpo de error estándar")
-    void privateEndpointShouldReturn401WithoutSession() throws Exception {
-        mockMvc.perform(get("/api/proyectos"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.status").value(401))
-                .andExpect(jsonPath("$.message").value("Se requiere una sesión válida"));
+    void unEndpointPrivadoSinSesionRespondeElErrorEstandar() throws Exception {
+        cuandoSePideSinSesion(get("/api/proyectos"));
+
+        entoncesFaltaLaSesionConElMensaje("Se requiere una sesión válida");
     }
 
     @Test
     @DisplayName("Los registros de un bloque exigen sesión")
-    void registrosShouldRequireSession() throws Exception {
-        mockMvc.perform(get("/api/bloques/b0000000-0000-4000-8000-000000000001/registros"))
-                .andExpect(status().isUnauthorized());
+    void losRegistrosDeUnBloqueExigenSesion() throws Exception {
+        cuandoSePideSinSesion(get("/api/bloques/b0000000-0000-4000-8000-000000000001/registros"));
+
+        entoncesFaltaLaSesion();
     }
 
     @Test
     @DisplayName("Las plantillas son públicas")
-    void plantillasShouldBePublic() throws Exception {
-        mockMvc.perform(get("/api/plantillas"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
+    void lasPlantillasSonPublicas() throws Exception {
+        cuandoSePideSinSesion(get("/api/plantillas"));
+
+        entoncesRespondeUnaLista();
     }
 
     @Test
     @DisplayName("El token CSRF es público")
-    void csrfShouldBePublic() throws Exception {
-        mockMvc.perform(get("/api/auth/csrf"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.headerName").value("X-CSRF-TOKEN"));
+    void elTokenCsrfEsPublico() throws Exception {
+        cuandoSePideSinSesion(get("/api/auth/csrf"));
+
+        entoncesRespondeElHeaderCsrf("X-CSRF-TOKEN");
     }
 
     @Test
     @DisplayName("Una escritura sin token CSRF se rechaza con 403")
-    void writeWithoutCsrfShouldReturn403() throws Exception {
-        mockMvc.perform(post("/api/auth/login"))
-                .andExpect(status().isForbidden());
+    void unaEscrituraSinTokenCsrfSeRechaza() throws Exception {
+        cuandoSePideSinSesion(post("/api/auth/login"));
+
+        entoncesSeRechazaPorCsrf();
+    }
+
+    private void cuandoSePideSinSesion(RequestBuilder pedido) throws Exception {
+        respuesta = mockMvc.perform(pedido);
+    }
+
+    private void entoncesFaltaLaSesion() throws Exception {
+        respuesta.andExpect(status().isUnauthorized());
+    }
+
+    private void entoncesFaltaLaSesionConElMensaje(String mensaje) throws Exception {
+        respuesta.andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.message").value(mensaje));
+    }
+
+    private void entoncesRespondeUnaLista() throws Exception {
+        respuesta.andExpect(status().isOk()).andExpect(jsonPath("$").isArray());
+    }
+
+    private void entoncesRespondeElHeaderCsrf(String header) throws Exception {
+        respuesta.andExpect(status().isOk()).andExpect(jsonPath("$.headerName").value(header));
+    }
+
+    private void entoncesSeRechazaPorCsrf() throws Exception {
+        respuesta.andExpect(status().isForbidden());
     }
 }

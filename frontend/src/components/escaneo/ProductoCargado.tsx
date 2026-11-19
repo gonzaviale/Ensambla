@@ -29,7 +29,7 @@ export function ProductoCargado({
             ? 'Guardando producto…'
             : agregadas != null
               ? 'Stock actualizado'
-              : 'Producto cargado al inventario'}
+              : 'Producto cargado al stock'}
         </h2>
         <p>{String(producto.name)}</p>
         <small>
@@ -37,7 +37,7 @@ export function ProductoCargado({
             ? 'Esperá la confirmación del guardado.'
             : agregadas != null
               ? `Agregaste ${agregadas.toLocaleString('es-AR')} unidades. Ya podés escanear el siguiente producto.`
-              : 'Ya podés escanear o ingresar el siguiente código.'}
+              : 'Ya podés escanear o escribir el siguiente código.'}
         </small>
       </div>
       <div className="escaneo-ultimo-cantidad">

@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.plantilla.PlantillaProyecto;
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
 import com.ensambla.backend.infrastructure.repository.entity.PlantillaEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IPlantillaJpaRepository;
@@ -14,7 +15,7 @@ import java.util.Optional;
 
 import static com.ensambla.backend.support.ProyectoTestData.PLANTILLA_ID;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -24,9 +25,31 @@ class PlantillaParaProyectoRepositoryTest {
     private final PlantillaRepositoryImpl repository = new PlantillaRepositoryImpl(jpa, new PlantillaRepositoryMapper());
     private final PlantillaRepository plantillaRepository = repository;
 
+    private PlantillaProyecto plantilla;
+    private Throwable rechazo;
+
     @Test
     @DisplayName("Convierte una plantilla activa a estructura tipada con valores opcionales por defecto")
-    void obtenerParaProyectoShouldReadTypedStructure() {
+    void conviertePlantillaActivaAEstructuraTipadaConValoresOpcionalesPorDefecto() {
+        dadoUnaPlantillaActivaDeInventario();
+
+        cuandoSeObtieneLaPlantillaParaElProyecto();
+
+        entoncesLaEstructuraEsTipadaConValoresOpcionalesPorDefecto();
+    }
+
+    @Test
+    @DisplayName("Una plantilla inactiva o inexistente responde no encontrada")
+    void unaPlantillaInactivaOInexistenteRespondeNoEncontrada() {
+        dadoQueLaPlantillaEstaInactivaOInexistente();
+
+        cuandoSeIntentaObtenerLaPlantillaParaElProyecto();
+
+        entoncesSeRechazaPorPlantillaNoEncontrada();
+    }
+
+    // --- dado ---
+    private void dadoUnaPlantillaActivaDeInventario() {
         when(jpa.findByIdAndActivaTrue(PLANTILLA_ID.valor())).thenReturn(Optional.of(PlantillaEntity.builder()
                 .id(PLANTILLA_ID.valor())
                 .nombre("Inventario")
@@ -34,24 +57,32 @@ class PlantillaParaProyectoRepositoryTest {
                 .estructura(Map.of("bloques", List.of(Map.of("nombre", "Productos", "campos", List.of(
                         Map.of("nombre", "Nombre", "tipo", "TEXTO"))))))
                 .build()));
+    }
 
-        var result = plantillaRepository.obtenerParaProyecto(PLANTILLA_ID);
+    private void dadoQueLaPlantillaEstaInactivaOInexistente() {
+        when(jpa.findByIdAndActivaTrue(PLANTILLA_ID.valor())).thenReturn(Optional.empty());
+    }
 
-        assertThat(result.id()).isEqualTo(PLANTILLA_ID);
-        assertThat(result.nombre()).isEqualTo("Inventario");
-        assertThat(result.descripcion()).isEqualTo("Mis productos");
-        var campo = result.estructura().bloques().getFirst().campos().getFirst();
+    // --- cuando ---
+    private void cuandoSeObtieneLaPlantillaParaElProyecto() {
+        plantilla = plantillaRepository.obtenerParaProyecto(PLANTILLA_ID);
+    }
+
+    private void cuandoSeIntentaObtenerLaPlantillaParaElProyecto() {
+        rechazo = catchThrowable(this::cuandoSeObtieneLaPlantillaParaElProyecto);
+    }
+
+    // --- entonces ---
+    private void entoncesLaEstructuraEsTipadaConValoresOpcionalesPorDefecto() {
+        assertThat(plantilla.id()).isEqualTo(PLANTILLA_ID);
+        assertThat(plantilla.nombre()).isEqualTo("Inventario");
+        assertThat(plantilla.descripcion()).isEqualTo("Mis productos");
+        var campo = plantilla.estructura().bloques().getFirst().campos().getFirst();
         assertThat(campo.obligatorio()).isFalse();
         assertThat(campo.opciones()).isEmpty();
     }
 
-    @Test
-    @DisplayName("Una plantilla inactiva o inexistente responde no encontrada")
-    void obtenerParaProyectoShouldRejectInactiveOrMissing() {
-        when(jpa.findByIdAndActivaTrue(PLANTILLA_ID.valor())).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> plantillaRepository.obtenerParaProyecto(PLANTILLA_ID))
-                .isInstanceOf(ResourceNotFoundException.class);
+    private void entoncesSeRechazaPorPlantillaNoEncontrada() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class);
     }
 }
-

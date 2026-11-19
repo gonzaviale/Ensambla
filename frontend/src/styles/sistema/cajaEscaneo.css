@@ -1,14 +1,14 @@
 .caja-pagina .btn.primary,
 .caja-dialogo .btn.primary {
   background: var(--orange);
-  border: 1px solid #b65d00;
-  color: #1c2e3b;
+  border: 1px solid var(--c-accion-sombra);
+  color: #fff;
   font-weight: 800;
 }
 .caja-pagina .btn.secondary,
 .caja-pagina .btn.soft,
 .caja-dialogo .btn.secondary {
-  background: #dcecf1;
+  background: #fff;
   border: 2px solid #38748a;
   color: #08495e;
   box-shadow: 0 2px 0 #154e622b;
@@ -29,7 +29,7 @@
   box-shadow: none;
 }
 .caja-modos button {
-  background: #dcecf1;
+  background: #fff;
   color: #08495e;
   border: 2px solid #7398a6;
 }
@@ -50,12 +50,12 @@
   flex-shrink: 0;
 }
 .caja-negocio {
-  background: #dcecf1;
+  background: #fff;
   border: 2px solid #38748a;
   color: #08495e;
 }
 .caja-pagina .caja-lector > .btn.secondary.caja-articulo-manual {
-  background: #dcecf1;
+  background: #fff;
   border: 2px solid #38748a;
   color: #08495e;
   box-shadow: 0 2px 0 #154e622b;
@@ -162,7 +162,7 @@
   flex-direction: column;
   gap: 2px;
   line-height: 1.2;
-  color: #344c59;
+  color: var(--c-estructura);
   font-size: 11px;
 }
 .caja-proxima-resumen strong {
@@ -200,7 +200,7 @@
 }
 .caja-guia-codigo {
   margin: 0;
-  color: #344c59;
+  color: var(--c-estructura);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -221,7 +221,7 @@
   border: 2px solid #38748a;
   border-radius: 10px;
   color: #08495e;
-  background: #dcecf1;
+  background: #fff;
   box-shadow: 0 2px 0 #154e622b;
 }
 .caja-ingresar-codigo {
@@ -231,7 +231,7 @@
   gap: 7px;
   padding: 5px;
   color: #08495e;
-  background: #dcecf1;
+  background: #fff;
   border: 2px solid #38748a;
   box-shadow: 0 2px 0 #154e622b;
   border-radius: 10px;
@@ -246,7 +246,7 @@
 .caja-elegir-camara > button {
   min-height: 46px;
   border: 1px solid #73858e;
-  background: #dcecf1;
+  background: #fff;
   color: var(--ink);
   border-radius: 10px;
   padding: 10px;
@@ -272,7 +272,7 @@
   border-color: #adb9bf;
 }
 .caja-elegir-producto {
-  background: #edf5f7;
+  background: #fff;
 }
 
 @media (max-width: 800px) {
@@ -311,7 +311,7 @@
     min-height: 32px;
     padding: 4px 8px;
     font-size: 11px;
-    background: #dcecf1;
+    background: #fff;
     border-color: #38748a;
   }
   .caja-negocio > .icon {

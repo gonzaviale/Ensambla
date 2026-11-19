@@ -35,17 +35,30 @@ public class SolicitarVerificacionWhatsapp {
     private final Clock clock;
 
     public SolicitarVerificacionWhatsappResponse execute(SolicitarVerificacionWhatsappRequest request) {
-        negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        exigirQueTengaNegocio(request.usuarioId());
         TelefonoWhatsapp telefono = TelefonoWhatsapp.deIngresoManual(request.telefono());
         OffsetDateTime ahora = OffsetDateTime.now(clock);
-        exigirQueNoSeaElSuyo(request.usuarioId(), telefono);
-        vinculoRepository.exigirLibre(telefono, request.usuarioId());
-        exigirCupoDelTelefono(telefono, ahora);
+        exigirQueSePuedaVerificar(request.usuarioId(), telefono, ahora);
         String codigo = nuevoCodigo();
-        VerificacionWhatsapp verificacion = transaccionPort.ejecutar(
-                () -> guardar(request.usuarioId(), telefono, codigo, ahora));
+        VerificacionWhatsapp verificacion = guardarEnTransaccion(request.usuarioId(), telefono, codigo, ahora);
         enviar(verificacion, telefono, codigo);
         return SolicitarVerificacionWhatsappResponse.de(verificacion);
+    }
+
+    private void exigirQueTengaNegocio(UsuarioId usuarioId) {
+        negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    /** El número no es el que ya tiene, nadie más lo vinculó y no se le mandaron demasiados códigos. */
+    private void exigirQueSePuedaVerificar(UsuarioId usuarioId, TelefonoWhatsapp telefono, OffsetDateTime ahora) {
+        exigirQueNoSeaElSuyo(usuarioId, telefono);
+        vinculoRepository.exigirLibre(telefono, usuarioId);
+        exigirCupoDelTelefono(telefono, ahora);
+    }
+
+    private VerificacionWhatsapp guardarEnTransaccion(UsuarioId usuarioId, TelefonoWhatsapp telefono, String codigo,
+                                                      OffsetDateTime ahora) {
+        return transaccionPort.ejecutar(() -> guardar(usuarioId, telefono, codigo, ahora));
     }
 
     private void exigirQueNoSeaElSuyo(UsuarioId usuarioId, TelefonoWhatsapp telefono) {

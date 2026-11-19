@@ -1,5 +1,6 @@
 import { totals } from '@/lib/sistema/core';
 import type { Plan, Planes } from '@/types/planes';
+import { LIMITE_GRATUITO, LIMITE_PREMIUM } from './conversacionObjetivos';
 import { estado, sistemasDe } from './estado';
 
 const CATALOGO: Plan[] = [
@@ -13,6 +14,7 @@ const CATALOGO: Plan[] = [
     limiteProyectos: 1,
     limiteRegistros: 1000,
     limitePaginasIaMensuales: 10,
+    limiteObjetivosIaMensuales: LIMITE_GRATUITO,
     funciones: [],
   },
   {
@@ -25,6 +27,7 @@ const CATALOGO: Plan[] = [
     limiteProyectos: null,
     limiteRegistros: null,
     limitePaginasIaMensuales: 100,
+    limiteObjetivosIaMensuales: LIMITE_PREMIUM,
     funciones: [
       'RECETAS_COSTOS',
       'REPORTES_FILTRADOS',
@@ -62,6 +65,9 @@ export function planesDe(email: string, ahora = new Date()): Planes {
         ? prueba.paginasIaUtilizadas
         : (estado.paginasIa.get(`${email}|${ahora.toISOString().slice(0, 7)}`) ?? 0),
       limitePaginasIa: 10,
+      objetivosIa:
+        estado.objetivosConIa.get(`${email}|${ahora.toISOString().slice(0, 7)}`) ?? 0,
+      limiteObjetivosIa: activa ? LIMITE_PREMIUM : LIMITE_GRATUITO,
       periodoIa: activa ? 'PRUEBA' : 'MENSUAL',
       inicioPeriodoIa: activa ? prueba.inicioEn : inicioMes.toISOString(),
       finPeriodoIa: activa ? prueba.finEn : finMes.toISOString(),

@@ -31,6 +31,11 @@ public record CandidatoMiniObjetivo(
                 texto.titulo(), texto.justificacion(), true);
     }
 
+    /** Si miden lo mismo: el mismo tipo o el mismo producto. Un mini-objetivo en curso no puede repetirlo. */
+    public boolean chocaCon(CandidatoMiniObjetivo otro) {
+        return tipo == otro.tipo || (registroId != null && registroId.equals(otro.registroId));
+    }
+
     /** Si es el que la persona eligió: mismo tipo, mismo producto y misma referencia. */
     public boolean esElMismo(TipoMiniObjetivo otroTipo, RegistroId otroRegistroId, String otraReferencia) {
         return tipo == otroTipo

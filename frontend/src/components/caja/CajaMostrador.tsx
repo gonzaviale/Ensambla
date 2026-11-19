@@ -85,7 +85,7 @@ export function CajaMostrador({
         </span>
         <span className="caja-conexion">
           <span aria-hidden="true" />
-          {caja.pendiente ? 'Guardando cambios…' : 'Inventario conectado'}
+          {caja.pendiente ? 'Guardando cambios…' : 'Stock conectado'}
         </span>
       </div>
       <nav className="caja-vistas" aria-label="Secciones de caja">
@@ -404,7 +404,7 @@ export function CajaMostrador({
       )}
       {caja.ticket && (
         <DialogoCaja
-          titulo="Venta registrada"
+          titulo="Venta guardada"
           onCerrar={() => {
             caja.setTicket(null);
             setCobrando(false);
@@ -436,7 +436,7 @@ export function CajaMostrador({
             ))}
           </ul>
           <p>Vuelto: {dineroCaja(Math.round(caja.ticket.vuelto * 100))}</p>
-          <p className="caja-ayuda">Operación {caja.ticket.id} · Comprobante de registro</p>
+          <p className="caja-ayuda">Operación {caja.ticket.id} · Comprobante de la venta</p>
           <div className="caja-pagos-detalle">
             {caja.ticket.pagos.map((p) => (
               <p key={p.medio}>
@@ -465,7 +465,7 @@ export function CajaMostrador({
       )}
       {favoritos && (
         <DialogoCaja titulo="Elegí tus favoritos" onCerrar={() => setFavoritos(false)}>
-          <p>Son accesos a los mismos artículos de tu inventario.</p>
+          <p>Son accesos a los mismos productos de tu stock.</p>
           <label>
             Buscar artículo
             <input

@@ -35,8 +35,8 @@ export async function whenSeCuentaEfectivo(
 }
 export async function whenSeExplicaDiferencia(user: ReturnType<typeof userEvent.setup>) {
   await user.type(
-    screen.getByLabelText('Motivo de la diferencia (obligatorio)'),
-    'Retiro pendiente de registrar',
+    screen.getByLabelText('Motivo de la diferencia (lo necesitamos para cerrar)'),
+    'Retiro pendiente de guardar',
   );
   await user.click(screen.getByRole('button', { name: 'Guardar cierre' }));
 }
@@ -48,6 +48,6 @@ export function thenSePuedeGuardarCierre() {
 }
 export function thenSeGuardaRecuentoCero(confirmar: ReturnType<typeof vi.fn>) {
   expect(confirmar).toHaveBeenCalledWith(
-    expect.objectContaining({ contado: 0, nota: 'Retiro pendiente de registrar' }),
+    expect.objectContaining({ contado: 0, nota: 'Retiro pendiente de guardar' }),
   );
 }

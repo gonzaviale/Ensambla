@@ -39,10 +39,10 @@ export function sumarStockProductoEscaneado(
 ): Resultado {
   const cantidad = Number(entrada);
   if (!entrada.trim() || !Number.isFinite(cantidad) || cantidad <= 0)
-    return { errores: { quantity: 'Ingresá una cantidad mayor que cero para agregar.' } };
+    return { errores: { quantity: 'Escribí una cantidad mayor que cero para agregar.' } };
   const inventario = findBlock(sistema, inventarioId);
   if (!inventario || inventario.type !== 'inventory')
-    return { errores: { _form: 'Este inventario ya no está disponible.' } };
+    return { errores: { _form: 'Esta sección ya no está disponible.' } };
   const producto = inventario.rows.find((fila) => fila.id === productoId);
   if (!producto)
     return { errores: { _form: 'El producto fue eliminado. Volvé a buscar el código.' } };
@@ -55,14 +55,14 @@ export function sumarStockProductoEscaneado(
   if (!inventario.fields.some((campo) => campo.key === 'quantity' && campo.type === 'number'))
     return {
       errores: {
-        _form: 'Este inventario necesita un campo numérico de cantidad para sumar stock.',
+        _form: 'Esta sección necesita un dato numérico de cantidad para sumar stock.',
       },
     };
   const actual = Number(producto.quantity ?? 0);
   const total = actual + cantidad;
   if (!Number.isFinite(actual) || actual < 0)
     return {
-      errores: { _form: 'No pudimos leer el stock actual. Revisá el producto en el inventario.' },
+      errores: { _form: 'No pudimos leer el stock actual. Revisá el producto en el stock.' },
     };
   if (!Number.isFinite(total) || total > Number.MAX_SAFE_INTEGER || total <= actual)
     return {
@@ -77,7 +77,7 @@ export function sumarStockProductoEscaneado(
   )
     return {
       errores: {
-        _form: 'Revisá los datos de este producto en el inventario antes de sumar stock.',
+        _form: 'Revisá los datos de este producto en el stock antes de sumar stock.',
       },
     };
   return resultado;
@@ -98,7 +98,7 @@ export function guardarProductoEscaneado(
   const copia = clone(sistema);
   const inventario = findBlock(copia, inventarioId);
   if (!inventario || inventario.type !== 'inventory')
-    return { errores: { _form: 'Este inventario ya no está disponible.' } };
+    return { errores: { _form: 'Esta sección ya no está disponible.' } };
   const propio = inventario.rows.find((fila) => fila.id === borrador.productoId);
   if (borrador.productoId && !propio)
     return { errores: { _form: 'El producto fue eliminado. Volvé a buscar el código.' } };
@@ -144,7 +144,7 @@ export function guardarProductoEscaneado(
   if (campoCodigo && campoCodigo.type !== 'text')
     return {
       errores: {
-        _form: 'El campo de código de barras debe ser de texto para conservar los ceros iniciales.',
+        _form: 'El dato del código de barras debe ser de texto para conservar los ceros iniciales.',
       },
     };
   if (!campoCodigo)

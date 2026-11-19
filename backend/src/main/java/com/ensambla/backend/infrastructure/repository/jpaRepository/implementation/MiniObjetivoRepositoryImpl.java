@@ -1,8 +1,10 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.objetivo.EstadoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivoId;
+import com.ensambla.backend.domain.model.objetivo.ModoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.ObjetivoId;
 import com.ensambla.backend.domain.repository.objetivo.MiniObjetivoRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IMiniObjetivoJpaRepository;
@@ -36,6 +38,15 @@ public class MiniObjetivoRepositoryImpl implements MiniObjetivoRepository {
         return miniObjetivoJpaRepository
                 .findByIdAndObjetivoIdAndNegocioId(miniObjetivoId.valor(), objetivoId.valor(), negocioId.valor())
                 .map(miniObjetivoRepositoryMapper::toDomain);
+    }
+
+    @Override
+    public List<MiniObjetivo> findAllPendientesDeRespuestaByNegocioId(NegocioId negocioId) {
+        return miniObjetivoJpaRepository
+                .findPendientesDeRespuesta(negocioId.valor(), ModoMiniObjetivo.MANUAL, EstadoMiniObjetivo.EN_CURSO)
+                .stream()
+                .map(miniObjetivoRepositoryMapper::toDomain)
+                .toList();
     }
 
     @Override

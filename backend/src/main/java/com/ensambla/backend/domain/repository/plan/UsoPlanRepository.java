@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.repository.plan;
 
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.objetivo.ObjetivoId;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 
 import java.time.LocalDate;
@@ -24,6 +25,12 @@ public interface UsoPlanRepository {
     long cartelesIaEnElMes(NegocioId negocioId, LocalDate mes);
 
     void registrarCartelIa(NegocioId negocioId, LocalDate mes, OffsetDateTime ahora);
+
+    /** Objetivos con IA guardados desde inclusive hasta exclusive; borrar un objetivo no los descuenta. */
+    long objetivosIaEnPeriodo(NegocioId negocioId, OffsetDateTime desde, OffsetDateTime hasta);
+
+    /** Anota que el objetivo gastó una unidad de la cuota mensual. */
+    void registrarObjetivoIa(NegocioId negocioId, ObjetivoId objetivoId, OffsetDateTime ahora);
 
     boolean registrarPaginaInmediata(NegocioId negocioId, LocalDate fecha, int limiteDiario, OffsetDateTime ahora);
 }

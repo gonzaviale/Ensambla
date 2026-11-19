@@ -86,6 +86,11 @@ public abstract class Campo {
         return Boolean.TRUE.equals(obligatorio);
     }
 
+    /** La clave con la que la pantalla conoce al campo; los que no la tienen (columnas de Sami o de una plantilla) usan su id. */
+    public String claveDePantalla() {
+        return clave == null ? id.toString() : clave;
+    }
+
     public boolean esNumerico() {
         return false;
     }

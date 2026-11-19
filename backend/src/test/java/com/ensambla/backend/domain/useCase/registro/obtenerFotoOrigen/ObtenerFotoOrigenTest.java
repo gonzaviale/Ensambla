@@ -27,7 +27,7 @@ import static com.ensambla.backend.support.LoteTestData.JPEG;
 import static com.ensambla.backend.support.LoteTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.LoteTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -50,58 +50,96 @@ class ObtenerFotoOrigenTest {
     private LoteSubidaRepository loteSubidaRepository;
 
     private ObtenerFotoOrigen obtenerFotoOrigen;
+    private FotoArchivoResponse foto;
+    private Throwable rechazo;
 
     @BeforeEach
-    void setUp() {
+    void dadoUnNegocioDelUsuario() {
         obtenerFotoOrigen = new ObtenerFotoOrigen(negocioRepository, registroRepository, archivoCuadernoPort,
                 loteSubidaRepository);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @Test
     @DisplayName("Devuelve la foto de la que salió el registro del negocio")
-    void executeShouldReturnFotoOfRegistro() {
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID))
-                .thenReturn(Registro.desdeCuaderno(NEGOCIO_ID, BLOQUE_ID, Map.of(), FOTO_ID, AHORA));
-        FotoCuaderno foto = FotoCuaderno.builder().id(FOTO_ID).build();
-        when(loteSubidaRepository.findFotoByIdAndNegocioId(FOTO_ID, NEGOCIO_ID)).thenReturn(Optional.of(foto));
-        when(archivoCuadernoPort.leerFoto(NEGOCIO_ID, foto)).thenReturn(new ArchivoFoto(JPEG, "image/jpeg"));
+    void devuelveLaFotoDeLaQueSalioElRegistroDelNegocio() {
+        dadoUnRegistroQueSalioDeUnaFotoGuardada();
 
-        FotoArchivoResponse result = obtenerFotoOrigen.execute(request());
+        cuandoSePideLaFotoDeOrigen();
 
-        assertThat(result.contenido()).isEqualTo(JPEG);
-        assertThat(result.tipoContenido()).isEqualTo("image/jpeg");
+        entoncesSeDevuelveElArchivoDeLaFoto();
     }
 
     @Test
     @DisplayName("Un registro cargado a mano no tiene foto y no se lee ningún archivo")
-    void executeShouldThrowWhenRegistroHasNoFoto() {
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID))
-                .thenReturn(Registro.nuevo(NEGOCIO_ID, BLOQUE_ID, Map.of(), AHORA));
-        ObtenerFotoOrigenRequest request = request();
+    void unRegistroCargadoAManoNoTieneFotoYNoSeLeeNingunArchivo() {
+        dadoUnRegistroCargadoAMano();
 
-        assertThatThrownBy(() -> obtenerFotoOrigen.execute(request))
-                .isInstanceOf(ResourceNotFoundException.class);
-        verifyNoInteractions(archivoCuadernoPort, loteSubidaRepository);
+        cuandoSeIntentaPedirLaFotoDeOrigen();
+
+        entoncesSeRechazaPorFotoInexistente();
+        entoncesNoSeBuscaNiSeLeeNingunaFoto();
     }
 
     @Test
     @DisplayName("Una foto que no es del negocio responde como inexistente sin leer ningún archivo")
-    void executeShouldThrowWhenFotoIsNotOfTheNegocio() {
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+    void unaFotoQueNoEsDelNegocioRespondeComoInexistenteSinLeerNingunArchivo() {
+        dadoUnRegistroConUnaFotoQueNoEsDelNegocio();
+
+        cuandoSeIntentaPedirLaFotoDeOrigen();
+
+        entoncesSeRechazaPorFotoInexistente();
+        entoncesNoSeLeeNingunArchivo();
+    }
+
+    // --- dado ---
+    private void dadoUnRegistroQueSalioDeUnaFotoGuardada() {
+        FotoCuaderno fotoGuardada = FotoCuaderno.builder().id(FOTO_ID).build();
+        dadoUnRegistroDesdeCuaderno();
+        when(loteSubidaRepository.findFotoByIdAndNegocioId(FOTO_ID, NEGOCIO_ID))
+                .thenReturn(Optional.of(fotoGuardada));
+        when(archivoCuadernoPort.leerFoto(NEGOCIO_ID, fotoGuardada)).thenReturn(new ArchivoFoto(JPEG, "image/jpeg"));
+    }
+
+    private void dadoUnRegistroCargadoAMano() {
+        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID))
+                .thenReturn(Registro.nuevo(NEGOCIO_ID, BLOQUE_ID, Map.of(), AHORA));
+    }
+
+    private void dadoUnRegistroConUnaFotoQueNoEsDelNegocio() {
+        dadoUnRegistroDesdeCuaderno();
+        when(loteSubidaRepository.findFotoByIdAndNegocioId(FOTO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+    }
+
+    private void dadoUnRegistroDesdeCuaderno() {
         when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID))
                 .thenReturn(Registro.desdeCuaderno(NEGOCIO_ID, BLOQUE_ID, Map.of(), FOTO_ID, AHORA));
-        when(loteSubidaRepository.findFotoByIdAndNegocioId(FOTO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
-        ObtenerFotoOrigenRequest request = request();
+    }
 
-        assertThatThrownBy(() -> obtenerFotoOrigen.execute(request))
-                .isInstanceOf(ResourceNotFoundException.class).hasMessage("Foto no encontrada");
+    // --- cuando ---
+    private void cuandoSePideLaFotoDeOrigen() {
+        foto = obtenerFotoOrigen.execute(new ObtenerFotoOrigenRequest(USUARIO_ID, REGISTRO_ID));
+    }
+
+    private void cuandoSeIntentaPedirLaFotoDeOrigen() {
+        rechazo = catchThrowable(this::cuandoSePideLaFotoDeOrigen);
+    }
+
+    // --- entonces ---
+    private void entoncesSeDevuelveElArchivoDeLaFoto() {
+        assertThat(foto.contenido()).isEqualTo(JPEG);
+        assertThat(foto.tipoContenido()).isEqualTo("image/jpeg");
+    }
+
+    private void entoncesSeRechazaPorFotoInexistente() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    private void entoncesNoSeLeeNingunArchivo() {
         verifyNoInteractions(archivoCuadernoPort);
     }
 
-    // --- helpers ---
-    private ObtenerFotoOrigenRequest request() {
-        return new ObtenerFotoOrigenRequest(USUARIO_ID, REGISTRO_ID);
+    private void entoncesNoSeBuscaNiSeLeeNingunaFoto() {
+        verifyNoInteractions(archivoCuadernoPort, loteSubidaRepository);
     }
 }

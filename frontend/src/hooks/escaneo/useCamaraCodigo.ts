@@ -243,7 +243,7 @@ export function useCamaraCodigo(onCodigo: (codigo: string) => void, continua = f
         }
         fallar(
           e instanceof DOMException && e.name === 'NotAllowedError'
-            ? 'No se habilitó la cámara. Revisá el permiso del navegador o ingresá el código a mano.'
+            ? 'No se habilitó la cámara. Revisá el permiso del navegador o escribí el código a mano.'
             : e instanceof DOMException && e.name === 'NotReadableError'
               ? 'La cámara no pudo iniciarse. Puede estar ocupada o desconectada. Elegí otra cámara o volvé a intentar.'
               : e instanceof Error

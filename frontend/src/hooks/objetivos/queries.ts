@@ -2,6 +2,8 @@ import { queryOptions, useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import {
   listarObjetivos,
+  listarRespuestasPendientes,
+  obtenerCuotaObjetivos,
   obtenerDecisionesObjetivo,
   obtenerMiniObjetivos,
   obtenerPasosObjetivo,
@@ -11,6 +13,7 @@ import {
 import { useUsuarioOpcional } from '@/hooks/auth/queries';
 import { useComoVieneTuNegocio } from '@/hooks/objetivos/useComoVieneTuNegocio';
 import { conHistorialReal, objetivoDesdeServidor, type Objetivo } from '@/lib/objetivos';
+import type { RespuestaPendiente } from '@/types/objetivos';
 
 export const objetivosKey = ['objetivos'] as const;
 
@@ -57,6 +60,44 @@ export function useObjetivos() {
     [consulta.data, semanas],
   );
   return { objetivos, cargando: consulta.isPending, fallo: consulta.isError };
+}
+
+/** Cuántos objetivos con IA le quedan a la persona este mes; sin dato (todavía o si falla) no se muestra nada. */
+export const cuotaObjetivosQuery = (usuarioId: string) =>
+  queryOptions({
+    queryKey: [...objetivosKey, 'cuota', usuarioId] as const,
+    queryFn: ({ signal }) => obtenerCuotaObjetivos(signal),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+export function useCuotaObjetivos() {
+  const usuario = useUsuarioOpcional();
+  const consulta = useQuery({
+    ...cuotaObjetivosQuery(usuario?.id ?? 'sin-sesion'),
+    enabled: !!usuario,
+  });
+  return { cuota: consulta.data };
+}
+
+/** Los manuales que esperan la respuesta de la persona; sin dato (todavía o si falla) no se muestra nada. */
+export const respuestasPendientesQuery = (usuarioId: string) =>
+  queryOptions({
+    queryKey: [...objetivosKey, 'pendientes', usuarioId] as const,
+    queryFn: ({ signal }) => listarRespuestasPendientes(signal),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+const SIN_PENDIENTES: RespuestaPendiente[] = [];
+
+export function useRespuestasPendientes() {
+  const usuario = useUsuarioOpcional();
+  const consulta = useQuery({
+    ...respuestasPendientesQuery(usuario?.id ?? 'sin-sesion'),
+    enabled: !!usuario,
+  });
+  return { pendientes: consulta.data ?? SIN_PENDIENTES };
 }
 
 export const pasosObjetivoQuery = () =>

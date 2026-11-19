@@ -13,20 +13,120 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class ConsultaRegistrosTest {
 
     private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
     private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
     private static final CampoId CAMPO_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
+    private static final CampoId FORMULA_ID = CampoId.de("c0000000-0000-4000-8000-000000000002");
     private static final List<Campo> CAMPOS = List.of(Campo.builder().id(CAMPO_ID).build());
+
+    private ConsultaRegistros consulta;
+    private Throwable rechazo;
 
     @Test
     @DisplayName("Sin parámetros pide la primera página de 20 por fecha de carga descendente")
-    void armarShouldUseDefaultsWhenNothingIsSent() {
-        ConsultaRegistros consulta = armar(null, null, null, null, null);
+    void sinParametrosPideLaPrimeraPaginaDeVeintePorFechaDeCargaDescendente() {
+        cuandoSeArma(null, null, null, null, null);
 
+        entoncesPideLaPrimeraPaginaDeVeintePorFechaDeCargaDescendente();
+    }
+
+    @Test
+    @DisplayName("Ignora el texto en blanco y quita los espacios del texto a buscar")
+    void ignoraElTextoEnBlancoYQuitaLosEspaciosDelTextoABuscar() {
+        cuandoSeArma("   ", null, null, null, null);
+        entoncesNoBuscaTexto();
+
+        cuandoSeArma("  harina ", null, null, null, null);
+        entoncesBuscaElTexto("harina");
+    }
+
+    @Test
+    @DisplayName("Ordena por fecha de carga cuando el orden es vacío o creadoEn")
+    void ordenaPorFechaDeCargaCuandoElOrdenEsVacioOCreadoEn() {
+        cuandoSeArma(null, "  ", null, null, null);
+        entoncesOrdenaPorFechaDeCarga();
+
+        cuandoSeArma(null, "creadoEn", null, null, null);
+        entoncesOrdenaPorFechaDeCarga();
+    }
+
+    @Test
+    @DisplayName("Ordena por un campo del bloque identificado por su id")
+    void ordenaPorUnCampoDelBloqueIdentificadoPorSuId() {
+        cuandoSeArma(null, CAMPO_ID.toString(), "asc", null, null);
+
+        entoncesOrdenaAscendentePorElCampo(CAMPO_ID);
+    }
+
+    @Test
+    @DisplayName("Rechaza ordenar por un campo que no es del bloque")
+    void rechazaOrdenarPorUnCampoQueNoEsDelBloque() {
+        cuandoSeIntentaArmar(null, UUID.randomUUID().toString(), null, null, null);
+
+        entoncesSeRechazaElOrdenPorEseCampo();
+    }
+
+    @Test
+    @DisplayName("Rechaza una dirección distinta de asc y desc")
+    void rechazaUnaDireccionDistintaDeAscYDesc() {
+        cuandoSeIntentaArmar(null, null, "arriba", null, null);
+
+        entoncesSeRechazaPorReglaDeNegocio();
+    }
+
+    @Test
+    @DisplayName("Corrige una página negativa a la primera")
+    void corrigeUnaPaginaNegativaALaPrimera() {
+        cuandoSeArma(null, null, null, -3, null);
+        entoncesPideLaPagina(0);
+
+        cuandoSeArma(null, null, null, 4, null);
+        entoncesPideLaPagina(4);
+    }
+
+    @Test
+    @DisplayName("Acota el tamaño de página entre 1 y 100")
+    void acotaElTamanioDePaginaEntreUnoYCien() {
+        cuandoSeArma(null, null, null, null, 0);
+        entoncesPideUnTamanioDe(1);
+
+        cuandoSeArma(null, null, null, null, 500);
+        entoncesPideUnTamanioDe(100);
+
+        cuandoSeArma(null, null, null, null, 50);
+        entoncesPideUnTamanioDe(50);
+    }
+
+    @Test
+    @DisplayName("Rechaza ordenar por un campo fórmula, que no se guarda")
+    void rechazaOrdenarPorUnCampoFormulaQueNoSeGuarda() {
+        cuandoSeIntentaOrdenarPorUnCampoFormula();
+
+        entoncesSeRechazaElOrdenPorEseCampo();
+    }
+
+    // --- cuando ---
+    private void cuandoSeArma(String texto, String orden, String direccion, Integer pagina, Integer tamanio) {
+        consulta = ConsultaRegistros.armar(NEGOCIO_ID, BLOQUE_ID, CAMPOS, texto, orden, direccion, pagina, tamanio);
+    }
+
+    private void cuandoSeIntentaArmar(String texto, String orden, String direccion, Integer pagina,
+                                      Integer tamanio) {
+        rechazo = catchThrowable(() -> cuandoSeArma(texto, orden, direccion, pagina, tamanio));
+    }
+
+    private void cuandoSeIntentaOrdenarPorUnCampoFormula() {
+        List<Campo> campos = List.of(Campo.builder().id(FORMULA_ID).tipo(TipoCampo.FORMULA).build());
+        rechazo = catchThrowable(() -> ConsultaRegistros.armar(
+                NEGOCIO_ID, BLOQUE_ID, campos, null, FORMULA_ID.toString(), null, null, null));
+    }
+
+    // --- entonces ---
+    private void entoncesPideLaPrimeraPaginaDeVeintePorFechaDeCargaDescendente() {
         assertThat(consulta.negocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(consulta.bloqueId()).isEqualTo(BLOQUE_ID);
         assertThat(consulta.texto()).isNull();
@@ -36,75 +136,37 @@ class ConsultaRegistrosTest {
         assertThat(consulta.tamanio()).isEqualTo(20);
     }
 
-    @Test
-    @DisplayName("Ignora el texto en blanco y quita los espacios del texto a buscar")
-    void armarShouldNormalizeTexto() {
-        assertThat(armar("   ", null, null, null, null).texto()).isNull();
-        assertThat(armar("  harina ", null, null, null, null).texto()).isEqualTo("harina");
+    private void entoncesNoBuscaTexto() {
+        assertThat(consulta.texto()).isNull();
     }
 
-    @Test
-    @DisplayName("Ordena por fecha de carga cuando el orden es vacío o creadoEn")
-    void armarShouldOrderByCargaWhenOrdenIsBlankOrCreadoEn() {
-        assertThat(armar(null, "  ", null, null, null).campoOrdenId()).isNull();
-        assertThat(armar(null, "creadoEn", null, null, null).campoOrdenId()).isNull();
+    private void entoncesBuscaElTexto(String esperado) {
+        assertThat(consulta.texto()).isEqualTo(esperado);
     }
 
-    @Test
-    @DisplayName("Ordena por un campo del bloque identificado por su id")
-    void armarShouldOrderByCampoOfTheBloque() {
-        ConsultaRegistros consulta = armar(null, CAMPO_ID.toString(), "asc", null, null);
+    private void entoncesOrdenaPorFechaDeCarga() {
+        assertThat(consulta.campoOrdenId()).isNull();
+    }
 
-        assertThat(consulta.campoOrdenId()).isEqualTo(CAMPO_ID);
+    private void entoncesOrdenaAscendentePorElCampo(CampoId campoId) {
+        assertThat(consulta.campoOrdenId()).isEqualTo(campoId);
         assertThat(consulta.direccion()).isEqualTo(DireccionOrden.ASC);
     }
 
-    @Test
-    @DisplayName("Rechaza ordenar por un campo que no es del bloque")
-    void armarShouldRejectUnknownCampo() {
-        String ajeno = UUID.randomUUID().toString();
+    private void entoncesPideLaPagina(int esperada) {
+        assertThat(consulta.pagina()).isEqualTo(esperada);
+    }
 
-        assertThatThrownBy(() -> armar(null, ajeno, null, null, null))
-                .isInstanceOf(BusinessRuleException.class)
+    private void entoncesPideUnTamanioDe(int esperado) {
+        assertThat(consulta.tamanio()).isEqualTo(esperado);
+    }
+
+    private void entoncesSeRechazaElOrdenPorEseCampo() {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class)
                 .hasMessage("No se puede ordenar por ese campo");
     }
 
-    @Test
-    @DisplayName("Rechaza una dirección distinta de asc y desc")
-    void armarShouldRejectInvalidDireccion() {
-        assertThatThrownBy(() -> armar(null, null, "arriba", null, null))
-                .isInstanceOf(BusinessRuleException.class);
-    }
-
-    @Test
-    @DisplayName("Corrige una página negativa a la primera")
-    void armarShouldClampNegativePagina() {
-        assertThat(armar(null, null, null, -3, null).pagina()).isZero();
-        assertThat(armar(null, null, null, 4, null).pagina()).isEqualTo(4);
-    }
-
-    @Test
-    @DisplayName("Acota el tamaño de página entre 1 y 100")
-    void armarShouldClampTamanio() {
-        assertThat(armar(null, null, null, null, 0).tamanio()).isEqualTo(1);
-        assertThat(armar(null, null, null, null, 500).tamanio()).isEqualTo(100);
-        assertThat(armar(null, null, null, null, 50).tamanio()).isEqualTo(50);
-    }
-
-    // --- act ---
-    private ConsultaRegistros armar(String texto, String orden, String direccion, Integer pagina, Integer tamanio) {
-        return ConsultaRegistros.armar(NEGOCIO_ID, BLOQUE_ID, CAMPOS, texto, orden, direccion, pagina, tamanio);
-    }
-
-    @Test
-    @DisplayName("Rechaza ordenar por un campo fórmula, que no se guarda")
-    void armarShouldRejectOrderingByFormulaField() {
-        UUID formulaId = UUID.fromString("c0000000-0000-4000-8000-000000000002");
-        List<Campo> campos = List.of(Campo.builder().id(CampoId.de(formulaId)).tipo(TipoCampo.FORMULA).build());
-
-        assertThatThrownBy(() -> ConsultaRegistros.armar(
-                NEGOCIO_ID, BLOQUE_ID, campos, null, formulaId.toString(), null, null, null))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("No se puede ordenar por ese campo");
+    private void entoncesSeRechazaPorReglaDeNegocio() {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class);
     }
 }

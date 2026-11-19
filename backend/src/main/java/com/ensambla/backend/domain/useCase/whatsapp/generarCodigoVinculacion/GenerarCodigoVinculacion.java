@@ -28,19 +28,35 @@ public class GenerarCodigoVinculacion {
 
     /** Reemplaza el código pendiente del usuario por uno nuevo, vigente por {@link CodigoVinculacion#VIGENCIA}. */
     public GenerarCodigoVinculacionResponse execute(GenerarCodigoVinculacionRequest request) {
-        negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        CodigoVinculacion codigo = transaccionPort.ejecutar(
-                () -> generar(request.usuarioId(), OffsetDateTime.now(clock)));
-        return GenerarCodigoVinculacionResponse.de(codigo, mensajeria.numeroBot());
+        exigirQueTengaNegocio(request.usuarioId());
+        CodigoVinculacion codigo = generarEnTransaccion(request.usuarioId(), OffsetDateTime.now(clock));
+        return GenerarCodigoVinculacionResponse.de(codigo, numeroDelBot());
+    }
+
+    private void exigirQueTengaNegocio(UsuarioId usuarioId) {
+        negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private CodigoVinculacion generarEnTransaccion(UsuarioId usuarioId, OffsetDateTime ahora) {
+        return transaccionPort.ejecutar(() -> generar(usuarioId, ahora));
+    }
+
+    private String numeroDelBot() {
+        return mensajeria.numeroBot();
     }
 
     private CodigoVinculacion generar(UsuarioId usuarioId, OffsetDateTime ahora) {
         codigoRepository.deleteSinUsarByUsuarioId(usuarioId);
+        return codigoRepository.save(CodigoVinculacion.nuevo(usuarioId, codigoLibre(), ahora));
+    }
+
+    /** Un código que ningún otro usuario tiene pendiente. */
+    private String codigoLibre() {
         String codigo;
         do {
             codigo = nuevoCodigo();
         } while (codigoRepository.existsByCodigo(codigo));
-        return codigoRepository.save(CodigoVinculacion.nuevo(usuarioId, codigo, ahora));
+        return codigo;
     }
 
     private static String nuevoCodigo() {

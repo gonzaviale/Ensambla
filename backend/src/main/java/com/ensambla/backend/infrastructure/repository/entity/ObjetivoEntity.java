@@ -1,7 +1,10 @@
 package com.ensambla.backend.infrastructure.repository.entity;
 
 import jakarta.persistence.Column;
+import com.ensambla.backend.domain.model.objetivo.TipoObjetivo;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
@@ -33,8 +36,16 @@ public class ObjetivoEntity {
     @Column(nullable = false, columnDefinition = "text")
     private String texto;
 
-    @Column(nullable = false)
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, updatable = false, columnDefinition = "text")
+    private TipoObjetivo tipo = TipoObjetivo.MONETARIO;
+
+    /** Vacía si el objetivo no es monetario. */
     private BigDecimal meta;
+
+    @Column(name = "armado_con_sami", nullable = false, updatable = false)
+    private boolean armadoConSami;
 
     @Column(name = "creado_en", nullable = false, updatable = false)
     private OffsetDateTime creadoEn;

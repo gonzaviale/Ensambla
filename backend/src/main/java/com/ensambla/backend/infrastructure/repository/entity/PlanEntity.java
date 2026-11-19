@@ -67,6 +67,9 @@ public class PlanEntity {
     @Column(name = "limite_carteles_ia_mensuales")
     private Integer limiteCartelesIaMensuales;
 
+    @Column(name = "limite_objetivos_ia_mensuales")
+    private Integer limiteObjetivosIaMensuales;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false)
     private List<String> funciones;

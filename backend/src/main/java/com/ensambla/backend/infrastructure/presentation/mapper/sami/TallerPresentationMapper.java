@@ -20,29 +20,27 @@ import java.util.List;
 public class TallerPresentationMapper {
 
     public ConversarEnTallerRequest toRequest(UsuarioId usuarioId, ConversarTallerRequest body) {
-        List<PiezaTallerItem> piezas = body.estado().piezas().stream()
-                .map(pieza -> new PiezaTallerItem(
-                        pieza.id(),
-                        pieza.tipo(),
-                        pieza.nombre(),
-                        pieza.seccion(),
-                        pieza.campos().stream()
-                                .map(campo -> new CampoTallerItem(campo.etiqueta(), campo.tipo()))
-                                .toList(),
-                        registros(pieza.registros()),
-                        pieza.nombres() == null ? List.of() : pieza.nombres()))
-                .toList();
-        List<MensajeTallerItem> historial = body.historial() == null
-                ? List.of()
-                : body.historial().stream()
-                        .map(mensaje -> new MensajeTallerItem(mensaje.quien(), mensaje.texto()))
-                        .toList();
+        List<PiezaTallerItem> piezas = body.estado().piezas().stream().map(this::pieza).toList();
         return new ConversarEnTallerRequest(
                 usuarioId,
                 body.mensaje().trim(),
                 new EstadoTallerItem(body.estado().nombre(), body.estado().distribucion(), piezas),
-                historial,
+                historial(body.historial()),
                 imagen(body.imagen()));
+    }
+
+    private PiezaTallerItem pieza(ConversarTallerRequest.Pieza pieza) {
+        return new PiezaTallerItem(pieza.id(), pieza.tipo(), pieza.nombre(), pieza.seccion(),
+                pieza.campos().stream().map(campo -> new CampoTallerItem(campo.etiqueta(), campo.tipo())).toList(),
+                registros(pieza.registros()),
+                pieza.nombres() == null ? List.of() : pieza.nombres());
+    }
+
+    /** Un frontend viejo no manda el historial: es como si la conversación recién empezara. */
+    private static List<MensajeTallerItem> historial(List<ConversarTallerRequest.Mensaje> historial) {
+        return historial == null
+                ? List.of()
+                : historial.stream().map(mensaje -> new MensajeTallerItem(mensaje.quien(), mensaje.texto())).toList();
     }
 
     /** Un frontend viejo no manda los registros: es como si la pieza no tuviera. */

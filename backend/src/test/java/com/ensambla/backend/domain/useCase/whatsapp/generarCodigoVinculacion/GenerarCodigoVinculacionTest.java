@@ -19,7 +19,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -39,61 +39,112 @@ class GenerarCodigoVinculacionTest {
     private final CodigoVinculacionRepository codigoRepository = mock(CodigoVinculacionRepository.class);
     private final MensajeriaWhatsappPort mensajeria = mock(MensajeriaWhatsappPort.class);
     private final GenerarCodigoVinculacion generarCodigoVinculacion = new WhatsappUseCaseConfig()
-            .generarCodigoVinculacion(
-                    negocioRepository,
-                    codigoRepository,
-                    mensajeria,
-                    new TransaccionDirecta(),
+            .generarCodigoVinculacion(negocioRepository, codigoRepository, mensajeria, new TransaccionDirecta(),
                     Clock.fixed(INSTANTE, ZoneOffset.UTC));
+    private GenerarCodigoVinculacionResponse respuesta;
+    private Throwable error;
 
     @Test
-    @DisplayName("Generar descarta los códigos pendientes y guarda uno nuevo que vence a los 10 minutos")
-    void executeShouldReplacePendingCodigo() {
-        givenNegocioDelUsuario();
-        when(codigoRepository.existsByCodigo(anyString())).thenReturn(false);
-        when(codigoRepository.save(any(CodigoVinculacion.class))).thenAnswer(call -> call.getArgument(0));
-        when(mensajeria.numeroBot()).thenReturn(NUMERO_BOT);
+    @DisplayName("Generar descarta los códigos pendientes del usuario")
+    void generarDescartaLosCodigosPendientes() {
+        dadoUnUsuarioConNegocio();
+        dadoQueNingunCodigoEstaTomado();
 
-        GenerarCodigoVinculacionResponse result = generarCodigoVinculacion
-                .execute(new GenerarCodigoVinculacionRequest(USUARIO_ID));
+        cuandoSeGenera();
 
-        verify(codigoRepository).deleteSinUsarByUsuarioId(USUARIO_ID);
-        assertThat(result.codigo()).matches("[A-HJKMNP-Z2-9]{6}");
-        assertThat(result.expiraEn()).isEqualTo(OffsetDateTime.ofInstant(INSTANTE, ZoneOffset.UTC).plusMinutes(10));
-        assertThat(result.numeroBot()).isEqualTo(NUMERO_BOT);
-        assertThat(thenCodigoGuardado().getUsuarioId()).isEqualTo(USUARIO_ID);
+        entoncesSeDescartaronLosPendientes();
+    }
+
+    @Test
+    @DisplayName("Generar guarda un código fácil de copiar que vence a los 10 minutos")
+    void generarGuardaUnCodigoQueVenceALosDiezMinutos() {
+        dadoUnUsuarioConNegocio();
+        dadoQueNingunCodigoEstaTomado();
+
+        cuandoSeGenera();
+
+        entoncesElCodigoSeCopiaFacilYVenceEn(OffsetDateTime.ofInstant(INSTANTE, ZoneOffset.UTC).plusMinutes(10));
+        entoncesElCodigoGuardadoEsDelUsuario();
+        entoncesLaRespuestaTraeElNumeroDelBot();
     }
 
     @Test
     @DisplayName("Generar vuelve a sortear el código si ya lo tiene otro usuario")
-    void executeShouldDrawAgainWhenCodigoExists() {
-        givenNegocioDelUsuario();
-        when(codigoRepository.existsByCodigo(anyString())).thenReturn(true, false);
-        when(codigoRepository.save(any(CodigoVinculacion.class))).thenAnswer(call -> call.getArgument(0));
+    void generarVuelveASortearSiElCodigoEstaTomado() {
+        dadoUnUsuarioConNegocio();
+        dadoQueElPrimerCodigoEstaTomado();
 
-        generarCodigoVinculacion.execute(new GenerarCodigoVinculacionRequest(USUARIO_ID));
+        cuandoSeGenera();
 
-        verify(codigoRepository, times(2)).existsByCodigo(anyString());
+        entoncesSeSorteoDosVeces();
     }
 
     @Test
     @DisplayName("Generar sin negocio responde como inexistente y no toca los códigos")
-    void executeShouldFailWithoutNegocio() {
+    void generarSinNegocioNoTocaLosCodigos() {
+        dadoUnUsuarioSinNegocio();
+
+        cuandoSeIntentaGenerar();
+
+        entoncesNoSeEncuentra();
+        entoncesNoSeTocaronLosCodigos();
+    }
+
+    private void dadoUnUsuarioConNegocio() {
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(codigoRepository.save(any(CodigoVinculacion.class))).thenAnswer(guardado -> guardado.getArgument(0));
+        when(mensajeria.numeroBot()).thenReturn(NUMERO_BOT);
+    }
+
+    private void dadoUnUsuarioSinNegocio() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID))
                 .thenThrow(new ResourceNotFoundException("No se encontró el negocio del usuario"));
-
-        assertThatThrownBy(() -> generarCodigoVinculacion.execute(new GenerarCodigoVinculacionRequest(USUARIO_ID)))
-                .isInstanceOf(ResourceNotFoundException.class);
-        verify(codigoRepository, never()).deleteSinUsarByUsuarioId(any());
     }
 
-    private void givenNegocioDelUsuario() {
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+    private void dadoQueNingunCodigoEstaTomado() {
+        when(codigoRepository.existsByCodigo(anyString())).thenReturn(false);
     }
 
-    private CodigoVinculacion thenCodigoGuardado() {
+    private void dadoQueElPrimerCodigoEstaTomado() {
+        when(codigoRepository.existsByCodigo(anyString())).thenReturn(true, false);
+    }
+
+    private void cuandoSeGenera() {
+        respuesta = generarCodigoVinculacion.execute(new GenerarCodigoVinculacionRequest(USUARIO_ID));
+    }
+
+    private void cuandoSeIntentaGenerar() {
+        error = catchThrowable(this::cuandoSeGenera);
+    }
+
+    private void entoncesSeDescartaronLosPendientes() {
+        verify(codigoRepository).deleteSinUsarByUsuarioId(USUARIO_ID);
+    }
+
+    private void entoncesElCodigoSeCopiaFacilYVenceEn(OffsetDateTime vencimiento) {
+        assertThat(respuesta.codigo()).matches("[A-HJKMNP-Z2-9]{6}");
+        assertThat(respuesta.expiraEn()).isEqualTo(vencimiento);
+    }
+
+    private void entoncesElCodigoGuardadoEsDelUsuario() {
         ArgumentCaptor<CodigoVinculacion> captor = ArgumentCaptor.forClass(CodigoVinculacion.class);
         verify(codigoRepository).save(captor.capture());
-        return captor.getValue();
+        assertThat(captor.getValue().getUsuarioId()).isEqualTo(USUARIO_ID);
+    }
+
+    private void entoncesLaRespuestaTraeElNumeroDelBot() {
+        assertThat(respuesta.numeroBot()).isEqualTo(NUMERO_BOT);
+    }
+
+    private void entoncesSeSorteoDosVeces() {
+        verify(codigoRepository, times(2)).existsByCodigo(anyString());
+    }
+
+    private void entoncesNoSeEncuentra() {
+        assertThat(error).isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    private void entoncesNoSeTocaronLosCodigos() {
+        verify(codigoRepository, never()).deleteSinUsarByUsuarioId(any());
     }
 }

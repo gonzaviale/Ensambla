@@ -5,8 +5,10 @@ import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.lote.LoteId;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.objetivo.ObjetivoId;
 import com.ensambla.backend.domain.model.plan.FuncionPlan;
 import com.ensambla.backend.domain.model.plan.PlanId;
+import com.ensambla.backend.domain.model.procesamiento.ConsumoDiario;
 import com.ensambla.backend.domain.model.procesamiento.LoteTrabajo;
 import com.ensambla.backend.domain.model.procesamiento.ReclamoId;
 import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;
@@ -44,14 +46,19 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-19T12:00:00Z");
+    private static final LocalDate OCTUBRE = LocalDate.parse("2026-10-01");
+    private static final LocalDate NOVIEMBRE = LocalDate.parse("2026-11-01");
+    private static final LocalDate DICIEMBRE = LocalDate.parse("2026-12-01");
+    private static final LocalDate AYER = LocalDate.parse("2026-10-18");
+    private static final int PAGINAS_PARA_LLENAR_EL_GRATUITO = 9;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -91,6 +98,15 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     private UUID usuarioId;
     private UUID negocioId;
+    private UUID bloqueA;
+    private UUID bloqueB;
+    private UUID otroNegocio;
+    private LoteTrabajo lote;
+    private List<Boolean> resultados;
+    private boolean reservada;
+    private long objetivosDelMes;
+    private ConsumoDiario consumo;
+    private Throwable error;
 
     @BeforeEach
     void setUp() {
@@ -111,202 +127,456 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Dos altas simultáneas de sistemas gratuitos permiten exactamente una")
-    void crearProyectoShouldSerializeConcurrentCreates() throws Exception {
-        List<Boolean> result = concurrently(
-                () -> crearProyecto("Primero"), () -> crearProyecto("Segundo"));
+    void dosAltasSimultaneasDeSistemasGratuitosPermitenExactamenteUna() throws Exception {
+        cuandoSeCreanDosProyectosAlMismoTiempo();
 
-        assertThat(result).containsExactlyInAnyOrder(true, false);
-        assertThat(usoPlanRepository.contarProyectos(NegocioId.de(negocioId))).isEqualTo(1);
+        entoncesSoloSePermiteUno();
+        entoncesElNegocioTieneProyectos(1);
     }
 
     @Test
     @DisplayName("La cuota de registros es por negocio, con altas simultáneas en bloques distintos")
-    void crearRegistroShouldCountAcrossBlocksAtomically() throws Exception {
-        UUID bloqueA = givenBloque("Productos");
-        UUID bloqueB = givenBloqueInSameProyecto(bloqueA, "Ventas");
-        givenRegistros(bloqueA, 999);
+    void laCuotaDeRegistrosEsPorNegocioConAltasSimultaneasEnBloquesDistintos() throws Exception {
+        dadoDosBloquesYNuevecientosNoventaYNueveRegistros();
 
-        List<Boolean> result = concurrently(
-                () -> crearRegistro(bloqueA), () -> crearRegistro(bloqueB));
+        cuandoSeCreanDosRegistrosAlMismoTiempoEnBloquesDistintos();
 
-        assertThat(result).containsExactlyInAnyOrder(true, false);
-        assertThat(usoPlanRepository.contarRegistros(NegocioId.de(negocioId))).isEqualTo(1000);
+        entoncesSoloSePermiteUno();
+        entoncesElNegocioTieneRegistros(1000);
     }
 
     @Test
     @DisplayName("Un lote de filas que supera la cuota se rechaza completo")
-    void validarAltaRegistrosShouldRejectBatchOverQuota() {
-        UUID bloqueId = givenBloque("Productos");
-        givenRegistros(bloqueId, 999);
+    void unLoteDeFilasQueSuperaLaCuotaSeRechazaCompleto() {
+        dadoUnBloqueConRegistros(999);
 
-        assertThatThrownBy(() -> controlPlanService.validarAltaRegistros(NegocioId.de(negocioId), 2, AHORA))
-                .isInstanceOf(RestriccionPlanException.class);
+        cuandoSeValidaUnAltaDeRegistros(2);
 
-        assertThat(usoPlanRepository.contarRegistros(NegocioId.de(negocioId))).isEqualTo(999);
+        entoncesSeRechazaPorRestriccionDePlan();
+        entoncesElNegocioTieneRegistros(999);
     }
 
     @Test
     @DisplayName("Superar una cuota no borra ni impide consultar, renombrar y editar los datos existentes")
-    void downgradeShouldPreserveDataAndBasicEditing() {
-        UUID bloqueId = givenBloque("Productos");
-        givenRegistros(bloqueId, 1001);
-        UUID registroId = jdbcTemplate.queryForObject(
-                "SELECT id FROM registro WHERE negocio_id = ? ORDER BY id LIMIT 1", UUID.class, negocioId);
-        Registro registro = registroRepository.obtener(RegistroId.de(registroId), NegocioId.de(negocioId));
+    void superarUnaCuotaNoBorraNiImpideConsultarRenombrarYEditarLosDatosExistentes() {
+        dadoUnBloqueConRegistros(1001);
 
-        registroDatosService.editar(registro, List.of(), Map.of(), AHORA.plusHours(1));
+        cuandoSeEditaUnRegistroExistente();
 
-        assertThat(usoPlanRepository.contarRegistros(NegocioId.de(negocioId))).isEqualTo(1001);
-        assertThat(proyectoRepository.findAllByNegocioId(NegocioId.de(negocioId))).hasSize(1);
-        assertThatThrownBy(() -> crearRegistro(bloqueId)).isInstanceOf(RestriccionPlanException.class);
-        UUID proyectoId = proyectoRepository.findAllByNegocioId(NegocioId.de(negocioId)).getFirst().getId().valor();
-        assertThatCode(() -> renombrar(negocioId, proyectoId, "Conservado"))
-                .doesNotThrowAnyException();
+        entoncesSeConservanLosDatos();
+        entoncesNoSePuedeCrearOtroRegistro();
+        entoncesSePuedeRenombrarElProyecto();
     }
 
     @Test
     @DisplayName("Las lecturas inmediatas y los lotes comparten una única cuota mensual")
-    void reservarShouldSerializeImmediateAndQueuedReadings() throws Exception {
-        givenConsumo(LocalDate.parse("2026-10-18"), 8, 0);
-        LoteTrabajo lote = givenLoteReclamado();
+    void lasLecturasInmediatasYLosLotesCompartenUnaUnicaCuotaMensual() throws Exception {
+        dadoConsumo(AYER, 8, 0);
+        dadoUnLoteReclamado();
 
-        List<Boolean> result = concurrently(
-                () -> reservar(lote, 2, 100, AHORA),
-                this::registrarPaginaInmediata);
+        cuandoSeReservaUnLoteYSeRegistraUnaInmediataAlMismoTiempo();
 
-        assertThat(result).containsExactlyInAnyOrder(true, false);
-        long total = usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
-                LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"));
-        assertThat(total).isBetween(9L, 10L);
+        entoncesSoloSePermiteUno();
+        entoncesElMesDeOctubreSumaEntre(9L, 10L);
     }
 
     @Test
     @DisplayName("Dos lecturas inmediatas concurrentes no superan las diez páginas mensuales")
-    void registrarInmediataShouldEnforceMonthlyQuotaConcurrently() throws Exception {
-        givenConsumo(LocalDate.parse("2026-10-18"), 9, 0);
+    void dosLecturasInmediatasConcurrentesNoSuperanLasDiezPaginasMensuales() throws Exception {
+        dadoConsumo(AYER, PAGINAS_PARA_LLENAR_EL_GRATUITO, 0);
 
-        List<Boolean> result = concurrently(this::registrarPaginaInmediata, this::registrarPaginaInmediata);
+        cuandoSeRegistranDosInmediatasAlMismoTiempo();
 
-        assertThat(result).containsExactlyInAnyOrder(true, false);
-        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
-                LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"))).isEqualTo(10);
+        entoncesSoloSePermiteUno();
+        entoncesElMesDeOctubreSuma(10);
     }
 
     @Test
     @DisplayName("Las páginas reservadas de otros días ya consumen disponibilidad mensual")
-    void validarPaginasIaShouldIncludeOutstandingReservations() {
-        givenConsumo(LocalDate.parse("2026-10-18"), 7, 3);
+    void lasPaginasReservadasDeOtrosDiasYaConsumenDisponibilidadMensual() {
+        dadoConsumo(AYER, 7, 3);
 
-        assertThatThrownBy(this::registrarPaginaInmediata).isInstanceOf(RestriccionPlanException.class);
+        cuandoSeRegistraUnaInmediataConError();
 
-        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
-                LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"))).isEqualTo(10);
+        entoncesSeRechazaPorRestriccionDePlan();
+        entoncesElMesDeOctubreSuma(10);
     }
 
     @Test
     @DisplayName("La cuota se renueva al cambiar de mes argentino sin borrar el historial")
-    void registrarInmediataShouldResetAllowanceAtArgentinaMonthBoundary() {
-        givenConsumo(LocalDate.parse("2026-10-31"), 10, 0);
+    void laCuotaSeRenuevaAlCambiarDeMesArgentinoSinBorrarElHistorial() {
+        dadoConsumo(LocalDate.parse("2026-10-31"), 10, 0);
 
-        consumoIaInmediatoService.registrar(NegocioId.de(negocioId), OffsetDateTime.parse("2026-11-01T00:30:00-03:00"));
+        cuandoSeRegistraUnaInmediataEn(OffsetDateTime.parse("2026-11-01T00:30:00-03:00"));
 
-        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
-                LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"))).isEqualTo(10);
-        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
-                LocalDate.parse("2026-11-01"), LocalDate.parse("2026-12-01"))).isEqualTo(1);
+        entoncesElMesDeOctubreSuma(10);
+        entoncesElMesDeNoviembreSuma(1);
     }
 
     @Test
     @DisplayName("Finalizar después de medianoche conserva el mes en que se reservó la lectura")
-    void finalizarShouldKeepOriginalReservationMonth() {
-        LoteTrabajo lote = givenLoteReclamado();
+    void finalizarDespuesDeMedianocheConservaElMesEnQueSeReservoLaLectura() {
+        dadoUnLoteReclamado();
         OffsetDateTime octubre = OffsetDateTime.parse("2026-11-01T02:59:00Z");
-        assertThat(reservar(lote, 2, 100, octubre)).isTrue();
+        dadoUnaReservaDeDosPaginasEn(octubre);
 
-        procesamientoRepository.finalizar(lote, new ResultadoIntento(null, "Timeout", false),
-                null, octubre.plusMinutes(2), null);
+        cuandoSeFinalizaElLoteConTimeout(octubre.plusMinutes(2));
 
-        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
-                LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"))).isEqualTo(2);
-        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
-                LocalDate.parse("2026-11-01"), LocalDate.parse("2026-12-01"))).isZero();
+        entoncesElMesDeOctubreSuma(2);
+        entoncesNoHayPaginasEnNoviembre();
     }
 
     @Test
     @DisplayName("Una reserva diaria rechazada no gasta páginas del mes")
-    void reservarShouldNotChargeWhenDailyReservationFails() {
-        LoteTrabajo lote = givenLoteReclamado();
+    void unaReservaDiariaRechazadaNoGastaPaginasDelMes() {
+        dadoUnLoteReclamado();
 
-        boolean result = reservar(lote, 2, 1, AHORA);
+        cuandoSeReservaUnLote(2, 1, AHORA);
 
-        assertThat(result).isFalse();
-        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
-                LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"))).isZero();
+        entoncesLaReservaFueRechazada();
+        entoncesNoHayPaginasEnOctubre();
     }
 
     @Test
     @DisplayName("El consumo inmediato cuenta páginas sin presentar un costo desconocido como cero")
-    void registrarInmediataShouldExposeIncompleteTokenAccounting() {
-        consumoIaInmediatoService.registrar(NegocioId.de(negocioId), AHORA);
+    void elConsumoInmediatoCuentaPaginasSinPresentarUnCostoDesconocidoComoCero() {
+        cuandoSeRegistraUnaInmediataEn(AHORA);
+        cuandoSeLeeElConsumoDelDia();
 
-        var consumo = procesamientoRepository.consumo(NegocioId.de(negocioId), AHORA.toLocalDate());
+        entoncesElConsumoCuentaUnaPaginaConCostoDesconocido();
+    }
 
+    @Test
+    @DisplayName("Una capacidad diaria agotada no registra una página inmediata")
+    void unaCapacidadDiariaAgotadaNoRegistraUnaPaginaInmediata() {
+        cuandoSeRegistraConCapacidadDiariaEnCero();
+
+        entoncesLaReservaFueRechazada();
+        entoncesNoHayPaginasEnOctubre();
+    }
+
+    @Test
+    @DisplayName("Premium permite más sistemas y habilita las tres funciones aprobadas")
+    void premiumPermiteMasSistemasYHabilitaLasTresFuncionesAprobadas() {
+        dadoPremium(AHORA.plusMonths(1));
+
+        cuandoSeCreanDosProyectosEnSerie();
+
+        entoncesElNegocioTieneProyectos(2);
+        entoncesPremiumHabilitaTodasLasFunciones();
+    }
+
+    @Test
+    @DisplayName("Premium tiene cien páginas mensuales y vuelve al gratuito al vencer")
+    void premiumTieneCienPaginasMensualesYVuelveAlGratuitoAlVencer() {
+        dadoPremium(AHORA.plusDays(1));
+        dadoConsumo(AYER, 99, 0);
+        cuandoSeRegistraUnaInmediataEn(AHORA);
+
+        cuandoSeRegistraUnaInmediataConError();
+
+        entoncesSeRechazaPorRestriccionDePlan();
+        entoncesPremiumYaNoHabilitaRecetasUnDiaDespues();
+    }
+
+    @Test
+    @DisplayName("Un negocio inexistente no puede bloquear ni consultar cuotas ajenas")
+    void unNegocioInexistenteNoPuedeBloquearNiConsultarCuotasAjenas() {
+        cuandoSeValidaElAltaDeProyectoDeUnNegocioInexistente();
+
+        entoncesFallaPorNegocioNoEncontrado();
+        entoncesNoHayUnPlanConEseId();
+    }
+
+    @Test
+    @DisplayName("Cuenta los objetivos con IA del mes del negocio y no los de otros meses ni los de otro negocio")
+    void cuentaLosObjetivosConIaDelMesDelNegocioYNoLosDeOtrosMesesNiLosDeOtroNegocio() {
+        dadoDosObjetivosEsteMesUnoElAnteriorYUnoDeOtroNegocio();
+
+        cuandoSeCuentanLosObjetivosIaDeOctubre();
+
+        entoncesSeCuentanDos();
+        borrarNegocio(otroNegocio);
+    }
+
+    @Test
+    @DisplayName("El gratuito guarda cinco objetivos con IA por mes y el sexto responde LIMITE_OBJETIVOS_IA")
+    void elGratuitoGuardaCincoObjetivosConIaPorMesYElSextoRespondeLimiteObjetivosIa() {
+        dadoCuatroObjetivosConIa();
+        entoncesSePuedeGuardarElQuinto();
+        dadoUnObjetivoConIaMas();
+
+        cuandoSeValidaUnObjetivoIaConError();
+
+        entoncesSeRechazaPorLimiteDeObjetivosIa();
+        entoncesNoQuedanObjetivosIa();
+    }
+
+    @Test
+    @DisplayName("Borrar un objetivo no devuelve la cuota del mes y borrar el negocio borra su consumo")
+    void borrarUnObjetivoNoDevuelveLaCuotaDelMesYBorrarElNegocioBorraSuConsumo() {
+        UUID objetivo = dadoUnObjetivoConIaRegistrado();
+
+        cuandoSeBorraElObjetivo(objetivo);
+
+        entoncesLaCuotaSigueUsada(1);
+    }
+
+    // --- arrange ---
+    private void dadoDosBloquesYNuevecientosNoventaYNueveRegistros() {
+        bloqueA = givenBloque("Productos");
+        bloqueB = dadoBloqueInSameProyecto(bloqueA, "Ventas");
+        dadoRegistros(bloqueA, 999);
+    }
+
+    private void dadoUnBloqueConRegistros(int cantidad) {
+        bloqueA = givenBloque("Productos");
+        dadoRegistros(bloqueA, cantidad);
+    }
+
+    private void dadoUnLoteReclamado() {
+        UUID loteId = UUID.randomUUID();
+        UUID token = UUID.randomUUID();
+        jdbcTemplate.update("""
+                INSERT INTO lote_subida (id, negocio_id, estado, intentos, reclamo_id, reclamo_hasta)
+                VALUES (?, ?, 'PROCESANDO', 1, ?, ?)
+                """, loteId, negocioId, token, AHORA.plusMinutes(5));
+        lote = new LoteTrabajo(LoteId.de(loteId), NegocioId.de(negocioId), null, ReclamoId.de(token), 1);
+    }
+
+    private void dadoUnaReservaDeDosPaginasEn(OffsetDateTime momento) {
+        cuandoSeReservaUnLote(2, 100, momento);
+        entoncesLaReservaFueAceptada();
+    }
+
+    private void dadoConsumo(LocalDate dia, int paginas, int reservadas) {
+        jdbcTemplate.update("""
+                INSERT INTO consumo_ia_diario (negocio_id, fecha, paginas, reservadas) VALUES (?, ?, ?, ?)
+                """, negocioId, dia, paginas, reservadas);
+    }
+
+    private void dadoPremium(OffsetDateTime fin) {
+        jdbcTemplate.update("""
+                UPDATE suscripcion SET plan_id = (SELECT id FROM plan WHERE codigo = 'PREMIUM'),
+                    inicio_en = ?, fin_en = ? WHERE negocio_id = ?
+                """, AHORA.minusDays(1), fin, negocioId);
+    }
+
+    private void dadoDosObjetivosEsteMesUnoElAnteriorYUnoDeOtroNegocio() {
+        NegocioId negocio = NegocioId.de(negocioId);
+        usoPlanRepository.registrarObjetivoIa(negocio, ObjetivoId.nuevo(), AHORA);
+        usoPlanRepository.registrarObjetivoIa(negocio, ObjetivoId.nuevo(), AHORA.plusDays(3));
+        usoPlanRepository.registrarObjetivoIa(negocio, ObjetivoId.nuevo(), AHORA.minusMonths(1));
+        otroNegocio = dadoOtroNegocio();
+        usoPlanRepository.registrarObjetivoIa(NegocioId.de(otroNegocio), ObjetivoId.nuevo(), AHORA);
+    }
+
+    private void dadoCuatroObjetivosConIa() {
+        IntStream.range(0, 4).forEach(indice -> dadoUnObjetivoConIaMas());
+    }
+
+    private void dadoUnObjetivoConIaMas() {
+        usoPlanRepository.registrarObjetivoIa(NegocioId.de(negocioId), ObjetivoId.nuevo(), AHORA);
+    }
+
+    private UUID dadoUnObjetivoConIaRegistrado() {
+        UUID objetivo = UUID.randomUUID();
+        jdbcTemplate.update("INSERT INTO objetivo (id, negocio_id, texto, tipo, armado_con_sami) "
+                + "VALUES (?, ?, 'Que me conozcan', 'SIN_DATOS', true)", objetivo, negocioId);
+        usoPlanRepository.registrarObjetivoIa(NegocioId.de(negocioId), ObjetivoId.de(objetivo), AHORA);
+        return objetivo;
+    }
+
+    // --- act ---
+    private void cuandoSeCreanDosProyectosAlMismoTiempo() throws Exception {
+        resultados = concurrently(() -> crearProyecto("Primero"), () -> crearProyecto("Segundo"));
+    }
+
+    private void cuandoSeCreanDosRegistrosAlMismoTiempoEnBloquesDistintos() throws Exception {
+        resultados = concurrently(() -> crearRegistro(bloqueA), () -> crearRegistro(bloqueB));
+    }
+
+    private void cuandoSeValidaUnAltaDeRegistros(int cantidad) {
+        error = catchThrowable(
+                () -> controlPlanService.validarAltaRegistros(NegocioId.de(negocioId), cantidad, AHORA));
+    }
+
+    private void cuandoSeEditaUnRegistroExistente() {
+        UUID registroId = jdbcTemplate.queryForObject(
+                "SELECT id FROM registro WHERE negocio_id = ? ORDER BY id LIMIT 1", UUID.class, negocioId);
+        Registro registro = registroRepository.obtener(RegistroId.de(registroId), NegocioId.de(negocioId));
+        registroDatosService.editar(registro, List.of(), Map.of(), AHORA.plusHours(1));
+    }
+
+    private void cuandoSeReservaUnLoteYSeRegistraUnaInmediataAlMismoTiempo() throws Exception {
+        resultados = concurrently(() -> reservar(lote, 2, 100, AHORA), this::registrarPaginaInmediata);
+    }
+
+    private void cuandoSeRegistranDosInmediatasAlMismoTiempo() throws Exception {
+        resultados = concurrently(this::registrarPaginaInmediata, this::registrarPaginaInmediata);
+    }
+
+    private void cuandoSeRegistraUnaInmediataConError() {
+        error = catchThrowable(this::registrarPaginaInmediata);
+    }
+
+    private void cuandoSeRegistraUnaInmediataEn(OffsetDateTime momento) {
+        consumoIaInmediatoService.registrar(NegocioId.de(negocioId), momento);
+    }
+
+    private void cuandoSeFinalizaElLoteConTimeout(OffsetDateTime momento) {
+        procesamientoRepository.finalizar(lote, new ResultadoIntento(null, "Timeout", false), null, momento, null);
+    }
+
+    private void cuandoSeReservaUnLote(int paginas, int limiteDiario, OffsetDateTime momento) {
+        reservada = reservar(lote, paginas, limiteDiario, momento);
+    }
+
+    private void cuandoSeLeeElConsumoDelDia() {
+        consumo = procesamientoRepository.consumo(NegocioId.de(negocioId), AHORA.toLocalDate());
+    }
+
+    private void cuandoSeRegistraConCapacidadDiariaEnCero() {
+        reservada = usoPlanRepository
+                .registrarPaginaInmediata(NegocioId.de(negocioId), AHORA.toLocalDate(), 0, AHORA);
+    }
+
+    private void cuandoSeCreanDosProyectosEnSerie() {
+        proyectosDePrueba.crear(NegocioId.de(negocioId), "Primero", null, AHORA);
+        proyectosDePrueba.crear(NegocioId.de(negocioId), "Segundo", null, AHORA);
+    }
+
+    private void cuandoSeValidaElAltaDeProyectoDeUnNegocioInexistente() {
+        error = catchThrowable(() -> controlPlanService.validarAltaProyecto(NegocioId.nuevo(), AHORA));
+    }
+
+    private void cuandoSeCuentanLosObjetivosIaDeOctubre() {
+        objetivosDelMes = usoPlanRepository.objetivosIaEnPeriodo(NegocioId.de(negocioId),
+                OffsetDateTime.parse("2026-10-01T03:00:00Z"), OffsetDateTime.parse("2026-11-01T03:00:00Z"));
+    }
+
+    private void cuandoSeValidaUnObjetivoIaConError() {
+        error = catchThrowable(() -> controlPlanService.validarObjetivoIa(NegocioId.de(negocioId), AHORA));
+    }
+
+    private void cuandoSeBorraElObjetivo(UUID objetivo) {
+        jdbcTemplate.update("DELETE FROM objetivo WHERE id = ?", objetivo);
+    }
+
+    // --- assert ---
+    private void entoncesSoloSePermiteUno() {
+        assertThat(resultados).containsExactlyInAnyOrder(true, false);
+    }
+
+    private void entoncesElNegocioTieneProyectos(int cantidad) {
+        assertThat(usoPlanRepository.contarProyectos(NegocioId.de(negocioId))).isEqualTo(cantidad);
+    }
+
+    private void entoncesElNegocioTieneRegistros(int cantidad) {
+        assertThat(usoPlanRepository.contarRegistros(NegocioId.de(negocioId))).isEqualTo(cantidad);
+    }
+
+    private void entoncesSeRechazaPorRestriccionDePlan() {
+        assertThat(error).isInstanceOf(RestriccionPlanException.class);
+    }
+
+    private void entoncesSeConservanLosDatos() {
+        entoncesElNegocioTieneRegistros(1001);
+        assertThat(proyectoRepository.findAllByNegocioId(NegocioId.de(negocioId))).hasSize(1);
+    }
+
+    private void entoncesNoSePuedeCrearOtroRegistro() {
+        assertThat(catchThrowable(() -> crearRegistro(bloqueA))).isInstanceOf(RestriccionPlanException.class);
+    }
+
+    private void entoncesSePuedeRenombrarElProyecto() {
+        UUID proyectoId = proyectoRepository.findAllByNegocioId(NegocioId.de(negocioId)).getFirst().getId().valor();
+        assertThat(catchThrowable(() -> renombrar(negocioId, proyectoId, "Conservado"))).isNull();
+    }
+
+    private void entoncesElMesDeOctubreSumaEntre(long minimo, long maximo) {
+        assertThat(paginasEn(OCTUBRE, NOVIEMBRE)).isBetween(minimo, maximo);
+    }
+
+    private void entoncesElMesDeOctubreSuma(long paginas) {
+        assertThat(paginasEn(OCTUBRE, NOVIEMBRE)).isEqualTo(paginas);
+    }
+
+    private void entoncesElMesDeNoviembreSuma(long paginas) {
+        assertThat(paginasEn(NOVIEMBRE, DICIEMBRE)).isEqualTo(paginas);
+    }
+
+    private void entoncesNoHayPaginasEnOctubre() {
+        assertThat(paginasEn(OCTUBRE, NOVIEMBRE)).isZero();
+    }
+
+    private void entoncesNoHayPaginasEnNoviembre() {
+        assertThat(paginasEn(NOVIEMBRE, DICIEMBRE)).isZero();
+    }
+
+    private void entoncesLaReservaFueAceptada() {
+        assertThat(reservada).isTrue();
+    }
+
+    private void entoncesLaReservaFueRechazada() {
+        assertThat(reservada).isFalse();
+    }
+
+    private void entoncesElConsumoCuentaUnaPaginaConCostoDesconocido() {
         assertThat(consumo.paginas()).isEqualTo(1);
         assertThat(consumo.reservadas()).isZero();
         assertThat(consumo.costoEstimadoUsd()).isNull();
         assertThat(consumo.consumoCompleto()).isFalse();
     }
 
-    @Test
-    @DisplayName("Una capacidad diaria agotada no registra una página inmediata")
-    void registrarPaginaInmediataShouldRejectZeroDailyAllowance() {
-        boolean result = usoPlanRepository
-                .registrarPaginaInmediata(NegocioId.de(negocioId), AHORA.toLocalDate(), 0, AHORA);
-
-        assertThat(result).isFalse();
-        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
-                LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"))).isZero();
-    }
-
-    @Test
-    @DisplayName("Premium permite más sistemas y habilita las tres funciones aprobadas")
-    void premiumShouldEnableFeaturesAndUnlimitedSystems() {
-        givenPremium(AHORA.plusMonths(1));
-
-        proyectosDePrueba.crear(NegocioId.de(negocioId), "Primero", null, AHORA);
-        proyectosDePrueba.crear(NegocioId.de(negocioId), "Segundo", null, AHORA);
-
-        assertThat(usoPlanRepository.contarProyectos(NegocioId.de(negocioId))).isEqualTo(2);
+    private void entoncesPremiumHabilitaTodasLasFunciones() {
         for (FuncionPlan funcion : FuncionPlan.values()) {
-            assertThatCode(() -> controlPlanService.validarFuncion(NegocioId.de(negocioId), funcion, AHORA))
-                    .doesNotThrowAnyException();
+            assertThat(catchThrowable(
+                    () -> controlPlanService.validarFuncion(NegocioId.de(negocioId), funcion, AHORA))).isNull();
         }
     }
 
-    @Test
-    @DisplayName("Premium tiene cien páginas mensuales y vuelve al gratuito al vencer")
-    void premiumShouldEnforceQuotaAndExpiry() {
-        givenPremium(AHORA.plusDays(1));
-        givenConsumo(LocalDate.parse("2026-10-18"), 99, 0);
-        consumoIaInmediatoService.registrar(NegocioId.de(negocioId), AHORA);
-
-        assertThatThrownBy(this::registrarPaginaInmediata).isInstanceOf(RestriccionPlanException.class);
-
-        assertThatThrownBy(() -> controlPlanService.validarFuncion(
-                NegocioId.de(negocioId), FuncionPlan.RECETAS_COSTOS, AHORA.plusDays(1)))
+    private void entoncesPremiumYaNoHabilitaRecetasUnDiaDespues() {
+        assertThat(catchThrowable(() -> controlPlanService.validarFuncion(
+                NegocioId.de(negocioId), FuncionPlan.RECETAS_COSTOS, AHORA.plusDays(1))))
                 .isInstanceOf(RestriccionPlanException.class);
     }
 
-    @Test
-    @DisplayName("Un negocio inexistente no puede bloquear ni consultar cuotas ajenas")
-    void validarAltaProyectoShouldRejectMissingNegocio() {
-        assertThatThrownBy(() -> controlPlanService.validarAltaProyecto(NegocioId.nuevo(), AHORA))
-                .isInstanceOf(ResourceNotFoundException.class).hasMessage("Negocio no encontrado");
+    private void entoncesFallaPorNegocioNoEncontrado() {
+        assertThat(error).isInstanceOf(ResourceNotFoundException.class).hasMessage("Negocio no encontrado");
+    }
 
+    private void entoncesNoHayUnPlanConEseId() {
         assertThat(planRepository.findById(PlanId.nuevo())).isEmpty();
     }
 
-    // --- arrange ---
+    private void entoncesSeCuentanDos() {
+        assertThat(objetivosDelMes).isEqualTo(2);
+    }
+
+    private void entoncesSePuedeGuardarElQuinto() {
+        assertThat(catchThrowable(
+                () -> controlPlanService.validarObjetivoIa(NegocioId.de(negocioId), AHORA))).isNull();
+    }
+
+    private void entoncesSeRechazaPorLimiteDeObjetivosIa() {
+        assertThat(error).isInstanceOf(RestriccionPlanException.class);
+        assertThat(((RestriccionPlanException) error).getCodigo()).isEqualTo("LIMITE_OBJETIVOS_IA");
+    }
+
+    private void entoncesNoQuedanObjetivosIa() {
+        assertThat(controlPlanService.cuotaObjetivosIa(NegocioId.de(negocioId), AHORA).restantes()).isZero();
+    }
+
+    private void entoncesLaCuotaSigueUsada(int usadas) {
+        assertThat(controlPlanService.cuotaObjetivosIa(NegocioId.de(negocioId), AHORA).usadas()).isEqualTo(usadas);
+    }
+
+    // --- helpers ---
+    private long paginasEn(LocalDate desde, LocalDate hasta) {
+        return usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId), desde, hasta);
+    }
+
     private UUID givenBloque(String nombre) {
         UUID proyectoId = proyectosDePrueba.crear(NegocioId.de(negocioId), "Sistema", null, AHORA).getId().valor();
         UUID bloqueId = UUID.randomUUID();
@@ -315,7 +585,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         return bloqueId;
     }
 
-    private UUID givenBloqueInSameProyecto(UUID bloqueId, String nombre) {
+    private UUID dadoBloqueInSameProyecto(UUID bloqueId, String nombre) {
         UUID proyectoId = jdbcTemplate.queryForObject(
                 "SELECT proyecto_id FROM bloque WHERE id = ?", UUID.class, bloqueId);
         UUID nuevoId = UUID.randomUUID();
@@ -324,37 +594,13 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         return nuevoId;
     }
 
-    private void givenRegistros(UUID bloqueId, int cantidad) {
+    private void dadoRegistros(UUID bloqueId, int cantidad) {
         jdbcTemplate.update("""
                 INSERT INTO registro (negocio_id, bloque_id, valores)
                 SELECT ?, ?, '{}'::jsonb FROM generate_series(1, ?)
                 """, negocioId, bloqueId, cantidad);
     }
 
-    private void givenConsumo(LocalDate dia, int paginas, int reservadas) {
-        jdbcTemplate.update("""
-                INSERT INTO consumo_ia_diario (negocio_id, fecha, paginas, reservadas) VALUES (?, ?, ?, ?)
-                """, negocioId, dia, paginas, reservadas);
-    }
-
-    private void givenPremium(OffsetDateTime fin) {
-        jdbcTemplate.update("""
-                UPDATE suscripcion SET plan_id = (SELECT id FROM plan WHERE codigo = 'PREMIUM'),
-                    inicio_en = ?, fin_en = ? WHERE negocio_id = ?
-                """, AHORA.minusDays(1), fin, negocioId);
-    }
-
-    private LoteTrabajo givenLoteReclamado() {
-        UUID loteId = UUID.randomUUID();
-        UUID token = UUID.randomUUID();
-        jdbcTemplate.update("""
-                INSERT INTO lote_subida (id, negocio_id, estado, intentos, reclamo_id, reclamo_hasta)
-                VALUES (?, ?, 'PROCESANDO', 1, ?, ?)
-                """, loteId, negocioId, token, AHORA.plusMinutes(5));
-        return new LoteTrabajo(LoteId.de(loteId), NegocioId.de(negocioId), null, ReclamoId.de(token), 1);
-    }
-
-    // --- act ---
     private boolean crearProyecto(String nombre) {
         proyectosDePrueba.crear(NegocioId.de(negocioId), nombre, null, AHORA);
         return true;
@@ -365,9 +611,9 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         return true;
     }
 
-    private boolean reservar(LoteTrabajo lote, int paginas, int limiteDiario, OffsetDateTime ahora) {
-        return controlPlanService.reservarPaginasIa(lote.negocioId(), paginas, ahora,
-                () -> procesamientoRepository.reservar(lote, paginas, limiteDiario, ahora));
+    private boolean reservar(LoteTrabajo loteAReservar, int paginas, int limiteDiario, OffsetDateTime ahora) {
+        return controlPlanService.reservarPaginasIa(loteAReservar.negocioId(), paginas, ahora,
+                () -> procesamientoRepository.reservar(loteAReservar, paginas, limiteDiario, ahora));
     }
 
     private boolean registrarPaginaInmediata() {
@@ -398,10 +644,27 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
             return false;
         }
     }
-    /** Editar lo que ya existe no consume cupo del plan. */
-    private void renombrar(UUID negocioId, UUID proyectoId, String nombre) {
-        Proyecto proyecto = proyectoRepository.obtener(NegocioId.de(negocioId), ProyectoId.de(proyectoId));
+
+    private void renombrar(UUID negocioDelProyecto, UUID proyectoId, String nombre) {
+        Proyecto proyecto = proyectoRepository.obtener(NegocioId.de(negocioDelProyecto), ProyectoId.de(proyectoId));
         proyecto.renombrar(nombre, AHORA);
         proyectoRepository.save(proyecto);
+    }
+
+    private void borrarNegocio(UUID negocio) {
+        UUID duenio = jdbcTemplate.queryForObject("SELECT duenio_id FROM negocio WHERE id = ?", UUID.class, negocio);
+        jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocio);
+        jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", duenio);
+    }
+
+    private UUID dadoOtroNegocio() {
+        UUID otroUsuario = UUID.randomUUID();
+        UUID otroNegocioId = UUID.randomUUID();
+        jdbcTemplate.update("INSERT INTO usuario (id, email, nombre) VALUES (?, ?, 'Otro')",
+                otroUsuario, otroUsuario + "@example.test");
+        jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Otro', ?)",
+                otroNegocioId, otroUsuario);
+        suscripcionService.asignarGratuito(NegocioId.de(otroNegocioId), AHORA.minusDays(30));
+        return otroNegocioId;
     }
 }

@@ -27,34 +27,57 @@ class ProgresoObjetivoPresentationMapperTest {
 
     private final ProgresoObjetivoPresentationMapper mapper =
             new ProgresoObjetivoPresentationMapper(new MiniObjetivoPresentationMapper());
+    private ObtenerProgresoRequest pedido;
+    private ProgresoObjetivoResponse respuesta;
 
     @Test
     @DisplayName("Arma el pedido con el usuario de la sesión y el objetivo de la ruta")
-    void toRequestShouldCarryTheUserAndTheObjetivo() {
-        ObtenerProgresoRequest result = mapper.toRequest(USUARIO_ID, OBJETIVO_ID);
+    void armaElPedidoConElUsuarioDeLaSesionYElObjetivoDeLaRuta() {
+        cuandoSeArmaElPedido();
 
-        assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(result.objetivoId()).isEqualTo(OBJETIVO_ID);
+        entoncesElPedidoTraeUsuarioYObjetivo();
     }
 
     @Test
     @DisplayName("Copia la meta, el hito, la serie del objetivo y la de cada mini-objetivo")
-    void toResponseShouldCopyEveryField() {
-        PuntoSemanal punto = new PuntoSemanal(SEMANA, new BigDecimal("-27000"), true);
-        MiniProgreso mini = new MiniProgreso(MiniObjetivoItem.de(miniObjetivo()), HitoObjetivo.SIN_AVANCE,
-                List.of(new PuntoSemanal(SEMANA, BigDecimal.TEN, false)));
+    void copiaLaMetaElHitoLaSerieDelObjetivoYLaDeCadaMiniObjetivo() {
+        cuandoSeMapeaElProgreso(progresoCompleto());
 
-        ProgresoObjetivoResponse result = mapper.toResponse(
-                new ObtenerProgresoResponse(META, HitoObjetivo.OBJETIVO_ALCANZADO, List.of(punto), List.of(mini)));
+        entoncesSeCopianLaMetaElHitoYLasSeries();
+    }
 
-        assertThat(result.meta()).isEqualTo(META);
-        assertThat(result.hito()).isEqualTo(HitoObjetivo.OBJETIVO_ALCANZADO);
-        assertThat(result.semanas()).singleElement().satisfies(item -> {
+    @Test
+    @DisplayName("Sin semanas ni mini-objetivos devuelve listas vacías")
+    void sinSemanasNiMiniObjetivosDevuelveListasVacias() {
+        cuandoSeMapeaElProgreso(progresoVacio());
+
+        entoncesNoHayHitoNiSeries();
+    }
+
+    // --- act ---
+    private void cuandoSeArmaElPedido() {
+        pedido = mapper.toRequest(USUARIO_ID, OBJETIVO_ID);
+    }
+
+    private void cuandoSeMapeaElProgreso(ObtenerProgresoResponse progreso) {
+        respuesta = mapper.toResponse(progreso);
+    }
+
+    // --- assert ---
+    private void entoncesElPedidoTraeUsuarioYObjetivo() {
+        assertThat(pedido.usuarioId()).isEqualTo(USUARIO_ID);
+        assertThat(pedido.objetivoId()).isEqualTo(OBJETIVO_ID);
+    }
+
+    private void entoncesSeCopianLaMetaElHitoYLasSeries() {
+        assertThat(respuesta.meta()).isEqualTo(META);
+        assertThat(respuesta.hito()).isEqualTo(HitoObjetivo.OBJETIVO_ALCANZADO);
+        assertThat(respuesta.semanas()).singleElement().satisfies(item -> {
             assertThat(item.semana()).isEqualTo(SEMANA);
             assertThat(item.valor()).isEqualTo(new BigDecimal("-27000"));
             assertThat(item.estimado()).isTrue();
         });
-        assertThat(result.minis()).singleElement().satisfies(item -> {
+        assertThat(respuesta.minis()).singleElement().satisfies(item -> {
             assertThat(item.mini().id()).isEqualTo(MINI_ID);
             assertThat(item.hito()).isEqualTo(HitoObjetivo.SIN_AVANCE);
             assertThat(item.semanas()).singleElement().satisfies(serie -> {
@@ -64,15 +87,21 @@ class ProgresoObjetivoPresentationMapperTest {
         });
     }
 
-    @Test
-    @DisplayName("Sin semanas ni mini-objetivos devuelve listas vacías")
-    void toResponseShouldReturnEmptyLists() {
-        ObtenerProgresoResponse vacia = new ObtenerProgresoResponse(META, null, List.of(), List.of());
+    private void entoncesNoHayHitoNiSeries() {
+        assertThat(respuesta.hito()).isNull();
+        assertThat(respuesta.semanas()).isEmpty();
+        assertThat(respuesta.minis()).isEmpty();
+    }
 
-        ProgresoObjetivoResponse result = mapper.toResponse(vacia);
+    // --- helpers ---
+    private static ObtenerProgresoResponse progresoCompleto() {
+        PuntoSemanal punto = new PuntoSemanal(SEMANA, new BigDecimal("-27000"), true);
+        MiniProgreso mini = new MiniProgreso(MiniObjetivoItem.de(miniObjetivo()), HitoObjetivo.SIN_AVANCE,
+                List.of(new PuntoSemanal(SEMANA, BigDecimal.TEN, false)));
+        return new ObtenerProgresoResponse(META, HitoObjetivo.OBJETIVO_ALCANZADO, List.of(punto), List.of(mini));
+    }
 
-        assertThat(result.hito()).isNull();
-        assertThat(result.semanas()).isEmpty();
-        assertThat(result.minis()).isEmpty();
+    private static ObtenerProgresoResponse progresoVacio() {
+        return new ObtenerProgresoResponse(META, null, List.of(), List.of());
     }
 }

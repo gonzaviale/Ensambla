@@ -16,10 +16,10 @@
   display: inline-block;
   width: fit-content;
   padding: 4px 8px;
-  border: 1px solid #ad721a;
+  border: 1px solid #ebce32;
   border-radius: 6px;
-  color: #704300 !important;
-  background: #fff3d5;
+  color: var(--c-estructura) !important;
+  background: #fff;
   font-size: 12px !important;
   font-weight: 700;
 }
@@ -65,13 +65,13 @@
 .caja-clientes-lista span,
 .caja-clientes-lista small {
   font-size: 14px;
-  color: #344c59;
+  color: var(--c-estructura);
 }
 
 .caja-selector-cliente {
   margin: 16px 0;
   padding: 14px;
-  background: #edf5f7;
+  background: #fff;
   border: 1px solid #7398a6;
   border-radius: 10px;
 }
@@ -90,7 +90,7 @@
 .caja-saldo {
   padding: 12px;
   border-left: 4px solid var(--orange);
-  background: #fff5e7;
+  background: #fff;
   font-size: 16px;
 }
 

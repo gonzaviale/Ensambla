@@ -25,30 +25,24 @@ const abrirInicio = async (sistemas: Sistema[]) => {
   return { router, user: userEvent.setup(), sistema: sistemas[0] };
 };
 
-const NOMBRE_DEL_PANEL = 'Tu plata y lo que conviene hacer';
+const NOMBRE_DEL_PANEL = 'Tu flujo de caja';
 const titulo = () => screen.queryByRole('heading', { name: NOMBRE_DEL_PANEL });
 /** El título aparece mientras carga: lo que hay que esperar es el flujo de caja. */
 const cifrasAsync = () =>
   screen.findByText(/Lo fiado no entra hasta que lo cobrás/, undefined, ESPERA);
 /** El flujo de caja arranca cerrado: se espera a que llegue y se abre como lo haría la persona. */
 const abrirFlujoAsync = async (user: ReturnType<typeof userEvent.setup>) => {
-  await user.click(
-    await screen.findByRole('heading', { name: 'Tu flujo de caja, semana a semana' }, ESPERA),
-  );
+  await user.click(await screen.findByRole('heading', { name: 'Semana a semana' }, ESPERA));
 };
 
 describe('inicio: panel del negocio', () => {
-  it('con ventas muestra el flujo de caja cerrado, con lo que te va quedando, y sin repetir las métricas del tablero', async () => {
+  it('con ventas muestra el flujo de caja cerrado, con lo que te va quedando', async () => {
     const { user } = await abrirInicio([crearAlmacenCargado(hoy())]);
 
-    const titulo = await screen.findByRole(
-      'heading',
-      { name: 'Tu flujo de caja, semana a semana' },
-      ESPERA,
-    );
+    const titulo = await screen.findByRole('heading', { name: 'Semana a semana' }, ESPERA);
     const flujo = titulo.closest('details') as HTMLElement;
     expect(flujo).not.toHaveAttribute('open');
-    expect(within(flujo).getByText(/^Te va quedando \$/)).toBeVisible();
+    expect(within(flujo).getByText(/^Te queda \$/)).toBeVisible();
     expect(within(flujo).getByText(/Lo fiado no entra hasta que lo cobrás/)).not.toBeVisible();
 
     await user.click(titulo);
@@ -57,7 +51,6 @@ describe('inicio: panel del negocio', () => {
     expect(within(panel).getByText(/Los últimos 30 días/)).toBeVisible();
     expect(within(panel).getByText(/Lo fiado no entra hasta que lo cobrás/)).toBeVisible();
     expect(document.querySelector('.panel-tarjetas')).toBeNull();
-    expect(screen.getByRole('region', { name: 'Cómo te va' })).toBeVisible();
   });
 
   it('el flujo de caja es una fila por semana con lo que entró, salió y el saldo, escrito', async () => {
@@ -69,12 +62,15 @@ describe('inicio: panel del negocio', () => {
 
     expect(filas).toHaveLength(5);
     for (const fila of filas) {
-      expect(within(fila).getByText('Entró')).toBeVisible();
-      expect(within(fila).getByText('Salió')).toBeVisible();
-      expect(within(fila).getByText('Saldo')).toBeVisible();
+      expect(within(fila).getByText('Cobraste')).toBeVisible();
+      expect(within(fila).getByText('Gastaste')).toBeVisible();
+      expect(within(fila).queryByText('Te quedó')).toBeNull();
       expect(fila).toHaveTextContent(/\$\d/);
     }
-    expect(screen.getByText('Te va quedando')).toBeVisible();
+    for (const titulo of ['Cobraste', 'Gastaste', 'Resultado']) {
+      expect(screen.getByText(titulo, { selector: '.panel-semanas-cabecera span' })).toBeVisible();
+    }
+    expect(screen.getByText('Te queda')).toBeVisible();
   });
 
   it('con panel el saludo sigue siendo el h1 y el título del panel es un h2', async () => {
@@ -137,20 +133,21 @@ describe('inicio: panel del negocio', () => {
     await verifyPathAsync(router, '/zona');
   });
 
-  it('quien recién empieza sigue viendo los dos atajos con su explicación', async () => {
+  it('quien recién empieza ve los atajos completos debajo de la bienvenida grande', async () => {
     await abrirInicio([]);
 
     const atajos = within(screen.getByRole('region', { name: 'Más para tu negocio' }));
-    expect(atajos.getByText(/Sacale una foto a tu cuaderno/)).toBeVisible();
+    expect(atajos.getByRole('button', { name: /Cargar desde una foto/ })).toBeVisible();
     expect(atajos.getByRole('button', { name: /Ver mi zona/ })).toBeVisible();
+    expect(document.querySelector('.inicio-atajos')).not.toBeNull();
     expect(document.querySelector('.inicio-atajos.compactos')).toBeNull();
   });
 
-  it('quien recién empieza ve la bienvenida grande, sin franja compacta ni panel', async () => {
+  it('quien recién empieza ve la bienvenida grande, sin panel', async () => {
     await abrirInicio([]);
 
+    expect(screen.getByRole('region', { name: 'Empezar algo nuevo' })).toBeVisible();
     expect(screen.getByText(/Tocá una ficha para arrancar/)).toBeVisible();
-    expect(screen.queryByRole('region', { name: 'Empezar algo nuevo' })).toBeNull();
     expect(titulo()).toBeNull();
   });
 
@@ -172,9 +169,7 @@ describe('inicio: panel del negocio', () => {
   it('mira sólo el negocio activo: si no tiene ventas no muestra el panel de otro', async () => {
     await abrirInicio([makeTemplate('shop', {}, true), crearAlmacenCargado(hoy())]);
 
-    expect(
-      await screen.findByText(/Tocá una ficha para arrancar/, undefined, ESPERA),
-    ).toBeVisible();
+    expect(await screen.findByRole('region', { name: 'Empezar algo nuevo' }, ESPERA)).toBeVisible();
     expect(titulo()).toBeNull();
   });
 
@@ -184,12 +179,10 @@ describe('inicio: panel del negocio', () => {
     expect(titulo()).toBeNull();
   });
 
-  it('con una sección sin ventas no muestra el panel: se ve el inicio común', async () => {
+  it('con una sección sin ventas no muestra el panel: la home se ve igual', async () => {
     await abrirInicio([makeTemplate('shop', {}, true)]);
 
-    expect(
-      await screen.findByText(/Tocá una ficha para arrancar/, undefined, ESPERA),
-    ).toBeVisible();
+    expect(await screen.findByRole('region', { name: 'Empezar algo nuevo' }, ESPERA)).toBeVisible();
     expect(titulo()).toBeNull();
     expect(screen.queryByText(/Todavía no cargaste ventas/)).toBeNull();
   });
@@ -211,9 +204,7 @@ describe('inicio: panel del negocio', () => {
     );
     await clickButton(user, 'Probar de nuevo');
 
-    expect(
-      await screen.findByRole('heading', { name: 'Tu flujo de caja, semana a semana' }, ESPERA),
-    ).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Semana a semana' }, ESPERA)).toBeVisible();
     expect(screen.queryByRole('alert')).toBeNull();
   });
 });

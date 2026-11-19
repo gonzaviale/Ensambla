@@ -1,10 +1,12 @@
 import { useId } from 'react';
 import { DECISION, diaCorto, semanaDel } from '@/lib/objetivosAutogestion';
 import { formatoPesos } from '@/lib/objetivos';
+import { Progreso } from '../piezas';
 import type { DecisionObjetivo, ProgresoObjetivo } from '@/types/objetivos';
 
 type Props = {
-  progreso: ProgresoObjetivo;
+  /** El progreso de un objetivo con meta en pesos: sin meta no hay contra qué comparar el resultado. */
+  progreso: ProgresoObjetivo & { meta: number };
   decisiones: DecisionObjetivo[];
 };
 
@@ -29,8 +31,7 @@ export function GraficoSemanal({ progreso, decisiones }: Props) {
   if (puntos.length === 0) {
     return (
       <p className="grafico-semanal-vacio">
-        Todavía no hay semanas para dibujar. Cuando cierre el primer domingo, acá vas a ver cómo
-        vas.
+        Todavía no hay semanas para dibujar. El primer domingo vas a ver cómo vas.
       </p>
     );
   }
@@ -61,9 +62,17 @@ export function GraficoSemanal({ progreso, decisiones }: Props) {
     );
   const ultimo = puntos.length - 1;
   const yMeta = y(progreso.meta);
+  const avance = progreso.meta > 0 ? Math.max(0, (puntos[ultimo]?.valor ?? 0) / progreso.meta) : 0;
+  const porcentaje = Math.round(Math.min(avance, 1) * 100);
 
   return (
     <figure className="grafico-semanal">
+      <div className="grafico-semanal-avance">
+        <p>
+          <strong>{porcentaje} %</strong> <span>de tu meta de {corto(progreso.meta)}</span>
+        </p>
+        <Progreso valor={Math.min(avance, 1)} etiqueta={`Avance hacia tu meta: ${porcentaje} %`} />
+      </div>
       <svg viewBox={`0 0 ${ANCHO} ${ALTO}`} role="img" aria-labelledby={`${idDegradado}-titulo`}>
         <title id={`${idDegradado}-titulo`}>
           Tu resultado por semana frente a la meta de {formatoPesos(progreso.meta)}

@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -54,62 +54,85 @@ class ListarReferenciasTest {
     private RegistroDatosService registroDatosService;
 
     private ListarReferencias listarReferencias;
+    private List<ReferenciaItem> referencias;
+    private Throwable rechazo;
 
     @BeforeEach
-    void setUp() {
+    void dadoUnNegocioDelUsuario() {
         listarReferencias = new ListarReferencias(
                 negocioRepository, bloqueRepository, campoRepository, registroDatosService);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @Test
     @DisplayName("Devuelve cada fila encontrada con su etiqueta")
-    void executeShouldReturnReferenciasWithEtiqueta() {
-        givenBloqueOfNegocio();
-        givenReferenciables("ana", List.of());
+    void devuelveCadaFilaEncontradaConSuEtiqueta() {
+        dadoUnBloqueDelNegocio();
+        dadoQueElServicioEncuentraAAna("ana", List.of());
 
-        List<ReferenciaItem> result = execute("ana", List.of());
+        cuandoSeListanLasReferencias("ana", List.of());
 
-        assertThat(result).containsExactly(new ReferenciaItem(REGISTRO_ID, "Ana"));
+        entoncesSeDevuelveLaReferenciaDeAna();
     }
 
     @Test
     @DisplayName("Pasa al servicio los ids pedidos con el negocio de la sesión y los campos del bloque")
-    void executeShouldPassIdsToService() {
-        givenBloqueOfNegocio();
-        givenReferenciables(null, List.of(REGISTRO_ID));
+    void pasaAlServicioLosIdsPedidosConElNegocioDeLaSesionYLosCamposDelBloque() {
+        dadoUnBloqueDelNegocio();
+        dadoQueElServicioEncuentraAAna(null, List.of(REGISTRO_ID));
 
-        execute(null, List.of(REGISTRO_ID));
+        cuandoSeListanLasReferencias(null, List.of(REGISTRO_ID));
 
-        verify(registroDatosService).buscarReferenciables(NEGOCIO_ID, BLOQUE_ID, CAMPOS, null, List.of(REGISTRO_ID));
+        entoncesElServicioRecibioLosIds(List.of(REGISTRO_ID));
     }
 
     @Test
     @DisplayName("No busca filas cuando el bloque no es del negocio")
-    void executeShouldPropagateNotFoundWhenBloqueIsNotOfTheNegocio() {
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID))
-                .thenThrow(new ResourceNotFoundException("El bloque no existe"));
+    void noBuscaFilasCuandoElBloqueNoEsDelNegocio() {
+        dadoQueElBloqueNoEsDelNegocio();
 
-        assertThatThrownBy(() -> execute("ana", List.of()))
-                .isInstanceOf(ResourceNotFoundException.class);
-        verifyNoInteractions(campoRepository, registroDatosService);
+        cuandoSeIntentaListarLasReferencias("ana", List.of());
+
+        entoncesSeRechazaPorBloqueInexistenteSinBuscarFilas();
     }
 
-    // --- arrange ---
-    private void givenBloqueOfNegocio() {
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+    // --- dado ---
+    private void dadoUnBloqueDelNegocio() {
         when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
         when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(CAMPOS);
     }
 
-    private void givenReferenciables(String texto, List<RegistroId> ids) {
-        Registro registro = Registro.builder().id(REGISTRO_ID).valores(Map.of(NOMBRE_ID.toString(), "Ana")).build();
-        when(registroDatosService.buscarReferenciables(NEGOCIO_ID, BLOQUE_ID, CAMPOS, texto, ids))
-                .thenReturn(List.of(registro));
+    private void dadoQueElBloqueNoEsDelNegocio() {
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID))
+                .thenThrow(new ResourceNotFoundException("El bloque no existe"));
     }
 
-    // --- act ---
-    private List<ReferenciaItem> execute(String texto, List<RegistroId> ids) {
-        return listarReferencias.execute(new ListarReferenciasRequest(USUARIO_ID, BLOQUE_ID, texto, ids));
+    private void dadoQueElServicioEncuentraAAna(String texto, List<RegistroId> ids) {
+        Registro ana = Registro.builder().id(REGISTRO_ID).valores(Map.of(NOMBRE_ID.toString(), "Ana")).build();
+        when(registroDatosService.buscarReferenciables(NEGOCIO_ID, BLOQUE_ID, CAMPOS, texto, ids))
+                .thenReturn(List.of(ana));
+    }
+
+    // --- cuando ---
+    private void cuandoSeListanLasReferencias(String texto, List<RegistroId> ids) {
+        referencias = listarReferencias.execute(new ListarReferenciasRequest(USUARIO_ID, BLOQUE_ID, texto, ids));
+    }
+
+    private void cuandoSeIntentaListarLasReferencias(String texto, List<RegistroId> ids) {
+        rechazo = catchThrowable(() -> cuandoSeListanLasReferencias(texto, ids));
+    }
+
+    // --- entonces ---
+    private void entoncesSeDevuelveLaReferenciaDeAna() {
+        assertThat(referencias).containsExactly(new ReferenciaItem(REGISTRO_ID, "Ana"));
+    }
+
+    private void entoncesElServicioRecibioLosIds(List<RegistroId> ids) {
+        verify(registroDatosService).buscarReferenciables(NEGOCIO_ID, BLOQUE_ID, CAMPOS, null, ids);
+    }
+
+    private void entoncesSeRechazaPorBloqueInexistenteSinBuscarFilas() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class);
+        verifyNoInteractions(campoRepository, registroDatosService);
     }
 }

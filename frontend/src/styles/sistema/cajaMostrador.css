@@ -87,7 +87,7 @@
   height: 38px;
   padding: 9px;
   color: #00506a;
-  background: #edf4f6;
+  background: #fff;
   border-radius: 12px;
 }
 .caja-lector h2,
@@ -415,7 +415,7 @@
 .caja-cobro-importe {
   padding: 20px;
   margin: 10px 0 18px;
-  background: #eff6f8;
+  background: #fff;
   border-radius: 14px;
   border: 1px solid #c5d9e2;
 }
@@ -709,7 +709,7 @@
     border: 1px solid #789dac;
     border-radius: 10px;
     color: #00506a;
-    background: #f1f7f9;
+    background: #fff;
     font-size: 10px;
     font-weight: 700;
   }

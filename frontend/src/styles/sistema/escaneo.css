@@ -9,7 +9,7 @@
 }
 .escaneo-sonidos-botones .btn.secondary {
   border: 2px solid #5b8190;
-  background: #edf4f6;
+  background: #fff;
   color: #124c60;
   min-height: 42px;
 }
@@ -19,8 +19,8 @@
   border-color: #00506a;
 }
 .escaneo-sonidos-botones .btn:disabled {
-  background: #e7eaec;
-  color: #727b80;
+  background: #fff;
+  color: var(--c-estructura);
   border-color: #c4cbd0;
   cursor: not-allowed;
   box-shadow: none;

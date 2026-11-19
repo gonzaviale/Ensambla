@@ -1,3 +1,4 @@
+import type { Color } from '@/lib/sistema/tipos';
 import type { ResumenDeNegocio } from '@/types/negocios';
 
 // Cómo se dice cada negocio de la cuenta en pantalla (ENS-284). Los datos salen del resumen conjunto, que junta el
@@ -46,3 +47,19 @@ export const rubroLegible = (codigo: string) => {
   const texto = codigo.replaceAll('_', ' ').toLowerCase();
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 };
+
+const COLORES_DE_NEGOCIO: Color[] = ['petrol', 'orange', 'coral'];
+
+/** Cada negocio tiene su color de la paleta, fijo por su lugar en la cuenta: así se reconoce de un vistazo. */
+export const colorDelNegocio = (posicion: number): Color =>
+  COLORES_DE_NEGOCIO[posicion % COLORES_DE_NEGOCIO.length] ?? 'petrol';
+
+/** La letra del cuadrado de cada negocio. */
+export const inicialDelNegocio = (nombre: string) => nombre.trim().charAt(0).toUpperCase() || 'N';
+
+export const textoDeTablas = (cantidad: number) =>
+  cantidad === 1 ? '1 tabla' : `${cantidad} tablas`;
+
+/** «Kiosco · 4 tablas»: datos para distinguir un negocio de otro, sin juicios. */
+export const detalleDelNegocio = (rubro: string | undefined, tablas: number) =>
+  [rubro, textoDeTablas(tablas)].filter(Boolean).join(' · ');

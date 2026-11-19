@@ -216,7 +216,7 @@ export function useCaja(sistemaId: string, inventarioId: string, ventasId: strin
       let guardado: Fila | undefined;
       useSistemaStore.getState().actualizarSistema(sistemaId, (copia) => {
         const tabla = allBlocks(copia).find((b) => b.id === inventarioId);
-        if (!tabla) throw new Error('El inventario ya no existe.');
+        if (!tabla) throw new Error('Esta sección ya no existe.');
         guardado = guardarArticuloCaja(
           copia,
           tabla,

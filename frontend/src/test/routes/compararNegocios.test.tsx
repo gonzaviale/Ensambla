@@ -43,9 +43,9 @@ describe('comparar mis negocios', () => {
 
     expect(within(await tabla()).getByText('Almacén San Justo')).toBeVisible();
     expect(within(await tabla()).getByText('Kiosco de la estación')).toBeVisible();
-    expect(screen.getByRole('region', { name: 'Toda la cuenta' })).toHaveTextContent('2 negocios');
+    expect(screen.getByRole('region', { name: 'Todos tus negocios juntos' })).toHaveTextContent('2 negocios');
     expect(screen.getByText(/últimos 30 días/)).toBeVisible();
-    expect(screen.getByText(/se miran dentro de cada negocio/)).toBeVisible();
+    expect(screen.getByText(/entrando a cada negocio/)).toBeVisible();
     expect(document.title).toBe('Comparar mis negocios · Ensambla');
   });
 
@@ -55,7 +55,7 @@ describe('comparar mis negocios', () => {
     renderApp('/negocios/comparar');
 
     expect(await filaDe('Almacén San Justo')).toHaveTextContent('$');
-    expect(await filaDe('Kiosco de la estación')).toHaveTextContent('Sin ventas en el período');
+    expect(await filaDe('Kiosco de la estación')).toHaveTextContent('Sin ventas en estos 30 días');
   });
 
   it('si el panel de un negocio falla avisa y deja probar de nuevo', async () => {

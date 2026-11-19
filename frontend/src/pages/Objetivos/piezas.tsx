@@ -3,12 +3,25 @@ import { Sami } from '@/components/sistema/Sami';
 
 // Piezas visuales que comparten Objetivos y «Sami te enseña».
 
+function SamiDelEncabezado({ titulo, texto }: { titulo: string; texto: string }) {
+  return (
+    <div className="objetivos-sami-mini">
+      <Sami pose="think" />
+      <div>
+        <strong>{titulo}</strong>
+        <span>{texto}</span>
+      </div>
+    </div>
+  );
+}
+
 export function Encabezado({
   etiqueta,
   titulo,
   texto,
   sami = 'Te explica cada cálculo',
   samiTitulo = 'Sami está listo',
+  accion,
 }: {
   etiqueta: string;
   titulo: string;
@@ -16,6 +29,8 @@ export function Encabezado({
   sami?: string;
   /** Qué está haciendo Sami en esta pantalla, en pocas palabras. */
   samiTitulo?: string;
+  /** Lo que va a la derecha en lugar del cartel de Sami, por ejemplo el botón principal de la pantalla. */
+  accion?: ReactNode;
 }) {
   return (
     <header className="objetivos-encabezado">
@@ -24,13 +39,7 @@ export function Encabezado({
         <h1>{titulo}</h1>
         <p>{texto}</p>
       </div>
-      <div className="objetivos-sami-mini">
-        <Sami pose="think" />
-        <div>
-          <strong>{samiTitulo}</strong>
-          <span>{sami}</span>
-        </div>
-      </div>
+      {accion ?? <SamiDelEncabezado titulo={samiTitulo} texto={sami} />}
     </header>
   );
 }

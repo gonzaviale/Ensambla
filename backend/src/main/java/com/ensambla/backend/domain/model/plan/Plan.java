@@ -42,6 +42,7 @@ public class Plan {
     private Integer limitePaginasIaMensuales;
 
     private Integer limiteCartelesIaMensuales;
+    private Integer limiteObjetivosIaMensuales;
 
     private List<String> funciones;
 
@@ -76,6 +77,19 @@ public class Plan {
 
     public void validarCartelesIa(long usadosEnElMes) {
         validarCupo(usadosEnElMes, 1, limiteCartelesIaMensuales, "LIMITE_CARTELES_IA", "carteles con IA por mes");
+    }
+
+    /**
+     * Si el mes ya tiene todos los objetivos con IA que permite el plan, no entra otro.
+     *
+     * @throws RestriccionPlanException si se agotó la cuota mensual
+     */
+    public void validarObjetivosIa(long usados) {
+        if (new CuotaObjetivosIa(usados, limiteObjetivosIaMensuales).agotada()) {
+            throw new RestriccionPlanException("LIMITE_OBJETIVOS_IA",
+                    "Ya armaste los " + limiteObjetivosIaMensuales + " objetivos con Sami que incluye tu plan este "
+                            + "mes. Mirá los planes en «Planes» para armar más. Tus datos se conservan.");
+        }
     }
 
     public void validarFuncion(FuncionPlan funcion) {

@@ -1,148 +1,201 @@
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'vitest';
+import type { TipoBloque, Valor } from '@/lib/sistema/tipos';
 import {
-  allBlocks,
-  clone,
-  id,
-  importRows,
-  makeSystem,
-  moveBlock,
-  totals,
-  upsertRow,
-  validateRow,
-} from '@/lib/sistema/core';
-import type { Bloque, Seccion, Sistema, TipoBloque } from '@/lib/sistema/tipos';
+  cuandoSeArmanDosSistemasConClientes,
+  cuandoSeArmaUnSistemaConEjemplosDe,
+  cuandoSeCalculanLosTotales,
+  cuandoSeCargaUnProductoSinPrecio,
+  cuandoSeCopiaElSistema,
+  cuandoSeImportanYerbaRepetidaYAceite,
+  cuandoSeIntentaPonerLosPedidosAntesDeSiMismos,
+  cuandoSeMuevenLosPedidosALaOtraPestana,
+  cuandoSeRenombraElPrimerProducto,
+  cuandoSeValidaEn,
+  cuandoSeVendeFiadoSinCliente,
+  cuandoSeVuelvenAPonerLosPedidosAntesDeLosClientes,
+  dadosClientesYPedidosDeEjemploYOtraPestana,
+  dadoUnInventarioConYerba,
+  dadoUnSistemaCon,
+  entoncesCadaSistemaTieneSusPropiosClientes,
+  entoncesElErrorDe,
+  entoncesElPrecioQuedaVacio,
+  entoncesElPrimerPedidoEsDelPrimerClienteYEsValido,
+  entoncesElProductoEditadoYaNoEsEjemplo,
+  entoncesHayUnErrorEn,
+  entoncesLaCopiaEsIgualAlOriginal,
+  entoncesLaFilaImportadaVieneDeLaLectura,
+  entoncesLosPedidosEstanEnLaOtraPestanaConSusDatos,
+  entoncesLosPedidosQuedanPrimeros,
+  entoncesLosPedidosYLasVentasApuntanALosClientes,
+  entoncesLosTotalesSon,
+  entoncesNoHayErrores,
+  entoncesNoSeMovio,
+  entoncesSeAgregoUnaYSeOmitioLaRepetidaSinPisarla,
+} from '@/test/motorDelSistema';
 
-function bloque(sistema: Sistema, tipo: TipoBloque): Bloque {
-  const encontrado = allBlocks(sistema).find((item) => item.type === tipo);
-  if (!encontrado) throw new Error(`Falta el bloque ${tipo}`);
-  return encontrado;
-}
+const NEGOCIO_COMPLETO: TipoBloque[] = ['orders', 'clients', 'inventory', 'sales'];
+const PARA_VALIDAR: TipoBloque[] = ['inventory', 'clients', 'orders'];
 
-const fila = <T>(items: readonly T[], indice = 0): T => {
-  const item = items[indice];
-  if (item === undefined) throw new Error(`Falta el elemento ${indice}`);
-  return item;
+type DatoInvalido = {
+  descripcion: string;
+  tipo: TipoBloque;
+  valores: Record<string, Valor>;
+  clave: string;
 };
 
-describe('motor: creación y validación', () => {
-  it('vincula pedidos y ventas con los clientes del mismo sistema', () => {
-    const sistema = makeSystem('Mi negocio', ['orders', 'clients', 'inventory', 'sales'], true);
-    const pedidos = bloque(sistema, 'orders');
-    const clientes = bloque(sistema, 'clients');
-    const ventas = bloque(sistema, 'sales');
+const DATOS_INVALIDOS: DatoInvalido[] = [
+  {
+    descripcion: 'un nombre vacío',
+    tipo: 'inventory',
+    valores: { name: '  ', quantity: '2' },
+    clave: 'name',
+  },
+  {
+    descripcion: 'una cantidad que no es un número',
+    tipo: 'inventory',
+    valores: { name: 'Yerba', quantity: 'cero' },
+    clave: 'quantity',
+  },
+  {
+    descripcion: 'un correo inválido',
+    tipo: 'clients',
+    valores: { name: 'Ana', email: 'incorrecto' },
+    clave: 'email',
+  },
+  {
+    descripcion: 'un cliente que no existe',
+    tipo: 'orders',
+    valores: { name: 'Pedido', customer: 'no-existe' },
+    clave: 'customer',
+  },
+  {
+    descripcion: 'un estado inventado',
+    tipo: 'orders',
+    valores: { name: 'Pedido', status: 'Inventado' },
+    clave: 'status',
+  },
+];
 
-    expect(pedidos.fields.find((campo) => campo.key === 'customer')?.target).toBe(clientes.id);
-    expect(ventas.fields.find((campo) => campo.key === 'customer')?.target).toBe(clientes.id);
-    expect(fila(pedidos.rows).customer).toBe(fila(clientes.rows).id);
-    expect(validateRow(pedidos, fila(pedidos.rows), sistema)).toEqual({});
-    const otro = makeSystem('Otro', ['clients']);
-    expect(clientes.id).not.toBe(fila(allBlocks(otro)).id);
+describe('motor: creación del sistema', () => {
+  it('vincula los pedidos y las ventas con los clientes del mismo sistema', () => {
+    cuandoSeArmaUnSistemaConEjemplosDe(NEGOCIO_COMPLETO);
+
+    entoncesLosPedidosYLasVentasApuntanALosClientes();
   });
 
-  it('impide datos vacíos, números inválidos y vínculos rotos', () => {
-    const sistema = makeSystem('Prueba', ['inventory', 'clients', 'orders']);
-    const inventario = bloque(sistema, 'inventory');
-    const clientes = bloque(sistema, 'clients');
-    const pedidos = bloque(sistema, 'orders');
+  it('el primer pedido de ejemplo queda a nombre del primer cliente y es válido', () => {
+    cuandoSeArmaUnSistemaConEjemplosDe(NEGOCIO_COMPLETO);
 
-    expect(validateRow(inventario, { name: '  ', quantity: '2' }, sistema).name).toBeTruthy();
-    expect(
-      validateRow(inventario, { name: 'Yerba', quantity: 'cero' }, sistema).quantity,
-    ).toBeTruthy();
-    expect(validateRow(inventario, { name: 'Yerba', quantity: 0 }, sistema)).toEqual({});
-    expect(validateRow(clientes, { name: 'Ana', email: 'incorrecto' }, sistema).email).toBeTruthy();
-    expect(
-      validateRow(pedidos, { name: 'Pedido', customer: 'no-existe' }, sistema).customer,
-    ).toBeTruthy();
-    expect(
-      validateRow(pedidos, { name: 'Pedido', status: 'Inventado' }, sistema).status,
-    ).toBeTruthy();
+    entoncesElPrimerPedidoEsDelPrimerClienteYEsValido();
   });
 
-  it('pide a quién se le fía cuando una venta es fiada', () => {
-    const sistema = makeSystem('Local', ['inventory', 'sales', 'clients'], true);
-    const ventas = bloque(sistema, 'sales');
-    const producto = fila(bloque(sistema, 'inventory').rows);
+  it('cada sistema tiene sus propios bloques', () => {
+    cuandoSeArmanDosSistemasConClientes();
 
-    const errores = validateRow(
-      ventas,
-      { product: producto.id, quantity: 1, credit: true },
-      sistema,
-    );
-
-    expect(errores.customer).toBe('Elegí a quién le fiás.');
-  });
-
-  it('un ejemplo editado se conserva y un precio vacío queda vacío', () => {
-    const sistema = makeSystem('Stock', ['inventory'], true);
-    const inventario = fila(allBlocks(sistema));
-    const original = fila(inventario.rows);
-
-    const resultado = upsertRow(
-      inventario,
-      { ...original, name: 'Mi producto' },
-      original.id,
-      sistema,
-    );
-
-    expect(resultado.row?.__example).toBeUndefined();
-    expect(inventario.rows.filter((item) => !item.__example)).toHaveLength(1);
-    expect(
-      upsertRow(inventario, { name: 'Mi segundo producto', quantity: 0 }, null, sistema).row?.price,
-    ).toBe('');
+    entoncesCadaSistemaTieneSusPropiosClientes();
   });
 });
 
-describe('motor: bloques y datos', () => {
-  it('mover bloques entre pestañas conserva registros, claves y relaciones', () => {
-    const sistema = makeSystem('Mi sistema', ['clients', 'orders'], true);
-    const primera = fila(sistema.sections);
-    const [clientes, pedidos] = primera.blocks as [Bloque, Bloque];
-    const destino: Seccion = { id: id(), name: 'Ventas', blocks: [] };
-    sistema.sections.push(destino);
-    const instantanea = JSON.stringify(pedidos.rows);
+describe('motor: validación', () => {
+  it.each(DATOS_INVALIDOS)('rechaza $descripcion', ({ tipo, valores, clave }) => {
+    dadoUnSistemaCon(PARA_VALIDAR);
 
-    expect(moveBlock(sistema, pedidos.id, destino.id)).toBe(true);
-    expect(primera.blocks).toHaveLength(1);
-    expect(fila(destino.blocks).id).toBe(pedidos.id);
-    expect(JSON.stringify(fila(destino.blocks).rows)).toBe(instantanea);
-    expect(fila(destino.blocks).fields.find((campo) => campo.type === 'relation')?.target).toBe(
-      clientes.id,
-    );
-    expect(moveBlock(sistema, pedidos.id, primera.id, clientes.id)).toBe(true);
-    expect(fila(primera.blocks).id).toBe(pedidos.id);
-    expect(moveBlock(sistema, pedidos.id, primera.id, pedidos.id)).toBe(false);
+    cuandoSeValidaEn(tipo, valores);
+
+    entoncesHayUnErrorEn(clave);
   });
 
-  it('la carga revisada evita duplicados sin sobrescribir datos', () => {
-    const sistema = makeSystem('Inventario', ['inventory']);
-    const inventario = fila(allBlocks(sistema));
-    upsertRow(inventario, { name: 'Yerba Playadito', quantity: 12 }, null, sistema);
+  it('acepta un producto con cantidad cero', () => {
+    dadoUnSistemaCon(PARA_VALIDAR);
 
-    const resultado = importRows(
-      inventario,
-      [
-        { name: ' yerba playadito ', quantity: 999 },
-        { name: 'Aceite Natura', quantity: 7 },
-      ],
-      sistema,
-      true,
-    );
+    cuandoSeValidaEn('inventory', { name: 'Yerba', quantity: 0 });
 
-    expect(resultado).toEqual({ added: 1, skipped: 1, errors: [] });
-    expect(fila(inventario.rows).quantity).toBe(12);
-    expect(fila(inventario.rows, 1).__source).toBe('Lectura simulada');
+    entoncesNoHayErrores();
   });
 
-  it('los totales y la serialización respetan los datos del sistema', () => {
-    const sistema = makeSystem('Prueba', ['inventory', 'orders', 'clients'], true);
+  it('pide a quién se le fía cuando una venta es fiada', () => {
+    dadoUnSistemaCon(['inventory', 'sales', 'clients'], true);
 
-    const resumen = totals(sistema);
+    cuandoSeVendeFiadoSinCliente();
 
-    expect(resumen.stock).toBe(72);
-    expect(resumen.pending).toBe(2);
-    expect(resumen.clients).toBe(3);
-    expect(resumen.income).toBe(48700);
-    expect(clone(sistema)).toEqual(sistema);
+    entoncesElErrorDe('customer', 'Elegí a quién le fiás.');
+  });
+});
+
+describe('motor: registros', () => {
+  it('un ejemplo editado deja de ser ejemplo', () => {
+    dadoUnSistemaCon(['inventory'], true);
+
+    cuandoSeRenombraElPrimerProducto();
+
+    entoncesElProductoEditadoYaNoEsEjemplo();
+  });
+
+  it('un producto nuevo sin precio queda con el precio vacío', () => {
+    dadoUnSistemaCon(['inventory'], true);
+
+    cuandoSeCargaUnProductoSinPrecio();
+
+    entoncesElPrecioQuedaVacio();
+  });
+
+  it('la carga revisada omite los repetidos sin pisar los datos', () => {
+    dadoUnInventarioConYerba(12);
+
+    cuandoSeImportanYerbaRepetidaYAceite();
+
+    entoncesSeAgregoUnaYSeOmitioLaRepetidaSinPisarla(12);
+  });
+
+  it('lo importado queda marcado como lectura', () => {
+    dadoUnInventarioConYerba(12);
+
+    cuandoSeImportanYerbaRepetidaYAceite();
+
+    entoncesLaFilaImportadaVieneDeLaLectura();
+  });
+});
+
+describe('motor: bloques', () => {
+  it('mover un bloque a otra pestaña conserva sus registros y vínculos', () => {
+    dadosClientesYPedidosDeEjemploYOtraPestana();
+
+    cuandoSeMuevenLosPedidosALaOtraPestana();
+
+    entoncesLosPedidosEstanEnLaOtraPestanaConSusDatos();
+  });
+
+  it('un bloque movido se puede volver a poner antes de otro', () => {
+    dadosClientesYPedidosDeEjemploYOtraPestana();
+
+    cuandoSeVuelvenAPonerLosPedidosAntesDeLosClientes();
+
+    entoncesLosPedidosQuedanPrimeros();
+  });
+
+  it('un bloque no se puede poner antes de sí mismo', () => {
+    dadosClientesYPedidosDeEjemploYOtraPestana();
+
+    cuandoSeIntentaPonerLosPedidosAntesDeSiMismos();
+
+    entoncesNoSeMovio();
+  });
+});
+
+describe('motor: totales y copias', () => {
+  it('los totales suman el stock, los pedidos pendientes, los clientes y los ingresos', () => {
+    dadoUnSistemaCon(['inventory', 'orders', 'clients'], true);
+
+    cuandoSeCalculanLosTotales();
+
+    entoncesLosTotalesSon({ stock: 72, pending: 2, clients: 3, income: 48700 });
+  });
+
+  it('una copia del sistema es igual al original', () => {
+    dadoUnSistemaCon(['inventory', 'orders', 'clients'], true);
+
+    cuandoSeCopiaElSistema();
+
+    entoncesLaCopiaEsIgualAlOriginal();
   });
 });

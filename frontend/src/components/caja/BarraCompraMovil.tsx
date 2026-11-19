@@ -25,7 +25,7 @@ export function BarraCompraMovil({
       <div className="caja-barra-total">
         <span role={pendiente ? 'status' : undefined}>
           {pendiente
-            ? 'Guardando inventario…'
+            ? 'Guardando stock…'
             : `${articulos} ${articulos === 1 ? 'artículo' : 'artículos'}`}
         </span>
         <strong>{dineroCaja(total)}</strong>

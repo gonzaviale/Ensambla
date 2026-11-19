@@ -778,24 +778,41 @@
 }
 .objetivos-tarjeta-avance {
   display: grid;
-  grid-template-columns: 1fr minmax(220px, 0.8fr);
-  gap: 26px;
-  align-items: end;
-  margin-top: 18px;
+  grid-template-columns: auto minmax(0, 520px);
+  align-items: center;
+  justify-content: start;
+  gap: 18px 40px;
+  margin-top: 14px;
 }
 .objetivos-avance-cifras {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 8px;
+  display: grid;
+  gap: 2px;
 }
 .objetivos-avance-cifras strong {
-  font-size: 30px;
   color: var(--petrol);
+  font-size: 34px;
+  line-height: 1.1;
 }
 .objetivos-avance-cifras span {
-  color: var(--muted);
-  font-size: 12px;
+  color: var(--petrol);
+  font-size: 13px;
+  font-weight: 700;
+}
+.objetivos-avance-meta {
+  display: grid;
+  gap: 6px;
+}
+.objetivos-avance-meta > p:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  color: var(--petrol);
+  font-size: 13px;
+  font-weight: 700;
+}
+.objetivos-avance-meta > p:first-child strong {
+  color: var(--orange);
 }
 .objetivos-progreso {
   height: 12px;
@@ -810,45 +827,8 @@
   background: var(--orange);
 }
 .objetivos-tendencia-texto {
-  margin-top: 10px;
-  color: var(--muted);
+  color: var(--petrol);
   font-size: 12px;
-}
-.objetivos-tendencia {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  height: 96px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--line);
-}
-.objetivos-tendencia figure {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  flex: 1;
-  height: 100%;
-  margin: 0;
-}
-.objetivos-tendencia i {
-  display: block;
-  min-height: 6px;
-  border-radius: 6px 6px 0 0;
-  background: var(--blue);
-}
-.objetivos-tendencia figure:last-child i {
-  background: var(--orange);
-}
-.objetivos-tendencia figcaption {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -19px;
-  color: var(--muted);
-  font-size: 9px;
-  text-align: center;
-  white-space: nowrap;
 }
 .objetivos-tarjeta-acciones {
   display: flex;
@@ -1172,7 +1152,7 @@
 }
 @media (max-width: 900px) {
   .objetivos-tarjeta-avance {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .objetivos-tarjeta > header {
     flex-direction: column;
@@ -1557,39 +1537,104 @@
 }
 
 /* Avance del objetivo: una franja, no un bloque */
-.objetivo-avance-franja {
+/* El avance hacia la meta, lo primero que se quiere ver: todo en una pieza, con hoy y meta en los extremos de la barra. */
+.objetivo-tablero {
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: 24px;
-  align-items: center;
+  grid-template-areas:
+    'hoy porcentaje meta'
+    'barra barra barra'
+    'falta falta falta';
+  gap: 8px 24px;
+  align-items: end;
   margin-top: 18px;
-  padding: 14px 20px;
-  border: 1px solid var(--line);
-  border-left: 5px solid var(--petrol);
-  border-radius: 16px;
-  background: var(--paper);
-  box-shadow: var(--shadow);
+  padding: 20px 28px 22px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow:
+    inset 8px 0 0 var(--petrol),
+    inset 0 0 0 1.5px color-mix(in srgb, var(--petrol) 22%, #fff);
 }
-.objetivo-avance-franja span {
-  display: block;
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: 700;
+.objetivo-tablero-extremo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
-.objetivo-avance-franja strong {
-  color: var(--petrol);
-  font-size: 24px;
+.objetivo-tablero-extremo.hoy {
+  grid-area: hoy;
+  padding-left: 6px;
 }
-.objetivo-avance-falta {
+.objetivo-tablero-extremo.meta {
+  grid-area: meta;
+  align-items: flex-end;
   text-align: right;
 }
-.objetivo-avance-falta strong {
+.objetivo-tablero-etiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--petrol);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.objetivo-tablero-extremo.meta .objetivo-tablero-etiqueta {
   color: var(--orange);
 }
-.objetivo-avance-barra p {
-  margin: 6px 0 0;
-  color: var(--ink);
-  font-size: 12px;
+.objetivo-tablero-extremo strong {
+  color: var(--petrol);
+  font-size: 34px;
+  line-height: 1.1;
+}
+.objetivo-tablero-extremo.meta strong {
+  color: var(--orange);
+}
+.objetivo-tablero-extremo small {
+  color: var(--petrol);
+  font-size: 14px;
+  font-weight: 700;
+}
+.objetivo-tablero-porcentaje {
+  grid-area: porcentaje;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  color: var(--petrol);
+  text-align: center;
+}
+.objetivo-tablero-porcentaje strong {
+  font-size: 34px;
+  line-height: 1;
+}
+.objetivo-tablero-porcentaje span {
+  font-size: 14px;
+  font-weight: 700;
+}
+.objetivo-tablero-barra {
+  grid-area: barra;
+  margin-top: 6px;
+}
+.objetivo-tablero .objetivos-progreso {
+  height: 22px;
+  border: 0;
+  background: var(--line);
+}
+.objetivo-tablero .objetivos-progreso i {
+  min-width: 22px;
+  background: var(--petrol);
+}
+.objetivo-tablero-falta {
+  grid-area: falta;
+  justify-self: center;
+  margin: 4px 0 0;
+  padding: 5px 18px;
+  border: 2px solid var(--orange);
+  border-radius: 99px;
+  color: var(--orange);
+  font-size: 17px;
+  font-weight: 800;
 }
 
 .resumen-listo {
@@ -1647,17 +1692,6 @@
   font-size: 17px;
   line-height: 1.25;
 }
-.mini-objetivo-numero {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--petrol);
-  color: white;
-  font-weight: 800;
-}
 .mini-objetivo-porque {
   margin: 0;
   color: var(--ink);
@@ -1694,13 +1728,13 @@
   font-size: 12px;
 }
 .mini-objetivo-medida .hoy strong {
-  color: var(--orange);
+  color: var(--petrol);
 }
 .mini-objetivo-medida .meta {
   text-align: right;
 }
 .mini-objetivo-medida .meta strong {
-  color: var(--petrol);
+  color: var(--orange);
 }
 .mini-objetivo-falta {
   margin: 8px 0 0;
@@ -2155,13 +2189,17 @@
   }
 }
 @media (max-width: 600px) {
-  .objetivo-avance-franja {
+  .objetivo-tablero {
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    grid-template-areas:
+      'hoy meta'
+      'porcentaje porcentaje'
+      'barra barra'
+      'falta falta';
+    padding: 16px 18px 18px 22px;
   }
-  .objetivo-avance-barra {
-    grid-column: 1 / -1;
-    grid-row: 2;
+  .objetivo-tablero-extremo strong {
+    font-size: 26px;
   }
   .mini-objetivos,
   .reajustes {
@@ -2279,10 +2317,639 @@
   color: var(--ink);
   font-size: 14px;
 }
-/* Cuánto suman los mini-objetivos frente a lo que falta para la meta. */
+/* Cuánto suman los mini-objetivos frente a lo que falta para la meta: una pieza con peso, no una línea suelta. */
 .mini-objetivos-cubren {
-  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 16px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow:
+    inset 6px 0 0 var(--orange),
+    inset 0 0 0 1.5px color-mix(in srgb, var(--petrol) 22%, #fff);
   color: var(--petrol);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+.mini-objetivos-cubren svg {
+  flex: none;
+  margin-left: 6px;
+  color: var(--orange);
+}
+
+/* «Por qué de este paso»: un botón que despliega la explicación. */
+.mini-objetivo-porque-boton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px 14px;
+  border: 1.5px solid var(--petrol);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--petrol);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.mini-objetivo-porque-boton:hover,
+.mini-objetivo-porque-boton:focus-visible {
+  border-color: var(--orange);
+}
+.mini-objetivo-porque-boton svg {
+  transition: transform 0.2s ease;
+}
+.mini-objetivo-porque-boton[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+.mini-objetivo-medida .mini-objetivo-porque {
+  margin: 10px 0 0;
+  font-size: 14px;
+}
+
+/* El avance hacia la meta, arriba del gráfico de semanas. */
+.grafico-semanal-avance {
+  margin-bottom: 10px;
+}
+.grafico-semanal-avance p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 0 0 6px;
+  color: var(--petrol);
+}
+.grafico-semanal-avance strong {
+  font-size: 26px;
+  line-height: 1.1;
+}
+.grafico-semanal-avance span {
   font-size: 14px;
   font-weight: 700;
+}
+
+/* --- Objetivos con Sami (H-60): conversación, mini-objetivos propuestos y cuota. Pensado para el celular primero. --- */
+.sami-conversar {
+  grid-template-columns: minmax(0, 1fr);
+}
+.sami-cuota {
+  display: grid;
+  gap: 4px;
+  width: fit-content;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.sami-cuota > span:first-child {
+  white-space: nowrap;
+}
+.sami-cuota svg {
+  display: inline-block;
+  color: var(--orange);
+  vertical-align: -2px;
+}
+.sami-cuota-barra {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: var(--line);
+}
+.sami-cuota-barra i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--orange);
+}
+.sami-cuota[data-agotada='true'] {
+  color: var(--ink);
+}
+.sami-chat.integrado {
+  position: static;
+  width: 100%;
+  height: auto;
+  box-shadow: none;
+  animation: none;
+  transition: none;
+}
+.sami-chat.integrado .sami-chat-cabeza {
+  cursor: default;
+}
+.sami-chat.integrado .sami-chat-mensajes {
+  flex: none;
+  max-height: 340px;
+  min-height: 90px;
+}
+.sami-hilo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sami-hilo .sami-chat-burbuja.sami {
+  width: auto;
+}
+/* El texto de una burbuja del chat flotante se oscurece con `.sami-chat-burbuja p`: la nuestra va sobre azul. */
+.sami-hilo .sami-chat-burbuja.yo p {
+  color: #fff;
+}
+.sami-chat-tope {
+  margin: 0;
+  padding: 10px 14px 14px;
+}
+.sami-chat.integrado .sami-chat-form textarea {
+  min-height: 38px;
+}
+.sami-tipo {
+  color: var(--petrol);
+  font-weight: 800;
+}
+.sami-datos {
+  color: var(--muted);
+  font-size: 13px;
+}
+.sami-aparte {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--yellow);
+  border-radius: 14px;
+  background: #fff;
+}
+.sami-aparte-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.sami-subtitulo {
+  margin-bottom: 8px;
+  font-size: 15px;
+  color: var(--petrol);
+}
+.sami-minis {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sami-mini {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--petrol);
+  border-radius: 14px;
+  background: #fff;
+}
+.sami-mini[data-modo='manual'] {
+  border-top-color: var(--orange);
+}
+.sami-mini-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sami-mini-cabecera .objetivos-textual {
+  margin-left: auto;
+}
+.sami-mini h4 {
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+.sami-mini-numeros {
+  color: var(--muted);
+  font-size: 13px;
+}
+.sami-mini-edicion {
+  display: grid;
+  gap: 10px;
+}
+.sami-mini-edicion .field {
+  margin-bottom: 0;
+}
+@media (max-width: 600px) {
+  .sami-hilo li {
+    max-width: 100%;
+  }
+  .sami-aparte-acciones .btn {
+    width: 100%;
+  }
+  .objetivos-formulario-acciones .btn {
+    flex: 1 1 100%;
+  }
+}
+
+/* --- Mini-objetivos manuales (H-60): respuestas rápidas, pendientes y resumen del domingo --- */
+.mini-manual[data-pendiente='true'] {
+  border-top-color: var(--petrol);
+}
+.respuesta-rapida {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 220px;
+  margin-top: auto;
+}
+.respuesta-pagina {
+  display: grid;
+  align-content: end;
+  gap: 10px;
+  flex: 1;
+}
+.respuesta-pie {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+}
+.respuesta-progreso {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+.respuesta-pie .btn {
+  margin-left: 0;
+}
+.respuesta-rapida fieldset {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.respuesta-rapida legend {
+  margin-bottom: 6px;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.respuesta-opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.respuesta-opciones button {
+  flex: 1 1 auto;
+  min-width: 88px;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.respuesta-opciones button[aria-pressed='true'] {
+  border-color: var(--petrol);
+  background: var(--petrol);
+  color: #fff;
+}
+.respuesta-opciones button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.respuesta-opciones button:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+.respuesta-rapida .field {
+  margin-bottom: 0;
+}
+
+.objetivos-pendientes {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.objetivos-pendientes h2 {
+  font-size: 18px;
+  color: var(--petrol);
+}
+.objetivos-pendientes-calma {
+  color: var(--muted);
+  font-size: 14px;
+}
+.objetivos-pregunta {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  max-width: 640px;
+}
+.objetivos-pregunta .mini-objetivo {
+  justify-self: stretch;
+  min-height: 420px;
+}
+.objetivos-paginador {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+.objetivos-paginador button {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--petrol);
+  cursor: pointer;
+}
+.objetivos-paginador button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.objetivos-paginador button:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.resumen-domingo {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--petrol);
+  border-radius: 14px;
+  background: #fff;
+}
+.resumen-domingo h3 {
+  font-size: 16px;
+  color: var(--petrol);
+}
+.resumen-domingo-columnas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 16px;
+}
+.resumen-domingo h4 {
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.resumen-domingo ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+.resumen-domingo li svg {
+  vertical-align: -3px;
+}
+.resumen-domingo [data-parte='cumplido'] li svg {
+  color: var(--color-ok);
+}
+.resumen-domingo [data-parte='nuevo'] li svg {
+  color: var(--orange);
+}
+.resumen-domingo-motivo {
+  color: var(--muted);
+}
+@media (max-width: 600px) {
+  .respuesta-opciones button {
+    flex: 1 1 calc(50% - 8px);
+  }
+  .respuesta-rapida .btn {
+    width: 100%;
+  }
+}
+
+/* --- Tarjetas de la semana: todas de la misma altura, con lo que se responde abajo, y el botón sin completar apagado --- */
+.mini-objetivos {
+  align-items: stretch;
+}
+.mini-manual .respuesta-rapida,
+.mini-manual .mini-objetivo-decidido {
+  margin-top: auto;
+}
+.mini-manual .mini-objetivo-decidido {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.mini-manual .btn.primary:disabled {
+  border-color: var(--line);
+  background: var(--line);
+  box-shadow: none;
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 1;
+}
+.respuesta-rapida textarea {
+  min-height: 64px;
+}
+
+/* --- Avance de un objetivo sin meta en pesos: una columna por semana cerrada, un cuadrado por acción --- */
+.avance-semanas {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+.avance-semanas figcaption {
+  color: var(--ink);
+  font-size: 15px;
+}
+.avance-semanas-columnas {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  list-style: none;
+}
+.avance-semanas-columna {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+.avance-semanas-pila {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 4px;
+}
+.avance-semanas-cuadrado {
+  display: inline-block;
+  width: 34px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--line);
+}
+.avance-semanas-cuadrado[data-hizo='SI'] {
+  background: var(--ok);
+}
+.avance-semanas-cuadrado[data-hizo='EN_PARTE'] {
+  background: var(--orange);
+}
+.avance-semanas-cuadrado[data-hizo='NO'] {
+  background: var(--line);
+}
+.avance-semanas-dia {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.avance-semanas-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  color: var(--ink);
+  font-size: 13px;
+  list-style: none;
+}
+.avance-semanas-leyenda .avance-semanas-cuadrado {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  vertical-align: -2px;
+}
+.avance-semanas-vacio {
+  margin: 0;
+  color: var(--ink);
+}
+.avance-semanas-fantasma {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  opacity: 0.55;
+}
+.avance-semanas-fantasma .avance-semanas-cuadrado {
+  background: transparent;
+  border: 2px dashed var(--line);
+}
+
+/* --- Cabecera de Objetivos: el botón de un desafío nuevo va donde antes estaba el cartel de Sami --- */
+.objetivos-nuevo-desafio {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+.objetivos-nuevo-desafio .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+}
+@media (max-width: 700px) {
+  .objetivos-encabezado {
+    flex-direction: column;
+  }
+  .objetivos-nuevo-desafio,
+  .objetivos-nuevo-desafio .btn {
+    width: 100%;
+    justify-items: stretch;
+  }
+}
+
+/* --- Tarjeta de un objetivo armado con Sami: tipo, mini-objetivos como filas y quién sigue cada uno --- */
+.objetivos-tarjeta.dinamico {
+  --acento: var(--orange);
+  border-top: 5px solid var(--acento);
+}
+.objetivos-tarjeta.dinamico[data-tipo='CON_DATOS'] {
+  --acento: var(--petrol);
+}
+.objetivos-tarjeta.dinamico[data-tipo='HIBRIDO'] {
+  --acento: var(--blue);
+}
+.objetivos-tipo {
+  flex: none;
+  padding: 4px 12px;
+  border: 1px solid color-mix(in srgb, var(--acento) 40%, var(--line));
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--acento) 10%, #fff);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.tarjeta-minis {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.tarjeta-mini {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+.tarjeta-mini-numero {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--acento);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+}
+.tarjeta-mini-texto {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.tarjeta-mini-texto p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.tarjeta-mini-texto .objetivos-progreso {
+  height: 8px;
+}
+.tarjeta-mini-modo {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .tarjeta-mini {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .tarjeta-mini-modo {
+    grid-column: 2;
+  }
+}
+/* Todos los títulos de Objetivos van en petróleo, nunca en negro. */
+.objetivos-page :is(h1, h2, h3, h4) {
+  color: var(--petrol);
 }

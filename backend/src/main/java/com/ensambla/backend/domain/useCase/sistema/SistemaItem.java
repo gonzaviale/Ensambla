@@ -197,7 +197,7 @@ public record SistemaItem(
     private static CampoItem campo(Campo campo) {
         boolean esOpcion = campo.getTipo() == TipoCampo.OPCION;
         return new CampoItem(
-                claveDe(campo),
+                campo.claveDePantalla(),
                 campo.getNombre(),
                 TipoDeCampoEnPantalla.claveDe(campo.getTipo()),
                 campo.esObligatorio(),
@@ -218,15 +218,10 @@ public record SistemaItem(
         for (Campo campo : campos) {
             String idDelCampo = campo.getId().toString();
             if (registro.getValores().containsKey(idDelCampo)) {
-                fila.put(claveDe(campo), registro.getValores().get(idDelCampo));
+                fila.put(campo.claveDePantalla(), registro.getValores().get(idDelCampo));
             }
         }
         return fila;
-    }
-
-    /** La clave que ve la pantalla; las columnas que no la traen (creadas por Sami o por una plantilla) usan su id. */
-    private static String claveDe(Campo campo) {
-        return campo.getClave() == null ? campo.getId().toString() : campo.getClave();
     }
 
     private static <T> String clave(Map<String, T> tabla, T valor) {

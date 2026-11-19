@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class IRecetaJpaRepositoryTest extends PostgresDatosTestSupport {
 
@@ -31,7 +31,7 @@ class IRecetaJpaRepositoryTest extends PostgresDatosTestSupport {
     private UUID harina;
 
     @BeforeEach
-    void setUp() {
+    void dadoUnBloqueConUnPanYUnaHarina() {
         negocioA = givenNegocio("a@example.com").getId();
         negocioB = givenNegocio("b@example.com").getId();
         bloqueA = givenBloque(NegocioId.de(negocioA), "Productos");
@@ -40,77 +40,81 @@ class IRecetaJpaRepositoryTest extends PostgresDatosTestSupport {
         harina = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), AHORA);
     }
 
+    private RecetaEntity releida;
+    private Throwable rechazo;
+
     @Test
     @DisplayName("Guarda las líneas como JSON con las cantidades como texto y las devuelve iguales")
-    void saveShouldRoundTripTheLines() {
-        recetas.saveAndFlush(receta(negocioA, pan, campoPrecio));
-        recetas.flush();
+    void guardaLasLineasComoJsonConLasCantidadesComoTextoYLasDevuelveIguales() {
+        dadoUnaRecetaDelPan();
 
-        RecetaEntity result = recetas.findByProductoIdAndNegocioId(pan, negocioA).orElseThrow();
+        cuandoSeReleeLaRecetaDelPan();
 
-        assertThat(result.getLineas()).singleElement().satisfies(linea -> {
-            assertThat(linea).containsEntry("insumoId", harina.toString());
-            assertThat(linea).containsEntry("cantidad", "0.125");
-        });
-        assertThat(result.getCampoPrecioId()).isEqualTo(campoPrecio);
+        entoncesLasLineasVuelvenIgualesConLasCantidadesComoTexto();
     }
 
     @Test
     @DisplayName("Un negocio ajeno no ve la receta del producto")
-    void findShouldRespectNegocio() {
-        recetas.saveAndFlush(receta(negocioA, pan, campoPrecio));
+    void unNegocioAjenoNoVeLaRecetaDelProducto() {
+        dadoUnaRecetaDelPan();
 
-        assertThat(recetas.findByProductoIdAndNegocioId(pan, negocioA)).isPresent();
-        assertThat(recetas.findByProductoIdAndNegocioId(pan, negocioB)).isEmpty();
+        entoncesSoloElNegocioDuenioVeLaReceta();
     }
 
     @Test
     @DisplayName("Un producto tiene una sola receta")
-    void shouldRejectASecondRecetaForTheSameProduct() {
-        recetas.saveAndFlush(receta(negocioA, pan, campoPrecio));
+    void unProductoTieneUnaSolaReceta() {
+        dadoUnaRecetaDelPan();
 
-        assertThatThrownBy(() -> recetas.saveAndFlush(receta(negocioA, pan, campoPrecio)))
-                .isInstanceOf(DataIntegrityViolationException.class);
+        cuandoSeIntentaGuardarOtraRecetaParaElMismoProducto();
+
+        entoncesLaBaseRechazaPorIntegridad();
     }
 
     @Test
     @DisplayName("No se guarda la receta de un producto de otro negocio")
-    void shouldRejectProductOfAnotherNegocio() {
-        assertThatThrownBy(() -> recetas.saveAndFlush(receta(negocioB, pan, campoPrecio)))
-                .isInstanceOf(DataIntegrityViolationException.class);
+    void noSeGuardaLaRecetaDeUnProductoDeOtroNegocio() {
+        cuandoSeIntentaGuardarLaRecetaDelPanConElNegocioB();
+
+        entoncesLaBaseRechazaPorIntegridad();
     }
 
     @Test
     @DisplayName("Borra la receta del producto filtrando por negocio")
-    void deleteShouldRespectNegocio() {
-        recetas.saveAndFlush(receta(negocioA, pan, campoPrecio));
+    void borraLaRecetaDelProductoFiltrandoPorNegocio() {
+        dadoUnaRecetaDelPan();
 
-        recetas.deleteByProductoIdAndNegocioId(pan, negocioB);
-        assertThat(recetas.findByProductoIdAndNegocioId(pan, negocioA)).isPresent();
+        cuandoSeBorraLaRecetaConElNegocioEquivocado();
+        entoncesLaRecetaSigueExistiendo();
 
-        recetas.deleteByProductoIdAndNegocioId(pan, negocioA);
-        recetas.flush();
-        assertThat(recetas.findByProductoIdAndNegocioId(pan, negocioA)).isEmpty();
+        cuandoSeBorraLaRecetaConSuNegocio();
+        entoncesLaRecetaYaNoExiste();
     }
 
     @Test
     @DisplayName("Al borrar el producto o la columna del precio se borra la receta")
-    void deletingTheProductOrThePriceColumnShouldDeleteTheReceta() {
-        recetas.saveAndFlush(receta(negocioA, pan, campoPrecio));
+    void alBorrarElProductoOLaColumnaDelPrecioSeBorraLaReceta() {
+        dadoUnaRecetaDelPan();
 
-        campos.deleteById(campoPrecio);
-        campos.flush();
-        recetas.flush();
-        assertThat(recetas.findByProductoIdAndNegocioId(pan, negocioA)).isEmpty();
+        cuandoSeBorraLaColumnaDelPrecio();
+        entoncesLaRecetaYaNoExiste();
 
-        UUID otroPrecio = givenCampo(NegocioId.de(negocioA), BloqueId.de(bloqueA), "Costo", TipoCampo.NUMERO, 1);
-        recetas.saveAndFlush(receta(negocioA, pan, otroPrecio));
-        registros.deleteById(pan);
-        registros.flush();
-        assertThat(recetas.findByProductoIdAndNegocioId(pan, negocioA)).isEmpty();
+        dadoUnaRecetaDelPanConOtraColumnaDePrecio();
+        cuandoSeBorraElProductoPan();
+        entoncesLaRecetaYaNoExiste();
     }
 
-    private RecetaEntity receta(UUID negocioId, UUID productoId, UUID campoPrecioId) {
+    // --- dado ---
+    private void dadoUnaRecetaDelPan() {
+        recetas.saveAndFlush(unaReceta(negocioA, pan, campoPrecio));
+    }
+
+    private void dadoUnaRecetaDelPanConOtraColumnaDePrecio() {
+        UUID otroPrecio = givenCampo(NegocioId.de(negocioA), BloqueId.de(bloqueA), "Costo", TipoCampo.NUMERO, 1);
+        recetas.saveAndFlush(unaReceta(negocioA, pan, otroPrecio));
+    }
+
+    private RecetaEntity unaReceta(UUID negocioId, UUID productoId, UUID campoPrecioId) {
         return RecetaEntity.builder()
                 .negocioId(negocioId)
                 .productoId(productoId)
@@ -119,5 +123,65 @@ class IRecetaJpaRepositoryTest extends PostgresDatosTestSupport {
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build();
+    }
+
+    // --- cuando ---
+    private void cuandoSeReleeLaRecetaDelPan() {
+        recetas.flush();
+        releida = recetas.findByProductoIdAndNegocioId(pan, negocioA).orElseThrow();
+    }
+
+    private void cuandoSeIntentaGuardarOtraRecetaParaElMismoProducto() {
+        rechazo = catchThrowable(() -> recetas.saveAndFlush(unaReceta(negocioA, pan, campoPrecio)));
+    }
+
+    private void cuandoSeIntentaGuardarLaRecetaDelPanConElNegocioB() {
+        rechazo = catchThrowable(() -> recetas.saveAndFlush(unaReceta(negocioB, pan, campoPrecio)));
+    }
+
+    private void cuandoSeBorraLaRecetaConElNegocioEquivocado() {
+        recetas.deleteByProductoIdAndNegocioId(pan, negocioB);
+    }
+
+    private void cuandoSeBorraLaRecetaConSuNegocio() {
+        recetas.deleteByProductoIdAndNegocioId(pan, negocioA);
+        recetas.flush();
+    }
+
+    private void cuandoSeBorraLaColumnaDelPrecio() {
+        campos.deleteById(campoPrecio);
+        campos.flush();
+        recetas.flush();
+    }
+
+    private void cuandoSeBorraElProductoPan() {
+        registros.deleteById(pan);
+        registros.flush();
+    }
+
+    // --- entonces ---
+    private void entoncesLasLineasVuelvenIgualesConLasCantidadesComoTexto() {
+        assertThat(releida.getLineas()).singleElement().satisfies(linea -> {
+            assertThat(linea).containsEntry("insumoId", harina.toString());
+            assertThat(linea).containsEntry("cantidad", "0.125");
+        });
+        assertThat(releida.getCampoPrecioId()).isEqualTo(campoPrecio);
+    }
+
+    private void entoncesSoloElNegocioDuenioVeLaReceta() {
+        assertThat(recetas.findByProductoIdAndNegocioId(pan, negocioA)).isPresent();
+        assertThat(recetas.findByProductoIdAndNegocioId(pan, negocioB)).isEmpty();
+    }
+
+    private void entoncesLaBaseRechazaPorIntegridad() {
+        assertThat(rechazo).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    private void entoncesLaRecetaSigueExistiendo() {
+        assertThat(recetas.findByProductoIdAndNegocioId(pan, negocioA)).isPresent();
+    }
+
+    private void entoncesLaRecetaYaNoExiste() {
+        assertThat(recetas.findByProductoIdAndNegocioId(pan, negocioA)).isEmpty();
     }
 }

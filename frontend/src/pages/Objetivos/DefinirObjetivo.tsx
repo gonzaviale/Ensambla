@@ -9,6 +9,8 @@ import { EJEMPLOS_DE_OBJETIVO, objetivoDesdeServidor, type Objetivo } from '@/li
 type Props = {
   onDefinido: (objetivo: Objetivo) => void;
   onCancelar?: () => void;
+  /** Lo que la persona ya había escrito (por ejemplo, a Sami) cuando llega a este formulario. */
+  textoInicial?: string;
 };
 
 const miles = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 });
@@ -21,10 +23,10 @@ function metaEscritaDe(valor: string): number | null {
 
 // «¿Qué querés lograr?»: la persona lo escribe con sus palabras, Sami le muestra qué entendió y la meta que va a
 // medir, y la persona la confirma o la corrige antes de guardar.
-export function DefinirObjetivo({ onDefinido, onCancelar }: Props) {
+export function DefinirObjetivo({ onDefinido, onCancelar, textoInicial = '' }: Props) {
   const definir = useDefinirObjetivo();
   const { negocio } = useComoVieneTuNegocio();
-  const [texto, setTexto] = useState('');
+  const [texto, setTexto] = useState(textoInicial);
   // null mientras la persona no tocó la meta: se usa la que entendió Sami.
   const [metaEscrita, setMetaEscrita] = useState<string | null>(null);
   const idCampo = useId();

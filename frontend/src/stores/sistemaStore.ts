@@ -1,9 +1,10 @@
 import { guardarNegocioActivo, leerNegocioGuardado, negocioActivoDe } from '@/lib/negocios/lista';
 import { recuperarBorradorSesion } from '@/lib/borradorSesion';
 import { create } from 'zustand';
+import type { AvisoEconomico } from '@/types/avisoEconomico';
 import type { AccesoContenido } from '@/types/contenidoPlan';
 import { clone } from '@/lib/sistema/core';
-import type { Aviso } from '@/lib/sistema/alertas';
+import type { AccionDeAviso, Aviso } from '@/lib/sistema/alertas';
 import type { VinculoPendiente } from '@/lib/sistema/acciones';
 import type { Bloque, ClavePlantilla, Seccion, Sistema } from '@/lib/sistema/tipos';
 import { TUTORIAL_INICIAL, type EstadoDelTutorial } from '@/lib/sistema/tutorial';
@@ -39,7 +40,15 @@ export type Modal =
   | { tipo: 'campo'; bloqueId: string; clave?: string | null }
   | { tipo: 'bienvenida' }
   /** Los productos detrás del aviso económico del inicio (pueden ser cientos). */
-  | { tipo: 'productosDelAviso'; productos: string[] }
+  | {
+      tipo: 'productosDelAviso';
+      cambios: AvisoEconomico['cambios'];
+      /** «Rentabilidad» (ganancia) o «Ventas»: de qué es el monto de cada producto. */
+      categoria: string;
+      titulo: string;
+    }
+  /** El porqué de un aviso: `onAccion` viene de la pantalla de avisos, que sigue montada mientras la acción termina. */
+  | { tipo: 'detalleDeAviso'; avisoId: string; onAccion: (accion: AccionDeAviso) => void }
   /** Con `enBorrador` trabajan sobre la propuesta de Sami en vez de sobre la sección abierta. */
   | { tipo: 'secciones'; enBorrador?: boolean }
   | { tipo: 'agregarSeccion'; enBorrador?: boolean }
@@ -225,32 +234,159 @@ const ESTADO_INICIAL: EstadoDelStore = {
 let contadorDeAvisos = 0;
 let contadorDeTalleres = 0;
 
+type BorradorDeSesion = NonNullable<ReturnType<typeof recuperarBorradorSesion>>;
+
+const EDITOR_CERRADO: Partial<EstadoDelStore> = {
+  activeId: null,
+  sectionId: null,
+  selectedId: null,
+  tablaCompletaId: null,
+  historial: [],
+};
+
 const sinRepetir = (ids: string[], id: string) => (ids.includes(id) ? ids : [...ids, id]);
+
+const ahora = () => new Date().toISOString();
+
+const conElSistema = (sistemas: Sistema[], nuevo: Sistema) =>
+  sistemas.map((item) => (item.id === nuevo.id ? nuevo : item));
+
+/** Lo que había sin guardar en la sesión anterior pisa lo que trae el servidor de esos sistemas. */
+const sistemasRecuperados = (sistemas: Sistema[], borrador: BorradorDeSesion | null) =>
+  borrador
+    ? [
+        ...sistemas.filter(
+          (sistema) =>
+            !borrador.pendientes.includes(sistema.id) && !borrador.eliminados.includes(sistema.id),
+        ),
+        ...borrador.sistemas,
+      ]
+    : sistemas;
+
+function estadoDeLaPersona(usuarioId: string, sistemas: Sistema[]): EstadoDelStore {
+  const borrador = recuperarBorradorSesion(usuarioId);
+  const recuperados = sistemasRecuperados(sistemas, borrador);
+  return {
+    ...ESTADO_INICIAL,
+    usuarioId,
+    sistemas: recuperados,
+    negocioActivoId: negocioActivoDe(recuperados, leerNegocioGuardado())?.id ?? null,
+    pendientes: borrador?.pendientes ?? [],
+    eliminados: borrador?.eliminados ?? [],
+  };
+}
+
+const sistemasQueFaltan = (estado: EstadoDelStore, sistemas: Sistema[]) =>
+  sistemas.filter(
+    (sistema) =>
+      !estado.eliminados.includes(sistema.id) &&
+      !estado.sistemas.some((actual) => actual.id === sistema.id),
+  );
+
+const tieneCambiosSinGuardar = (estado: EstadoDelStore, id: string) =>
+  estado.pendientes.includes(id) || estado.eliminados.includes(id);
+
+function versionVigente(estado: EstadoDelStore, actual: Sistema, delServidor: Sistema | undefined) {
+  if (!delServidor || tieneCambiosSinGuardar(estado, actual.id)) return actual;
+  return JSON.stringify(delServidor) === JSON.stringify(actual) ? actual : delServidor;
+}
+
+// Trae lo que el servidor tiene de más (por ejemplo, filas que Sami cargó por WhatsApp): reemplaza los sistemas
+// que esta pestaña no cambió y suma los que no tenía. Nunca pisa un sistema con cambios sin guardar.
+function conLoDelServidor(estado: EstadoDelStore, sistemas: Sistema[]) {
+  const delServidor = new Map(sistemas.map((sistema) => [sistema.id, sistema]));
+  const actualizados = estado.sistemas.map((actual) =>
+    versionVigente(estado, actual, delServidor.get(actual.id)),
+  );
+  const nuevos = sistemasQueFaltan(estado, sistemas);
+  const cambio = actualizados.some((sistema, indice) => sistema !== estado.sistemas[indice]);
+  return cambio || nuevos.length > 0 ? { sistemas: [...actualizados, ...nuevos] } : estado;
+}
+
+const otroSistemaQue = (estado: EstadoDelStore, id: string) =>
+  estado.sistemas.find((item) => item.id !== id)?.id ?? null;
+
+const sinElSistema = (
+  estado: EstadoDelStore,
+  id: string,
+  siguiente: string | null,
+): Partial<EstadoDelStore> => ({
+  sistemas: estado.sistemas.filter((item) => item.id !== id),
+  pendientes: estado.pendientes.filter((pendiente) => pendiente !== id),
+  eliminados: sinRepetir(estado.eliminados, id),
+  ...(estado.negocioActivoId === id ? { negocioActivoId: siguiente } : {}),
+  ...(estado.activeId === id ? EDITOR_CERRADO : {}),
+});
+
+function trasElCambio(estado: EstadoDelStore, antes: Sistema, despues: Sistema) {
+  despues.updatedAt = ahora();
+  return {
+    sistemas: conElSistema(estado.sistemas, despues),
+    historial: [...estado.historial, antes].slice(-MAX_HISTORIAL),
+    pendientes: sinRepetir(estado.pendientes, despues.id),
+  };
+}
+
+function conElSistemaCambiado(
+  estado: EstadoDelStore,
+  id: string,
+  cambio: (sistema: Sistema) => void,
+) {
+  const actual = estado.sistemas.find((item) => item.id === id);
+  if (!actual) return estado;
+  const despues = clone(actual);
+  cambio(despues);
+  despues.updatedAt = ahora();
+  return {
+    sistemas: conElSistema(estado.sistemas, despues),
+    pendientes: sinRepetir(estado.pendientes, id),
+  };
+}
+
+// Si la pestaña elegida ya no existe en la copia anterior, se vuelve a la primera.
+const seccionQueSigue = (anterior: Sistema, seccionId: string | null) =>
+  anterior.sections.some((seccion) => seccion.id === seccionId)
+    ? seccionId
+    : (anterior.sections[0]?.id ?? null);
+
+const alVolverA = (estado: EstadoDelStore, anterior: Sistema): Partial<EstadoDelStore> => ({
+  sistemas: conElSistema(estado.sistemas, anterior),
+  historial: estado.historial.slice(0, -1),
+  pendientes: sinRepetir(estado.pendientes, anterior.id),
+  sectionId: seccionQueSigue(anterior, estado.sectionId),
+  selectedId: null,
+});
+
+const tallerNuevo = (saludo: string, sistema?: Sistema): Taller => ({
+  id: ++contadorDeTalleres,
+  nombre: sistema?.name ?? '',
+  entrada: '',
+  foto: null,
+  borrador: sistema ? clone(sistema) : null,
+  seccionId: sistema?.sections[0]?.id ?? null,
+  pensando: false,
+  mensajes: [{ quien: 'sami', texto: saludo }],
+  dudas: [],
+  respuestasDeDudas: [],
+  anterior: null,
+  vinculosPendientes: [],
+  sistemaId: sistema?.id ?? null,
+  enviarAlAbrir: null,
+});
+
+function conElBorradorCambiado(estado: EstadoDelStore, cambio: (borrador: Sistema) => void) {
+  const borrador = estado.taller?.borrador;
+  if (!estado.taller || !borrador) return estado;
+  const copia = clone(borrador);
+  cambio(copia);
+  return { taller: { ...estado.taller, borrador: copia } };
+}
 
 export const useSistemaStore = create<SistemaStore>()((set, get) => ({
   ...ESTADO_INICIAL,
 
   hidratar: (usuarioId, sistemas) => {
-    if (get().usuarioId === usuarioId) return;
-    const borrador = recuperarBorradorSesion(usuarioId);
-    const recuperados = borrador
-      ? [
-          ...sistemas.filter(
-            (sistema) =>
-              !borrador.pendientes.includes(sistema.id) &&
-              !borrador.eliminados.includes(sistema.id),
-          ),
-          ...borrador.sistemas,
-        ]
-      : sistemas;
-    set({
-      ...ESTADO_INICIAL,
-      usuarioId,
-      sistemas: recuperados,
-      negocioActivoId: negocioActivoDe(recuperados, leerNegocioGuardado())?.id ?? null,
-      pendientes: borrador?.pendientes ?? [],
-      eliminados: borrador?.eliminados ?? [],
-    });
+    if (get().usuarioId !== usuarioId) set(estadoDeLaPersona(usuarioId, sistemas));
   },
 
   reiniciar: () => set({ ...ESTADO_INICIAL }),
@@ -263,15 +399,8 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
 
   abrirSistema: (id, modo = 'use', esNuevo = false) => {
     const sistema = get().sistemas.find((item) => item.id === id);
-    set({
-      activeId: id,
-      sectionId: sistema?.sections[0]?.id ?? null,
-      selectedId: null,
-      tablaCompletaId: null,
-      modo,
-      historial: [],
-      listo: esNuevo,
-    });
+    const sectionId = sistema?.sections[0]?.id ?? null;
+    set({ ...EDITOR_CERRADO, activeId: id, sectionId, modo, listo: esNuevo });
   },
 
   // Un cuaderno nuevo es un negocio nuevo: se pasa a trabajar con él.
@@ -286,103 +415,35 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
 
   incorporarSistemas: (sistemas) =>
     set((estado) => {
-      const nuevos = sistemas.filter(
-        (sistema) =>
-          !estado.eliminados.includes(sistema.id) &&
-          !estado.sistemas.some((actual) => actual.id === sistema.id),
-      );
+      const nuevos = sistemasQueFaltan(estado, sistemas);
       return nuevos.length > 0 ? { sistemas: [...estado.sistemas, ...nuevos] } : estado;
     }),
 
-  // Trae lo que el servidor tiene de más (por ejemplo, filas que Sami cargó por WhatsApp): reemplaza los sistemas
-  // que esta pestaña no cambió y suma los que no tenía. Nunca pisa un sistema con cambios sin guardar.
-  actualizarDesdeServidor: (sistemas) =>
-    set((estado) => {
-      const delServidor = new Map(sistemas.map((sistema) => [sistema.id, sistema]));
-      let cambio = false;
-      const actualizados = estado.sistemas.map((actual) => {
-        const nuevo = delServidor.get(actual.id);
-        if (
-          !nuevo ||
-          estado.pendientes.includes(actual.id) ||
-          estado.eliminados.includes(actual.id)
-        )
-          return actual;
-        if (JSON.stringify(nuevo) === JSON.stringify(actual)) return actual;
-        cambio = true;
-        return nuevo;
-      });
-      const nuevos = sistemas.filter(
-        (sistema) =>
-          !estado.eliminados.includes(sistema.id) &&
-          !estado.sistemas.some((actual) => actual.id === sistema.id),
-      );
-      return cambio || nuevos.length > 0 ? { sistemas: [...actualizados, ...nuevos] } : estado;
-    }),
+  actualizarDesdeServidor: (sistemas) => set((estado) => conLoDelServidor(estado, sistemas)),
 
   eliminarSistema: (id) => {
-    const siguiente = get().sistemas.find((item) => item.id !== id)?.id ?? null;
+    const siguiente = otroSistemaQue(get(), id);
     if (get().negocioActivoId === id && siguiente) guardarNegocioActivo(siguiente);
-    set((estado) => ({
-      sistemas: estado.sistemas.filter((item) => item.id !== id),
-      pendientes: estado.pendientes.filter((pendiente) => pendiente !== id),
-      eliminados: sinRepetir(estado.eliminados, id),
-      ...(estado.negocioActivoId === id ? { negocioActivoId: siguiente } : {}),
-      ...(estado.activeId === id
-        ? {
-            activeId: null,
-            sectionId: null,
-            selectedId: null,
-            tablaCompletaId: null,
-            historial: [],
-          }
-        : {}),
-    }));
+    set((estado) => sinElSistema(estado, id, siguiente));
   },
 
   commit: (cambio) => {
-    const { activeId, sistemas, historial, pendientes } = get();
-    const actual = sistemas.find((item) => item.id === activeId);
+    const estado = get();
+    const actual = estado.sistemas.find((item) => item.id === estado.activeId);
     if (!actual) return undefined;
     const antes = clone(actual);
     const despues = clone(actual);
     const resultado = cambio(despues);
-    despues.updatedAt = new Date().toISOString();
-    set({
-      sistemas: sistemas.map((item) => (item.id === despues.id ? despues : item)),
-      historial: [...historial, antes].slice(-MAX_HISTORIAL),
-      pendientes: sinRepetir(pendientes, despues.id),
-    });
+    set(trasElCambio(estado, antes, despues));
     return resultado;
   },
 
-  actualizarSistema: (id, cambio) =>
-    set((estado) => {
-      const actual = estado.sistemas.find((item) => item.id === id);
-      if (!actual) return estado;
-      const despues = clone(actual);
-      cambio(despues);
-      despues.updatedAt = new Date().toISOString();
-      return {
-        sistemas: estado.sistemas.map((item) => (item.id === id ? despues : item)),
-        pendientes: sinRepetir(estado.pendientes, id),
-      };
-    }),
+  actualizarSistema: (id, cambio) => set((estado) => conElSistemaCambiado(estado, id, cambio)),
 
   deshacer: () => {
-    const { historial, sistemas, pendientes, sectionId } = get();
-    const anterior = historial.at(-1);
+    const anterior = get().historial.at(-1);
     if (!anterior) return false;
-    set({
-      sistemas: sistemas.map((item) => (item.id === anterior.id ? anterior : item)),
-      historial: historial.slice(0, -1),
-      pendientes: sinRepetir(pendientes, anterior.id),
-      // Si la pestaña elegida ya no existe en la copia anterior, se vuelve a la primera.
-      sectionId: anterior.sections.some((seccion) => seccion.id === sectionId)
-        ? sectionId
-        : (anterior.sections[0]?.id ?? null),
-      selectedId: null,
-    });
+    set(alVolverA(get(), anterior));
     return true;
   },
 
@@ -403,25 +464,7 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
   abrirModal: (modal) => set({ modal }),
   cerrarModal: () => set({ modal: null }),
 
-  iniciarTaller: (saludo, sistema) =>
-    set({
-      taller: {
-        id: ++contadorDeTalleres,
-        nombre: sistema?.name ?? '',
-        entrada: '',
-        foto: null,
-        borrador: sistema ? clone(sistema) : null,
-        seccionId: sistema?.sections[0]?.id ?? null,
-        pensando: false,
-        mensajes: [{ quien: 'sami', texto: saludo }],
-        dudas: [],
-        respuestasDeDudas: [],
-        anterior: null,
-        vinculosPendientes: [],
-        sistemaId: sistema?.id ?? null,
-        enviarAlAbrir: null,
-      },
-    }),
+  iniciarTaller: (saludo, sistema) => set({ taller: tallerNuevo(saludo, sistema) }),
 
   actualizarTaller: (cambio) =>
     set((estado) => {
@@ -443,14 +486,7 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
     set((estado) => ({ ocultosDeCampana: sinRepetir(estado.ocultosDeCampana, id) })),
   ponerTutorial: (cambio) => set((estado) => ({ tutorial: { ...estado.tutorial, ...cambio } })),
 
-  editarBorrador: (cambio) =>
-    set((estado) => {
-      const borrador = estado.taller?.borrador;
-      if (!estado.taller || !borrador) return estado;
-      const copia = clone(borrador);
-      cambio(copia);
-      return { taller: { ...estado.taller, borrador: copia } };
-    }),
+  editarBorrador: (cambio) => set((estado) => conElBorradorCambiado(estado, cambio)),
 }));
 
 /* Lectores: lo que el mockup calculaba con system(), section() y block(). */

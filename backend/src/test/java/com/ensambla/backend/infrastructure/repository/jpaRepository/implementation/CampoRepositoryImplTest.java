@@ -35,74 +35,91 @@ class CampoRepositoryImplTest {
     private CampoRepositoryImpl campoRepositoryImpl;
 
     @BeforeEach
-    void setUp() {
+    void dadoUnRepositorioDeCampos() {
         campoRepositoryImpl = new CampoRepositoryImpl(campoJpa, new CampoRepositoryMapper());
     }
 
+    private Optional<Campo> encontrado;
+    private Campo guardado;
+    private List<Campo> relaciones;
+    private ArgumentCaptor<CampoEntity> entidadGuardada;
+
     @Test
     @DisplayName("El campo se busca por id dentro del negocio y se mapea")
-    void findByIdAndNegocioIdShouldMapResult() {
+    void elCampoSeBuscaPorIdDentroDelNegocioYSeMapea() {
+        dadoQueExisteElCampoPrecio();
+
+        cuandoSeBuscaElCampoPorId();
+
+        entoncesSeEncuentraElCampoPrecio();
+    }
+
+    @Test
+    @DisplayName("Un campo de otro negocio o inexistente vuelve vacío")
+    void unCampoDeOtroNegocioOInexistenteVuelveVacio() {
+        dadoQueElCampoNoExiste();
+
+        cuandoSeBuscaElCampoPorId();
+
+        entoncesNoSeEncuentraNingunCampo();
+    }
+
+    @Test
+    @DisplayName("Guardar un campo persiste la entidad completa y devuelve lo que guardó la base")
+    void guardarUnCampoPersisteLaEntidadCompletaYDevuelveLoQueGuardoLaBase() {
+        dadoQueGuardarDevuelveElCampoTalle();
+
+        cuandoSeGuardaUnCampoNuevo();
+
+        entoncesSeDevuelveElCampoGuardadoYSePersistioLaEntidadCompleta();
+    }
+
+    @Test
+    @DisplayName("Las conexiones hacia un bloque se buscan dentro del negocio y se mapean")
+    void lasConexionesHaciaUnBloqueSeBuscanDentroDelNegocioYSeMapean() {
+        dadoQueUnCampoClienteApuntaAlBloque();
+
+        cuandoSeBuscanLasConexionesHaciaElBloque();
+
+        entoncesSeMapeaLaConexionDeCliente();
+    }
+
+    @Test
+    @DisplayName("Eliminar un campo delega el borrado con el filtro de negocio")
+    void eliminarUnCampoDelegaElBorradoConElFiltroDeNegocio() {
+        cuandoSeEliminaElCampo();
+
+        entoncesSeDelegoElBorradoConElFiltroDeNegocio();
+    }
+
+    // --- dado ---
+    private void dadoQueExisteElCampoPrecio() {
         when(campoJpa.findByIdAndNegocioId(CAMPO_ID.valor(), NEGOCIO_ID.valor()))
                 .thenReturn(Optional.of(CampoEntity.builder()
                         .id(CAMPO_ID.valor())
                         .nombre("Precio")
                         .tipo(TipoCampo.TEXTO)
                         .build()));
-
-        Optional<Campo> result = campoRepositoryImpl.findByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID);
-
-        assertThat(result).map(Campo::getNombre).contains("Precio");
     }
 
-    @Test
-    @DisplayName("Un campo de otro negocio o inexistente vuelve vacío")
-    void findByIdAndNegocioIdShouldReturnEmptyWhenMissing() {
+    private void dadoQueElCampoNoExiste() {
         when(campoJpa.findByIdAndNegocioId(CAMPO_ID.valor(), NEGOCIO_ID.valor())).thenReturn(Optional.empty());
-
-        Optional<Campo> result = campoRepositoryImpl.findByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID);
-
-        assertThat(result).isEmpty();
     }
 
-    @Test
-    @DisplayName("Guardar un campo persiste la entidad completa y devuelve lo que guardó la base")
-    void saveShouldPersistAndMapSavedEntity() {
-        ArgumentCaptor<CampoEntity> guardada = ArgumentCaptor.forClass(CampoEntity.class);
-        when(campoJpa.save(guardada.capture()))
+    private void dadoQueGuardarDevuelveElCampoTalle() {
+        entidadGuardada = ArgumentCaptor.forClass(CampoEntity.class);
+        when(campoJpa.save(entidadGuardada.capture()))
                 .thenReturn(CampoEntity.builder().id(CAMPO_ID.valor()).nombre("Talle").tipo(TipoCampo.OPCION).build());
-
-        Campo result = campoRepositoryImpl.save(givenCampoNuevo());
-
-        assertThat(result.getId()).isEqualTo(CAMPO_ID);
-        assertThat(result.getTipo()).isEqualTo(TipoCampo.OPCION);
-        assertThat(guardada.getValue().getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
-        assertThat(guardada.getValue().getOpciones()).containsExactly("Chico", "Grande");
     }
 
-    @Test
-    @DisplayName("Las conexiones hacia un bloque se buscan dentro del negocio y se mapean")
-    void findRelacionesHaciaShouldMapResult() {
+    private void dadoQueUnCampoClienteApuntaAlBloque() {
         when(campoJpa.findRelacionesHacia(BLOQUE_ID.valor(), NEGOCIO_ID.valor()))
                 .thenReturn(List.of(CampoEntity.builder().id(CAMPO_ID.valor()).nombre("Cliente")
-                .tipo(TipoCampo.RELACION)
+                        .tipo(TipoCampo.RELACION)
                         .bloqueRelacionadoId(BLOQUE_ID.valor()).build()));
-
-        List<Campo> result = campoRepositoryImpl.findRelacionesHacia(BLOQUE_ID, NEGOCIO_ID);
-
-        assertThat(result).extracting(Campo::getNombre).containsExactly("Cliente");
-        assertThat(result).extracting(Campo::getBloqueRelacionadoId).containsExactly(BLOQUE_ID);
     }
 
-    @Test
-    @DisplayName("Eliminar un campo delega el borrado con el filtro de negocio")
-    void deleteByIdAndNegocioIdShouldDelegate() {
-        campoRepositoryImpl.deleteByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID);
-
-        verify(campoJpa).deleteByIdAndNegocioId(CAMPO_ID.valor(), NEGOCIO_ID.valor());
-    }
-
-    // --- helpers ---
-    private Campo givenCampoNuevo() {
+    private Campo unCampoNuevo() {
         return Campo.builder()
                 .negocioId(NEGOCIO_ID)
                 .bloqueId(BLOQUE_ID)
@@ -110,5 +127,47 @@ class CampoRepositoryImplTest {
                 .tipo(TipoCampo.OPCION)
                 .opciones(List.of("Chico", "Grande"))
                 .build();
+    }
+
+    // --- cuando ---
+    private void cuandoSeBuscaElCampoPorId() {
+        encontrado = campoRepositoryImpl.findByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID);
+    }
+
+    private void cuandoSeGuardaUnCampoNuevo() {
+        guardado = campoRepositoryImpl.save(unCampoNuevo());
+    }
+
+    private void cuandoSeBuscanLasConexionesHaciaElBloque() {
+        relaciones = campoRepositoryImpl.findRelacionesHacia(BLOQUE_ID, NEGOCIO_ID);
+    }
+
+    private void cuandoSeEliminaElCampo() {
+        campoRepositoryImpl.deleteByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID);
+    }
+
+    // --- entonces ---
+    private void entoncesSeEncuentraElCampoPrecio() {
+        assertThat(encontrado).map(Campo::getNombre).contains("Precio");
+    }
+
+    private void entoncesNoSeEncuentraNingunCampo() {
+        assertThat(encontrado).isEmpty();
+    }
+
+    private void entoncesSeDevuelveElCampoGuardadoYSePersistioLaEntidadCompleta() {
+        assertThat(guardado.getId()).isEqualTo(CAMPO_ID);
+        assertThat(guardado.getTipo()).isEqualTo(TipoCampo.OPCION);
+        assertThat(entidadGuardada.getValue().getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
+        assertThat(entidadGuardada.getValue().getOpciones()).containsExactly("Chico", "Grande");
+    }
+
+    private void entoncesSeMapeaLaConexionDeCliente() {
+        assertThat(relaciones).extracting(Campo::getNombre).containsExactly("Cliente");
+        assertThat(relaciones).extracting(Campo::getBloqueRelacionadoId).containsExactly(BLOQUE_ID);
+    }
+
+    private void entoncesSeDelegoElBorradoConElFiltroDeNegocio() {
+        verify(campoJpa).deleteByIdAndNegocioId(CAMPO_ID.valor(), NEGOCIO_ID.valor());
     }
 }

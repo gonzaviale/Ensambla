@@ -1,40 +1,48 @@
-import { describe, expect, it } from 'vitest';
-import { analizar } from '@/lib/sistema/alertas';
-import { crearAlmacenCargado } from '@/lib/sistema/demo';
-import { allBlocks } from '@/lib/sistema/core';
-import { zonaDeLaPersona } from '@/mocks/db/zona';
+import { describe, it } from 'vitest';
+import {
+  cuandoSeAnalizaElAlmacenCargado,
+  cuandoSeArmaElAlmacenCargado,
+  entoncesHayAlMenosAvisos,
+  entoncesHayAvisosDeLosTipos,
+  entoncesLasVentasApuntanAProductosQueExisten,
+  entoncesTieneAlMenos,
+} from '@/test/almacenesDeDemo';
 
-const HOY = '2026-10-31';
+const CANTIDADES = [
+  { tipo: 'inventory', nombre: 'productos', cantidad: 25 },
+  { tipo: 'sales', nombre: 'ventas', cantidad: 501 },
+  { tipo: 'clients', nombre: 'clientes', cantidad: 10 },
+] as const;
 
-describe('crearAlmacenCargado', () => {
-  const sistema = crearAlmacenCargado(HOY);
-  const bloque = (tipo: string) => allBlocks(sistema).find((item) => item.type === tipo);
+describe('el almacén cargado de la demo', () => {
+  it.each(CANTIDADES)('trae al menos $cantidad $nombre', ({ tipo, cantidad }) => {
+    cuandoSeArmaElAlmacenCargado();
 
-  it('trae muchos productos, ventas y clientes', () => {
-    expect(bloque('inventory')?.rows.length).toBeGreaterThanOrEqual(25);
-    expect(bloque('sales')?.rows.length).toBeGreaterThan(500);
-    expect(bloque('clients')?.rows.length).toBeGreaterThanOrEqual(10);
+    entoncesTieneAlMenos(tipo, cantidad);
   });
 
   it('las ventas apuntan a productos que existen', () => {
-    const productos = new Set(bloque('inventory')?.rows.map((fila) => fila.id));
-    expect(bloque('sales')?.rows.every((venta) => productos.has(String(venta.product)))).toBe(true);
+    cuandoSeArmaElAlmacenCargado();
+
+    entoncesLasVentasApuntanAProductosQueExisten();
+  });
+
+  it('genera muchos avisos', () => {
+    cuandoSeAnalizaElAlmacenCargado();
+
+    entoncesHayAlMenosAvisos(12);
   });
 
   it('genera avisos de todos los tipos', () => {
-    const avisos = analizar({ sistemas: [sistema], zona: zonaDeLaPersona(), hoy: HOY });
-    const tipos = new Set(avisos.map((aviso) => aviso.tipo));
+    cuandoSeAnalizaElAlmacenCargado();
 
-    expect(avisos.length).toBeGreaterThanOrEqual(12);
-    for (const tipo of [
+    entoncesHayAvisosDeLosTipos([
       'stock',
       'estancado',
       'precio_zona',
       'muy_vendido',
       'combo',
       'consumo_zona',
-    ]) {
-      expect(tipos).toContain(tipo);
-    }
+    ]);
   });
 });

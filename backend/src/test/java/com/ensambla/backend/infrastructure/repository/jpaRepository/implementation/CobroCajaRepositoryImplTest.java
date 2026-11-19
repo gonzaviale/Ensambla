@@ -33,17 +33,130 @@ class CobroCajaRepositoryImplTest {
     private final CobroCaja cobro = CobroCajaTestData.cobro();
 
     @BeforeEach
-    void setUp() {
+    void dadoUnRepositorioDeCobros() {
         repositorio = new CobroCajaRepositoryImpl(jpa, mapper);
     }
 
+    private CobroCaja guardado;
+    private Optional<CobroCaja> encontrado;
+    private List<CobroCaja> cobros;
+
     @Test
     @DisplayName("Guarda el cobro inmutable con ids, fecha y todas sus aplicaciones")
-    void saveShouldMapCollection() {
+    void guardaElCobroInmutableConIdsFechaYTodasSusAplicaciones() {
+        dadoQueGuardarDevuelveLaEntidadRecibida();
+
+        cuandoSeGuardaElCobro();
+
+        entoncesSeGuardaLaEntidadConIdsFechaYDatosDelCobro();
+    }
+
+    @Test
+    @DisplayName("Busca cobros sólo dentro del negocio autenticado")
+    void buscaCobrosSoloDentroDelNegocioAutenticado() {
+        when(jpa.findByIdAndNegocioId(cobro.id().valor(), cobro.negocioId().valor()))
+                .thenReturn(Optional.of(mapper.toEntity(cobro)));
+
+        cuandoSeBuscaElCobroPorId();
+
+        entoncesSeEncuentraElCobro();
+    }
+
+    @Test
+    @DisplayName("Lista todos los pagos del inventario en su orden persistido")
+    void listaTodosLosPagosDelInventarioEnSuOrdenPersistido() {
+        when(jpa.findByNegocioIdAndProyectoIdAndInventarioIdOrderByCreadoEnAscIdAsc(cobro.negocioId().valor(),
+                cobro.proyectoId().valor(), cobro.inventarioId().valor())).thenReturn(List.of(mapper.toEntity(cobro)));
+
+        cuandoSeListanTodosLosCobrosDelInventario();
+
+        entoncesSeListaElCobro();
+    }
+
+    @Test
+    @DisplayName("El resumen del proyecto incluye sus cobros de cualquier inventario y cierre")
+    void elResumenDelProyectoIncluyeSusCobrosDeCualquierInventarioYCierre() {
+        when(jpa.findByNegocioIdAndProyectoIdOrderByCreadoEnAscIdAsc(cobro.negocioId().valor(),
+                cobro.proyectoId().valor())).thenReturn(List.of(mapper.toEntity(cobro)));
+
+        cuandoSeListanLosCobrosDelProyecto();
+
+        entoncesSeListaElCobro();
+    }
+
+    @Test
+    @DisplayName("Lista sólo los cobros que todavía no tienen cierre")
+    void listaSoloLosCobrosQueTodaviaNoTienenCierre() {
+        when(jpa.findByNegocioIdAndProyectoIdAndInventarioIdAndCierreIdIsNullOrderByCreadoEnAscIdAsc(
+                cobro.negocioId().valor(), cobro.proyectoId().valor(), cobro.inventarioId().valor()))
+                .thenReturn(List.of(mapper.toEntity(cobro)));
+
+        cuandoSeListanLosCobrosAbiertos();
+
+        entoncesSeListaElCobro();
+    }
+
+    @Test
+    @DisplayName("El rango de fechas usa un inicio incluido y un fin excluido")
+    void elRangoDeFechasUsaUnInicioIncluidoYUnFinExcluido() {
+        dadoQueElRangoDeUnDiaTieneUnCobro();
+
+        cuandoSeListanLosCobrosEntreHoyYManiana();
+
+        entoncesSeListaElCobro();
+    }
+
+    @Test
+    @DisplayName("El cierre vincula los ids del cobro sin alterar sus datos")
+    void elCierreVinculaLosIdsDelCobroSinAlterarSusDatos() {
+        cuandoSeMarcaElCobroComoCerrado();
+
+        entoncesSePasaronElNegocioElCierreYLosIdsDelCobro();
+    }
+
+    // --- dado ---
+    private void dadoQueGuardarDevuelveLaEntidadRecibida() {
         when(jpa.save(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
+    }
 
-        CobroCaja guardado = repositorio.save(cobro);
+    private void dadoQueElRangoDeUnDiaTieneUnCobro() {
+        when(jpa.findByNegocioIdAndProyectoIdAndInventarioIdAndCreadoEnGreaterThanEqualAndCreadoEnLessThanOrderByCreadoEnAscIdAsc(
+                cobro.negocioId().valor(), cobro.proyectoId().valor(), cobro.inventarioId().valor(),
+                CajaTestData.AHORA, CajaTestData.AHORA.plusDays(1))).thenReturn(List.of(mapper.toEntity(cobro)));
+    }
 
+    // --- cuando ---
+    private void cuandoSeGuardaElCobro() {
+        guardado = repositorio.save(cobro);
+    }
+
+    private void cuandoSeBuscaElCobroPorId() {
+        encontrado = repositorio.findByIdAndNegocioId(cobro.id(), cobro.negocioId());
+    }
+
+    private void cuandoSeListanTodosLosCobrosDelInventario() {
+        cobros = repositorio.listarTodos(cobro.negocioId(), cobro.proyectoId(), cobro.inventarioId());
+    }
+
+    private void cuandoSeListanLosCobrosDelProyecto() {
+        cobros = repositorio.listarPorProyecto(cobro.negocioId(), cobro.proyectoId());
+    }
+
+    private void cuandoSeListanLosCobrosAbiertos() {
+        cobros = repositorio.listarAbiertos(cobro.negocioId(), cobro.proyectoId(), cobro.inventarioId());
+    }
+
+    private void cuandoSeListanLosCobrosEntreHoyYManiana() {
+        cobros = repositorio.listarEntre(cobro.negocioId(), cobro.proyectoId(), cobro.inventarioId(),
+                CajaTestData.AHORA, CajaTestData.AHORA.plusDays(1));
+    }
+
+    private void cuandoSeMarcaElCobroComoCerrado() {
+        repositorio.marcarCerrados(cobro.negocioId(), CierreCajaTestData.CIERRE, List.of(cobro.id()));
+    }
+
+    // --- entonces ---
+    private void entoncesSeGuardaLaEntidadConIdsFechaYDatosDelCobro() {
         ArgumentCaptor<CobroCajaEntity> captor = ArgumentCaptor.forClass(CobroCajaEntity.class);
         verify(jpa).save(captor.capture());
         assertThat(guardado).isEqualTo(cobro);
@@ -56,68 +169,16 @@ class CobroCajaRepositoryImplTest {
         assertThat(captor.getValue().getActualizadoEn()).isEqualTo(cobro.creadoEn());
     }
 
-    @Test
-    @DisplayName("Busca cobros sólo dentro del negocio autenticado")
-    void findShouldScopeByBusiness() {
-        when(jpa.findByIdAndNegocioId(cobro.id().valor(), cobro.negocioId().valor())).thenReturn(Optional.of(mapper.toEntity(cobro)));
-
-        var encontrado = repositorio.findByIdAndNegocioId(cobro.id(), cobro.negocioId());
-
+    private void entoncesSeEncuentraElCobro() {
         assertThat(encontrado).contains(cobro);
     }
 
-    @Test
-    @DisplayName("Lista todos los pagos del inventario en su orden persistido")
-    void listarTodosShouldScopeByInventory() {
-        when(jpa.findByNegocioIdAndProyectoIdAndInventarioIdOrderByCreadoEnAscIdAsc(cobro.negocioId().valor(),
-                cobro.proyectoId().valor(), cobro.inventarioId().valor())).thenReturn(List.of(mapper.toEntity(cobro)));
-
-        var encontrados = repositorio.listarTodos(cobro.negocioId(), cobro.proyectoId(), cobro.inventarioId());
-
-        assertThat(encontrados).containsExactly(cobro);
+    private void entoncesSeListaElCobro() {
+        assertThat(cobros).containsExactly(cobro);
     }
 
-    @Test
-    @DisplayName("El resumen del proyecto incluye sus cobros de cualquier inventario y cierre")
-    void listarPorProyectoShouldScopeByBusinessAndProject() {
-        when(jpa.findByNegocioIdAndProyectoIdOrderByCreadoEnAscIdAsc(cobro.negocioId().valor(),
-                cobro.proyectoId().valor())).thenReturn(List.of(mapper.toEntity(cobro)));
-
-        var encontrados = repositorio.listarPorProyecto(cobro.negocioId(), cobro.proyectoId());
-
-        assertThat(encontrados).containsExactly(cobro);
-    }
-
-    @Test
-    @DisplayName("Lista sólo los cobros que todavía no tienen cierre")
-    void listarAbiertosShouldScopeUnclosedCollections() {
-        when(jpa.findByNegocioIdAndProyectoIdAndInventarioIdAndCierreIdIsNullOrderByCreadoEnAscIdAsc(cobro.negocioId().valor(),
-                cobro.proyectoId().valor(), cobro.inventarioId().valor())).thenReturn(List.of(mapper.toEntity(cobro)));
-
-        var encontrados = repositorio.listarAbiertos(cobro.negocioId(), cobro.proyectoId(), cobro.inventarioId());
-
-        assertThat(encontrados).containsExactly(cobro);
-    }
-
-    @Test
-    @DisplayName("El rango de fechas usa un inicio incluido y un fin excluido")
-    void listarEntreShouldUseExactDateBounds() {
-        var desde = CajaTestData.AHORA;
-        var hasta = desde.plusDays(1);
-        when(jpa.findByNegocioIdAndProyectoIdAndInventarioIdAndCreadoEnGreaterThanEqualAndCreadoEnLessThanOrderByCreadoEnAscIdAsc(
-                cobro.negocioId().valor(), cobro.proyectoId().valor(), cobro.inventarioId().valor(), desde, hasta))
-                .thenReturn(List.of(mapper.toEntity(cobro)));
-
-        var encontrados = repositorio.listarEntre(cobro.negocioId(), cobro.proyectoId(), cobro.inventarioId(), desde, hasta);
-
-        assertThat(encontrados).containsExactly(cobro);
-    }
-
-    @Test
-    @DisplayName("El cierre vincula los ids del cobro sin alterar sus datos")
-    void marcarCerradosShouldPassBusinessAndIds() {
-        repositorio.marcarCerrados(cobro.negocioId(), CierreCajaTestData.CIERRE, List.of(cobro.id()));
-
-        verify(jpa).marcarCerrados(cobro.negocioId().valor(), CierreCajaTestData.CIERRE.valor(), List.of(cobro.id().valor()));
+    private void entoncesSePasaronElNegocioElCierreYLosIdsDelCobro() {
+        verify(jpa).marcarCerrados(cobro.negocioId().valor(), CierreCajaTestData.CIERRE.valor(),
+                List.of(cobro.id().valor()));
     }
 }

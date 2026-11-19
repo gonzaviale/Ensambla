@@ -28,7 +28,7 @@ export function leerMontoCaja(texto: string) {
 export function leerPrecio(texto: string) {
   const limpio = texto.trim().replace(',', '.');
   if (!/^\d{1,9}(?:\.\d{1,2})?$/.test(limpio))
-    throw new Error('Ingresá un precio sin separador de miles y con hasta dos decimales.');
+    throw new Error('Escribí un precio sin separador de miles y con hasta dos decimales.');
   const [entero = '', decimal = ''] = limpio.split('.');
   const centavos = Number(entero) * 100 + Number(decimal.padEnd(2, '0'));
   if (centavos <= 0) throw new Error('El precio debe ser mayor a cero.');
@@ -37,7 +37,7 @@ export function leerPrecio(texto: string) {
 
 export function crearLinea(producto: Fila, entrada = '1'): LineaCaja {
   if (!/^\d{1,8}$/.test(entrada.trim()) || Number(entrada) <= 0)
-    throw new Error('Ingresá una cantidad entera mayor a cero.');
+    throw new Error('Escribí una cantidad entera mayor a cero.');
   const modo = modoVenta(producto);
   const cantidad = Number(entrada) / (modo === 'peso' ? 1000 : 1);
   const precioCentavos = leerPrecio(String(producto.price ?? ''));
@@ -97,7 +97,7 @@ export function prepararCaja(sistema: Sistema, inventarioId: string) {
   const inventario = allBlocks(sistema).find(
     (b) => b.id === inventarioId && b.type === 'inventory',
   );
-  if (!inventario) throw new Error('Elegí el inventario para esta caja.');
+  if (!inventario) throw new Error('Elegí la sección de stock para esta caja.');
   for (const campo of [
     {
       key: 'saleMode',

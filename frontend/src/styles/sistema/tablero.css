@@ -5,14 +5,18 @@
 /* --- Piezas comunes --- */
 .selector-periodo {
   display: inline-flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  max-width: 100%;
   gap: 4px;
   padding: 4px;
   border-radius: 99px;
   background: var(--soft);
 }
 .selector-periodo button {
+  flex: 0 1 auto;
+  min-width: 0;
   padding: 8px 16px;
+  white-space: nowrap;
   border: 0;
   border-radius: 99px;
   background: transparent;
@@ -466,8 +470,9 @@
 }
 .productos-aviso-lista li {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
   padding: 10px 12px;
   border-radius: 12px;
   background: #fff;
@@ -476,19 +481,21 @@
   font-size: 15px;
   font-weight: 700;
   overflow-wrap: anywhere;
-  counter-increment: producto;
 }
-.productos-aviso-lista li::before {
-  content: counter(producto);
-  flex: none;
-  min-width: 24px;
-  padding: 2px 6px;
-  border-radius: 8px;
-  background: var(--petrol);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 800;
-  text-align: center;
+.productos-aviso-cambio {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--petrol);
+}
+.productos-aviso-cambio[data-baja='true'] {
+  color: var(--c-accion-texto);
+}
+.productos-aviso-cambio .icon {
+  width: 18px;
+  height: 18px;
 }
 .tablero-aviso-sami h3 {
   font-size: 20px;
@@ -808,4 +815,229 @@
   .tablero-cargando > span {
     animation: none;
   }
+}
+
+/* Carrusel de rentabilidad, arriba del Inicio y en poco espacio: tarjetas cortas que se deslizan con flechas o con el dedo */
+.inicio-carrusel {
+  position: relative;
+  margin-bottom: 14px;
+}
+.inicio-carrusel-pista {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+  padding: 2px 2px 10px;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.inicio-carrusel-pista::-webkit-scrollbar {
+  display: none;
+}
+.inicio-carrusel-pista > li {
+  flex: 0 0 min(86%, 340px);
+  scroll-snap-align: start;
+}
+.inicio-carrusel-flecha {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-top: -23px;
+  border: 2px solid var(--petrol);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--petrol);
+  cursor: pointer;
+  box-shadow: 0 6px 14px -8px var(--petrol);
+}
+.inicio-carrusel-flecha.anterior {
+  left: -10px;
+}
+.inicio-carrusel-flecha.siguiente {
+  right: -10px;
+}
+.inicio-carrusel-flecha .icon {
+  width: 16px;
+  height: 16px;
+}
+.inicio-carrusel-flecha:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  .inicio-carrusel-flecha {
+    display: none;
+  }
+}
+
+.rentabilidad-tarjeta {
+  --tono: var(--petrol);
+  position: relative;
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 10px;
+  align-items: center;
+  height: 100%;
+  padding: 8px 14px 8px 12px;
+  border-radius: 16px;
+  background: #fff;
+  color: var(--petrol);
+  box-shadow:
+    inset 6px 0 0 var(--tono),
+    inset 0 0 0 1.5px color-mix(in srgb, var(--petrol) 22%, #fff);
+}
+.rentabilidad-tarjeta[data-tono='baja'] {
+  --tono: var(--coral);
+}
+.rentabilidad-tarjeta[data-tono='sube'] {
+  --tono: var(--petrol);
+}
+.rentabilidad-tarjeta[data-tono='neutro'] {
+  --tono: var(--yellow);
+}
+.rentabilidad-icono {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-left: 4px;
+  border-radius: 10px;
+  background: var(--tono);
+  color: #fff;
+}
+.rentabilidad-tarjeta[data-tono='neutro'] .rentabilidad-icono {
+  color: var(--petrol);
+}
+.rentabilidad-icono .icon {
+  width: 22px;
+  height: 22px;
+}
+.rentabilidad-cuerpo p {
+  margin: 0;
+}
+.rentabilidad-etiqueta {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.rentabilidad-valor {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+.rentabilidad-valor strong {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--c-estructura);
+  line-height: 1.05;
+}
+.rentabilidad-valor span {
+  font-size: 12px;
+}
+.rentabilidad-detalle {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 12.5px;
+}
+.rentabilidad-productos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin: 4px 0;
+  padding: 0;
+  list-style: none;
+}
+.rentabilidad-productos li {
+  padding: 1px 9px;
+  border: 1.5px solid color-mix(in srgb, var(--petrol) 25%, #fff);
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.rentabilidad-abrir {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.rentabilidad-abrir > span {
+  display: block;
+}
+.rentabilidad-titulo {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.rentabilidad-abrir .rentabilidad-detalle {
+  margin-top: 2px;
+  font-size: 12px;
+}
+/* La única que se toca: llena de color, con flecha y mano; el resto son datos y quedan planas. */
+.rentabilidad-tarjeta[data-clickeable] {
+  padding-right: 40px; /* deja lugar a la flecha de deslizar, que se apoya sobre el borde */
+  background: var(--tono);
+  color: #fff;
+  box-shadow: 0 6px 14px -8px var(--tono);
+  transition: transform 0.15s ease;
+}
+.rentabilidad-tarjeta[data-clickeable]:hover {
+  transform: translateY(-2px);
+}
+.rentabilidad-tarjeta[data-clickeable] .rentabilidad-icono {
+  background: rgb(255 255 255 / 0.22);
+}
+.rentabilidad-tarjeta:not([data-clickeable]) {
+  cursor: default;
+}
+.rentabilidad-abrir {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 10px;
+}
+.rentabilidad-abrir > span {
+  grid-column: 1;
+}
+.rentabilidad-abrir > .icon {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  width: 20px;
+  height: 20px;
+}
+/* Toda la tarjeta es el botón. */
+.rentabilidad-abrir::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+.rentabilidad-abrir:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+
+/* La flecha de la comparación en «Cómo te va»: un flecha doble, verde si subió y roja si bajó */
+p.tablero-ventas-comparacion > .icon {
+  width: 22px;
+  height: 22px;
+  color: #1f9d55;
+}
+p.tablero-ventas-comparacion[data-sube='false'] > .icon {
+  color: #d6293e;
 }

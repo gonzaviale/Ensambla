@@ -88,6 +88,10 @@
   box-shadow: -18px 0 40px rgb(0 80 106 / 0.18);
   animation: campana-entra 0.22s ease-out;
 }
+/* Con muchos avisos el panel se desplaza: nada se encoge (Sami quedaba aplastado). */
+.campana-menu > * {
+  flex-shrink: 0;
+}
 @keyframes campana-entra {
   from {
     transform: translateX(100%);
@@ -150,7 +154,7 @@
 .campana-vacia,
 .campana-premium {
   margin: 0;
-  color: var(--muted);
+  color: var(--c-estructura);
   font-size: 13px;
 }
 .campana-premium {
@@ -239,7 +243,7 @@
   white-space: nowrap;
 }
 .campana-aviso-sistema {
-  color: var(--muted);
+  color: var(--c-estructura);
   font-size: 12px;
 }
 .campana-aviso-ocultar {
@@ -250,7 +254,7 @@
   height: 32px;
   margin-right: 8px;
   border-radius: 50%;
-  color: var(--muted);
+  color: var(--c-estructura);
 }
 .campana-aviso-ocultar:hover {
   background: var(--coral);
@@ -270,9 +274,10 @@
   gap: 14px;
   margin-top: auto;
   padding: 16px;
+  border: 2px solid var(--petrol);
   border-radius: 20px;
-  background: var(--petrol);
-  color: white;
+  background: #fff;
+  color: var(--c-estructura);
   overflow: hidden;
 }
 .campana-pie img {
@@ -286,7 +291,7 @@
 }
 .campana-menu .campana-pie p {
   margin: 0;
-  color: white;
+  color: var(--c-estructura);
   font-size: 16px;
   font-weight: 700;
   line-height: 1.35;
@@ -339,7 +344,7 @@
 .alertas-head p {
   margin: 0;
   font-size: 12px;
-  color: var(--muted);
+  color: var(--c-estructura);
 }
 
 /* Filtros */
@@ -362,7 +367,7 @@
   cursor: pointer;
 }
 .alertas-filtros button span {
-  color: var(--muted);
+  color: var(--c-estructura);
   font-weight: 700;
   margin-left: 2px;
 }
@@ -379,118 +384,6 @@
 .alertas-lista {
   display: grid;
   gap: 10px;
-}
-.alerta {
-  --nivel: var(--blue);
-  --nivel-tint: #e8f5fa;
-  display: grid;
-  grid-template-columns: 38px 1fr;
-  gap: 12px;
-  padding: 14px;
-  border-radius: 16px;
-  background: white;
-  border: 1px solid var(--line);
-  border-left: 4px solid var(--nivel);
-  box-shadow: var(--shadow);
-}
-.alerta.p2 {
-  --nivel: var(--orange);
-  --nivel-tint: #fff0da;
-}
-.alerta.p3 {
-  --nivel: var(--coral);
-  --nivel-tint: #ffe8e4;
-}
-.alerta.foco {
-  outline: 3px solid #ee800055;
-  outline-offset: 2px;
-}
-.alerta-icono {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  background: var(--nivel-tint);
-  color: var(--nivel);
-}
-.alerta.p1 .alerta-icono {
-  color: var(--petrol);
-}
-.alerta-icono .icon {
-  width: 19px;
-  height: 19px;
-}
-.alerta-cuerpo {
-  min-width: 0;
-}
-.alerta-meta {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  font-size: 10px;
-  color: var(--muted);
-  margin-bottom: 4px;
-}
-.alerta-nivel {
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--nivel);
-}
-.alerta.p1 .alerta-nivel {
-  color: var(--petrol);
-}
-.alerta h3 {
-  font-size: 14px;
-  margin: 0 0 4px;
-  line-height: 1.35;
-}
-.alerta p {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.5;
-}
-.alerta-porque {
-  margin: 9px 0 0;
-  padding: 9px 11px;
-  list-style: none;
-  border-radius: 11px;
-  background: var(--soft);
-  display: grid;
-  gap: 4px;
-  font-size: 11.5px;
-  line-height: 1.45;
-  color: var(--ink);
-}
-.alerta-porque li {
-  padding-left: 14px;
-  position: relative;
-}
-.alerta-porque li::before {
-  content: '';
-  position: absolute;
-  left: 2px;
-  top: 6px;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--nivel);
-}
-.alerta-acciones {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 11px;
-}
-.alerta-acciones .text-link {
-  font-size: 11px;
-  margin-left: auto;
-  color: var(--muted);
-}
-.alertas-lista.mini .alerta {
-  box-shadow: none;
 }
 
 .alertas-vacio {
@@ -510,7 +403,7 @@
 }
 .alertas-vacio p {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--c-estructura);
   margin: 0 auto 14px;
   max-width: 330px;
   line-height: 1.5;
@@ -528,7 +421,7 @@
   justify-self: start;
 }
 .alertas-nota {
-  color: var(--muted);
+  color: var(--c-estructura);
   font-size: 11px;
   line-height: 1.5;
   margin: 10px 0 0;
@@ -667,11 +560,23 @@
   margin: 0 0 10px;
   font-size: 12px;
   line-height: 1.45;
-  color: var(--muted);
+  color: var(--c-estructura);
 }
 .sami-aviso-txt .row {
   flex-wrap: wrap;
   gap: 6px;
+}
+/* Los dos botones en una sola línea (la tarjeta es más ancha); en el celular, si no entran, bajan. */
+@media (min-width: 641px) {
+  .sami-aviso {
+    width: min(480px, calc(100% - 32px));
+  }
+  .sami-aviso-txt .row {
+    flex-wrap: nowrap;
+  }
+  .sami-aviso-txt .row .btn {
+    white-space: nowrap;
+  }
 }
 
 @media (max-width: 640px) {
@@ -839,25 +744,6 @@
   opacity: 0.25;
   cursor: default;
 }
-
-/* Tarjetas: ícono en color lleno y bordes marcados */
-.alerta {
-  border: 2px solid #e4e6df;
-  border-left: 6px solid var(--nivel);
-  box-shadow: none;
-}
-.alerta-icono,
-.alerta.p1 .alerta-icono {
-  background: var(--nivel);
-  color: #fff;
-}
-.alerta.p1 .alerta-nivel {
-  color: var(--petrol);
-}
-.alerta-porque {
-  background: #fff;
-  border: 2px dashed #e4e6df;
-}
 .alertas-respuesta,
 .alertas-ajustes {
   background: #fff;
@@ -879,34 +765,6 @@
   .alertas-head {
     grid-template-columns: 70px 1fr;
   }
-}
-
-/* Descartar: tachito de basura */
-.alerta-descartar {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  margin-left: auto;
-  padding: 0;
-  border: 2px solid #e4e6df;
-  border-radius: 10px;
-  background: #fff;
-  color: var(--muted);
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s;
-}
-.alerta-descartar .icon {
-  width: 17px;
-  height: 17px;
-}
-.alerta-descartar:hover,
-.alerta-descartar:focus-visible {
-  border-color: var(--coral);
-  background: var(--coral);
-  color: #fff;
 }
 
 .ajuste-tema {
@@ -1054,47 +912,11 @@
 }
 .impacto-avisos-lista span,
 .impacto-avisos-nota {
-  color: var(--muted, #5b6470);
+  color: var(--c-estructura);
 }
 .impacto-avisos-nota {
   font-size: 12px;
   margin: 10px 0 0;
-}
-
-/* Cada tipo de aviso tiene su color (stock, sin movimiento, precio, etc.): la prioridad la dice el sello, no el color */
-.alerta {
-  --nivel: var(--petrol);
-  --nivel-tint: #e0eef3;
-  --nivel-texto: #fff;
-}
-.alerta[data-tipo='stock'] {
-  --nivel: #e0443f;
-  --nivel-tint: #ffe8e4;
-}
-.alerta[data-tipo='estancado'] {
-  --nivel: #ba9500;
-  --nivel-tint: #fdf4cc;
-  --nivel-texto: #fff;
-}
-.alerta[data-tipo='precio_zona'] {
-  --nivel: #1b8bb0;
-  --nivel-tint: #e3f3f9;
-}
-.alerta[data-tipo='muy_vendido'] {
-  --nivel: #2f7a55;
-  --nivel-tint: #e3f3ea;
-}
-.alerta[data-tipo='combo'] {
-  --nivel: #ee8000;
-  --nivel-tint: #fff0da;
-}
-.alerta[data-tipo='consumo_zona'] {
-  --nivel: #00506a;
-  --nivel-tint: #e0eef3;
-}
-.alerta[data-tipo='revisar_precio'] {
-  --nivel: #b5453a;
-  --nivel-tint: #fbe9e6;
 }
 .sami-chip.p2 .icon,
 .sami-chip.p3 .icon {
@@ -1142,7 +964,7 @@ button.alertas-preguntar {
 }
 .alertas-preguntar small {
   font-size: 13px;
-  color: var(--muted);
+  color: var(--c-estructura);
 }
 .alertas-preguntar > .icon {
   width: 20px;
@@ -1162,173 +984,6 @@ button.alertas-preguntar:focus-visible > .icon {
   color: #fff;
 }
 
-/* ===== Tarjeta de aviso rediseñada: tipo por color, propuesta clara y detalle que se abre ===== */
-.alertas-lista .alerta {
-  display: block;
-  padding: 0;
-  overflow: hidden;
-  background: #fff;
-  border: 2px solid var(--nivel);
-  border-left-width: 8px;
-  border-radius: 18px;
-}
-.alertas-lista .alerta.p3 {
-  background: var(--nivel-tint);
-  box-shadow: 0 8px 22px -12px var(--nivel);
-}
-.alerta-cabeza {
-  display: grid;
-  grid-template-columns: 48px 1fr auto;
-  gap: 14px;
-  align-items: start;
-  padding: 16px 16px 12px;
-}
-.alertas-lista .alerta-icono {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: var(--nivel);
-  color: var(--nivel-texto);
-}
-.alertas-lista .alerta-icono .icon {
-  width: 24px;
-  height: 24px;
-}
-.alerta-meta {
-  flex-wrap: wrap;
-  font-size: 11px;
-}
-.alerta-tipo {
-  padding: 2px 9px;
-  border-radius: 999px;
-  background: var(--nivel);
-  color: var(--nivel-texto);
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-.alertas-lista .alerta-nivel {
-  color: var(--ink);
-}
-.alertas-lista .alerta.p3 .alerta-nivel {
-  padding: 2px 9px;
-  border-radius: 999px;
-  background: #c42b2b;
-  color: #fff;
-}
-.alerta-sistema {
-  color: var(--muted);
-  font-weight: 600;
-}
-.alertas-lista .alerta h3 {
-  font-size: 17px;
-  margin-bottom: 5px;
-}
-.alertas-lista .alerta p {
-  font-size: 13.5px;
-}
-.alerta-propuesta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin: 0 16px 12px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: var(--nivel-tint);
-  border: 2px dashed var(--nivel);
-}
-.alertas-lista .alerta.p3 .alerta-propuesta {
-  background: #fff;
-}
-.alerta-propuesta small {
-  display: block;
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.alerta-propuesta strong {
-  font-size: 14.5px;
-  color: var(--ink);
-}
-.alerta-ver {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  padding: 10px 16px;
-  border: 0;
-  border-top: 1px solid var(--line);
-  background: transparent;
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.alerta-ver .icon {
-  width: 14px;
-  height: 14px;
-  transition: transform 0.15s;
-  transform: rotate(90deg);
-}
-.alerta-ver[aria-expanded='true'] .icon {
-  transform: rotate(-90deg);
-}
-.alerta-ver:hover,
-.alerta-ver:focus-visible {
-  background: var(--nivel-tint);
-}
-.alerta-detalle {
-  padding: 4px 16px 16px;
-  border-top: 1px solid var(--line);
-  background: #fff;
-}
-.alerta-detalle h4 {
-  margin: 12px 0 0;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.alerta-datos {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 10px;
-  margin: 12px 0 0;
-}
-.alerta-datos > div {
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: var(--soft);
-  border-left: 4px solid var(--line);
-}
-.alerta-datos > div[data-tono='malo'] {
-  border-left-color: #c42b2b;
-}
-.alerta-datos > div[data-tono='bueno'] {
-  border-left-color: #2f7a55;
-}
-.alerta-datos dt {
-  font-size: 11px;
-  color: var(--muted);
-  font-weight: 700;
-}
-.alerta-datos dd {
-  margin: 2px 0 0;
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--ink);
-}
-.alerta-origen {
-  margin-top: 12px;
-  font-size: 12px;
-  color: var(--muted);
-}
-
 /* Filtro por sección */
 .alertas-sistemas {
   display: flex;
@@ -1342,7 +997,7 @@ button.alertas-preguntar:focus-visible > .icon {
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--c-estructura);
 }
 .alertas-sistemas button {
   padding: 6px 12px;
@@ -1371,12 +1026,14 @@ button.alertas-preguntar:focus-visible > .icon {
 }
 
 /* Lo que no puede esperar: una franja que se ve primero */
+/* (sin fondo de color: tarjeta blanca con borde coral) */
 .alertas-urgentes {
   margin: 0 0 14px;
   padding: 14px 16px;
+  border: 2px solid var(--coral);
   border-radius: 16px;
-  background: #c42b2b;
-  color: #fff;
+  background: #fff;
+  color: var(--c-estructura);
 }
 .alertas-urgentes strong {
   display: block;
@@ -1392,10 +1049,10 @@ button.alertas-preguntar:focus-visible > .icon {
 }
 .alertas-urgentes button {
   padding: 6px 12px;
-  border: 0;
+  border: 2px solid var(--coral);
   border-radius: 999px;
   background: #fff;
-  color: #7a1010;
+  color: var(--c-estructura);
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
@@ -1403,23 +1060,37 @@ button.alertas-preguntar:focus-visible > .icon {
 }
 .alertas-urgentes button:hover,
 .alertas-urgentes button:focus-visible {
-  background: #ffe8e4;
+  background: #fff;
+  border-color: var(--c-estructura);
 }
 
-@media (max-width: 520px) {
-  .alerta-cabeza {
-    grid-template-columns: 40px 1fr auto;
-    gap: 10px;
-    padding: 14px 12px 10px;
+/* El estado vacío (todo en orden, sin datos o sin negocio) ocupa todo el ancho de la grilla */
+.alertas-lista > .alertas-vacio {
+  grid-column: 1 / -1;
+}
+
+/* La leyenda de colores va en una sola línea; en el celular los negocios también, y se deslizan hacia un costado */
+.alertas-leyenda {
+  flex-wrap: nowrap;
+  gap: 4px 16px;
+}
+@media (max-width: 640px) {
+  .alertas-sistemas {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
-  .alertas-lista .alerta-icono {
-    width: 40px;
-    height: 40px;
+  .alertas-sistemas::-webkit-scrollbar {
+    display: none;
   }
-  .alerta-propuesta {
-    margin: 0 12px 10px;
+  .alertas-sistemas > span,
+  .alertas-sistemas button {
+    flex: none;
+    white-space: nowrap;
   }
-  .alerta-propuesta .btn {
-    width: 100%;
-  }
+}
+.alertas-aclaracion {
+  margin: 16px 0 0;
+  font-size: 14px;
+  color: var(--ink);
 }

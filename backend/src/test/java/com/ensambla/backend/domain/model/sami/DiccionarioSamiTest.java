@@ -3,23 +3,37 @@ package com.ensambla.backend.domain.model.sami;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DiccionarioSamiTest {
 
     @Test
-    @DisplayName("Las listas ausentes quedan vacías en vez de nulas")
-    void constructorShouldReplaceMissingListsWithEmptyOnes() {
+    @DisplayName("Un diccionario sin listas las deja vacías en vez de nulas")
+    void unDiccionarioSinListasLasDejaVacias() {
         DiccionarioSami diccionario = new DiccionarioSami(null, null, null);
+
+        entoncesEstanVacias(diccionario.plantillas(), diccionario.columnas(), diccionario.preguntas());
+    }
+
+    @Test
+    @DisplayName("Una plantilla del diccionario sin términos los deja vacíos")
+    void unaPlantillaSinTerminosLosDejaVacios() {
         PlantillaDiccionario plantilla = new PlantillaDiccionario("Ventas", null);
+
+        entoncesEstanVacias(plantilla.terminos());
+    }
+
+    @Test
+    @DisplayName("Una columna del diccionario sin opciones, disparadores ni plantillas los deja vacíos")
+    void unaColumnaSinListasLasDejaVacias() {
         ColumnaDiccionario columna = new ColumnaDiccionario("Saldo", null, null, null, null);
 
-        assertThat(diccionario.plantillas()).isEmpty();
-        assertThat(diccionario.columnas()).isEmpty();
-        assertThat(diccionario.preguntas()).isEmpty();
-        assertThat(plantilla.terminos()).isEmpty();
-        assertThat(columna.opciones()).isEmpty();
-        assertThat(columna.disparadores()).isEmpty();
-        assertThat(columna.plantillas()).isEmpty();
+        entoncesEstanVacias(columna.opciones(), columna.disparadores(), columna.plantillas());
+    }
+
+    private static void entoncesEstanVacias(List<?>... listas) {
+        assertThat(listas).allSatisfy(lista -> assertThat(lista).isEmpty());
     }
 }

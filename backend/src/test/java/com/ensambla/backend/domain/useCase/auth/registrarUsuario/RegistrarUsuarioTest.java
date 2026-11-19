@@ -32,7 +32,7 @@ import static com.ensambla.backend.support.UsuarioTestData.HASH;
 import static com.ensambla.backend.support.UsuarioTestData.NOMBRE;
 import static com.ensambla.backend.support.UsuarioTestData.usuario;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -49,93 +49,131 @@ class RegistrarUsuarioTest {
     private final RegistrarUsuario registrarUsuario = new RegistrarUsuario(usuarioRepository, negocioRepository,
             planRepository, suscripcionRepository, contraseniaPort, new TransaccionDirecta(),
             Clock.fixed(FECHA.toInstant(), ZoneOffset.UTC));
+    private UsuarioResponse cuenta;
+    private Throwable error;
 
     @Test
-    @DisplayName("Normaliza los datos y guarda usuario y negocio con el instante del reloj")
-    void executeShouldSaveUsuarioAndNegocioWithHash() {
-        givenEmailAvailable();
-        givenFreePlanAvailable();
+    @DisplayName("Devuelve la identidad de la cuenta creada")
+    void devuelveLaIdentidadDeLaCuentaCreada() {
+        dadoUnEmailLibre();
+        dadoQueExisteElPlanGratuito();
 
-        UsuarioResponse result = registrar();
+        cuandoSeRegistra();
 
-        assertThat(result).isEqualTo(new UsuarioResponse(usuario().getId(), NOMBRE, EMAIL));
-        thenUsuarioAndNegocioSaved();
+        entoncesLaCuentaEsDeLaPersona();
+    }
+
+    @Test
+    @DisplayName("Guarda el usuario con los datos normalizados, el hash y el instante del reloj")
+    void guardaElUsuarioNormalizadoConElHashYElInstante() {
+        dadoUnEmailLibre();
+        dadoQueExisteElPlanGratuito();
+
+        cuandoSeRegistra();
+
+        entoncesSeGuardoElUsuarioActivo("Persona", EMAIL, HASH);
+    }
+
+    @Test
+    @DisplayName("Guarda el negocio de la persona con su nombre recortado y el instante del reloj")
+    void guardaElNegocioDeLaPersona() {
+        dadoUnEmailLibre();
+        dadoQueExisteElPlanGratuito();
+
+        cuandoSeRegistra();
+
+        entoncesSeGuardoElNegocio("Mi negocio");
     }
 
     @Test
     @DisplayName("Asigna al negocio nuevo el gratuito activo con las fechas del instante, sin fecha de fin")
-    void executeShouldAssignActiveFreeSubscription() {
-        givenEmailAvailable();
-        givenFreePlanAvailable();
+    void asignaAlNegocioNuevoElPlanGratuito() {
+        dadoUnEmailLibre();
+        dadoQueExisteElPlanGratuito();
 
-        registrar();
+        cuandoSeRegistra();
 
-        thenFreeSubscriptionSaved();
+        entoncesSeGuardoLaSuscripcionGratuita();
     }
 
     @Test
     @DisplayName("Rechaza el email repetido sin hashear ni crear negocio")
-    void executeShouldRejectDuplicateEmailBeforeWriting() {
-        when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.of(usuario()));
+    void rechazaElEmailRepetidoSinEscribirNada() {
+        dadoQueElEmailYaTieneCuenta();
 
-        assertThatThrownBy(this::registrar).isInstanceOf(DuplicateResourceException.class)
-                .hasMessage("Ya existe una cuenta con ese email");
+        cuandoSeIntentaRegistrar();
 
-        verifyNoInteractions(negocioRepository, contraseniaPort, planRepository, suscripcionRepository);
+        entoncesSeRechazaPor(DuplicateResourceException.class, "Ya existe una cuenta con ese email");
+        entoncesNoSeHasheoNiSeCreoNada();
     }
 
     @Test
     @DisplayName("No crea una suscripción si falta el plan gratuito")
-    void executeShouldRejectMissingFreePlan() {
-        givenEmailAvailable();
-        when(planRepository.findByCodigo(CodigoPlan.GRATUITO)).thenReturn(Optional.empty());
+    void noCreaUnaSuscripcionSiFaltaElPlanGratuito() {
+        dadoUnEmailLibre();
+        dadoQueNoExisteElPlanGratuito();
 
-        assertThatThrownBy(this::registrar)
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Plan gratuito no encontrado");
+        cuandoSeIntentaRegistrar();
 
-        verifyNoInteractions(suscripcionRepository);
+        entoncesSeRechazaPor(ResourceNotFoundException.class, "Plan gratuito no encontrado");
+        entoncesNoSeCreoNingunaSuscripcion();
     }
 
-    // --- arrange ---
-    private void givenEmailAvailable() {
+    private void dadoUnEmailLibre() {
         when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
         when(contraseniaPort.hashear(CONTRASENIA)).thenReturn(HASH);
         when(usuarioRepository.save(any())).thenReturn(usuario());
         when(negocioRepository.save(any())).thenReturn(Negocio.builder().id(NEGOCIO_ID).build());
     }
 
-    private void givenFreePlanAvailable() {
+    private void dadoQueElEmailYaTieneCuenta() {
+        when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.of(usuario()));
+    }
+
+    private void dadoQueExisteElPlanGratuito() {
         when(planRepository.findByCodigo(CodigoPlan.GRATUITO)).thenReturn(Optional.of(plan()));
     }
 
-    // --- act ---
-    private UsuarioResponse registrar() {
-        return registrarUsuario.execute(
+    private void dadoQueNoExisteElPlanGratuito() {
+        when(planRepository.findByCodigo(CodigoPlan.GRATUITO)).thenReturn(Optional.empty());
+    }
+
+    private void cuandoSeRegistra() {
+        cuenta = registrarUsuario.execute(
                 new RegistrarUsuarioRequest(" Persona ", " Mi negocio ", " PERSONA@EXAMPLE.COM ", CONTRASENIA));
     }
 
-    // --- assert ---
-    private void thenUsuarioAndNegocioSaved() {
-        ArgumentCaptor<Usuario> usuarioCaptor = ArgumentCaptor.forClass(Usuario.class);
-        verify(usuarioRepository).save(usuarioCaptor.capture());
-        Usuario guardado = usuarioCaptor.getValue();
-        assertThat(guardado.getNombre()).isEqualTo("Persona");
-        assertThat(guardado.getEmail()).isEqualTo(EMAIL);
-        assertThat(guardado.getHashContrasenia()).isEqualTo(HASH);
+    private void cuandoSeIntentaRegistrar() {
+        error = catchThrowable(this::cuandoSeRegistra);
+    }
+
+    private void entoncesLaCuentaEsDeLaPersona() {
+        assertThat(cuenta).isEqualTo(new UsuarioResponse(usuario().getId(), NOMBRE, EMAIL));
+    }
+
+    private void entoncesSeGuardoElUsuarioActivo(String nombre, String email, String hash) {
+        ArgumentCaptor<Usuario> captor = ArgumentCaptor.forClass(Usuario.class);
+        verify(usuarioRepository).save(captor.capture());
+        Usuario guardado = captor.getValue();
+        assertThat(guardado.getNombre()).isEqualTo(nombre);
+        assertThat(guardado.getEmail()).isEqualTo(email);
+        assertThat(guardado.getHashContrasenia()).isEqualTo(hash);
         assertThat(guardado.estaActivo()).isTrue();
         assertThat(guardado.getCreadoEn()).isEqualTo(FECHA);
         assertThat(guardado.getActualizadoEn()).isEqualTo(FECHA);
-        ArgumentCaptor<Negocio> negocioCaptor = ArgumentCaptor.forClass(Negocio.class);
-        verify(negocioRepository).save(negocioCaptor.capture());
-        Negocio negocio = negocioCaptor.getValue();
-        assertThat(negocio.getNombre()).isEqualTo("Mi negocio");
+    }
+
+    private void entoncesSeGuardoElNegocio(String nombre) {
+        ArgumentCaptor<Negocio> captor = ArgumentCaptor.forClass(Negocio.class);
+        verify(negocioRepository).save(captor.capture());
+        Negocio negocio = captor.getValue();
+        assertThat(negocio.getNombre()).isEqualTo(nombre);
         assertThat(negocio.getDuenioId()).isEqualTo(usuario().getId());
         assertThat(negocio.getCreadoEn()).isEqualTo(FECHA);
         assertThat(negocio.getActualizadoEn()).isEqualTo(FECHA);
     }
 
-    private void thenFreeSubscriptionSaved() {
+    private void entoncesSeGuardoLaSuscripcionGratuita() {
         ArgumentCaptor<Suscripcion> captor = ArgumentCaptor.forClass(Suscripcion.class);
         verify(suscripcionRepository).save(captor.capture());
         Suscripcion guardada = captor.getValue();
@@ -147,5 +185,17 @@ class RegistrarUsuarioTest {
         assertThat(guardada.getFinEn()).isNull();
         assertThat(guardada.getCreadoEn()).isEqualTo(FECHA);
         assertThat(guardada.getActualizadoEn()).isEqualTo(FECHA);
+    }
+
+    private void entoncesSeRechazaPor(Class<? extends Throwable> tipo, String mensaje) {
+        assertThat(error).isInstanceOf(tipo).hasMessage(mensaje);
+    }
+
+    private void entoncesNoSeHasheoNiSeCreoNada() {
+        verifyNoInteractions(negocioRepository, contraseniaPort, planRepository, suscripcionRepository);
+    }
+
+    private void entoncesNoSeCreoNingunaSuscripcion() {
+        verifyNoInteractions(suscripcionRepository);
     }
 }

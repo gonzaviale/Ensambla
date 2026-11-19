@@ -1,14 +1,18 @@
 import { CalendarCheckIcon, CheckCircleIcon, TrashIcon } from '@phosphor-icons/react';
-import { useSemanasObjetivo } from '@/hooks/objetivos/queries';
+import { useMiniObjetivos, useSemanasObjetivo } from '@/hooks/objetivos/queries';
+import { ETIQUETA_DE_TIPO } from '@/lib/objetivosSami';
 import { resumenSinVer } from '@/lib/objetivosAutogestion';
 import {
   avance,
   brecha,
   formatoPesos,
+  tieneMeta,
   ultimoValor,
   variacion,
   type Objetivo,
+  type ObjetivoConMeta,
 } from '@/lib/objetivos';
+import { MinisDeLaTarjeta } from './MinisDeLaTarjeta';
 import { Progreso } from './piezas';
 
 type Props = {
@@ -20,7 +24,7 @@ type Props = {
 
 function textoDeTendencia(objetivo: Objetivo) {
   const semanas = objetivo.historial.length - 1;
-  if (semanas < 1) return 'Todavía no hay semanas para comparar. Sami lo va midiendo.';
+  if (semanas < 1) return 'Todavía no hay semanas para comparar.';
   const cambio = variacion(objetivo);
   const plazo = semanas === 1 ? 'la última semana' : `las últimas ${semanas} semanas`;
   if (cambio === 0) return `Sin cambios en ${plazo}.`;
@@ -28,10 +32,50 @@ function textoDeTendencia(objetivo: Objetivo) {
 }
 
 export function ObjetivoCard({ objetivo, onQuitar, onVerSemana }: Props) {
+  return tieneMeta(objetivo) ? (
+    <ObjetivoConMetaCard objetivo={objetivo} onQuitar={onQuitar} onVerSemana={onVerSemana} />
+  ) : (
+    <ObjetivoSinMetaCard objetivo={objetivo} onQuitar={onQuitar} onVerSemana={onVerSemana} />
+  );
+}
+
+// Un objetivo sin meta en pesos (armado con Sami): no hay una cifra que mostrar, así que la tarjeta muestra sus
+// mini-objetivos de la semana.
+function ObjetivoSinMetaCard({ objetivo, onQuitar, onVerSemana }: Props) {
+  const ultimoCierre = useSemanasObjetivo(objetivo.id).data?.ultimoCierre ?? null;
+  const resumenListo = resumenSinVer(objetivo.id, ultimoCierre);
+  const minis = useMiniObjetivos(objetivo.id).data?.minis ?? [];
+  return (
+    <article className="objetivos-tarjeta dinamico" data-tipo={objetivo.tipo}>
+      <header>
+        <div>
+          <p className="objetivos-etiqueta">Tu objetivo</p>
+          <h2>{objetivo.texto}</h2>
+        </div>
+        <span className="objetivos-tipo">{ETIQUETA_DE_TIPO[objetivo.tipo]}</span>
+      </header>
+      <MinisDeLaTarjeta minis={minis} />
+      <footer className="objetivos-tarjeta-acciones">
+        <button type="button" className="btn secondary" onClick={onVerSemana}>
+          <CalendarCheckIcon aria-hidden size={18} /> Ver mi semana
+        </button>
+        {resumenListo && <span className="objetivos-chip-resumen">Resumen de la semana listo</span>}
+        <button type="button" className="objetivos-textual" onClick={onQuitar}>
+          <TrashIcon aria-hidden size={16} /> Quitar objetivo
+        </button>
+      </footer>
+    </article>
+  );
+}
+
+function ObjetivoConMetaCard({
+  objetivo,
+  onQuitar,
+  onVerSemana,
+}: Omit<Props, 'objetivo'> & { objetivo: ObjetivoConMeta }) {
   const ultimoCierre = useSemanasObjetivo(objetivo.id).data?.ultimoCierre ?? null;
   const resumenListo = resumenSinVer(objetivo.id, ultimoCierre);
   const cumplido = brecha(objetivo) === 0;
-  const maximo = Math.max(1, ...objetivo.historial.map((punto) => punto.valor));
 
   return (
     <article className="objetivos-tarjeta">
@@ -48,34 +92,22 @@ export function ObjetivoCard({ objetivo, onQuitar, onVerSemana }: Props) {
       </header>
 
       <div className="objetivos-tarjeta-avance">
-        <div>
-          <div className="objetivos-avance-cifras">
-            <strong>{formatoPesos(ultimoValor(objetivo))}</strong>
-            <span>
-              {cumplido
-                ? 'ganás por mes'
-                : `ganás por mes · te faltan ${formatoPesos(brecha(objetivo))}`}
-            </span>
-          </div>
+        <div className="objetivos-avance-cifras">
+          <strong>{formatoPesos(ultimoValor(objetivo))}</strong>
+          <span>ganás por mes</span>
+        </div>
+        <div className="objetivos-avance-meta">
+          <p>
+            <span>Tu meta: {formatoPesos(objetivo.meta)}</span>
+            <strong>
+              {cumplido ? 'Meta cumplida' : `Te faltan ${formatoPesos(brecha(objetivo))}`}
+            </strong>
+          </p>
           <Progreso
             valor={avance(objetivo)}
             etiqueta={`Lo que ganás hoy frente a ${formatoPesos(objetivo.meta)}`}
           />
           <p className="objetivos-tendencia-texto">{textoDeTendencia(objetivo)}</p>
-        </div>
-        <div
-          className="objetivos-tendencia"
-          role="img"
-          aria-label={`Lo que ganaste por mes: ${objetivo.historial
-            .map((punto) => `${punto.semana} ${formatoPesos(punto.valor)}`)
-            .join(', ')}`}
-        >
-          {objetivo.historial.map((punto) => (
-            <figure key={punto.semana}>
-              <i style={{ height: `${Math.max(6, (punto.valor / maximo) * 100)}%` }} />
-              <figcaption>{punto.semana}</figcaption>
-            </figure>
-          ))}
         </div>
       </div>
 

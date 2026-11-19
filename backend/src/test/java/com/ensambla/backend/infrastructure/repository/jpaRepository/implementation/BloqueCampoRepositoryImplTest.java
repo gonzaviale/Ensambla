@@ -11,6 +11,7 @@ import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.I
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.ICampoJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.BloqueRepositoryMapper;
 import com.ensambla.backend.infrastructure.repository.mapper.CampoRepositoryMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,51 +37,105 @@ class BloqueCampoRepositoryImplTest {
     @Mock
     private ICampoJpaRepository campoJpa;
 
+    private BloqueRepositoryImpl bloqueRepository;
+    private CampoRepositoryImpl campoRepository;
+    private Optional<Bloque> encontrado;
+    private Bloque guardado;
+    private List<Campo> campos;
+
+    @BeforeEach
+    void dadoLosRepositoriosDeBloquesYCampos() {
+        bloqueRepository = new BloqueRepositoryImpl(bloqueJpa, new BloqueRepositoryMapper());
+        campoRepository = new CampoRepositoryImpl(campoJpa, new CampoRepositoryMapper());
+    }
+
     @Test
     @DisplayName("El bloque se busca por id dentro del negocio y se mapea")
-    void bloqueFindByIdAndNegocioIdShouldMapResult() {
-        BloqueRepositoryImpl repository = new BloqueRepositoryImpl(bloqueJpa, new BloqueRepositoryMapper());
-        when(bloqueJpa.findByIdAndNegocioId(BLOQUE_ID.valor(), NEGOCIO_ID.valor()))
-                .thenReturn(Optional.of(BloqueEntity.builder().id(BLOQUE_ID.valor()).nombre("Productos").build()));
+    void elBloqueSeBuscaPorIdDentroDelNegocioYSeMapea() {
+        dadoQueExisteElBloqueProductos();
 
-        Optional<Bloque> result = repository.findByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID);
+        cuandoSeBuscaElBloquePorId();
 
-        assertThat(result).map(Bloque::getNombre).contains("Productos");
+        entoncesSeEncuentraElBloqueProductos();
     }
 
     @Test
     @DisplayName("Guardar un bloque persiste la entidad y devuelve lo que guardó la base")
-    void bloqueSaveShouldPersistAndMapSavedEntity() {
-        BloqueRepositoryImpl repository = new BloqueRepositoryImpl(bloqueJpa, new BloqueRepositoryMapper());
-        when(bloqueJpa.save(any())).thenReturn(BloqueEntity.builder().id(BLOQUE_ID.valor()).nombre("Clientes").build());
+    void guardarUnBloquePersisteLaEntidadYDevuelveLoQueGuardoLaBase() {
+        dadoQueGuardarDevuelveElBloqueClientes();
 
-        Bloque result = repository.save(Bloque.builder().negocioId(NEGOCIO_ID).nombre("Clientes").build());
+        cuandoSeGuardaUnBloqueNuevo();
 
-        assertThat(result.getId()).isEqualTo(BLOQUE_ID);
-        assertThat(result.getNombre()).isEqualTo("Clientes");
+        entoncesSeDevuelveElBloqueClientesGuardado();
     }
 
     @Test
     @DisplayName("Eliminar un bloque delega el borrado con el filtro de negocio")
-    void bloqueDeleteByIdAndNegocioIdShouldDelegate() {
-        BloqueRepositoryImpl repository = new BloqueRepositoryImpl(bloqueJpa, new BloqueRepositoryMapper());
+    void eliminarUnBloqueDelegaElBorradoConElFiltroDeNegocio() {
+        cuandoSeEliminaElBloque();
 
-        repository.deleteByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID);
-
-        verify(bloqueJpa).deleteByIdAndNegocioId(BLOQUE_ID.valor(), NEGOCIO_ID.valor());
+        entoncesSeDelegoElBorradoDelBloqueConElFiltroDeNegocio();
     }
 
     @Test
     @DisplayName("Los campos del bloque se devuelven mapeados y en el orden de la consulta")
-    void campoFindByBloqueIdAndNegocioIdShouldMapInOrder() {
-        CampoRepositoryImpl repository = new CampoRepositoryImpl(campoJpa, new CampoRepositoryMapper());
+    void losCamposDelBloqueSeDevuelvenMapeadosYEnElOrdenDeLaConsulta() {
+        dadoQueElBloqueTieneUnCampoPrimeroYUnoSegundo();
+
+        cuandoSeListanLosCamposDelBloque();
+
+        entoncesLosCamposVienenEnOrdenPrimeroYSegundo();
+    }
+
+    // --- dado ---
+    private void dadoQueExisteElBloqueProductos() {
+        when(bloqueJpa.findByIdAndNegocioId(BLOQUE_ID.valor(), NEGOCIO_ID.valor()))
+                .thenReturn(Optional.of(BloqueEntity.builder().id(BLOQUE_ID.valor()).nombre("Productos").build()));
+    }
+
+    private void dadoQueGuardarDevuelveElBloqueClientes() {
+        when(bloqueJpa.save(any())).thenReturn(BloqueEntity.builder().id(BLOQUE_ID.valor()).nombre("Clientes").build());
+    }
+
+    private void dadoQueElBloqueTieneUnCampoPrimeroYUnoSegundo() {
         when(campoJpa.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(BLOQUE_ID.valor(), NEGOCIO_ID.valor()))
                 .thenReturn(List.of(
-                CampoEntity.builder().nombre("Primero").tipo(TipoCampo.TEXTO).build(),
-                CampoEntity.builder().nombre("Segundo").tipo(TipoCampo.TEXTO).build()));
+                        CampoEntity.builder().nombre("Primero").tipo(TipoCampo.TEXTO).build(),
+                        CampoEntity.builder().nombre("Segundo").tipo(TipoCampo.TEXTO).build()));
+    }
 
-        List<Campo> result = repository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID);
+    // --- cuando ---
+    private void cuandoSeBuscaElBloquePorId() {
+        encontrado = bloqueRepository.findByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID);
+    }
 
-        assertThat(result).extracting(Campo::getNombre).containsExactly("Primero", "Segundo");
+    private void cuandoSeGuardaUnBloqueNuevo() {
+        guardado = bloqueRepository.save(Bloque.builder().negocioId(NEGOCIO_ID).nombre("Clientes").build());
+    }
+
+    private void cuandoSeEliminaElBloque() {
+        bloqueRepository.deleteByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID);
+    }
+
+    private void cuandoSeListanLosCamposDelBloque() {
+        campos = campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID);
+    }
+
+    // --- entonces ---
+    private void entoncesSeEncuentraElBloqueProductos() {
+        assertThat(encontrado).map(Bloque::getNombre).contains("Productos");
+    }
+
+    private void entoncesSeDevuelveElBloqueClientesGuardado() {
+        assertThat(guardado.getId()).isEqualTo(BLOQUE_ID);
+        assertThat(guardado.getNombre()).isEqualTo("Clientes");
+    }
+
+    private void entoncesSeDelegoElBorradoDelBloqueConElFiltroDeNegocio() {
+        verify(bloqueJpa).deleteByIdAndNegocioId(BLOQUE_ID.valor(), NEGOCIO_ID.valor());
+    }
+
+    private void entoncesLosCamposVienenEnOrdenPrimeroYSegundo() {
+        assertThat(campos).extracting(Campo::getNombre).containsExactly("Primero", "Segundo");
     }
 }

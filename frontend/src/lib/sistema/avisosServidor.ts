@@ -30,7 +30,7 @@ function aAccion(accion: AccionDelServidor, avisoId: string): AccionDeAviso {
     case 'REGISTRAR':
       return {
         tipo: 'registrar',
-        texto: accion.texto ?? 'Registrar entrada',
+        texto: accion.texto ?? 'Cargar entrada',
         sistemaId,
         bloqueId,
         avisoId,

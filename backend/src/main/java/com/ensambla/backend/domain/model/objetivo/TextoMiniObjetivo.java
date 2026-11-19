@@ -25,7 +25,7 @@ public record TextoMiniObjetivo(String titulo, String justificacion) {
     public static TextoMiniObjetivo moverParado(
             String producto, BigDecimal stock, BigDecimal capital, BigDecimal rebaja, BigDecimal unidadesPorSemana) {
         return new TextoMiniObjetivo(
-                "Mové «" + producto + "»",
+                "Volvé a vender «" + producto + "»",
                 "En el último mes no se vendió y tenés " + numero(stock) + " guardados (" + pesos(capital)
                         + " en mercadería). Bajale " + pesos(rebaja) + " y apuntá a " + numero(unidadesPorSemana)
                         + " por semana.");
@@ -55,6 +55,27 @@ public record TextoMiniObjetivo(String titulo, String justificacion) {
                 "Ganar " + numero(margenMeta.subtract(margenHoy)) + " puntos más en lo que vendés",
                 "Hoy de cada $100 que vendés te quedan $" + numero(margenHoy) + " después de pagar la mercadería. "
                         + "Con $" + numero(margenMeta) + " sumás cerca de " + pesos(aportePorMes) + " por mes.");
+    }
+
+    public static TextoMiniObjetivo reponerStock(BigDecimal productos) {
+        return new TextoMiniObjetivo(
+                "Reponé lo que está por debajo de tu mínimo",
+                "Productos en su mínimo o por debajo: hoy son " + numero(productos) + ". Reponelos y bajá ese número a "
+                        + "0 para no quedarte sin.");
+    }
+
+    public static TextoMiniObjetivo capitalParado(BigDecimal capital, BigDecimal meta) {
+        return new TextoMiniObjetivo(
+                "Liberá plata parada en mercadería",
+                "Tenés " + pesos(capital) + " en mercadería que no se vendió en el último mes. Si la bajás a "
+                        + pesos(meta) + " liberás " + pesos(capital.subtract(meta)) + " para comprar lo que sí rota.");
+    }
+
+    public static TextoMiniObjetivo variedadVendida(BigDecimal hoy, BigDecimal meta) {
+        return new TextoMiniObjetivo(
+                "Vendé más variedad por semana",
+                "Productos distintos que vendiste en los últimos 7 días: " + numero(hoy) + ". Si llegás a "
+                        + numero(meta) + " le mostrás más opciones a tus clientes.");
     }
 
     public static TextoMiniObjetivo ventasSemanales(
