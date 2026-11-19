@@ -24,79 +24,121 @@ import static org.mockito.Mockito.when;
 class UbicacionUseCaseConfigTest {
 
     private static final Instant AHORA = Instant.parse("2026-10-19T12:00:00Z");
+    private static final Clock RELOJ = Clock.fixed(AHORA, ZoneOffset.UTC);
     private static final String DIRECCION = "Florencio Varela 1903, San Justo";
     private static final BigDecimal LATITUD = new BigDecimal("-34.6701");
     private static final BigDecimal LONGITUD = new BigDecimal("-58.5625");
+
     private final UbicacionUseCaseConfig config = new UbicacionUseCaseConfig();
+    private final GeocodificadorPort geocodificador = mock(GeocodificadorPort.class);
+    private BuscarDireccionesResponse direcciones;
+    private ResolverLocalidadResponse localidad;
+    private ListarRubrosResponse rubros;
 
     @Test
     @DisplayName("La búsqueda usa el reloj del caso de uso y mapea las coordenadas sin perder precisión")
-    void buscarDireccionesUseCaseShouldWireClockAndMapper() {
-        GeocodificadorPort geocodificadorPort = mock(GeocodificadorPort.class);
-        when(geocodificadorPort.buscar(DIRECCION, AHORA))
-                .thenReturn(List.of(new DireccionEncontrada(DIRECCION, LATITUD, LONGITUD, "San Justo")));
+    void laBusquedaUsaElRelojYMapeaLasCoordenadas() {
+        dadoQueElGeocodificadorEncuentraLaDireccion();
 
-        var response = config.buscarDirecciones(geocodificadorPort,
-                Clock.fixed(AHORA, ZoneOffset.UTC)).execute(new BuscarDireccionesRequest(DIRECCION));
+        cuandoSeBuscaLaDireccion();
 
-        assertThat(response.resultados()).hasSize(1);
-        assertThat(response.resultados().getFirst().direccion()).isEqualTo(DIRECCION);
-        assertThat(response.resultados().getFirst().latitud()).isEqualTo(LATITUD);
-        assertThat(response.resultados().getFirst().longitud()).isEqualTo(LONGITUD);
-        assertThat(response.resultados().getFirst().localidad()).isEqualTo("San Justo");
+        entoncesSeEncontroLaDireccionEn("San Justo");
     }
 
     @Test
     @DisplayName("Resolver la localidad usa el reloj del caso de uso y devuelve la principal y todas las válidas")
-    void resolverLocalidadUseCaseShouldWireClockAndMapper() {
-        GeocodificadorPort geocodificadorPort = mock(GeocodificadorPort.class);
-        when(geocodificadorPort.resolverLocalidades(LATITUD, LONGITUD, AHORA))
-                .thenReturn(new LocalidadesDelPunto(List.of("San Justo", "Villa Luzuriaga")));
+    void resolverLaLocalidadDevuelveLaPrincipalYLasValidas() {
+        dadoQueElPuntoEstaEn("San Justo", "Villa Luzuriaga");
 
-        var response = config.resolverLocalidad(geocodificadorPort,
-                Clock.fixed(AHORA, ZoneOffset.UTC)).execute(new ResolverLocalidadRequest(LATITUD, LONGITUD));
+        cuandoSeResuelveLaLocalidad();
 
-        assertThat(response.localidad()).isEqualTo("San Justo");
-        assertThat(response.localidades()).containsExactly("San Justo", "Villa Luzuriaga");
+        entoncesLaLocalidadEs("San Justo", "San Justo", "Villa Luzuriaga");
     }
 
     @Test
     @DisplayName("Sin localidades reconocidas la respuesta no inventa una principal")
-    void resolverLocalidadShouldPreserveEmptyLocalities() {
-        var response = ResolverLocalidadResponse.de(new LocalidadesDelPunto(List.of()));
+    void sinLocalidadesLaRespuestaNoInventaUnaPrincipal() {
+        cuandoSeRespondeSinLocalidades();
 
-        assertThat(response.localidad()).isNull();
-        assertThat(response.localidades()).isEmpty();
+        entoncesNoHayLocalidad();
     }
 
     @Test
     @DisplayName("El listado conecta el catálogo de dominio con la respuesta de rubros")
-    void listarRubrosUseCaseShouldWireCatalogAndMapper() {
-        var useCase = config.listarRubros();
+    void elListadoConectaElCatalogoDeRubros() {
+        cuandoSeListanLosRubros();
 
-        var response = useCase.execute();
-
-        assertThat(response.rubros()).extracting(ListarRubrosResponse.RubroItem::codigo)
-                .containsExactly("ALMACEN", "KIOSCO", "MINIMERCADO", "DIETETICA", "PAPELERIA", "OTRO");
-        assertThat(response.rubros()).extracting(ListarRubrosResponse.RubroItem::nombre)
-                .containsExactly("Almacén", "Kiosco", "Minimercado", "Dietética", "Papelería", "Otro");
-        assertThat(response.rubros().getFirst().codigo()).isEqualTo("ALMACEN");
-        assertThat(response.rubros().getFirst().nombre()).isEqualTo("Almacén");
+        entoncesLosRubrosSon(List.of("ALMACEN", "KIOSCO", "MINIMERCADO", "DIETETICA", "PAPELERIA", "OTRO"),
+                List.of("Almacén", "Kiosco", "Minimercado", "Dietética", "Papelería", "Otro"));
     }
 
     @Test
     @DisplayName("Una búsqueda sin coincidencias conserva la respuesta vacía")
-    void buscarDireccionesShouldPreserveEmptyResults() {
-        var response = BuscarDireccionesResponse.de(List.of());
-
-        assertThat(response.resultados()).isEmpty();
+    void unaBusquedaSinCoincidenciasQuedaVacia() {
+        entoncesNoHayResultados(BuscarDireccionesResponse.de(List.of()));
     }
 
     @Test
     @DisplayName("La respuesta de rubros admite un catálogo vacío")
-    void listarRubrosShouldPreserveEmptyCatalog() {
-        var response = ListarRubrosResponse.de(List.of());
+    void laRespuestaDeRubrosAdmiteUnCatalogoVacio() {
+        entoncesNoHayRubros(ListarRubrosResponse.de(List.of()));
+    }
 
-        assertThat(response.rubros()).isEmpty();
+    private void dadoQueElGeocodificadorEncuentraLaDireccion() {
+        when(geocodificador.buscar(DIRECCION, AHORA))
+                .thenReturn(List.of(new DireccionEncontrada(DIRECCION, LATITUD, LONGITUD, "San Justo")));
+    }
+
+    private void dadoQueElPuntoEstaEn(String... localidades) {
+        when(geocodificador.resolverLocalidades(LATITUD, LONGITUD, AHORA))
+                .thenReturn(new LocalidadesDelPunto(List.of(localidades)));
+    }
+
+    private void cuandoSeBuscaLaDireccion() {
+        direcciones = config.buscarDirecciones(geocodificador, RELOJ).execute(new BuscarDireccionesRequest(DIRECCION));
+    }
+
+    private void cuandoSeResuelveLaLocalidad() {
+        localidad = config.resolverLocalidad(geocodificador, RELOJ).execute(new ResolverLocalidadRequest(LATITUD, LONGITUD));
+    }
+
+    private void cuandoSeRespondeSinLocalidades() {
+        localidad = ResolverLocalidadResponse.de(new LocalidadesDelPunto(List.of()));
+    }
+
+    private void cuandoSeListanLosRubros() {
+        rubros = config.listarRubros().execute();
+    }
+
+    private void entoncesSeEncontroLaDireccionEn(String enLocalidad) {
+        assertThat(direcciones.resultados()).singleElement().satisfies(resultado -> {
+            assertThat(resultado.direccion()).isEqualTo(DIRECCION);
+            assertThat(resultado.latitud()).isEqualTo(LATITUD);
+            assertThat(resultado.longitud()).isEqualTo(LONGITUD);
+            assertThat(resultado.localidad()).isEqualTo(enLocalidad);
+        });
+    }
+
+    private void entoncesLaLocalidadEs(String principal, String... todas) {
+        assertThat(localidad.localidad()).isEqualTo(principal);
+        assertThat(localidad.localidades()).containsExactly(todas);
+    }
+
+    private void entoncesNoHayLocalidad() {
+        assertThat(localidad.localidad()).isNull();
+        assertThat(localidad.localidades()).isEmpty();
+    }
+
+    private void entoncesLosRubrosSon(List<String> codigos, List<String> nombres) {
+        assertThat(rubros.rubros()).extracting(ListarRubrosResponse.RubroItem::codigo).containsExactlyElementsOf(codigos);
+        assertThat(rubros.rubros()).extracting(ListarRubrosResponse.RubroItem::nombre).containsExactlyElementsOf(nombres);
+    }
+
+    private static void entoncesNoHayResultados(BuscarDireccionesResponse respuesta) {
+        assertThat(respuesta.resultados()).isEmpty();
+    }
+
+    private static void entoncesNoHayRubros(ListarRubrosResponse respuesta) {
+        assertThat(respuesta.rubros()).isEmpty();
     }
 }

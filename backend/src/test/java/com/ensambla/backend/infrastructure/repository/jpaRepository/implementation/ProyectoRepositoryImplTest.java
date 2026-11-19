@@ -36,89 +36,94 @@ class ProyectoRepositoryImplTest {
     private final ProyectoRepositoryMapper mapper = new ProyectoRepositoryMapper();
     private final ProyectoRepositoryImpl repository = new ProyectoRepositoryImpl(proyectos, bloques, campos, mapper);
 
+    private List<Proyecto> resumenes;
+    private Optional<Proyecto> encontrado;
+    private Proyecto guardado;
+    private Proyecto original;
+
     @Test
     @DisplayName("Lista sin cargar estructuras ni hacer consultas por proyecto")
-    void findAllShouldMapSummaries() {
-        when(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(NEGOCIO_ID.valor()))
-                .thenReturn(List.of(mapper.toEntity(ProyectoTestData.proyecto())));
+    void listaSinCargarEstructurasNiHacerConsultasPorProyecto() {
+        dadoQueElNegocioTieneUnProyecto();
 
-        var result = repository.findAllByNegocioId(NEGOCIO_ID);
+        cuandoSeListanLosProyectosDelNegocio();
 
-        assertThat(result).extracting("id").containsExactly(PROYECTO_ID);
-        verifyNoInteractions(bloques, campos);
+        entoncesSeListaElProyectoSinConsultarBloquesNiCampos();
     }
 
     @Test
     @DisplayName("Carga bloques y todos sus campos en lote filtrando por negocio")
-    void findByIdShouldLoadStructureInBatches() {
-        Proyecto original = ProyectoTestData.proyecto();
+    void cargaBloquesYTodosSusCamposEnLoteFiltrandoPorNegocio() {
+        dadoUnProyectoConDosBloquesYCamposSoloEnElPrimero();
+
+        cuandoSeBuscaElProyectoPorIdYNegocio();
+
+        entoncesSeCargaLaEstructuraEnLoteFiltrandoPorNegocio();
+    }
+
+    @Test
+    @DisplayName("No carga hijos cuando el proyecto no pertenece al negocio")
+    void noCargaHijosCuandoElProyectoNoPerteneceAlNegocio() {
+        dadoQueElProyectoNoEsDelNegocio();
+
+        cuandoSeBuscaElProyectoPorIdYNegocio();
+
+        entoncesNoSeEncuentraElProyectoNiSeCarganHijos();
+    }
+
+    @Test
+    @DisplayName("Guardar un proyecto conserva campos y no vuelve a insertar sus hijos")
+    void guardarUnProyectoConservaCamposYNoVuelveAInsertarSusHijos() {
+        dadoQueGuardarDevuelveLaEntidadRecibida();
+
+        cuandoSeGuardaElProyecto();
+
+        entoncesSeGuardaSoloElProyectoSinTocarSusHijos();
+    }
+
+    @Test
+    @DisplayName("Guarda una copia asignando ids propios y las referencias a sus nuevos padres")
+    void guardaUnaCopiaAsignandoIdsPropiosYLasReferenciasASusNuevosPadres() {
+        dadoQueLaBaseGeneraLosIds();
+
+        cuandoSeGuardaUnaCopiaConEstructuraDesdeLaPlantilla();
+
+        entoncesLaCopiaTieneIdsPropiosYReferenciasASusNuevosPadres();
+    }
+
+    @Test
+    @DisplayName("Borra usando tanto el id de proyecto como el id de negocio")
+    void borraUsandoTantoElIdDeProyectoComoElIdDeNegocio() {
+        cuandoSeBorraElProyecto();
+
+        entoncesSeBorraConElFiltroDeNegocio();
+    }
+
+    // --- dado ---
+    private void dadoQueElNegocioTieneUnProyecto() {
+        when(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(NEGOCIO_ID.valor()))
+                .thenReturn(List.of(mapper.toEntity(ProyectoTestData.proyecto())));
+    }
+
+    private void dadoUnProyectoConDosBloquesYCamposSoloEnElPrimero() {
+        original = ProyectoTestData.proyecto();
         when(proyectos.findByIdAndNegocioId(PROYECTO_ID.valor(), NEGOCIO_ID.valor()))
                 .thenReturn(Optional.of(mapper.toEntity(original)));
         when(bloques.findAllByProyectoIdAndNegocioIdOrderByPosicionAscIdAsc(PROYECTO_ID.valor(), NEGOCIO_ID.valor()))
                 .thenReturn(original.getBloques().stream().map(mapper::toEntity).toList());
         when(campos.findAllByBloqueIdInAndNegocioIdOrderByPosicionAscIdAsc(any(), eq(NEGOCIO_ID.valor())))
                 .thenReturn(original.getBloques().getFirst().getCampos().stream().map(mapper::toEntity).toList());
-
-        var result = repository.findByIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID).orElseThrow();
-
-        assertThat(result.getBloques()).hasSize(2);
-        assertThat(result.getBloques().getFirst().getCampos()).hasSize(2);
-        assertThat(result.getBloques().get(1).getCampos()).isEmpty();
-        verify(campos).findAllByBloqueIdInAndNegocioIdOrderByPosicionAscIdAsc(
-                original.getBloques().stream().map(bloque -> bloque.getId().valor()).toList(), NEGOCIO_ID.valor());
     }
 
-    @Test
-    @DisplayName("No carga hijos cuando el proyecto no pertenece al negocio")
-    void findByIdShouldNotLoadForeignStructure() {
+    private void dadoQueElProyectoNoEsDelNegocio() {
         when(proyectos.findByIdAndNegocioId(PROYECTO_ID.valor(), NEGOCIO_ID.valor())).thenReturn(Optional.empty());
-
-        var result = repository.findByIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID);
-
-        assertThat(result).isEmpty();
-        verifyNoInteractions(bloques, campos);
     }
 
-    @Test
-    @DisplayName("Guardar un proyecto conserva campos y no vuelve a insertar sus hijos")
-    void saveShouldOnlyPersistProyecto() {
+    private void dadoQueGuardarDevuelveLaEntidadRecibida() {
         when(proyectos.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        var result = repository.save(ProyectoTestData.proyecto());
-
-        assertThat(result.getId()).isEqualTo(PROYECTO_ID);
-        assertThat(result.getPlantillaId()).isEqualTo(PLANTILLA_ID);
-        assertThat(result.getBloques()).hasSize(2);
-        verifyNoInteractions(bloques, campos);
     }
 
-    @Test
-    @DisplayName("Guarda una copia asignando ids propios y las referencias a sus nuevos padres")
-    void saveConEstructuraShouldAssignParentIds() {
-        givenGeneratedIds();
-
-        var result = repository.saveConEstructura(Proyecto.desdePlantilla(NEGOCIO_ID, ProyectoTestData.plantilla(), AHORA));
-
-        assertThat(result.getId()).isEqualTo(PROYECTO_ID);
-        assertThat(result.getBloques()).hasSize(2);
-        var bloque = result.getBloques().getFirst();
-        assertThat(bloque.getId()).isNotNull();
-        assertThat(bloque.getProyectoId()).isEqualTo(PROYECTO_ID);
-        assertThat(bloque.getCampos()).hasSize(2);
-        assertThat(bloque.getCampos().getFirst().getBloqueId()).isEqualTo(bloque.getId());
-        assertThat(bloque.getCampos().getFirst().getNegocioId()).isEqualTo(NEGOCIO_ID);
-    }
-
-    @Test
-    @DisplayName("Borra usando tanto el id de proyecto como el id de negocio")
-    void deleteShouldKeepNegocioFilter() {
-        repository.deleteByIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID);
-
-        verify(proyectos).deleteByIdAndNegocioId(PROYECTO_ID.valor(), NEGOCIO_ID.valor());
-    }
-
-    // --- arrange ---
-    private void givenGeneratedIds() {
+    private void dadoQueLaBaseGeneraLosIds() {
         when(proyectos.save(any())).thenAnswer(invocation -> {
             ProyectoEntity entity = invocation.getArgument(0);
             entity.setId(PROYECTO_ID.valor());
@@ -135,5 +140,68 @@ class ProyectoRepositoryImplTest {
             return entity;
         });
     }
-}
 
+    // --- cuando ---
+    private void cuandoSeListanLosProyectosDelNegocio() {
+        resumenes = repository.findAllByNegocioId(NEGOCIO_ID);
+    }
+
+    private void cuandoSeBuscaElProyectoPorIdYNegocio() {
+        encontrado = repository.findByIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID);
+    }
+
+    private void cuandoSeGuardaElProyecto() {
+        guardado = repository.save(ProyectoTestData.proyecto());
+    }
+
+    private void cuandoSeGuardaUnaCopiaConEstructuraDesdeLaPlantilla() {
+        guardado = repository.saveConEstructura(
+                Proyecto.desdePlantilla(NEGOCIO_ID, ProyectoTestData.plantilla(), AHORA));
+    }
+
+    private void cuandoSeBorraElProyecto() {
+        repository.deleteByIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID);
+    }
+
+    // --- entonces ---
+    private void entoncesSeListaElProyectoSinConsultarBloquesNiCampos() {
+        assertThat(resumenes).extracting("id").containsExactly(PROYECTO_ID);
+        verifyNoInteractions(bloques, campos);
+    }
+
+    private void entoncesSeCargaLaEstructuraEnLoteFiltrandoPorNegocio() {
+        Proyecto result = encontrado.orElseThrow();
+        assertThat(result.getBloques()).hasSize(2);
+        assertThat(result.getBloques().getFirst().getCampos()).hasSize(2);
+        assertThat(result.getBloques().get(1).getCampos()).isEmpty();
+        verify(campos).findAllByBloqueIdInAndNegocioIdOrderByPosicionAscIdAsc(
+                original.getBloques().stream().map(bloque -> bloque.getId().valor()).toList(), NEGOCIO_ID.valor());
+    }
+
+    private void entoncesNoSeEncuentraElProyectoNiSeCarganHijos() {
+        assertThat(encontrado).isEmpty();
+        verifyNoInteractions(bloques, campos);
+    }
+
+    private void entoncesSeGuardaSoloElProyectoSinTocarSusHijos() {
+        assertThat(guardado.getId()).isEqualTo(PROYECTO_ID);
+        assertThat(guardado.getPlantillaId()).isEqualTo(PLANTILLA_ID);
+        assertThat(guardado.getBloques()).hasSize(2);
+        verifyNoInteractions(bloques, campos);
+    }
+
+    private void entoncesLaCopiaTieneIdsPropiosYReferenciasASusNuevosPadres() {
+        assertThat(guardado.getId()).isEqualTo(PROYECTO_ID);
+        assertThat(guardado.getBloques()).hasSize(2);
+        var bloque = guardado.getBloques().getFirst();
+        assertThat(bloque.getId()).isNotNull();
+        assertThat(bloque.getProyectoId()).isEqualTo(PROYECTO_ID);
+        assertThat(bloque.getCampos()).hasSize(2);
+        assertThat(bloque.getCampos().getFirst().getBloqueId()).isEqualTo(bloque.getId());
+        assertThat(bloque.getCampos().getFirst().getNegocioId()).isEqualTo(NEGOCIO_ID);
+    }
+
+    private void entoncesSeBorraConElFiltroDeNegocio() {
+        verify(proyectos).deleteByIdAndNegocioId(PROYECTO_ID.valor(), NEGOCIO_ID.valor());
+    }
+}

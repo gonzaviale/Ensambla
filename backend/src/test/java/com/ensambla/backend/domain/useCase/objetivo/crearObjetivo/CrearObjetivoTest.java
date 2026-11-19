@@ -41,7 +41,7 @@ import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.TEXTO;
 import static com.ensambla.backend.support.ObjetivoTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -65,21 +65,262 @@ class CrearObjetivoTest {
     private final ControlPlanService controlPlanService = mock(ControlPlanService.class);
     private final ConsumoSamiRepository consumoSamiRepository = mock(ConsumoSamiRepository.class);
     private final RedaccionObjetivosIaPort redaccionObjetivosIaPort = mock(RedaccionObjetivosIaPort.class);
+    private ObjetivoItem respuesta;
+    private Throwable error;
 
     @BeforeEach
-    void givenNegocioDeLaSesion() {
+    void dadoNegocioDeLaSesion() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        givenRepositorioAsignaId();
+        dadoRepositorioAsignaId();
     }
 
     @Test
     @DisplayName("Guarda el objetivo en el negocio de la sesión con su texto, su meta y la fecha de hoy")
-    void executeShouldSaveObjetivoOfSessionNegocio() {
-        givenNegocioSinDatos();
+    void guardaElObjetivoEnElNegocioDeLaSesionConSuTextoSuMetaYLaFechaDeHoy() {
+        dadoNegocioSinDatos();
 
-        whenCrear(false, " " + TEXTO + " ");
+        cuandoCrear(false, " " + TEXTO + " ");
 
-        Objetivo guardado = thenObjetivoGuardado();
+        entoncesSeGuardaElObjetivoDelNegocioDeLaSesion();
+    }
+
+    @Test
+    @DisplayName("Responde con el objetivo guardado, ya con su id")
+    void respondeConElObjetivoGuardadoYaConSuId() {
+        dadoNegocioSinDatos();
+
+        cuandoCrear(false, TEXTO);
+
+        entoncesSeRespondeConElObjetivoGuardado();
+    }
+
+    @Test
+    @DisplayName("Sin datos con qué proponer guarda el objetivo sin mini-objetivos y no inventa ninguno")
+    void sinDatosConQueProponerGuardaElObjetivoSinMiniObjetivosYNoInventaNinguno() {
+        dadoNegocioSinDatos();
+
+        cuandoCrear(false, TEXTO);
+
+        entoncesNoSeGuardaNingunMiniObjetivo();
+    }
+
+    @Test
+    @DisplayName("Propone los 3 mini-objetivos de mayor aporte, uno por lugar, en la semana de hoy")
+    void proponeLos3MiniObjetivosDeMayorAporteUnoPorLugarEnLaSemanaDeHoy() {
+        dadoCuatroCandidatos();
+
+        cuandoCrear(false, TEXTO);
+
+        entoncesSeGuardanLosTresDeMayorAporteUnoPorLugar();
+    }
+
+    @Test
+    @DisplayName("Si el resultado de hoy ya llega a la meta, el objetivo nace alcanzado y sin mini-objetivos")
+    void siElResultadoDeHoyYaLlegaALaMetaElObjetivoNaceAlcanzadoYSinMiniObjetivos() {
+        dadoUnResultadoQueYaLlegaALaMeta();
+
+        cuandoCrear(false, TEXTO);
+
+        entoncesElObjetivoNaceAlcanzado();
+        entoncesNoSeGuardaNingunMiniObjetivo();
+    }
+
+    @Test
+    @DisplayName("Con la IA apagada no la consulta ni gasta el cupo")
+    void conLaIaApagadaNoLaConsultaNiGastaElCupo() {
+        dadoCandidatos(candidato());
+
+        cuandoCrear(false, TEXTO);
+
+        entoncesNoSeConsultaLaIaNiSeGastaElCupo();
+    }
+
+    @Test
+    @DisplayName("Con la IA prendida pero sin mini-objetivos que redactar no la consulta")
+    void conLaIaPrendidaPeroSinMiniObjetivosQueRedactarNoLaConsulta() {
+        dadoNegocioSinDatos();
+
+        cuandoCrear(true, TEXTO);
+
+        entoncesNoSeConsultaLaIaNiSeGastaElCupo();
+    }
+
+    @Test
+    @DisplayName("Con la IA prendida reserva el cupo, la consulta, registra lo gastado y guarda sus textos")
+    void conLaIaPrendidaReservaElCupoLaConsultaRegistraLoGastadoYGuardaSusTextos() {
+        dadoDosCandidatos();
+        dadoCupoDisponible();
+        dadoLaIaRedactaDosTextos();
+
+        cuandoCrear(true, TEXTO);
+
+        entoncesSeReservaElCupoYSeRegistraLoGastado();
+        entoncesSeGuardanLosTextosDeLaIa();
+    }
+
+    @Test
+    @DisplayName("A la IA le pasa los candidatos elegidos y ningún otro")
+    void aLaIaLePasaLosCandidatosElegidosYNingunOtro() {
+        dadoCandidatos(candidato());
+        dadoCupoDisponible();
+        dadoLaIaRedactaUnTexto();
+
+        cuandoCrear(true, TEXTO);
+
+        entoncesLaIaRecibeSoloLosCandidatosElegidos();
+    }
+
+    @Test
+    @DisplayName("Sin cupo diario guarda el texto de reserva y no consulta a la IA")
+    void sinCupoDiarioGuardaElTextoDeReservaYNoConsultaALaIa() {
+        dadoCandidatos(candidato());
+        dadoSinCupoDiario();
+
+        cuandoCrear(true, TEXTO);
+
+        entoncesNoSeConsultaLaIa();
+        entoncesSeGuardaUnMiniConElTextoDeReserva();
+    }
+
+    @Test
+    @DisplayName("Si el plan no incluye la IA guarda el texto de reserva sin gastar cupo")
+    void siElPlanNoIncluyeLaIaGuardaElTextoDeReservaSinGastarCupo() {
+        dadoCandidatos(candidato());
+        dadoUnPlanSinIa();
+
+        cuandoCrear(true, TEXTO);
+
+        entoncesNoSeGastaCupoNiSeConsultaLaIa();
+        entoncesSeGuardaUnMiniSinTextoDeIa();
+    }
+
+    @Test
+    @DisplayName("Si la IA falla guarda el texto de reserva y no registra consumo")
+    void siLaIaFallaGuardaElTextoDeReservaYNoRegistraConsumo() {
+        dadoCandidatos(candidato());
+        dadoCupoDisponible();
+        dadoUnaIaCaida();
+
+        cuandoCrear(true, TEXTO);
+
+        entoncesNoSeRegistraConsumo();
+        entoncesSeGuardaUnMiniConElTextoDeReserva();
+    }
+
+    @Test
+    @DisplayName("Si la IA devuelve menos textos que mini-objetivos guarda el texto de reserva de todos")
+    void siLaIaDevuelveMenosTextosQueMiniObjetivosGuardaElTextoDeReservaDeTodos() {
+        dadoDosCandidatos();
+        dadoCupoDisponible();
+        dadoLaIaRedactaUnTexto();
+
+        cuandoCrear(true, TEXTO);
+
+        entoncesSeGuardanDosMinisSinTextoDeIa();
+    }
+
+    @Test
+    @DisplayName("Propaga el error del repositorio sin convertirlo")
+    void propagaElErrorDelRepositorioSinConvertirlo() {
+        dadoNegocioSinDatos();
+        dadoUnRepositorioQueFalla();
+
+        cuandoCrearConError(false, TEXTO);
+
+        entoncesSePropagaElErrorDeLaBase();
+    }
+
+    // --- arrange ---
+    private void dadoRepositorioAsignaId() {
+        when(objetivoRepository.save(any())).thenAnswer(invocation -> {
+            Objetivo objetivo = invocation.getArgument(0);
+            objetivo.setId(OBJETIVO_ID);
+            return objetivo;
+        });
+        when(miniObjetivoRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    private void dadoNegocioSinDatos() {
+        when(propuestaMiniObjetivosService.candidatos(NEGOCIO_ID, HOY))
+                .thenReturn(new CandidatosDelNegocio(BigDecimal.ZERO, List.of()));
+    }
+
+    private void dadoCandidatos(CandidatoMiniObjetivo... candidatos) {
+        when(propuestaMiniObjetivosService.candidatos(NEGOCIO_ID, HOY))
+                .thenReturn(new CandidatosDelNegocio(BigDecimal.ZERO, List.of(candidatos)));
+    }
+
+    private void dadoDosCandidatos() {
+        dadoCandidatos(candidato(), candidatoDelNegocio(TipoMiniObjetivo.MEJORAR_MARGEN, "6180"));
+    }
+
+    private void dadoCuatroCandidatos() {
+        dadoCandidatos(candidato(), candidatoDelNegocio(TipoMiniObjetivo.MEJORAR_MARGEN, "6180"),
+                candidatoDelNegocio(TipoMiniObjetivo.VENTAS_SEMANALES, "5000"),
+                candidatoDelNegocio(TipoMiniObjetivo.RECORTAR_GASTO, "4000"));
+    }
+
+    private void dadoUnResultadoQueYaLlegaALaMeta() {
+        when(propuestaMiniObjetivosService.candidatos(NEGOCIO_ID, HOY))
+                .thenReturn(new CandidatosDelNegocio(META.add(BigDecimal.ONE), List.of(candidato())));
+    }
+
+    private void dadoCupoDisponible() {
+        when(consumoSamiRepository.reservar(NEGOCIO_ID, HOY, LIMITE_DIARIO, AHORA)).thenReturn(true);
+    }
+
+    private void dadoSinCupoDiario() {
+        when(consumoSamiRepository.reservar(NEGOCIO_ID, HOY, LIMITE_DIARIO, AHORA)).thenReturn(false);
+    }
+
+    private void dadoLaIaRedactaDosTextos() {
+        dadoLaIaRedacta(new TextoMiniObjetivo("Título 1", "Razón 1"), new TextoMiniObjetivo("Título 2", "Razón 2"));
+    }
+
+    private void dadoLaIaRedactaUnTexto() {
+        dadoLaIaRedacta(new TextoMiniObjetivo("Título", "Razón"));
+    }
+
+    private void dadoLaIaRedacta(TextoMiniObjetivo... textos) {
+        when(redaccionObjetivosIaPort.redactar(any())).thenReturn(new RedaccionObjetivosIa(List.of(textos), CONSUMO));
+    }
+
+    private void dadoUnPlanSinIa() {
+        doThrow(new RestriccionPlanException("IA_NO_HABILITADA", "Sin IA")).when(controlPlanService)
+                .exigirIa(NEGOCIO_ID);
+    }
+
+    private void dadoUnaIaCaida() {
+        when(redaccionObjetivosIaPort.redactar(any())).thenThrow(new IllegalStateException("IA caída"));
+    }
+
+    private void dadoUnRepositorioQueFalla() {
+        doThrow(new IllegalStateException("base caída")).when(objetivoRepository).save(any());
+    }
+
+    // --- act ---
+    private void cuandoCrear(boolean iaHabilitada, String texto) {
+        CrearObjetivo crearObjetivo = new ObjetivoUseCaseConfig().crearObjetivo(
+                negocioRepository,
+                objetivoRepository,
+                miniObjetivoRepository,
+                propuestaMiniObjetivosService,
+                controlPlanService,
+                consumoSamiRepository,
+                redaccionObjetivosIaPort,
+                new TransaccionDirecta(),
+                Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC),
+                new ObjetivosIaProperties(iaHabilitada, LIMITE_DIARIO, true, 6));
+        respuesta = crearObjetivo.execute(new CrearObjetivoRequest(USUARIO_ID, texto, META));
+    }
+
+    private void cuandoCrearConError(boolean iaHabilitada, String texto) {
+        error = catchThrowable(() -> cuandoCrear(iaHabilitada, texto));
+    }
+
+    // --- assert ---
+    private void entoncesSeGuardaElObjetivoDelNegocioDeLaSesion() {
+        Objetivo guardado = objetivoGuardado();
         assertThat(guardado.getNegocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(guardado.getTexto()).isEqualTo(TEXTO);
         assertThat(guardado.getMeta()).isEqualTo(META);
@@ -87,39 +328,19 @@ class CrearObjetivoTest {
         assertThat(guardado.estaAlcanzado()).isFalse();
     }
 
-    @Test
-    @DisplayName("Responde con el objetivo guardado, ya con su id")
-    void executeShouldReturnSavedObjetivo() {
-        givenNegocioSinDatos();
-
-        ObjetivoItem result = whenCrear(false, TEXTO);
-
-        assertThat(result.id()).isEqualTo(OBJETIVO_ID);
-        assertThat(result.texto()).isEqualTo(TEXTO);
-        assertThat(result.meta()).isEqualTo(META);
-        assertThat(result.creadoEn()).isEqualTo(AHORA);
+    private void entoncesSeRespondeConElObjetivoGuardado() {
+        assertThat(respuesta.id()).isEqualTo(OBJETIVO_ID);
+        assertThat(respuesta.texto()).isEqualTo(TEXTO);
+        assertThat(respuesta.meta()).isEqualTo(META);
+        assertThat(respuesta.creadoEn()).isEqualTo(AHORA);
     }
 
-    @Test
-    @DisplayName("Sin datos con qué proponer guarda el objetivo sin mini-objetivos y no inventa ninguno")
-    void executeShouldSaveObjetivoWithoutMiniObjetivosWhenThereIsNothingToPropose() {
-        givenNegocioSinDatos();
-
-        whenCrear(false, TEXTO);
-
+    private void entoncesNoSeGuardaNingunMiniObjetivo() {
         verifyNoInteractions(miniObjetivoRepository);
     }
 
-    @Test
-    @DisplayName("Propone los 3 mini-objetivos de mayor aporte, uno por lugar, en la semana de hoy")
-    void executeShouldSaveTheThreeBestMiniObjetivos() {
-        givenCandidatos(candidato(), candidatoDelNegocio(TipoMiniObjetivo.MEJORAR_MARGEN, "6180"),
-                candidatoDelNegocio(TipoMiniObjetivo.VENTAS_SEMANALES, "5000"),
-                candidatoDelNegocio(TipoMiniObjetivo.RECORTAR_GASTO, "4000"));
-
-        whenCrear(false, TEXTO);
-
-        List<MiniObjetivo> guardados = thenMiniObjetivosGuardados(3);
+    private void entoncesSeGuardanLosTresDeMayorAporteUnoPorLugar() {
+        List<MiniObjetivo> guardados = minisGuardados(3);
         assertThat(guardados).extracting(MiniObjetivo::getPosicion).containsExactly(1, 2, 3);
         assertThat(guardados).extracting(MiniObjetivo::getTipo).containsExactly(
                 TipoMiniObjetivo.SUBIR_PRECIO, TipoMiniObjetivo.MEJORAR_MARGEN, TipoMiniObjetivo.VENTAS_SEMANALES);
@@ -132,191 +353,74 @@ class CrearObjetivoTest {
         });
     }
 
-    @Test
-    @DisplayName("Si el resultado de hoy ya llega a la meta, el objetivo nace alcanzado y sin mini-objetivos")
-    void executeShouldSaveAReachedObjetivoWithoutMiniObjetivos() {
-        when(propuestaMiniObjetivosService.candidatos(NEGOCIO_ID, HOY))
-                .thenReturn(new CandidatosDelNegocio(META.add(BigDecimal.ONE), List.of(candidato())));
-
-        whenCrear(false, TEXTO);
-
-        Objetivo guardado = thenObjetivoGuardado();
+    private void entoncesElObjetivoNaceAlcanzado() {
+        Objetivo guardado = objetivoGuardado();
         assertThat(guardado.estaAlcanzado()).isTrue();
         assertThat(guardado.getAlcanzadoEn()).isEqualTo(AHORA);
-        verifyNoInteractions(miniObjetivoRepository);
     }
 
-    @Test
-    @DisplayName("Con la IA apagada no la consulta ni gasta el cupo")
-    void executeShouldNotConsultTheAiWhenItIsOff() {
-        givenCandidatos(candidato());
-
-        whenCrear(false, TEXTO);
-
+    private void entoncesNoSeConsultaLaIaNiSeGastaElCupo() {
         verifyNoInteractions(controlPlanService, consumoSamiRepository, redaccionObjetivosIaPort);
     }
 
-    @Test
-    @DisplayName("Con la IA prendida pero sin mini-objetivos que redactar no la consulta")
-    void executeShouldNotConsultTheAiWhenThereIsNothingToWrite() {
-        givenNegocioSinDatos();
-
-        whenCrear(true, TEXTO);
-
-        verifyNoInteractions(controlPlanService, consumoSamiRepository, redaccionObjetivosIaPort);
-    }
-
-    @Test
-    @DisplayName("Con la IA prendida reserva el cupo, la consulta, registra lo gastado y guarda sus textos")
-    void executeShouldSaveTheTextsWrittenByTheAi() {
-        givenCandidatos(candidato(), candidatoDelNegocio(TipoMiniObjetivo.MEJORAR_MARGEN, "6180"));
-        givenCupoDisponible();
-        when(redaccionObjetivosIaPort.redactar(any())).thenReturn(new RedaccionObjetivosIa(
-                List.of(new TextoMiniObjetivo("Título 1", "Razón 1"), new TextoMiniObjetivo("Título 2", "Razón 2")),
-                CONSUMO));
-
-        whenCrear(true, TEXTO);
-
+    private void entoncesSeReservaElCupoYSeRegistraLoGastado() {
         verify(controlPlanService).exigirIa(NEGOCIO_ID);
         verify(consumoSamiRepository).registrar(NEGOCIO_ID, HOY, CONSUMO, AHORA);
-        List<MiniObjetivo> guardados = thenMiniObjetivosGuardados(2);
+    }
+
+    private void entoncesSeGuardanLosTextosDeLaIa() {
+        List<MiniObjetivo> guardados = minisGuardados(2);
         assertThat(guardados).extracting(MiniObjetivo::getTitulo).containsExactly("Título 1", "Título 2");
         assertThat(guardados).extracting(MiniObjetivo::getJustificacion).containsExactly("Razón 1", "Razón 2");
         assertThat(guardados).allSatisfy(mini -> assertThat(mini.isTextoConIa()).isTrue());
     }
 
-    @Test
-    @DisplayName("A la IA le pasa los candidatos elegidos y ningún otro")
-    void executeShouldPassOnlyTheChosenCandidatesToTheAi() {
-        givenCandidatos(candidato());
-        givenCupoDisponible();
-        when(redaccionObjetivosIaPort.redactar(any())).thenReturn(new RedaccionObjetivosIa(
-                List.of(new TextoMiniObjetivo("Título", "Razón")), CONSUMO));
-
-        whenCrear(true, TEXTO);
-
+    private void entoncesLaIaRecibeSoloLosCandidatosElegidos() {
         ArgumentCaptor<List<CandidatoMiniObjetivo>> captor = ArgumentCaptor.captor();
         verify(redaccionObjetivosIaPort).redactar(captor.capture());
         assertThat(captor.getValue()).containsExactly(candidato());
     }
 
-    @Test
-    @DisplayName("Sin cupo diario guarda el texto de reserva y no consulta a la IA")
-    void executeShouldUseTheReserveTextWhenTheDailyLimitIsReached() {
-        givenCandidatos(candidato());
-        when(consumoSamiRepository.reservar(NEGOCIO_ID, HOY, LIMITE_DIARIO, AHORA)).thenReturn(false);
-
-        whenCrear(true, TEXTO);
-
+    private void entoncesNoSeConsultaLaIa() {
         verifyNoInteractions(redaccionObjetivosIaPort);
-        assertThat(thenMiniObjetivosGuardados(1)).singleElement().satisfies(mini -> {
+    }
+
+    private void entoncesNoSeGastaCupoNiSeConsultaLaIa() {
+        verifyNoInteractions(consumoSamiRepository, redaccionObjetivosIaPort);
+    }
+
+    private void entoncesNoSeRegistraConsumo() {
+        verify(consumoSamiRepository, never()).registrar(any(), any(), any(), any());
+    }
+
+    private void entoncesSeGuardaUnMiniConElTextoDeReserva() {
+        assertThat(minisGuardados(1)).singleElement().satisfies(mini -> {
             assertThat(mini.getTitulo()).isEqualTo(candidato().titulo());
             assertThat(mini.isTextoConIa()).isFalse();
         });
     }
 
-    @Test
-    @DisplayName("Si el plan no incluye la IA guarda el texto de reserva sin gastar cupo")
-    void executeShouldUseTheReserveTextWhenThePlanHasNoAi() {
-        givenCandidatos(candidato());
-        doThrow(new RestriccionPlanException("IA_NO_HABILITADA", "Sin IA")).when(controlPlanService)
-                .exigirIa(NEGOCIO_ID);
-
-        whenCrear(true, TEXTO);
-
-        verifyNoInteractions(consumoSamiRepository, redaccionObjetivosIaPort);
-        assertThat(thenMiniObjetivosGuardados(1)).singleElement()
+    private void entoncesSeGuardaUnMiniSinTextoDeIa() {
+        assertThat(minisGuardados(1)).singleElement()
                 .satisfies(mini -> assertThat(mini.isTextoConIa()).isFalse());
     }
 
-    @Test
-    @DisplayName("Si la IA falla guarda el texto de reserva y no registra consumo")
-    void executeShouldUseTheReserveTextWhenTheAiFails() {
-        givenCandidatos(candidato());
-        givenCupoDisponible();
-        when(redaccionObjetivosIaPort.redactar(any())).thenThrow(new IllegalStateException("IA caída"));
-
-        whenCrear(true, TEXTO);
-
-        verify(consumoSamiRepository, never()).registrar(any(), any(), any(), any());
-        assertThat(thenMiniObjetivosGuardados(1)).singleElement().satisfies(mini -> {
-            assertThat(mini.getTitulo()).isEqualTo(candidato().titulo());
-            assertThat(mini.isTextoConIa()).isFalse();
-        });
+    private void entoncesSeGuardanDosMinisSinTextoDeIa() {
+        assertThat(minisGuardados(2)).allSatisfy(mini -> assertThat(mini.isTextoConIa()).isFalse());
     }
 
-    @Test
-    @DisplayName("Si la IA devuelve menos textos que mini-objetivos guarda el texto de reserva de todos")
-    void executeShouldUseTheReserveTextWhenTheAiReturnsFewerTexts() {
-        givenCandidatos(candidato(), candidatoDelNegocio(TipoMiniObjetivo.MEJORAR_MARGEN, "6180"));
-        givenCupoDisponible();
-        when(redaccionObjetivosIaPort.redactar(any())).thenReturn(new RedaccionObjetivosIa(
-                List.of(new TextoMiniObjetivo("Título", "Razón")), CONSUMO));
-
-        whenCrear(true, TEXTO);
-
-        assertThat(thenMiniObjetivosGuardados(2)).allSatisfy(mini -> assertThat(mini.isTextoConIa()).isFalse());
+    private void entoncesSePropagaElErrorDeLaBase() {
+        assertThat(error).isInstanceOf(IllegalStateException.class).hasMessage("base caída");
     }
 
-    @Test
-    @DisplayName("Propaga el error del repositorio sin convertirlo")
-    void executeShouldPropagateRepositoryError() {
-        givenNegocioSinDatos();
-        doThrow(new IllegalStateException("base caída")).when(objetivoRepository).save(any());
-
-        assertThatThrownBy(() -> whenCrear(false, TEXTO))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("base caída");
-    }
-
-    // --- arrange ---
-    private void givenRepositorioAsignaId() {
-        when(objetivoRepository.save(any())).thenAnswer(invocation -> {
-            Objetivo objetivo = invocation.getArgument(0);
-            objetivo.setId(OBJETIVO_ID);
-            return objetivo;
-        });
-        when(miniObjetivoRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-    }
-
-    private void givenNegocioSinDatos() {
-        when(propuestaMiniObjetivosService.candidatos(NEGOCIO_ID, HOY))
-                .thenReturn(new CandidatosDelNegocio(BigDecimal.ZERO, List.of()));
-    }
-
-    private void givenCandidatos(CandidatoMiniObjetivo... candidatos) {
-        when(propuestaMiniObjetivosService.candidatos(NEGOCIO_ID, HOY))
-                .thenReturn(new CandidatosDelNegocio(BigDecimal.ZERO, List.of(candidatos)));
-    }
-
-    private void givenCupoDisponible() {
-        when(consumoSamiRepository.reservar(NEGOCIO_ID, HOY, LIMITE_DIARIO, AHORA)).thenReturn(true);
-    }
-
-    // --- act ---
-    private ObjetivoItem whenCrear(boolean iaHabilitada, String texto) {
-        CrearObjetivo crearObjetivo = new ObjetivoUseCaseConfig().crearObjetivo(
-                negocioRepository,
-                objetivoRepository,
-                miniObjetivoRepository,
-                propuestaMiniObjetivosService,
-                controlPlanService,
-                consumoSamiRepository,
-                redaccionObjetivosIaPort,
-                new TransaccionDirecta(),
-                Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC),
-                new ObjetivosIaProperties(iaHabilitada, LIMITE_DIARIO));
-        return crearObjetivo.execute(new CrearObjetivoRequest(USUARIO_ID, texto, META));
-    }
-
-    // --- assert ---
-    private Objetivo thenObjetivoGuardado() {
+    // --- helpers ---
+    private Objetivo objetivoGuardado() {
         ArgumentCaptor<Objetivo> captor = ArgumentCaptor.forClass(Objetivo.class);
         verify(objetivoRepository).save(captor.capture());
         return captor.getValue();
     }
 
-    private List<MiniObjetivo> thenMiniObjetivosGuardados(int cantidad) {
+    private List<MiniObjetivo> minisGuardados(int cantidad) {
         ArgumentCaptor<MiniObjetivo> captor = ArgumentCaptor.forClass(MiniObjetivo.class);
         verify(miniObjetivoRepository, times(cantidad)).save(captor.capture());
         return captor.getAllValues();

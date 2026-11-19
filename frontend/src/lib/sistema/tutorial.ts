@@ -189,42 +189,74 @@ export type ContextoDelTutorial = {
 export const esUsable = (bloque: Bloque) =>
   bloque.fields.length > 0 && !['entries', 'exits'].includes(bloque.type);
 
+type Cambio = Partial<EstadoDelTutorial>;
+
+/** Lo que una transición necesita mirar para decidir si el paso se cumplió. */
+type Situacion = {
+  estado: EstadoDelTutorial;
+  contexto: ContextoDelTutorial;
+  bloque?: Bloque;
+  bloques: Bloque[];
+  hayUnoNuevo: boolean;
+};
+
+type Transicion = (situacion: Situacion) => Cambio | null;
+
 const sistemaDe = (estado: EstadoDelTutorial, contexto: ContextoDelTutorial) =>
   contexto.sistemas.find((item) => item.id === (estado.sistemaId ?? contexto.activeId));
 
 const bloquesDe = (estado: EstadoDelTutorial, contexto: ContextoDelTutorial) =>
   allBlocks(sistemaDe(estado, contexto));
 
+const bloqueDePractica = (estado: EstadoDelTutorial, contexto: ContextoDelTutorial) =>
+  bloquesDe(estado, contexto).find((item) => item.id === estado.bloqueId);
+
+const ordenDe = (bloques: Bloque[]) => bloques.map((item) => item.id).join(',');
+
+const recordarLosSistemas = (_: EstadoDelTutorial, contexto: ContextoDelTutorial): Cambio => ({
+  sistemasAlElegir: contexto.sistemas.length,
+});
+
+/** Lo que cada paso guarda al entrar, para comparar después si la persona cambió algo. */
+const RECUERDOS: Partial<
+  Record<PasoDeTutorial, (estado: EstadoDelTutorial, contexto: ContextoDelTutorial) => Cambio>
+> = {
+  review: (_, contexto) => ({
+    anchos: Object.fromEntries(
+      allBlocks(contexto.taller?.borrador ?? undefined).map((item) => [item.id, item.width]),
+    ),
+  }),
+  rename: (estado, contexto) => ({ nombre: bloqueDePractica(estado, contexto)?.name ?? null }),
+  move: (estado, contexto) => ({ orden: ordenDe(bloquesDe(estado, contexto)) }),
+  openRecord: (estado, contexto) => ({
+    filasIds: bloqueDePractica(estado, contexto)?.rows.map((fila) => fila.id) ?? [],
+  }),
+  choose: recordarLosSistemas,
+  blankConfirm: recordarLosSistemas,
+  useTemplate: recordarLosSistemas,
+  create: recordarLosSistemas,
+};
+
 /** Entrar a un paso: guarda lo que hay que recordar para comparar después. */
 export function entrarEn(
   paso: PasoDeTutorial,
   estado: EstadoDelTutorial,
   contexto: ContextoDelTutorial,
-): Partial<EstadoDelTutorial> {
-  const bloque = bloquesDe(estado, contexto).find((item) => item.id === estado.bloqueId);
-  const patch: Partial<EstadoDelTutorial> = { paso };
-  if (paso === 'review') {
-    patch.anchos = Object.fromEntries(
-      allBlocks(contexto.taller?.borrador ?? undefined).map((item) => [item.id, item.width]),
-    );
-  }
-  if (paso === 'rename') patch.nombre = bloque?.name ?? null;
-  if (paso === 'move')
-    patch.orden = bloquesDe(estado, contexto)
-      .map((item) => item.id)
-      .join(',');
-  if (paso === 'openRecord') patch.filasIds = bloque?.rows.map((fila) => fila.id) ?? [];
-  if (['choose', 'blankConfirm', 'useTemplate', 'create'].includes(paso)) {
-    patch.sistemasAlElegir = contexto.sistemas.length;
-  }
-  return patch;
+): Cambio {
+  return { paso, ...RECUERDOS[paso]?.(estado, contexto) };
 }
 
+const irA = (
+  paso: PasoDeTutorial,
+  { estado, contexto }: Situacion,
+  extra: Cambio = {},
+): Cambio => ({
+  ...extra,
+  ...entrarEn(paso, estado, contexto),
+});
+
 // Al llegar al editor con un sistema nuevo: elegir con qué bloque practicar y en qué paso seguir.
-function entrarAlEditor(
-  estado: EstadoDelTutorial,
-  contexto: ContextoDelTutorial,
-): Partial<EstadoDelTutorial> {
+function entrarAlEditor({ estado, contexto }: Situacion): Cambio {
   const sistema = contexto.sistemas.find((item) => item.id === contexto.activeId);
   const usables = allBlocks(sistema).filter(esUsable);
   const parcial: EstadoDelTutorial = {
@@ -240,98 +272,118 @@ function entrarAlEditor(
   };
 }
 
+const llegoAlEditorConUnoNuevo = ({ contexto, hayUnoNuevo }: Situacion) =>
+  contexto.vista === 'editor' && Boolean(contexto.activeId) && hayUnoNuevo;
+
+/** Los caminos que se eligen yendo a una pantalla: con la ayuda de Sami o con una plantilla. */
+const CAMINOS: {
+  vista: VistaDelTutorial;
+  rama: EstadoDelTutorial['rama'];
+  paso: PasoDeTutorial;
+}[] = [
+  { vista: 'taller', rama: 'guide', paso: 'describe' },
+  { vista: 'plantillas', rama: 'template', paso: 'pickTemplate' },
+];
+
+function caminoElegido(situacion: Situacion): Cambio | null {
+  const camino = CAMINOS.find(({ vista }) => situacion.contexto.vista === vista);
+  return camino ? irA(camino.paso, situacion, { rama: camino.rama }) : null;
+}
+
+const elegirCamino: Transicion = (situacion) => {
+  const camino = caminoElegido(situacion);
+  if (camino) return camino;
+  return situacion.contexto.modal === 'blanco'
+    ? irA('blankConfirm', situacion, { rama: 'blank' })
+    : null;
+};
+
+// Cerró el cartel sin confirmar: vuelve a elegir camino.
+const cerroElLienzoSinConfirmar = ({ contexto, hayUnoNuevo }: Situacion) =>
+  contexto.modal !== 'blanco' && contexto.vista === 'inicio' && !hayUnoNuevo;
+
+const confirmarDesdeCero: Transicion = (situacion) => {
+  if (llegoAlEditorConUnoNuevo(situacion)) return entrarAlEditor(situacion);
+  const camino = caminoElegido(situacion);
+  if (camino) return camino;
+  return cerroElLienzoSinConfirmar(situacion) ? irA('choose', situacion, { rama: null }) : null;
+};
+
+const cerroLaPlantillaSinUsarla = ({ contexto, hayUnoNuevo }: Situacion) =>
+  contexto.modal !== 'plantilla' && contexto.vista === 'plantillas' && !hayUnoNuevo;
+
+const usarLaPlantilla: Transicion = (situacion) => {
+  if (llegoAlEditorConUnoNuevo(situacion)) return entrarAlEditor(situacion);
+  return cerroLaPlantillaSinUsarla(situacion) ? irA('pickTemplate', situacion) : null;
+};
+
+const samiYaPropuso = ({ contexto }: Situacion) =>
+  contexto.vista === 'taller' &&
+  Boolean(contexto.taller?.borrador) &&
+  !contexto.taller?.pensando &&
+  Boolean(contexto.taller?.hayMensajeDePersona);
+
+// En el celular no hay anchos: se pasa directo a crear.
+const pasoDespuesDeDescribir = ({ contexto }: Situacion): PasoDeTutorial =>
+  contexto.celular ? 'create' : 'review';
+
+function cambioAlgunAncho({ estado, contexto }: Situacion) {
+  const borrador = contexto.taller?.borrador;
+  if (!borrador) return false;
+  return (
+    Boolean(contexto.celular) ||
+    allBlocks(borrador).some((item) => estado.anchos?.[item.id] !== item.width)
+  );
+}
+
+function practicarConElPrimerBloque(situacion: Situacion): Cambio | null {
+  const primero = situacion.bloques.find(esUsable);
+  if (!primero) return null;
+  const estado = { ...situacion.estado, bloqueId: primero.id };
+  return { bloqueId: primero.id, ...entrarEn('customize', estado, situacion.contexto) };
+}
+
+const renombroElBloque = ({ bloque, estado }: Situacion) =>
+  Boolean(bloque?.name) && bloque?.name !== estado.nombre;
+
+const guardoUnRegistroPropio = ({ bloque, estado }: Situacion) =>
+  Boolean(bloque?.rows.some((fila) => !estado.filasIds.includes(fila.id) && !fila.__example));
+
+function llenarElRegistro(situacion: Situacion): Cambio | null {
+  if (guardoUnRegistroPropio(situacion)) return irA('done', situacion);
+  return situacion.contexto.modal !== 'registro' ? irA('openRecord', situacion) : null;
+}
+
+/** Qué hace pasar cada paso al siguiente. Es el `advance()` del mockup, más lo que allá resolvía cada clic. */
+const TRANSICIONES: Record<PasoDeTutorial, Transicion> = {
+  choose: elegirCamino,
+  blankConfirm: confirmarDesdeCero,
+  pickTemplate: (s) => (s.contexto.modal === 'plantilla' ? irA('useTemplate', s) : null),
+  useTemplate: usarLaPlantilla,
+  describe: (s) => (samiYaPropuso(s) ? irA(pasoDespuesDeDescribir(s), s) : null),
+  review: (s) => (cambioAlgunAncho(s) ? irA('create', s) : null),
+  create: (s) => (llegoAlEditorConUnoNuevo(s) ? entrarAlEditor(s) : null),
+  addBlock: practicarConElPrimerBloque,
+  customize: (s) => (s.contexto.selectedId === s.estado.bloqueId ? irA('rename', s) : null),
+  rename: (s) => (renombroElBloque(s) ? irA(s.bloques.length > 1 ? 'move' : 'addSecond', s) : null),
+  addSecond: (s) => (s.bloques.length > 1 ? irA('move', s) : null),
+  move: (s) => (ordenDe(s.bloques) !== s.estado.orden ? irA('openRecord', s) : null),
+  openRecord: (s) => (s.contexto.modal === 'registro' ? irA('fillRecord', s) : null),
+  fillRecord: llenarElRegistro,
+  done: () => null,
+};
+
 /**
  * Si la persona ya hizo lo que pide el paso, devuelve qué cambia (el paso siguiente y lo que hay que
- * recordar); si no, `null`. Es el `advance()` del mockup, más lo que allá resolvía cada clic.
+ * recordar); si no, `null`.
  */
-export function avanzar(
-  estado: EstadoDelTutorial,
-  contexto: ContextoDelTutorial,
-): Partial<EstadoDelTutorial> | null {
+export function avanzar(estado: EstadoDelTutorial, contexto: ContextoDelTutorial): Cambio | null {
   if (!estado.activo || !estado.paso) return null;
-  const bloque = bloquesDe(estado, contexto).find((item) => item.id === estado.bloqueId);
-  const bloques = bloquesDe(estado, contexto);
-  const hayUnoNuevo = contexto.sistemas.length > estado.sistemasAlElegir;
-
-  switch (estado.paso) {
-    case 'choose':
-      if (contexto.vista === 'taller')
-        return { rama: 'guide', ...entrarEn('describe', estado, contexto) };
-      if (contexto.vista === 'plantillas')
-        return { rama: 'template', ...entrarEn('pickTemplate', estado, contexto) };
-      if (contexto.modal === 'blanco')
-        return { rama: 'blank', ...entrarEn('blankConfirm', estado, contexto) };
-      return null;
-    case 'blankConfirm':
-      if (contexto.vista === 'editor' && contexto.activeId && hayUnoNuevo)
-        return entrarAlEditor(estado, contexto);
-      if (contexto.vista === 'taller')
-        return { rama: 'guide', ...entrarEn('describe', estado, contexto) };
-      if (contexto.vista === 'plantillas')
-        return { rama: 'template', ...entrarEn('pickTemplate', estado, contexto) };
-      // Cerró el cartel sin confirmar: vuelve a elegir camino.
-      if (contexto.modal !== 'blanco' && contexto.vista === 'inicio' && !hayUnoNuevo) {
-        return { rama: null, ...entrarEn('choose', estado, contexto) };
-      }
-      return null;
-    case 'pickTemplate':
-      return contexto.modal === 'plantilla' ? entrarEn('useTemplate', estado, contexto) : null;
-    case 'useTemplate':
-      if (contexto.vista === 'editor' && contexto.activeId && hayUnoNuevo)
-        return entrarAlEditor(estado, contexto);
-      if (contexto.modal !== 'plantilla' && contexto.vista === 'plantillas' && !hayUnoNuevo) {
-        return entrarEn('pickTemplate', estado, contexto);
-      }
-      return null;
-    case 'describe':
-      return contexto.vista === 'taller' &&
-        contexto.taller?.borrador &&
-        !contexto.taller.pensando &&
-        contexto.taller.hayMensajeDePersona
-        ? entrarEn(contexto.celular ? 'create' : 'review', estado, contexto)
-        : null;
-    case 'review':
-      // En el celular no hay anchos: se pasa directo a crear.
-      return contexto.taller?.borrador &&
-        (contexto.celular ||
-          allBlocks(contexto.taller.borrador).some(
-            (item) => estado.anchos?.[item.id] !== item.width,
-          ))
-        ? entrarEn('create', estado, contexto)
-        : null;
-    case 'create':
-      return contexto.vista === 'editor' && contexto.activeId && hayUnoNuevo
-        ? entrarAlEditor(estado, contexto)
-        : null;
-    case 'addBlock': {
-      const primero = bloques.find(esUsable);
-      return primero
-        ? {
-            bloqueId: primero.id,
-            ...entrarEn('customize', { ...estado, bloqueId: primero.id }, contexto),
-          }
-        : null;
-    }
-    case 'customize':
-      return contexto.selectedId === estado.bloqueId ? entrarEn('rename', estado, contexto) : null;
-    case 'rename':
-      return bloque?.name && bloque.name !== estado.nombre
-        ? entrarEn(bloques.length > 1 ? 'move' : 'addSecond', estado, contexto)
-        : null;
-    case 'addSecond':
-      return bloques.length > 1 ? entrarEn('move', estado, contexto) : null;
-    case 'move':
-      return bloques.map((item) => item.id).join(',') !== estado.orden
-        ? entrarEn('openRecord', estado, contexto)
-        : null;
-    case 'openRecord':
-      return contexto.modal === 'registro' ? entrarEn('fillRecord', estado, contexto) : null;
-    case 'fillRecord':
-      if (bloque?.rows.some((fila) => !estado.filasIds.includes(fila.id) && !fila.__example)) {
-        return entrarEn('done', estado, contexto);
-      }
-      return contexto.modal !== 'registro' ? entrarEn('openRecord', estado, contexto) : null;
-    case 'done':
-      return null;
-  }
+  return TRANSICIONES[estado.paso]({
+    estado,
+    contexto,
+    bloque: bloqueDePractica(estado, contexto),
+    bloques: bloquesDe(estado, contexto),
+    hayUnoNuevo: contexto.sistemas.length > estado.sistemasAlElegir,
+  });
 }

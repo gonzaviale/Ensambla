@@ -16,18 +16,17 @@ public class SwaggerConfig {
 
     @Bean
     OpenAPI openAPI() {
-        return new OpenAPI().components(new Components()
-                .addSecuritySchemes("csrf", new SecurityScheme()
-                        .type(SecurityScheme.Type.APIKEY)
-                        .in(SecurityScheme.In.HEADER)
-                        .name("X-CSRF-TOKEN"))
-                .addSecuritySchemes("sesion", new SecurityScheme()
-                        .type(SecurityScheme.Type.APIKEY)
-                        .in(SecurityScheme.In.COOKIE)
-                        .name(nombreCookie)))
+        return new OpenAPI()
+                .components(new Components()
+                        .addSecuritySchemes("csrf", claveEn(SecurityScheme.In.HEADER, "X-CSRF-TOKEN"))
+                        .addSecuritySchemes("sesion", claveEn(SecurityScheme.In.COOKIE, nombreCookie)))
                 .info(new Info()
-                .title("Ensambla API")
-                .description("Documentación REST del backend de Ensambla")
-                .version("0.0.1"));
+                        .title("Ensambla API")
+                        .description("Documentación REST del backend de Ensambla")
+                        .version("0.0.1"));
+    }
+
+    private static SecurityScheme claveEn(SecurityScheme.In lugar, String nombre) {
+        return new SecurityScheme().type(SecurityScheme.Type.APIKEY).in(lugar).name(nombre);
     }
 }

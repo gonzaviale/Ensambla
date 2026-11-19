@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.useCase.whatsapp.confirmarVerificacionWhatsapp;
 
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.whatsapp.TelefonoWhatsapp;
@@ -28,14 +29,35 @@ public class ConfirmarVerificacionWhatsapp {
     private final Clock clock;
 
     public ConfirmarVerificacionWhatsappResponse execute(ConfirmarVerificacionWhatsappRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
         OffsetDateTime ahora = OffsetDateTime.now(clock);
-        VerificacionWhatsapp verificacion = verificacionRepository.obtenerDelUsuario(request.usuarioId());
+        VerificacionWhatsapp verificacion = obtenerVerificacionDelUsuario(request.usuarioId());
         confirmar(verificacion, request.codigo(), ahora);
-        VinculoWhatsapp vinculo = transaccionPort.ejecutar(() -> vinculacionService.vincular(
-                request.usuarioId(), negocioId, new TelefonoWhatsapp(verificacion.getTelefono()), ahora));
+        VinculoWhatsapp vinculo = vincularEnTransaccion(request.usuarioId(), negocioId, verificacion, ahora);
+        darLaBienvenida(vinculo);
+        return ConfirmarVerificacionWhatsappResponse.de(vinculo, numeroDelBot());
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private VerificacionWhatsapp obtenerVerificacionDelUsuario(UsuarioId usuarioId) {
+        return verificacionRepository.obtenerDelUsuario(usuarioId);
+    }
+
+    private VinculoWhatsapp vincularEnTransaccion(UsuarioId usuarioId, NegocioId negocioId,
+                                                  VerificacionWhatsapp verificacion, OffsetDateTime ahora) {
+        TelefonoWhatsapp telefono = new TelefonoWhatsapp(verificacion.getTelefono());
+        return transaccionPort.ejecutar(() -> vinculacionService.vincular(usuarioId, negocioId, telefono, ahora));
+    }
+
+    private void darLaBienvenida(VinculoWhatsapp vinculo) {
         mensajeria.enviarTexto(vinculo.getTelefono(), TextosWhatsapp.BIENVENIDA);
-        return ConfirmarVerificacionWhatsappResponse.de(vinculo, mensajeria.numeroBot());
+    }
+
+    private String numeroDelBot() {
+        return mensajeria.numeroBot();
     }
 
     /** El intento se cuenta aunque el código sea incorrecto: por eso se guarda antes de avisar del error. */

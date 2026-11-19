@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.entity;
 
 import com.ensambla.backend.domain.model.objetivo.EstadoMiniObjetivo;
+import com.ensambla.backend.domain.model.objetivo.ModoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.TipoMiniObjetivo;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -41,8 +42,14 @@ public class MiniObjetivoEntity {
     @Column(nullable = false)
     private short posicion;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, updatable = false, columnDefinition = "text")
+    private ModoMiniObjetivo modo = ModoMiniObjetivo.MEDIDO;
+
+    /** Vacío si el modo es manual. */
+    @Enumerated(EnumType.STRING)
+    @Column(updatable = false, columnDefinition = "text")
     private TipoMiniObjetivo tipo;
 
     @Column(name = "registro_id", updatable = false)
@@ -51,16 +58,16 @@ public class MiniObjetivoEntity {
     @Column(columnDefinition = "text", updatable = false)
     private String referencia;
 
-    @Column(nullable = false)
+    /** La meta y los valores están vacíos si el modo es manual. */
     private BigDecimal meta;
 
-    @Column(name = "valor_inicial", nullable = false, updatable = false)
+    @Column(name = "valor_inicial", updatable = false)
     private BigDecimal valorInicial;
 
-    @Column(name = "valor_actual", nullable = false)
+    @Column(name = "valor_actual")
     private BigDecimal valorActual;
 
-    @Column(name = "aporte_estimado", nullable = false, updatable = false)
+    @Column(name = "aporte_estimado", updatable = false)
     private BigDecimal aporteEstimado;
 
     @Enumerated(EnumType.STRING)

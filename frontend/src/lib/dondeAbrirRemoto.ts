@@ -7,6 +7,7 @@ import type {
   FactorClave,
   Filtros,
   Punto,
+  Rubro,
   TipoDePunto,
   ZonaPuntuada,
 } from '@/lib/dondeAbrir';
@@ -50,7 +51,17 @@ const COINCIDENCIA: Record<DondeAbrirResponse['ranking'][number]['coincidencia']
 const jurisdiccion = (valor: 'CABA' | 'La Matanza') =>
   valor === 'CABA' ? ('caba' as const) : ('la-matanza' as const);
 
-function datosDeZona(item: DondeAbrirResponse['ranking'][number], filtros: Filtros): DatosDeZona {
+type ZonaRemota = DondeAbrirResponse['ranking'][number];
+type DescartadaRemota = DondeAbrirResponse['descartadas'][number];
+
+const competenciaSoloDe = (rubro: Rubro, valor: number): DatosDeZona['competencia'] => ({
+  almacen: 0,
+  papeleria: 0,
+  kiosco: 0,
+  [rubro]: valor,
+});
+
+function datosDeZona(item: ZonaRemota, filtros: Filtros): DatosDeZona {
   const valor = (factor: keyof typeof FACTOR) =>
     item.aportes.find((aporte) => aporte.factor === factor)?.valor ?? 0;
   return {
@@ -70,11 +81,7 @@ function datosDeZona(item: DondeAbrirResponse['ranking'][number], filtros: Filtr
     demanda: valor('DEMANDA_ENSAMBLA'),
     poder: valor('PERFIL_SOCIOECONOMICO'),
     alquiler: valor('ALQUILER'),
-    competencia: {
-      almacen: filtros.rubro === 'almacen' ? valor('COMPETENCIA') : 0,
-      papeleria: filtros.rubro === 'papeleria' ? valor('COMPETENCIA') : 0,
-      kiosco: filtros.rubro === 'kiosco' ? valor('COMPETENCIA') : 0,
-    },
+    competencia: competenciaSoloDe(filtros.rubro, valor('COMPETENCIA')),
   };
 }
 
@@ -104,45 +111,50 @@ export type ExploracionRemota = Exploracion & {
   puntoElegidoId: string | null;
 };
 
+const zonaPuntuada = (item: ZonaRemota, filtros: Filtros): ZonaPuntuada => ({
+  zona: datosDeZona(item, filtros),
+  distanciaKm: item.distanciaKm ?? 0,
+  puntaje: item.puntaje,
+  coincidencia: COINCIDENCIA[item.coincidencia],
+  aportes: item.aportes.map(aporte),
+  porQue: item.porQue,
+  riesgos: item.riesgos,
+  puntos: item.puntos.map(punto),
+});
+
+/** De una zona descartada solo se conoce dónde queda: el resto de sus datos no se calculó. */
+const zonaSinMedir = (item: DescartadaRemota): DatosDeZona => ({
+  id: item.id,
+  jurisdiccion: jurisdiccion(item.jurisdiccion),
+  nombre: item.nombre,
+  latitud: item.latitud,
+  longitud: item.longitud,
+  densidad: 0,
+  movimiento: 0,
+  escuelas: 0,
+  oficinas: 0,
+  transporte: 0,
+  parques: 0,
+  salud: 0,
+  complementarios: 0,
+  poder: 0,
+  alquiler: 0,
+  competencia: { almacen: 0, papeleria: 0, kiosco: 0 },
+});
+
+const zonaDescartada = (item: DescartadaRemota): Descartada => ({
+  zona: zonaSinMedir(item),
+  distanciaKm: item.distanciaKm ?? 0,
+  motivos: item.motivos,
+});
+
 export function adaptarDondeAbrir(
   respuesta: DondeAbrirResponse,
   filtros: Filtros,
 ): ExploracionRemota {
-  const ranking: ZonaPuntuada[] = respuesta.ranking.map((item) => ({
-    zona: datosDeZona(item, filtros),
-    distanciaKm: item.distanciaKm ?? 0,
-    puntaje: item.puntaje,
-    coincidencia: COINCIDENCIA[item.coincidencia],
-    aportes: item.aportes.map(aporte),
-    porQue: item.porQue,
-    riesgos: item.riesgos,
-    puntos: item.puntos.map(punto),
-  }));
-  const descartadas: Descartada[] = respuesta.descartadas.map((item) => ({
-    zona: {
-      id: item.id,
-      jurisdiccion: jurisdiccion(item.jurisdiccion),
-      nombre: item.nombre,
-      latitud: item.latitud,
-      longitud: item.longitud,
-      densidad: 0,
-      movimiento: 0,
-      escuelas: 0,
-      oficinas: 0,
-      transporte: 0,
-      parques: 0,
-      salud: 0,
-      complementarios: 0,
-      poder: 0,
-      alquiler: 0,
-      competencia: { almacen: 0, papeleria: 0, kiosco: 0 },
-    },
-    distanciaKm: item.distanciaKm ?? 0,
-    motivos: item.motivos,
-  }));
   return {
-    ranking,
-    descartadas,
+    ranking: respuesta.ranking.map((item) => zonaPuntuada(item, filtros)),
+    descartadas: respuesta.descartadas.map(zonaDescartada),
     evaluadas: respuesta.evaluadas,
     negocioActual: respuesta.negocioActual,
     avisos: respuesta.avisos,

@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static com.ensambla.backend.domain.model.objetivo.FormatoObjetivo.numero;
 import static com.ensambla.backend.domain.model.objetivo.FormatoObjetivo.pesos;
 
 /**
@@ -31,34 +30,45 @@ public final class TextoResumen {
     }
 
     /**
+     * Lo que la persona respondió de sus mini-objetivos manuales y lo que quedó sin responder; vacío si no había
+     * ninguno. Lo que no respondió no se renueva hasta que responda.
+     */
+    public static String manuales(List<ManualCierre> manuales) {
+        if (manuales.isEmpty()) {
+            return "";
+        }
+        List<String> frases = new ArrayList<>();
+        long hechas = contar(manuales, HizoManual.SI);
+        long enParte = contar(manuales, HizoManual.EN_PARTE);
+        long noHechas = contar(manuales, HizoManual.NO);
+        if (hechas + enParte + noHechas > 0) {
+            frases.add("De tus acciones respondiste: " + hechas + " hechas, " + enParte + " en parte y " + noHechas
+                    + " sin hacer.");
+        }
+        manuales.stream()
+                .filter(manual -> !manual.respondido())
+                .forEach(manual -> frases.add("No me contaste cómo te fue con «" + manual.titulo()
+                        + "»: queda igual hasta que respondas."));
+        return String.join(" ", frases);
+    }
+
+    private static long contar(List<ManualCierre> manuales, HizoManual hizo) {
+        return manuales.stream().filter(manual -> manual.hizo() == hizo).count();
+    }
+
+    /**
      * Por qué el cierre cambió {@code anterior} por otro mini-objetivo, {@code nuevo}. El que sólo sube su meta usa
      * {@link #metaSubida}.
      */
     public static String motivo(
             MotivoReajuste motivo, MiniObjetivo anterior, BigDecimal valorAlCierre, MiniObjetivo nuevo) {
-        return switch (motivo) {
-            case LOGRADO -> logrado(anterior, valorAlCierre, nuevo);
-            case QUITADO -> "Quitaste «" + anterior.getTitulo() + "». En su lugar te proponemos «"
-                    + nuevo.getTitulo() + "».";
-            case PRODUCTO_FUERA -> "«" + anterior.getReferencia() + "» ya no está en tu cuaderno o le falta el precio "
-                    + "o el costo. Lo cambiamos por «" + nuevo.getTitulo() + "».";
-            case DECISION_SIN_EFECTO -> "Aplicaste un aviso para «" + anterior.getTitulo() + "» y las ventas no "
-                    + "subieron. Probamos con «" + nuevo.getTitulo() + "».";
-            case SIN_AVANCE -> "Hace 2 semanas que «" + anterior.getTitulo() + "» no avanza. Lo cambiamos por «"
-                    + nuevo.getTitulo() + "».";
-        };
+        return motivo.explicar(anterior, valorAlCierre, nuevo);
     }
 
     /** La justificación del mini-objetivo que sigue a uno logrado, con su meta nueva. */
     public static String metaSubida(TipoMiniObjetivo tipo, BigDecimal valorAlCierre, BigDecimal nuevaMeta) {
-        return "Lo lograste: llegaste a " + valor(tipo, valorAlCierre) + ". Ahora el objetivo es "
-                + valor(tipo, nuevaMeta) + ".";
-    }
-
-    /** Uno logrado que ya no puede pedir más (el margen llegó a su tope) deja su lugar a otro. */
-    private static String logrado(MiniObjetivo anterior, BigDecimal valorAlCierre, MiniObjetivo nuevo) {
-        return "Lo lograste: llegaste a " + valor(anterior.getTipo(), valorAlCierre) + ". Como ya no se puede pedir "
-                + "más, ahora probamos con «" + nuevo.getTitulo() + "».";
+        return "Lo lograste: llegaste a " + tipo.decir(valorAlCierre) + ". Ahora el objetivo es "
+                + tipo.decir(nuevaMeta) + ".";
     }
 
     private static String cambio(BigDecimal resultado, Optional<BigDecimal> anterior) {
@@ -95,6 +105,7 @@ public final class TextoResumen {
         }
     }
 
+    /** Sin meta en pesos ({@code meta} vacía) no hay cuánto falta: sólo se sigue con los mini-objetivos. */
     private static String cierre(BigDecimal resultado, BigDecimal meta, boolean alcanzado, boolean sinVentas) {
         if (alcanzado) {
             return "¡Llegaste a tu meta! Podés subirla para seguir creciendo.";
@@ -102,16 +113,9 @@ public final class TextoResumen {
         if (sinVentas) {
             return "No hubo ventas esta semana, así que no cambiamos tus mini-objetivos.";
         }
+        if (meta == null) {
+            return "Seguí con tus mini-objetivos de la semana que viene.";
+        }
         return "Te faltan " + pesos(meta.subtract(resultado)) + " para tu meta.";
-    }
-
-    /** El valor de la métrica como lo dice el negocio: pesos, unidades o puntos de margen. */
-    private static String valor(TipoMiniObjetivo tipo, BigDecimal valor) {
-        return switch (tipo) {
-            case SUBIR_PRECIO, VENTAS_SEMANALES -> pesos(valor) + " por semana";
-            case RECORTAR_GASTO -> pesos(valor) + " en el mes";
-            case MOVER_PARADO, PONER_A_LA_VISTA -> numero(valor) + " por semana";
-            case MEJORAR_MARGEN -> numero(valor) + " %";
-        };
     }
 }

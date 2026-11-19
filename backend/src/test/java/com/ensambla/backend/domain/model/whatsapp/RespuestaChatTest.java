@@ -2,41 +2,52 @@ package com.ensambla.backend.domain.model.whatsapp;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RespuestaChatTest {
 
-    @Test
+    @ParameterizedTest
+    @ValueSource(strings = {"SÍ", " si ", "Dale!", "ok"})
     @DisplayName("Reconoce un sí con o sin tilde, en mayúsculas o con signos")
-    void deShouldRecognizeYes() {
-        assertThat(RespuestaChat.de("SÍ")).isEqualTo(RespuestaChat.SI);
-        assertThat(RespuestaChat.de(" si ")).isEqualTo(RespuestaChat.SI);
-        assertThat(RespuestaChat.de("Dale!")).isEqualTo(RespuestaChat.SI);
-        assertThat(RespuestaChat.de("ok")).isEqualTo(RespuestaChat.SI);
+    void reconoceUnSi(String escrito) {
+        entoncesLaRespuestaA(escrito, RespuestaChat.SI);
     }
 
-    @Test
+    @ParameterizedTest
+    @ValueSource(strings = {"NO", "cancelar", "Descartar."})
     @DisplayName("Reconoce un no, cancelar o descartar")
-    void deShouldRecognizeNo() {
-        assertThat(RespuestaChat.de("NO")).isEqualTo(RespuestaChat.NO);
-        assertThat(RespuestaChat.de("cancelar")).isEqualTo(RespuestaChat.NO);
-        assertThat(RespuestaChat.de("Descartar.")).isEqualTo(RespuestaChat.NO);
+    void reconoceUnNo(String escrito) {
+        entoncesLaRespuestaA(escrito, RespuestaChat.NO);
     }
 
-    @Test
+    @ParameterizedTest
+    @ValueSource(strings = {"2", " 12 "})
     @DisplayName("Reconoce un número de una o dos cifras como la elección de una opción")
-    void deShouldRecognizeNumber() {
-        assertThat(RespuestaChat.de("2")).isEqualTo(RespuestaChat.NUMERO);
-        assertThat(RespuestaChat.de(" 12 ")).isEqualTo(RespuestaChat.NUMERO);
-        assertThat(RespuestaChat.numero(" 12 ")).isEqualTo(12);
+    void reconoceUnNumeroComoEleccion(String escrito) {
+        entoncesLaRespuestaA(escrito, RespuestaChat.NUMERO);
     }
 
     @Test
+    @DisplayName("Lee el número elegido sin los espacios")
+    void leeElNumeroElegidoSinLosEspacios() {
+        entoncesElNumeroElegidoEn(" 12 ", 12);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"gasté 5000 en harina", "5000", ""})
     @DisplayName("Cualquier otra cosa es un mensaje nuevo, incluso un número largo")
-    void deShouldTreatAnythingElseAsNewMessage() {
-        assertThat(RespuestaChat.de("gasté 5000 en harina")).isEqualTo(RespuestaChat.OTRO);
-        assertThat(RespuestaChat.de("5000")).isEqualTo(RespuestaChat.OTRO);
-        assertThat(RespuestaChat.de("")).isEqualTo(RespuestaChat.OTRO);
+    void cualquierOtraCosaEsUnMensajeNuevo(String escrito) {
+        entoncesLaRespuestaA(escrito, RespuestaChat.OTRO);
+    }
+
+    private static void entoncesLaRespuestaA(String escrito, RespuestaChat esperada) {
+        assertThat(RespuestaChat.de(escrito)).isEqualTo(esperada);
+    }
+
+    private static void entoncesElNumeroElegidoEn(String escrito, int numero) {
+        assertThat(RespuestaChat.numero(escrito)).isEqualTo(numero);
     }
 }

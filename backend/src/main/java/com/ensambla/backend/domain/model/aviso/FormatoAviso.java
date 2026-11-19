@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.model.aviso;
 
+import com.ensambla.backend.domain.model.common.ValorDeRegistro;
 import com.ensambla.backend.domain.model.registro.Registro;
 
 import java.math.BigDecimal;
@@ -16,6 +17,7 @@ final class FormatoAviso {
     static final String CLAVE_PRECIO = "price";
     static final String CLAVE_COSTO = "cost";
     static final String CLAVE_CANTIDAD = "quantity";
+    static final String SIN_NOMBRE = "Un producto sin nombre";
 
     private static final BigDecimal DIEZ = BigDecimal.TEN;
     private static final BigDecimal CIEN = BigDecimal.valueOf(100);
@@ -25,12 +27,11 @@ final class FormatoAviso {
     }
 
     static BigDecimal numero(Object valor) {
-        return valor instanceof Number numero ? new BigDecimal(numero.toString()) : null;
+        return ValorDeRegistro.de(valor).comoNumero();
     }
 
     static String nombreDe(BloqueInventario inventario, Registro registro) {
-        Object nombre = inventario.valorDe(registro, CLAVE_NOMBRE);
-        return nombre instanceof String texto && !texto.isBlank() ? texto.trim() : "Un producto sin nombre";
+        return ValorDeRegistro.de(inventario.valorDe(registro, CLAVE_NOMBRE)).comoTextoO(SIN_NOMBRE);
     }
 
     /** El valor redondeado a la decena más cercana ($1.147 queda en $1.150), como se ponen los precios en un cartel. */

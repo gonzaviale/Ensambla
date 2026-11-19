@@ -39,7 +39,13 @@ public class ObjetivoPresentationMapper {
     }
 
     public ObjetivoResponse toResponse(ObjetivoItem objetivo) {
-        return new ObjetivoResponse(objetivo.id(), objetivo.texto(), objetivo.meta(), objetivo.creadoEn());
+        return new ObjetivoResponse(
+                objetivo.id(),
+                objetivo.texto(),
+                objetivo.tipo(),
+                objetivo.meta(),
+                objetivo.armadoConSami(),
+                objetivo.creadoEn());
     }
 
     public ObtenerPasosRequest toObtenerPasosRequest(UsuarioId usuarioId) {

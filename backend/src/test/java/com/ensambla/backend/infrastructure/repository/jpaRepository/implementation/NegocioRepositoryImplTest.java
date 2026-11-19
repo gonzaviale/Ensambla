@@ -26,75 +26,142 @@ class NegocioRepositoryImplTest {
     private final NegocioRepositoryImpl negocioRepository = new NegocioRepositoryImpl(
             negocioJpaRepository, new NegocioRepositoryMapper());
 
+    private static final UUID ZONA_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
+
+    private Negocio guardado;
+    private Optional<NegocioId> idEncontrado;
+    private Optional<String> emailEncontrado;
+    private List<NegocioId> ids;
+    private Optional<ZonaId> zonaEncontrada;
+
     @Test
     @DisplayName("Devuelve el negocio con el id generado por persistencia")
-    void saveShouldReturnPersistedNegocio() {
+    void devuelveElNegocioConElIdGeneradoPorPersistencia() {
+        dadoQueGuardarDevuelveElNegocioMiNegocio();
+
+        cuandoSeGuardaUnNegocioNuevo();
+
+        entoncesSeDevuelveElNegocioPersistidoConSuIdYSuDuenio();
+    }
+
+    @Test
+    @DisplayName("Resuelve el id del negocio del dueño autenticado")
+    void resuelveElIdDelNegocioDelDuenioAutenticado() {
+        when(negocioJpaRepository.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(USUARIO_ID.valor()))
+                .thenReturn(Optional.of(NegocioEntity.builder().id(NEGOCIO_ID.valor()).build()));
+
+        cuandoSeBuscaElNegocioDelDuenio();
+
+        entoncesSeEncuentraElIdDelNegocio();
+    }
+
+    @Test
+    @DisplayName("Resuelve el email del dueño del negocio")
+    void resuelveElEmailDelDuenioDelNegocio() {
+        when(negocioJpaRepository.findEmailDuenioById(NEGOCIO_ID.valor()))
+                .thenReturn(Optional.of("dueño@example.com"));
+
+        cuandoSeBuscaElEmailDelDuenio();
+
+        entoncesSeEncuentraElEmail("dueño@example.com");
+    }
+
+    @Test
+    @DisplayName("Lista los ids de todos los negocios")
+    void listaLosIdsDeTodosLosNegocios() {
+        when(negocioJpaRepository.findAllIds()).thenReturn(List.of(NEGOCIO_ID.valor()));
+
+        cuandoSeListanLosIdsDeLosNegocios();
+
+        entoncesSeListaElIdDelNegocio();
+    }
+
+    @Test
+    @DisplayName("Resuelve la zona del negocio")
+    void resuelveLaZonaDelNegocio() {
+        when(negocioJpaRepository.findById(NEGOCIO_ID.valor()))
+                .thenReturn(Optional.of(NegocioEntity.builder().id(NEGOCIO_ID.valor()).zonaId(ZONA_ID).build()));
+
+        cuandoSeBuscaLaZonaDelNegocio();
+
+        entoncesSeEncuentraLaZona();
+    }
+
+    @Test
+    @DisplayName("Un negocio sin zona no tiene id de zona")
+    void unNegocioSinZonaNoTieneIdDeZona() {
+        when(negocioJpaRepository.findById(NEGOCIO_ID.valor()))
+                .thenReturn(Optional.of(NegocioEntity.builder().id(NEGOCIO_ID.valor()).build()));
+
+        cuandoSeBuscaLaZonaDelNegocio();
+
+        entoncesNoSeEncuentraNingunaZona();
+    }
+
+    @Test
+    @DisplayName("Un negocio inexistente no tiene id de zona")
+    void unNegocioInexistenteNoTieneIdDeZona() {
+        when(negocioJpaRepository.findById(NEGOCIO_ID.valor())).thenReturn(Optional.empty());
+
+        cuandoSeBuscaLaZonaDelNegocio();
+
+        entoncesNoSeEncuentraNingunaZona();
+    }
+
+    // --- dado ---
+    private void dadoQueGuardarDevuelveElNegocioMiNegocio() {
         when(negocioJpaRepository.saveAndFlush(any())).thenReturn(NegocioEntity.builder()
                 .id(USUARIO_ID.valor())
                 .nombre("Mi negocio")
                 .duenioId(USUARIO_ID.valor())
                 .build());
-
-        Negocio result = negocioRepository.save(Negocio.builder().nombre("Mi negocio").build());
-
-        assertThat(result.getId()).isEqualTo(NegocioId.de(USUARIO_ID.valor()));
-        assertThat(result.getNombre()).isEqualTo("Mi negocio");
-        assertThat(result.getDuenioId()).isEqualTo(USUARIO_ID);
-    }
-    
-    @Test
-    @DisplayName("Resuelve el id del negocio del dueño autenticado")
-    void findIdByDuenioIdShouldMapId() {
-        var jpa = mock(INegocioJpaRepository.class);
-        var mapper = new NegocioRepositoryMapper();
-        when(jpa.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(USUARIO_ID.valor()))
-                .thenReturn(Optional.of(NegocioEntity.builder().id(NEGOCIO_ID.valor()).build()));
-
-        var result = new NegocioRepositoryImpl(jpa, mapper).findIdByDuenioId(USUARIO_ID);
-
-        assertThat(result).contains(NEGOCIO_ID);
     }
 
-    @Test
-    @DisplayName("Resuelve el email del dueño del negocio")
-    void findEmailDuenioByIdShouldDelegateToJpa() {
-        when(negocioJpaRepository.findEmailDuenioById(NEGOCIO_ID.valor())).thenReturn(Optional.of("dueño@example.com"));
-
-        assertThat(negocioRepository.findEmailDuenioById(NEGOCIO_ID)).contains("dueño@example.com");
+    // --- cuando ---
+    private void cuandoSeGuardaUnNegocioNuevo() {
+        guardado = negocioRepository.save(Negocio.builder().nombre("Mi negocio").build());
     }
 
-    @Test
-    @DisplayName("Lista los ids de todos los negocios")
-    void findAllIdsShouldDelegateToJpa() {
-        when(negocioJpaRepository.findAllIds()).thenReturn(List.of(NEGOCIO_ID.valor()));
-
-        assertThat(negocioRepository.findAllIds()).containsExactly(NEGOCIO_ID);
+    private void cuandoSeBuscaElNegocioDelDuenio() {
+        idEncontrado = negocioRepository.findIdByDuenioId(USUARIO_ID);
     }
 
-    @Test
-    @DisplayName("Resuelve la zona del negocio")
-    void findZonaIdByIdShouldMapZonaId() {
-        UUID zonaId = UUID.randomUUID();
-        when(negocioJpaRepository.findById(NEGOCIO_ID.valor()))
-                .thenReturn(Optional.of(NegocioEntity.builder().id(NEGOCIO_ID.valor()).zonaId(zonaId).build()));
-
-        assertThat(negocioRepository.findZonaIdById(NEGOCIO_ID)).contains(ZonaId.de(zonaId));
+    private void cuandoSeBuscaElEmailDelDuenio() {
+        emailEncontrado = negocioRepository.findEmailDuenioById(NEGOCIO_ID);
     }
 
-    @Test
-    @DisplayName("Un negocio sin zona no tiene id de zona")
-    void findZonaIdByIdShouldReturnEmptyWhenNegocioHasNoZona() {
-        when(negocioJpaRepository.findById(NEGOCIO_ID.valor()))
-                .thenReturn(Optional.of(NegocioEntity.builder().id(NEGOCIO_ID.valor()).build()));
-
-        assertThat(negocioRepository.findZonaIdById(NEGOCIO_ID)).isEmpty();
+    private void cuandoSeListanLosIdsDeLosNegocios() {
+        ids = negocioRepository.findAllIds();
     }
 
-    @Test
-    @DisplayName("Un negocio inexistente no tiene id de zona")
-    void findZonaIdByIdShouldReturnEmptyWhenNegocioDoesNotExist() {
-        when(negocioJpaRepository.findById(NEGOCIO_ID.valor())).thenReturn(Optional.empty());
+    private void cuandoSeBuscaLaZonaDelNegocio() {
+        zonaEncontrada = negocioRepository.findZonaIdById(NEGOCIO_ID);
+    }
 
-        assertThat(negocioRepository.findZonaIdById(NEGOCIO_ID)).isEmpty();
+    // --- entonces ---
+    private void entoncesSeDevuelveElNegocioPersistidoConSuIdYSuDuenio() {
+        assertThat(guardado.getId()).isEqualTo(NegocioId.de(USUARIO_ID.valor()));
+        assertThat(guardado.getNombre()).isEqualTo("Mi negocio");
+        assertThat(guardado.getDuenioId()).isEqualTo(USUARIO_ID);
+    }
+
+    private void entoncesSeEncuentraElIdDelNegocio() {
+        assertThat(idEncontrado).contains(NEGOCIO_ID);
+    }
+
+    private void entoncesSeEncuentraElEmail(String esperado) {
+        assertThat(emailEncontrado).contains(esperado);
+    }
+
+    private void entoncesSeListaElIdDelNegocio() {
+        assertThat(ids).containsExactly(NEGOCIO_ID);
+    }
+
+    private void entoncesSeEncuentraLaZona() {
+        assertThat(zonaEncontrada).contains(ZonaId.de(ZONA_ID));
+    }
+
+    private void entoncesNoSeEncuentraNingunaZona() {
+        assertThat(zonaEncontrada).isEmpty();
     }
 }

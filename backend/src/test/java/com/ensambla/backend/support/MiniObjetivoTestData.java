@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.model.objetivo.CandidatoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.EstadoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivoId;
+import com.ensambla.backend.domain.model.objetivo.ModoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.TipoMiniObjetivo;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 
@@ -26,6 +27,8 @@ public final class MiniObjetivoTestData {
     public static final BigDecimal META_MINI = new BigDecimal("14183.00");
     public static final BigDecimal APORTE = new BigDecimal("6786.00");
     public static final String TITULO = "Subile $250 a Yerba 1 kg";
+    public static final String TITULO_MANUAL = "Pedile a 3 clientes que te recomienden";
+    public static final String JUSTIFICACION_MANUAL = "Es la forma más barata de que te conozcan en el barrio.";
     public static final String JUSTIFICACION = "Te deja $900 por unidad y vendés cerca de 14 por semana.";
 
     private MiniObjetivoTestData() {
@@ -49,6 +52,24 @@ public final class MiniObjetivoTestData {
                 .semanaInicio(SEMANA)
                 .titulo(TITULO)
                 .justificacion(JUSTIFICACION)
+                .creadoEn(AHORA)
+                .actualizadoEn(AHORA)
+                .build();
+    }
+
+    /** Una acción manual en curso en la posición 2, recién propuesta. */
+    public static MiniObjetivo miniManual() {
+        return MiniObjetivo.builder()
+                .id(OTRO_MINI_ID)
+                .objetivoId(OBJETIVO_ID)
+                .negocioId(NEGOCIO_ID)
+                .posicion(2)
+                .modo(ModoMiniObjetivo.MANUAL)
+                .estado(EstadoMiniObjetivo.EN_CURSO)
+                .semanaInicio(SEMANA)
+                .titulo(TITULO_MANUAL)
+                .justificacion(JUSTIFICACION_MANUAL)
+                .textoConIa(true)
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build();

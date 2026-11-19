@@ -4,6 +4,10 @@ import type { Campo, Valor } from '../tipos';
 import { ComportamientoDeCampo } from './ComportamientoDeCampo';
 
 export class ComportamientoNumerico extends ComportamientoDeCampo {
+  admiteMinimo(): boolean {
+    return true;
+  }
+
   coercionar(valor: Valor): Valor {
     return this.estaVacio(valor) ? (valor ?? '') : Number(valor);
   }

@@ -29,72 +29,131 @@ class AvisoRepositoryImplTest {
     private final IAvisoJpaRepository jpa = mock(IAvisoJpaRepository.class);
     private final AvisoRepositoryImpl repository = new AvisoRepositoryImpl(jpa, new AvisoRepositoryMapper());
 
+    private Aviso guardado;
+    private Optional<Aviso> encontrado;
+    private List<Aviso> avisos;
+
     @Test
     @DisplayName("Guarda el aviso y devuelve el que persistió")
-    void saveShouldReturnPersistedAviso() {
-        when(jpa.saveAndFlush(any(AvisoEntity.class))).thenReturn(entity());
+    void guardaElAvisoYDevuelveElQuePersistio() {
+        dadoQueGuardarDevuelveElAviso();
 
-        Aviso result = repository.save(Aviso.builder().negocioId(NEGOCIO_ID).acciones(List.of()).build());
+        cuandoSeGuardaUnAvisoNuevo();
 
-        assertThat(result.getId()).isEqualTo(AvisoId.de(ID));
+        entoncesSeDevuelveElAvisoPersistido();
     }
 
     @Test
     @DisplayName("Busca el aviso por id dentro del negocio")
-    void findByIdAndNegocioIdShouldMap() {
-        when(jpa.findByIdAndNegocioId(ID, NEGOCIO_ID.valor())).thenReturn(Optional.of(entity()));
+    void buscaElAvisoPorIdDentroDelNegocio() {
+        when(jpa.findByIdAndNegocioId(ID, NEGOCIO_ID.valor())).thenReturn(Optional.of(unaEntidad()));
 
-        assertThat(repository.findByIdAndNegocioId(AvisoId.de(ID), NEGOCIO_ID)).map(Aviso::getId)
-                .contains(AvisoId.de(ID));
+        cuandoSeBuscaElAvisoPorId();
+
+        entoncesSeEncuentraElAviso();
     }
 
     @Test
     @DisplayName("Busca el aviso por huella dentro del negocio")
-    void findByNegocioIdAndHuellaShouldMap() {
-        when(jpa.findByNegocioIdAndHuella(NEGOCIO_ID.valor(), "h")).thenReturn(Optional.of(entity()));
+    void buscaElAvisoPorHuellaDentroDelNegocio() {
+        when(jpa.findByNegocioIdAndHuella(NEGOCIO_ID.valor(), "h")).thenReturn(Optional.of(unaEntidad()));
 
-        assertThat(repository.findByNegocioIdAndHuella(NEGOCIO_ID, "h")).map(Aviso::getId).contains(AvisoId.de(ID));
+        cuandoSeBuscaElAvisoPorHuella();
+
+        entoncesSeEncuentraElAviso();
     }
 
     @Test
     @DisplayName("Lista los avisos de un tipo y estado")
-    void findByNegocioIdAndTipoAndEstadoShouldMap() {
+    void listaLosAvisosDeUnTipoYEstado() {
         when(jpa.findByNegocioIdAndTipoAndEstado(NEGOCIO_ID.valor(), TipoAviso.STOCK, EstadoAviso.PENDIENTE))
-                .thenReturn(List.of(entity()));
+                .thenReturn(List.of(unaEntidad()));
 
-        assertThat(repository.findByNegocioIdAndTipoAndEstado(NEGOCIO_ID, TipoAviso.STOCK, EstadoAviso.PENDIENTE))
-                .extracting(Aviso::getId).containsExactly(AvisoId.de(ID));
+        cuandoSeListanLosAvisosDeStockPendientes();
+
+        entoncesSeListaElAviso();
     }
 
     @Test
     @DisplayName("Trae de una vez los avisos del negocio con esos ids, pasando al JPA los UUID")
-    void findAllByIdsAndNegocioIdShouldPassTheUuidsAndMap() {
-        when(jpa.findByIdInAndNegocioId(List.of(ID), NEGOCIO_ID.valor())).thenReturn(List.of(entity()));
+    void traeDeUnaVezLosAvisosDelNegocioConEsosIdsPasandoAlJpaLosUuid() {
+        when(jpa.findByIdInAndNegocioId(List.of(ID), NEGOCIO_ID.valor())).thenReturn(List.of(unaEntidad()));
 
-        List<Aviso> result = repository.findAllByIdsAndNegocioId(List.of(AvisoId.de(ID)), NEGOCIO_ID);
+        cuandoSeTraenLosAvisosPorIds();
 
-        assertThat(result).extracting(Aviso::getId).containsExactly(AvisoId.de(ID));
+        entoncesSeListaElAviso();
     }
 
     @Test
     @DisplayName("Lista todos los avisos del negocio")
-    void findByNegocioIdShouldMap() {
-        when(jpa.findByNegocioId(NEGOCIO_ID.valor())).thenReturn(List.of(entity()));
+    void listaTodosLosAvisosDelNegocio() {
+        when(jpa.findByNegocioId(NEGOCIO_ID.valor())).thenReturn(List.of(unaEntidad()));
 
-        assertThat(repository.findByNegocioId(NEGOCIO_ID)).extracting(Aviso::getId).containsExactly(AvisoId.de(ID));
+        cuandoSeListanLosAvisosDelNegocio();
+
+        entoncesSeListaElAviso();
     }
 
     @Test
     @DisplayName("Lista los avisos del negocio en un estado")
-    void findByNegocioIdAndEstadoShouldMap() {
-        when(jpa.findByNegocioIdAndEstado(NEGOCIO_ID.valor(), EstadoAviso.PENDIENTE)).thenReturn(List.of(entity()));
+    void listaLosAvisosDelNegocioEnUnEstado() {
+        when(jpa.findByNegocioIdAndEstado(NEGOCIO_ID.valor(), EstadoAviso.PENDIENTE))
+                .thenReturn(List.of(unaEntidad()));
 
-        assertThat(repository.findByNegocioIdAndEstado(NEGOCIO_ID, EstadoAviso.PENDIENTE))
-                .extracting(Aviso::getId).containsExactly(AvisoId.de(ID));
+        cuandoSeListanLosAvisosPendientes();
+
+        entoncesSeListaElAviso();
     }
 
-    private static AvisoEntity entity() {
+    // --- dado ---
+    private void dadoQueGuardarDevuelveElAviso() {
+        when(jpa.saveAndFlush(any(AvisoEntity.class))).thenReturn(unaEntidad());
+    }
+
+    private static AvisoEntity unaEntidad() {
         return AvisoEntity.builder().id(ID).negocioId(NEGOCIO_ID.valor()).tipo(TipoAviso.STOCK).grupo(GrupoAviso.STOCK)
                 .estado(EstadoAviso.PENDIENTE).build();
+    }
+
+    // --- cuando ---
+    private void cuandoSeGuardaUnAvisoNuevo() {
+        guardado = repository.save(Aviso.builder().negocioId(NEGOCIO_ID).acciones(List.of()).build());
+    }
+
+    private void cuandoSeBuscaElAvisoPorId() {
+        encontrado = repository.findByIdAndNegocioId(AvisoId.de(ID), NEGOCIO_ID);
+    }
+
+    private void cuandoSeBuscaElAvisoPorHuella() {
+        encontrado = repository.findByNegocioIdAndHuella(NEGOCIO_ID, "h");
+    }
+
+    private void cuandoSeListanLosAvisosDeStockPendientes() {
+        avisos = repository.findByNegocioIdAndTipoAndEstado(NEGOCIO_ID, TipoAviso.STOCK, EstadoAviso.PENDIENTE);
+    }
+
+    private void cuandoSeTraenLosAvisosPorIds() {
+        avisos = repository.findAllByIdsAndNegocioId(List.of(AvisoId.de(ID)), NEGOCIO_ID);
+    }
+
+    private void cuandoSeListanLosAvisosDelNegocio() {
+        avisos = repository.findByNegocioId(NEGOCIO_ID);
+    }
+
+    private void cuandoSeListanLosAvisosPendientes() {
+        avisos = repository.findByNegocioIdAndEstado(NEGOCIO_ID, EstadoAviso.PENDIENTE);
+    }
+
+    // --- entonces ---
+    private void entoncesSeDevuelveElAvisoPersistido() {
+        assertThat(guardado.getId()).isEqualTo(AvisoId.de(ID));
+    }
+
+    private void entoncesSeEncuentraElAviso() {
+        assertThat(encontrado).map(Aviso::getId).contains(AvisoId.de(ID));
+    }
+
+    private void entoncesSeListaElAviso() {
+        assertThat(avisos).extracting(Aviso::getId).containsExactly(AvisoId.de(ID));
     }
 }

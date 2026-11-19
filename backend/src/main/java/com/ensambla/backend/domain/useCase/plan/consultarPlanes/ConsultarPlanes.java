@@ -67,6 +67,10 @@ public class ConsultarPlanes {
         }
     }
 
+    /** Lo que el negocio ya consumió: proyectos, registros y objetivos con IA del mes. */
+    private record Consumo(long proyectos, long registros, long objetivosIa) {
+    }
+
     public ConsultarPlanesResponse execute(UsuarioId usuarioId) {
         NegocioId negocioId = obtenerNegocioDelUsuario(usuarioId);
         OffsetDateTime ahora = OffsetDateTime.now(clock);
@@ -82,12 +86,16 @@ public class ConsultarPlanes {
     private ConsultaPlanes consultar(NegocioId negocioId, OffsetDateTime ahora) {
         bloquearNegocio(negocioId);
         Situacion situacion = situacionDe(negocioId, ahora);
-        long proyectos = contarProyectos(negocioId);
-        long registros = contarRegistros(negocioId);
+        Consumo consumo = consumoDe(negocioId, ahora);
         if (situacion.estaEnPrueba()) {
-            return consultaEnPrueba(situacion, proyectos, registros);
+            return consultaEnPrueba(situacion, consumo);
         }
-        return consultaMensual(situacion, negocioId, proyectos, registros, ahora);
+        return consultaMensual(situacion, negocioId, consumo, ahora);
+    }
+
+    private Consumo consumoDe(NegocioId negocioId, OffsetDateTime ahora) {
+        return new Consumo(contarProyectos(negocioId), contarRegistros(negocioId),
+                contarObjetivosIa(negocioId, ZonaNegocio.primerDiaDelMes(ahora)));
     }
 
     private Situacion situacionDe(NegocioId negocioId, OffsetDateTime ahora) {
@@ -101,23 +109,25 @@ public class ConsultarPlanes {
     }
 
     /** Durante la prueba el cupo de IA es el total de la prueba y su período, el de la prueba. */
-    private ConsultaPlanes consultaEnPrueba(Situacion situacion, long proyectos, long registros) {
+    private ConsultaPlanes consultaEnPrueba(Situacion situacion, Consumo consumo) {
         PruebaPremium prueba = Optional.ofNullable(situacion.prueba())
                 .orElseThrow(() -> new ResourceNotFoundException("Prueba no encontrada"));
         return new ConsultaPlanes(situacion.planes(), situacion.actual(), situacion.suscripcion(), prueba, true,
-                false, proyectos, registros, prueba.paginasIa(), PruebaPremium.LIMITE_PAGINAS_IA,
-                PERIODO_DE_PRUEBA, prueba.inicioEn(), prueba.finEn());
+                false, consumo.proyectos(), consumo.registros(), prueba.paginasIa(),
+                PruebaPremium.LIMITE_PAGINAS_IA, PERIODO_DE_PRUEBA, prueba.inicioEn(), prueba.finEn(),
+                consumo.objetivosIa(), situacion.actual().getLimiteObjetivosIaMensuales());
     }
 
-    private ConsultaPlanes consultaMensual(Situacion situacion, NegocioId negocioId, long proyectos, long registros,
+    private ConsultaPlanes consultaMensual(Situacion situacion, NegocioId negocioId, Consumo consumo,
                                            OffsetDateTime ahora) {
         LocalDate primerDia = ZonaNegocio.primerDiaDelMes(ahora);
         LocalDate primerDiaDelMesSiguiente = primerDia.plusMonths(1);
         long paginas = contarPaginas(negocioId, primerDia, primerDiaDelMesSiguiente);
         return new ConsultaPlanes(situacion.planes(), situacion.actual(), situacion.suscripcion(),
-                situacion.prueba(), false, puedeIniciarPrueba(situacion, negocioId), proyectos, registros, paginas,
-                situacion.actual().getLimitePaginasIaMensuales(), PERIODO_MENSUAL,
-                ZonaNegocio.inicioDelDia(primerDia), ZonaNegocio.inicioDelDia(primerDiaDelMesSiguiente));
+                situacion.prueba(), false, puedeIniciarPrueba(situacion, negocioId), consumo.proyectos(),
+                consumo.registros(), paginas, situacion.actual().getLimitePaginasIaMensuales(), PERIODO_MENSUAL,
+                ZonaNegocio.inicioDelDia(primerDia), ZonaNegocio.inicioDelDia(primerDiaDelMesSiguiente),
+                consumo.objetivosIa(), situacion.actual().getLimiteObjetivosIaMensuales());
     }
 
     private boolean puedeIniciarPrueba(Situacion situacion, NegocioId negocioId) {
@@ -160,6 +170,11 @@ public class ConsultarPlanes {
 
     private long contarRegistros(NegocioId negocioId) {
         return usoPlanRepository.contarRegistros(negocioId);
+    }
+
+    private long contarObjetivosIa(NegocioId negocioId, LocalDate primerDia) {
+        return usoPlanRepository.objetivosIaEnPeriodo(negocioId, ZonaNegocio.inicioDelDia(primerDia),
+                ZonaNegocio.inicioDelDia(primerDia.plusMonths(1)));
     }
 
     private long contarPaginas(NegocioId negocioId, LocalDate desde, LocalDate hasta) {

@@ -1,14 +1,18 @@
 import { CalendarCheckIcon, CheckCircleIcon, TrashIcon } from '@phosphor-icons/react';
-import { useSemanasObjetivo } from '@/hooks/objetivos/queries';
+import { useMiniObjetivos, useSemanasObjetivo } from '@/hooks/objetivos/queries';
+import { ETIQUETA_DE_TIPO } from '@/lib/objetivosSami';
 import { resumenSinVer } from '@/lib/objetivosAutogestion';
 import {
   avance,
   brecha,
   formatoPesos,
+  tieneMeta,
   ultimoValor,
   variacion,
   type Objetivo,
+  type ObjetivoConMeta,
 } from '@/lib/objetivos';
+import { MinisDeLaTarjeta } from './MinisDeLaTarjeta';
 import { Progreso } from './piezas';
 
 type Props = {
@@ -28,6 +32,47 @@ function textoDeTendencia(objetivo: Objetivo) {
 }
 
 export function ObjetivoCard({ objetivo, onQuitar, onVerSemana }: Props) {
+  return tieneMeta(objetivo) ? (
+    <ObjetivoConMetaCard objetivo={objetivo} onQuitar={onQuitar} onVerSemana={onVerSemana} />
+  ) : (
+    <ObjetivoSinMetaCard objetivo={objetivo} onQuitar={onQuitar} onVerSemana={onVerSemana} />
+  );
+}
+
+// Un objetivo sin meta en pesos (armado con Sami): no hay una cifra que mostrar, así que la tarjeta muestra sus
+// mini-objetivos de la semana.
+function ObjetivoSinMetaCard({ objetivo, onQuitar, onVerSemana }: Props) {
+  const ultimoCierre = useSemanasObjetivo(objetivo.id).data?.ultimoCierre ?? null;
+  const resumenListo = resumenSinVer(objetivo.id, ultimoCierre);
+  const minis = useMiniObjetivos(objetivo.id).data?.minis ?? [];
+  return (
+    <article className="objetivos-tarjeta dinamico" data-tipo={objetivo.tipo}>
+      <header>
+        <div>
+          <p className="objetivos-etiqueta">Tu objetivo</p>
+          <h2>{objetivo.texto}</h2>
+        </div>
+        <span className="objetivos-tipo">{ETIQUETA_DE_TIPO[objetivo.tipo]}</span>
+      </header>
+      <MinisDeLaTarjeta minis={minis} />
+      <footer className="objetivos-tarjeta-acciones">
+        <button type="button" className="btn secondary" onClick={onVerSemana}>
+          <CalendarCheckIcon aria-hidden size={18} /> Ver mi semana
+        </button>
+        {resumenListo && <span className="objetivos-chip-resumen">Resumen de la semana listo</span>}
+        <button type="button" className="objetivos-textual" onClick={onQuitar}>
+          <TrashIcon aria-hidden size={16} /> Quitar objetivo
+        </button>
+      </footer>
+    </article>
+  );
+}
+
+function ObjetivoConMetaCard({
+  objetivo,
+  onQuitar,
+  onVerSemana,
+}: Omit<Props, 'objetivo'> & { objetivo: ObjetivoConMeta }) {
   const ultimoCierre = useSemanasObjetivo(objetivo.id).data?.ultimoCierre ?? null;
   const resumenListo = resumenSinVer(objetivo.id, ultimoCierre);
   const cumplido = brecha(objetivo) === 0;

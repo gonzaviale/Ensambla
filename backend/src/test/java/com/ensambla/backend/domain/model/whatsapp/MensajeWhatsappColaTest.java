@@ -16,59 +16,130 @@ import static org.assertj.core.api.Assertions.assertThat;
 class MensajeWhatsappColaTest {
 
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-27T12:00:00Z");
+    private static final BloqueId TABLA = BloqueId.de("b0000000-0000-4000-8000-000000000001");
+    private static final BloqueId SIN_TABLA = null;
+    private static final List<Map<CampoId, String>> UNA_FILA = List.of(Map.of(CampoId.nuevo(), "x"));
+    private static final double CONFIANZA_MINIMA = 0.6;
+
+    private MensajeWhatsapp mensaje;
 
     @Test
     @DisplayName("Reclamar un mensaje lo deja atendiéndose, cuenta el intento y fija hasta cuándo es de quien lo tomó")
-    void reclamarShouldLockTheMessage() {
-        MensajeWhatsapp mensaje = givenMensaje();
+    void reclamarUnMensajeLoDejaAtendiendose() {
+        dadoUnMensajeRecibido();
 
-        mensaje.reclamar(AHORA, Duration.ofMinutes(2));
+        cuandoSeReclamaPor(Duration.ofMinutes(2));
 
-        assertThat(mensaje.getEstado()).isEqualTo(EstadoMensajeWhatsapp.ATENDIENDO);
-        assertThat(mensaje.getIntentos()).isEqualTo(1);
-        assertThat(mensaje.getReclamadoHasta()).isEqualTo(AHORA.plusMinutes(2));
+        entoncesQuedaEn(EstadoMensajeWhatsapp.ATENDIENDO);
+        entoncesLlevaIntentos(1);
+        entoncesEsDeQuienLoTomoHasta(AHORA.plusMinutes(2));
     }
 
     @Test
     @DisplayName("Atender lo cierra con la hora y limpia un error anterior")
-    void atenderShouldCloseTheMessage() {
-        MensajeWhatsapp mensaje = givenMensaje();
-        mensaje.fallar("antes falló", AHORA);
+    void atenderLoCierraYLimpiaElError() {
+        dadoUnMensajeRecibido();
+        dadoQueFallo("antes falló");
 
-        mensaje.atender(AHORA.plusMinutes(1));
+        cuandoSeAtiende(AHORA.plusMinutes(1));
 
-        assertThat(mensaje.getEstado()).isEqualTo(EstadoMensajeWhatsapp.ATENDIDO);
-        assertThat(mensaje.getAtendidoEn()).isEqualTo(AHORA.plusMinutes(1));
-        assertThat(mensaje.getError()).isNull();
+        entoncesQuedaEn(EstadoMensajeWhatsapp.ATENDIDO);
+        entoncesSeCerroEl(AHORA.plusMinutes(1));
+        entoncesNoTieneError();
     }
 
     @Test
     @DisplayName("Fallar lo deja fallido con el motivo y la hora")
-    void fallarShouldRecordTheReason() {
-        MensajeWhatsapp mensaje = givenMensaje();
+    void fallarLoDejaFallidoConElMotivo() {
+        dadoUnMensajeRecibido();
 
-        mensaje.fallar("se cayó el proveedor", AHORA);
+        cuandoFalla("se cayó el proveedor");
 
-        assertThat(mensaje.getEstado()).isEqualTo(EstadoMensajeWhatsapp.FALLIDO);
-        assertThat(mensaje.getError()).isEqualTo("se cayó el proveedor");
-        assertThat(mensaje.getAtendidoEn()).isEqualTo(AHORA);
+        entoncesQuedaEn(EstadoMensajeWhatsapp.FALLIDO);
+        entoncesElErrorEs("se cayó el proveedor");
+        entoncesSeCerroEl(AHORA);
     }
 
     @Test
-    @DisplayName("La interpretación sólo está entendida con tabla, filas y confianza suficiente")
-    void interpretacionShouldBeUnderstoodOnlyWithEnoughConfidence() {
-        BloqueId bloqueId = BloqueId.de("b0000000-0000-4000-8000-000000000001");
-        List<Map<CampoId, String>> filas = List.of(Map.of(CampoId.nuevo(), "x"));
-
-        assertThat(new InterpretacionRegistros(bloqueId, filas, 0.6, null).entendida(0.6)).isTrue();
-        assertThat(new InterpretacionRegistros(bloqueId, filas, 0.59, null).entendida(0.6)).isFalse();
-        assertThat(new InterpretacionRegistros(null, filas, 0.9, null).entendida(0.6)).isFalse();
-        assertThat(new InterpretacionRegistros(bloqueId, List.of(), 0.9, null).entendida(0.6)).isFalse();
-        assertThat(InterpretacionRegistros.sinResultado(null).entendida(0.0)).isFalse();
+    @DisplayName("La interpretación con tabla, filas y la confianza justa está entendida")
+    void laInterpretacionConLaConfianzaJustaEstaEntendida() {
+        entoncesEstaEntendida(new InterpretacionRegistros(TABLA, UNA_FILA, 0.6, null), true);
     }
 
-    private static MensajeWhatsapp givenMensaje() {
-        return MensajeWhatsapp.recibido(NegocioId.de("a0000000-0000-4000-8000-000000000001"),
+    @Test
+    @DisplayName("La interpretación con menos confianza de la necesaria no está entendida")
+    void laInterpretacionConPocaConfianzaNoEstaEntendida() {
+        entoncesEstaEntendida(new InterpretacionRegistros(TABLA, UNA_FILA, 0.59, null), false);
+    }
+
+    @Test
+    @DisplayName("La interpretación sin tabla no está entendida")
+    void laInterpretacionSinTablaNoEstaEntendida() {
+        entoncesEstaEntendida(new InterpretacionRegistros(SIN_TABLA, UNA_FILA, 0.9, null), false);
+    }
+
+    @Test
+    @DisplayName("La interpretación sin filas no está entendida")
+    void laInterpretacionSinFilasNoEstaEntendida() {
+        entoncesEstaEntendida(new InterpretacionRegistros(TABLA, List.of(), 0.9, null), false);
+    }
+
+    @Test
+    @DisplayName("Una interpretación sin resultado no está entendida ni aunque no se pida confianza")
+    void unaInterpretacionSinResultadoNuncaEstaEntendida() {
+        entoncesNoEstaEntendidaNiSinPedirConfianza(InterpretacionRegistros.sinResultado(null));
+    }
+
+    private void dadoUnMensajeRecibido() {
+        mensaje = MensajeWhatsapp.recibido(NegocioId.de("a0000000-0000-4000-8000-000000000001"),
                 new MensajeEntrante("5491122334455", "ID1", TipoMensajeWhatsapp.TEXTO, "hola", null, null, AHORA));
+    }
+
+    private void dadoQueFallo(String motivo) {
+        mensaje.fallar(motivo, AHORA);
+    }
+
+    private void cuandoSeReclamaPor(Duration plazo) {
+        mensaje.reclamar(AHORA, plazo);
+    }
+
+    private void cuandoSeAtiende(OffsetDateTime momento) {
+        mensaje.atender(momento);
+    }
+
+    private void cuandoFalla(String motivo) {
+        mensaje.fallar(motivo, AHORA);
+    }
+
+    private void entoncesQuedaEn(EstadoMensajeWhatsapp estado) {
+        assertThat(mensaje.getEstado()).isEqualTo(estado);
+    }
+
+    private void entoncesLlevaIntentos(int intentos) {
+        assertThat(mensaje.getIntentos()).isEqualTo(intentos);
+    }
+
+    private void entoncesEsDeQuienLoTomoHasta(OffsetDateTime momento) {
+        assertThat(mensaje.getReclamadoHasta()).isEqualTo(momento);
+    }
+
+    private void entoncesSeCerroEl(OffsetDateTime momento) {
+        assertThat(mensaje.getAtendidoEn()).isEqualTo(momento);
+    }
+
+    private void entoncesNoTieneError() {
+        assertThat(mensaje.getError()).isNull();
+    }
+
+    private void entoncesElErrorEs(String motivo) {
+        assertThat(mensaje.getError()).isEqualTo(motivo);
+    }
+
+    private static void entoncesEstaEntendida(InterpretacionRegistros interpretacion, boolean entendida) {
+        assertThat(interpretacion.entendida(CONFIANZA_MINIMA)).isEqualTo(entendida);
+    }
+
+    private static void entoncesNoEstaEntendidaNiSinPedirConfianza(InterpretacionRegistros interpretacion) {
+        assertThat(interpretacion.entendida(0.0)).isFalse();
     }
 }

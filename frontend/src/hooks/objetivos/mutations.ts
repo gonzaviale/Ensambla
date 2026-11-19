@@ -1,7 +1,22 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { crearObjetivo, decidirPaso, eliminarObjetivo } from '@/api/objetivos';
+import {
+  crearObjetivo,
+  decidirPaso,
+  eliminarObjetivo,
+  guardarObjetivoConSami,
+  proponerObjetivo,
+  responderMiniObjetivo,
+} from '@/api/objetivos';
 import { useUsuarioOpcional } from '@/hooks/auth/queries';
-import type { DecisionDePaso, ObjetivoDelServidor } from '@/types/objetivos';
+import { planesKeys } from '@/hooks/planes/queries';
+import type {
+  CuotaObjetivos,
+  DecisionDePaso,
+  MensajeDeConversacion,
+  ObjetivoConSami,
+  ObjetivoDelServidor,
+  RespuestaDeMini,
+} from '@/types/objetivos';
 import { objetivosKey, objetivosKeys } from './queries';
 
 function useClaveDeObjetivos() {
@@ -21,6 +36,40 @@ export function useDefinirObjetivo() {
         ...(actuales ?? []),
         creado,
       ]);
+    },
+  });
+}
+
+const claveDeLaCuota = (usuarioId: string) => [...objetivosKey, 'cuota', usuarioId] as const;
+
+/** Sami lee lo que la persona escribió y propone mini-objetivos. No guarda nada: sólo al guardar se gasta cuota. */
+export function useProponerObjetivo() {
+  const queryClient = useQueryClient();
+  const usuario = useUsuarioOpcional();
+  return useMutation({
+    mutationFn: (mensajes: MensajeDeConversacion[]) => proponerObjetivo(mensajes),
+    onSuccess: ({ cuota }) => {
+      if (cuota && usuario)
+        queryClient.setQueryData<CuotaObjetivos>(claveDeLaCuota(usuario.id), cuota);
+    },
+  });
+}
+
+/** Guarda lo que la persona aceptó (o el seguimiento manual) y vuelve a preguntar cuántos objetivos con IA le quedan. */
+export function useGuardarObjetivoConSami() {
+  const queryClient = useQueryClient();
+  const clave = useClaveDeObjetivos();
+  const usuario = useUsuarioOpcional();
+  return useMutation({
+    mutationFn: (objetivo: ObjetivoConSami) => guardarObjetivoConSami(objetivo),
+    onSuccess: (creado) => {
+      queryClient.setQueryData<ObjetivoDelServidor[]>(clave, (actuales) => [
+        ...(actuales ?? []),
+        creado,
+      ]);
+      void queryClient.invalidateQueries({ queryKey: claveDeLaCuota(usuario?.id ?? 'sin-sesion') });
+      // La cuota viaja dentro de /planes: sin esto el uso del plan quedaría viejo hasta el próximo repaso.
+      void queryClient.invalidateQueries({ queryKey: planesKeys.actual });
     },
   });
 }
@@ -53,5 +102,27 @@ export function useDecidirPaso(objetivoId: string) {
     mutationFn: ({ miniId, tipo }: { miniId: string; tipo: DecisionDePaso }) =>
       decidirPaso(objetivoId, miniId, tipo),
     onSettled: alCambiar,
+  });
+}
+
+/**
+ * La persona le cuenta a Sami cómo le fue con un manual. Se vuelve a pedir lo del objetivo y los pendientes: si el
+ * servidor ya tenía una respuesta (409), la primera queda y la pantalla deja de pedirla.
+ */
+export function useResponderMiniObjetivo(objetivoId: string) {
+  const queryClient = useQueryClient();
+  const usuario = useUsuarioOpcional();
+  const actualizar = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: objetivosKeys.detalle(objetivoId) }),
+      queryClient.invalidateQueries({
+        queryKey: [...objetivosKey, 'pendientes', usuario?.id ?? 'sin-sesion'],
+      }),
+    ]);
+  return useMutation({
+    mutationFn: ({ miniId, respuesta }: { miniId: string; respuesta: RespuestaDeMini }) =>
+      responderMiniObjetivo(objetivoId, miniId, respuesta),
+    onSuccess: actualizar,
+    onError: actualizar,
   });
 }

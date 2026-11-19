@@ -15,16 +15,22 @@ public record ConversarConSamiResponse(
 ) {
 
     public static ConversarConSamiResponse de(PasoConversacionSami paso) {
-        PreguntaSamiItem pregunta = paso.pregunta() == null ? null : PreguntaSamiItem.de(paso.pregunta());
-        PropuestaSamiItem propuesta = switch (paso.tipo()) {
-            case PROPUESTA -> PropuestaSamiItem.de(paso.interpretacion(), PropuestaSamiItem.ORIGEN_ALGORITMO);
-            case PREGUNTA, RESPALDO_IA -> null;
-        };
-        return new ConversarConSamiResponse(paso.tipo().name(), pregunta, propuesta, paso.preguntasHechas());
+        return new ConversarConSamiResponse(paso.tipo().name(), preguntaDe(paso), propuestaDe(paso), paso.preguntasHechas());
     }
 
     public static ConversarConSamiResponse de(InterpretacionSami interpretacion, String origen, int preguntasHechas) {
         return new ConversarConSamiResponse(
                 "PROPUESTA", null, PropuestaSamiItem.de(interpretacion, origen), preguntasHechas);
+    }
+
+    private static PreguntaSamiItem preguntaDe(PasoConversacionSami paso) {
+        return paso.pregunta() == null ? null : PreguntaSamiItem.de(paso.pregunta());
+    }
+
+    private static PropuestaSamiItem propuestaDe(PasoConversacionSami paso) {
+        if (!paso.tipo().traePropuesta()) {
+            return null;
+        }
+        return PropuestaSamiItem.de(paso.interpretacion(), PropuestaSamiItem.ORIGEN_ALGORITMO);
     }
 }

@@ -22,25 +22,47 @@ class ReferenciaItemTest {
     private static final List<Campo> CAMPOS = List.of(
             Campo.builder().id(NOMBRE_ID).tipo(TipoCampo.TEXTO).posicion((short) 0).build());
 
+    private List<ReferenciaItem> referencias;
+
     @Test
     @DisplayName("Arma el id y la etiqueta de cada registro conservando el orden")
-    void deShouldMapIdAndEtiquetaInOrder() {
-        List<ReferenciaItem> result = ReferenciaItem.de(
-                List.of(registro(ANA_ID.valor(), "Ana"), registro(BETO_ID.valor(), "Beto")), CAMPOS);
+    void armaElIdYLaEtiquetaDeCadaRegistroConservandoElOrden() {
+        List<Registro> registros = dadoLosRegistrosAnaYBeto();
 
-        assertThat(result).containsExactly(new ReferenciaItem(ANA_ID, "Ana"), new ReferenciaItem(BETO_ID, "Beto"));
+        cuandoSeArmanLasReferencias(registros);
+
+        entoncesLasReferenciasSonAnaYBetoEnOrden();
     }
 
     @Test
     @DisplayName("Sin registros devuelve una lista vacía")
-    void deShouldReturnEmptyListWhenThereAreNoRegistros() {
-        List<ReferenciaItem> result = ReferenciaItem.de(List.of(), CAMPOS);
+    void sinRegistrosDevuelveUnaListaVacia() {
+        cuandoSeArmanLasReferencias(List.of());
 
-        assertThat(result).isEmpty();
+        entoncesNoHayReferencias();
     }
 
-    // --- helpers ---
-    private Registro registro(UUID id, String nombre) {
+    // --- dado ---
+    private List<Registro> dadoLosRegistrosAnaYBeto() {
+        return List.of(unRegistro(ANA_ID.valor(), "Ana"), unRegistro(BETO_ID.valor(), "Beto"));
+    }
+
+    private Registro unRegistro(UUID id, String nombre) {
         return Registro.builder().id(RegistroId.de(id)).valores(Map.of(NOMBRE_ID.toString(), nombre)).build();
+    }
+
+    // --- cuando ---
+    private void cuandoSeArmanLasReferencias(List<Registro> registros) {
+        referencias = ReferenciaItem.de(registros, CAMPOS);
+    }
+
+    // --- entonces ---
+    private void entoncesLasReferenciasSonAnaYBetoEnOrden() {
+        assertThat(referencias)
+                .containsExactly(new ReferenciaItem(ANA_ID, "Ana"), new ReferenciaItem(BETO_ID, "Beto"));
+    }
+
+    private void entoncesNoHayReferencias() {
+        assertThat(referencias).isEmpty();
     }
 }

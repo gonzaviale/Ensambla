@@ -19,7 +19,7 @@ public record ConsultarPlanesResponse(OffsetDateTime consultadoEn, List<PlanItem
                         consulta.suscripcion().getFinEn()),
                 new UsoPlanItem(consulta.proyectos(), consulta.registros(), consulta.paginasIa(),
                         consulta.limitePaginasIa(), consulta.periodoIa(), consulta.inicioPeriodoIa(),
-                        consulta.finPeriodoIa()),
+                        consulta.finPeriodoIa(), consulta.objetivosIa(), consulta.limiteObjetivosIa()),
                 prueba == null ? null : PruebaPremiumResponse.de(prueba));
     }
 }

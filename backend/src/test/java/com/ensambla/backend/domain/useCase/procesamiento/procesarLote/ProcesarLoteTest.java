@@ -53,6 +53,7 @@ import static org.mockito.Mockito.when;
 class ProcesarLoteTest {
 
     private static final FotoLectura FOTO = new FotoLectura("foto.jpg", "image/jpeg");
+    private static final UUID CLIENTES_ID = UUID.fromString("00000000-0000-4000-8000-0000000000c1");
 
     @Mock
     private ProcesamientoRepository procesamientoRepository;
@@ -74,9 +75,10 @@ class ProcesarLoteTest {
 
     private ProcesarLote procesarLote;
     private LoteTrabajo lote;
+    private ResultadoIntento resultado;
 
     @BeforeEach
-    void setUp() {
+    void dadoUnLoteDeUnIntento() {
         lote = ProcesamientoTestData.lote(1);
         procesarLote = new ProcesarLote(procesamientoRepository, archivoCuadernoPort, lectorCuadernoPort,
                 campoRepository, registroDatosService, controlPlanService,
@@ -85,216 +87,190 @@ class ProcesarLoteTest {
 
     @Test
     @DisplayName("Sin trabajo pendiente sólo recupera reclamos vencidos y no lee nada")
-    void executeShouldStopWhenQueueEmpty() {
-        when(procesamientoRepository.reclamar(AHORA, AHORA.plusMinutes(2))).thenReturn(Optional.empty());
+    void sinTrabajoPendienteSoloRecuperaReclamosVencidosYNoLeeNada() {
+        dadoQueNoHayTrabajoPendiente();
 
-        procesarLote.execute();
+        cuandoSeEjecutaElProcesamiento();
 
-        verify(procesamientoRepository).vencidos(AHORA);
-        verify(procesamientoRepository, never()).finalizar(any(), any(), any(), any(), any());
-        verifyNoInteractions(archivoCuadernoPort, lectorCuadernoPort, controlPlanService);
+        entoncesSoloSeRecuperaronReclamosVencidosYNoSeLeyoNada();
     }
 
     @Test
     @DisplayName("Lee archivos, reserva consumo y llama al proveedor en ese orden")
-    void executeShouldReadAndReserveBeforeProvider() {
-        givenReservedLote();
-        when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(ProcesamientoTestData.lectura());
+    void leeArchivosReservaConsumoYLlamaAlProveedorEnEseOrden() {
+        dadoUnLoteLegibleConReservaAprobada();
+        dadoQueElProveedorLee();
 
-        ResultadoIntento resultado = procesar();
+        cuandoSeProcesaElLoteReclamado();
 
-        assertThat(resultado.propuesta().lectura().tipoRegistro())
-                .isEqualTo(ProcesamientoTestData.lectura().tipoRegistro());
-        assertThat(resultado.error()).isNull();
-        assertThat(resultado.recuperable()).isFalse();
-        var orden = inOrder(archivoCuadernoPort, controlPlanService, procesamientoRepository, lectorCuadernoPort);
-        orden.verify(archivoCuadernoPort).leer(NEGOCIO_ID, FOTO.clave());
-        orden.verify(controlPlanService).reservarPaginasIa(eq(NEGOCIO_ID), eq(1), eq(AHORA), any());
-        orden.verify(procesamientoRepository).reservar(lote, 1, 100, AHORA);
-        orden.verify(lectorCuadernoPort).leer(any(), any(), any());
+        entoncesElIntentoSalioBienSinReintento();
+        entoncesSeLeyoSeReservoYSeLlamoAlProveedorEnEseOrden();
     }
 
     @Test
     @DisplayName("Con bloque destino le pasa a la IA sólo ese bloque, con tipos y opciones")
-    void executeShouldSendOnlyDestinoBlockToProvider() {
-        lote = new LoteTrabajo(LOTE_ID, NEGOCIO_ID, ProcesamientoTestData.BLOQUE_ID, lote.reclamoId(), 1);
-        givenReadableLoteWithOtherBloque();
-        givenReserva(true);
-        when(lectorCuadernoPort.leer(any(), any(), any())).thenThrow(new LecturaCuadernoException("Corte"));
+    void conBloqueDestinoLePasaALaIaSoloEseBloqueConTiposYOpciones() {
+        dadoUnLoteConBloqueDestino();
+        dadoUnLoteLegibleConOtroBloque();
+        dadoQueLaReservaEsAprobada(true);
+        dadoQueElProveedorSeCorta();
 
-        procesar();
+        cuandoSeProcesaElLoteReclamado();
 
-        ArgumentCaptor<List<BloqueConocido>> contexto = ArgumentCaptor.forClass(List.class);
-        verify(lectorCuadernoPort).leer(any(), contexto.capture(), eq(ProcesamientoTestData.BLOQUE_ID));
-        assertThat(contexto.getValue()).extracting(BloqueConocido::nombre).containsExactly("Ventas");
-        assertThat(contexto.getValue().getFirst().campos())
-                .containsExactly(new CampoContexto("Monto", TipoCampo.NUMERO, List.of()));
+        entoncesLaIaSoloVioElBloqueDestinoConSusTiposYOpciones();
     }
 
     @Test
     @DisplayName("Sin bloque destino le pasa a la IA todos los bloques del negocio")
-    void executeShouldSendAllBloquesWhenNoDestino() {
-        givenReadableLoteWithOtherBloque();
-        givenReserva(true);
-        when(lectorCuadernoPort.leer(any(), any(), any())).thenThrow(new LecturaCuadernoException("Corte"));
+    void sinBloqueDestinoLePasaALaIaTodosLosBloquesDelNegocio() {
+        dadoUnLoteLegibleConOtroBloque();
+        dadoQueLaReservaEsAprobada(true);
+        dadoQueElProveedorSeCorta();
 
-        procesar();
+        cuandoSeProcesaElLoteReclamado();
 
-        ArgumentCaptor<List<BloqueConocido>> contexto = ArgumentCaptor.forClass(List.class);
-        verify(lectorCuadernoPort).leer(any(), contexto.capture(), eq(null));
-        assertThat(contexto.getValue()).extracting(BloqueConocido::nombre).containsExactly("Ventas", "Gastos");
+        entoncesLaIaVioTodosLosBloquesDelNegocio();
     }
 
     @Test
     @DisplayName("Le dice a la IA a qué tabla apunta cada campo de conexión")
-    void executeShouldTellProviderWhichTableEachConexionPointsTo() {
-        UUID clientesId = UUID.randomUUID();
-        when(procesamientoRepository.fotos(lote)).thenReturn(List.of(FOTO));
-        when(archivoCuadernoPort.leer(NEGOCIO_ID, FOTO.clave())).thenReturn(new byte[]{1});
-        when(procesamientoRepository.bloques(NEGOCIO_ID)).thenReturn(List.of(
-                new BloqueLectura(ProcesamientoTestData.BLOQUE_ID, "Ventas", List.of(
-                        new CampoConocido(ProcesamientoTestData.CAMPO_ID, "Cliente", TipoCampo.RELACION,
-                                List.of(), BloqueId.de(clientesId)),
-                        new CampoConocido(CampoId.nuevo(), "Fiado", TipoCampo.RELACION, List.of(),
-                                BloqueId.nuevo()))),
-                new BloqueLectura(BloqueId.de(clientesId), "Clientes", List.of())));
-        givenReserva(true);
-        when(lectorCuadernoPort.leer(any(), any(), any())).thenThrow(new LecturaCuadernoException("Corte"));
+    void leDiceALaIaAQueTablaApuntaCadaCampoDeConexion() {
+        dadoUnaTablaDeVentasConDosConexiones();
+        dadoQueLaReservaEsAprobada(true);
+        dadoQueElProveedorSeCorta();
 
-        procesar();
+        cuandoSeProcesaElLoteReclamado();
 
-        ArgumentCaptor<List<BloqueConocido>> contexto = ArgumentCaptor.forClass(List.class);
-        verify(lectorCuadernoPort).leer(any(), contexto.capture(), eq(null));
-        assertThat(contexto.getValue().getFirst().campos()).containsExactly(
-                new CampoContexto("Cliente", TipoCampo.RELACION, List.of(), "Clientes"),
-                new CampoContexto("Fiado", TipoCampo.RELACION, List.of(), null));
+        entoncesLaIaSabeALaTablaQueApuntaCadaConexion();
     }
 
     @Test
     @DisplayName("Rechaza un lote sin fotos antes de usar archivos o IA")
-    void executeShouldRejectEmptyPhotos() {
-        when(procesamientoRepository.fotos(lote)).thenReturn(List.of());
+    void rechazaUnLoteSinFotosAntesDeUsarArchivosOIa() {
+        dadoUnLoteSinFotos();
 
-        ResultadoIntento resultado = procesar();
+        cuandoSeProcesaElLoteReclamado();
 
-        assertThat(resultado.error()).contains("entre 1 y 10");
-        assertThat(resultado.recuperable()).isFalse();
-        verifyNoInteractions(archivoCuadernoPort, lectorCuadernoPort);
+        entoncesSeRechazaPorCantidadDePaginasSinUsarArchivosNiIa();
     }
 
     @Test
     @DisplayName("Rechaza más fotos que el máximo por lote")
-    void executeShouldRejectTooManyPhotos() {
-        when(procesamientoRepository.fotos(lote)).thenReturn(Collections.nCopies(11, FOTO));
+    void rechazaMasFotosQueElMaximoPorLote() {
+        dadoUnLoteConOnceFotos();
 
-        ResultadoIntento resultado = procesar();
+        cuandoSeProcesaElLoteReclamado();
 
-        assertThat(resultado.error()).contains("entre 1 y 10");
-        verifyNoInteractions(lectorCuadernoPort);
+        entoncesSeRechazaPorMasDeDiezPaginasSinLlamarALaIa();
     }
 
     @Test
     @DisplayName("No invoca IA cuando la reserva diaria fue rechazada")
-    void executeShouldRejectExhaustedQuota() {
-        givenReadableLote();
-        givenReserva(false);
+    void noInvocaIaCuandoLaReservaDiariaFueRechazada() {
+        dadoUnLoteLegible();
+        dadoQueLaReservaEsAprobada(false);
 
-        ResultadoIntento resultado = procesar();
+        cuandoSeProcesaElLoteReclamado();
 
-        assertThat(resultado.error()).isEqualTo(PoliticaProcesamiento.LIMITE_DIARIO_AGOTADO);
-        assertThat(resultado.recuperable()).isFalse();
-        verifyNoInteractions(lectorCuadernoPort);
+        entoncesSeRechazaPorLimiteDiarioSinLlamarALaIa();
     }
 
     @Test
     @DisplayName("Conserva un fallo transitorio del lector para reintentar")
-    void executeShouldMarkTransientFailure() {
-        givenReservedLote();
-        when(lectorCuadernoPort.leer(any(), any(), any())).thenThrow(new LecturaCuadernoException("Timeout"));
+    void conservaUnFalloTransitorioDelLectorParaReintentar() {
+        dadoUnLoteLegibleConReservaAprobada();
+        dadoQueElProveedorFallaPor("Timeout");
 
-        ResultadoIntento resultado = procesar();
+        cuandoSeProcesaElLoteReclamado();
 
-        assertThat(resultado.error()).isEqualTo("Timeout");
-        assertThat(resultado.recuperable()).isTrue();
+        entoncesElIntentoFallaPorConReintento("Timeout", true);
     }
 
     @Test
     @DisplayName("No reintenta un archivo inválido")
-    void executeShouldMarkPermanentFailure() {
-        when(procesamientoRepository.fotos(lote)).thenReturn(List.of(FOTO));
-        when(archivoCuadernoPort.leer(NEGOCIO_ID, FOTO.clave()))
-                .thenThrow(new LecturaCuadernoException("Foto inválida", null, false));
+    void noReintentaUnArchivoInvalido() {
+        dadoUnArchivoQueNoEsValido();
 
-        ResultadoIntento resultado = procesar();
+        cuandoSeProcesaElLoteReclamado();
 
-        assertThat(resultado.error()).isEqualTo("Foto inválida");
-        assertThat(resultado.recuperable()).isFalse();
+        entoncesElIntentoFallaPorConReintento("Foto inválida", false);
     }
 
     @Test
     @DisplayName("Oculta detalles técnicos de errores inesperados")
-    void executeShouldHideUnexpectedFailure() {
-        when(procesamientoRepository.fotos(lote)).thenThrow(new IllegalStateException("dato privado"));
+    void ocultaDetallesTecnicosDeErroresInesperados() {
+        dadoQueLaBusquedaDeFotosFallaConUnDetalleTecnico();
 
-        ResultadoIntento resultado = procesar();
+        cuandoSeProcesaElLoteReclamado();
 
-        assertThat(resultado.error()).isEqualTo(ProcesarLote.ERROR_TEMPORAL);
-        assertThat(resultado.recuperable()).isTrue();
+        entoncesElIntentoFallaPorConReintento(ProcesarLote.ERROR_TEMPORAL, true);
     }
 
     @Test
     @DisplayName("Finaliza un resultado correcto con costo simulado y sin reintento")
-    void executeShouldPersistSuccessfulResult() {
-        givenReservedLote();
-        when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(ProcesamientoTestData.lectura());
-        givenReclamado(lote);
+    void finalizaUnResultadoCorrectoConCostoSimuladoYSinReintento() {
+        dadoUnLoteLegibleConReservaAprobada();
+        dadoQueElProveedorLee();
+        dadoUnLoteReclamado();
 
-        procesarLote.execute();
+        cuandoSeEjecutaElProcesamiento();
 
-        verify(procesamientoRepository).finalizar(eq(lote), any(), eq(BigDecimal.ZERO), eq(AHORA), isNull());
+        entoncesSeFinalizaConCostoCeroYSinReintento();
     }
 
     @Test
     @DisplayName("Programa un nuevo intento ante un error recuperable")
-    void executeShouldRetryTransientError() {
-        givenReservedLote();
-        when(lectorCuadernoPort.leer(any(), any(), any())).thenThrow(new LecturaCuadernoException("Timeout"));
-        givenReclamado(lote);
+    void programaUnNuevoIntentoAnteUnErrorRecuperable() {
+        dadoUnLoteLegibleConReservaAprobada();
+        dadoQueElProveedorFallaPor("Timeout");
+        dadoUnLoteReclamado();
 
-        procesarLote.execute();
+        cuandoSeEjecutaElProcesamiento();
 
-        verify(procesamientoRepository).finalizar(eq(lote), any(), isNull(), eq(AHORA), eq(AHORA.plusSeconds(30)));
+        entoncesSeReintentaEnTreintaSegundos();
     }
 
     @Test
     @DisplayName("Deja ERROR al alcanzar el máximo de intentos")
-    void executeShouldStopWhenAttemptsExhausted() {
-        lote = ProcesamientoTestData.lote(3);
-        givenReservedLote();
-        when(lectorCuadernoPort.leer(any(), any(), any())).thenThrow(new LecturaCuadernoException("Timeout"));
-        givenReclamado(lote);
+    void dejaErrorAlAlcanzarElMaximoDeIntentos() {
+        dadoUnLoteEnSuTercerIntento();
+        dadoUnLoteLegibleConReservaAprobada();
+        dadoQueElProveedorFallaPor("Timeout");
+        dadoUnLoteReclamado();
 
-        procesarLote.execute();
+        cuandoSeEjecutaElProcesamiento();
 
-        verify(procesamientoRepository).finalizar(eq(lote), any(), isNull(), eq(AHORA), isNull());
+        entoncesSeFinalizaSinReintento();
     }
 
     @Test
     @DisplayName("Recupera reclamos vencidos usando la política de reintentos")
-    void executeShouldFinalizeExpiredClaims() {
-        when(procesamientoRepository.vencidos(AHORA)).thenReturn(List.of(lote));
-        when(procesamientoRepository.reclamar(AHORA, AHORA.plusMinutes(2))).thenReturn(Optional.empty());
+    void recuperaReclamosVencidosUsandoLaPoliticaDeReintentos() {
+        dadoUnReclamoVencido();
 
-        procesarLote.execute();
+        cuandoSeEjecutaElProcesamiento();
 
-        ArgumentCaptor<ResultadoIntento> captor = ArgumentCaptor.forClass(ResultadoIntento.class);
-        verify(procesamientoRepository).finalizar(eq(lote), captor.capture(), eq(null), eq(AHORA),
-                eq(AHORA.plusSeconds(30)));
-        assertThat(captor.getValue().error()).isEqualTo(ProcesarLote.RECLAMO_VENCIDO);
+        entoncesSeFinalizaElReclamoVencidoConReintentoEnTreintaSegundos();
     }
 
-    // --- arrange ---
-    private void givenReadableLote() {
+    // --- dado ---
+    private void dadoQueNoHayTrabajoPendiente() {
+        when(procesamientoRepository.reclamar(AHORA, AHORA.plusMinutes(2))).thenReturn(Optional.empty());
+    }
+
+    private void dadoUnLoteReclamado() {
+        when(procesamientoRepository.reclamar(AHORA, AHORA.plusMinutes(2))).thenReturn(Optional.of(lote));
+    }
+
+    private void dadoUnLoteConBloqueDestino() {
+        lote = new LoteTrabajo(LOTE_ID, NEGOCIO_ID, ProcesamientoTestData.BLOQUE_ID, lote.reclamoId(), 1);
+    }
+
+    private void dadoUnLoteEnSuTercerIntento() {
+        lote = ProcesamientoTestData.lote(3);
+    }
+
+    private void dadoUnLoteLegible() {
         when(procesamientoRepository.fotos(lote)).thenReturn(List.of(FOTO));
         when(archivoCuadernoPort.leer(NEGOCIO_ID, FOTO.clave())).thenReturn(new byte[]{1});
         when(procesamientoRepository.bloques(NEGOCIO_ID)).thenReturn(List.of(new BloqueLectura(
@@ -302,7 +278,7 @@ class ProcesarLoteTest {
                 ProcesamientoTestData.CAMPO_ID, "Monto", TipoCampo.NUMERO, List.of())))));
     }
 
-    private void givenReadableLoteWithOtherBloque() {
+    private void dadoUnLoteLegibleConOtroBloque() {
         when(procesamientoRepository.fotos(lote)).thenReturn(List.of(FOTO));
         when(archivoCuadernoPort.leer(NEGOCIO_ID, FOTO.clave())).thenReturn(new byte[]{1});
         when(procesamientoRepository.bloques(NEGOCIO_ID)).thenReturn(List.of(
@@ -311,28 +287,163 @@ class ProcesarLoteTest {
                 new BloqueLectura(BloqueId.nuevo(), "Gastos", List.of())));
     }
 
-    private void givenReservedLote() {
-        givenReadableLote();
-        givenReserva(true);
+    private void dadoUnLoteLegibleConReservaAprobada() {
+        dadoUnLoteLegible();
+        dadoQueLaReservaEsAprobada(true);
+    }
+
+    private void dadoUnaTablaDeVentasConDosConexiones() {
+        when(procesamientoRepository.fotos(lote)).thenReturn(List.of(FOTO));
+        when(archivoCuadernoPort.leer(NEGOCIO_ID, FOTO.clave())).thenReturn(new byte[]{1});
+        when(procesamientoRepository.bloques(NEGOCIO_ID)).thenReturn(List.of(
+                new BloqueLectura(ProcesamientoTestData.BLOQUE_ID, "Ventas", List.of(
+                        new CampoConocido(ProcesamientoTestData.CAMPO_ID, "Cliente", TipoCampo.RELACION,
+                                List.of(), BloqueId.de(CLIENTES_ID)),
+                        new CampoConocido(CampoId.nuevo(), "Fiado", TipoCampo.RELACION, List.of(),
+                                BloqueId.nuevo()))),
+                new BloqueLectura(BloqueId.de(CLIENTES_ID), "Clientes", List.of())));
+    }
+
+    private void dadoUnLoteSinFotos() {
+        when(procesamientoRepository.fotos(lote)).thenReturn(List.of());
+    }
+
+    private void dadoUnLoteConOnceFotos() {
+        when(procesamientoRepository.fotos(lote)).thenReturn(Collections.nCopies(11, FOTO));
+    }
+
+    private void dadoUnArchivoQueNoEsValido() {
+        when(procesamientoRepository.fotos(lote)).thenReturn(List.of(FOTO));
+        when(archivoCuadernoPort.leer(NEGOCIO_ID, FOTO.clave()))
+                .thenThrow(new LecturaCuadernoException("Foto inválida", null, false));
+    }
+
+    private void dadoQueLaBusquedaDeFotosFallaConUnDetalleTecnico() {
+        when(procesamientoRepository.fotos(lote)).thenThrow(new IllegalStateException("dato privado"));
+    }
+
+    private void dadoUnReclamoVencido() {
+        when(procesamientoRepository.vencidos(AHORA)).thenReturn(List.of(lote));
+        dadoQueNoHayTrabajoPendiente();
     }
 
     /** El control de plan admite el intento y delega la reserva diaria en el repositorio. */
-    private void givenReserva(boolean entra) {
+    private void dadoQueLaReservaEsAprobada(boolean entra) {
         when(controlPlanService.reservarPaginasIa(eq(NEGOCIO_ID), eq(1), eq(AHORA), any()))
                 .thenAnswer(invocacion -> invocacion.<BooleanSupplier>getArgument(3).getAsBoolean());
         when(procesamientoRepository.reservar(lote, 1, 100, AHORA)).thenReturn(entra);
     }
 
-    private void givenReclamado(LoteTrabajo reclamado) {
-        when(procesamientoRepository.reclamar(AHORA, AHORA.plusMinutes(2))).thenReturn(Optional.of(reclamado));
+    private void dadoQueElProveedorLee() {
+        when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(ProcesamientoTestData.lectura());
     }
 
-    // --- act ---
-    private ResultadoIntento procesar() {
-        givenReclamado(lote);
+    private void dadoQueElProveedorSeCorta() {
+        dadoQueElProveedorFallaPor("Corte");
+    }
+
+    private void dadoQueElProveedorFallaPor(String motivo) {
+        when(lectorCuadernoPort.leer(any(), any(), any())).thenThrow(new LecturaCuadernoException(motivo));
+    }
+
+    // --- cuando ---
+    private void cuandoSeEjecutaElProcesamiento() {
         procesarLote.execute();
-        ArgumentCaptor<ResultadoIntento> resultado = ArgumentCaptor.forClass(ResultadoIntento.class);
-        verify(procesamientoRepository).finalizar(eq(lote), resultado.capture(), any(), eq(AHORA), any());
-        return resultado.getValue();
+    }
+
+    private void cuandoSeProcesaElLoteReclamado() {
+        dadoUnLoteReclamado();
+        cuandoSeEjecutaElProcesamiento();
+        ArgumentCaptor<ResultadoIntento> intento = ArgumentCaptor.forClass(ResultadoIntento.class);
+        verify(procesamientoRepository).finalizar(eq(lote), intento.capture(), any(), eq(AHORA), any());
+        resultado = intento.getValue();
+    }
+
+    // --- entonces ---
+    @SuppressWarnings("unchecked")
+    private List<BloqueConocido> bloquesQueRecibioLaIa(BloqueId destino) {
+        ArgumentCaptor<List<BloqueConocido>> contexto = ArgumentCaptor.forClass(List.class);
+        verify(lectorCuadernoPort).leer(any(), contexto.capture(), eq(destino));
+        return contexto.getValue();
+    }
+
+    private void entoncesSoloSeRecuperaronReclamosVencidosYNoSeLeyoNada() {
+        verify(procesamientoRepository).vencidos(AHORA);
+        verify(procesamientoRepository, never()).finalizar(any(), any(), any(), any(), any());
+        verifyNoInteractions(archivoCuadernoPort, lectorCuadernoPort, controlPlanService);
+    }
+
+    private void entoncesElIntentoSalioBienSinReintento() {
+        assertThat(resultado.propuesta().lectura().tipoRegistro())
+                .isEqualTo(ProcesamientoTestData.lectura().tipoRegistro());
+        assertThat(resultado.error()).isNull();
+        assertThat(resultado.recuperable()).isFalse();
+    }
+
+    private void entoncesSeLeyoSeReservoYSeLlamoAlProveedorEnEseOrden() {
+        var orden = inOrder(archivoCuadernoPort, controlPlanService, procesamientoRepository, lectorCuadernoPort);
+        orden.verify(archivoCuadernoPort).leer(NEGOCIO_ID, FOTO.clave());
+        orden.verify(controlPlanService).reservarPaginasIa(eq(NEGOCIO_ID), eq(1), eq(AHORA), any());
+        orden.verify(procesamientoRepository).reservar(lote, 1, 100, AHORA);
+        orden.verify(lectorCuadernoPort).leer(any(), any(), any());
+    }
+
+    private void entoncesLaIaSoloVioElBloqueDestinoConSusTiposYOpciones() {
+        List<BloqueConocido> contexto = bloquesQueRecibioLaIa(ProcesamientoTestData.BLOQUE_ID);
+        assertThat(contexto).extracting(BloqueConocido::nombre).containsExactly("Ventas");
+        assertThat(contexto.getFirst().campos())
+                .containsExactly(new CampoContexto("Monto", TipoCampo.NUMERO, List.of()));
+    }
+
+    private void entoncesLaIaVioTodosLosBloquesDelNegocio() {
+        assertThat(bloquesQueRecibioLaIa(null)).extracting(BloqueConocido::nombre)
+                .containsExactly("Ventas", "Gastos");
+    }
+
+    private void entoncesLaIaSabeALaTablaQueApuntaCadaConexion() {
+        assertThat(bloquesQueRecibioLaIa(null).getFirst().campos()).containsExactly(
+                new CampoContexto("Cliente", TipoCampo.RELACION, List.of(), "Clientes"),
+                new CampoContexto("Fiado", TipoCampo.RELACION, List.of(), null));
+    }
+
+    private void entoncesSeRechazaPorCantidadDePaginasSinUsarArchivosNiIa() {
+        assertThat(resultado.error()).contains("entre 1 y 10");
+        assertThat(resultado.recuperable()).isFalse();
+        verifyNoInteractions(archivoCuadernoPort, lectorCuadernoPort);
+    }
+
+    private void entoncesSeRechazaPorMasDeDiezPaginasSinLlamarALaIa() {
+        assertThat(resultado.error()).contains("entre 1 y 10");
+        verifyNoInteractions(lectorCuadernoPort);
+    }
+
+    private void entoncesSeRechazaPorLimiteDiarioSinLlamarALaIa() {
+        assertThat(resultado.error()).isEqualTo(PoliticaProcesamiento.LIMITE_DIARIO_AGOTADO);
+        assertThat(resultado.recuperable()).isFalse();
+        verifyNoInteractions(lectorCuadernoPort);
+    }
+
+    private void entoncesElIntentoFallaPorConReintento(String motivo, boolean recuperable) {
+        assertThat(resultado.error()).isEqualTo(motivo);
+        assertThat(resultado.recuperable()).isEqualTo(recuperable);
+    }
+
+    private void entoncesSeFinalizaConCostoCeroYSinReintento() {
+        verify(procesamientoRepository).finalizar(eq(lote), any(), eq(BigDecimal.ZERO), eq(AHORA), isNull());
+    }
+
+    private void entoncesSeReintentaEnTreintaSegundos() {
+        verify(procesamientoRepository).finalizar(eq(lote), any(), isNull(), eq(AHORA), eq(AHORA.plusSeconds(30)));
+    }
+
+    private void entoncesSeFinalizaSinReintento() {
+        verify(procesamientoRepository).finalizar(eq(lote), any(), isNull(), eq(AHORA), isNull());
+    }
+
+    private void entoncesSeFinalizaElReclamoVencidoConReintentoEnTreintaSegundos() {
+        ArgumentCaptor<ResultadoIntento> captor = ArgumentCaptor.forClass(ResultadoIntento.class);
+        verify(procesamientoRepository).finalizar(eq(lote), captor.capture(), eq(null), eq(AHORA),
+                eq(AHORA.plusSeconds(30)));
+        assertThat(captor.getValue().error()).isEqualTo(ProcesarLote.RECLAMO_VENCIDO);
     }
 }

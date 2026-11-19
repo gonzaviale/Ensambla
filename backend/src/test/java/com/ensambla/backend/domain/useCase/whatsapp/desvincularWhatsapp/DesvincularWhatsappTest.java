@@ -14,7 +14,8 @@ import org.junit.jupiter.api.Test;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
@@ -31,25 +32,55 @@ class DesvincularWhatsappTest {
             CALLS_REAL_METHODS);
     private final DesvincularWhatsapp desvincularWhatsapp = new WhatsappUseCaseConfig()
             .desvincularWhatsapp(vinculoRepository, new TransaccionDirecta());
+    private Throwable error;
 
     @Test
     @DisplayName("Desvincular borra el número del usuario")
-    void executeShouldDeleteLink() {
-        when(vinculoRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(VinculoWhatsapp.nuevo(
-                USUARIO_ID, NEGOCIO_ID, new TelefonoWhatsapp("5491122334455"), OffsetDateTime.now())));
+    void desvincularBorraElNumeroDelUsuario() {
+        dadoQueElUsuarioTieneUnNumeroVinculado();
 
-        desvincularWhatsapp.execute(new DesvincularWhatsappRequest(USUARIO_ID));
+        cuandoSeDesvincula();
 
-        verify(vinculoRepository).deleteByUsuarioId(USUARIO_ID);
+        entoncesSeBorroElVinculo();
     }
 
     @Test
     @DisplayName("Desvincular sin número vinculado responde como inexistente y no borra nada")
-    void executeShouldFailWithoutLink() {
-        when(vinculoRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
+    void desvincularSinNumeroVinculadoNoBorraNada() {
+        dadoQueElUsuarioNoTieneNumeroVinculado();
 
-        assertThatThrownBy(() -> desvincularWhatsapp.execute(new DesvincularWhatsappRequest(USUARIO_ID)))
-                .isInstanceOf(ResourceNotFoundException.class);
+        cuandoSeIntentaDesvincular();
+
+        entoncesNoSeEncuentra();
+        entoncesNoSeBorroNada();
+    }
+
+    private void dadoQueElUsuarioTieneUnNumeroVinculado() {
+        when(vinculoRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(VinculoWhatsapp.nuevo(
+                USUARIO_ID, NEGOCIO_ID, new TelefonoWhatsapp("5491122334455"), OffsetDateTime.now())));
+    }
+
+    private void dadoQueElUsuarioNoTieneNumeroVinculado() {
+        when(vinculoRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
+    }
+
+    private void cuandoSeDesvincula() {
+        desvincularWhatsapp.execute(new DesvincularWhatsappRequest(USUARIO_ID));
+    }
+
+    private void cuandoSeIntentaDesvincular() {
+        error = catchThrowable(this::cuandoSeDesvincula);
+    }
+
+    private void entoncesSeBorroElVinculo() {
+        verify(vinculoRepository).deleteByUsuarioId(USUARIO_ID);
+    }
+
+    private void entoncesNoSeEncuentra() {
+        assertThat(error).isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    private void entoncesNoSeBorroNada() {
         verify(vinculoRepository, never()).deleteByUsuarioId(any());
     }
 }

@@ -83,14 +83,16 @@ public class DatosDondeAbrirRepositoryImpl implements DatosDondeAbrirRepository 
                 JOIN fuente_dato_zona f ON f.codigo = 'ENSAMBLA'
                 WHERE a.comercios >= 3
                 GROUP BY a.zona_id, f.codigo, f.nombre, f.tipo, f.url, f.licencia
-                """, (RowCallbackHandler) rs -> {
-                    ConstructorZona zona = zonas.get(ZonaId.de(rs.getObject("zona_id", UUID.class)));
-                    if (zona != null) {
-                        zona.metricas.put(FactorDondeAbrir.DEMANDA_ENSAMBLA,
-                                new DatosZonaDondeAbrir.Medicion(numero(rs, "valor"), "unidades_semana",
-                                        fuente(rs), rs.getObject("observada_en", LocalDate.class)));
-                    }
-                });
+                """, (RowCallbackHandler) rs -> agregarDemanda(zonas, rs));
+    }
+
+    private static void agregarDemanda(Map<ZonaId, ConstructorZona> zonas, ResultSet rs) throws SQLException {
+        ConstructorZona zona = zonas.get(ZonaId.de(rs.getObject("zona_id", UUID.class)));
+        if (zona != null) {
+            zona.metricas.put(FactorDondeAbrir.DEMANDA_ENSAMBLA,
+                    new DatosZonaDondeAbrir.Medicion(numero(rs, "valor"), "unidades_semana",
+                            fuente(rs), rs.getObject("observada_en", LocalDate.class)));
+        }
     }
 
     private void cargarPuntos(Map<ZonaId, ConstructorZona> zonas, RubroNegocio rubro) {
@@ -102,15 +104,17 @@ public class DatosDondeAbrirRepositoryImpl implements DatosDondeAbrirRepository 
                 JOIN fuente_dato_zona f ON f.codigo = p.fuente_codigo
                 WHERE p.tipo <> 'COMPETENCIA' OR p.rubro = ?
                 ORDER BY p.zona_id, p.tipo, p.nombre, p.clave_externa
-                """, (RowCallbackHandler) rs -> {
-                    ConstructorZona zona = zonas.get(ZonaId.de(rs.getObject("zona_id", UUID.class)));
-                    if (zona != null) {
-                        zona.puntos.add(new DatosZonaDondeAbrir.Punto(
-                                texto(rs, "clave_externa"), texto(rs, "tipo"), texto(rs, "rubro"),
-                                texto(rs, "nombre"), numero(rs, "latitud"), numero(rs, "longitud"), fuente(rs),
-                                rs.getObject("observada_en", LocalDate.class)));
-                    }
-                }, rubro.name());
+                """, (RowCallbackHandler) rs -> agregarPunto(zonas, rs), rubro.name());
+    }
+
+    private static void agregarPunto(Map<ZonaId, ConstructorZona> zonas, ResultSet rs) throws SQLException {
+        ConstructorZona zona = zonas.get(ZonaId.de(rs.getObject("zona_id", UUID.class)));
+        if (zona != null) {
+            zona.puntos.add(new DatosZonaDondeAbrir.Punto(
+                    texto(rs, "clave_externa"), texto(rs, "tipo"), texto(rs, "rubro"),
+                    texto(rs, "nombre"), numero(rs, "latitud"), numero(rs, "longitud"), fuente(rs),
+                    rs.getObject("observada_en", LocalDate.class)));
+        }
     }
 
     private static DatosZonaDondeAbrir.Fuente fuente(ResultSet rs) throws SQLException {

@@ -35,6 +35,9 @@ describe('objetivos', () => {
     const user = userEvent.setup();
 
     await screen.findByRole('heading', { name: 'Definí tu primer objetivo' }, ESPERA);
+    await user.click(
+      await screen.findByRole('button', { name: 'Quiero poner una meta en pesos por mes' }, ESPERA),
+    );
     expect(screen.getByRole('button', { name: 'Definir objetivo' })).toBeDisabled();
 
     await user.click(screen.getByRole('button', { name: /Quiero ganar \$400\.000/ }));
@@ -139,6 +142,9 @@ describe('objetivos', () => {
     const user = userEvent.setup();
 
     await screen.findByRole('heading', { name: 'Definí tu primer objetivo' }, ESPERA);
+    await user.click(
+      await screen.findByRole('button', { name: 'Quiero poner una meta en pesos por mes' }, ESPERA),
+    );
     await user.click(screen.getByRole('button', { name: /Quiero ganar \$400\.000/ }));
     await user.click(screen.getByRole('button', { name: 'Definir objetivo' }));
 
@@ -153,6 +159,9 @@ describe('objetivos', () => {
     renderApp('/objetivos');
     const user = userEvent.setup();
 
+    await user.click(
+      await screen.findByRole('button', { name: 'Quiero poner una meta en pesos por mes' }, ESPERA),
+    );
     await user.type(
       await screen.findByLabelText('Contale tu objetivo a Sami', {}, ESPERA),
       'Quiero subir la yerba a $4.000 y recuperar mis gastos',
@@ -183,6 +192,9 @@ describe('objetivos', () => {
     renderApp('/objetivos');
     const user = userEvent.setup();
 
+    await user.click(
+      await screen.findByRole('button', { name: 'Quiero poner una meta en pesos por mes' }, ESPERA),
+    );
     await user.type(
       await screen.findByLabelText('Contale tu objetivo a Sami', {}, ESPERA),
       'Quiero ganar un millon al mes',
@@ -231,6 +243,9 @@ describe('objetivos', () => {
     renderApp('/objetivos');
     const user = userEvent.setup();
 
+    await user.click(
+      await screen.findByRole('button', { name: 'Quiero poner una meta en pesos por mes' }, ESPERA),
+    );
     await user.click(
       await screen.findByRole('button', { name: /Quiero ganar \$400\.000/ }, ESPERA),
     );

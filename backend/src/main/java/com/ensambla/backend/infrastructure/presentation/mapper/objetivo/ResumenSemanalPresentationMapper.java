@@ -4,11 +4,13 @@ import com.ensambla.backend.domain.model.objetivo.ObjetivoId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasRequest;
 import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasResponse;
+import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasResponse.ManualItem;
 import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasResponse.MiniItem;
 import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasResponse.ReajusteItem;
 import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasResponse.SemanaItem;
 import com.ensambla.backend.infrastructure.presentation.dto.objetivo.SemanasObjetivoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.objetivo.SemanasObjetivoResponse.DecisionesSemanaResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.objetivo.SemanasObjetivoResponse.ManualSemanaResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.objetivo.SemanasObjetivoResponse.MiniReajusteResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.objetivo.SemanasObjetivoResponse.ReajusteResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.objetivo.SemanasObjetivoResponse.SemanaResponse;
@@ -39,7 +41,12 @@ public class ResumenSemanalPresentationMapper {
                         semana.decisiones().ignoradas()),
                 semana.queFunciono(),
                 semana.textoConIa(),
-                semana.reajustes().stream().map(this::toResponse).toList());
+                semana.reajustes().stream().map(this::toResponse).toList(),
+                semana.manuales().stream().map(this::toResponse).toList());
+    }
+
+    private ManualSemanaResponse toResponse(ManualItem manual) {
+        return new ManualSemanaResponse(manual.miniObjetivoId(), manual.titulo(), manual.hizo(), manual.quePaso());
     }
 
     private ReajusteResponse toResponse(ReajusteItem reajuste) {
