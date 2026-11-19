@@ -58,7 +58,9 @@ class DecisionObjetivoControllerTest {
     private final ListarDecisiones listarDecisiones = mock(ListarDecisiones.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
+
     private MockMvc mockMvc;
+    private ResultActions respuesta;
 
     @BeforeEach
     void setUp() {
@@ -71,14 +73,163 @@ class DecisionObjetivoControllerTest {
 
     @Test
     @DisplayName("POST anota la decisión del paso y responde 201 con todos sus datos")
-    void decidirPasoShouldReturnCreatedWithTheDecision() throws Exception {
+    void postAnotaLaDecisionDelPasoYResponde201ConTodosSusDatos() throws Exception {
+        dadoUnPasoQueSePuedeDecidir(TipoDecision.PASO_ACEPTADO);
+
+        cuandoSeDecideElPaso("ACEPTADO");
+
+        entoncesSeResponde201ConLaDecision();
+    }
+
+    @Test
+    @DisplayName("POST manda al caso de uso el usuario de la sesión, el objetivo, el mini-objetivo y la respuesta")
+    void postMandaAlCasoDeUsoElUsuarioDeLaSesionElObjetivoElMiniObjetivoYLaRespuesta() throws Exception {
+        dadoUnPasoQueSePuedeDecidir(TipoDecision.PASO_IGNORADO);
+
+        cuandoSeDecideElPaso("IGNORADO");
+
+        entoncesElCasoDeUsoRecibeLaDecisionIgnorada();
+    }
+
+    @Test
+    @DisplayName("POST responde 400 cuando falta la decisión y no llega al caso de uso")
+    void postResponde400CuandoFaltaLaDecisionYNoLlegaAlCasoDeUso() throws Exception {
+        cuandoSeEnviaLaDecisionDelPaso("{}");
+
+        entoncesSeRechazaPorqueFaltaLaDecision();
+    }
+
+    @Test
+    @DisplayName("POST responde 400 cuando la decisión no es una de las permitidas")
+    void postResponde400CuandoLaDecisionNoEsUnaDeLasPermitidas() throws Exception {
+        cuandoSeDecideElPaso("AVISO_APLICADO");
+
+        entoncesSeRechazaSinRegistrarLaDecision();
+    }
+
+    @Test
+    @DisplayName("POST responde 404 cuando el mini-objetivo es de otro negocio o no existe")
+    void postResponde404CuandoElMiniObjetivoEsDeOtroNegocioONoExiste() throws Exception {
+        dadoUnMiniObjetivoInexistente();
+
+        cuandoSeDecideElPaso("ACEPTADO");
+
+        entoncesRespondeNoEncontrado();
+    }
+
+    @Test
+    @DisplayName("POST responde 400 cuando el mini-objetivo ya no está en curso")
+    void postResponde400CuandoElMiniObjetivoYaNoEstaEnCurso() throws Exception {
+        dadoUnMiniObjetivoQueYaNoEstaEnCurso();
+
+        cuandoSeDecideElPaso("ACEPTADO");
+
+        entoncesSeRechazaElPedido();
+    }
+
+    @Test
+    @DisplayName("GET lista las decisiones por semana con su efecto")
+    void getListaLasDecisionesPorSemanaConSuEfecto() throws Exception {
+        dadoUnaSemanaConUnAvisoAplicadoYMedido();
+
+        cuandoSeListanLasDecisiones();
+
+        entoncesSeListaLaSemanaConSuEfecto();
+    }
+
+    @Test
+    @DisplayName("GET manda al caso de uso el usuario de la sesión y el objetivo de la ruta")
+    void getMandaAlCasoDeUsoElUsuarioDeLaSesionYElObjetivoDeLaRuta() throws Exception {
+        dadoUnObjetivoSinDecisiones();
+
+        cuandoSeListanLasDecisiones();
+
+        entoncesElCasoDeUsoRecibeElUsuarioYElObjetivo();
+    }
+
+    @Test
+    @DisplayName("GET responde 200 con una lista vacía cuando todavía no hay decisiones")
+    void getResponde200ConUnaListaVaciaCuandoTodaviaNoHayDecisiones() throws Exception {
+        dadoUnObjetivoSinDecisiones();
+
+        cuandoSeListanLasDecisiones();
+
+        entoncesSeDevuelvenSemanasVacias();
+    }
+
+    @Test
+    @DisplayName("GET responde 404 cuando el objetivo es de otro negocio o no existe")
+    void getResponde404CuandoElObjetivoEsDeOtroNegocioONoExiste() throws Exception {
+        dadoUnObjetivoInexistente();
+
+        cuandoSeListanLasDecisiones();
+
+        entoncesRespondeNoEncontrado();
+    }
+
+    @Test
+    @DisplayName("GET responde 400 cuando el id del objetivo no es un UUID")
+    void getResponde400CuandoElIdDelObjetivoNoEsUnUuid() throws Exception {
+        cuandoSeListanLasDecisionesDeUnObjetivoConIdInvalido();
+
+        entoncesSeRechazaElListadoSinLlegarAlCasoDeUso();
+    }
+
+    // --- dado ---
+
+    private void dadoUnPasoQueSePuedeDecidir(TipoDecision tipo) {
         when(registrarDecisionPaso.execute(any())).thenReturn(
-                DecisionItem.de(decision(TipoDecision.PASO_ACEPTADO, null), EfectoDecision.SIN_MEDICION));
+                DecisionItem.de(decision(tipo, null), EfectoDecision.SIN_MEDICION));
+    }
 
-        ResultActions result = mockMvc.perform(post(PASO).principal(principal)
-                .contentType(MediaType.APPLICATION_JSON).content("{\"tipo\":\"ACEPTADO\"}"));
+    private void dadoUnMiniObjetivoInexistente() {
+        when(registrarDecisionPaso.execute(any()))
+                .thenThrow(new ResourceNotFoundException("Mini-objetivo no encontrado"));
+    }
 
-        result.andExpect(status().isCreated())
+    private void dadoUnMiniObjetivoQueYaNoEstaEnCurso() {
+        when(registrarDecisionPaso.execute(any()))
+                .thenThrow(new BusinessRuleException("El mini-objetivo ya no está en curso"));
+    }
+
+    private void dadoUnaSemanaConUnAvisoAplicadoYMedido() {
+        DecisionItem item = DecisionItem.de(decision(TipoDecision.AVISO_APLICADO, AVISO_ID),
+                new EfectoDecision(EstadoEfecto.MEDIDO, new BigDecimal("350.00")));
+        when(listarDecisiones.execute(any()))
+                .thenReturn(new ListarDecisionesResponse(List.of(new SemanaDecisiones(SEMANA, List.of(item)))));
+    }
+
+    private void dadoUnObjetivoSinDecisiones() {
+        when(listarDecisiones.execute(any())).thenReturn(new ListarDecisionesResponse(List.of()));
+    }
+
+    private void dadoUnObjetivoInexistente() {
+        when(listarDecisiones.execute(any())).thenThrow(new ResourceNotFoundException("Objetivo no encontrado"));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeDecideElPaso(String tipo) throws Exception {
+        cuandoSeEnviaLaDecisionDelPaso("{\"tipo\":\"" + tipo + "\"}");
+    }
+
+    private void cuandoSeEnviaLaDecisionDelPaso(String cuerpo) throws Exception {
+        respuesta = mockMvc.perform(post(PASO).principal(principal)
+                .contentType(MediaType.APPLICATION_JSON).content(cuerpo));
+    }
+
+    private void cuandoSeListanLasDecisiones() throws Exception {
+        respuesta = mockMvc.perform(get(DECISIONES).principal(principal));
+    }
+
+    private void cuandoSeListanLasDecisionesDeUnObjetivoConIdInvalido() throws Exception {
+        respuesta = mockMvc.perform(get("/api/objetivos/no-es-un-uuid/decisiones").principal(principal));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeResponde201ConLaDecision() throws Exception {
+        respuesta.andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(DECISION_ID.toString()))
                 .andExpect(jsonPath("$.tipo").value("PASO_ACEPTADO"))
                 .andExpect(jsonPath("$.miniObjetivoId").value(MINI_ID.toString()))
@@ -88,16 +239,8 @@ class DecisionObjetivoControllerTest {
                 .andExpect(jsonPath("$.efecto").value("SIN_MEDICION"));
     }
 
-    @Test
-    @DisplayName("POST manda al caso de uso el usuario de la sesión, el objetivo, el mini-objetivo y la respuesta")
-    void decidirPasoShouldPassTheRequestToTheUseCase() throws Exception {
-        when(registrarDecisionPaso.execute(any())).thenReturn(
-                DecisionItem.de(decision(TipoDecision.PASO_IGNORADO, null), EfectoDecision.SIN_MEDICION));
-
-        mockMvc.perform(post(PASO).principal(principal)
-                .contentType(MediaType.APPLICATION_JSON).content("{\"tipo\":\"IGNORADO\"}"))
-                .andExpect(status().isCreated());
-
+    private void entoncesElCasoDeUsoRecibeLaDecisionIgnorada() throws Exception {
+        respuesta.andExpect(status().isCreated());
         ArgumentCaptor<RegistrarDecisionPasoRequest> captor =
                 ArgumentCaptor.forClass(RegistrarDecisionPasoRequest.class);
         verify(registrarDecisionPaso).execute(captor.capture());
@@ -107,62 +250,27 @@ class DecisionObjetivoControllerTest {
         assertThat(captor.getValue().decision()).isEqualTo(DecisionPaso.IGNORADO);
     }
 
-    @Test
-    @DisplayName("POST responde 400 cuando falta la decisión y no llega al caso de uso")
-    void decidirPasoShouldReturn400WhenTheDecisionIsMissing() throws Exception {
-        ResultActions result = mockMvc.perform(post(PASO).principal(principal)
-                .contentType(MediaType.APPLICATION_JSON).content("{}"));
-
-        result.andExpect(status().isBadRequest())
+    private void entoncesSeRechazaPorqueFaltaLaDecision() throws Exception {
+        respuesta.andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.tipo").value("La decisión es obligatoria"));
         verifyNoInteractions(registrarDecisionPaso);
     }
 
-    @Test
-    @DisplayName("POST responde 400 cuando la decisión no es una de las permitidas")
-    void decidirPasoShouldReturn400WhenTheDecisionIsUnknown() throws Exception {
-        ResultActions result = mockMvc.perform(post(PASO).principal(principal)
-                .contentType(MediaType.APPLICATION_JSON).content("{\"tipo\":\"AVISO_APLICADO\"}"));
-
-        result.andExpect(status().isBadRequest());
+    private void entoncesSeRechazaSinRegistrarLaDecision() throws Exception {
+        respuesta.andExpect(status().isBadRequest());
         verifyNoInteractions(registrarDecisionPaso);
     }
 
-    @Test
-    @DisplayName("POST responde 404 cuando el mini-objetivo es de otro negocio o no existe")
-    void decidirPasoShouldReturn404WhenTheMiniObjetivoIsNotFound() throws Exception {
-        when(registrarDecisionPaso.execute(any()))
-                .thenThrow(new ResourceNotFoundException("Mini-objetivo no encontrado"));
-
-        ResultActions result = mockMvc.perform(post(PASO).principal(principal)
-                .contentType(MediaType.APPLICATION_JSON).content("{\"tipo\":\"ACEPTADO\"}"));
-
-        result.andExpect(status().isNotFound());
+    private void entoncesRespondeNoEncontrado() throws Exception {
+        respuesta.andExpect(status().isNotFound());
     }
 
-    @Test
-    @DisplayName("POST responde 400 cuando el mini-objetivo ya no está en curso")
-    void decidirPasoShouldReturn400WhenTheMiniObjetivoIsNoLongerInProgress() throws Exception {
-        when(registrarDecisionPaso.execute(any()))
-                .thenThrow(new BusinessRuleException("El mini-objetivo ya no está en curso"));
-
-        ResultActions result = mockMvc.perform(post(PASO).principal(principal)
-                .contentType(MediaType.APPLICATION_JSON).content("{\"tipo\":\"ACEPTADO\"}"));
-
-        result.andExpect(status().isBadRequest());
+    private void entoncesSeRechazaElPedido() throws Exception {
+        respuesta.andExpect(status().isBadRequest());
     }
 
-    @Test
-    @DisplayName("GET lista las decisiones por semana con su efecto")
-    void listarShouldReturnTheWeeksWithTheirDecisions() throws Exception {
-        DecisionItem item = DecisionItem.de(decision(TipoDecision.AVISO_APLICADO, AVISO_ID),
-                new EfectoDecision(EstadoEfecto.MEDIDO, new BigDecimal("350.00")));
-        when(listarDecisiones.execute(any()))
-                .thenReturn(new ListarDecisionesResponse(List.of(new SemanaDecisiones(SEMANA, List.of(item)))));
-
-        ResultActions result = mockMvc.perform(get(DECISIONES).principal(principal));
-
-        result.andExpect(status().isOk())
+    private void entoncesSeListaLaSemanaConSuEfecto() throws Exception {
+        respuesta.andExpect(status().isOk())
                 .andExpect(jsonPath("$.semanas[0].semanaInicio").value("2026-11-09"))
                 .andExpect(jsonPath("$.semanas[0].decisiones[0].tipo").value("AVISO_APLICADO"))
                 .andExpect(jsonPath("$.semanas[0].decisiones[0].avisoId").value(AVISO_ID.toString()))
@@ -170,43 +278,20 @@ class DecisionObjetivoControllerTest {
                 .andExpect(jsonPath("$.semanas[0].decisiones[0].deltaIngresoSemanal").value(350.0));
     }
 
-    @Test
-    @DisplayName("GET manda al caso de uso el usuario de la sesión y el objetivo de la ruta")
-    void listarShouldPassTheSessionUserAndTheObjetivo() throws Exception {
-        when(listarDecisiones.execute(any())).thenReturn(new ListarDecisionesResponse(List.of()));
-
-        mockMvc.perform(get(DECISIONES).principal(principal)).andExpect(status().isOk());
-
+    private void entoncesElCasoDeUsoRecibeElUsuarioYElObjetivo() throws Exception {
+        respuesta.andExpect(status().isOk());
         ArgumentCaptor<ListarDecisionesRequest> captor = ArgumentCaptor.forClass(ListarDecisionesRequest.class);
         verify(listarDecisiones).execute(captor.capture());
         assertThat(captor.getValue().usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(captor.getValue().objetivoId()).isEqualTo(OBJETIVO_ID);
     }
 
-    @Test
-    @DisplayName("GET responde 200 con una lista vacía cuando todavía no hay decisiones")
-    void listarShouldReturnEmptyWeeksWhenThereAreNoDecisions() throws Exception {
-        when(listarDecisiones.execute(any())).thenReturn(new ListarDecisionesResponse(List.of()));
-
-        ResultActions result = mockMvc.perform(get(DECISIONES).principal(principal));
-
-        result.andExpect(status().isOk()).andExpect(jsonPath("$.semanas").isEmpty());
+    private void entoncesSeDevuelvenSemanasVacias() throws Exception {
+        respuesta.andExpect(status().isOk()).andExpect(jsonPath("$.semanas").isEmpty());
     }
 
-    @Test
-    @DisplayName("GET responde 404 cuando el objetivo es de otro negocio o no existe")
-    void listarShouldReturn404WhenTheObjetivoIsNotFound() throws Exception {
-        when(listarDecisiones.execute(any())).thenThrow(new ResourceNotFoundException("Objetivo no encontrado"));
-
-        mockMvc.perform(get(DECISIONES).principal(principal)).andExpect(status().isNotFound());
-    }
-
-    @Test
-    @DisplayName("GET responde 400 cuando el id del objetivo no es un UUID")
-    void listarShouldReturn400WhenTheIdIsNotAUuid() throws Exception {
-        ResultActions result = mockMvc.perform(get("/api/objetivos/no-es-un-uuid/decisiones").principal(principal));
-
-        result.andExpect(status().isBadRequest());
+    private void entoncesSeRechazaElListadoSinLlegarAlCasoDeUso() throws Exception {
+        respuesta.andExpect(status().isBadRequest());
         verifyNoInteractions(listarDecisiones);
     }
 }
