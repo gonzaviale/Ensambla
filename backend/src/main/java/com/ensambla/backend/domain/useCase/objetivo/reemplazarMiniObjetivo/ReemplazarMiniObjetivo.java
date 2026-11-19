@@ -7,7 +7,9 @@ import com.ensambla.backend.domain.model.objetivo.CandidatoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.CandidatosMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.Objetivo;
+import com.ensambla.backend.domain.model.objetivo.ObjetivoId;
 import com.ensambla.backend.domain.model.objetivo.SemanaObjetivo;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.objetivo.MiniObjetivoRepository;
@@ -43,28 +45,51 @@ public class ReemplazarMiniObjetivo {
     private final Clock clock;
 
     public MiniObjetivoItem execute(ReemplazarMiniObjetivoRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        Objetivo objetivo = objetivoRepository.obtener(negocioId, request.objetivoId());
-        MiniObjetivo actual = miniObjetivoRepository.obtener(negocioId, request.objetivoId(), request.miniObjetivoId());
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+        Objetivo objetivo = obtenerObjetivo(negocioId, request.objetivoId());
+        MiniObjetivo actual = obtenerMiniObjetivo(negocioId, request);
         actual.exigirEnCurso();
         OffsetDateTime ahora = OffsetDateTime.now(clock);
         LocalDate hoy = ZonaNegocio.dia(ahora);
         CandidatoMiniObjetivo elegido = elegir(negocioId, actual, request, hoy);
-        return MiniObjetivoItem.de(transaccionPort.ejecutar(() -> reemplazar(objetivo, actual, elegido, hoy, ahora)));
+        return MiniObjetivoItem.de(reemplazarEnTransaccion(objetivo, actual, elegido, hoy, ahora));
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private Objetivo obtenerObjetivo(NegocioId negocioId, ObjetivoId objetivoId) {
+        return objetivoRepository.obtener(negocioId, objetivoId);
+    }
+
+    private MiniObjetivo obtenerMiniObjetivo(NegocioId negocioId, ReemplazarMiniObjetivoRequest request) {
+        return miniObjetivoRepository.obtener(negocioId, request.objetivoId(), request.miniObjetivoId());
     }
 
     private CandidatoMiniObjetivo elegir(
             NegocioId negocioId, MiniObjetivo actual, ReemplazarMiniObjetivoRequest request, LocalDate hoy) {
-        List<MiniObjetivo> enCurso = miniObjetivoRepository
-                .findAllByObjetivoIdAndNegocioId(request.objetivoId(), negocioId).stream()
-                .filter(MiniObjetivo::estaEnCurso)
-                .toList();
-        return CandidatosMiniObjetivo.alternativas(
-                        propuestaMiniObjetivosService.candidatos(negocioId, hoy).candidatos(),
-                        actual, enCurso, CandidatosMiniObjetivo.TODOS).stream()
+        List<MiniObjetivo> enCurso = obtenerEnCurso(negocioId, request.objetivoId());
+        return CandidatosMiniObjetivo.alternativas(obtenerCandidatos(negocioId, hoy), actual, enCurso,
+                        CandidatosMiniObjetivo.TODOS).stream()
                 .filter(candidato -> candidato.esElMismo(request.tipo(), request.registroId(), request.referencia()))
                 .findFirst()
                 .orElseThrow(() -> new BusinessRuleException(YA_NO_ESTA));
+    }
+
+    private List<MiniObjetivo> obtenerEnCurso(NegocioId negocioId, ObjetivoId objetivoId) {
+        return miniObjetivoRepository.findAllByObjetivoIdAndNegocioId(objetivoId, negocioId).stream()
+                .filter(MiniObjetivo::estaEnCurso)
+                .toList();
+    }
+
+    private List<CandidatoMiniObjetivo> obtenerCandidatos(NegocioId negocioId, LocalDate hoy) {
+        return propuestaMiniObjetivosService.candidatos(negocioId, hoy).candidatos();
+    }
+
+    private MiniObjetivo reemplazarEnTransaccion(Objetivo objetivo, MiniObjetivo actual,
+                                                 CandidatoMiniObjetivo elegido, LocalDate hoy, OffsetDateTime ahora) {
+        return transaccionPort.ejecutar(() -> reemplazar(objetivo, actual, elegido, hoy, ahora));
     }
 
     /** Primero se libera el lugar del viejo y recién después entra el nuevo: un lugar lo ocupa uno solo. */
@@ -74,7 +99,11 @@ public class ReemplazarMiniObjetivo {
         MiniObjetivo nuevo = MiniObjetivo.nuevo(
                 objetivo, actual.getPosicion(), elegido, SemanaObjetivo.lunesDe(hoy), ahora);
         actual.reemplazarPor(nuevo.getId(), ahora);
-        miniObjetivoRepository.save(actual);
-        return miniObjetivoRepository.save(nuevo);
+        guardarMiniObjetivo(actual);
+        return guardarMiniObjetivo(nuevo);
+    }
+
+    private MiniObjetivo guardarMiniObjetivo(MiniObjetivo miniObjetivo) {
+        return miniObjetivoRepository.save(miniObjetivo);
     }
 }

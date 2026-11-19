@@ -5,6 +5,8 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.objetivo.CandidatosDelNegocio;
 import com.ensambla.backend.domain.model.objetivo.CandidatosMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
+import com.ensambla.backend.domain.model.objetivo.ObjetivoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.objetivo.MiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
@@ -34,18 +36,36 @@ public class ListarCandidatos {
     private final Clock clock;
 
     public ListarCandidatosResponse execute(ListarCandidatosRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        objetivoRepository.obtener(negocioId, request.objetivoId());
-        MiniObjetivo miniObjetivo = miniObjetivoRepository.obtener(
-                negocioId, request.objetivoId(), request.miniObjetivoId());
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+        exigirObjetivoDelNegocio(negocioId, request.objetivoId());
+        MiniObjetivo miniObjetivo = obtenerMiniObjetivo(negocioId, request);
         miniObjetivo.exigirEnCurso();
-        List<MiniObjetivo> enCurso = miniObjetivoRepository
-                .findAllByObjetivoIdAndNegocioId(request.objetivoId(), negocioId).stream()
-                .filter(MiniObjetivo::estaEnCurso)
-                .toList();
-        LocalDate hoy = ZonaNegocio.dia(OffsetDateTime.now(clock));
-        CandidatosDelNegocio negocio = propuestaMiniObjetivosService.candidatos(negocioId, hoy);
+        List<MiniObjetivo> enCurso = obtenerEnCurso(negocioId, request.objetivoId());
+        CandidatosDelNegocio negocio = obtenerCandidatos(negocioId);
         return ListarCandidatosResponse.de(CandidatosMiniObjetivo.alternativas(
                 negocio.candidatos(), miniObjetivo, enCurso, CandidatosMiniObjetivo.ALTERNATIVAS));
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private void exigirObjetivoDelNegocio(NegocioId negocioId, ObjetivoId objetivoId) {
+        objetivoRepository.obtener(negocioId, objetivoId);
+    }
+
+    private MiniObjetivo obtenerMiniObjetivo(NegocioId negocioId, ListarCandidatosRequest request) {
+        return miniObjetivoRepository.obtener(negocioId, request.objetivoId(), request.miniObjetivoId());
+    }
+
+    private List<MiniObjetivo> obtenerEnCurso(NegocioId negocioId, ObjetivoId objetivoId) {
+        return miniObjetivoRepository.findAllByObjetivoIdAndNegocioId(objetivoId, negocioId).stream()
+                .filter(MiniObjetivo::estaEnCurso)
+                .toList();
+    }
+
+    private CandidatosDelNegocio obtenerCandidatos(NegocioId negocioId) {
+        LocalDate hoy = ZonaNegocio.dia(OffsetDateTime.now(clock));
+        return propuestaMiniObjetivosService.candidatos(negocioId, hoy);
     }
 }

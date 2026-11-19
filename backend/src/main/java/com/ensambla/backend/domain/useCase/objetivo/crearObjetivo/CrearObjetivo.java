@@ -9,6 +9,7 @@ import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.Objetivo;
 import com.ensambla.backend.domain.model.objetivo.RedaccionObjetivosIa;
 import com.ensambla.backend.domain.model.objetivo.SemanaObjetivo;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.RedaccionObjetivosIaPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
@@ -62,17 +63,33 @@ public class CrearObjetivo {
     private final int limiteDiarioIa;
 
     public ObjetivoItem execute(CrearObjetivoRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
         OffsetDateTime ahora = OffsetDateTime.now(clock);
         LocalDate hoy = ZonaNegocio.dia(ahora);
-        CandidatosDelNegocio negocio = propuestaMiniObjetivosService.candidatos(negocioId, hoy);
+        CandidatosDelNegocio negocio = obtenerCandidatos(negocioId, hoy);
         boolean alcanzado = negocio.alcanza(request.meta());
-        List<CandidatoMiniObjetivo> elegidos = alcanzado
-                ? List.of()
-                : redactar(negocioId, CandidatosMiniObjetivo.elegir(
-                        negocio.candidatos(), List.of(), MiniObjetivo.MAXIMO_EN_CURSO), ahora);
-        Objetivo objetivo = transaccionPort.ejecutar(() -> crear(negocioId, request, alcanzado, elegidos, hoy, ahora));
-        return ObjetivoItem.de(objetivo);
+        List<CandidatoMiniObjetivo> elegidos = alcanzado ? List.of() : elegirYRedactar(negocioId, negocio, ahora);
+        return ObjetivoItem.de(crearEnTransaccion(negocioId, request, alcanzado, elegidos, hoy, ahora));
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private CandidatosDelNegocio obtenerCandidatos(NegocioId negocioId, LocalDate hoy) {
+        return propuestaMiniObjetivosService.candidatos(negocioId, hoy);
+    }
+
+    private List<CandidatoMiniObjetivo> elegirYRedactar(NegocioId negocioId, CandidatosDelNegocio negocio,
+                                                        OffsetDateTime ahora) {
+        List<CandidatoMiniObjetivo> elegidos = CandidatosMiniObjetivo.elegir(
+                negocio.candidatos(), List.of(), MiniObjetivo.MAXIMO_EN_CURSO);
+        return redactar(negocioId, elegidos, ahora);
+    }
+
+    private Objetivo crearEnTransaccion(NegocioId negocioId, CrearObjetivoRequest request, boolean alcanzado,
+                                        List<CandidatoMiniObjetivo> elegidos, LocalDate hoy, OffsetDateTime ahora) {
+        return transaccionPort.ejecutar(() -> crear(negocioId, request, alcanzado, elegidos, hoy, ahora));
     }
 
     private Objetivo crear(
@@ -82,9 +99,9 @@ public class CrearObjetivo {
         if (alcanzado) {
             nuevo.marcarAlcanzado(ahora);
         }
-        Objetivo guardado = objetivoRepository.save(nuevo);
+        Objetivo guardado = guardarObjetivo(nuevo);
         MiniObjetivo.propuestos(guardado, elegidos, SemanaObjetivo.lunesDe(hoy), ahora)
-                .forEach(miniObjetivoRepository::save);
+                .forEach(this::guardarMiniObjetivo);
         return guardado;
     }
 
@@ -95,19 +112,54 @@ public class CrearObjetivo {
             return elegidos;
         }
         try {
-            controlPlanService.exigirIa(negocioId);
-            LocalDate fecha = ZonaNegocio.dia(ahora);
-            if (!consumoSamiRepository.reservar(negocioId, fecha, limiteDiarioIa, ahora)) {
-                return elegidos;
-            }
-            RedaccionObjetivosIa redaccion = redaccionObjetivosIaPort.redactar(elegidos);
-            consumoSamiRepository.registrar(negocioId, fecha, redaccion.consumo(), ahora);
-            return IntStream.range(0, elegidos.size())
-                    .mapToObj(indice -> elegidos.get(indice).conTextoDeIa(redaccion.textos().get(indice)))
-                    .toList();
+            return redactarConIa(negocioId, elegidos, ahora);
         } catch (RuntimeException e) {
             log.warn("No se pudieron redactar los mini-objetivos con IA; se usa el texto de reserva", e);
             return elegidos;
         }
+    }
+
+    private List<CandidatoMiniObjetivo> redactarConIa(NegocioId negocioId, List<CandidatoMiniObjetivo> elegidos,
+                                                      OffsetDateTime ahora) {
+        exigirIa(negocioId);
+        LocalDate fecha = ZonaNegocio.dia(ahora);
+        if (!reservarConsultaDelDia(negocioId, fecha, ahora)) {
+            return elegidos;
+        }
+        RedaccionObjetivosIa redaccion = pedirRedaccion(elegidos);
+        registrarConsumo(negocioId, fecha, redaccion, ahora);
+        return conTextosDeIa(elegidos, redaccion);
+    }
+
+    private List<CandidatoMiniObjetivo> conTextosDeIa(List<CandidatoMiniObjetivo> elegidos,
+                                                      RedaccionObjetivosIa redaccion) {
+        return IntStream.range(0, elegidos.size())
+                .mapToObj(indice -> elegidos.get(indice).conTextoDeIa(redaccion.textos().get(indice)))
+                .toList();
+    }
+
+    private void exigirIa(NegocioId negocioId) {
+        controlPlanService.exigirIa(negocioId);
+    }
+
+    private boolean reservarConsultaDelDia(NegocioId negocioId, LocalDate fecha, OffsetDateTime ahora) {
+        return consumoSamiRepository.reservar(negocioId, fecha, limiteDiarioIa, ahora);
+    }
+
+    private RedaccionObjetivosIa pedirRedaccion(List<CandidatoMiniObjetivo> elegidos) {
+        return redaccionObjetivosIaPort.redactar(elegidos);
+    }
+
+    private void registrarConsumo(NegocioId negocioId, LocalDate fecha, RedaccionObjetivosIa redaccion,
+                                  OffsetDateTime ahora) {
+        consumoSamiRepository.registrar(negocioId, fecha, redaccion.consumo(), ahora);
+    }
+
+    private Objetivo guardarObjetivo(Objetivo objetivo) {
+        return objetivoRepository.save(objetivo);
+    }
+
+    private void guardarMiniObjetivo(MiniObjetivo miniObjetivo) {
+        miniObjetivoRepository.save(miniObjetivo);
     }
 }

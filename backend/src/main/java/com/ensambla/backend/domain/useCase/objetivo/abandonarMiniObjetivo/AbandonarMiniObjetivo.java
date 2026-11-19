@@ -2,6 +2,8 @@ package com.ensambla.backend.domain.useCase.objetivo.abandonarMiniObjetivo;
 
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
+import com.ensambla.backend.domain.model.objetivo.ObjetivoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.objetivo.MiniObjetivoRepository;
@@ -26,11 +28,25 @@ public class AbandonarMiniObjetivo {
     private final Clock clock;
 
     public void execute(AbandonarMiniObjetivoRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        objetivoRepository.obtener(negocioId, request.objetivoId());
-        MiniObjetivo miniObjetivo = miniObjetivoRepository.obtener(
-                negocioId, request.objetivoId(), request.miniObjetivoId());
-        OffsetDateTime ahora = OffsetDateTime.now(clock);
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+        exigirObjetivoDelNegocio(negocioId, request.objetivoId());
+        MiniObjetivo miniObjetivo = obtenerMiniObjetivo(negocioId, request);
+        abandonarEnTransaccion(miniObjetivo, OffsetDateTime.now(clock));
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private void exigirObjetivoDelNegocio(NegocioId negocioId, ObjetivoId objetivoId) {
+        objetivoRepository.obtener(negocioId, objetivoId);
+    }
+
+    private MiniObjetivo obtenerMiniObjetivo(NegocioId negocioId, AbandonarMiniObjetivoRequest request) {
+        return miniObjetivoRepository.obtener(negocioId, request.objetivoId(), request.miniObjetivoId());
+    }
+
+    private void abandonarEnTransaccion(MiniObjetivo miniObjetivo, OffsetDateTime ahora) {
         transaccionPort.ejecutar(() -> abandonar(miniObjetivo, ahora));
     }
 
