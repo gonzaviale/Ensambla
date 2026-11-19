@@ -11,15 +11,29 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ObtenerComoVieneElNegocioResponseTest {
 
+    private ObtenerComoVieneElNegocioResponse respuesta;
+
     @Test
-    @DisplayName("de() copia los importes y las semanas del modelo")
-    void deShouldCopyAmountsAndWeeks() {
+    @DisplayName("Copia los importes y las semanas del modelo")
+    void copiaLosImportesYLasSemanasDelModelo() {
+        cuandoSeArmaLaRespuestaDeUnNegocioConDosSemanas();
+
+        entoncesCopiaLosImportesYLasSemanas();
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeArmaLaRespuestaDeUnNegocioConDosSemanas() {
         ComoVieneElNegocio negocio = new ComoVieneElNegocio(true, 56100, 40500, 8000, 7600, 17000,
-                List.of(new ComoVieneElNegocio.Semana("Hace 1 sem.", 4100), new ComoVieneElNegocio.Semana("Hoy", 7600)));
+                List.of(new ComoVieneElNegocio.Semana("Hace 1 sem.", 4100),
+                        new ComoVieneElNegocio.Semana("Hoy", 7600)));
+        respuesta = ObtenerComoVieneElNegocioResponse.de(negocio);
+    }
 
-        ObtenerComoVieneElNegocioResponse response = ObtenerComoVieneElNegocioResponse.de(negocio);
+    // --- entonces ---
 
-        assertThat(response).isEqualTo(new ObtenerComoVieneElNegocioResponse(true, 56100, 40500, 8000, 7600, 17000,
+    private void entoncesCopiaLosImportesYLasSemanas() {
+        assertThat(respuesta).isEqualTo(new ObtenerComoVieneElNegocioResponse(true, 56100, 40500, 8000, 7600, 17000,
                 List.of(new Semana("Hace 1 sem.", 4100), new Semana("Hoy", 7600))));
     }
 }

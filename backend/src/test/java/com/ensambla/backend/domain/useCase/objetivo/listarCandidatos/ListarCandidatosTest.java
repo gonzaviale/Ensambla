@@ -33,7 +33,7 @@ import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.USUARIO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.objetivo;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -49,6 +49,9 @@ class ListarCandidatosTest {
             mock(PropuestaMiniObjetivosService.class);
     private ListarCandidatos listarCandidatos;
 
+    private ListarCandidatosResponse respuesta;
+    private Throwable rechazo;
+
     @BeforeEach
     void setUp() {
         listarCandidatos = new ListarCandidatos(
@@ -57,107 +60,186 @@ class ListarCandidatosTest {
                 miniObjetivoRepository,
                 propuestaMiniObjetivosService,
                 Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
+        dadoUnMiniObjetivoDeUnObjetivoDelNegocio();
+    }
+
+    @Test
+    @DisplayName("Ofrece los candidatos de hoy menos el mismo mini-objetivo")
+    void ofreceLosCandidatosDeHoyMenosElMismoMiniObjetivo() {
+        dadoElMiniObjetivoEnCurso();
+        dadoCandidatosDeSubirPrecioYMejorarMargen();
+
+        cuandoSeListan();
+
+        entoncesSeOfreceSoloEl(TipoMiniObjetivo.MEJORAR_MARGEN);
+    }
+
+    @Test
+    @DisplayName("No ofrece el tipo de los otros mini-objetivos en curso")
+    void noOfreceElTipoDeLosOtrosMiniObjetivosEnCurso() {
+        dadoOtroMiniObjetivoEnCursoDeMejorarMargen();
+        dadoCandidatosDeMejorarMargenYRecortarGasto();
+
+        cuandoSeListan();
+
+        entoncesSeOfreceSoloEl(TipoMiniObjetivo.RECORTAR_GASTO);
+    }
+
+    @Test
+    @DisplayName("Un mini-objetivo logrado antes no ocupa lugar: sus tipos siguen disponibles")
+    void unMiniObjetivoLogradoAntesNoOcupaLugarSusTiposSiguenDisponibles() {
+        dadoUnMiniObjetivoLogradoDeMejorarMargen();
+        dadoCandidatosDeMejorarMargen();
+
+        cuandoSeListan();
+
+        entoncesSeOfreceSoloEl(TipoMiniObjetivo.MEJORAR_MARGEN);
+    }
+
+    @Test
+    @DisplayName("Sin candidatos devuelve una lista vacía")
+    void sinCandidatosDevuelveUnaListaVacia() {
+        dadoElMiniObjetivoEnCurso();
+        dadoQueNoHayCandidatos();
+
+        cuandoSeListan();
+
+        entoncesNoSeOfreceNada();
+    }
+
+    @Test
+    @DisplayName("Un mini-objetivo que ya no está en curso no tiene alternativas y no se calcula nada")
+    void unMiniObjetivoQueYaNoEstaEnCursoNoTieneAlternativasYNoSeCalculaNada() {
+        dadoUnMiniObjetivoQueYaNoEstaEnCurso();
+
+        cuandoSeIntentaListar();
+
+        entoncesSeRechazaPorReglaDeNegocioSinCalcularCandidatos();
+    }
+
+    @Test
+    @DisplayName("Un objetivo de otro negocio responde como inexistente")
+    void unObjetivoDeOtroNegocioRespondeComoInexistente() {
+        dadoUnObjetivoDeOtroNegocio();
+
+        cuandoSeIntentaListar();
+
+        entoncesSeRechazaComoInexistenteSinConsultarNada();
+    }
+
+    @Test
+    @DisplayName("Un mini-objetivo de otro objetivo responde como inexistente")
+    void unMiniObjetivoDeOtroObjetivoRespondeComoInexistente() {
+        dadoUnMiniObjetivoDeOtroObjetivo();
+
+        cuandoSeIntentaListar();
+
+        entoncesSeRechazaComoInexistenteSinCalcularCandidatos();
+    }
+
+    // --- dado ---
+
+    private void dadoUnMiniObjetivoDeUnObjetivoDelNegocio() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(objetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID)).thenReturn(objetivo());
         when(miniObjetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID, MINI_ID)).thenReturn(miniObjetivo());
     }
 
-    @Test
-    @DisplayName("Ofrece los candidatos de hoy menos el mismo mini-objetivo")
-    void executeShouldOfferTheCandidatesOfTodayExceptTheCurrentOne() {
-        givenMiniObjetivosEnCurso(miniObjetivo());
-        givenCandidatos(candidato(), candidatoDelNegocio(TipoMiniObjetivo.MEJORAR_MARGEN, "6180"));
-
-        ListarCandidatosResponse result = whenListar();
-
-        assertThat(result.content()).extracting(CandidatoItem::tipo).containsExactly(TipoMiniObjetivo.MEJORAR_MARGEN);
+    private void dadoElMiniObjetivoEnCurso() {
+        dadoLosMiniObjetivosEnCurso(miniObjetivo());
     }
 
-    @Test
-    @DisplayName("No ofrece el tipo de los otros mini-objetivos en curso")
-    void executeShouldNotOfferTheTypeOfTheOtherMiniObjetivosInProgress() {
+    private void dadoOtroMiniObjetivoEnCursoDeMejorarMargen() {
         MiniObjetivo otro = miniObjetivo();
         otro.setId(MiniObjetivoId.nuevo());
         otro.setTipo(TipoMiniObjetivo.MEJORAR_MARGEN);
         otro.setRegistroId(null);
-        givenMiniObjetivosEnCurso(miniObjetivo(), otro);
-        givenCandidatos(candidatoDelNegocio(TipoMiniObjetivo.MEJORAR_MARGEN, "6180"),
-                candidatoDelNegocio(TipoMiniObjetivo.RECORTAR_GASTO, "4000"));
-
-        ListarCandidatosResponse result = whenListar();
-
-        assertThat(result.content()).extracting(CandidatoItem::tipo).containsExactly(TipoMiniObjetivo.RECORTAR_GASTO);
+        dadoLosMiniObjetivosEnCurso(miniObjetivo(), otro);
     }
 
-    @Test
-    @DisplayName("Un mini-objetivo logrado antes no ocupa lugar: sus tipos siguen disponibles")
-    void executeShouldIgnoreMiniObjetivosThatAreNotInProgress() {
+    private void dadoUnMiniObjetivoLogradoDeMejorarMargen() {
         MiniObjetivo logrado = miniObjetivo();
         logrado.setId(MiniObjetivoId.nuevo());
         logrado.setTipo(TipoMiniObjetivo.MEJORAR_MARGEN);
         logrado.setEstado(EstadoMiniObjetivo.LOGRADO);
-        when(miniObjetivoRepository.findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID))
-                .thenReturn(List.of(miniObjetivo(), logrado));
-        givenCandidatos(candidatoDelNegocio(TipoMiniObjetivo.MEJORAR_MARGEN, "6180"));
-
-        ListarCandidatosResponse result = whenListar();
-
-        assertThat(result.content()).extracting(CandidatoItem::tipo).containsExactly(TipoMiniObjetivo.MEJORAR_MARGEN);
+        dadoLosMiniObjetivosEnCurso(miniObjetivo(), logrado);
     }
 
-    @Test
-    @DisplayName("Sin candidatos devuelve una lista vacía")
-    void executeShouldReturnAnEmptyListWhenThereAreNoCandidates() {
-        givenMiniObjetivosEnCurso(miniObjetivo());
-        givenCandidatos();
-
-        assertThat(whenListar().content()).isEmpty();
-    }
-
-    @Test
-    @DisplayName("Un mini-objetivo que ya no está en curso no tiene alternativas y no se calcula nada")
-    void executeShouldFailWhenTheMiniObjetivoIsNotInProgress() {
+    private void dadoUnMiniObjetivoQueYaNoEstaEnCurso() {
         MiniObjetivo logrado = miniObjetivo();
         logrado.setEstado(EstadoMiniObjetivo.LOGRADO);
         when(miniObjetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID, MINI_ID)).thenReturn(logrado);
-
-        assertThatThrownBy(this::whenListar).isInstanceOf(BusinessRuleException.class);
-        verifyNoInteractions(propuestaMiniObjetivosService);
     }
 
-    @Test
-    @DisplayName("Un objetivo de otro negocio responde como inexistente")
-    void executeShouldFailWhenTheObjetivoBelongsToAnotherBusiness() {
+    private void dadoUnObjetivoDeOtroNegocio() {
         when(objetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID))
                 .thenThrow(new ResourceNotFoundException("Objetivo no encontrado"));
-
-        assertThatThrownBy(this::whenListar).isInstanceOf(ResourceNotFoundException.class);
-        verifyNoInteractions(miniObjetivoRepository, propuestaMiniObjetivosService);
     }
 
-    @Test
-    @DisplayName("Un mini-objetivo de otro objetivo responde como inexistente")
-    void executeShouldFailWhenTheMiniObjetivoBelongsToAnotherObjetivo() {
+    private void dadoUnMiniObjetivoDeOtroObjetivo() {
         when(miniObjetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID, MINI_ID))
                 .thenThrow(new ResourceNotFoundException("Mini-objetivo no encontrado"));
-
-        assertThatThrownBy(this::whenListar).isInstanceOf(ResourceNotFoundException.class);
-        verifyNoInteractions(propuestaMiniObjetivosService);
     }
 
-    // --- arrange ---
-    private void givenMiniObjetivosEnCurso(MiniObjetivo... enCurso) {
+    private void dadoCandidatosDeSubirPrecioYMejorarMargen() {
+        dadoLosCandidatos(candidato(), candidatoDelNegocio(TipoMiniObjetivo.MEJORAR_MARGEN, "6180"));
+    }
+
+    private void dadoCandidatosDeMejorarMargenYRecortarGasto() {
+        dadoLosCandidatos(candidatoDelNegocio(TipoMiniObjetivo.MEJORAR_MARGEN, "6180"),
+                candidatoDelNegocio(TipoMiniObjetivo.RECORTAR_GASTO, "4000"));
+    }
+
+    private void dadoCandidatosDeMejorarMargen() {
+        dadoLosCandidatos(candidatoDelNegocio(TipoMiniObjetivo.MEJORAR_MARGEN, "6180"));
+    }
+
+    private void dadoQueNoHayCandidatos() {
+        dadoLosCandidatos();
+    }
+
+    private void dadoLosMiniObjetivosEnCurso(MiniObjetivo... enCurso) {
         when(miniObjetivoRepository.findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID))
                 .thenReturn(List.of(enCurso));
     }
 
-    private void givenCandidatos(CandidatoMiniObjetivo... candidatos) {
+    private void dadoLosCandidatos(CandidatoMiniObjetivo... candidatos) {
         when(propuestaMiniObjetivosService.candidatos(NEGOCIO_ID, HOY))
                 .thenReturn(new CandidatosDelNegocio(BigDecimal.ZERO, List.of(candidatos)));
     }
 
-    // --- act ---
-    private ListarCandidatosResponse whenListar() {
-        return listarCandidatos.execute(new ListarCandidatosRequest(USUARIO_ID, OBJETIVO_ID, MINI_ID));
+    // --- cuando ---
+
+    private void cuandoSeListan() {
+        respuesta = listarCandidatos.execute(new ListarCandidatosRequest(USUARIO_ID, OBJETIVO_ID, MINI_ID));
+    }
+
+    private void cuandoSeIntentaListar() {
+        rechazo = catchThrowable(this::cuandoSeListan);
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeOfreceSoloEl(TipoMiniObjetivo tipo) {
+        assertThat(respuesta.content()).extracting(CandidatoItem::tipo).containsExactly(tipo);
+    }
+
+    private void entoncesNoSeOfreceNada() {
+        assertThat(respuesta.content()).isEmpty();
+    }
+
+    private void entoncesSeRechazaPorReglaDeNegocioSinCalcularCandidatos() {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class);
+        verifyNoInteractions(propuestaMiniObjetivosService);
+    }
+
+    private void entoncesSeRechazaComoInexistenteSinConsultarNada() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class);
+        verifyNoInteractions(miniObjetivoRepository, propuestaMiniObjetivosService);
+    }
+
+    private void entoncesSeRechazaComoInexistenteSinCalcularCandidatos() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class);
+        verifyNoInteractions(propuestaMiniObjetivosService);
     }
 }

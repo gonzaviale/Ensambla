@@ -28,64 +28,109 @@ class ObtenerProgresoResponseTest {
     private static final LocalDate DIA = LocalDate.of(2026, 11, 11);
     private static final LocalDate SEMANA = LocalDate.of(2026, 11, 9);
 
+    private PuntoSemanal punto;
+    private MiniProgreso miniProgreso;
+    private ObtenerProgresoResponse respuesta;
+    private List<PuntoSemanal> semanas;
+
     @Test
     @DisplayName("Un punto semanal toma el valor de la foto y la semana de su día, como medido")
-    void puntoSemanalDeShouldUseTheWeekOfThePhotoAsMeasured() {
-        ProgresoObjetivo foto = ProgresoObjetivo.de(OBJETIVO_ID, null, DIA, BigDecimal.TEN, AHORA);
+    void unPuntoSemanalTomaElValorDeLaFotoYLaSemanaDeSuDiaComoMedido() {
+        cuandoSeArmaElPuntoSemanalDeUnaFoto();
 
-        PuntoSemanal result = PuntoSemanal.de(foto);
-
-        assertThat(result.semana()).isEqualTo(SEMANA);
-        assertThat(result.valor()).isEqualTo(BigDecimal.TEN);
-        assertThat(result.estimado()).isFalse();
+        entoncesElPuntoEsDeLaSemanaDeLaFotoYEstaMedido();
     }
 
     @Test
     @DisplayName("El progreso de un mini-objetivo trae su ficha, su hito y la última foto de cada semana")
-    void miniProgresoDeShouldCopyTheMiniObjetivoAndItsSeries() {
+    void elProgresoDeUnMiniObjetivoTraeSuFichaSuHitoYLaUltimaFotoDeCadaSemana() {
+        cuandoSeArmaElProgresoDeUnMiniObjetivoLogradoConDosFotosEnLaMismaSemana();
+
+        entoncesTraeSuFichaSuHitoYLaUltimaFotoDeLaSemana();
+    }
+
+    @Test
+    @DisplayName("Un mini-objetivo sin nada para destacar no trae hito")
+    void unMiniObjetivoSinNadaParaDestacarNoTraeHito() {
+        cuandoSeArmaElProgresoDeUnMiniObjetivoSinFotos();
+
+        entoncesNoTraeHitoNiSemanas();
+    }
+
+    @Test
+    @DisplayName("La respuesta copia la meta y el hito del objetivo")
+    void laRespuestaCopiaLaMetaYElHitoDelObjetivo() {
+        cuandoSeArmaLaRespuestaDeUnObjetivoAlcanzado();
+
+        entoncesCopiaLaMetaYElHitoDeObjetivoAlcanzado();
+    }
+
+    @Test
+    @DisplayName("Un objetivo que no llegó a la meta no trae hito")
+    void unObjetivoQueNoLlegoALaMetaNoTraeHito() {
+        cuandoSeArmaLaRespuestaDeUnObjetivoSinAlcanzar();
+
+        entoncesLaRespuestaNoTraeHito();
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeArmaElPuntoSemanalDeUnaFoto() {
+        punto = PuntoSemanal.de(ProgresoObjetivo.de(OBJETIVO_ID, null, DIA, BigDecimal.TEN, AHORA));
+    }
+
+    private void cuandoSeArmaElProgresoDeUnMiniObjetivoLogradoConDosFotosEnLaMismaSemana() {
         MiniObjetivo mini = miniObjetivo();
         mini.setEstado(EstadoMiniObjetivo.LOGRADO);
         List<ProgresoObjetivo> fotos = List.of(
                 ProgresoObjetivo.de(OBJETIVO_ID, MINI_ID, DIA.minusDays(1), BigDecimal.ONE, AHORA),
                 ProgresoObjetivo.de(OBJETIVO_ID, MINI_ID, DIA, BigDecimal.TEN, AHORA));
-
-        MiniProgreso result = MiniProgreso.de(mini, HOY, fotos);
-
-        assertThat(result.mini().id()).isEqualTo(MINI_ID);
-        assertThat(result.hito()).isEqualTo(HitoObjetivo.MINI_LOGRADO);
-        assertThat(result.semanas()).singleElement()
-                .satisfies(punto -> assertThat(punto.valor()).isEqualTo(BigDecimal.TEN));
+        miniProgreso = MiniProgreso.de(mini, HOY, fotos);
     }
 
-    @Test
-    @DisplayName("Un mini-objetivo sin nada para destacar no trae hito")
-    void miniProgresoDeShouldHaveNoMilestoneWhenThereIsNothingToHighlight() {
-        MiniProgreso result = MiniProgreso.de(miniObjetivo(), HOY, List.of());
-
-        assertThat(result.hito()).isNull();
-        assertThat(result.semanas()).isEmpty();
+    private void cuandoSeArmaElProgresoDeUnMiniObjetivoSinFotos() {
+        miniProgreso = MiniProgreso.de(miniObjetivo(), HOY, List.of());
     }
 
-    @Test
-    @DisplayName("La respuesta copia la meta y el hito del objetivo")
-    void deShouldCopyTheGoalAndTheMilestone() {
+    private void cuandoSeArmaLaRespuestaDeUnObjetivoAlcanzado() {
         Objetivo alcanzado = objetivo();
         alcanzado.marcarAlcanzado(AHORA);
-        List<PuntoSemanal> semanas = List.of(new PuntoSemanal(SEMANA, BigDecimal.TEN, true));
-
-        ObtenerProgresoResponse result = ObtenerProgresoResponse.de(alcanzado, semanas, List.of());
-
-        assertThat(result.meta()).isEqualTo(META);
-        assertThat(result.hito()).isEqualTo(HitoObjetivo.OBJETIVO_ALCANZADO);
-        assertThat(result.semanas()).isEqualTo(semanas);
-        assertThat(result.minis()).isEmpty();
+        semanas = List.of(new PuntoSemanal(SEMANA, BigDecimal.TEN, true));
+        respuesta = ObtenerProgresoResponse.de(alcanzado, semanas, List.of());
     }
 
-    @Test
-    @DisplayName("Un objetivo que no llegó a la meta no trae hito")
-    void deShouldHaveNoMilestoneWhenTheObjetivoWasNotAchieved() {
-        ObtenerProgresoResponse result = ObtenerProgresoResponse.de(objetivo(), List.of(), List.of());
+    private void cuandoSeArmaLaRespuestaDeUnObjetivoSinAlcanzar() {
+        respuesta = ObtenerProgresoResponse.de(objetivo(), List.of(), List.of());
+    }
 
-        assertThat(result.hito()).isNull();
+    // --- entonces ---
+
+    private void entoncesElPuntoEsDeLaSemanaDeLaFotoYEstaMedido() {
+        assertThat(punto.semana()).isEqualTo(SEMANA);
+        assertThat(punto.valor()).isEqualTo(BigDecimal.TEN);
+        assertThat(punto.estimado()).isFalse();
+    }
+
+    private void entoncesTraeSuFichaSuHitoYLaUltimaFotoDeLaSemana() {
+        assertThat(miniProgreso.mini().id()).isEqualTo(MINI_ID);
+        assertThat(miniProgreso.hito()).isEqualTo(HitoObjetivo.MINI_LOGRADO);
+        assertThat(miniProgreso.semanas()).singleElement()
+                .satisfies(unPunto -> assertThat(unPunto.valor()).isEqualTo(BigDecimal.TEN));
+    }
+
+    private void entoncesNoTraeHitoNiSemanas() {
+        assertThat(miniProgreso.hito()).isNull();
+        assertThat(miniProgreso.semanas()).isEmpty();
+    }
+
+    private void entoncesCopiaLaMetaYElHitoDeObjetivoAlcanzado() {
+        assertThat(respuesta.meta()).isEqualTo(META);
+        assertThat(respuesta.hito()).isEqualTo(HitoObjetivo.OBJETIVO_ALCANZADO);
+        assertThat(respuesta.semanas()).isEqualTo(semanas);
+        assertThat(respuesta.minis()).isEmpty();
+    }
+
+    private void entoncesLaRespuestaNoTraeHito() {
+        assertThat(respuesta.hito()).isNull();
     }
 }

@@ -3,7 +3,6 @@ package com.ensambla.backend.domain.useCase.objetivo.obtenerPasos;
 import com.ensambla.backend.domain.model.objetivo.PasoObjetivo;
 import com.ensambla.backend.domain.model.objetivo.PasoObjetivo.PrecioZona;
 import com.ensambla.backend.domain.model.objetivo.TipoPasoObjetivo;
-import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasosResponse.PasoItem;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -14,21 +13,55 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ObtenerPasosResponseTest {
 
+    private ObtenerPasosResponse respuesta;
+
     @Test
     @DisplayName("Copia todos los datos de cada paso, incluido el rango de zona")
-    void deShouldCopyEveryStepFieldIncludingZoneRange() {
-        PasoObjetivo paso = new PasoObjetivo(
-                TipoPasoObjetivo.SUBIR_PRECIO,
-                "Yerba",
-                decimal("3600"),
-                decimal("2700"),
-                decimal("4"),
-                decimal("60"),
+    void copiaTodosLosDatosDeCadaPasoIncluidoElRangoDeZona() {
+        cuandoSeArmaLaRespuestaDeUnPasoConRangoDeZona();
+
+        entoncesCopiaTodosLosDatosDelPasoYSuRangoDeZona();
+    }
+
+    @Test
+    @DisplayName("Conserva el precio de zona vacío")
+    void conservaElPrecioDeZonaVacio() {
+        cuandoSeArmaLaRespuestaDeUnPasoSinZona();
+
+        entoncesElPasoNoTienePrecioDeZona();
+    }
+
+    @Test
+    @DisplayName("Admite una lista sin pasos")
+    void admiteUnaListaSinPasos() {
+        cuandoSeArmaLaRespuestaSinPasos();
+
+        entoncesNoHayPasos();
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeArmaLaRespuestaDeUnPasoConRangoDeZona() {
+        PasoObjetivo paso = new PasoObjetivo(TipoPasoObjetivo.SUBIR_PRECIO, "Yerba", decimal("3600"),
+                decimal("2700"), decimal("4"), decimal("60"),
                 new PrecioZona(decimal("3500"), decimal("3900"), decimal("4300")));
+        respuesta = ObtenerPasosResponse.de(List.of(paso));
+    }
 
-        ObtenerPasosResponse response = ObtenerPasosResponse.de(List.of(paso));
+    private void cuandoSeArmaLaRespuestaDeUnPasoSinZona() {
+        PasoObjetivo paso = new PasoObjetivo(TipoPasoObjetivo.PONER_A_LA_VISTA, "Alfajor", decimal("1000"),
+                decimal("400"), decimal("8"), decimal("10"), null);
+        respuesta = ObtenerPasosResponse.de(List.of(paso));
+    }
 
-        assertThat(response.content()).singleElement().satisfies(item -> {
+    private void cuandoSeArmaLaRespuestaSinPasos() {
+        respuesta = ObtenerPasosResponse.de(List.of());
+    }
+
+    // --- entonces ---
+
+    private void entoncesCopiaTodosLosDatosDelPasoYSuRangoDeZona() {
+        assertThat(respuesta.content()).singleElement().satisfies(item -> {
             assertThat(item.tipo()).isEqualTo(TipoPasoObjetivo.SUBIR_PRECIO);
             assertThat(item.nombre()).isEqualTo("Yerba");
             assertThat(item.precio()).isEqualByComparingTo("3600");
@@ -41,23 +74,15 @@ class ObtenerPasosResponseTest {
         });
     }
 
-    @Test
-    @DisplayName("Conserva el precio de zona vacío y admite una lista sin pasos")
-    void deShouldKeepMissingZoneAndAllowEmptyList() {
-        PasoObjetivo paso = new PasoObjetivo(
-                TipoPasoObjetivo.PONER_A_LA_VISTA,
-                "Alfajor",
-                decimal("1000"),
-                decimal("400"),
-                decimal("8"),
-                decimal("10"),
-                null);
-
-        PasoItem item = ObtenerPasosResponse.de(List.of(paso)).content().getFirst();
-
-        assertThat(item.precioZona()).isNull();
-        assertThat(ObtenerPasosResponse.de(List.of()).content()).isEmpty();
+    private void entoncesElPasoNoTienePrecioDeZona() {
+        assertThat(respuesta.content().getFirst().precioZona()).isNull();
     }
+
+    private void entoncesNoHayPasos() {
+        assertThat(respuesta.content()).isEmpty();
+    }
+
+    // --- datos ---
 
     private static BigDecimal decimal(String valor) {
         return new BigDecimal(valor);
