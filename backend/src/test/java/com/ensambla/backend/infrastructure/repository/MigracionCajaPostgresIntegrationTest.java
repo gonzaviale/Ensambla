@@ -55,7 +55,7 @@ class MigracionCajaPostgresIntegrationTest extends PostgresRepositoryTestSupport
                     .outOfOrder(permitirMigracionesPendientesAnteriores).load().migrate();
 
             assertThat(permitirMigracionesPendientesAnteriores).isFalse();
-            assertThat(resultado.migrationsExecuted).isEqualTo(4);
+            assertThat(resultado.migrationsExecuted).isEqualTo(5);
             assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA + ".negocio", Long.class))
                     .isEqualTo(negociosAntes);
             assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA + ".venta_caja", Long.class))
