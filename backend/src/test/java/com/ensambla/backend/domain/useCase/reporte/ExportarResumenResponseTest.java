@@ -14,7 +14,7 @@ class ExportarResumenResponseTest {
 
     @Test
     @DisplayName("El nombre es resumen-<sistema>-<fecha>.pdf, sin tildes ni espacios")
-    void deShouldBuildAFileNameFromTheSystemName() {
+    void elNombreEsResumenSistemaFechaPdfSinTildesNiEspacios() {
         ExportarResumenResponse response = ExportarResumenResponse.de(new byte[] {1}, "Almacén de Doña Rosa!", HOY);
 
         assertThat(response.nombreArchivo()).isEqualTo("resumen-almacen-de-dona-rosa-20261019.pdf");
@@ -23,7 +23,7 @@ class ExportarResumenResponseTest {
 
     @Test
     @DisplayName("Si el nombre no deja letras ni números, el archivo se llama resumen")
-    void deShouldFallBackToResumenWhenTheNameHasNoLetters() {
+    void siElNombreNoDejaLetrasNiNumerosElArchivoSeLlamaResumen() {
         assertThat(ExportarResumenResponse.de(new byte[0], "¡¿?!", HOY).nombreArchivo())
                 .isEqualTo("resumen-20261019.pdf");
     }

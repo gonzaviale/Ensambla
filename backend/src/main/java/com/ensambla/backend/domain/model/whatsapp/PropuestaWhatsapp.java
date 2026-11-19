@@ -92,6 +92,10 @@ public class PropuestaWhatsapp {
         return estado == EstadoPropuestaWhatsapp.ELIGIENDO_TABLA || estado == EstadoPropuestaWhatsapp.PENDIENTE;
     }
 
+    public boolean estaEligiendoTabla() {
+        return estado == EstadoPropuestaWhatsapp.ELIGIENDO_TABLA;
+    }
+
     public boolean estaVigente(OffsetDateTime ahora) {
         return estaAbierta() && ahora.isBefore(expiraEn);
     }

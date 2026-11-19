@@ -38,7 +38,7 @@ class ReporteDtosTest {
 
     @Test
     @DisplayName("La respuesta lleva las filas, los totales, si está truncado y el máximo que se muestra")
-    void generarShouldMapRowsAndTotals() {
+    void laRespuestaLlevaLasFilasLosTotalesSiEstaTruncadoYElMaximoQueSeMuestra() {
         Registro fila = Registro.builder().id(FILA_ID).valores(Map.of("k", "v")).creadoEn(CREADO).build();
         ReporteRegistros reporte = new ReporteRegistros(
                 List.of(fila), new TotalesRegistros(7, Map.of(CANTIDAD_ID, new BigDecimal("12"))), true);
@@ -54,7 +54,7 @@ class ReporteDtosTest {
 
     @Test
     @DisplayName("La tabla tiene una columna por campo y la fecha de carga, con cada valor del tipo de su columna")
-    void deShouldTypeEachCellAfterItsColumn() {
+    void laTablaTieneUnaColumnaPorCampoYLaFechaDeCargaConCadaValorDelTipoDeSuColumna() {
         Registro fila = Registro.builder().id(FILA_ID).creadoEn(CREADO).valores(Map.of(
                 NOMBRE_ID.toString(), "Pan",
                 CANTIDAD_ID.toString(), 2.5,
@@ -70,7 +70,7 @@ class ReporteDtosTest {
                 List.of(fila, vacia), new TotalesRegistros(2, Map.of(CANTIDAD_ID, new BigDecimal("2.5"))), false);
 
         TablaReporte result = TablaReporte.de(
-                "Pedidos", givenCampos(), reporte, Map.of(BETO_ID, "Beto"));
+                "Pedidos", dadoCampos(), reporte, Map.of(BETO_ID, "Beto"));
 
         assertThat(result.hoja()).isEqualTo("Pedidos");
         assertThat(result.encabezados())
@@ -84,11 +84,11 @@ class ReporteDtosTest {
 
     @Test
     @DisplayName("La fila de totales pone la etiqueta en la primera columna que no es numérica y la suma de las numéricas")
-    void deShouldLabelTotalsInTheFirstNonNumericColumn() {
+    void laFilaDeTotalesPoneLaEtiquetaEnLaPrimeraColumnaQueNoEsNumericaYLaSumaDeLasNumericas() {
         ReporteRegistros reporte = new ReporteRegistros(
                 List.of(), new TotalesRegistros(1, Map.of(CANTIDAD_ID, new BigDecimal("2.5"))), false);
 
-        TablaReporte result = TablaReporte.de("Pedidos", givenCampos(), reporte, Map.of());
+        TablaReporte result = TablaReporte.de("Pedidos", dadoCampos(), reporte, Map.of());
 
         assertThat(result.totales()).containsExactly(
                 "Total (1 fila)", new BigDecimal("2.5"), null, null, null, null, null, null);
@@ -96,7 +96,7 @@ class ReporteDtosTest {
 
     @Test
     @DisplayName("La etiqueta de totales va en la columna de la fecha de carga si todas las columnas son numéricas")
-    void deShouldLabelTotalsInTheLoadDateColumnWhenEverythingIsNumeric() {
+    void laEtiquetaDeTotalesVaEnLaColumnaDeLaFechaDeCargaSiTodasLasColumnasSonNumericas() {
         List<Campo> soloNumeros = List.of(Campo.builder().id(CANTIDAD_ID).nombre("Cantidad")
                 .tipo(TipoCampo.NUMERO).build());
         ReporteRegistros reporte = new ReporteRegistros(
@@ -109,7 +109,7 @@ class ReporteDtosTest {
 
     @Test
     @DisplayName("El nombre del archivo es reporte, la tabla sin tildes ni espacios y la fecha")
-    void deShouldBuildAFileNameFromTheTable() {
+    void elNombreDelArchivoEsReporteLaTablaSinTildesNiEspaciosYLaFecha() {
         byte[] contenido = {1, 2, 3};
 
         ExportarReporteResponse result = ExportarReporteResponse.de(
@@ -121,7 +121,7 @@ class ReporteDtosTest {
                 .isEqualTo("reporte-20260102.xlsx");
     }
 
-    private static List<Campo> givenCampos() {
+    private static List<Campo> dadoCampos() {
         return List.of(
                 campo(NOMBRE_ID.valor(), "Nombre", TipoCampo.TEXTO),
                 campo(CANTIDAD_ID.valor(), "Cantidad", TipoCampo.NUMERO),

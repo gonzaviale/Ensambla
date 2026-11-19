@@ -14,6 +14,11 @@ public class CampoTexto extends CampoDeTexto {
     }
 
     @Override
+    public boolean nombraLasFilas() {
+        return true;
+    }
+
+    @Override
     public TipoCampo tipo() {
         return TipoCampo.TEXTO;
     }

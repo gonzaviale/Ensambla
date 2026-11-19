@@ -35,8 +35,8 @@ class ControlPlanAccesoIaTest {
 
     @Test
     @DisplayName("Sin restringir, la IA no consulta al dueño")
-    void exigirIaShouldAllowEveryoneWhenNotRestricted() {
-        ControlPlanService servicio = givenServicio(AccesoIa.LIBRE);
+    void sinRestringirLaIANoConsultaAlDueno() {
+        ControlPlanService servicio = dadoServicio(AccesoIa.LIBRE);
 
         assertThatCode(() -> servicio.exigirIa(NEGOCIO)).doesNotThrowAnyException();
         verifyNoInteractions(negocios);
@@ -44,8 +44,8 @@ class ControlPlanAccesoIaTest {
 
     @Test
     @DisplayName("Restringido, deja pasar al dueño con email habilitado")
-    void exigirIaShouldAllowListedOwner() {
-        ControlPlanService servicio = givenServicio(new AccesoIa(true, Set.of("dueño@example.com")));
+    void restringidoDejaPasarAlDuenoConEmailHabilitado() {
+        ControlPlanService servicio = dadoServicio(new AccesoIa(true, Set.of("dueño@example.com")));
         when(negocios.findEmailDuenioById(NEGOCIO)).thenReturn(Optional.of("dueño@example.com"));
 
         assertThatCode(() -> servicio.exigirIa(NEGOCIO)).doesNotThrowAnyException();
@@ -53,26 +53,26 @@ class ControlPlanAccesoIaTest {
 
     @Test
     @DisplayName("Restringido, rechaza al dueño con un email que no está en la lista")
-    void exigirIaShouldRejectUnlistedOwner() {
-        ControlPlanService servicio = givenServicio(new AccesoIa(true, Set.of("dueño@example.com")));
+    void restringidoRechazaAlDuenoConUnEmailQueNoEstaEnLaLista() {
+        ControlPlanService servicio = dadoServicio(new AccesoIa(true, Set.of("dueño@example.com")));
         when(negocios.findEmailDuenioById(NEGOCIO)).thenReturn(Optional.of("otro@example.com"));
 
-        thenIaNoHabilitada(servicio);
+        entoncesIaNoHabilitada(servicio);
     }
 
     @Test
     @DisplayName("Restringido, rechaza un negocio sin dueño conocido")
-    void exigirIaShouldRejectUnknownOwner() {
-        ControlPlanService servicio = givenServicio(new AccesoIa(true, Set.of("dueño@example.com")));
+    void restringidoRechazaUnNegocioSinDuenoConocido() {
+        ControlPlanService servicio = dadoServicio(new AccesoIa(true, Set.of("dueño@example.com")));
         when(negocios.findEmailDuenioById(NEGOCIO)).thenReturn(Optional.empty());
 
-        thenIaNoHabilitada(servicio);
+        entoncesIaNoHabilitada(servicio);
     }
 
     @Test
     @DisplayName("Restringido, validar las páginas de IA rechaza antes de mirar el plan")
-    void validarPaginasIaShouldRejectBeforeCheckingPlan() {
-        ControlPlanService servicio = givenServicio(new AccesoIa(true, Set.of()));
+    void restringidoValidarLasPaginasDeIARechazaAntesDeMirarElPlan() {
+        ControlPlanService servicio = dadoServicio(new AccesoIa(true, Set.of()));
         when(negocios.findEmailDuenioById(NEGOCIO)).thenReturn(Optional.of("otro@example.com"));
 
         assertThatThrownBy(() -> servicio.validarPaginasIa(NEGOCIO, 1, AHORA))
@@ -81,13 +81,13 @@ class ControlPlanAccesoIaTest {
     }
 
     // --- arrange / assert ---
-    private ControlPlanService givenServicio(AccesoIa acceso) {
+    private ControlPlanService dadoServicio(AccesoIa acceso) {
         return new ControlPlanService(mock(PlanRepository.class), suscripciones, mock(UsoPlanRepository.class),
                 mock(AccesoContenidoRepository.class), mock(PruebaPremiumRepository.class),
                 new TransaccionDirecta(), negocios, acceso);
     }
 
-    private void thenIaNoHabilitada(ControlPlanService servicio) {
+    private void entoncesIaNoHabilitada(ControlPlanService servicio) {
         assertThatThrownBy(() -> servicio.exigirIa(NEGOCIO))
                 .isInstanceOfSatisfying(RestriccionPlanException.class, e -> {
                     assertThat(e.getCodigo()).isEqualTo("IA_NO_HABILITADA");

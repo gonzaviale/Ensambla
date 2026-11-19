@@ -21,7 +21,7 @@ class PlanRepositoryTest {
 
     @Test
     @DisplayName("Obtiene el plan del catálogo por su código")
-    void obtenerShouldReturnPlanOfCatalog() {
+    void obtieneElPlanDelCatalogoPorSuCodigo() {
         Plan esperado = plan();
         when(planRepository.findByCodigo(CodigoPlan.GRATUITO)).thenReturn(Optional.of(esperado));
 
@@ -30,7 +30,7 @@ class PlanRepositoryTest {
 
     @Test
     @DisplayName("Responde recurso inexistente cuando el plan no está en el catálogo")
-    void obtenerShouldRejectMissingPlan() {
+    void respondeRecursoInexistenteCuandoElPlanNoEstaEnElCatalogo() {
         when(planRepository.findByCodigo(CodigoPlan.PREMIUM)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> planRepository.obtener(CodigoPlan.PREMIUM))

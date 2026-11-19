@@ -6,17 +6,17 @@ import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.FuncionPlan;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.reporte.DatosDeProyecto;
 import com.ensambla.backend.domain.model.reporte.PeriodoResumen;
 import com.ensambla.backend.domain.model.reporte.ResumenNegocio;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
 import com.ensambla.backend.domain.port.GeneradorResumenPdfPort;
-import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
-import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
-import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.domain.service.reporte.ContextoDeResumenService;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
 import lombok.RequiredArgsConstructor;
 
@@ -40,41 +40,55 @@ public class ExportarResumenNegocio {
 
     private final DatosDeProyectoService datosDeProyectoService;
 
-    private final ZonaRepository zonaRepository;
-
-    private final AgregadoZonaRepository agregadoZonaRepository;
-
-    private final AvisoRepository avisoRepository;
+    private final ContextoDeResumenService contextoDeResumenService;
 
     private final GeneradorResumenPdfPort generadorResumenPdfPort;
 
     private final Clock clock;
 
     public ExportarResumenResponse execute(ExportarResumenRequest request) {
-        Negocio negocio = negocioRepository.obtenerNegocioDelUsuario(request.usuarioId());
-        NegocioId negocioId = negocio.getId();
-        Proyecto proyecto = proyectoRepository.obtener(negocioId, request.proyectoId());
+        Negocio negocio = obtenerNegocioDelUsuario(request.usuarioId());
+        Proyecto proyecto = obtenerProyecto(negocio, request.proyectoId());
         OffsetDateTime ahora = OffsetDateTime.now(clock);
-        controlPlanService.validarFuncion(negocioId, FuncionPlan.REPORTES_FILTRADOS, ahora);
+        exigirLaFuncionDeReportes(negocio, ahora);
         LocalDate hoy = ZonaNegocio.dia(ahora);
-        PeriodoResumen periodo = PeriodoResumen.armar(request.desde(), request.hasta(), hoy);
-        DatosDeProyecto datos = datosDeProyectoService.cargar(proyecto, negocioId);
-        ResumenNegocio resumen = ResumenNegocio.armar(
-                negocio.getNombre(), datos, zonaDe(negocioId), avisosDe(negocioId, proyecto), periodo, hoy);
-        return ExportarResumenResponse.de(generadorResumenPdfPort.generar(resumen), proyecto.getNombre(), hoy);
+        ResumenNegocio resumen = armarResumen(request, negocio, proyecto, hoy);
+        return ExportarResumenResponse.de(generarPdf(resumen), proyecto.getNombre(), hoy);
     }
 
-    /** Los agregados de la zona del negocio, o una zona vacía si todavía no tiene una asignada. */
+    private ResumenNegocio armarResumen(ExportarResumenRequest request, Negocio negocio, Proyecto proyecto,
+                                        LocalDate hoy) {
+        PeriodoResumen periodo = PeriodoResumen.armar(request.desde(), request.hasta(), hoy);
+        DatosDeProyecto datos = cargarDatos(proyecto, negocio);
+        return ResumenNegocio.armar(negocio.getNombre(), datos, zonaDe(negocio.getId()),
+                avisosDe(negocio.getId(), proyecto), periodo, hoy);
+    }
+
+    private Negocio obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerNegocioDelUsuario(usuarioId);
+    }
+
+    private Proyecto obtenerProyecto(Negocio negocio, ProyectoId proyectoId) {
+        return proyectoRepository.obtener(negocio.getId(), proyectoId);
+    }
+
+    private void exigirLaFuncionDeReportes(Negocio negocio, OffsetDateTime ahora) {
+        controlPlanService.validarFuncion(negocio.getId(), FuncionPlan.REPORTES_FILTRADOS, ahora);
+    }
+
+    private DatosDeProyecto cargarDatos(Proyecto proyecto, Negocio negocio) {
+        return datosDeProyectoService.cargar(proyecto, negocio.getId());
+    }
+
     private AnalisisZona zonaDe(NegocioId negocioId) {
-        return negocioRepository.findZonaIdById(negocioId)
-                .flatMap(zonaRepository::findById)
-                .map(agregadoZonaRepository::analizar)
-                .orElseGet(AnalisisZona::sinZona);
+        return contextoDeResumenService.zonaDe(negocioId);
     }
 
     private List<Aviso> avisosDe(NegocioId negocioId, Proyecto proyecto) {
-        return avisoRepository.findByNegocioId(negocioId).stream()
-                .filter(aviso -> proyecto.getId().equals(aviso.getProyectoId()))
-                .toList();
+        return contextoDeResumenService.avisosDe(negocioId, proyecto);
+    }
+
+    private byte[] generarPdf(ResumenNegocio resumen) {
+        return generadorResumenPdfPort.generar(resumen);
     }
 }

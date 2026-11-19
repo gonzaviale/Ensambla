@@ -42,6 +42,8 @@ import static org.mockito.Mockito.when;
 
 class ObtenerResumenInicioTest {
 
+    private ObtenerResumenInicioResponse response;
+
     private static final UsuarioId USUARIO_ID = UsuarioId.de("b9000000-0000-4000-8000-000000000001");
     private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
     private static final ProyectoId PROYECTO_ID = ProyectoId.de("c0000000-0000-4000-8000-000000000001");
@@ -75,170 +77,87 @@ class ObtenerResumenInicioTest {
 
     @Test
     @DisplayName("Suma lo vendido hoy, en hora argentina, y lo compara con el mismo día de la semana pasada")
-    void executeShouldSumTodaysSalesAndCompareWithLastWeek() {
-        givenDatos(
-                List.of(
-                        venta(YERBA, 2, 3400, "2026-10-19"),
-                        venta(YERBA, 1, 3400, "2026-10-19"),
-                        venta(FIDEOS, 3, null, "2026-10-19"),
-                        venta(YERBA, 1, 3400, "2026-10-12"),
-                        venta(YERBA, 9, 3400, "2026-10-20")),
-                yerba());
+    void sumaLoVendidoHoyEnHoraArgentinaYLoComparaConElMismoDiaDeLaSemanaPasada() {
+        dadoElEscenarioDeSumaLoVendidoHoyEnHoraArgentinaYLoComparaConElMismoDiaDeLaSemanaPasada();
 
-        ObtenerResumenInicioResponse response = whenObtener();
+        cuandoSeEjecutaSumaLoVendidoHoyEnHoraArgentinaYLoComparaConElMismoDiaDeLaSemanaPasada();
 
-        assertThat(response.sistema()).isEqualTo("Almacén de prueba");
-        assertThat(response.hoy()).isEqualTo(HOY);
-        assertThat(response.hayVentas()).isTrue();
-        assertThat(response.ventas().hoy().ingresos()).isEqualByComparingTo("10200");
-        assertThat(response.ventas().hoy().unidades()).isEqualByComparingTo("6");
-        assertThat(response.ventas().hoy().cantidad()).isEqualTo(3);
-        assertThat(response.ventas().hoy().sinPrecio()).isEqualTo(1);
-        assertThat(response.ventas().hoy().ingresosAnteriores()).isEqualByComparingTo("3400");
-        assertThat(response.ultimoDiaConVentas().fecha()).isEqualTo(HOY);
-        assertThat(response.ultimoDiaConVentas().ingresos()).isEqualByComparingTo("10200");
-        assertThat(response.ventasPorDia()).hasSize(30);
-        assertThat(response.ventasPorDia().getLast().fecha()).isEqualTo(HOY);
-        assertThat(response.ventasPorDia().getLast().ingresos()).isEqualByComparingTo("10200");
+        entoncesSeVerificaSumaLoVendidoHoyEnHoraArgentinaYLoComparaConElMismoDiaDeLaSemanaPasada();
     }
 
     @Test
     @DisplayName("Suma lo vendido en la semana y en el mes, lo compara con el período anterior y cuenta el fiado")
-    void executeShouldSumTheWeekAndTheMonthWithTheirComparisonAndCredit() {
-        givenDatos(
-                List.of(
-                        ventaAFiado(YERBA, 2, 3400, "2026-10-19"),
-                        venta(YERBA, 1, 3400, "2026-10-15"),
-                        venta(YERBA, 1, 3400, "2026-10-12"),
-                        venta(YERBA, 5, 3400, "2026-09-25"),
-                        venta(YERBA, 4, 3400, "2026-09-01")),
-                yerba());
+    void sumaLoVendidoEnLaSemanaYEnElMesLoComparaConElPeriodoAnteriorYCuentaElFiado() {
+        dadoElEscenarioDeSumaLoVendidoEnLaSemanaYEnElMesLoComparaConElPeriodoAnteriorYCuentaEl();
 
-        ObtenerResumenInicioResponse response = whenObtener();
+        cuandoSeEjecutaSumaLoVendidoEnLaSemanaYEnElMesLoComparaConElPeriodoAnteriorYCuentaEl();
 
-        assertThat(response.ventas().hoy().fiado()).isEqualByComparingTo("6800");
-        assertThat(response.ventas().semana().ingresos()).isEqualByComparingTo("10200");
-        assertThat(response.ventas().semana().unidades()).isEqualByComparingTo("3");
-        assertThat(response.ventas().semana().cantidad()).isEqualTo(2);
-        assertThat(response.ventas().semana().ingresosAnteriores()).isEqualByComparingTo("3400");
-        assertThat(response.ventas().semana().fiado()).isEqualByComparingTo("6800");
-        assertThat(response.ventas().semana().ventasFiadas()).isEqualTo(1);
-        assertThat(response.ventas().mes().ingresos()).isEqualByComparingTo("30600");
-        assertThat(response.ventas().mes().unidades()).isEqualByComparingTo("9");
-        assertThat(response.ventas().mes().ingresosAnteriores()).isEqualByComparingTo("13600");
-        assertThat(response.ventas().mes().ventasFiadas()).isEqualTo(1);
+        entoncesSeVerificaSumaLoVendidoEnLaSemanaYEnElMesLoComparaConElPeriodoAnteriorYCuentaEl();
     }
 
     @Test
     @DisplayName("Sin ventas hoy devuelve cero y el último día en que se anotó una venta")
-    void executeShouldReturnTheLastDayWithSalesWhenThereAreNoneToday() {
-        givenDatos(
-                List.of(
-                        venta(YERBA, 2, 3400, "2026-10-16"),
-                        venta(YERBA, 1, 3400, "2026-10-10")),
-                yerba());
+    void sinVentasHoyDevuelveCeroYElUltimoDiaEnQueSeAnotoUnaVenta() {
+        dadoElEscenarioDeSinVentasHoyDevuelveCeroYElUltimoDiaEnQueSeAnotoUnaVenta();
 
-        ObtenerResumenInicioResponse response = whenObtener();
+        cuandoSeEjecutaSinVentasHoyDevuelveCeroYElUltimoDiaEnQueSeAnotoUnaVenta();
 
-        assertThat(response.ventas().hoy().ingresos()).isEqualByComparingTo("0");
-        assertThat(response.ventas().hoy().cantidad()).isZero();
-        assertThat(response.ultimoDiaConVentas().fecha()).isEqualTo(LocalDate.of(2026, 10, 16));
-        assertThat(response.ultimoDiaConVentas().ingresos()).isEqualByComparingTo("6800");
+        entoncesSeVerificaSinVentasHoyDevuelveCeroYElUltimoDiaEnQueSeAnotoUnaVenta();
     }
 
     @Test
     @DisplayName("Un sistema sin ventas ni productos no tiene nada para mostrar")
-    void executeShouldReturnEmptyMetricsWhenThereIsNothingLoaded() {
-        givenDatos(List.of());
+    void unSistemaSinVentasNiProductosNoTieneNadaParaMostrar() {
+        dadoElEscenarioDeUnSistemaSinVentasNiProductosNoTieneNadaParaMostrar();
 
-        ObtenerResumenInicioResponse response = whenObtener();
+        cuandoSeEjecutaUnSistemaSinVentasNiProductosNoTieneNadaParaMostrar();
 
-        assertThat(response.hayVentas()).isFalse();
-        assertThat(response.hayProductos()).isFalse();
-        assertThat(response.ultimoDiaConVentas()).isNull();
-        assertThat(response.masVendido()).isNull();
-        assertThat(response.faltantes().total()).isZero();
-        assertThat(response.faltantes().primeros()).isEmpty();
-        assertThat(response.parados()).isEmpty();
+        entoncesSeVerificaUnSistemaSinVentasNiProductosNoTieneNadaParaMostrar();
     }
 
     @Test
     @DisplayName("Devuelve el producto que más salió en los últimos 30 días con su ganancia")
-    void executeShouldReturnTheBestSellerOfTheLastThirtyDays() {
-        givenDatos(
-                List.of(
-                        venta(YERBA, 5, 3400, "2026-10-10"),
-                        venta(FIDEOS, 9, 1700, "2026-10-11"),
-                        venta(MERMELADA, 50, 2600, "2026-08-01")),
-                yerba(), fideos(), mermelada());
+    void devuelveElProductoQueMasSalioEnLosUltimos30DiasConSuGanancia() {
+        dadoElEscenarioDeDevuelveElProductoQueMasSalioEnLosUltimos30DiasConSuGanancia();
 
-        ObtenerResumenInicioResponse response = whenObtener();
+        cuandoSeEjecutaDevuelveElProductoQueMasSalioEnLosUltimos30DiasConSuGanancia();
 
-        assertThat(response.hayProductos()).isTrue();
-        assertThat(response.masVendido().nombre()).isEqualTo("Fideos Luchetti");
-        assertThat(response.masVendido().unidades()).isEqualByComparingTo("9");
-        assertThat(response.masVendido().ingresos()).isEqualByComparingTo("15300");
-        assertThat(response.masVendido().ganancia()).isNull();
+        entoncesSeVerificaDevuelveElProductoQueMasSalioEnLosUltimos30DiasConSuGanancia();
     }
 
     @Test
     @DisplayName("Avisa los tres productos más urgentes y cuenta todos los que faltan")
-    void executeShouldListTheThreeMostUrgentMissingProducts() {
-        givenDatos(
-                List.of(),
-                producto(YERBA, "Yerba", 0, 3400, 2700, 10),
-                producto(FIDEOS, "Fideos", 1, 1700, null, 6),
-                producto(MERMELADA, "Mermelada", 2, 2600, 1800, 4),
-                producto(ACEITE, "Aceite", 3, 2800, null, 6),
-                producto(ARROZ, "Arroz", 50, 900, null, 6));
+    void avisaLosTresProductosMasUrgentesYCuentaTodosLosQueFaltan() {
+        dadoElEscenarioDeAvisaLosTresProductosMasUrgentesYCuentaTodosLosQueFaltan();
 
-        ObtenerResumenInicioResponse response = whenObtener();
+        cuandoSeEjecutaAvisaLosTresProductosMasUrgentesYCuentaTodosLosQueFaltan();
 
-        assertThat(response.faltantes().total()).isEqualTo(4);
-        assertThat(response.faltantes().primeros()).hasSize(3);
-        assertThat(response.faltantes().primeros().getFirst().nombre()).isEqualTo("Yerba");
-        assertThat(response.faltantes().primeros().getFirst().minimo()).isEqualByComparingTo("10");
-        assertThat(response.faltantes().primeros().getFirst().pedir()).isEqualByComparingTo("20");
+        entoncesSeVerificaAvisaLosTresProductosMasUrgentesYCuentaTodosLosQueFaltan();
     }
 
     @Test
     @DisplayName("Lista los tres productos parados con más plata invertida cuando ya hay dos semanas de ventas")
-    void executeShouldListTheStoppedProductsWhenThereAreTwoWeeksOfSales() {
-        givenDatos(
-                List.of(
-                        venta(ARROZ, 1, 900, "2026-09-01"),
-                        venta(ARROZ, 1, 900, "2026-10-18")),
-                producto(YERBA, "Yerba", 40, 3400, 2700, null),
-                producto(MERMELADA, "Mermelada", 20, 2600, 1800, null),
-                producto(ACEITE, "Aceite", 3, 2800, null, null),
-                producto(FIDEOS, "Fideos", 8, 1700, 1000, null),
-                producto(ARROZ, "Arroz", 50, 900, 600, null));
+    void listaLosTresProductosParadosConMasPlataInvertidaCuandoYaHayDosSemanasDeVentas() {
+        dadoElEscenarioDeListaLosTresProductosParadosConMasPlataInvertidaCuandoYaHayDosSemanas();
 
-        ObtenerResumenInicioResponse response = whenObtener();
+        cuandoSeEjecutaListaLosTresProductosParadosConMasPlataInvertidaCuandoYaHayDosSemanas();
 
-        assertThat(response.parados()).hasSize(3);
-        assertThat(response.parados().get(0).nombre()).isEqualTo("Yerba");
-        assertThat(response.parados().get(0).capital()).isEqualByComparingTo("108000");
-        assertThat(response.parados().get(1).nombre()).isEqualTo("Mermelada");
-        assertThat(response.parados().get(2).nombre()).isEqualTo("Fideos");
+        entoncesSeVerificaListaLosTresProductosParadosConMasPlataInvertidaCuandoYaHayDosSemanas();
     }
 
     @Test
     @DisplayName("No dice que un producto está parado si el sistema todavía no tiene dos semanas de ventas")
-    void executeShouldNotListStoppedProductsWithLessThanTwoWeeksOfSales() {
-        givenDatos(
-                List.of(venta(ARROZ, 1, 900, "2026-10-15")),
-                producto(YERBA, "Yerba", 40, 3400, 2700, null),
-                producto(ARROZ, "Arroz", 50, 900, 600, null));
+    void noDiceQueUnProductoEstaParadoSiElSistemaTodaviaNoTieneDosSemanasDeVentas() {
+        dadoElEscenarioDeNoDiceQueUnProductoEstaParadoSiElSistemaTodaviaNoTieneDosSemanasDe();
 
-        ObtenerResumenInicioResponse response = whenObtener();
+        cuandoSeEjecutaNoDiceQueUnProductoEstaParadoSiElSistemaTodaviaNoTieneDosSemanasDe();
 
-        assertThat(response.parados()).isEmpty();
+        entoncesSeVerificaNoDiceQueUnProductoEstaParadoSiElSistemaTodaviaNoTieneDosSemanasDe();
     }
 
     @Test
     @DisplayName("Un sistema de otro negocio responde como inexistente")
-    void executeShouldNotFindForeignProject() {
+    void unSistemaDeOtroNegocioRespondeComoInexistente() {
         when(proyectoRepository.obtener(NEGOCIO_ID, OTRO_PROYECTO_ID))
                 .thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
 
@@ -247,8 +166,8 @@ class ObtenerResumenInicioTest {
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
-    // --- arrange ---
-    private void givenDatos(List<Registro> ventas, Registro... productos) {
+    // --- dado ---
+    private void dadoDatos(List<Registro> ventas, Registro... productos) {
         BloqueVentas ventasDelSistema = bloqueDeVentas(ventas);
         List<BloqueInventario> inventarios = productos.length == 0
                 ? List.of()
@@ -257,8 +176,8 @@ class ObtenerResumenInicioTest {
                 "Almacén de prueba", inventarios, List.of(ventasDelSistema), List.of()));
     }
 
-    // --- act ---
-    private ObtenerResumenInicioResponse whenObtener() {
+    // --- cuando ---
+    private ObtenerResumenInicioResponse cuandoObtener() {
         return obtenerResumenInicio.execute(new ObtenerResumenInicioRequest(USUARIO_ID, PROYECTO_ID));
     }
 
@@ -317,5 +236,190 @@ class ObtenerResumenInicioTest {
         if (valor != null) {
             valores.put(campoId, valor);
         }
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeSumaLoVendidoHoyEnHoraArgentinaYLoComparaConElMismoDiaDeLaSemanaPasada() {
+        dadoDatos(
+                        List.of(
+                                venta(YERBA, 2, 3400, "2026-10-19"),
+                                venta(YERBA, 1, 3400, "2026-10-19"),
+                                venta(FIDEOS, 3, null, "2026-10-19"),
+                                venta(YERBA, 1, 3400, "2026-10-12"),
+                                venta(YERBA, 9, 3400, "2026-10-20")),
+                        yerba());
+    }
+
+    private void dadoElEscenarioDeSumaLoVendidoEnLaSemanaYEnElMesLoComparaConElPeriodoAnteriorYCuentaEl() {
+        dadoDatos(
+                        List.of(
+                                ventaAFiado(YERBA, 2, 3400, "2026-10-19"),
+                                venta(YERBA, 1, 3400, "2026-10-15"),
+                                venta(YERBA, 1, 3400, "2026-10-12"),
+                                venta(YERBA, 5, 3400, "2026-09-25"),
+                                venta(YERBA, 4, 3400, "2026-09-01")),
+                        yerba());
+    }
+
+    private void dadoElEscenarioDeSinVentasHoyDevuelveCeroYElUltimoDiaEnQueSeAnotoUnaVenta() {
+        dadoDatos(
+                        List.of(
+                                venta(YERBA, 2, 3400, "2026-10-16"),
+                                venta(YERBA, 1, 3400, "2026-10-10")),
+                        yerba());
+    }
+
+    private void dadoElEscenarioDeUnSistemaSinVentasNiProductosNoTieneNadaParaMostrar() {
+        dadoDatos(List.of());
+    }
+
+    private void dadoElEscenarioDeDevuelveElProductoQueMasSalioEnLosUltimos30DiasConSuGanancia() {
+        dadoDatos(
+                        List.of(
+                                venta(YERBA, 5, 3400, "2026-10-10"),
+                                venta(FIDEOS, 9, 1700, "2026-10-11"),
+                                venta(MERMELADA, 50, 2600, "2026-08-01")),
+                        yerba(), fideos(), mermelada());
+    }
+
+    private void dadoElEscenarioDeAvisaLosTresProductosMasUrgentesYCuentaTodosLosQueFaltan() {
+        dadoDatos(
+                        List.of(),
+                        producto(YERBA, "Yerba", 0, 3400, 2700, 10),
+                        producto(FIDEOS, "Fideos", 1, 1700, null, 6),
+                        producto(MERMELADA, "Mermelada", 2, 2600, 1800, 4),
+                        producto(ACEITE, "Aceite", 3, 2800, null, 6),
+                        producto(ARROZ, "Arroz", 50, 900, null, 6));
+    }
+
+    private void dadoElEscenarioDeListaLosTresProductosParadosConMasPlataInvertidaCuandoYaHayDosSemanas() {
+        dadoDatos(
+                        List.of(
+                                venta(ARROZ, 1, 900, "2026-09-01"),
+                                venta(ARROZ, 1, 900, "2026-10-18")),
+                        producto(YERBA, "Yerba", 40, 3400, 2700, null),
+                        producto(MERMELADA, "Mermelada", 20, 2600, 1800, null),
+                        producto(ACEITE, "Aceite", 3, 2800, null, null),
+                        producto(FIDEOS, "Fideos", 8, 1700, 1000, null),
+                        producto(ARROZ, "Arroz", 50, 900, 600, null));
+    }
+
+    private void dadoElEscenarioDeNoDiceQueUnProductoEstaParadoSiElSistemaTodaviaNoTieneDosSemanasDe() {
+        dadoDatos(
+                        List.of(venta(ARROZ, 1, 900, "2026-10-15")),
+                        producto(YERBA, "Yerba", 40, 3400, 2700, null),
+                        producto(ARROZ, "Arroz", 50, 900, 600, null));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaSumaLoVendidoHoyEnHoraArgentinaYLoComparaConElMismoDiaDeLaSemanaPasada() {
+        response = cuandoObtener();
+    }
+
+    private void cuandoSeEjecutaSumaLoVendidoEnLaSemanaYEnElMesLoComparaConElPeriodoAnteriorYCuentaEl() {
+        response = cuandoObtener();
+    }
+
+    private void cuandoSeEjecutaSinVentasHoyDevuelveCeroYElUltimoDiaEnQueSeAnotoUnaVenta() {
+        response = cuandoObtener();
+    }
+
+    private void cuandoSeEjecutaUnSistemaSinVentasNiProductosNoTieneNadaParaMostrar() {
+        response = cuandoObtener();
+    }
+
+    private void cuandoSeEjecutaDevuelveElProductoQueMasSalioEnLosUltimos30DiasConSuGanancia() {
+        response = cuandoObtener();
+    }
+
+    private void cuandoSeEjecutaAvisaLosTresProductosMasUrgentesYCuentaTodosLosQueFaltan() {
+        response = cuandoObtener();
+    }
+
+    private void cuandoSeEjecutaListaLosTresProductosParadosConMasPlataInvertidaCuandoYaHayDosSemanas() {
+        response = cuandoObtener();
+    }
+
+    private void cuandoSeEjecutaNoDiceQueUnProductoEstaParadoSiElSistemaTodaviaNoTieneDosSemanasDe() {
+        response = cuandoObtener();
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaSumaLoVendidoHoyEnHoraArgentinaYLoComparaConElMismoDiaDeLaSemanaPasada() {
+        assertThat(response.sistema()).isEqualTo("Almacén de prueba");
+        assertThat(response.hoy()).isEqualTo(HOY);
+        assertThat(response.hayVentas()).isTrue();
+        assertThat(response.ventas().hoy().ingresos()).isEqualByComparingTo("10200");
+        assertThat(response.ventas().hoy().unidades()).isEqualByComparingTo("6");
+        assertThat(response.ventas().hoy().cantidad()).isEqualTo(3);
+        assertThat(response.ventas().hoy().sinPrecio()).isEqualTo(1);
+        assertThat(response.ventas().hoy().ingresosAnteriores()).isEqualByComparingTo("3400");
+        assertThat(response.ultimoDiaConVentas().fecha()).isEqualTo(HOY);
+        assertThat(response.ultimoDiaConVentas().ingresos()).isEqualByComparingTo("10200");
+        assertThat(response.ventasPorDia()).hasSize(30);
+        assertThat(response.ventasPorDia().getLast().fecha()).isEqualTo(HOY);
+        assertThat(response.ventasPorDia().getLast().ingresos()).isEqualByComparingTo("10200");
+    }
+
+    private void entoncesSeVerificaSumaLoVendidoEnLaSemanaYEnElMesLoComparaConElPeriodoAnteriorYCuentaEl() {
+        assertThat(response.ventas().hoy().fiado()).isEqualByComparingTo("6800");
+        assertThat(response.ventas().semana().ingresos()).isEqualByComparingTo("10200");
+        assertThat(response.ventas().semana().unidades()).isEqualByComparingTo("3");
+        assertThat(response.ventas().semana().cantidad()).isEqualTo(2);
+        assertThat(response.ventas().semana().ingresosAnteriores()).isEqualByComparingTo("3400");
+        assertThat(response.ventas().semana().fiado()).isEqualByComparingTo("6800");
+        assertThat(response.ventas().semana().ventasFiadas()).isEqualTo(1);
+        assertThat(response.ventas().mes().ingresos()).isEqualByComparingTo("30600");
+        assertThat(response.ventas().mes().unidades()).isEqualByComparingTo("9");
+        assertThat(response.ventas().mes().ingresosAnteriores()).isEqualByComparingTo("13600");
+        assertThat(response.ventas().mes().ventasFiadas()).isEqualTo(1);
+    }
+
+    private void entoncesSeVerificaSinVentasHoyDevuelveCeroYElUltimoDiaEnQueSeAnotoUnaVenta() {
+        assertThat(response.ventas().hoy().ingresos()).isEqualByComparingTo("0");
+        assertThat(response.ventas().hoy().cantidad()).isZero();
+        assertThat(response.ultimoDiaConVentas().fecha()).isEqualTo(LocalDate.of(2026, 10, 16));
+        assertThat(response.ultimoDiaConVentas().ingresos()).isEqualByComparingTo("6800");
+    }
+
+    private void entoncesSeVerificaUnSistemaSinVentasNiProductosNoTieneNadaParaMostrar() {
+        assertThat(response.hayVentas()).isFalse();
+        assertThat(response.hayProductos()).isFalse();
+        assertThat(response.ultimoDiaConVentas()).isNull();
+        assertThat(response.masVendido()).isNull();
+        assertThat(response.faltantes().total()).isZero();
+        assertThat(response.faltantes().primeros()).isEmpty();
+        assertThat(response.parados()).isEmpty();
+    }
+
+    private void entoncesSeVerificaDevuelveElProductoQueMasSalioEnLosUltimos30DiasConSuGanancia() {
+        assertThat(response.hayProductos()).isTrue();
+        assertThat(response.masVendido().nombre()).isEqualTo("Fideos Luchetti");
+        assertThat(response.masVendido().unidades()).isEqualByComparingTo("9");
+        assertThat(response.masVendido().ingresos()).isEqualByComparingTo("15300");
+        assertThat(response.masVendido().ganancia()).isNull();
+    }
+
+    private void entoncesSeVerificaAvisaLosTresProductosMasUrgentesYCuentaTodosLosQueFaltan() {
+        assertThat(response.faltantes().total()).isEqualTo(4);
+        assertThat(response.faltantes().primeros()).hasSize(3);
+        assertThat(response.faltantes().primeros().getFirst().nombre()).isEqualTo("Yerba");
+        assertThat(response.faltantes().primeros().getFirst().minimo()).isEqualByComparingTo("10");
+        assertThat(response.faltantes().primeros().getFirst().pedir()).isEqualByComparingTo("20");
+    }
+
+    private void entoncesSeVerificaListaLosTresProductosParadosConMasPlataInvertidaCuandoYaHayDosSemanas() {
+        assertThat(response.parados()).hasSize(3);
+        assertThat(response.parados().get(0).nombre()).isEqualTo("Yerba");
+        assertThat(response.parados().get(0).capital()).isEqualByComparingTo("108000");
+        assertThat(response.parados().get(1).nombre()).isEqualTo("Mermelada");
+        assertThat(response.parados().get(2).nombre()).isEqualTo("Fideos");
+    }
+
+    private void entoncesSeVerificaNoDiceQueUnProductoEstaParadoSiElSistemaTodaviaNoTieneDosSemanasDe() {
+        assertThat(response.parados()).isEmpty();
     }
 }

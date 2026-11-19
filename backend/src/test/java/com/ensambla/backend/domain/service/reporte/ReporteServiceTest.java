@@ -27,6 +27,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ReporteServiceTest {
 
+    private ReporteRegistros result;
+
     private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
     private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
     private static final BloqueId CLIENTES_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
@@ -47,49 +49,87 @@ class ReporteServiceTest {
 
     @Test
     @DisplayName("Genera las filas con las fórmulas calculadas y los totales de todas las que cumplen el filtro")
-    void generarShouldReturnRowsWithFormulasAndTotalsOfAll() {
+    void generaLasFilasConLasFormulasCalculadasYLosTotalesDeTodasLasQueCumplenElFiltro() {
+        dadoElEscenarioDeGeneraLasFilasConLasFormulasCalculadasYLosTotalesDeTodasLasQueCumplen();
+
+        cuandoSeEjecutaGeneraLasFilasConLasFormulasCalculadasYLosTotalesDeTodasLasQueCumplen();
+
+        entoncesSeVerificaGeneraLasFilasConLasFormulasCalculadasYLosTotalesDeTodasLasQueCumplen();
+    }
+
+    @Test
+    @DisplayName("Avisa que está truncado cuando hay más filas que el límite")
+    void avisaQueEstaTruncadoCuandoHayMasFilasQueElLimite() {
+        dadoElEscenarioDeAvisaQueEstaTruncadoCuandoHayMasFilasQueElLimite();
+
+        cuandoSeEjecutaAvisaQueEstaTruncadoCuandoHayMasFilasQueElLimite();
+
+        entoncesSeVerificaAvisaQueEstaTruncadoCuandoHayMasFilasQueElLimite();
+    }
+
+    @Test
+    @DisplayName("Una cantidad igual al límite no está truncada")
+    void unaCantidadIgualAlLimiteNoEstaTruncada() {
+        dadoElEscenarioDeUnaCantidadIgualAlLimiteNoEstaTruncada();
+
+        cuandoSeEjecutaUnaCantidadIgualAlLimiteNoEstaTruncada();
+    }
+
+    private static List<Campo> dadoCampos() {
+        return List.of(
+                Campo.builder().id(CANTIDAD_ID).tipo(TipoCampo.NUMERO).posicion((short) 0).build(),
+                Campo.builder().id(TOTAL_ID).tipo(TipoCampo.FORMULA).posicion((short) 1)
+                        .formula("{" + CANTIDAD_ID + "} * 2").build());
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeGeneraLasFilasConLasFormulasCalculadasYLosTotalesDeTodasLasQueCumplen() {
         Registro fila = Registro.builder().id(BETO_ID).valores(Map.of(CANTIDAD_ID.toString(), 4)).build();
         when(registroRepository.buscarFiltrados(filtro, 10)).thenReturn(List.of(fila));
         when(registroRepository.contarFiltrados(filtro)).thenReturn(3L);
         when(registroRepository.sumarNumericos(filtro, List.of(CANTIDAD_ID)))
-                .thenReturn(Map.of(CANTIDAD_ID, new BigDecimal("9")));
+                        .thenReturn(Map.of(CANTIDAD_ID, new BigDecimal("9")));
+    }
 
-        ReporteRegistros result = reporteService.generar(filtro, givenCampos(), 10);
+    private void dadoElEscenarioDeAvisaQueEstaTruncadoCuandoHayMasFilasQueElLimite() {
+        when(registroRepository.buscarFiltrados(filtro, 2)).thenReturn(List.of());
+        when(registroRepository.contarFiltrados(filtro)).thenReturn(3L);
+        when(registroRepository.sumarNumericos(filtro, List.of(CANTIDAD_ID))).thenReturn(Map.of());
+    }
 
+    private void dadoElEscenarioDeUnaCantidadIgualAlLimiteNoEstaTruncada() {
+        when(registroRepository.buscarFiltrados(filtro, 3)).thenReturn(List.of());
+        when(registroRepository.contarFiltrados(filtro)).thenReturn(3L);
+        when(registroRepository.sumarNumericos(filtro, List.of(CANTIDAD_ID))).thenReturn(Map.of());
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaGeneraLasFilasConLasFormulasCalculadasYLosTotalesDeTodasLasQueCumplen() {
+        result = reporteService.generar(filtro, dadoCampos(), 10);
+    }
+
+    private void cuandoSeEjecutaAvisaQueEstaTruncadoCuandoHayMasFilasQueElLimite() {
+        result = reporteService.generar(filtro, dadoCampos(), 2);
+    }
+
+    private void cuandoSeEjecutaUnaCantidadIgualAlLimiteNoEstaTruncada() {
+        assertThat(reporteService.generar(filtro, dadoCampos(), 3).truncado()).isFalse();
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaGeneraLasFilasConLasFormulasCalculadasYLosTotalesDeTodasLasQueCumplen() {
         assertThat(result.filas()).singleElement().satisfies(calculada ->
-                assertThat(calculada.getValores()).containsEntry(TOTAL_ID.toString(), new BigDecimal("8")));
+                        assertThat(calculada.getValores()).containsEntry(TOTAL_ID.toString(), new BigDecimal("8")));
         assertThat(result.totales().cantidad()).isEqualTo(3);
         assertThat(result.totales().sumas().get(CANTIDAD_ID)).isEqualByComparingTo("9");
         assertThat(result.truncado()).isFalse();
     }
 
-    @Test
-    @DisplayName("Avisa que está truncado cuando hay más filas que el límite")
-    void generarShouldFlagTruncatedWhenThereAreMoreRowsThanTheLimit() {
-        when(registroRepository.buscarFiltrados(filtro, 2)).thenReturn(List.of());
-        when(registroRepository.contarFiltrados(filtro)).thenReturn(3L);
-        when(registroRepository.sumarNumericos(filtro, List.of(CANTIDAD_ID))).thenReturn(Map.of());
-
-        ReporteRegistros result = reporteService.generar(filtro, givenCampos(), 2);
-
+    private void entoncesSeVerificaAvisaQueEstaTruncadoCuandoHayMasFilasQueElLimite() {
         assertThat(result.truncado()).isTrue();
         assertThat(result.totales().sumas().get(CANTIDAD_ID)).isEqualByComparingTo("0");
-    }
-
-    @Test
-    @DisplayName("Una cantidad igual al límite no está truncada")
-    void generarShouldNotFlagTruncatedWhenCountEqualsTheLimit() {
-        when(registroRepository.buscarFiltrados(filtro, 3)).thenReturn(List.of());
-        when(registroRepository.contarFiltrados(filtro)).thenReturn(3L);
-        when(registroRepository.sumarNumericos(filtro, List.of(CANTIDAD_ID))).thenReturn(Map.of());
-
-        assertThat(reporteService.generar(filtro, givenCampos(), 3).truncado()).isFalse();
-    }
-
-    private static List<Campo> givenCampos() {
-        return List.of(
-                Campo.builder().id(CANTIDAD_ID).tipo(TipoCampo.NUMERO).posicion((short) 0).build(),
-                Campo.builder().id(TOTAL_ID).tipo(TipoCampo.FORMULA).posicion((short) 1)
-                        .formula("{" + CANTIDAD_ID + "} * 2").build());
     }
 }

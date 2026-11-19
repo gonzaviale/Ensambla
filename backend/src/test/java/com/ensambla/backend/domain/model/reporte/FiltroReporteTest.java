@@ -26,7 +26,7 @@ class FiltroReporteTest {
 
     @Test
     @DisplayName("Sin filtros no acota nada")
-    void armarShouldNotLimitAnythingWithoutFilters() {
+    void sinFiltrosNoAcotaNada() {
         FiltroReporte result = armar(null, null, null, null, null);
 
         assertThat(result.negocioId()).isEqualTo(NEGOCIO_ID);
@@ -40,7 +40,7 @@ class FiltroReporteTest {
 
     @Test
     @DisplayName("Las fechas incluyen los dos días enteros en la zona de Argentina")
-    void armarShouldIncludeBothDaysInArgentinaTime() {
+    void lasFechasIncluyenLosDosDiasEnterosEnLaZonaDeArgentina() {
         FiltroReporte result = armar(" pan ", LocalDate.parse("2026-10-01"), LocalDate.parse("2026-10-31"), null, null);
 
         assertThat(result.texto()).isEqualTo("pan");
@@ -50,13 +50,13 @@ class FiltroReporteTest {
 
     @Test
     @DisplayName("Un texto en blanco no filtra")
-    void armarShouldIgnoreBlankText() {
+    void unTextoEnBlancoNoFiltra() {
         assertThat(armar("   ", null, null, null, null).texto()).isNull();
     }
 
     @Test
     @DisplayName("Acepta un solo extremo del rango y el mismo día en los dos")
-    void armarShouldAcceptOneEndAndTheSameDay() {
+    void aceptaUnSoloExtremoDelRangoYElMismoDiaEnLosDos() {
         LocalDate dia = LocalDate.parse("2026-10-13");
 
         assertThat(armar(null, dia, null, null, null).hasta()).isNull();
@@ -67,7 +67,7 @@ class FiltroReporteTest {
 
     @Test
     @DisplayName("Rechaza una fecha desde posterior a la fecha hasta")
-    void armarShouldRejectReversedDates() {
+    void rechazaUnaFechaDesdePosteriorALaFechaHasta() {
         assertThatThrownBy(() -> armar(null, LocalDate.parse("2026-10-02"), LocalDate.parse("2026-10-01"), null, null))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("La fecha desde no puede ser posterior a la fecha hasta");
@@ -75,7 +75,7 @@ class FiltroReporteTest {
 
     @Test
     @DisplayName("Filtra por un valor de una columna de opción o de sí/no")
-    void armarShouldFilterByOptionAndYesNoColumns() {
+    void filtraPorUnValorDeUnaColumnaDeOpcionODeSiNo() {
         FiltroReporte opcion = armar(null, null, null, ESTADO_ID, "Entregado");
         FiltroReporte siNo = armar(null, null, null, PAGADO_ID, "true");
 
@@ -88,7 +88,7 @@ class FiltroReporteTest {
 
     @Test
     @DisplayName("Rechaza filtrar por una columna que no es de opción ni de sí/no, o que no existe")
-    void armarShouldRejectColumnsThatCannotBeFiltered() {
+    void rechazaFiltrarPorUnaColumnaQueNoEsDeOpcionNiDeSiNoOQueNoExiste() {
         assertThatThrownBy(() -> armar(null, null, null, NOMBRE_ID, "x"))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("No se puede filtrar por ese campo");
@@ -99,7 +99,7 @@ class FiltroReporteTest {
 
     @Test
     @DisplayName("Pide el valor y rechaza uno que la columna no admite")
-    void armarShouldRequireAValidValue() {
+    void pideElValorYRechazaUnoQueLaColumnaNoAdmite() {
         assertThatThrownBy(() -> armar(null, null, null, ESTADO_ID, null))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("Elegí el valor por el que filtrar");

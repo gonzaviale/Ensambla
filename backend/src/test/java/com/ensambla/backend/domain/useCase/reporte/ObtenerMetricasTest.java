@@ -29,6 +29,7 @@ import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
+import com.ensambla.backend.domain.service.reporte.ContextoDeResumenService;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
 import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricas;
 import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricasRequest;
@@ -59,6 +60,10 @@ import static org.mockito.Mockito.when;
 
 class ObtenerMetricasTest {
 
+    private ObtenerMetricasResponse conHistoria;
+    private ObtenerMetricasResponse response;
+    private Zona zona;
+
     private static final UsuarioId USUARIO_ID = UsuarioId.de("b9000000-0000-4000-8000-000000000001");
     private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
     private static final ProyectoId PROYECTO_ID = ProyectoId.de("c0000000-0000-4000-8000-000000000001");
@@ -84,8 +89,9 @@ class ObtenerMetricasTest {
     private final AvisoRepository avisoRepository = mock(AvisoRepository.class);
 
     private final ObtenerMetricas obtenerMetricas = new ObtenerMetricas(
-            negocioRepository, proyectoRepository, datosDeProyectoService, zonaRepository, agregadoZonaRepository,
-            avisoRepository, Clock.fixed(INSTANTE, ZoneOffset.UTC));
+            negocioRepository, proyectoRepository, datosDeProyectoService,
+            new ContextoDeResumenService(negocioRepository, zonaRepository, agregadoZonaRepository, avisoRepository),
+            Clock.fixed(INSTANTE, ZoneOffset.UTC));
 
     private Proyecto proyecto;
 
@@ -101,182 +107,97 @@ class ObtenerMetricasTest {
 
     @Test
     @DisplayName("Arma las métricas de la semana: ventas, día por día, productos, stock, clientes y fiado")
-    void executeShouldSummarizeTheWeek() {
-        givenDatos(List.of(
-                ventaAFiado(YERBA, 2, 3400, "2026-10-19"),
-                venta(YERBA, 1, 3400, "2026-10-15"),
-                venta(MERMELADA, 3, null, "2026-10-14"),
-                venta(YERBA, 1, 3400, "2026-10-12"),
-                venta(YERBA, 9, 3400, "2026-10-20")), List.of());
+    void armaLasMetricasDeLaSemanaVentasDiaPorDiaProductosStockClientesYFiado() {
+        dadoElEscenarioDeArmaLasMetricasDeLaSemanaVentasDiaPorDiaProductosStockClientesYFiado();
 
-        ObtenerMetricasResponse response = whenObtener(PeriodoMetricas.SEMANA);
+        cuandoSeEjecutaArmaLasMetricasDeLaSemanaVentasDiaPorDiaProductosStockClientesYFiado();
 
-        assertThat(response.sistema()).isEqualTo("Almacén de prueba");
-        assertThat(response.periodo()).isEqualTo(PeriodoMetricas.SEMANA);
-        assertThat(response.desde()).isEqualTo(LocalDate.of(2026, 10, 13));
-        assertThat(response.hasta()).isEqualTo(HOY);
-        assertThat(response.hayVentas()).isTrue();
-        assertThat(response.ventas().ingresos()).isEqualByComparingTo("10200");
-        assertThat(response.ventas().unidades()).isEqualByComparingTo("6");
-        assertThat(response.ventas().cantidad()).isEqualTo(3);
-        assertThat(response.ventas().sinPrecio()).isEqualTo(1);
-        assertThat(response.ventas().ingresoPorDia()).isEqualByComparingTo("1457.14");
-        assertThat(response.ventas().ingresosAnteriores()).isEqualByComparingTo("3400");
-        assertThat(response.ventas().gananciaEstimada()).isEqualByComparingTo("2100");
-        assertThat(response.porDia()).hasSize(7);
-        assertThat(response.porDia().getLast().ingresos()).isEqualByComparingTo("6800");
-        assertThat(response.masVendidos()).extracting(ObtenerMetricasResponse.ProductoVendido::nombre)
-                .containsExactly("Yerba", "Mermelada");
-        assertThat(response.masVendidos().get(0).ganancia()).isEqualByComparingTo("2100");
-        assertThat(response.masVendidos().get(1).ganancia()).isNull();
-        assertThat(response.stock().productos()).isEqualTo(2);
-        assertThat(response.stock().totalFaltantes()).isEqualTo(1);
-        assertThat(response.stock().faltantes().getFirst().nombre()).isEqualTo("Yerba");
-        assertThat(response.stock().valorACosto()).isEqualByComparingTo("28800");
-        assertThat(response.clientes().fiado()).isEqualByComparingTo("6800");
-        assertThat(response.clientes().ventasFiadas()).isEqualTo(1);
-        assertThat(response.clientes().top()).singleElement().satisfies(cliente -> {
-            assertThat(cliente.nombre()).isEqualTo("Doña Rosa");
-            assertThat(cliente.compras()).isEqualTo(1);
-            assertThat(cliente.ingresos()).isEqualByComparingTo("6800");
-        });
-        assertThat(response.gastos()).isNull();
+        entoncesSeVerificaArmaLasMetricasDeLaSemanaVentasDiaPorDiaProductosStockClientesYFiado();
     }
 
     @Test
     @DisplayName("Hoy se compara con el mismo día de la semana pasada")
-    void executeShouldCompareTodayWithTheSameDayLastWeek() {
-        givenDatos(List.of(
-                venta(YERBA, 2, 3400, "2026-10-19"),
-                venta(YERBA, 5, 3400, "2026-10-18"),
-                venta(YERBA, 1, 3400, "2026-10-12")), List.of());
+    void hoySeComparaConElMismoDiaDeLaSemanaPasada() {
+        dadoElEscenarioDeHoySeComparaConElMismoDiaDeLaSemanaPasada();
 
-        ObtenerMetricasResponse response = whenObtener(PeriodoMetricas.HOY);
+        cuandoSeEjecutaHoySeComparaConElMismoDiaDeLaSemanaPasada();
 
-        assertThat(response.ventas().ingresos()).isEqualByComparingTo("6800");
-        assertThat(response.ventas().ingresosAnteriores()).isEqualByComparingTo("3400");
-        assertThat(response.porDia()).hasSize(1);
+        entoncesSeVerificaHoySeComparaConElMismoDiaDeLaSemanaPasada();
     }
 
     @Test
     @DisplayName("Con dos semanas de ventas lista los productos parados; antes no")
-    void executeShouldListStoppedProductsOnlyWithTwoWeeksOfSales() {
-        givenDatos(List.of(venta(YERBA, 1, 3400, "2026-09-01"), venta(YERBA, 1, 3400, "2026-10-18")), List.of());
+    void conDosSemanasDeVentasListaLosProductosParadosAntesNo() {
+        dadoElEscenarioDeConDosSemanasDeVentasListaLosProductosParadosAntesNo();
 
-        ObtenerMetricasResponse conHistoria = whenObtener(PeriodoMetricas.MES);
+        cuandoSeEjecutaConDosSemanasDeVentasListaLosProductosParadosAntesNo();
 
-        assertThat(conHistoria.parados()).extracting(ObtenerMetricasResponse.Parado::nombre)
-                .containsExactly("Mermelada");
-        assertThat(conHistoria.parados().getFirst().capital()).isEqualByComparingTo("18000");
+        entoncesSeVerificaConDosSemanasDeVentasListaLosProductosParadosAntesNo();
     }
 
     @Test
     @DisplayName("Sin dos semanas de ventas no dice que un producto está parado")
-    void executeShouldNotListStoppedProductsWithoutTwoWeeksOfSales() {
-        givenDatos(List.of(venta(YERBA, 1, 3400, "2026-10-18")), List.of());
+    void sinDosSemanasDeVentasNoDiceQueUnProductoEstaParado() {
+        dadoElEscenarioDeSinDosSemanasDeVentasNoDiceQueUnProductoEstaParado();
 
-        ObtenerMetricasResponse response = whenObtener(PeriodoMetricas.MES);
+        cuandoSeEjecutaSinDosSemanasDeVentasNoDiceQueUnProductoEstaParado();
 
-        assertThat(response.parados()).isEmpty();
+        entoncesSeVerificaSinDosSemanasDeVentasNoDiceQueUnProductoEstaParado();
     }
 
     @Test
     @DisplayName("Con una tabla de gastos suma lo gastado por categoría y el resultado")
-    void executeShouldSummarizeExpenses() {
-        givenDatos(List.of(venta(YERBA, 2, 3400, "2026-10-19")), List.of(
-                gasto("2026-10-18", 1000, "Servicios"),
-                gasto("2026-10-17", 500, "Mercadería")));
+    void conUnaTablaDeGastosSumaLoGastadoPorCategoriaYElResultado() {
+        dadoElEscenarioDeConUnaTablaDeGastosSumaLoGastadoPorCategoriaYElResultado();
 
-        ObtenerMetricasResponse response = whenObtener(PeriodoMetricas.SEMANA);
+        cuandoSeEjecutaConUnaTablaDeGastosSumaLoGastadoPorCategoriaYElResultado();
 
-        assertThat(response.gastos().total()).isEqualByComparingTo("1500");
-        assertThat(response.gastos().cantidad()).isEqualTo(2);
-        assertThat(response.gastos().resultado()).isEqualByComparingTo("5300");
-        assertThat(response.gastos().porCategoria()).extracting(ObtenerMetricasResponse.GastoPorCategoria::categoria)
-                .containsExactly("Servicios", "Mercadería");
-        assertThat(response.gastos().porCategoria().getFirst().total()).isEqualByComparingTo("1000");
+        entoncesSeVerificaConUnaTablaDeGastosSumaLoGastadoPorCategoriaYElResultado();
     }
 
     @Test
     @DisplayName("Sin zona asignada ni avisos deja la zona en null y los avisos en cero")
-    void executeShouldLeaveZoneEmptyWithoutZoneOrAvisos() {
-        givenDatos(List.of(venta(YERBA, 1, 3400, "2026-10-15")), List.of());
+    void sinZonaAsignadaNiAvisosDejaLaZonaEnNullYLosAvisosEnCero() {
+        dadoElEscenarioDeSinZonaAsignadaNiAvisosDejaLaZonaEnNullYLosAvisosEnCero();
 
-        ObtenerMetricasResponse response = whenObtener(PeriodoMetricas.SEMANA);
+        cuandoSeEjecutaSinZonaAsignadaNiAvisosDejaLaZonaEnNullYLosAvisosEnCero();
 
-        assertThat(response.zona()).isNull();
-        assertThat(response.avisos().totalPendientes()).isZero();
-        assertThat(response.avisos().pendientes()).isEmpty();
-        assertThat(response.avisos().aplicados()).isZero();
+        entoncesSeVerificaSinZonaAsignadaNiAvisosDejaLaZonaEnNullYLosAvisosEnCero();
     }
 
     @Test
     @DisplayName("Compara los precios con el rango de la zona del negocio")
-    void executeShouldComparePricesWithTheZone() {
-        Zona zona = Zona.builder().id(ZONA_ID).nombre("San Justo").build();
-        when(negocioRepository.findZonaIdById(NEGOCIO_ID)).thenReturn(Optional.of(ZONA_ID));
-        when(zonaRepository.findById(ZONA_ID)).thenReturn(Optional.of(zona));
-        when(agregadoZonaRepository.analizar(zona)).thenReturn(new AnalisisZona("San Justo", 8, List.of(
-                rango("Yerba", "3500", "4800"), rango("Mermelada", "1700", "3000"))));
-        givenDatos(List.of(venta(YERBA, 1, 3400, "2026-10-15")), List.of());
+    void comparaLosPreciosConElRangoDeLaZonaDelNegocio() {
+        dadoElEscenarioDeComparaLosPreciosConElRangoDeLaZonaDelNegocio();
 
-        ObtenerMetricasResponse response = whenObtener(PeriodoMetricas.SEMANA);
+        cuandoSeEjecutaComparaLosPreciosConElRangoDeLaZonaDelNegocio();
 
-        assertThat(response.zona().nombre()).isEqualTo("San Justo");
-        assertThat(response.zona().comercios()).isEqualTo(8);
-        assertThat(response.zona().debajo()).isEqualTo(1);
-        assertThat(response.zona().dentro()).isEqualTo(1);
-        assertThat(response.zona().encima()).isZero();
-        assertThat(response.zona().desalineados()).singleElement().satisfies(producto -> {
-            assertThat(producto.nombre()).isEqualTo("Yerba");
-            assertThat(producto.precio()).isEqualByComparingTo("3400");
-            assertThat(producto.minimo()).isEqualByComparingTo("3500");
-            assertThat(producto.maximo()).isEqualByComparingTo("4800");
-            assertThat(producto.porcentaje()).isEqualByComparingTo("-3");
-        });
+        entoncesSeVerificaComparaLosPreciosConElRangoDeLaZonaDelNegocio();
     }
 
     @Test
     @DisplayName("Cuenta los avisos pendientes por tipo y lo aplicado o descartado, sólo del sistema pedido")
-    void executeShouldSummarizeAvisosOfTheProject() {
-        OffsetDateTime hace3Dias = OffsetDateTime.parse("2026-10-16T15:00:00Z");
-        when(avisoRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(List.of(
-                aviso(PROYECTO_ID, TipoAviso.STOCK, EstadoAviso.PENDIENTE, null),
-                aviso(PROYECTO_ID, TipoAviso.COMBO, EstadoAviso.PENDIENTE, null),
-                aviso(PROYECTO_ID, TipoAviso.STOCK, EstadoAviso.APLICADO, hace3Dias),
-                aviso(PROYECTO_ID, TipoAviso.STOCK, EstadoAviso.DESCARTADO, hace3Dias),
-                aviso(OTRO_PROYECTO_ID, TipoAviso.STOCK, EstadoAviso.PENDIENTE, null)));
-        givenDatos(List.of(venta(YERBA, 1, 3400, "2026-10-15")), List.of());
+    void cuentaLosAvisosPendientesPorTipoYLoAplicadoODescartadoSoloDelSistemaPedido() {
+        dadoElEscenarioDeCuentaLosAvisosPendientesPorTipoYLoAplicadoODescartadoSoloDelSistema();
 
-        ObtenerMetricasResponse response = whenObtener(PeriodoMetricas.SEMANA);
+        cuandoSeEjecutaCuentaLosAvisosPendientesPorTipoYLoAplicadoODescartadoSoloDelSistema();
 
-        assertThat(response.avisos().totalPendientes()).isEqualTo(2);
-        assertThat(response.avisos().pendientes())
-                .extracting(ObtenerMetricasResponse.AvisoPendiente::tipo,
-                        ObtenerMetricasResponse.AvisoPendiente::cantidad)
-                .containsExactlyInAnyOrder(
-                        tuple(TipoAviso.STOCK, 1L),
-                        tuple(TipoAviso.COMBO, 1L));
-        assertThat(response.avisos().aplicados()).isEqualTo(1);
-        assertThat(response.avisos().descartados()).isEqualTo(1);
-        assertThat(response.avisos().medidos()).isZero();
-        assertThat(response.avisos().ingresoSemanalDelta()).isEqualByComparingTo(BigDecimal.ZERO);
+        entoncesSeVerificaCuentaLosAvisosPendientesPorTipoYLoAplicadoODescartadoSoloDelSistema();
     }
 
     @Test
     @DisplayName("Sin ventas anotadas avisa que no hay ventas")
-    void executeShouldSayThereAreNoSales() {
-        givenDatos(List.of(), List.of());
+    void sinVentasAnotadasAvisaQueNoHayVentas() {
+        dadoElEscenarioDeSinVentasAnotadasAvisaQueNoHayVentas();
 
-        ObtenerMetricasResponse response = whenObtener(PeriodoMetricas.SEMANA);
+        cuandoSeEjecutaSinVentasAnotadasAvisaQueNoHayVentas();
 
-        assertThat(response.hayVentas()).isFalse();
-        assertThat(response.masVendidos()).isEmpty();
+        entoncesSeVerificaSinVentasAnotadasAvisaQueNoHayVentas();
     }
 
     @Test
     @DisplayName("Un sistema de otro negocio responde como inexistente")
-    void executeShouldNotFindForeignProject() {
+    void unSistemaDeOtroNegocioRespondeComoInexistente() {
         when(proyectoRepository.obtener(NEGOCIO_ID, OTRO_PROYECTO_ID))
                 .thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
 
@@ -285,8 +206,8 @@ class ObtenerMetricasTest {
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
-    // --- arrange ---
-    private void givenDatos(List<Registro> ventas, List<Registro> gastos) {
+    // --- dado ---
+    private void dadoDatos(List<Registro> ventas, List<Registro> gastos) {
         List<BloqueGastos> tablasDeGastos = gastos.isEmpty() ? List.of() : List.of(bloqueDeGastos(gastos));
         when(datosDeProyectoService.cargar(proyecto, NEGOCIO_ID)).thenReturn(new DatosDeProyecto(
                 "Almacén de prueba",
@@ -297,8 +218,8 @@ class ObtenerMetricasTest {
                 tablasDeGastos));
     }
 
-    // --- act ---
-    private ObtenerMetricasResponse whenObtener(PeriodoMetricas periodo) {
+    // --- cuando ---
+    private ObtenerMetricasResponse cuandoObtener(PeriodoMetricas periodo) {
         return obtenerMetricas.execute(new ObtenerMetricasRequest(USUARIO_ID, PROYECTO_ID, periodo));
     }
 
@@ -374,5 +295,204 @@ class ObtenerMetricasTest {
 
     private static Campo campo(CampoId id, BloqueId bloqueId, String clave) {
         return Campo.builder().id(id).negocioId(AvisoTestData.NEGOCIO_ID).bloqueId(bloqueId).clave(clave).build();
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeArmaLasMetricasDeLaSemanaVentasDiaPorDiaProductosStockClientesYFiado() {
+        dadoDatos(List.of(
+                        ventaAFiado(YERBA, 2, 3400, "2026-10-19"),
+                        venta(YERBA, 1, 3400, "2026-10-15"),
+                        venta(MERMELADA, 3, null, "2026-10-14"),
+                        venta(YERBA, 1, 3400, "2026-10-12"),
+                        venta(YERBA, 9, 3400, "2026-10-20")), List.of());
+    }
+
+    private void dadoElEscenarioDeHoySeComparaConElMismoDiaDeLaSemanaPasada() {
+        dadoDatos(List.of(
+                        venta(YERBA, 2, 3400, "2026-10-19"),
+                        venta(YERBA, 5, 3400, "2026-10-18"),
+                        venta(YERBA, 1, 3400, "2026-10-12")), List.of());
+    }
+
+    private void dadoElEscenarioDeConDosSemanasDeVentasListaLosProductosParadosAntesNo() {
+        dadoDatos(List.of(venta(YERBA, 1, 3400, "2026-09-01"), venta(YERBA, 1, 3400, "2026-10-18")), List.of());
+    }
+
+    private void dadoElEscenarioDeSinDosSemanasDeVentasNoDiceQueUnProductoEstaParado() {
+        dadoDatos(List.of(venta(YERBA, 1, 3400, "2026-10-18")), List.of());
+    }
+
+    private void dadoElEscenarioDeConUnaTablaDeGastosSumaLoGastadoPorCategoriaYElResultado() {
+        dadoDatos(List.of(venta(YERBA, 2, 3400, "2026-10-19")), List.of(
+                        gasto("2026-10-18", 1000, "Servicios"),
+                        gasto("2026-10-17", 500, "Mercadería")));
+    }
+
+    private void dadoElEscenarioDeSinZonaAsignadaNiAvisosDejaLaZonaEnNullYLosAvisosEnCero() {
+        dadoDatos(List.of(venta(YERBA, 1, 3400, "2026-10-15")), List.of());
+    }
+
+    private void dadoElEscenarioDeComparaLosPreciosConElRangoDeLaZonaDelNegocio() {
+        zona = Zona.builder().id(ZONA_ID).nombre("San Justo").build();
+        when(negocioRepository.findZonaIdById(NEGOCIO_ID)).thenReturn(Optional.of(ZONA_ID));
+        when(zonaRepository.findById(ZONA_ID)).thenReturn(Optional.of(zona));
+        when(agregadoZonaRepository.analizar(zona)).thenReturn(new AnalisisZona("San Justo", 8, List.of(
+                        rango("Yerba", "3500", "4800"), rango("Mermelada", "1700", "3000"))));
+        dadoDatos(List.of(venta(YERBA, 1, 3400, "2026-10-15")), List.of());
+    }
+
+    private void dadoElEscenarioDeCuentaLosAvisosPendientesPorTipoYLoAplicadoODescartadoSoloDelSistema() {
+        OffsetDateTime hace3Dias = OffsetDateTime.parse("2026-10-16T15:00:00Z");
+        when(avisoRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(List.of(
+                        aviso(PROYECTO_ID, TipoAviso.STOCK, EstadoAviso.PENDIENTE, null),
+                        aviso(PROYECTO_ID, TipoAviso.COMBO, EstadoAviso.PENDIENTE, null),
+                        aviso(PROYECTO_ID, TipoAviso.STOCK, EstadoAviso.APLICADO, hace3Dias),
+                        aviso(PROYECTO_ID, TipoAviso.STOCK, EstadoAviso.DESCARTADO, hace3Dias),
+                        aviso(OTRO_PROYECTO_ID, TipoAviso.STOCK, EstadoAviso.PENDIENTE, null)));
+        dadoDatos(List.of(venta(YERBA, 1, 3400, "2026-10-15")), List.of());
+    }
+
+    private void dadoElEscenarioDeSinVentasAnotadasAvisaQueNoHayVentas() {
+        dadoDatos(List.of(), List.of());
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaArmaLasMetricasDeLaSemanaVentasDiaPorDiaProductosStockClientesYFiado() {
+        response = cuandoObtener(PeriodoMetricas.SEMANA);
+    }
+
+    private void cuandoSeEjecutaHoySeComparaConElMismoDiaDeLaSemanaPasada() {
+        response = cuandoObtener(PeriodoMetricas.HOY);
+    }
+
+    private void cuandoSeEjecutaConDosSemanasDeVentasListaLosProductosParadosAntesNo() {
+        conHistoria = cuandoObtener(PeriodoMetricas.MES);
+    }
+
+    private void cuandoSeEjecutaSinDosSemanasDeVentasNoDiceQueUnProductoEstaParado() {
+        response = cuandoObtener(PeriodoMetricas.MES);
+    }
+
+    private void cuandoSeEjecutaConUnaTablaDeGastosSumaLoGastadoPorCategoriaYElResultado() {
+        response = cuandoObtener(PeriodoMetricas.SEMANA);
+    }
+
+    private void cuandoSeEjecutaSinZonaAsignadaNiAvisosDejaLaZonaEnNullYLosAvisosEnCero() {
+        response = cuandoObtener(PeriodoMetricas.SEMANA);
+    }
+
+    private void cuandoSeEjecutaComparaLosPreciosConElRangoDeLaZonaDelNegocio() {
+        response = cuandoObtener(PeriodoMetricas.SEMANA);
+    }
+
+    private void cuandoSeEjecutaCuentaLosAvisosPendientesPorTipoYLoAplicadoODescartadoSoloDelSistema() {
+        response = cuandoObtener(PeriodoMetricas.SEMANA);
+    }
+
+    private void cuandoSeEjecutaSinVentasAnotadasAvisaQueNoHayVentas() {
+        response = cuandoObtener(PeriodoMetricas.SEMANA);
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaArmaLasMetricasDeLaSemanaVentasDiaPorDiaProductosStockClientesYFiado() {
+        assertThat(response.sistema()).isEqualTo("Almacén de prueba");
+        assertThat(response.periodo()).isEqualTo(PeriodoMetricas.SEMANA);
+        assertThat(response.desde()).isEqualTo(LocalDate.of(2026, 10, 13));
+        assertThat(response.hasta()).isEqualTo(HOY);
+        assertThat(response.hayVentas()).isTrue();
+        assertThat(response.ventas().ingresos()).isEqualByComparingTo("10200");
+        assertThat(response.ventas().unidades()).isEqualByComparingTo("6");
+        assertThat(response.ventas().cantidad()).isEqualTo(3);
+        assertThat(response.ventas().sinPrecio()).isEqualTo(1);
+        assertThat(response.ventas().ingresoPorDia()).isEqualByComparingTo("1457.14");
+        assertThat(response.ventas().ingresosAnteriores()).isEqualByComparingTo("3400");
+        assertThat(response.ventas().gananciaEstimada()).isEqualByComparingTo("2100");
+        assertThat(response.porDia()).hasSize(7);
+        assertThat(response.porDia().getLast().ingresos()).isEqualByComparingTo("6800");
+        assertThat(response.masVendidos()).extracting(ObtenerMetricasResponse.ProductoVendido::nombre)
+                        .containsExactly("Yerba", "Mermelada");
+        assertThat(response.masVendidos().get(0).ganancia()).isEqualByComparingTo("2100");
+        assertThat(response.masVendidos().get(1).ganancia()).isNull();
+        assertThat(response.stock().productos()).isEqualTo(2);
+        assertThat(response.stock().totalFaltantes()).isEqualTo(1);
+        assertThat(response.stock().faltantes().getFirst().nombre()).isEqualTo("Yerba");
+        assertThat(response.stock().valorACosto()).isEqualByComparingTo("28800");
+        assertThat(response.clientes().fiado()).isEqualByComparingTo("6800");
+        assertThat(response.clientes().ventasFiadas()).isEqualTo(1);
+        assertThat(response.clientes().top()).singleElement().satisfies(cliente -> {
+                    assertThat(cliente.nombre()).isEqualTo("Doña Rosa");
+                    assertThat(cliente.compras()).isEqualTo(1);
+                    assertThat(cliente.ingresos()).isEqualByComparingTo("6800");
+                });
+        assertThat(response.gastos()).isNull();
+    }
+
+    private void entoncesSeVerificaHoySeComparaConElMismoDiaDeLaSemanaPasada() {
+        assertThat(response.ventas().ingresos()).isEqualByComparingTo("6800");
+        assertThat(response.ventas().ingresosAnteriores()).isEqualByComparingTo("3400");
+        assertThat(response.porDia()).hasSize(1);
+    }
+
+    private void entoncesSeVerificaConDosSemanasDeVentasListaLosProductosParadosAntesNo() {
+        assertThat(conHistoria.parados()).extracting(ObtenerMetricasResponse.Parado::nombre)
+                        .containsExactly("Mermelada");
+        assertThat(conHistoria.parados().getFirst().capital()).isEqualByComparingTo("18000");
+    }
+
+    private void entoncesSeVerificaSinDosSemanasDeVentasNoDiceQueUnProductoEstaParado() {
+        assertThat(response.parados()).isEmpty();
+    }
+
+    private void entoncesSeVerificaConUnaTablaDeGastosSumaLoGastadoPorCategoriaYElResultado() {
+        assertThat(response.gastos().total()).isEqualByComparingTo("1500");
+        assertThat(response.gastos().cantidad()).isEqualTo(2);
+        assertThat(response.gastos().resultado()).isEqualByComparingTo("5300");
+        assertThat(response.gastos().porCategoria()).extracting(ObtenerMetricasResponse.GastoPorCategoria::categoria)
+                        .containsExactly("Servicios", "Mercadería");
+        assertThat(response.gastos().porCategoria().getFirst().total()).isEqualByComparingTo("1000");
+    }
+
+    private void entoncesSeVerificaSinZonaAsignadaNiAvisosDejaLaZonaEnNullYLosAvisosEnCero() {
+        assertThat(response.zona()).isNull();
+        assertThat(response.avisos().totalPendientes()).isZero();
+        assertThat(response.avisos().pendientes()).isEmpty();
+        assertThat(response.avisos().aplicados()).isZero();
+    }
+
+    private void entoncesSeVerificaComparaLosPreciosConElRangoDeLaZonaDelNegocio() {
+        assertThat(response.zona().nombre()).isEqualTo("San Justo");
+        assertThat(response.zona().comercios()).isEqualTo(8);
+        assertThat(response.zona().debajo()).isEqualTo(1);
+        assertThat(response.zona().dentro()).isEqualTo(1);
+        assertThat(response.zona().encima()).isZero();
+        assertThat(response.zona().desalineados()).singleElement().satisfies(producto -> {
+                    assertThat(producto.nombre()).isEqualTo("Yerba");
+                    assertThat(producto.precio()).isEqualByComparingTo("3400");
+                    assertThat(producto.minimo()).isEqualByComparingTo("3500");
+                    assertThat(producto.maximo()).isEqualByComparingTo("4800");
+                    assertThat(producto.porcentaje()).isEqualByComparingTo("-3");
+                });
+    }
+
+    private void entoncesSeVerificaCuentaLosAvisosPendientesPorTipoYLoAplicadoODescartadoSoloDelSistema() {
+        assertThat(response.avisos().totalPendientes()).isEqualTo(2);
+        assertThat(response.avisos().pendientes())
+                        .extracting(ObtenerMetricasResponse.AvisoPendiente::tipo,
+                                ObtenerMetricasResponse.AvisoPendiente::cantidad)
+                        .containsExactlyInAnyOrder(
+                                tuple(TipoAviso.STOCK, 1L),
+                                tuple(TipoAviso.COMBO, 1L));
+        assertThat(response.avisos().aplicados()).isEqualTo(1);
+        assertThat(response.avisos().descartados()).isEqualTo(1);
+        assertThat(response.avisos().medidos()).isZero();
+        assertThat(response.avisos().ingresoSemanalDelta()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    private void entoncesSeVerificaSinVentasAnotadasAvisaQueNoHayVentas() {
+        assertThat(response.hayVentas()).isFalse();
+        assertThat(response.masVendidos()).isEmpty();
     }
 }

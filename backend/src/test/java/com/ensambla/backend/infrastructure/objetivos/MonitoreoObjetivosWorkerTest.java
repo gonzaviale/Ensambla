@@ -11,7 +11,7 @@ class MonitoreoObjetivosWorkerTest {
 
     @Test
     @DisplayName("Cada ciclo corre el monitoreo de objetivos")
-    void monitorearShouldRunTheMonitoring() {
+    void cadaCicloCorreElMonitoreoDeObjetivos() {
         MonitorearObjetivos useCase = mock(MonitorearObjetivos.class);
 
         new MonitoreoObjetivosWorker(useCase).monitorear();

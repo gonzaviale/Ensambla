@@ -34,22 +34,46 @@ public class CancelarRenovacion {
     private final Clock clock;
 
     public ConsultarRenovacionResponse execute(UsuarioId usuarioId) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(usuarioId);
+        NegocioId negocioId = obtenerNegocioDelUsuario(usuarioId);
         RenovacionPremium renovacion = solicitarCancelacion(negocioId, OffsetDateTime.now(clock));
-        renovacionPremiumService.sincronizar(renovacion.getId(), OffsetDateTime.now(clock));
-        return ConsultarRenovacionResponse.de(pasarelaSuscripcionesPort.disponible(),
-                renovacionPremiumService.consultar(negocioId).orElseThrow());
+        sincronizar(renovacion);
+        return ConsultarRenovacionResponse.de(pasarelaDisponible(), ultimaRenovacionDe(negocioId));
     }
 
     /** La cancelación se pide acá y se aplica en la pasarela al sincronizar. */
     private RenovacionPremium solicitarCancelacion(NegocioId negocioId, OffsetDateTime ahora) {
-        return transaccionPort.ejecutar(() -> {
-            usoPlanRepository.bloquearNegocio(negocioId);
-            RenovacionPremium renovacion = renovacionPremiumService.consultar(negocioId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Renovación no encontrada"));
-            renovacion.setCancelacionSolicitada(true);
-            renovacion.setActualizadoEn(ahora);
-            return renovacionPremiumRepository.save(renovacion);
-        });
+        return transaccionPort.ejecutar(() -> bloquearYSolicitarCancelacion(negocioId, ahora));
+    }
+
+    private RenovacionPremium bloquearYSolicitarCancelacion(NegocioId negocioId, OffsetDateTime ahora) {
+        bloquearNegocio(negocioId);
+        RenovacionPremium renovacion = renovacionPremiumService.consultar(negocioId)
+                .orElseThrow(() -> new ResourceNotFoundException("Renovación no encontrada"));
+        renovacion.solicitarCancelacion(ahora);
+        return guardar(renovacion);
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private void bloquearNegocio(NegocioId negocioId) {
+        usoPlanRepository.bloquearNegocio(negocioId);
+    }
+
+    private RenovacionPremium guardar(RenovacionPremium renovacion) {
+        return renovacionPremiumRepository.save(renovacion);
+    }
+
+    private void sincronizar(RenovacionPremium renovacion) {
+        renovacionPremiumService.sincronizar(renovacion.getId(), OffsetDateTime.now(clock));
+    }
+
+    private boolean pasarelaDisponible() {
+        return pasarelaSuscripcionesPort.disponible();
+    }
+
+    private RenovacionPremium ultimaRenovacionDe(NegocioId negocioId) {
+        return renovacionPremiumService.consultar(negocioId).orElseThrow();
     }
 }

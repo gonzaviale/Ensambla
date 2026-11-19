@@ -18,7 +18,7 @@ class ObtenerPanelNegocioResponseTest {
 
     @Test
     @DisplayName("Copia el período, las métricas y cada semana del panel")
-    void deShouldCopyThePanel() {
+    void copiaElPeriodoLasMetricasYCadaSemanaDelPanel() {
         PanelNegocio.Metricas metricas = new PanelNegocio.Metricas(
                 bd("1000"), bd("200"), null, bd("800"), bd("50"), bd("20.5"), bd("250"), null);
         PanelNegocio.SemanaDeCaja semana = new PanelNegocio.SemanaDeCaja(
@@ -39,7 +39,7 @@ class ObtenerPanelNegocioResponseTest {
 
     @Test
     @DisplayName("Un panel vacío no tiene datos, métricas ni semanas")
-    void deShouldMarkAnEmptyPanel() {
+    void unPanelVacioNoTieneDatosMetricasNiSemanas() {
         ObtenerPanelNegocioResponse response = ObtenerPanelNegocioResponse.de(
                 new PanelNegocio(PERIODO, null, List.of()));
 

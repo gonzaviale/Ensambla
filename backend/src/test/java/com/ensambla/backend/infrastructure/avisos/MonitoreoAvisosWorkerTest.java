@@ -11,7 +11,7 @@ class MonitoreoAvisosWorkerTest {
 
     @Test
     @DisplayName("Cada ciclo corre el motor de avisos")
-    void monitorearShouldRunEngine() {
+    void cadaCicloCorreElMotorDeAvisos() {
         EjecutarMotorAvisos useCase = mock(EjecutarMotorAvisos.class);
 
         new MonitoreoAvisosWorker(useCase).monitorear();

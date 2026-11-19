@@ -12,38 +12,51 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class SecurityErrorHandlerTest {
 
+    private static final String MOTIVO_INTERNO = "secreto";
+
     private final SecurityErrorHandler securityErrorHandler = new SecurityErrorHandler(JsonMapper.builder().build());
 
     @Test
     @DisplayName("Responde 401 JSON sin exponer la excepción interna")
-    void commenceShouldReturnGeneric401() throws Exception {
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        securityErrorHandler.commence(new MockHttpServletRequest("GET", "/api/auth/actual"), response,
-                new InsufficientAuthenticationException("secreto"));
+    void responde401JSONSinExponerLaExcepcionInterna() throws Exception {
+        MockHttpServletResponse respuesta = cuandoFallaLaAutenticacion();
 
-        thenCommenceShouldReturnGeneric401(response);
+        entoncesResponde401SinExponerElMotivoInterno(respuesta);
     }
 
     @Test
     @DisplayName("Responde 403 JSON sin exponer información interna del permiso")
-    void handleShouldReturnGeneric403() throws Exception {
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        securityErrorHandler.handle(new MockHttpServletRequest("POST", "/api/auth/login"), response,
-                new AccessDeniedException("secreto"));
+    void responde403JSONSinExponerInformacionInternaDelPermiso() throws Exception {
+        MockHttpServletResponse respuesta = cuandoSeDeniegaElAcceso();
 
-        thenHandleShouldReturnGeneric403(response);
+        entoncesResponde403SinExponerElMotivoInterno(respuesta);
     }
 
-    // --- assert ---
-    private void thenCommenceShouldReturnGeneric401(MockHttpServletResponse response) throws Exception {
-        assertThat(response.getStatus()).isEqualTo(401);
-        assertThat(response.getHeader("Cache-Control")).isEqualTo("no-store");
-        assertThat(response.getContentAsString()).contains("Se requiere una sesión válida", "/api/auth/actual")
-                .doesNotContain("secreto");
+    // --- cuando ---
+    private MockHttpServletResponse cuandoFallaLaAutenticacion() throws Exception {
+        MockHttpServletResponse respuesta = new MockHttpServletResponse();
+        securityErrorHandler.commence(new MockHttpServletRequest("GET", "/api/auth/actual"), respuesta,
+                new InsufficientAuthenticationException(MOTIVO_INTERNO));
+        return respuesta;
     }
 
-    private void thenHandleShouldReturnGeneric403(MockHttpServletResponse response) throws Exception {
-        assertThat(response.getStatus()).isEqualTo(403);
-        assertThat(response.getContentAsString()).contains("Acceso no permitido").doesNotContain("secreto");
+    private MockHttpServletResponse cuandoSeDeniegaElAcceso() throws Exception {
+        MockHttpServletResponse respuesta = new MockHttpServletResponse();
+        securityErrorHandler.handle(new MockHttpServletRequest("POST", "/api/auth/login"), respuesta,
+                new AccessDeniedException(MOTIVO_INTERNO));
+        return respuesta;
+    }
+
+    // --- entonces ---
+    private void entoncesResponde401SinExponerElMotivoInterno(MockHttpServletResponse respuesta) throws Exception {
+        assertThat(respuesta.getStatus()).isEqualTo(401);
+        assertThat(respuesta.getHeader("Cache-Control")).isEqualTo("no-store");
+        assertThat(respuesta.getContentAsString()).contains("Se requiere una sesión válida", "/api/auth/actual")
+                .doesNotContain(MOTIVO_INTERNO);
+    }
+
+    private void entoncesResponde403SinExponerElMotivoInterno(MockHttpServletResponse respuesta) throws Exception {
+        assertThat(respuesta.getStatus()).isEqualTo(403);
+        assertThat(respuesta.getContentAsString()).contains("Acceso no permitido").doesNotContain(MOTIVO_INTERNO);
     }
 }

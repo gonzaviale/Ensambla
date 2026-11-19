@@ -1,6 +1,7 @@
 import { useMemo, useState, type CSSProperties, type DragEvent } from 'react';
 import { CATALOG } from '@/lib/sistema/catalogo';
-import { normalize, totals } from '@/lib/sistema/core';
+import { comportamientoDe } from '@/lib/sistema/comportamiento';
+import { normalize } from '@/lib/sistema/core';
 import { textoPlano } from '@/lib/sistema/formato';
 import { useTandas } from '@/hooks/sistemas/useTandas';
 import { conNuevasPrimero, TANDA_DE_REGISTROS } from '@/lib/sistema/tandas';
@@ -8,6 +9,7 @@ import type { Ancho, Bloque, Sistema } from '@/lib/sistema/tipos';
 import { LIENZO } from './arrastre';
 import { Btn } from './Btn';
 import { varsDeColor } from './colores';
+import { CONTENIDOS_SIN_TABLA } from './contenidoSinTabla';
 import { Icon } from './Icon';
 import { IconBtn } from './IconBtn';
 import { IconTile } from './IconTile';
@@ -17,26 +19,6 @@ import { WidthButtons } from './WidthButtons';
 const bloqueDeEvento = (evento: DragEvent<HTMLElement>) =>
   (evento.target as HTMLElement).closest<HTMLElement>('[data-draft-block]')?.dataset.draftBlock ??
   null;
-
-function Resumen({ sistema }: { sistema: Sistema }) {
-  const total = totals(sistema);
-  const indicadores: [number, string][] = [
-    [total.records, 'Registros en tu sección'],
-    [total.pending, 'Pedidos pendientes'],
-    [total.stock, 'Unidades en inventario'],
-    [total.clients, 'Clientes registrados'],
-  ];
-  return (
-    <div className="summary-block">
-      {indicadores.map(([valor, etiqueta]) => (
-        <div key={etiqueta}>
-          <div className="summary-value">{valor}</div>
-          <div className="summary-label">{etiqueta}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 type TablaProps = {
   bloque: Bloque;
@@ -100,7 +82,7 @@ function Tabla({ bloque, sistema, nuevas, onRegistro }: TablaProps) {
                   {bloque.fields.map((campo) => (
                     <th scope="col" key={campo.key}>
                       {campo.label}
-                      {campo.type === 'relation' ? ' ↗' : ''}
+                      {comportamientoDe(campo.type).marcaDeColumna()}
                     </th>
                   ))}
                   <th scope="col">
@@ -235,7 +217,8 @@ export function TableroDelTaller({
           ...(bloque.startRow ? { gridColumnStart: 1 } : {}),
         };
         const nuevos = bloque.rows.filter((fila) => nuevas.has(fila.id)).length;
-        const conTabla = bloque.type !== 'summary' && bloque.type !== 'note';
+        const SinTabla = CONTENIDOS_SIN_TABLA[bloque.type];
+        const conTabla = !SinTabla;
         return (
           <section
             key={bloque.id}
@@ -307,10 +290,8 @@ export function TableroDelTaller({
                 onElegir={(ancho) => onAncho(bloque.id, ancho)}
               />
             </div>
-            {bloque.type === 'summary' ? (
-              <Resumen sistema={sistema} />
-            ) : bloque.type === 'note' ? (
-              <div className="note-content">{bloque.content}</div>
+            {SinTabla ? (
+              <SinTabla bloque={bloque} sistema={sistema} />
             ) : (
               <Tabla bloque={bloque} sistema={sistema} nuevas={nuevas} onRegistro={onRegistro} />
             )}

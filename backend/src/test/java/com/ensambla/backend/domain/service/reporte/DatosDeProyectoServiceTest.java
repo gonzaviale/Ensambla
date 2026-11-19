@@ -29,6 +29,14 @@ import static org.mockito.Mockito.when;
 
 class DatosDeProyectoServiceTest {
 
+    private DatosDeProyecto datos;
+    private Registro gasto;
+    private Proyecto proyecto;
+    private Registro real;
+    private Registro rosa;
+    private Sistema sistema;
+    private Registro venta;
+
     private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
     private static final BloqueId INVENTARIO_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
     private static final BloqueId ENTRADAS_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
@@ -45,114 +53,52 @@ class DatosDeProyectoServiceTest {
 
     @Test
     @DisplayName("Carga las tablas de inventario, ventas, gastos y entradas con sus campos por clave y sin las filas de ejemplo")
-    void cargarShouldLoadInventoryExpensesAndSalesWithoutExamples() {
-        Registro real = registro(INVENTARIO_ID, false);
-        Registro ejemplo = registro(INVENTARIO_ID, true);
-        Registro venta = registro(VENTAS_ID, false);
-        Registro gasto = registro(GASTOS_ID, false);
-        when(registroRepository.findAllByBloqueIdAndNegocioId(INVENTARIO_ID, NEGOCIO_ID)).thenReturn(List.of(real, ejemplo));
-        when(registroRepository.findAllByBloqueIdAndNegocioId(VENTAS_ID, NEGOCIO_ID)).thenReturn(List.of(venta));
-        when(registroRepository.findAllByBloqueIdAndNegocioId(GASTOS_ID, NEGOCIO_ID)).thenReturn(List.of(gasto));
-        Proyecto proyecto = Proyecto.builder().nombre("Almacén").bloques(List.of(
-                bloque(INVENTARIO_ID, TipoBloque.INVENTARIO, campo("name"), campo(null)),
-                bloque(ENTRADAS_ID, TipoBloque.ENTRADAS), bloque(VENTAS_ID, TipoBloque.VENTAS, campo("product")),
-                bloque(GASTOS_ID, TipoBloque.GASTOS, campo("total")), bloque(NOTA_ID, TipoBloque.NOTA))).build();
+    void cargaLasTablasDeInventarioVentasGastosYEntradasConSusCamposPorClaveYSinLasFilasDeEjemplo() {
+        dadoElEscenarioDeCargaLasTablasDeInventarioVentasGastosYEntradasConSusCamposPorClaveY();
 
-        DatosDeProyecto datos = service.cargar(proyecto, NEGOCIO_ID);
+        cuandoSeEjecutaCargaLasTablasDeInventarioVentasGastosYEntradasConSusCamposPorClaveY();
 
-        assertThat(datos.nombre()).isEqualTo("Almacén");
-        assertThat(datos.inventarios()).singleElement().satisfies(inventario -> {
-            assertThat(inventario.bloque().getId()).isEqualTo(INVENTARIO_ID);
-            assertThat(inventario.entradasId()).isEqualTo(ENTRADAS_ID);
-            assertThat(inventario.camposPorClave()).containsOnlyKeys("name");
-            assertThat(inventario.registros()).containsExactly(real);
-        });
-        assertThat(datos.ventas()).singleElement().satisfies(ventas -> {
-            assertThat(ventas.bloque().getId()).isEqualTo(VENTAS_ID);
-            assertThat(ventas.registros()).containsExactly(venta);
-        });
-        assertThat(datos.entradas()).singleElement().satisfies(entradas -> {
-            assertThat(entradas.bloque().getId()).isEqualTo(ENTRADAS_ID);
-            assertThat(entradas.registros()).isEmpty();
-        });
-        assertThat(datos.gastos()).singleElement().satisfies(gastos -> {
-            assertThat(gastos.bloque().getId()).isEqualTo(GASTOS_ID);
-            assertThat(gastos.tieneImporte()).isTrue();
-            assertThat(gastos.registros()).containsExactly(gasto);
-            assertThat(gastos.valorDe(gasto, "total")).isEqualTo(1500);
-            assertThat(gastos.valorDe(gasto, "date")).isNull();
-        });
+        entoncesSeVerificaCargaLasTablasDeInventarioVentasGastosYEntradasConSusCamposPorClaveY();
     }
 
     @Test
     @DisplayName("Sin tabla de entradas el inventario no la nombra, y una tabla de gastos sin importe no se puede sumar")
-    void cargarShouldAllowProjectsWithoutEntriesOrExpenseAmount() {
-        when(registroRepository.findAllByBloqueIdAndNegocioId(INVENTARIO_ID, NEGOCIO_ID)).thenReturn(List.of());
-        when(registroRepository.findAllByBloqueIdAndNegocioId(GASTOS_ID, NEGOCIO_ID)).thenReturn(List.of());
-        Proyecto proyecto = Proyecto.builder().nombre("Almacén").bloques(List.of(
-                bloque(INVENTARIO_ID, TipoBloque.INVENTARIO), bloque(GASTOS_ID, TipoBloque.GASTOS))).build();
+    void sinTablaDeEntradasElInventarioNoLaNombraYUnaTablaDeGastosSinImporteNoSePuedeSumar() {
+        dadoElEscenarioDeSinTablaDeEntradasElInventarioNoLaNombraYUnaTablaDeGastosSinImporteNo();
 
-        DatosDeProyecto datos = service.cargar(proyecto, NEGOCIO_ID);
+        cuandoSeEjecutaSinTablaDeEntradasElInventarioNoLaNombraYUnaTablaDeGastosSinImporteNo();
 
-        assertThat(datos.inventarios().getFirst().entradasId()).isNull();
-        assertThat(datos.ventas()).isEmpty();
-        assertThat(datos.gastos().getFirst().tieneImporte()).isFalse();
+        entoncesSeVerificaSinTablaDeEntradasElInventarioNoLaNombraYUnaTablaDeGastosSinImporteNo();
     }
 
     @Test
     @DisplayName("Carga el nombre de cada fila de las tablas de clientes, sin las de ejemplo ni las sin nombre")
-    void cargarShouldLoadClientNamesById() {
-        CampoId nombreId = CampoId.de("f0000000-0000-4000-8000-000000000031");
-        BloqueId clientesId = BloqueId.de("b0000000-0000-4000-8000-000000000006");
-        BloqueId clientesSinNombreId = BloqueId.de("b0000000-0000-4000-8000-000000000007");
-        Registro rosa = clienteConNombre(clientesId, nombreId, "  Doña Rosa ", false);
-        Registro ejemplo = clienteConNombre(clientesId, nombreId, "Cliente de ejemplo", true);
-        Registro enBlanco = clienteConNombre(clientesId, nombreId, "   ", false);
-        Registro sinNombre = Registro.builder().id(RegistroId.nuevo()).negocioId(NEGOCIO_ID).bloqueId(clientesId)
-                .valores(java.util.Map.of()).build();
-        when(registroRepository.findAllByBloqueIdAndNegocioId(clientesId, NEGOCIO_ID))
-                .thenReturn(List.of(rosa, ejemplo, enBlanco, sinNombre));
-        when(registroRepository.findAllByBloqueIdAndNegocioId(clientesSinNombreId, NEGOCIO_ID)).thenReturn(List.of());
-        Proyecto proyecto = Proyecto.builder().nombre("Almacén").bloques(List.of(
-                Bloque.builder().id(clientesId).negocioId(NEGOCIO_ID).tipo(TipoBloque.CLIENTES)
-                        .campos(List.of(Campo.builder().id(nombreId).clave("name").build())).build(),
-                bloque(clientesSinNombreId, TipoBloque.CLIENTES, campo("phone")))).build();
+    void cargaElNombreDeCadaFilaDeLasTablasDeClientesSinLasDeEjemploNiLasSinNombre() {
+        dadoElEscenarioDeCargaElNombreDeCadaFilaDeLasTablasDeClientesSinLasDeEjemploNiLasSin();
 
-        DatosDeProyecto datos = service.cargar(proyecto, NEGOCIO_ID);
+        cuandoSeEjecutaCargaElNombreDeCadaFilaDeLasTablasDeClientesSinLasDeEjemploNiLasSin();
 
-        assertThat(datos.nombresDeClientes()).containsOnly(java.util.Map.entry(rosa.getId().toString(), "Doña Rosa"));
+        entoncesSeVerificaCargaElNombreDeCadaFilaDeLasTablasDeClientesSinLasDeEjemploNiLasSin();
     }
 
     @Test
     @DisplayName("Reutiliza las filas de un sistema cargado y excluye sus ejemplos sin consultar el repositorio")
-    void cargarShouldReuseLoadedSystemWithoutRepositoryQueries() {
-        Registro real = registro(INVENTARIO_ID, false);
-        Registro ejemplo = registro(INVENTARIO_ID, true);
-        Bloque inventario = bloque(INVENTARIO_ID, TipoBloque.INVENTARIO, campo("name"));
-        Proyecto proyecto = Proyecto.builder().nombre("Almacén").bloques(List.of(inventario)).build();
-        Sistema sistema = new Sistema(proyecto, List.of(), Map.of(INVENTARIO_ID, List.of(real, ejemplo)));
+    void reutilizaLasFilasDeUnSistemaCargadoYExcluyeSusEjemplosSinConsultarElRepositorio() {
+        dadoElEscenarioDeReutilizaLasFilasDeUnSistemaCargadoYExcluyeSusEjemplosSinConsultarEl();
 
-        DatosDeProyecto datos = service.cargar(sistema);
+        cuandoSeEjecutaReutilizaLasFilasDeUnSistemaCargadoYExcluyeSusEjemplosSinConsultarEl();
 
-        assertThat(datos.inventarios()).singleElement().satisfies(resultado ->
-                assertThat(resultado.registros()).containsExactly(real));
-        verifyNoInteractions(registroRepository);
+        entoncesSeVerificaReutilizaLasFilasDeUnSistemaCargadoYExcluyeSusEjemplosSinConsultarEl();
     }
 
     @Test
     @DisplayName("Carga ventas y cobros de todas las cajas del proyecto dentro del negocio")
-    void cargarShouldLoadScopedSalesAndCollections() {
-        Sistema sistema = CajaTestData.sistema();
-        when(ventaCajaRepository.listarPorProyecto(CajaTestData.NEGOCIO, CajaTestData.PROYECTO))
-                .thenReturn(List.of(CobroCajaTestData.venta()));
-        when(cobroCajaRepository.listarPorProyecto(CajaTestData.NEGOCIO, CajaTestData.PROYECTO))
-                .thenReturn(List.of(CobroCajaTestData.cobro()));
+    void cargaVentasYCobrosDeTodasLasCajasDelProyectoDentroDelNegocio() {
+        dadoElEscenarioDeCargaVentasYCobrosDeTodasLasCajasDelProyectoDentroDelNegocio();
 
-        DatosDeProyecto datos = service.cargar(sistema);
+        cuandoSeEjecutaCargaVentasYCobrosDeTodasLasCajasDelProyectoDentroDelNegocio();
 
-        assertThat(datos.ventasCaja()).containsExactly(CobroCajaTestData.venta());
-        assertThat(datos.cobrosCaja()).containsExactly(CobroCajaTestData.cobro());
-        verifyNoInteractions(registroRepository);
+        entoncesSeVerificaCargaVentasYCobrosDeTodasLasCajasDelProyectoDentroDelNegocio();
     }
 
     // --- helpers ---
@@ -172,5 +118,133 @@ class DatosDeProyectoServiceTest {
     private static Registro registro(BloqueId bloqueId, boolean esEjemplo) {
         return Registro.builder().id(RegistroId.nuevo()).negocioId(NEGOCIO_ID).bloqueId(bloqueId).esEjemplo(esEjemplo)
                 .valores(java.util.Map.of(TOTAL_ID.toString(), 1500)).build();
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeCargaLasTablasDeInventarioVentasGastosYEntradasConSusCamposPorClaveY() {
+        real = registro(INVENTARIO_ID, false);
+        Registro ejemplo = registro(INVENTARIO_ID, true);
+        venta = registro(VENTAS_ID, false);
+        gasto = registro(GASTOS_ID, false);
+        when(registroRepository.findAllByBloqueIdAndNegocioId(INVENTARIO_ID, NEGOCIO_ID)).thenReturn(List.of(real, ejemplo));
+        when(registroRepository.findAllByBloqueIdAndNegocioId(VENTAS_ID, NEGOCIO_ID)).thenReturn(List.of(venta));
+        when(registroRepository.findAllByBloqueIdAndNegocioId(GASTOS_ID, NEGOCIO_ID)).thenReturn(List.of(gasto));
+        proyecto = Proyecto.builder().nombre("Almacén").bloques(List.of(
+                        bloque(INVENTARIO_ID, TipoBloque.INVENTARIO, campo("name"), campo(null)),
+                        bloque(ENTRADAS_ID, TipoBloque.ENTRADAS), bloque(VENTAS_ID, TipoBloque.VENTAS, campo("product")),
+                        bloque(GASTOS_ID, TipoBloque.GASTOS, campo("total")), bloque(NOTA_ID, TipoBloque.NOTA))).build();
+    }
+
+    private void dadoElEscenarioDeSinTablaDeEntradasElInventarioNoLaNombraYUnaTablaDeGastosSinImporteNo() {
+        when(registroRepository.findAllByBloqueIdAndNegocioId(INVENTARIO_ID, NEGOCIO_ID)).thenReturn(List.of());
+        when(registroRepository.findAllByBloqueIdAndNegocioId(GASTOS_ID, NEGOCIO_ID)).thenReturn(List.of());
+        proyecto = Proyecto.builder().nombre("Almacén").bloques(List.of(
+                        bloque(INVENTARIO_ID, TipoBloque.INVENTARIO), bloque(GASTOS_ID, TipoBloque.GASTOS))).build();
+    }
+
+    private void dadoElEscenarioDeCargaElNombreDeCadaFilaDeLasTablasDeClientesSinLasDeEjemploNiLasSin() {
+        CampoId nombreId = CampoId.de("f0000000-0000-4000-8000-000000000031");
+        BloqueId clientesId = BloqueId.de("b0000000-0000-4000-8000-000000000006");
+        BloqueId clientesSinNombreId = BloqueId.de("b0000000-0000-4000-8000-000000000007");
+        rosa = clienteConNombre(clientesId, nombreId, "  Doña Rosa ", false);
+        Registro ejemplo = clienteConNombre(clientesId, nombreId, "Cliente de ejemplo", true);
+        Registro enBlanco = clienteConNombre(clientesId, nombreId, "   ", false);
+        Registro sinNombre = Registro.builder().id(RegistroId.nuevo()).negocioId(NEGOCIO_ID).bloqueId(clientesId)
+                        .valores(java.util.Map.of()).build();
+        when(registroRepository.findAllByBloqueIdAndNegocioId(clientesId, NEGOCIO_ID))
+                        .thenReturn(List.of(rosa, ejemplo, enBlanco, sinNombre));
+        when(registroRepository.findAllByBloqueIdAndNegocioId(clientesSinNombreId, NEGOCIO_ID)).thenReturn(List.of());
+        proyecto = Proyecto.builder().nombre("Almacén").bloques(List.of(
+                        Bloque.builder().id(clientesId).negocioId(NEGOCIO_ID).tipo(TipoBloque.CLIENTES)
+                                .campos(List.of(Campo.builder().id(nombreId).clave("name").build())).build(),
+                        bloque(clientesSinNombreId, TipoBloque.CLIENTES, campo("phone")))).build();
+    }
+
+    private void dadoElEscenarioDeReutilizaLasFilasDeUnSistemaCargadoYExcluyeSusEjemplosSinConsultarEl() {
+        real = registro(INVENTARIO_ID, false);
+        Registro ejemplo = registro(INVENTARIO_ID, true);
+        Bloque inventario = bloque(INVENTARIO_ID, TipoBloque.INVENTARIO, campo("name"));
+        Proyecto proyecto = Proyecto.builder().nombre("Almacén").bloques(List.of(inventario)).build();
+        sistema = new Sistema(proyecto, List.of(), Map.of(INVENTARIO_ID, List.of(real, ejemplo)));
+    }
+
+    private void dadoElEscenarioDeCargaVentasYCobrosDeTodasLasCajasDelProyectoDentroDelNegocio() {
+        sistema = CajaTestData.sistema();
+        when(ventaCajaRepository.listarPorProyecto(CajaTestData.NEGOCIO, CajaTestData.PROYECTO))
+                        .thenReturn(List.of(CobroCajaTestData.venta()));
+        when(cobroCajaRepository.listarPorProyecto(CajaTestData.NEGOCIO, CajaTestData.PROYECTO))
+                        .thenReturn(List.of(CobroCajaTestData.cobro()));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaCargaLasTablasDeInventarioVentasGastosYEntradasConSusCamposPorClaveY() {
+        datos = service.cargar(proyecto, NEGOCIO_ID);
+    }
+
+    private void cuandoSeEjecutaSinTablaDeEntradasElInventarioNoLaNombraYUnaTablaDeGastosSinImporteNo() {
+        datos = service.cargar(proyecto, NEGOCIO_ID);
+    }
+
+    private void cuandoSeEjecutaCargaElNombreDeCadaFilaDeLasTablasDeClientesSinLasDeEjemploNiLasSin() {
+        datos = service.cargar(proyecto, NEGOCIO_ID);
+    }
+
+    private void cuandoSeEjecutaReutilizaLasFilasDeUnSistemaCargadoYExcluyeSusEjemplosSinConsultarEl() {
+        datos = service.cargar(sistema);
+    }
+
+    private void cuandoSeEjecutaCargaVentasYCobrosDeTodasLasCajasDelProyectoDentroDelNegocio() {
+        datos = service.cargar(sistema);
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaCargaLasTablasDeInventarioVentasGastosYEntradasConSusCamposPorClaveY() {
+        assertThat(datos.nombre()).isEqualTo("Almacén");
+        assertThat(datos.inventarios()).singleElement().satisfies(inventario -> {
+                    assertThat(inventario.bloque().getId()).isEqualTo(INVENTARIO_ID);
+                    assertThat(inventario.entradasId()).isEqualTo(ENTRADAS_ID);
+                    assertThat(inventario.camposPorClave()).containsOnlyKeys("name");
+                    assertThat(inventario.registros()).containsExactly(real);
+                });
+        assertThat(datos.ventas()).singleElement().satisfies(ventas -> {
+                    assertThat(ventas.bloque().getId()).isEqualTo(VENTAS_ID);
+                    assertThat(ventas.registros()).containsExactly(venta);
+                });
+        assertThat(datos.entradas()).singleElement().satisfies(entradas -> {
+                    assertThat(entradas.bloque().getId()).isEqualTo(ENTRADAS_ID);
+                    assertThat(entradas.registros()).isEmpty();
+                });
+        assertThat(datos.gastos()).singleElement().satisfies(gastos -> {
+                    assertThat(gastos.bloque().getId()).isEqualTo(GASTOS_ID);
+                    assertThat(gastos.tieneImporte()).isTrue();
+                    assertThat(gastos.registros()).containsExactly(gasto);
+                    assertThat(gastos.valorDe(gasto, "total")).isEqualTo(1500);
+                    assertThat(gastos.valorDe(gasto, "date")).isNull();
+                });
+    }
+
+    private void entoncesSeVerificaSinTablaDeEntradasElInventarioNoLaNombraYUnaTablaDeGastosSinImporteNo() {
+        assertThat(datos.inventarios().getFirst().entradasId()).isNull();
+        assertThat(datos.ventas()).isEmpty();
+        assertThat(datos.gastos().getFirst().tieneImporte()).isFalse();
+    }
+
+    private void entoncesSeVerificaCargaElNombreDeCadaFilaDeLasTablasDeClientesSinLasDeEjemploNiLasSin() {
+        assertThat(datos.nombresDeClientes()).containsOnly(java.util.Map.entry(rosa.getId().toString(), "Doña Rosa"));
+    }
+
+    private void entoncesSeVerificaReutilizaLasFilasDeUnSistemaCargadoYExcluyeSusEjemplosSinConsultarEl() {
+        assertThat(datos.inventarios()).singleElement().satisfies(resultado ->
+                        assertThat(resultado.registros()).containsExactly(real));
+        verifyNoInteractions(registroRepository);
+    }
+
+    private void entoncesSeVerificaCargaVentasYCobrosDeTodasLasCajasDelProyectoDentroDelNegocio() {
+        assertThat(datos.ventasCaja()).containsExactly(CobroCajaTestData.venta());
+        assertThat(datos.cobrosCaja()).containsExactly(CobroCajaTestData.cobro());
+        verifyNoInteractions(registroRepository);
     }
 }

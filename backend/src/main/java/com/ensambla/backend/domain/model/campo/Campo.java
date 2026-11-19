@@ -103,6 +103,26 @@ public abstract class Campo {
         return false;
     }
 
+    /** Si un reporte se puede filtrar por uno de los valores de esta columna (las de opción y las de sí/no). */
+    public boolean admiteFiltroPorValor() {
+        return false;
+    }
+
+    /** Si ese valor es uno de los que se pueden elegir para filtrar por esta columna. */
+    public boolean admiteFiltrarPor(String valor) {
+        return false;
+    }
+
+    /** Si la fila de totales de un reporte suma esta columna. */
+    public boolean sumaEnElReporte() {
+        return false;
+    }
+
+    /** Si este campo es el que nombra cada fila de su tabla (el texto corto: «Producto», «Cliente»). */
+    public boolean nombraLasFilas() {
+        return false;
+    }
+
     /** Si el texto que leyó la IA no sirve para este tipo de campo; vacío si sirve. */
     public Optional<String> errorDeValorLeido(String valor) {
         return Optional.empty();

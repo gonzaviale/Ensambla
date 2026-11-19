@@ -13,6 +13,11 @@ public class CampoNumero extends CampoNumerico {
         return TipoCampo.NUMERO;
     }
 
+    @Override
+    public boolean sumaEnElReporte() {
+        return true;
+    }
+
     /** Un número puede seguir siendo número aunque una fórmula lo use. */
     @Override
     public void validarCambioDeTipo(List<Campo> camposDelBloque) {

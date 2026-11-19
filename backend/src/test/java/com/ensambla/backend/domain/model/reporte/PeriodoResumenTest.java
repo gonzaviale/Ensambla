@@ -15,7 +15,7 @@ class PeriodoResumenTest {
 
     @Test
     @DisplayName("Sin fechas son los últimos 30 días, contando hoy")
-    void armarShouldDefaultToTheLastThirtyDays() {
+    void sinFechasSonLosUltimos30DiasContandoHoy() {
         PeriodoResumen periodo = PeriodoResumen.armar(null, null, HOY);
 
         assertThat(periodo.hasta()).isEqualTo(HOY);
@@ -25,7 +25,7 @@ class PeriodoResumenTest {
 
     @Test
     @DisplayName("Sin desde son los 30 días que terminan en la fecha hasta")
-    void armarShouldCountThirtyDaysBackFromHasta() {
+    void sinDesdeSonLos30DiasQueTerminanEnLaFechaHasta() {
         PeriodoResumen periodo = PeriodoResumen.armar(null, LocalDate.of(2026, 9, 30), HOY);
 
         assertThat(periodo.desde()).isEqualTo(LocalDate.of(2026, 9, 1));
@@ -33,7 +33,7 @@ class PeriodoResumenTest {
 
     @Test
     @DisplayName("Con las dos fechas usa las que pidió la persona")
-    void armarShouldKeepRequestedDates() {
+    void conLasDosFechasUsaLasQuePidioLaPersona() {
         PeriodoResumen periodo = PeriodoResumen.armar(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 7), HOY);
 
         assertThat(periodo).isEqualTo(new PeriodoResumen(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 7)));
@@ -42,7 +42,7 @@ class PeriodoResumenTest {
 
     @Test
     @DisplayName("Rechaza las fechas al revés")
-    void armarShouldRejectDesdeAfterHasta() {
+    void rechazaLasFechasAlReves() {
         assertThatThrownBy(() -> PeriodoResumen.armar(LocalDate.of(2026, 10, 8), LocalDate.of(2026, 10, 7), HOY))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("La fecha desde no puede ser posterior a la fecha hasta");
@@ -50,7 +50,7 @@ class PeriodoResumenTest {
 
     @Test
     @DisplayName("Acepta un año completo y rechaza más de 366 días")
-    void armarShouldLimitThePeriodToOneYear() {
+    void aceptaUnAnoCompletoYRechazaMasDe366Dias() {
         assertThat(PeriodoResumen.armar(HOY.minusDays(365), HOY, HOY).dias()).isEqualTo(366);
         assertThatThrownBy(() -> PeriodoResumen.armar(HOY.minusDays(366), HOY, HOY))
                 .isInstanceOf(BusinessRuleException.class)
@@ -59,14 +59,14 @@ class PeriodoResumenTest {
 
     @Test
     @DisplayName("Los últimos días cuentan hoy, y sin días son 30")
-    void ultimosDiasShouldCountTodayAndDefaultToThirty() {
+    void losUltimosDiasCuentanHoyYSinDiasSon30() {
         assertThat(PeriodoResumen.ultimosDias(7, HOY)).isEqualTo(new PeriodoResumen(HOY.minusDays(6), HOY));
         assertThat(PeriodoResumen.ultimosDias(null, HOY)).isEqualTo(new PeriodoResumen(HOY.minusDays(29), HOY));
     }
 
     @Test
     @DisplayName("Los últimos días tienen que ser positivos y no más de 366")
-    void ultimosDiasShouldRejectInvalidAmounts() {
+    void losUltimosDiasTienenQueSerPositivosYNoMasDe366() {
         assertThatThrownBy(() -> PeriodoResumen.ultimosDias(0, HOY))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("La cantidad de días tiene que ser mayor a cero");
@@ -76,7 +76,7 @@ class PeriodoResumenTest {
 
     @Test
     @DisplayName("Incluye el primer y el último día, y no un día vacío")
-    void incluyeShouldCoverBothEnds() {
+    void incluyeElPrimerYElUltimoDiaYNoUnDiaVacio() {
         PeriodoResumen periodo = new PeriodoResumen(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 7));
 
         assertThat(periodo.incluye(LocalDate.of(2026, 10, 1))).isTrue();
@@ -88,7 +88,7 @@ class PeriodoResumenTest {
 
     @Test
     @DisplayName("El período anterior dura lo mismo y termina el día antes del comienzo")
-    void anteriorShouldHaveTheSameLengthAndEndTheDayBefore() {
+    void elPeriodoAnteriorDuraLoMismoYTerminaElDiaAntesDelComienzo() {
         PeriodoResumen anterior = new PeriodoResumen(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 7)).anterior();
 
         assertThat(anterior).isEqualTo(new PeriodoResumen(LocalDate.of(2026, 9, 24), LocalDate.of(2026, 9, 30)));
