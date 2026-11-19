@@ -15,9 +15,11 @@ record DiccionarioDePedidosJson(
         Map<CalculoMetrica, List<String>> calculos,
         Map<AgrupacionMetrica, List<String>> agrupaciones,
         Map<PeriodoMetrica, List<String>> periodos,
-        List<String> fiado) {
+        List<String> fiado,
+        List<String> noSeCalculan,
+        List<String> palabrasVacias) {
 
     DiccionarioDePedidos aDiccionario() {
-        return new DiccionarioDePedidos(fuentes, calculos, agrupaciones, periodos, fiado);
+        return new DiccionarioDePedidos(fuentes, calculos, agrupaciones, periodos, fiado, noSeCalculan, palabrasVacias);
     }
 }

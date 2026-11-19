@@ -48,6 +48,33 @@ class PedidoEnPalabrasTest {
     }
 
     @Test
+    @DisplayName("Sin una frase, el pedido deja de mencionarla")
+    void sinUnaFraseDejaDeMencionarla() {
+        dadoElPedido("ventas del mes pasado");
+
+        cuandoSeLeQuita(List.of("mes pasado"));
+
+        entoncesNoMenciona(List.of("mes"));
+    }
+
+    @Test
+    @DisplayName("Dice cómo escribió la persona cada frase que menciona, sin contar las frases vacías")
+    void diceComoSeEscribioCadaFrase() {
+        dadoElPedido("Ventas del FINDE");
+
+        entoncesEscribio(List.of("finde", "¿?", "fin de semana", "una frase más larga que todo el pedido"),
+                List.of("finde"));
+    }
+
+    @Test
+    @DisplayName("Avisa las palabras que no forman parte de ninguna frase conocida, una sola vez")
+    void avisaLasPalabrasFueraDeLasConocidas() {
+        dadoElPedido("ventas de feria y feria");
+
+        entoncesQuedanFuera(List.of("ventas", "de", "y"), List.of("feria"));
+    }
+
+    @Test
     @DisplayName("El nombre sugerido es el pedido sin signos en los bordes y con mayúscula")
     void elNombreSugeridoEsElPedidoLimpio() {
         dadoElPedido("  ¿cuánto vendí hoy?  ");
@@ -73,6 +100,18 @@ class PedidoEnPalabrasTest {
 
     private void dadoElPedido(String texto) {
         pedido = PedidoEnPalabras.de(texto);
+    }
+
+    private void cuandoSeLeQuita(List<String> frases) {
+        pedido = pedido.sin(frases);
+    }
+
+    private void entoncesEscribio(List<String> frases, List<String> escritas) {
+        assertThat(pedido.loQueEscribioDe(frases)).isEqualTo(escritas);
+    }
+
+    private void entoncesQuedanFuera(List<String> conocidas, List<String> fuera) {
+        assertThat(pedido.palabrasFueraDe(conocidas)).isEqualTo(fuera);
     }
 
     private void entoncesMenciona(List<String> frases) {

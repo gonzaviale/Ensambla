@@ -9,13 +9,14 @@ import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
+import com.ensambla.backend.domain.model.metrica.ParteDeLaReceta;
 import com.ensambla.backend.domain.useCase.metrica.DefinicionItem;
-import com.ensambla.backend.domain.useCase.metrica.SugeridaItem;
 import com.ensambla.backend.infrastructure.config.useCase.MetricaUseCaseConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
+import java.util.List;
 
 import static com.ensambla.backend.domain.model.metrica.AgrupacionMetrica.NINGUNA;
 import static com.ensambla.backend.domain.model.metrica.CalculoMetrica.SUMA;
@@ -52,7 +53,7 @@ class InterpretarPedidoTest {
             elInterpreteDeLaAplicacion(),
             Clock.fixed(AHORA.toInstant(), AHORA.getOffset()));
 
-    private SugeridaItem propuesta;
+    private PedidoInterpretadoItem propuesta;
 
     private Throwable rechazo;
 
@@ -64,6 +65,17 @@ class InterpretarPedidoTest {
         cuandoSePide("¿Cuánto vendí hoy?");
 
         entoncesPropone(unaReceta("Cuánto vendí hoy", VENTAS, SUMA, NINGUNA, HOY, false), "300");
+    }
+
+    @Test
+    @DisplayName("Junto con la métrica cuenta qué tomó por defecto y qué palabras no entendió")
+    void cuentaLoQueTomoPorDefectoYLoQueNoEntendio() {
+        dadoUnAlmacenQueHoyVendioPorTrescientos();
+
+        cuandoSePide("¿Cuánto vendí el finde?");
+
+        entoncesLoLeyoTomandoPorDefecto(List.of(ParteDeLaReceta.CALCULO, ParteDeLaReceta.AGRUPACION,
+                ParteDeLaReceta.PERIODO), List.of("finde"));
     }
 
     @Test
@@ -109,6 +121,11 @@ class InterpretarPedidoTest {
     private void entoncesPropone(DefinicionMetrica receta, String valor) {
         assertThat(propuesta.definicion()).isEqualTo(DefinicionItem.de(receta));
         assertThat(propuesta.resultado().valor()).isEqualByComparingTo(valor);
+    }
+
+    private void entoncesLoLeyoTomandoPorDefecto(List<ParteDeLaReceta> porDefecto, List<String> noEntendidas) {
+        assertThat(propuesta.lectura().porDefecto()).isEqualTo(porDefecto);
+        assertThat(propuesta.lectura().noEntendidas()).isEqualTo(noEntendidas);
     }
 
     private void entoncesSeRechazaPorque(String motivo) {

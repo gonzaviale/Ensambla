@@ -18,7 +18,7 @@ class DiccionarioDePedidosTest {
     }
 
     private void cuandoSeArmaSinFrases() {
-        diccionario = new DiccionarioDePedidos(null, null, null, null, null);
+        diccionario = new DiccionarioDePedidos(null, null, null, null, null, null, null);
     }
 
     private void entoncesEstaVacio() {
@@ -27,5 +27,7 @@ class DiccionarioDePedidosTest {
         assertThat(diccionario.agrupaciones()).isEmpty();
         assertThat(diccionario.periodos()).isEmpty();
         assertThat(diccionario.fiado()).isEmpty();
+        assertThat(diccionario.noSeCalculan()).isEmpty();
+        assertThat(diccionario.frasesConocidas()).isEmpty();
     }
 }

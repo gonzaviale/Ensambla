@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.model.metrica.DeDondeSale;
 import com.ensambla.backend.domain.model.metrica.DefinicionMetrica;
 import com.ensambla.backend.domain.model.metrica.FormatoMetrica;
 import com.ensambla.backend.domain.model.metrica.FuenteMetrica;
+import com.ensambla.backend.domain.model.metrica.ParteDeLaReceta;
 import com.ensambla.backend.domain.model.metrica.PeriodoMetrica;
 import com.ensambla.backend.domain.model.metrica.ResultadoMetrica;
 import com.ensambla.backend.domain.model.metrica.ResultadoMetrica.Fila;
@@ -17,6 +18,7 @@ import com.ensambla.backend.domain.useCase.metrica.SugeridaItem;
 import com.ensambla.backend.domain.useCase.metrica.crearMetrica.CrearMetricaRequest;
 import com.ensambla.backend.domain.useCase.metrica.eliminarMetrica.EliminarMetricaRequest;
 import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.InterpretarPedidoRequest;
+import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.PedidoInterpretadoItem;
 import com.ensambla.backend.domain.useCase.metrica.listarMetricas.ListarMetricasRequest;
 import com.ensambla.backend.domain.useCase.metrica.listarSugeridas.ListarSugeridasRequest;
 import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetricaRequest;
@@ -28,6 +30,8 @@ import com.ensambla.backend.infrastructure.presentation.dto.metrica.InterpretarP
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MetricaResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MetricaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MoverMetricaWebRequest;
+import com.ensambla.backend.infrastructure.presentation.dto.metrica.PedidoInterpretadoResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.metrica.PedidoInterpretadoResponse.LecturaResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.RenombrarMetricaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.ResultadoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.ResultadoResponse.DeDondeSaleResponse;
@@ -45,6 +49,7 @@ import static com.ensambla.backend.support.MetricaTestData.PROYECTO_ID;
 import static com.ensambla.backend.support.MetricaTestData.USUARIO_ID;
 import static com.ensambla.backend.support.MetricaTestData.metrica;
 import static com.ensambla.backend.support.MetricasDePrueba.unaReceta;
+import static com.ensambla.backend.support.PedidosDePrueba.unPedidoDelFindeInterpretadoComo;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class MetricaPresentationMapperTest {
@@ -143,6 +148,17 @@ class MetricaPresentationMapperTest {
     }
 
     @Test
+    @DisplayName("Responde el pedido interpretado con su receta, su resultado y cómo se entendió")
+    void respondeElPedidoInterpretadoConComoSeEntendio() {
+        entoncesRespondeElInterpretado(PedidoInterpretadoItem.de(
+                        unPedidoDelFindeInterpretadoComo(LAS_VENTAS_FIADAS_POR_PRODUCTO), SETECIENTOS_CINCUENTA_DEL_PAN),
+                new PedidoInterpretadoResponse(LA_RECETA_RESPONDIDA, EL_RESULTADO_RESPONDIDO, new LecturaResponse(
+                        List.of(ParteDeLaReceta.FUENTE),
+                        List.of(ParteDeLaReceta.CALCULO, ParteDeLaReceta.AGRUPACION, ParteDeLaReceta.PERIODO),
+                        List.of("finde"))));
+    }
+
+    @Test
     @DisplayName("Sin métricas responde una lista vacía")
     void sinMetricasRespondeUnaListaVacia() {
         entoncesRespondeLasMetricas(List.of());
@@ -202,6 +218,11 @@ class MetricaPresentationMapperTest {
 
     private void entoncesRespondeElResultado(ResultadoItem resultado, ResultadoResponse esperado) {
         assertThat(mapper.toResponse(resultado)).isEqualTo(esperado);
+    }
+
+    private void entoncesRespondeElInterpretado(PedidoInterpretadoItem interpretado,
+                                                PedidoInterpretadoResponse esperada) {
+        assertThat(mapper.toInterpretadoResponse(interpretado)).isEqualTo(esperada);
     }
 
     private void entoncesRespondeLasSugeridas(List<SugeridaItem> sugeridas, SugeridaResponse... esperadas) {

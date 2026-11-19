@@ -2,38 +2,76 @@
   "fuentes": {
     "VENTAS": [
       "vendo", "vendí", "vendimos", "vendemos", "vender", "vendido", "vendida", "venta", "ventas",
-      "cobré", "cobro", "cobramos", "facturé", "facturo", "facturación", "ingresos", "ingresó",
-      "fiado", "fiados", "me deben", "me debe", "deuda", "deudas", "debe"
+      "cobré", "cobro", "cobramos", "cobrado", "facturé", "facturo", "facturamos", "facturado", "facturación",
+      "ingresos", "ingresó", "recaudé", "recaudamos", "recaudación", "cuánto hice", "cuánta plata hice",
+      "cuánto hicimos", "plata que entró", "cuánto entró", "cuánta plata entró",
+      "fiado", "fiados", "me deben", "me debe", "deuda", "deudas", "debe", "deben", "deudores", "deudor"
     ],
     "GASTOS": [
-      "gasto", "gastos", "gasté", "gastamos", "gastar", "gastado", "pagué", "pagamos", "egresos"
+      "gasto", "gastos", "gasté", "gastamos", "gastar", "gastado", "pagué", "pagamos", "pago", "pagos",
+      "egresos", "compras", "compré", "compramos"
     ],
     "INVENTARIO": [
-      "stock", "inventario", "mercadería", "me queda", "me quedan", "quedan", "depósito", "tengo en el local"
+      "stock", "inventario", "mercadería", "me queda", "me quedan", "quedan", "depósito", "tengo en el local",
+      "productos tengo", "productos que tengo", "productos hay", "qué tengo", "tengo en stock", "existencias"
     ]
   },
   "calculos": {
-    "PROMEDIO": ["promedio", "en promedio", "ticket"],
+    "PROMEDIO": ["promedio", "en promedio", "ticket", "por venta"],
     "CONTEO": [
       "cuántas ventas", "cantidad de ventas", "cantidad de gastos", "cuántas veces",
-      "cuántos productos", "cantidad de productos"
+      "cuántos productos", "cantidad de productos", "cantidad de compras"
     ],
     "UNIDADES": [
       "unidades", "más vendido", "más vendidos", "producto vendo más", "productos vendo más",
-      "producto se vende más", "cuánto stock", "me queda", "me quedan", "quedan"
+      "producto se vende más", "cuánto stock", "me queda", "me quedan", "quedan",
+      "top productos", "top de productos", "mejores productos", "ranking de productos"
     ]
   },
   "agrupaciones": {
-    "PRODUCTO": ["por producto", "cada producto", "qué producto", "qué productos", "más vendido", "más vendidos"],
-    "CLIENTE": ["por cliente", "cada cliente", "qué cliente", "qué clientes", "quién", "quiénes"],
-    "CATEGORIA": ["por categoría", "cada categoría", "en qué gasté", "en qué gasto", "tipo de gasto", "por rubro"],
-    "DIA_DE_LA_SEMANA": ["por día", "qué día", "día de la semana", "cada día"]
+    "PRODUCTO": [
+      "por producto", "cada producto", "qué producto", "qué productos", "más vendido", "más vendidos",
+      "por artículo", "cada artículo", "top productos", "top de productos", "mejores productos",
+      "ranking de productos"
+    ],
+    "CLIENTE": [
+      "por cliente", "cada cliente", "qué cliente", "qué clientes", "quién", "quiénes", "a quién",
+      "top clientes", "top de clientes", "mejores clientes", "clientes que más", "deudores"
+    ],
+    "CATEGORIA": [
+      "por categoría", "cada categoría", "en qué gasté", "en qué gasto", "en qué gastamos", "tipo de gasto",
+      "por rubro", "por tipo"
+    ],
+    "DIA_DE_LA_SEMANA": ["por día", "qué día", "qué días", "día de la semana", "días de la semana", "cada día"]
   },
   "periodos": {
-    "HOY": ["hoy"],
-    "SEMANA": ["esta semana", "en la semana", "semanal", "última semana", "por semana"],
-    "MES": ["este mes", "mes", "mensual", "último mes"],
-    "TODO": ["en total", "siempre", "desde siempre", "todo lo", "histórico"]
+    "HOY": ["hoy", "del día", "en el día"],
+    "SEMANA": [
+      "esta semana", "en la semana", "semanal", "última semana", "por semana", "últimos 7 días",
+      "últimos siete días"
+    ],
+    "MES": ["este mes", "mes", "mensual", "último mes", "últimos 30 días", "últimos treinta días"],
+    "TODO": [
+      "en total", "siempre", "desde siempre", "todo lo", "histórico", "acumulado", "todo el tiempo",
+      "desde que empecé"
+    ]
   },
-  "fiado": ["fiado", "fiados", "fiadas", "me deben", "me debe", "deuda", "deudas"]
+  "fiado": ["fiado", "fiados", "fiadas", "me deben", "me debe", "deuda", "deudas", "deben", "deudores", "deudor"],
+  "noSeCalculan": [
+    "fin de semana", "fines de semana", "finde", "findes", "ayer", "anteayer", "anoche",
+    "mañana", "semana pasada", "mes pasado", "año pasado", "anual", "por mes", "por año",
+    "por hora"
+  ],
+  "palabrasVacias": [
+    "a", "al", "de", "del", "el", "la", "los", "las", "lo", "un", "una", "unos", "unas", "y", "o", "u", "e",
+    "en", "con", "sin", "para", "por", "sobre", "entre", "hasta", "desde", "según",
+    "que", "qué", "cuál", "cuáles", "cuánto", "cuánta", "cuántos", "cuántas", "cómo", "cuándo", "dónde",
+    "mi", "mis", "me", "te", "se", "le", "les", "nos", "tu", "tus", "su", "sus", "yo", "nosotros",
+    "es", "son", "fue", "fueron", "hay", "hubo", "está", "están", "tengo", "tenemos", "tiene", "hice", "hicimos",
+    "hago", "hacemos", "quiero", "quisiera", "saber", "ver", "mirar", "mostrame", "decime", "dame", "pasame",
+    "necesito", "vale", "valen", "más", "menos", "mucho", "muchos", "este", "esta", "estos", "estas", "ese", "esa", "eso", "esto",
+    "todo", "toda", "todos", "todas", "total", "cantidad", "plata", "dinero", "pesos", "ahora", "hola", "porfa",
+    "favor", "gracias", "cada", "vez", "veces", "va", "van", "voy", "llevo", "llevamos", "mío", "mía", "negocio",
+    "local", "tienda", "almacén", "kiosco", "top", "mejor", "mejores"
+  ]
 }

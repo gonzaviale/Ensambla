@@ -26,6 +26,7 @@ import com.ensambla.backend.domain.useCase.metrica.listarSugeridas.ListarSugerid
 import com.ensambla.backend.domain.useCase.metrica.listarSugeridas.ListarSugeridasRequest;
 import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.InterpretarPedido;
 import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.InterpretarPedidoRequest;
+import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.PedidoInterpretadoItem;
 import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetrica;
 import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetricaRequest;
 import com.ensambla.backend.domain.useCase.metrica.previsualizarMetrica.PrevisualizarMetrica;
@@ -51,6 +52,7 @@ import static com.ensambla.backend.support.MetricaTestData.PROYECTO_ID;
 import static com.ensambla.backend.support.MetricaTestData.USUARIO_ID;
 import static com.ensambla.backend.support.MetricaTestData.metrica;
 import static com.ensambla.backend.support.MetricasDePrueba.unaReceta;
+import static com.ensambla.backend.support.PedidosDePrueba.unPedidoDelFindeInterpretadoComo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -523,8 +525,8 @@ class MetricaControllerTest {
     }
 
     private void dadoQueElPedidoSeEntiende() {
-        when(interpretarPedido.execute(any())).thenReturn(new SugeridaItem(
-                DefinicionItem.de(LAS_VENTAS_FIADAS_POR_PRODUCTO), ResultadoItem.de(SETECIENTOS_CINCUENTA_DEL_PAN)));
+        when(interpretarPedido.execute(any())).thenReturn(PedidoInterpretadoItem.de(
+                unPedidoDelFindeInterpretadoComo(LAS_VENTAS_FIADAS_POR_PRODUCTO), SETECIENTOS_CINCUENTA_DEL_PAN));
     }
 
     private void dadoQueElPedidoNoSeEntiende(String motivo) {
@@ -534,7 +536,10 @@ class MetricaControllerTest {
     private void entoncesRespondeLaPropuesta() throws Exception {
         respuesta.andExpect(status().isOk())
                 .andExpect(jsonPath("$.definicion.nombre").value("Ventas del mes"))
-                .andExpect(jsonPath("$.resultado.valor").value(750.0));
+                .andExpect(jsonPath("$.resultado.valor").value(750.0))
+                .andExpect(jsonPath("$.lectura.delPedido[0]").value("FUENTE"))
+                .andExpect(jsonPath("$.lectura.porDefecto[2]").value("PERIODO"))
+                .andExpect(jsonPath("$.lectura.noEntendidas[0]").value("finde"));
     }
 
     private void entoncesSeInterpreto(String pedido) {

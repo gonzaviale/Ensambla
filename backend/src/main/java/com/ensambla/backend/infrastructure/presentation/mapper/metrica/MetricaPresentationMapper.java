@@ -12,6 +12,8 @@ import com.ensambla.backend.domain.useCase.metrica.SugeridaItem;
 import com.ensambla.backend.domain.useCase.metrica.crearMetrica.CrearMetricaRequest;
 import com.ensambla.backend.domain.useCase.metrica.eliminarMetrica.EliminarMetricaRequest;
 import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.InterpretarPedidoRequest;
+import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.PedidoInterpretadoItem;
+import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.PedidoInterpretadoItem.LecturaItem;
 import com.ensambla.backend.domain.useCase.metrica.listarMetricas.ListarMetricasRequest;
 import com.ensambla.backend.domain.useCase.metrica.listarSugeridas.ListarSugeridasRequest;
 import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetricaRequest;
@@ -23,6 +25,8 @@ import com.ensambla.backend.infrastructure.presentation.dto.metrica.InterpretarP
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MetricaResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MetricaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MoverMetricaWebRequest;
+import com.ensambla.backend.infrastructure.presentation.dto.metrica.PedidoInterpretadoResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.metrica.PedidoInterpretadoResponse.LecturaResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.RenombrarMetricaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.ResultadoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.ResultadoResponse.DeDondeSaleResponse;
@@ -97,6 +101,15 @@ public class MetricaPresentationMapper {
 
     public SugeridaResponse toSugeridaResponse(SugeridaItem sugerida) {
         return new SugeridaResponse(toResponse(sugerida.definicion()), toResponse(sugerida.resultado()));
+    }
+
+    public PedidoInterpretadoResponse toInterpretadoResponse(PedidoInterpretadoItem interpretado) {
+        return new PedidoInterpretadoResponse(toResponse(interpretado.definicion()),
+                toResponse(interpretado.resultado()), toResponse(interpretado.lectura()));
+    }
+
+    private LecturaResponse toResponse(LecturaItem lectura) {
+        return new LecturaResponse(lectura.delPedido(), lectura.porDefecto(), lectura.noEntendidas());
     }
 
     private List<FilaResponse> toFilasResponse(List<FilaItem> filas) {

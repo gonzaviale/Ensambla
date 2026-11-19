@@ -16,6 +16,7 @@ import com.ensambla.backend.infrastructure.presentation.dto.metrica.InterpretarP
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MetricaResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MetricaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MoverMetricaWebRequest;
+import com.ensambla.backend.infrastructure.presentation.dto.metrica.PedidoInterpretadoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.RenombrarMetricaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.ResultadoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.SugeridaResponse;
@@ -131,11 +132,12 @@ public class MetricaController {
     }
 
     @PostMapping("/interpretar")
-    @Operation(summary = "Entender un pedido en palabras y devolver la métrica que arma, con lo que daría hoy")
-    public ResponseEntity<SugeridaResponse> interpretar(
+    @Operation(summary = "Entender un pedido en palabras y devolver la métrica que arma, con lo que daría hoy y "
+            + "qué se tomó por defecto o no se entendió")
+    public ResponseEntity<PedidoInterpretadoResponse> interpretar(
             Authentication authentication, @PathVariable ProyectoId proyectoId,
             @Valid @RequestBody InterpretarPedidoWebRequest request) {
-        return ResponseEntity.ok(metricaPresentationMapper.toSugeridaResponse(interpretarPedido.execute(
+        return ResponseEntity.ok(metricaPresentationMapper.toInterpretadoResponse(interpretarPedido.execute(
                 metricaPresentationMapper.toInterpretarRequest(
                         UsuarioId.de(authentication.getName()), proyectoId, request))));
     }

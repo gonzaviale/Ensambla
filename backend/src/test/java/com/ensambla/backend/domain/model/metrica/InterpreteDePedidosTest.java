@@ -7,6 +7,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.List;
 import java.util.stream.Stream;
 
 import static com.ensambla.backend.domain.model.metrica.AgrupacionMetrica.CATEGORIA;
@@ -21,6 +22,11 @@ import static com.ensambla.backend.domain.model.metrica.CalculoMetrica.UNIDADES;
 import static com.ensambla.backend.domain.model.metrica.FuenteMetrica.GASTOS;
 import static com.ensambla.backend.domain.model.metrica.FuenteMetrica.INVENTARIO;
 import static com.ensambla.backend.domain.model.metrica.FuenteMetrica.VENTAS;
+import static com.ensambla.backend.domain.model.metrica.ParteDeLaReceta.AGRUPACION;
+import static com.ensambla.backend.domain.model.metrica.ParteDeLaReceta.CALCULO;
+import static com.ensambla.backend.domain.model.metrica.ParteDeLaReceta.FUENTE;
+import static com.ensambla.backend.domain.model.metrica.ParteDeLaReceta.PERIODO;
+import static com.ensambla.backend.domain.model.metrica.ParteDeLaReceta.SOLO_FIADO;
 import static com.ensambla.backend.domain.model.metrica.PeriodoMetrica.HOY;
 import static com.ensambla.backend.domain.model.metrica.PeriodoMetrica.MES;
 import static com.ensambla.backend.domain.model.metrica.PeriodoMetrica.SEMANA;
@@ -36,7 +42,7 @@ class InterpreteDePedidosTest {
 
     private InterpreteDePedidos interprete;
 
-    private DefinicionMetrica receta;
+    private PedidoInterpretado interpretado;
 
     private Throwable rechazo;
 
@@ -64,6 +70,50 @@ class InterpreteDePedidosTest {
                         unaReceta("Cuánto vale mi mercadería", INVENTARIO, SUMA, NINGUNA, TODO, false)));
     }
 
+    static Stream<Arguments> otrasFormasDePedir() {
+        return Stream.of(
+                arguments("cuantos productos tengo",
+                        unaReceta("Cuantos productos tengo", INVENTARIO, CONTEO, NINGUNA, TODO, false)),
+                arguments("¿Qué me queda?", unaReceta("Qué me queda", INVENTARIO, UNIDADES, NINGUNA, TODO, false)),
+                arguments("cuánto facturé hoy", unaReceta("Cuánto facturé hoy", VENTAS, SUMA, NINGUNA, HOY, false)),
+                arguments("cuánto cobré esta semana",
+                        unaReceta("Cuánto cobré esta semana", VENTAS, SUMA, NINGUNA, SEMANA, false)),
+                arguments("cuánto hice este mes",
+                        unaReceta("Cuánto hice este mes", VENTAS, SUMA, NINGUNA, MES, false)),
+                arguments("lo que me deben", unaReceta("Lo que me deben", VENTAS, SUMA, NINGUNA, TODO, true)),
+                arguments("mis deudores", unaReceta("Mis deudores", VENTAS, SUMA, CLIENTE, TODO, true)),
+                arguments("cuánto pagué este mes",
+                        unaReceta("Cuánto pagué este mes", GASTOS, SUMA, NINGUNA, MES, false)),
+                arguments("cantidad de compras de esta semana",
+                        unaReceta("Cantidad de compras de esta semana", GASTOS, CONTEO, NINGUNA, SEMANA, false)),
+                arguments("ventas por día", unaReceta("Ventas por día", VENTAS, SUMA, DIA_DE_LA_SEMANA, MES, false)),
+                arguments("top productos vendidos este mes",
+                        unaReceta("Top productos vendidos este mes", VENTAS, UNIDADES, PRODUCTO, MES, false)),
+                arguments("ventas de los últimos 7 días",
+                        unaReceta("Ventas de los últimos 7 días", VENTAS, SUMA, NINGUNA, SEMANA, false)));
+    }
+
+    static Stream<Arguments> loQueSeTomaPorDefecto() {
+        return Stream.of(
+                arguments("cuanto vendi el finde", List.of(CALCULO, AGRUPACION, PERIODO)),
+                arguments("cuantos productos tengo", List.of(AGRUPACION)),
+                arguments("cuanto me deben por cliente", List.of(CALCULO, PERIODO)),
+                arguments("cuánto stock me queda por producto", List.of()),
+                arguments("venta promedio de esta semana", List.of(AGRUPACION)));
+    }
+
+    static Stream<Arguments> loQueNoSeEntiende() {
+        return Stream.of(
+                arguments("cuanto vendi el finde", List.of("finde")),
+                arguments("ventas del fin de semana", List.of("fin de semana")),
+                arguments("¿Cuánto vendí ayer?", List.of("ayer")),
+                arguments("cuánto vendí el mes pasado", List.of("mes pasado")),
+                arguments("ventas por mes", List.of("por mes")),
+                arguments("cuánto vendí en la feria", List.of("feria")),
+                arguments("cuantos productos tengo", List.of()),
+                arguments("cuanto me deben por cliente", List.of()));
+    }
+
     @ParameterizedTest(name = "{0}")
     @MethodSource("pedidosDeUnAlmacen")
     @DisplayName("Entiende los pedidos de todos los días de un almacén y arma la receta que piden")
@@ -73,6 +123,59 @@ class InterpreteDePedidosTest {
         cuandoSePide(pedido);
 
         entoncesArmaLaReceta(esperada);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("otrasFormasDePedir")
+    @DisplayName("Entiende otras formas de pedir: facturé, cobré, me deben, pagué, compras, qué me queda y top")
+    void entiendeOtrasFormasDePedir(String pedido, DefinicionMetrica esperada) {
+        dadoElInterpreteDeLaAplicacion();
+
+        cuandoSePide(pedido);
+
+        entoncesArmaLaReceta(esperada);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("loQueSeTomaPorDefecto")
+    @DisplayName("Cuenta qué partes de la receta tomó por defecto porque el pedido no las decía")
+    void cuentaLoQueTomoPorDefecto(String pedido, List<ParteDeLaReceta> porDefecto) {
+        dadoElInterpreteDeLaAplicacion();
+
+        cuandoSePide(pedido);
+
+        entoncesTomoPorDefecto(porDefecto);
+    }
+
+    @Test
+    @DisplayName("Cuenta qué partes de la receta salieron del pedido, también si es sólo lo fiado")
+    void cuentaLoQueSalioDelPedido() {
+        dadoElInterpreteDeLaAplicacion();
+
+        cuandoSePide("cuanto me deben por cliente");
+
+        entoncesSalieronDelPedido(List.of(FUENTE, AGRUPACION, SOLO_FIADO));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("loQueNoSeEntiende")
+    @DisplayName("Avisa las palabras que no entendió, sin contar las vacías como «de» o «cuánto»")
+    void avisaLasPalabrasQueNoEntendio(String pedido, List<String> noEntendidas) {
+        dadoElInterpreteDeLaAplicacion();
+
+        cuandoSePide(pedido);
+
+        entoncesNoEntendio(noEntendidas);
+    }
+
+    @Test
+    @DisplayName("Un período que no sabe calcular, como el mes pasado, no se confunde con el mes: lo toma por defecto")
+    void unPeriodoQueNoSabeCalcularNoSeConfundeConOtro() {
+        dadoElInterpreteDeLaAplicacion();
+
+        cuandoSePide("cuánto vendí el mes pasado");
+
+        entoncesTomoPorDefecto(List.of(CALCULO, AGRUPACION, PERIODO));
     }
 
     @Test
@@ -114,7 +217,7 @@ class InterpreteDePedidosTest {
     }
 
     private void cuandoSePide(String pedido) {
-        receta = interprete.interpretar(pedido);
+        interpretado = interprete.interpretar(pedido);
     }
 
     private void cuandoSeIntentaPedir(String pedido) {
@@ -122,7 +225,19 @@ class InterpreteDePedidosTest {
     }
 
     private void entoncesArmaLaReceta(DefinicionMetrica esperada) {
-        assertThat(receta).isEqualTo(esperada);
+        assertThat(interpretado.receta()).isEqualTo(esperada);
+    }
+
+    private void entoncesTomoPorDefecto(List<ParteDeLaReceta> porDefecto) {
+        assertThat(interpretado.porDefecto()).isEqualTo(porDefecto);
+    }
+
+    private void entoncesSalieronDelPedido(List<ParteDeLaReceta> delPedido) {
+        assertThat(interpretado.delPedido()).isEqualTo(delPedido);
+    }
+
+    private void entoncesNoEntendio(List<String> noEntendidas) {
+        assertThat(interpretado.noEntendidas()).isEqualTo(noEntendidas);
     }
 
     private void entoncesSeRechazaPorque(String motivo) {
