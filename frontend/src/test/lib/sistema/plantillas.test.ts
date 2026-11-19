@@ -1,252 +1,376 @@
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'vitest';
+import type { ClavePlantilla, OpcionesPlantilla, TipoBloque } from '@/lib/sistema/tipos';
 import {
-  allBlocks,
-  applyLayout,
-  clearExamples,
-  makeTemplate,
-  removeBlock,
-  removeRow,
-  splitBlocks,
-  totals,
-  upsertRow,
-  validateRow,
-} from '@/lib/sistema/core';
-import type { Bloque, Fila, Sistema, TipoBloque } from '@/lib/sistema/tipos';
+  cuandoLaEntradaPasaAlSegundoProductoCon,
+  cuandoSeArmaLaPlantilla,
+  cuandoSeCorrigeLaSalidaA,
+  cuandoSeCorrigeLaVentaA,
+  cuandoSeIntentaSacar,
+  cuandoSeIntentaVender,
+  cuandoSePoneElStockAlLadoDeLosClientes,
+  cuandoSeQuitaElBloqueDe,
+  cuandoSeQuitaLaEntrada,
+  cuandoSeQuitaLaVenta,
+  cuandoSeQuitanAmbasVentas,
+  cuandoSeQuitanLaSalidaYLaEntrada,
+  cuandoSeQuitanLasSalidasYDespuesLasEntradas,
+  cuandoSeQuitanLosEjemplos,
+  cuandoSeSeparaYSeVuelveAlMosaico,
+  cuandoSeVendenFiadoTresDelPrimerProductoSinPrecio,
+  cuandoSeVendenTresConPrecioSugeridoYUnoManual,
+  cuandoSeVendeUnoConPrecioManual,
+  dadaHarinaConEntradasYaConsumidas,
+  dadaHarinaConUnaEntradaDeEjemplo,
+  dadaLaPlantilla,
+  dadaUnaEntradaDelSegundoProductoYaConsumida,
+  dadosDosProductosYUnaEntradaDelPrimero,
+  dadosUnProductoDeEjemploYOtroRealConUnaVentaCadaUno,
+  dadoUnAlmacenConAlfajoresYUnaVentaDe,
+  dadoUnDepositoConAzucarConUnaEntradaYUnaSalida,
+  entoncesDejoDeSerEjemplo,
+  entoncesElClienteYaNoEsEjemplo,
+  entoncesElPrimerPedidoEsValido,
+  entoncesElPrimerProductoBajo,
+  entoncesElStockVuelveAOcuparTodoElAncho,
+  entoncesHayAzucar,
+  entoncesHayHarina,
+  entoncesLasEntradasSiguenCargadas,
+  entoncesLasEntradasYSalidasApuntanAlInventario,
+  entoncesLasOpcionesSon,
+  entoncesLasVentasApuntanAlInventarioYALosClientesYDescuentanStock,
+  entoncesLaVentaTieneElPrecio,
+  entoncesLosAnchosSon,
+  entoncesLosIngresosSon,
+  entoncesLosPedidosApuntanALosClientes,
+  entoncesLosPedidosNoCambiaron,
+  entoncesLosStocksSon,
+  entoncesQuedaUnaSolaSalida,
+  entoncesQuedanAlfajores,
+  entoncesQuedanLadoALadoEmpezandoPorLosClientes,
+  entoncesSeQuito,
+  entoncesSeQuitoLaEntradaDeEjemplo,
+  entoncesSeRechazaPorFaltaDeStock,
+  entoncesSigueSiendoEjemplo,
+  entoncesTraeLasPiezas,
+} from '@/test/plantillasDelMotor';
 
-function bloque(sistema: Sistema, tipo: TipoBloque): Bloque {
-  const encontrado = allBlocks(sistema).find((item) => item.type === tipo);
-  if (!encontrado) throw new Error(`Falta el bloque ${tipo}`);
-  return encontrado;
-}
+type PiezasDePlantilla = {
+  clave: ClavePlantilla;
+  opciones: Partial<OpcionesPlantilla>;
+  piezas: TipoBloque[];
+};
 
-const tipos = (sistema: Sistema) => allBlocks(sistema).map((item) => item.type);
-
-function filaNueva(
-  bloqueDestino: Bloque,
-  valores: Record<string, string | number | boolean>,
-  sistema: Sistema,
-  filaId: string | null = null,
-): Fila {
-  const resultado = upsertRow(bloqueDestino, valores, filaId, sistema);
-  if (!resultado.row) throw new Error(`No se pudo guardar: ${JSON.stringify(resultado.errors)}`);
-  return resultado.row;
-}
+const PIEZAS_POR_PLANTILLA: PiezasDePlantilla[] = [
+  { clave: 'shop', opciones: {}, piezas: ['inventory', 'sales', 'clients'] },
+  { clave: 'warehouse', opciones: {}, piezas: ['inventory', 'entries', 'exits'] },
+  { clave: 'business', opciones: {}, piezas: ['orders', 'clients', 'inventory'] },
+  {
+    clave: 'shop',
+    opciones: { movements: true },
+    piezas: ['inventory', 'sales', 'clients', 'entries'],
+  },
+  {
+    clave: 'business',
+    opciones: { movements: true, expenses: true },
+    piezas: ['orders', 'clients', 'inventory', 'entries', 'exits', 'expenses'],
+  },
+];
 
 describe('plantillas', () => {
-  it('son conjuntos de piezas vinculadas con anchos iniciales útiles', () => {
-    const almacen = makeTemplate('shop', {}, true);
-    const deposito = makeTemplate('warehouse', {}, false);
-    const negocio = makeTemplate('business', {}, true);
+  it.each(PIEZAS_POR_PLANTILLA)(
+    'la plantilla $clave con $opciones trae $piezas',
+    ({ clave, opciones, piezas }) => {
+      cuandoSeArmaLaPlantilla(clave, opciones);
 
-    expect(tipos(almacen)).toEqual(['inventory', 'sales', 'clients']);
-    expect(tipos(deposito)).toEqual(['inventory', 'entries', 'exits']);
-    expect(tipos(negocio)).toEqual(['orders', 'clients', 'inventory']);
-    const clientes = bloque(negocio, 'clients');
-    expect(clientes.width).toBe('half');
-    expect(bloque(negocio, 'orders').width).toBe('half');
-    expect(bloque(negocio, 'inventory').width).toBe('full');
-    expect(bloque(negocio, 'orders').fields.find((campo) => campo.key === 'customer')?.target).toBe(
-      clientes.id,
-    );
-    for (const movimiento of allBlocks(deposito).filter((item) => item.type !== 'inventory')) {
-      expect(movimiento.fields.find((campo) => campo.key === 'product')?.target).toBe(
-        bloque(deposito, 'inventory').id,
-      );
-    }
-    const ventas = bloque(almacen, 'sales');
-    expect(ventas.fields.find((campo) => campo.key === 'product')?.target).toBe(
-      bloque(almacen, 'inventory').id,
-    );
-    expect(ventas.fields.find((campo) => campo.key === 'customer')?.target).toBe(
-      bloque(almacen, 'clients').id,
-    );
-    expect(ventas.stockDirection).toBe(-1);
+      entoncesTraeLasPiezas(piezas);
+    },
+  );
+
+  it('en el negocio los clientes y los pedidos van a media pantalla y el inventario ocupa todo', () => {
+    cuandoSeArmaLaPlantilla('business');
+
+    entoncesLosAnchosSon({ clients: 'half', orders: 'half', inventory: 'full' });
   });
 
-  it('las entradas y los gastos son opciones independientes de la base', () => {
-    expect(tipos(makeTemplate('shop', { movements: true }))).toEqual([
-      'inventory',
-      'sales',
-      'clients',
-      'entries',
-    ]);
-    expect(tipos(makeTemplate('business', { movements: true, expenses: true }))).toEqual([
-      'orders',
-      'clients',
-      'inventory',
-      'entries',
-      'exits',
-      'expenses',
-    ]);
-    expect(makeTemplate('warehouse', { expenses: true }).options).toEqual({
-      movements: false,
-      expenses: true,
-    });
+  it('los pedidos del negocio apuntan a sus clientes', () => {
+    cuandoSeArmaLaPlantilla('business');
+
+    entoncesLosPedidosApuntanALosClientes();
+  });
+
+  it('las entradas y las salidas del depósito apuntan a su inventario', () => {
+    cuandoSeArmaLaPlantilla('warehouse', {}, false);
+
+    entoncesLasEntradasYSalidasApuntanAlInventario();
+  });
+
+  it('las ventas del almacén apuntan al inventario y a los clientes, y descuentan stock', () => {
+    cuandoSeArmaLaPlantilla('shop');
+
+    entoncesLasVentasApuntanAlInventarioYALosClientesYDescuentanStock();
+  });
+
+  it('las opciones que no se piden quedan apagadas', () => {
+    cuandoSeArmaLaPlantilla('warehouse', { expenses: true });
+
+    entoncesLasOpcionesSon({ movements: false, expenses: true });
+  });
+
+  it('el primer pedido de ejemplo del negocio es válido', () => {
+    cuandoSeArmaLaPlantilla('business');
+
+    entoncesElPrimerPedidoEsValido();
   });
 });
 
 describe('ventas', () => {
-  it('elegir un producto sugiere su precio, descuenta stock y permite un precio manual', () => {
-    const sistema = makeTemplate('shop', {}, true);
-    const inventario = bloque(sistema, 'inventory');
-    const ventas = bloque(sistema, 'sales');
-    const clientes = bloque(sistema, 'clients');
-    const producto = inventario.rows[0] as Fila;
-    const cliente = clientes.rows[0] as Fila;
-    const stockInicial = Number(producto.quantity);
+  it('elegir un producto sugiere su precio', () => {
+    dadaLaPlantilla('shop');
 
-    const venta = filaNueva(
-      ventas,
-      { product: producto.id, quantity: 3, price: '', customer: cliente.id, credit: true },
-      sistema,
-    );
+    cuandoSeVendenFiadoTresDelPrimerProductoSinPrecio();
 
-    expect(venta.price).toBe(3600);
-    expect(producto.quantity).toBe(stockInicial - 3);
-    expect(cliente.__example).toBeUndefined();
-    const manual = filaNueva(ventas, { product: producto.id, quantity: 1, price: 3900 }, sistema);
-    expect(manual.price).toBe(3900);
-    expect(totals(sistema).income).toBe(3 * 3600 + 3900);
+    entoncesLaVentaTieneElPrecio(3600);
   });
 
-  it('no deja vender más de lo que hay y editar una venta revierte la anterior', () => {
-    const sistema = makeTemplate('shop', {}, true);
-    const inventario = bloque(sistema, 'inventory');
-    const ventas = bloque(sistema, 'sales');
-    const producto = filaNueva(inventario, { name: 'Alfajor', quantity: 10, price: 900 }, sistema);
+  it('vender descuenta lo vendido del producto', () => {
+    dadaLaPlantilla('shop');
 
-    const venta = filaNueva(ventas, { product: producto.id, quantity: 4 }, sistema);
-    expect(producto.quantity).toBe(6);
-    expect(
-      upsertRow(ventas, { product: producto.id, quantity: 20 }, null, sistema).errors?.quantity,
-    ).toBeTruthy();
-    expect(producto.quantity).toBe(6);
+    cuandoSeVendenFiadoTresDelPrimerProductoSinPrecio();
 
-    filaNueva(ventas, { product: producto.id, quantity: 2 }, sistema, venta.id);
-    expect(producto.quantity).toBe(8);
-    expect(removeRow(ventas, venta.id, sistema).removed).toBe(true);
-    expect(producto.quantity).toBe(10);
+    entoncesElPrimerProductoBajo(3);
   });
 
-  it('quitar un movimiento de ejemplo no vuelve real al producto de ejemplo, y uno real sí', () => {
-    const sistema = makeTemplate('shop', {}, false);
-    const inventario = bloque(sistema, 'inventory');
-    const ventas = bloque(sistema, 'sales');
-    const ejemplo = filaNueva(inventario, { name: 'Alfajor', quantity: 10 }, sistema);
-    const real = filaNueva(inventario, { name: 'Galletitas', quantity: 10 }, sistema);
-    const ventaEjemplo = filaNueva(ventas, { product: ejemplo.id, quantity: 2 }, sistema);
-    const ventaReal = filaNueva(ventas, { product: real.id, quantity: 2 }, sistema);
-    ejemplo.__example = true;
-    real.__example = true;
-    ventaEjemplo.__example = true;
+  it('venderle fiado a un cliente de ejemplo lo vuelve real', () => {
+    dadaLaPlantilla('shop');
 
-    removeRow(ventas, ventaEjemplo.id, sistema);
-    removeRow(ventas, ventaReal.id, sistema);
+    cuandoSeVendenFiadoTresDelPrimerProductoSinPrecio();
 
-    expect(ejemplo.__example).toBe(true);
-    expect(real.__example).toBeUndefined();
+    entoncesElClienteYaNoEsEjemplo();
+  });
+
+  it('un precio escrito a mano se conserva', () => {
+    dadaLaPlantilla('shop');
+
+    cuandoSeVendeUnoConPrecioManual(3900);
+
+    entoncesLaVentaTieneElPrecio(3900);
+  });
+
+  it('los ingresos suman las ventas con precio sugerido y con precio manual', () => {
+    dadaLaPlantilla('shop');
+
+    cuandoSeVendenTresConPrecioSugeridoYUnoManual(3900);
+
+    entoncesLosIngresosSon(3 * 3600 + 3900);
+  });
+
+  it('una venta descuenta del stock', () => {
+    dadoUnAlmacenConAlfajoresYUnaVentaDe(10, 4);
+
+    entoncesQuedanAlfajores(6);
+  });
+
+  it('no deja vender más de lo que hay', () => {
+    dadoUnAlmacenConAlfajoresYUnaVentaDe(10, 4);
+
+    cuandoSeIntentaVender(20);
+
+    entoncesSeRechazaPorFaltaDeStock();
+  });
+
+  it('una venta rechazada no toca el stock', () => {
+    dadoUnAlmacenConAlfajoresYUnaVentaDe(10, 4);
+
+    cuandoSeIntentaVender(20);
+
+    entoncesQuedanAlfajores(6);
+  });
+
+  it('corregir una venta revierte la cantidad anterior', () => {
+    dadoUnAlmacenConAlfajoresYUnaVentaDe(10, 4);
+
+    cuandoSeCorrigeLaVentaA(2);
+
+    entoncesQuedanAlfajores(8);
+  });
+
+  it('quitar una venta devuelve el stock', () => {
+    dadoUnAlmacenConAlfajoresYUnaVentaDe(10, 4);
+
+    cuandoSeQuitaLaVenta();
+
+    entoncesQuedanAlfajores(10);
+  });
+
+  it('quitar una venta avisa que se quitó', () => {
+    dadoUnAlmacenConAlfajoresYUnaVentaDe(10, 4);
+
+    cuandoSeQuitaLaVenta();
+
+    entoncesSeQuito();
+  });
+
+  it('quitar una venta de ejemplo no vuelve real a su producto de ejemplo', () => {
+    dadosUnProductoDeEjemploYOtroRealConUnaVentaCadaUno();
+
+    cuandoSeQuitanAmbasVentas();
+
+    entoncesSigueSiendoEjemplo('Alfajor');
+  });
+
+  it('quitar una venta real vuelve real a su producto', () => {
+    dadosUnProductoDeEjemploYOtroRealConUnaVentaCadaUno();
+
+    cuandoSeQuitanAmbasVentas();
+
+    entoncesDejoDeSerEjemplo('Galletitas');
   });
 });
 
 describe('entradas y salidas', () => {
-  it('actualizan el stock, las ediciones revierten el efecto anterior y se evita el stock negativo', () => {
-    const sistema = makeTemplate('warehouse', {}, false);
-    const [inventario, entradas, salidas] = allBlocks(sistema) as [Bloque, Bloque, Bloque];
-    const producto = filaNueva(inventario, { name: 'Azúcar', quantity: 10, price: 1150 }, sistema);
+  it('las entradas suman al stock y las salidas restan', () => {
+    dadoUnDepositoConAzucarConUnaEntradaYUnaSalida(10, 5, 4);
 
-    const entrada = filaNueva(
-      entradas,
-      { product: producto.id, quantity: 5, date: '2026-10-16' },
-      sistema,
-    );
-    expect(producto.quantity).toBe(15);
-    const salida = filaNueva(
-      salidas,
-      { product: producto.id, quantity: 4, date: '2026-10-16' },
-      sistema,
-    );
-    expect(producto.quantity).toBe(11);
-    expect(
-      upsertRow(salidas, { product: producto.id, quantity: 20 }, null, sistema).errors?.quantity,
-    ).toBeTruthy();
-    expect(producto.quantity).toBe(11);
-    expect(salidas.rows).toHaveLength(1);
-    filaNueva(
-      salidas,
-      { product: producto.id, quantity: 2, date: '2026-10-16' },
-      sistema,
-      salida.id,
-    );
-    expect(producto.quantity).toBe(13);
-    removeRow(salidas, salida.id, sistema);
-    expect(producto.quantity).toBe(15);
-    removeRow(entradas, entrada.id, sistema);
-    expect(producto.quantity).toBe(10);
+    entoncesHayAzucar(11);
   });
 
-  it('editar un movimiento puede cambiar de producto sin perder el efecto anterior', () => {
-    const sistema = makeTemplate('warehouse', {}, false);
-    const [inventario, entradas, salidas] = allBlocks(sistema) as [Bloque, Bloque, Bloque];
-    const a = filaNueva(inventario, { name: 'A', quantity: 5 }, sistema);
-    const b = filaNueva(inventario, { name: 'B', quantity: 3 }, sistema);
+  it('no deja sacar más de lo que hay', () => {
+    dadoUnDepositoConAzucarConUnaEntradaYUnaSalida(10, 5, 4);
 
-    const entrada = filaNueva(entradas, { product: a.id, quantity: 7 }, sistema);
-    expect(a.quantity).toBe(12);
-    filaNueva(entradas, { product: b.id, quantity: 4 }, sistema, entrada.id);
-    expect(a.quantity).toBe(5);
-    expect(b.quantity).toBe(7);
-    filaNueva(salidas, { product: b.id, quantity: 6 }, sistema);
+    cuandoSeIntentaSacar(20);
 
-    expect(removeRow(entradas, entrada.id, sistema).errors?.quantity).toBeTruthy();
-    expect(b.quantity).toBe(1);
+    entoncesSeRechazaPorFaltaDeStock();
   });
 
-  it('quitar ejemplos o bloques de movimientos revierte el stock sin perder consumos reales', () => {
-    const sistema = makeTemplate('warehouse', {}, false);
-    const [stock, entradas, salidas] = allBlocks(sistema) as [Bloque, Bloque, Bloque];
-    const producto = filaNueva(stock, { name: 'Harina', quantity: 10 }, sistema);
-    const entrada = filaNueva(entradas, { product: producto.id, quantity: 5 }, sistema);
-    entrada.__example = true;
+  it('una salida rechazada no se guarda ni toca el stock', () => {
+    dadoUnDepositoConAzucarConUnaEntradaYUnaSalida(10, 5, 4);
 
-    const limpieza = clearExamples(sistema);
+    cuandoSeIntentaSacar(20);
 
-    expect(limpieza.removed).toHaveLength(1);
-    expect(producto.quantity).toBe(10);
-    expect(entradas.rows).toHaveLength(0);
-    filaNueva(entradas, { product: producto.id, quantity: 5 }, sistema);
-    filaNueva(salidas, { product: producto.id, quantity: 12 }, sistema);
-    expect(producto.quantity).toBe(3);
-    expect(removeBlock(sistema, entradas.id).errors?.quantity).toBeTruthy();
-    expect(producto.quantity).toBe(3);
-    expect(entradas.rows).toHaveLength(1);
-    removeBlock(sistema, salidas.id);
-    expect(producto.quantity).toBe(15);
-    expect(removeBlock(sistema, entradas.id).removed).toBe(true);
-    expect(producto.quantity).toBe(10);
+    entoncesQuedaUnaSolaSalida();
+  });
+
+  it('corregir una salida revierte la cantidad anterior', () => {
+    dadoUnDepositoConAzucarConUnaEntradaYUnaSalida(10, 5, 4);
+
+    cuandoSeCorrigeLaSalidaA(2);
+
+    entoncesHayAzucar(13);
+  });
+
+  it('quitar la salida y la entrada deja el stock como al principio', () => {
+    dadoUnDepositoConAzucarConUnaEntradaYUnaSalida(10, 5, 4);
+
+    cuandoSeQuitanLaSalidaYLaEntrada();
+
+    entoncesHayAzucar(10);
+  });
+
+  it('cambiar el producto de una entrada pasa el efecto al producto nuevo', () => {
+    dadosDosProductosYUnaEntradaDelPrimero(5, 3, 7);
+
+    cuandoLaEntradaPasaAlSegundoProductoCon(4);
+
+    entoncesLosStocksSon({ A: 5, B: 7 });
+  });
+
+  it('no deja quitar una entrada que ya se consumió', () => {
+    dadaUnaEntradaDelSegundoProductoYaConsumida();
+
+    cuandoSeQuitaLaEntrada();
+
+    entoncesSeRechazaPorFaltaDeStock();
+  });
+
+  it('una entrada que no se pudo quitar no toca el stock', () => {
+    dadaUnaEntradaDelSegundoProductoYaConsumida();
+
+    cuandoSeQuitaLaEntrada();
+
+    entoncesLosStocksSon({ B: 1 });
   });
 });
 
-describe('distribución y propuesta guiada', () => {
-  it('separar una fila en dos preserva los registros y evita que el par quede partido', () => {
-    const sistema = makeTemplate('business', {}, true);
-    const [pedidos, clientes, stock] = allBlocks(sistema) as [Bloque, Bloque, Bloque];
-    const instantanea = JSON.stringify(pedidos.rows);
+describe('quitar ejemplos y bloques de movimientos', () => {
+  it('quitar los ejemplos borra las entradas de ejemplo', () => {
+    dadaHarinaConUnaEntradaDeEjemplo(10, 5);
 
-    expect(splitBlocks(sistema, stock.id, clientes.id, 'right')).toBe(true);
-    expect(stock.width).toBe('half');
-    expect(clientes.width).toBe('half');
-    expect(clientes.startRow).toBe(true);
-    expect(sistema.sections[0]?.blocks[2]?.id).toBe(stock.id);
-    expect(JSON.stringify(pedidos.rows)).toBe(instantanea);
-    applyLayout(sistema, 'mosaic');
-    expect(stock.width).toBe('full');
-    expect(clientes.startRow).toBeUndefined();
+    cuandoSeQuitanLosEjemplos();
+
+    entoncesSeQuitoLaEntradaDeEjemplo();
   });
 
-  it('valida un pedido con el cliente de la plantilla', () => {
-    const sistema = makeTemplate('business', {}, true);
-    const pedidos = bloque(sistema, 'orders');
+  it('quitar los ejemplos revierte el stock que movieron', () => {
+    dadaHarinaConUnaEntradaDeEjemplo(10, 5);
 
-    expect(validateRow(pedidos, pedidos.rows[0] as Fila, sistema)).toEqual({});
+    cuandoSeQuitanLosEjemplos();
+
+    entoncesHayHarina(10);
+  });
+
+  it('no deja quitar las entradas si las salidas ya las consumieron', () => {
+    dadaHarinaConEntradasYaConsumidas(10, 5, 12);
+
+    cuandoSeQuitaElBloqueDe('entries');
+
+    entoncesSeRechazaPorFaltaDeStock();
+  });
+
+  it('un bloque que no se pudo quitar conserva sus registros y el stock', () => {
+    dadaHarinaConEntradasYaConsumidas(10, 5, 12);
+
+    cuandoSeQuitaElBloqueDe('entries');
+
+    entoncesLasEntradasSiguenCargadas();
+  });
+
+  it('quitar el bloque de salidas devuelve su stock', () => {
+    dadaHarinaConEntradasYaConsumidas(10, 5, 12);
+
+    cuandoSeQuitaElBloqueDe('exits');
+
+    entoncesHayHarina(15);
+  });
+
+  it('sin salidas, quitar las entradas revierte su stock', () => {
+    dadaHarinaConEntradasYaConsumidas(10, 5, 12);
+
+    cuandoSeQuitanLasSalidasYDespuesLasEntradas();
+
+    entoncesHayHarina(10);
+  });
+
+  it('sin salidas, el bloque de entradas se puede quitar', () => {
+    dadaHarinaConEntradasYaConsumidas(10, 5, 12);
+
+    cuandoSeQuitanLasSalidasYDespuesLasEntradas();
+
+    entoncesSeQuito();
+  });
+});
+
+describe('distribución', () => {
+  it('poner una pieza al lado de otra las deja a media pantalla en la misma fila', () => {
+    dadaLaPlantilla('business');
+
+    cuandoSePoneElStockAlLadoDeLosClientes();
+
+    entoncesQuedanLadoALadoEmpezandoPorLosClientes();
+  });
+
+  it('poner una pieza al lado de otra no toca los registros', () => {
+    dadaLaPlantilla('business');
+
+    cuandoSePoneElStockAlLadoDeLosClientes();
+
+    entoncesLosPedidosNoCambiaron();
+  });
+
+  it('volver al mosaico deshace la fila compartida', () => {
+    dadaLaPlantilla('business');
+
+    cuandoSeSeparaYSeVuelveAlMosaico();
+
+    entoncesElStockVuelveAOcuparTodoElAncho();
   });
 });

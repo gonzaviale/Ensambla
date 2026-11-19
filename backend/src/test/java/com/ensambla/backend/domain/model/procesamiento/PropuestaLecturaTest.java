@@ -4,284 +4,281 @@ import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
-import com.ensambla.backend.domain.model.lectura.BloquePropuesto;
 import com.ensambla.backend.domain.model.lectura.CampoPropuesto;
-import com.ensambla.backend.domain.model.lectura.ConsumoIa;
-import com.ensambla.backend.domain.model.lectura.DatoLeido;
-import com.ensambla.backend.domain.model.lectura.FilaLeida;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
-import com.ensambla.backend.domain.model.lectura.TipoRegistroCuaderno;
 import com.ensambla.backend.support.ProcesamientoTestData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
+import static com.ensambla.backend.support.PropuestasDeLecturaDePrueba.unBloque;
+import static com.ensambla.backend.support.PropuestasDeLecturaDePrueba.unBloqueConLosCampos;
+import static com.ensambla.backend.support.PropuestasDeLecturaDePrueba.unCampoDeTexto;
+import static com.ensambla.backend.support.PropuestasDeLecturaDePrueba.unaColumna;
+import static com.ensambla.backend.support.PropuestasDeLecturaDePrueba.unaFila;
+import static com.ensambla.backend.support.PropuestasDeLecturaDePrueba.unaLecturaDeVentas;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class PropuestaLecturaTest {
 
+    private static final BloqueId SIN_DESTINO = null;
+    private static final List<CampoPropuesto> SIN_LISTA_DE_NUEVOS = null;
+    private static final CampoId CELULAR = CampoId.nuevo();
+    private static final CampoId TELEFONO = CampoId.nuevo();
+    private static final CampoPropuesto TELEFONO_LEIDO = unaColumna("telefono", "Teléfono", TipoCampo.TEXTO);
+    private static final ObjectMapper JSON = JsonMapper.builder().build();
+
+    private LecturaCuaderno lectura = ProcesamientoTestData.lectura();
+    private List<BloqueLectura> bloques = List.of();
+    private BloqueId destino = SIN_DESTINO;
+    private PropuestaLectura propuesta;
+    private PropuestaLectura releida;
+    private Throwable error;
+
+    // --- la propuesta guardada ---
+
     @Test
     @DisplayName("Una propuesta sin lista de campos nuevos (lectura guardada antes) la lee como vacía")
-    void constructorShouldTreatNullNewFieldsAsEmpty() {
-        PropuestaLectura propuesta = new PropuestaLectura(ProcesamientoTestData.lectura(), Map.of(), null);
+    void unaPropuestaSinListaDeCamposNuevosLaLeeComoVacia() {
+        cuandoSeArmaLaPropuestaCon(SIN_LISTA_DE_NUEVOS);
 
-        assertThat(propuesta.camposNuevos()).isEmpty();
+        entoncesNoHayCamposNuevos();
     }
 
     @Test
     @DisplayName("Conserva los campos nuevos que se le pasan")
-    void constructorShouldKeepNewFields() {
-        CampoPropuesto telefono = new CampoPropuesto("telefono", "Teléfono", TipoCampo.TEXTO, List.of());
+    void conservaLosCamposNuevosQueSeLePasan() {
+        cuandoSeArmaLaPropuestaCon(List.of(TELEFONO_LEIDO));
 
-        PropuestaLectura propuesta = new PropuestaLectura(
-                ProcesamientoTestData.lectura(), Map.of(), List.of(telefono));
-
-        assertThat(propuesta.camposNuevos()).containsExactly(telefono);
+        entoncesLosCamposNuevosSon(TELEFONO_LEIDO);
     }
 
     @Test
     @DisplayName("El constructor corto deja los campos nuevos vacíos")
-    void constructorShouldDefaultToNoNewFields() {
-        PropuestaLectura propuesta = new PropuestaLectura(ProcesamientoTestData.lectura(), Map.of());
+    void elConstructorCortoDejaLosCamposNuevosVacios() {
+        cuandoSeArmaLaPropuestaSinCamposNuevos();
 
-        assertThat(propuesta.camposNuevos()).isEmpty();
+        entoncesNoHayCamposNuevos();
     }
 
     @Test
-    @DisplayName("Se guarda y se lee como JSON, y una lectura guardada sin campos nuevos se sigue pudiendo leer")
-    void jsonShouldRoundTripAndAcceptStoredProposalWithoutNewFields() {
-        ObjectMapper objectMapper = JsonMapper.builder().build();
-        CampoPropuesto telefono = new CampoPropuesto("telefono", "Teléfono", TipoCampo.TEXTO, List.of());
-        PropuestaLectura propuesta = new PropuestaLectura(ProcesamientoTestData.lectura(),
-                Map.of("monto", ProcesamientoTestData.CAMPO_ID), List.of(telefono));
+    @DisplayName("Se guarda y se lee como JSON igual que antes")
+    void seGuardaYSeLeeComoJsonIgualQueAntes() {
+        dadoUnaPropuestaConUnCampoNuevo();
 
-        String json = objectMapper.writeValueAsString(propuesta);
-        JsonNode guardadaAntes = objectMapper.readTree(json);
-        ((ObjectNode) guardadaAntes).remove("camposNuevos");
+        cuandoSeGuardaYSeVuelveALeer();
 
-        assertThat(objectMapper.readValue(json, PropuestaLectura.class)).isEqualTo(propuesta);
-        assertThat(objectMapper.readValue(guardadaAntes.toString(), PropuestaLectura.class).camposNuevos()).isEmpty();
+        entoncesSeLeyoLaMismaPropuesta();
     }
+
+    @Test
+    @DisplayName("Una lectura guardada sin campos nuevos se sigue pudiendo leer")
+    void unaLecturaGuardadaSinCamposNuevosSeSiguePudiendoLeer() {
+        dadoUnaPropuestaConUnCampoNuevo();
+
+        cuandoSeLeeComoSeGuardabaAntes();
+
+        entoncesLaReleidaNoTieneCamposNuevos();
+    }
+
+    // --- sin destino ---
 
     @Test
     @DisplayName("Propone un bloque nuevo cuando el negocio no tiene bloques")
-    void proponerShouldProposeNewBlockWhenEmpty() {
-        PropuestaLectura propuesta = PropuestaLectura.proponer(ProcesamientoTestData.lectura(), List.of(), null);
+    void proponeUnBloqueNuevoCuandoElNegocioNoTieneBloques() {
+        cuandoSeProponeDondeGuardar();
 
-        assertThat(propuesta.lectura().bloque().bloqueExistenteId()).isNull();
-        assertThat(propuesta.mapeoCampos()).isEmpty();
+        entoncesEsUnBloqueNuevo();
+        entoncesNoSeMapeaNingunaColumna();
     }
 
     @Test
     @DisplayName("Reutiliza el mismo bloque y mapea columnas compatibles ignorando acentos")
-    void proponerShouldReuseCompatibleBlock() {
-        BloqueLectura bloque = givenBlock(" Véntas ", "Mónto", TipoCampo.NUMERO, List.of());
+    void reutilizaElMismoBloqueIgnorandoAcentos() {
+        BloqueLectura ventas = dadoElBloque(unBloque(" Véntas ", "Mónto", TipoCampo.NUMERO, List.of()));
 
-        PropuestaLectura propuesta = PropuestaLectura.proponer(
-                ProcesamientoTestData.lectura(), List.of(bloque), null);
+        cuandoSeProponeDondeGuardar();
 
-        assertThat(propuesta.lectura().bloque().bloqueExistenteId()).isEqualTo(bloque.id());
-        assertThat(propuesta.mapeoCampos()).containsEntry("monto", ProcesamientoTestData.CAMPO_ID);
-        assertThat(propuesta.lectura().filas()).isEqualTo(ProcesamientoTestData.lectura().filas());
+        entoncesSeGuardaEn(ventas);
+        entoncesLaColumnaVaAlCampo("monto", ProcesamientoTestData.CAMPO_ID);
+        entoncesLasFilasSonLasLeidas();
     }
 
     @Test
     @DisplayName("Deja una propuesta nueva si el nombre del bloque no coincide")
-    void proponerShouldRejectDifferentBlockName() {
-        BloqueLectura bloque = givenBlock("Gastos", "Monto", TipoCampo.NUMERO, List.of());
+    void dejaUnaPropuestaNuevaSiElNombreDelBloqueNoCoincide() {
+        dadoElBloque(unBloque("Gastos", "Monto", TipoCampo.NUMERO, List.of()));
 
-        PropuestaLectura propuesta = PropuestaLectura.proponer(
-                ProcesamientoTestData.lectura(), List.of(bloque), null);
+        cuandoSeProponeDondeGuardar();
 
-        assertThat(propuesta.mapeoCampos()).isEmpty();
+        entoncesNoSeMapeaNingunaColumna();
     }
 
     @Test
     @DisplayName("No reutiliza columnas con nombres distintos")
-    void proponerShouldRejectDifferentFieldName() {
-        BloqueLectura bloque = givenBlock("Ventas", "Cantidad", TipoCampo.NUMERO, List.of());
+    void noReutilizaColumnasConNombresDistintos() {
+        dadoElBloque(unBloque("Ventas", "Cantidad", TipoCampo.NUMERO, List.of()));
 
-        PropuestaLectura propuesta = PropuestaLectura.proponer(
-                ProcesamientoTestData.lectura(), List.of(bloque), null);
+        cuandoSeProponeDondeGuardar();
 
-        assertThat(propuesta.mapeoCampos()).isEmpty();
+        entoncesNoSeMapeaNingunaColumna();
     }
 
     @Test
     @DisplayName("No reutiliza columnas con tipos incompatibles")
-    void proponerShouldRejectDifferentFieldType() {
-        BloqueLectura bloque = givenBlock("Ventas", "Monto", TipoCampo.TEXTO, List.of());
+    void noReutilizaColumnasConTiposIncompatibles() {
+        dadoElBloque(unBloque("Ventas", "Monto", TipoCampo.TEXTO, List.of()));
 
-        PropuestaLectura propuesta = PropuestaLectura.proponer(
-                ProcesamientoTestData.lectura(), List.of(bloque), null);
+        cuandoSeProponeDondeGuardar();
 
-        assertThat(propuesta.mapeoCampos()).isEmpty();
+        entoncesNoSeMapeaNingunaColumna();
     }
 
     @Test
     @DisplayName("No reutiliza columnas cuyas opciones no incluyen las leídas")
-    void proponerShouldRejectDifferentOptions() {
-        BloqueLectura bloque = givenBlock("Ventas", "Monto", TipoCampo.OPCION, List.of("A"));
+    void noReutilizaColumnasCuyasOpcionesNoIncluyenLasLeidas() {
+        dadoUnaLectura(ProcesamientoTestData.lectura(TipoCampo.OPCION, "B", List.of("B")));
+        dadoElBloque(unBloque("Ventas", "Monto", TipoCampo.OPCION, List.of("A")));
 
-        PropuestaLectura propuesta = PropuestaLectura.proponer(
-                ProcesamientoTestData.lectura(TipoCampo.OPCION, "B", List.of("B")), List.of(bloque), null);
+        cuandoSeProponeDondeGuardar();
 
-        assertThat(propuesta.mapeoCampos()).isEmpty();
+        entoncesNoSeMapeaNingunaColumna();
     }
 
     @Test
     @DisplayName("No decide automáticamente entre dos bloques compatibles")
-    void proponerShouldKeepAmbiguousProposal() {
-        BloqueLectura primero = givenBlock("Ventas", "Monto", TipoCampo.NUMERO, List.of());
-        BloqueLectura segundo = givenBlock("Ventas", "Monto", TipoCampo.NUMERO, List.of());
+    void noDecideAutomaticamenteEntreDosBloquesCompatibles() {
+        dadoDosBloquesDeVentasCompatibles();
 
-        PropuestaLectura propuesta = PropuestaLectura.proponer(
-                ProcesamientoTestData.lectura(), List.of(primero, segundo), null);
+        cuandoSeProponeDondeGuardar();
 
-        assertThat(propuesta.lectura().bloque().bloqueExistenteId()).isNull();
+        entoncesEsUnBloqueNuevo();
     }
+
+    // --- con destino ---
 
     @Test
     @DisplayName("Respeta un destino explícito entre varios compatibles")
-    void proponerShouldUseExplicitDestination() {
-        BloqueLectura primero = givenBlock("Ventas", "Monto", TipoCampo.NUMERO, List.of());
-        BloqueLectura segundo = givenBlock("Ventas", "Monto", TipoCampo.NUMERO, List.of());
+    void respetaUnDestinoExplicitoEntreVariosCompatibles() {
+        BloqueLectura segundo = dadoDosBloquesDeVentasCompatibles();
+        dadoQueLaPersonaEligioEntreLosCompatibles(segundo);
 
-        PropuestaLectura propuesta = PropuestaLectura.proponer(
-                ProcesamientoTestData.lectura(), List.of(primero, segundo), segundo.id());
+        cuandoSeProponeDondeGuardar();
 
-        assertThat(propuesta.lectura().bloque().bloqueExistenteId()).isEqualTo(segundo.id());
+        entoncesSeGuardaEn(segundo);
     }
 
     @Test
-    @DisplayName("Rechaza un destino inexistente o incompatible")
-    void proponerShouldFailWhenDestinationMissing() {
-        assertThatThrownBy(() -> PropuestaLectura.proponer(
-                ProcesamientoTestData.lectura(), List.of(), BloqueId.nuevo()))
-                .isInstanceOf(BusinessRuleException.class).hasMessageContaining("compatible");
+    @DisplayName("Rechaza un destino inexistente")
+    void rechazaUnDestinoInexistente() {
+        dadoQueLaPersonaEligioUnBloqueQueNoExiste();
+
+        cuandoSeIntentaProponerDondeGuardar();
+
+        entoncesSeRechazaPorIncompatible();
     }
 
     @Test
     @DisplayName("Con destino propone como campo nuevo la columna que el bloque no tiene, sin duplicar las que tiene")
-    void proponerShouldDetectNewColumnWhenDestinationLacksIt() {
-        BloqueLectura bloque = givenBlock("Ventas", "Monto", TipoCampo.NUMERO, List.of());
-        LecturaCuaderno lectura = givenLectura(
-                List.of(columna("monto", "Monto", TipoCampo.NUMERO), columna("telefono", "Teléfono", TipoCampo.TEXTO)),
-                givenFila(1, "monto", "100", "telefono", "11 4444-5555"));
+    void conDestinoProponeComoNuevaLaColumnaQueElBloqueNoTiene() {
+        BloqueLectura ventas = dadoQueLaPersonaEligio(unBloque("Ventas", "Monto", TipoCampo.NUMERO, List.of()));
+        dadoUnaLecturaDeMontoYTelefono();
 
-        PropuestaLectura propuesta = PropuestaLectura.proponer(lectura, List.of(bloque), bloque.id());
+        cuandoSeProponeDondeGuardar();
 
-        thenNuevosAre(propuesta, "telefono");
-        assertThat(propuesta.camposNuevos().getFirst().tipo()).isEqualTo(TipoCampo.TEXTO);
-        assertThat(propuesta.mapeoCampos()).containsOnlyKeys("monto");
-        assertThat(propuesta.lectura().bloque().campos()).extracting(CampoPropuesto::clave)
-                .containsExactly("monto", "telefono");
-        assertThat(propuesta.lectura().bloque().bloqueExistenteId()).isEqualTo(bloque.id());
-        assertThat(propuesta.lectura().filas()).isEqualTo(lectura.filas());
+        entoncesLosNuevosSon("telefono");
+        entoncesElPrimerNuevoEsDeTipo(TipoCampo.TEXTO);
+        entoncesSoloSeMapean("monto");
+        entoncesLasColumnasPropuestasSon("monto", "telefono");
+        entoncesSeGuardaEn(ventas);
+        entoncesLasFilasSonLasLeidas();
     }
 
     @Test
     @DisplayName("Con destino, una columna que existe pasa a llamarse y tipificarse como el campo del bloque")
-    void proponerShouldAdoptExistingFieldDefinition() {
-        BloqueLectura bloque = givenBlock("Ventas", "Monto", TipoCampo.NUMERO, List.of());
-        LecturaCuaderno lectura = givenLectura(
-                List.of(columna("monto", " MÓNTO ", TipoCampo.TEXTO)), givenFila(1, "monto", "100"));
+    void conDestinoUnaColumnaQueExisteAdoptaElCampoDelBloque() {
+        dadoQueLaPersonaEligio(unBloque("Ventas", "Monto", TipoCampo.NUMERO, List.of()));
+        dadoUnaLectura(unaLecturaDeVentas(List.of(unaColumna("monto", " MÓNTO ", TipoCampo.TEXTO)),
+                unaFila(1, "monto", "100")));
 
-        PropuestaLectura propuesta = PropuestaLectura.proponer(lectura, List.of(bloque), bloque.id());
+        cuandoSeProponeDondeGuardar();
 
-        CampoPropuesto campo = propuesta.lectura().bloque().campos().getFirst();
-        assertThat(campo.nombre()).isEqualTo("Monto");
-        assertThat(campo.tipo()).isEqualTo(TipoCampo.NUMERO);
-        assertThat(propuesta.camposNuevos()).isEmpty();
+        entoncesLaPrimeraColumnaEs("Monto", TipoCampo.NUMERO);
+        entoncesNoHayCamposNuevos();
     }
 
     @Test
     @DisplayName("Con destino, el nombre del bloque leído no importa: se usa el del bloque elegido")
-    void proponerShouldUseDestinationName() {
-        BloqueLectura bloque = givenBlock("Mis ventas", "Monto", TipoCampo.NUMERO, List.of());
+    void conDestinoSeUsaElNombreDelBloqueElegido() {
+        dadoQueLaPersonaEligio(unBloque("Mis ventas", "Monto", TipoCampo.NUMERO, List.of()));
 
-        PropuestaLectura propuesta = PropuestaLectura.proponer(
-                ProcesamientoTestData.lectura(), List.of(bloque), bloque.id());
+        cuandoSeProponeDondeGuardar();
 
-        assertThat(propuesta.lectura().bloque().nombre()).isEqualTo("Mis ventas");
+        entoncesElBloqueSeLlama("Mis ventas");
     }
 
     @Test
     @DisplayName("Con destino, un sinónimo del campo existente no se propone como campo nuevo")
-    void proponerShouldMapSynonymToExistingField() {
-        BloqueLectura bloque = givenBlock("Clientes", "Celular", TipoCampo.TEXTO, List.of());
-        LecturaCuaderno lectura = givenLectura(
-                List.of(columna("telefono", "Teléfono", TipoCampo.TEXTO)), givenFila(1, "telefono", "11 4444-5555"));
+    void conDestinoUnSinonimoDelCampoExistenteNoEsNuevo() {
+        dadoQueLaPersonaEligio(unBloque("Clientes", "Celular", TipoCampo.TEXTO, List.of()));
+        dadoUnaLectura(unaLecturaDeVentas(List.of(TELEFONO_LEIDO), unaFila(1, "telefono", "11 4444-5555")));
 
-        PropuestaLectura propuesta = PropuestaLectura.proponer(lectura, List.of(bloque), bloque.id());
+        cuandoSeProponeDondeGuardar();
 
-        assertThat(propuesta.mapeoCampos()).containsEntry("telefono", ProcesamientoTestData.CAMPO_ID);
-        assertThat(propuesta.lectura().bloque().campos().getFirst().nombre()).isEqualTo("Celular");
-        assertThat(propuesta.camposNuevos()).isEmpty();
+        entoncesLaColumnaVaAlCampo("telefono", ProcesamientoTestData.CAMPO_ID);
+        entoncesLaPrimeraColumnaSeLlama("Celular");
+        entoncesNoHayCamposNuevos();
     }
 
     @Test
     @DisplayName("Con destino, el nombre igual gana al sinónimo y cada campo se usa una sola vez")
-    void proponerShouldPreferExactNameOverSynonym() {
-        UUID telefonoId = UUID.randomUUID();
-        UUID celularId = UUID.randomUUID();
-        BloqueLectura bloque = new BloqueLectura(BloqueId.nuevo(), "Clientes", List.of(
-                new CampoConocido(CampoId.de(celularId), "Celular", TipoCampo.TEXTO, List.of()),
-                new CampoConocido(CampoId.de(telefonoId), "Teléfono", TipoCampo.TEXTO, List.of())));
-        LecturaCuaderno lectura = givenLectura(
-                List.of(columna("cel", "Cel", TipoCampo.TEXTO), columna("tel", "Teléfono", TipoCampo.TEXTO)),
-                givenFila(1, "cel", "1", "tel", "2"));
+    void conDestinoElNombreIgualGanaAlSinonimo() {
+        dadoQueLaPersonaEligio(unBloqueConLosCampos("Clientes",
+                unCampoDeTexto(CELULAR, "Celular"), unCampoDeTexto(TELEFONO, "Teléfono")));
+        dadoUnaLectura(unaLecturaDeVentas(
+                List.of(unaColumna("cel", "Cel", TipoCampo.TEXTO), unaColumna("tel", "Teléfono", TipoCampo.TEXTO)),
+                unaFila(1, "cel", "1", "tel", "2")));
 
-        PropuestaLectura propuesta = PropuestaLectura.proponer(lectura, List.of(bloque), bloque.id());
+        cuandoSeProponeDondeGuardar();
 
-        assertThat(propuesta.mapeoCampos()).containsEntry("tel", CampoId.de(telefonoId))
-                .containsEntry("cel", CampoId.de(celularId));
-        assertThat(propuesta.camposNuevos()).isEmpty();
+        entoncesLaColumnaVaAlCampo("tel", TELEFONO);
+        entoncesLaColumnaVaAlCampo("cel", CELULAR);
+        entoncesNoHayCamposNuevos();
     }
 
     @Test
     @DisplayName("Con destino, una columna que podría ser dos campos se propone como nueva y se avisa")
-    void proponerShouldWarnWhenSynonymIsAmbiguous() {
-        BloqueLectura bloque = new BloqueLectura(BloqueId.nuevo(), "Clientes", List.of(
-                new CampoConocido(CampoId.nuevo(), "Celular", TipoCampo.TEXTO, List.of()),
-                new CampoConocido(ProcesamientoTestData.CAMPO_ID, "Teléfono", TipoCampo.TEXTO, List.of()),
-                new CampoConocido(CampoId.nuevo(), "Nombre", TipoCampo.TEXTO, List.of())));
-        LecturaCuaderno lectura = givenLectura(
-                List.of(columna("nombre", "Nombre", TipoCampo.TEXTO), columna("tel", "Tel", TipoCampo.TEXTO)),
-                givenFila(1, "nombre", "Ana", "tel", "11 4444-5555"));
+    void conDestinoUnaColumnaAmbiguaSeProponeComoNuevaYSeAvisa() {
+        dadoQueLaPersonaEligio(unBloqueConLosCampos("Clientes", unCampoDeTexto(CampoId.nuevo(), "Celular"),
+                unCampoDeTexto(ProcesamientoTestData.CAMPO_ID, "Teléfono"), unCampoDeTexto(CampoId.nuevo(), "Nombre")));
+        dadoUnaLectura(unaLecturaDeVentas(
+                List.of(unaColumna("nombre", "Nombre", TipoCampo.TEXTO), unaColumna("tel", "Tel", TipoCampo.TEXTO)),
+                unaFila(1, "nombre", "Ana", "tel", "11 4444-5555")));
 
-        PropuestaLectura propuesta = PropuestaLectura.proponer(lectura, List.of(bloque), bloque.id());
+        cuandoSeProponeDondeGuardar();
 
-        thenNuevosAre(propuesta, "tel");
-        assertThat(propuesta.lectura().advertencias()).anyMatch(aviso -> aviso.contains("«Tel»")
-                && aviso.contains("«Clientes»"));
+        entoncesLosNuevosSon("tel");
+        entoncesSeAvisaQueMenciona("«Tel»", "«Clientes»");
     }
 
     @Test
     @DisplayName("Con destino, una columna nueva sin datos no se propone y sus celdas se descartan")
-    void proponerShouldIgnoreNewColumnsWithoutData() {
-        BloqueLectura bloque = givenBlock("Ventas", "Monto", TipoCampo.NUMERO, List.of());
-        LecturaCuaderno lectura = givenLectura(
-                List.of(columna("monto", "Monto", TipoCampo.NUMERO), columna("nota", "Nota", TipoCampo.TEXTO),
-                        columna("color", "Color", TipoCampo.TEXTO), columna("zona", "Zona", TipoCampo.TEXTO)),
-                givenFila(1, "monto", "100", "nota", null, "color", "  "),
-                givenFila(2, "monto", "200", "nota", null));
+    void conDestinoUnaColumnaNuevaSinDatosNoSePropone() {
+        dadoQueLaPersonaEligio(unBloque("Ventas", "Monto", TipoCampo.NUMERO, List.of()));
+        dadoUnaLecturaConColumnasVacias();
 
-        PropuestaLectura propuesta = PropuestaLectura.proponer(lectura, List.of(bloque), bloque.id());
+        cuandoSeProponeDondeGuardar();
 
-        assertThat(propuesta.camposNuevos()).isEmpty();
-        assertThat(propuesta.lectura().bloque().campos()).extracting(CampoPropuesto::clave).containsExactly("monto");
-        assertThat(propuesta.lectura().filas()).allSatisfy(fila -> assertThat(fila.datos()).containsOnlyKeys("monto"));
-        assertThat(propuesta.lectura().advertencias()).contains(
+        entoncesNoHayCamposNuevos();
+        entoncesLasColumnasPropuestasSon("monto");
+        entoncesLasFilasSoloTienen("monto");
+        entoncesSeAvisa(
                 "La columna «Nota» no tiene datos en la foto, así que no se propone.",
                 "La columna «Color» no tiene datos en la foto, así que no se propone.",
                 "La columna «Zona» no tiene datos en la foto, así que no se propone.");
@@ -289,40 +286,174 @@ class PropuestaLecturaTest {
 
     @Test
     @DisplayName("Con destino, si ninguna columna coincide con el bloque la foto no es de ese bloque")
-    void proponerShouldRejectWhenNoColumnMatchesDestination() {
-        BloqueLectura bloque = givenBlock("Ventas", "Monto", TipoCampo.NUMERO, List.of());
-        LecturaCuaderno lectura = givenLectura(
-                List.of(columna("color", "Color", TipoCampo.TEXTO)), givenFila(1, "color", "rojo"));
+    void conDestinoSiNingunaColumnaCoincideLaFotoNoEsDeEseBloque() {
+        dadoQueLaPersonaEligio(unBloque("Ventas", "Monto", TipoCampo.NUMERO, List.of()));
+        dadoUnaLectura(unaLecturaDeVentas(List.of(unaColumna("color", "Color", TipoCampo.TEXTO)),
+                unaFila(1, "color", "rojo")));
 
-        assertThatThrownBy(() -> PropuestaLectura.proponer(lectura, List.of(bloque), bloque.id()))
-                .isInstanceOf(BusinessRuleException.class).hasMessageContaining("compatible");
+        cuandoSeIntentaProponerDondeGuardar();
+
+        entoncesSeRechazaPorIncompatible();
     }
 
-    private void thenNuevosAre(PropuestaLectura propuesta, String... claves) {
+    // --- dado ---
+
+    private void dadoUnaLectura(LecturaCuaderno leida) {
+        lectura = leida;
+    }
+
+    private void dadoUnaLecturaDeMontoYTelefono() {
+        dadoUnaLectura(unaLecturaDeVentas(
+                List.of(unaColumna("monto", "Monto", TipoCampo.NUMERO), TELEFONO_LEIDO),
+                unaFila(1, "monto", "100", "telefono", "11 4444-5555")));
+    }
+
+    private void dadoUnaLecturaConColumnasVacias() {
+        dadoUnaLectura(unaLecturaDeVentas(
+                List.of(unaColumna("monto", "Monto", TipoCampo.NUMERO), unaColumna("nota", "Nota", TipoCampo.TEXTO),
+                        unaColumna("color", "Color", TipoCampo.TEXTO), unaColumna("zona", "Zona", TipoCampo.TEXTO)),
+                unaFila(1, "monto", "100", "nota", null, "color", "  "),
+                unaFila(2, "monto", "200", "nota", null)));
+    }
+
+    private BloqueLectura dadoElBloque(BloqueLectura bloque) {
+        bloques = List.of(bloque);
+        return bloque;
+    }
+
+    private BloqueLectura dadoDosBloquesDeVentasCompatibles() {
+        BloqueLectura segundo = unBloque("Ventas", "Monto", TipoCampo.NUMERO, List.of());
+        bloques = List.of(unBloque("Ventas", "Monto", TipoCampo.NUMERO, List.of()), segundo);
+        return segundo;
+    }
+
+    private BloqueLectura dadoQueLaPersonaEligio(BloqueLectura bloque) {
+        dadoElBloque(bloque);
+        dadoQueLaPersonaEligioEntreLosCompatibles(bloque);
+        return bloque;
+    }
+
+    private void dadoQueLaPersonaEligioEntreLosCompatibles(BloqueLectura bloque) {
+        destino = bloque.id();
+    }
+
+    private void dadoQueLaPersonaEligioUnBloqueQueNoExiste() {
+        destino = BloqueId.nuevo();
+    }
+
+    private void dadoUnaPropuestaConUnCampoNuevo() {
+        propuesta = new PropuestaLectura(lectura, Map.of("monto", ProcesamientoTestData.CAMPO_ID), List.of(TELEFONO_LEIDO));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeArmaLaPropuestaCon(List<CampoPropuesto> nuevos) {
+        propuesta = new PropuestaLectura(lectura, Map.of(), nuevos);
+    }
+
+    private void cuandoSeArmaLaPropuestaSinCamposNuevos() {
+        propuesta = new PropuestaLectura(lectura, Map.of());
+    }
+
+    private void cuandoSeGuardaYSeVuelveALeer() {
+        releida = JSON.readValue(JSON.writeValueAsString(propuesta), PropuestaLectura.class);
+    }
+
+    private void cuandoSeLeeComoSeGuardabaAntes() {
+        ObjectNode guardadaAntes = (ObjectNode) JSON.readTree(JSON.writeValueAsString(propuesta));
+        guardadaAntes.remove("camposNuevos");
+        releida = JSON.readValue(guardadaAntes.toString(), PropuestaLectura.class);
+    }
+
+    private void cuandoSeProponeDondeGuardar() {
+        propuesta = PropuestaLectura.proponer(lectura, bloques, destino);
+    }
+
+    private void cuandoSeIntentaProponerDondeGuardar() {
+        error = catchThrowable(this::cuandoSeProponeDondeGuardar);
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeLeyoLaMismaPropuesta() {
+        assertThat(releida).isEqualTo(propuesta);
+    }
+
+    private void entoncesLaReleidaNoTieneCamposNuevos() {
+        assertThat(releida.camposNuevos()).isEmpty();
+    }
+
+    private void entoncesNoHayCamposNuevos() {
+        assertThat(propuesta.camposNuevos()).isEmpty();
+    }
+
+    private void entoncesLosCamposNuevosSon(CampoPropuesto... nuevos) {
+        assertThat(propuesta.camposNuevos()).containsExactly(nuevos);
+    }
+
+    private void entoncesLosNuevosSon(String... claves) {
         assertThat(propuesta.camposNuevos()).extracting(CampoPropuesto::clave).containsExactly(claves);
         assertThat(propuesta.mapeoCampos()).doesNotContainKeys(claves);
     }
 
-    private CampoPropuesto columna(String clave, String nombre, TipoCampo tipo) {
-        return new CampoPropuesto(clave, nombre, tipo, List.of());
+    private void entoncesElPrimerNuevoEsDeTipo(TipoCampo tipo) {
+        assertThat(propuesta.camposNuevos().getFirst().tipo()).isEqualTo(tipo);
     }
 
-    /** {@code datos}: pares clave, valor. */
-    private FilaLeida givenFila(int renglon, String... datos) {
-        Map<String, DatoLeido> mapa = new LinkedHashMap<>();
-        for (int i = 0; i < datos.length; i += 2) {
-            mapa.put(datos[i], new DatoLeido(datos[i + 1], 0.9));
-        }
-        return new FilaLeida(1, renglon, mapa);
+    private void entoncesEsUnBloqueNuevo() {
+        assertThat(propuesta.lectura().bloque().bloqueExistenteId()).isNull();
     }
 
-    private LecturaCuaderno givenLectura(List<CampoPropuesto> campos, FilaLeida... filas) {
-        return new LecturaCuaderno(TipoRegistroCuaderno.OTRO, new BloquePropuesto("Ventas", null, campos),
-                List.of(filas), List.of("Aviso"), new ConsumoIa("simulado", "demo", "v3", 1, 10, 20, 30));
+    private void entoncesSeGuardaEn(BloqueLectura bloque) {
+        assertThat(propuesta.lectura().bloque().bloqueExistenteId()).isEqualTo(bloque.id());
     }
 
-    private BloqueLectura givenBlock(String nombre, String campo, TipoCampo tipo, List<String> opciones) {
-        return new BloqueLectura(BloqueId.nuevo(), nombre,
-                List.of(new CampoConocido(ProcesamientoTestData.CAMPO_ID, campo, tipo, opciones)));
+    private void entoncesElBloqueSeLlama(String nombre) {
+        assertThat(propuesta.lectura().bloque().nombre()).isEqualTo(nombre);
+    }
+
+    private void entoncesNoSeMapeaNingunaColumna() {
+        assertThat(propuesta.mapeoCampos()).isEmpty();
+    }
+
+    private void entoncesLaColumnaVaAlCampo(String clave, CampoId campoId) {
+        assertThat(propuesta.mapeoCampos()).containsEntry(clave, campoId);
+    }
+
+    private void entoncesSoloSeMapean(String... claves) {
+        assertThat(propuesta.mapeoCampos()).containsOnlyKeys(claves);
+    }
+
+    private void entoncesLasColumnasPropuestasSon(String... claves) {
+        assertThat(propuesta.lectura().bloque().campos()).extracting(CampoPropuesto::clave).containsExactly(claves);
+    }
+
+    private void entoncesLaPrimeraColumnaEs(String nombre, TipoCampo tipo) {
+        entoncesLaPrimeraColumnaSeLlama(nombre);
+        assertThat(propuesta.lectura().bloque().campos().getFirst().tipo()).isEqualTo(tipo);
+    }
+
+    private void entoncesLaPrimeraColumnaSeLlama(String nombre) {
+        assertThat(propuesta.lectura().bloque().campos().getFirst().nombre()).isEqualTo(nombre);
+    }
+
+    private void entoncesLasFilasSonLasLeidas() {
+        assertThat(propuesta.lectura().filas()).isEqualTo(lectura.filas());
+    }
+
+    private void entoncesLasFilasSoloTienen(String... claves) {
+        assertThat(propuesta.lectura().filas()).allSatisfy(fila -> assertThat(fila.datos()).containsOnlyKeys(claves));
+    }
+
+    private void entoncesSeAvisa(String... advertencias) {
+        assertThat(propuesta.lectura().advertencias()).contains(advertencias);
+    }
+
+    private void entoncesSeAvisaQueMenciona(String columna, String bloque) {
+        assertThat(propuesta.lectura().advertencias()).anyMatch(aviso -> aviso.contains(columna) && aviso.contains(bloque));
+    }
+
+    private void entoncesSeRechazaPorIncompatible() {
+        assertThat(error).isInstanceOf(BusinessRuleException.class).hasMessageContaining("compatible");
     }
 }

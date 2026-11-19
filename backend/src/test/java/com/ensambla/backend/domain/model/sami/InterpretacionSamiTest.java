@@ -9,25 +9,31 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class InterpretacionSamiTest {
 
+    private static final String SIN_PLANTILLA = null;
+
     @Test
     @DisplayName("Alcanza cuando hay plantilla y la confianza llega al umbral")
-    void alcanzaShouldBeTrueWhenConfidenceReachesThreshold() {
-        assertThat(interpretacion("Ventas", 0.7).alcanza(0.7)).isTrue();
+    void alcanzaCuandoLaConfianzaLlegaAlUmbral() {
+        entoncesAlcanzaElUmbral(unaInterpretacion("Ventas", 0.7), 0.7, true);
     }
 
     @Test
     @DisplayName("No alcanza cuando la confianza queda debajo del umbral")
-    void alcanzaShouldBeFalseWhenConfidenceIsBelowThreshold() {
-        assertThat(interpretacion("Ventas", 0.69).alcanza(0.7)).isFalse();
+    void noAlcanzaCuandoLaConfianzaQuedaDebajo() {
+        entoncesAlcanzaElUmbral(unaInterpretacion("Ventas", 0.69), 0.7, false);
     }
 
     @Test
     @DisplayName("No alcanza si no hay plantilla, aunque el umbral sea cero")
-    void alcanzaShouldBeFalseWithoutTemplate() {
-        assertThat(interpretacion(null, 0.0).alcanza(0.0)).isFalse();
+    void noAlcanzaSinPlantilla() {
+        entoncesAlcanzaElUmbral(unaInterpretacion(SIN_PLANTILLA, 0.0), 0.0, false);
     }
 
-    private InterpretacionSami interpretacion(String plantilla, double confianza) {
+    private static InterpretacionSami unaInterpretacion(String plantilla, double confianza) {
         return new InterpretacionSami(null, plantilla, List.of(), confianza, List.of());
+    }
+
+    private static void entoncesAlcanzaElUmbral(InterpretacionSami interpretacion, double umbral, boolean alcanza) {
+        assertThat(interpretacion.alcanza(umbral)).isEqualTo(alcanza);
     }
 }

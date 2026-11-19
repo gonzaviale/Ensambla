@@ -41,107 +41,96 @@ class MiniObjetivoPresentationMapperTest {
 
     @Test
     @DisplayName("Arma el pedido de listar con el usuario de la sesión y el objetivo de la ruta")
-    void toListarRequestShouldCarryUserAndObjetivo() {
-        ListarMiniObjetivosRequest result = mapper.toListarRequest(USUARIO_ID, OBJETIVO_ID);
-
-        assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(result.objetivoId()).isEqualTo(OBJETIVO_ID);
+    void armaElPedidoDeListar() {
+        entoncesElPedidoEs(mapper.toListarRequest(USUARIO_ID, OBJETIVO_ID), new ListarMiniObjetivosRequest(USUARIO_ID, OBJETIVO_ID));
     }
 
     @Test
     @DisplayName("Arma el pedido de candidatos con el usuario, el objetivo y el mini-objetivo")
-    void toCandidatosRequestShouldCarryTheIds() {
-        ListarCandidatosRequest result = mapper.toCandidatosRequest(USUARIO_ID, OBJETIVO_ID, MINI_ID);
-
-        assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(result.objetivoId()).isEqualTo(OBJETIVO_ID);
-        assertThat(result.miniObjetivoId()).isEqualTo(MINI_ID);
+    void armaElPedidoDeCandidatos() {
+        entoncesElPedidoEs(mapper.toCandidatosRequest(USUARIO_ID, OBJETIVO_ID, MINI_ID),
+                new ListarCandidatosRequest(USUARIO_ID, OBJETIVO_ID, MINI_ID));
     }
 
     @Test
     @DisplayName("Arma el pedido de reemplazo con los ids de la ruta y el candidato elegido del cuerpo")
-    void toReemplazarRequestShouldCarryIdsAndTheChosenCandidate() {
-        ReemplazarMiniObjetivoRequest result = mapper.toReemplazarRequest(USUARIO_ID, OBJETIVO_ID, MINI_ID,
-                new ReemplazarMiniObjetivoWebRequest(TipoMiniObjetivo.SUBIR_PRECIO, PRODUCTO_ID, PRODUCTO));
-
-        assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(result.objetivoId()).isEqualTo(OBJETIVO_ID);
-        assertThat(result.miniObjetivoId()).isEqualTo(MINI_ID);
-        assertThat(result.tipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
-        assertThat(result.registroId()).isEqualTo(PRODUCTO_ID);
-        assertThat(result.referencia()).isEqualTo(PRODUCTO);
+    void armaElPedidoDeReemplazo() {
+        entoncesElPedidoEs(mapper.toReemplazarRequest(USUARIO_ID, OBJETIVO_ID, MINI_ID,
+                        new ReemplazarMiniObjetivoWebRequest(TipoMiniObjetivo.SUBIR_PRECIO, PRODUCTO_ID, PRODUCTO)),
+                new ReemplazarMiniObjetivoRequest(USUARIO_ID, OBJETIVO_ID, MINI_ID, TipoMiniObjetivo.SUBIR_PRECIO,
+                        PRODUCTO_ID, PRODUCTO));
     }
 
     @Test
     @DisplayName("Arma el pedido de abandonar con los ids de la sesión y la ruta")
-    void toAbandonarRequestShouldCarryTheIds() {
-        AbandonarMiniObjetivoRequest result = mapper.toAbandonarRequest(USUARIO_ID, OBJETIVO_ID, MINI_ID);
-
-        assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(result.objetivoId()).isEqualTo(OBJETIVO_ID);
-        assertThat(result.miniObjetivoId()).isEqualTo(MINI_ID);
+    void armaElPedidoDeAbandonar() {
+        entoncesElPedidoEs(mapper.toAbandonarRequest(USUARIO_ID, OBJETIVO_ID, MINI_ID),
+                new AbandonarMiniObjetivoRequest(USUARIO_ID, OBJETIVO_ID, MINI_ID));
     }
 
     @Test
     @DisplayName("Mapea cada mini-objetivo a su respuesta con todos sus datos")
-    void toResponseShouldMapEveryFieldOfAMiniObjetivo() {
-        MiniObjetivoResponse result = mapper.toResponse(MiniObjetivoItem.de(miniObjetivo()));
-
-        assertThat(result.id()).isEqualTo(MINI_ID);
-        assertThat(result.posicion()).isEqualTo(1);
-        assertThat(result.tipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
-        assertThat(result.sentido()).isEqualTo(SentidoMiniObjetivo.SUBE);
-        assertThat(result.estado()).isEqualTo(EstadoMiniObjetivo.EN_CURSO);
-        assertThat(result.titulo()).isEqualTo(TITULO);
-        assertThat(result.justificacion()).isEqualTo(JUSTIFICACION);
-        assertThat(result.referencia()).isEqualTo(PRODUCTO);
-        assertThat(result.registroId()).isEqualTo(PRODUCTO_ID);
-        assertThat(result.valorInicial()).isEqualTo(VALOR_INICIAL);
-        assertThat(result.valorActual()).isEqualTo(VALOR_INICIAL);
-        assertThat(result.meta()).isEqualTo(META_MINI);
-        assertThat(result.avance()).isEqualByComparingTo("0");
-        assertThat(result.aporteEstimado()).isEqualTo(APORTE);
-        assertThat(result.semanaInicio()).isEqualTo(SEMANA);
-        assertThat(result.textoConIa()).isFalse();
+    void mapeaCadaMiniObjetivoConTodosSusDatos() {
+        entoncesElMiniSeRespondeConTodosSusDatos(mapper.toResponse(MiniObjetivoItem.de(miniObjetivo())));
     }
 
     @Test
     @DisplayName("Mapea la lista de mini-objetivos con su historia y lo que falta")
-    void toResponseShouldMapTheListWithHistoryAndMissingData() {
-        ListarMiniObjetivosResponse respuesta = new ListarMiniObjetivosResponse(
+    void mapeaLaListaConSuHistoriaYLoQueFalta() {
+        entoncesLaListaTiene(mapper.toResponse(new ListarMiniObjetivosResponse(
                 List.of(MiniObjetivoItem.de(miniObjetivo())),
                 List.of(MiniObjetivoItem.de(miniObjetivo()), MiniObjetivoItem.de(miniObjetivo())),
-                FaltanDatosMiniObjetivos.POCOS_DATOS);
-
-        MiniObjetivosResponse result = mapper.toResponse(respuesta);
-
-        assertThat(result.minis()).hasSize(1);
-        assertThat(result.historial()).hasSize(2);
-        assertThat(result.faltanDatos()).isEqualTo(FaltanDatosMiniObjetivos.POCOS_DATOS);
+                FaltanDatosMiniObjetivos.POCOS_DATOS)), 1, 2, FaltanDatosMiniObjetivos.POCOS_DATOS);
     }
 
     @Test
     @DisplayName("Mapea las alternativas con todos sus datos")
-    void toResponseShouldMapEveryFieldOfTheCandidates() {
-        List<CandidatoMiniObjetivoResponse> result =
-                mapper.toResponse(ListarCandidatosResponse.de(List.of(candidato())));
-
-        assertThat(result).singleElement().satisfies(item -> {
-            assertThat(item.tipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
-            assertThat(item.sentido()).isEqualTo(SentidoMiniObjetivo.SUBE);
-            assertThat(item.titulo()).isEqualTo(TITULO);
-            assertThat(item.justificacion()).isEqualTo(JUSTIFICACION);
-            assertThat(item.referencia()).isEqualTo(PRODUCTO);
-            assertThat(item.registroId()).isEqualTo(PRODUCTO_ID);
-            assertThat(item.valorInicial()).isEqualTo(VALOR_INICIAL);
-            assertThat(item.meta()).isEqualTo(META_MINI);
-            assertThat(item.aporteEstimado()).isEqualTo(APORTE);
-        });
+    void mapeaLasAlternativasConTodosSusDatos() {
+        entoncesLaUnicaAlternativaTieneTodosSusDatos(mapper.toResponse(ListarCandidatosResponse.de(List.of(candidato()))));
     }
 
     @Test
     @DisplayName("Sin alternativas devuelve una lista vacía")
-    void toResponseShouldReturnAnEmptyListWithoutCandidates() {
-        assertThat(mapper.toResponse(ListarCandidatosResponse.de(List.of()))).isEmpty();
+    void sinAlternativasDevuelveUnaListaVacia() {
+        entoncesNoHayAlternativas(mapper.toResponse(ListarCandidatosResponse.de(List.of())));
+    }
+
+    private static void entoncesElPedidoEs(Object armado, Object esperado) {
+        assertThat(armado).isEqualTo(esperado);
+    }
+
+    private static void entoncesElMiniSeRespondeConTodosSusDatos(MiniObjetivoResponse mini) {
+        assertThat(mini.id()).isEqualTo(MINI_ID);
+        assertThat(mini.posicion()).isEqualTo(1);
+        assertThat(mini.tipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
+        assertThat(mini.sentido()).isEqualTo(SentidoMiniObjetivo.SUBE);
+        assertThat(mini.estado()).isEqualTo(EstadoMiniObjetivo.EN_CURSO);
+        assertThat(mini.titulo()).isEqualTo(TITULO);
+        assertThat(mini.justificacion()).isEqualTo(JUSTIFICACION);
+        assertThat(mini.referencia()).isEqualTo(PRODUCTO);
+        assertThat(mini.registroId()).isEqualTo(PRODUCTO_ID);
+        assertThat(mini.valorInicial()).isEqualTo(VALOR_INICIAL);
+        assertThat(mini.valorActual()).isEqualTo(VALOR_INICIAL);
+        assertThat(mini.meta()).isEqualTo(META_MINI);
+        assertThat(mini.avance()).isEqualByComparingTo("0");
+        assertThat(mini.aporteEstimado()).isEqualTo(APORTE);
+        assertThat(mini.semanaInicio()).isEqualTo(SEMANA);
+        assertThat(mini.textoConIa()).isFalse();
+    }
+
+    private static void entoncesLaListaTiene(MiniObjetivosResponse lista, int minis, int historial,
+                                             FaltanDatosMiniObjetivos faltan) {
+        assertThat(lista.minis()).hasSize(minis);
+        assertThat(lista.historial()).hasSize(historial);
+        assertThat(lista.faltanDatos()).isEqualTo(faltan);
+    }
+
+    private static void entoncesLaUnicaAlternativaTieneTodosSusDatos(List<CandidatoMiniObjetivoResponse> alternativas) {
+        assertThat(alternativas).containsExactly(new CandidatoMiniObjetivoResponse(TipoMiniObjetivo.SUBIR_PRECIO,
+                SentidoMiniObjetivo.SUBE, TITULO, JUSTIFICACION, PRODUCTO, PRODUCTO_ID, VALOR_INICIAL, META_MINI, APORTE));
+    }
+
+    private static void entoncesNoHayAlternativas(List<CandidatoMiniObjetivoResponse> alternativas) {
+        assertThat(alternativas).isEmpty();
     }
 }

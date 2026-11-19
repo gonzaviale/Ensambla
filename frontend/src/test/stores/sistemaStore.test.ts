@@ -1,209 +1,288 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-import { makeTemplate } from '@/lib/sistema/core';
+import { describe, it } from 'vitest';
 import {
-  seleccionarBloqueElegido,
-  seleccionarSeccionActiva,
-  seleccionarSistemaActivo,
-  useSistemaStore,
-} from '@/stores/sistemaStore';
+  cuandoElServidorTraeLoMismo,
+  cuandoElServidorTraeOtroNombre,
+  cuandoElServidorTraeUnoNuevoYElEliminado,
+  cuandoEntraOtraPersona,
+  cuandoLaMismaPersonaVuelveACargar,
+  cuandoSeAvisaOtraVez,
+  cuandoSeCambiaElNombre,
+  cuandoSeCambiaElNombreCuarentaVeces,
+  cuandoSeCierraElAviso,
+  cuandoSeDeshace,
+  cuandoSeDeshaceDosVeces,
+  cuandoSeEligeElPrimerBloque,
+  cuandoSeEligeLaPrimeraPestana,
+  cuandoSeEliminaElSistema,
+  cuandoSeIncorporaElQueSeElimino,
+  cuandoSeIncorporaUnaVersionViejaYUnoNuevo,
+  cuandoSeMarcaGuardadoElPrimero,
+  cuandoSeVuelveAAbrirComoNuevo,
+  dadoUnAviso,
+  dadosDosSistemasSinGuardar,
+  dadoUnSistemaAbierto,
+  dadoUnSistemaAbiertoConUnaPestanaNuevaElegida,
+  dadoUnSistemaAbiertoConUnBloqueElegidoYUnCambio,
+  dadoUnSistemaAbiertoQueSeElimino,
+  dadoUnSistemaAbiertoYEditado,
+  dadoUnSistemaAbiertoYOtroQueSeElimino,
+  entoncesDevuelveLoQueDevolvioElCambio,
+  entoncesElAvisoTieneOtroNumero,
+  entoncesElBloqueElegidoEsElPrimero,
+  entoncesElEstadoNoCambio,
+  entoncesElHistorialTiene,
+  entoncesElOriginalNoSeToco,
+  entoncesElPrimeroNoSeLlama,
+  entoncesElPrimeroSeLlama,
+  entoncesElSistemaSeLlama,
+  entoncesLaPestanaActivaEsLaPrimera,
+  entoncesLaPestanaElegidaEsLaPrimera,
+  entoncesQuedanElAbiertoYElCreadoPorSami,
+  entoncesNoHayAviso,
+  entoncesNoHayBloqueElegido,
+  entoncesNoHayNadaPendiente,
+  entoncesNoHaySistemas,
+  entoncesQuedaLaOtraPersonaSinNadaAbierto,
+  entoncesQuedaListoParaUsarSinSeleccionNiHistorial,
+  entoncesQuedaMarcadoParaBorrarYCerrado,
+  entoncesQuedaPendienteDeGuardar,
+  entoncesSePudoDeshacer,
+  entoncesSoloElSistemaQuedaPendiente,
+  entoncesSoloQuedaPendienteElSegundo,
+} from '@/test/storeDelSistema';
 
-const store = () => useSistemaStore.getState();
+describe('cargar los sistemas de la cuenta', () => {
+  it('no pisa lo editado si vuelve a cargar la misma persona', () => {
+    dadoUnSistemaAbiertoYEditado('Editado');
 
-function conUnSistema() {
-  const sistema = makeTemplate('shop', {}, true);
-  store().hidratar('usuario-1', [sistema]);
-  store().abrirSistema(sistema.id, 'build');
-  return sistema;
-}
+    cuandoLaMismaPersonaVuelveACargar();
 
-describe('store del taller', () => {
-  beforeEach(() => store().reiniciar());
-
-  it('carga los sistemas de la cuenta y no pisa lo editado si es la misma persona', () => {
-    const sistema = conUnSistema();
-    store().commit((s) => {
-      s.name = 'Editado';
-    });
-
-    store().hidratar('usuario-1', [sistema]);
-
-    expect(seleccionarSistemaActivo(store())?.name).toBe('Editado');
-  });
-
-  it('suma los sistemas que creó el servidor sin repetir ni pisar los que ya estaban', () => {
-    const sistema = conUnSistema();
-    const nuevo = { ...makeTemplate('business', {}, true), id: 'creado-por-sami' };
-
-    store().incorporarSistemas([{ ...sistema, name: 'Viejo' }, nuevo]);
-
-    expect(store().sistemas.map((item) => item.id)).toEqual([sistema.id, 'creado-por-sami']);
-    expect(store().sistemas[0]?.name).not.toBe('Viejo');
-    expect(store().pendientes).toEqual([]);
-  });
-
-  it('no vuelve a sumar un sistema que la persona acaba de eliminar', () => {
-    const sistema = conUnSistema();
-    store().eliminarSistema(sistema.id);
-
-    store().incorporarSistemas([sistema]);
-
-    expect(store().sistemas).toEqual([]);
-  });
-
-  it('trae lo que el servidor tiene de más en un sistema que la pestaña no cambió', () => {
-    const sistema = conUnSistema();
-    const delServidor = { ...sistema, name: 'Con filas de WhatsApp' };
-
-    store().actualizarDesdeServidor([delServidor]);
-
-    expect(store().sistemas[0]?.name).toBe('Con filas de WhatsApp');
-    expect(store().pendientes).toEqual([]);
-  });
-
-  it('no pisa un sistema con cambios sin guardar al traer lo del servidor', () => {
-    const sistema = conUnSistema();
-    store().commit((s) => {
-      s.name = 'Editado acá';
-    });
-
-    store().actualizarDesdeServidor([{ ...sistema, name: 'Del servidor' }]);
-
-    expect(store().sistemas[0]?.name).toBe('Editado acá');
-    expect(store().pendientes).toContain(sistema.id);
-  });
-
-  it('al traer lo del servidor suma los sistemas nuevos y respeta los que se eliminaron', () => {
-    const sistema = conUnSistema();
-    const nuevo = { ...makeTemplate('business', {}, true), id: 'creado-por-sami' };
-    const eliminado = { ...makeTemplate('business', {}, true), id: 'eliminado' };
-    store().agregarSistema(eliminado);
-    store().eliminarSistema(eliminado.id);
-
-    store().actualizarDesdeServidor([sistema, nuevo, eliminado]);
-
-    expect(store().sistemas.map((item) => item.id)).toEqual([sistema.id, 'creado-por-sami']);
-  });
-
-  it('si el servidor no trae nada distinto no toca el estado', () => {
-    const sistema = conUnSistema();
-    const antes = store().sistemas;
-
-    store().actualizarDesdeServidor([structuredClone(sistema)]);
-
-    expect(store().sistemas).toBe(antes);
+    entoncesElSistemaSeLlama('Editado');
   });
 
   it('cambiar de cuenta reemplaza todo lo que había', () => {
-    conUnSistema();
+    dadoUnSistemaAbierto();
 
-    store().hidratar('usuario-2', []);
+    cuandoEntraOtraPersona();
 
-    expect(store().sistemas).toEqual([]);
-    expect(store().activeId).toBeNull();
-    expect(store().usuarioId).toBe('usuario-2');
+    entoncesQuedaLaOtraPersonaSinNadaAbierto();
+  });
+});
+
+describe('sumar lo que creó el servidor', () => {
+  it('suma los sistemas nuevos sin repetir los que ya estaban', () => {
+    dadoUnSistemaAbierto();
+
+    cuandoSeIncorporaUnaVersionViejaYUnoNuevo();
+
+    entoncesQuedanElAbiertoYElCreadoPorSami();
   });
 
-  it('abrir un sistema elige su primera pestaña y limpia la selección y el historial', () => {
-    const sistema = conUnSistema();
-    store().seleccionar('algo');
-    store().commit((s) => {
-      s.name = 'x';
-    });
+  it('no pisa los sistemas que ya estaban', () => {
+    dadoUnSistemaAbierto();
 
-    store().abrirSistema(sistema.id, 'use', true);
+    cuandoSeIncorporaUnaVersionViejaYUnoNuevo();
 
-    expect(store()).toMatchObject({ modo: 'use', selectedId: null, historial: [], listo: true });
-    expect(seleccionarSeccionActiva(store())?.id).toBe(sistema.sections[0]?.id);
+    entoncesElPrimeroNoSeLlama('Viejo');
   });
 
-  it('un cambio se aplica sobre una copia, queda pendiente y se puede deshacer', () => {
-    const sistema = conUnSistema();
-    const original = store().sistemas[0];
+  it('lo que llegó del servidor no queda pendiente de guardar', () => {
+    dadoUnSistemaAbierto();
 
-    const resultado = store().commit((s) => {
-      s.name = 'Mi almacén nuevo';
-      return 42;
-    });
+    cuandoSeIncorporaUnaVersionViejaYUnoNuevo();
 
-    expect(resultado).toBe(42);
-    expect(sistema.name).toBe('Mi almacén');
-    expect(original?.name).toBe('Mi almacén');
-    expect(seleccionarSistemaActivo(store())?.name).toBe('Mi almacén nuevo');
-    expect(store().pendientes).toEqual([sistema.id]);
-    expect(store().deshacer()).toBe(true);
-    expect(seleccionarSistemaActivo(store())?.name).toBe('Mi almacén');
-    expect(store().deshacer()).toBe(false);
+    entoncesNoHayNadaPendiente();
+  });
+
+  it('no vuelve a sumar un sistema que la persona acaba de eliminar', () => {
+    dadoUnSistemaAbiertoQueSeElimino();
+
+    cuandoSeIncorporaElQueSeElimino();
+
+    entoncesNoHaySistemas();
+  });
+});
+
+describe('traer lo que cambió en el servidor', () => {
+  it('trae lo que el servidor tiene de más en un sistema que la pestaña no cambió', () => {
+    dadoUnSistemaAbierto();
+
+    cuandoElServidorTraeOtroNombre('Con filas de WhatsApp');
+
+    entoncesElPrimeroSeLlama('Con filas de WhatsApp');
+  });
+
+  it('lo traído del servidor no queda pendiente de guardar', () => {
+    dadoUnSistemaAbierto();
+
+    cuandoElServidorTraeOtroNombre('Con filas de WhatsApp');
+
+    entoncesNoHayNadaPendiente();
+  });
+
+  it('no pisa un sistema con cambios sin guardar', () => {
+    dadoUnSistemaAbiertoYEditado('Editado acá');
+
+    cuandoElServidorTraeOtroNombre('Del servidor');
+
+    entoncesElPrimeroSeLlama('Editado acá');
+  });
+
+  it('el sistema con cambios sigue pendiente de guardar', () => {
+    dadoUnSistemaAbiertoYEditado('Editado acá');
+
+    cuandoElServidorTraeOtroNombre('Del servidor');
+
+    entoncesQuedaPendienteDeGuardar();
+  });
+
+  it('suma los sistemas nuevos y respeta los que se eliminaron', () => {
+    dadoUnSistemaAbiertoYOtroQueSeElimino();
+
+    cuandoElServidorTraeUnoNuevoYElEliminado();
+
+    entoncesQuedanElAbiertoYElCreadoPorSami();
+  });
+
+  it('si el servidor no trae nada distinto no toca el estado', () => {
+    dadoUnSistemaAbierto();
+
+    cuandoElServidorTraeLoMismo();
+
+    entoncesElEstadoNoCambio();
+  });
+});
+
+describe('abrir y editar un sistema', () => {
+  it('abrir un sistema limpia la selección y el historial', () => {
+    dadoUnSistemaAbiertoConUnBloqueElegidoYUnCambio();
+
+    cuandoSeVuelveAAbrirComoNuevo();
+
+    entoncesQuedaListoParaUsarSinSeleccionNiHistorial();
+  });
+
+  it('abrir un sistema elige su primera pestaña', () => {
+    dadoUnSistemaAbiertoConUnBloqueElegidoYUnCambio();
+
+    cuandoSeVuelveAAbrirComoNuevo();
+
+    entoncesLaPestanaActivaEsLaPrimera();
+  });
+
+  it('un cambio devuelve lo que devuelve la función que cambia', () => {
+    dadoUnSistemaAbierto();
+
+    cuandoSeCambiaElNombre('Mi almacén nuevo');
+
+    entoncesDevuelveLoQueDevolvioElCambio();
+  });
+
+  it('un cambio se aplica sobre una copia', () => {
+    dadoUnSistemaAbierto();
+
+    cuandoSeCambiaElNombre('Mi almacén nuevo');
+
+    entoncesElOriginalNoSeToco();
+  });
+
+  it('el sistema abierto queda con el cambio', () => {
+    dadoUnSistemaAbierto();
+
+    cuandoSeCambiaElNombre('Mi almacén nuevo');
+
+    entoncesElSistemaSeLlama('Mi almacén nuevo');
+  });
+
+  it('un cambio queda pendiente de guardar', () => {
+    dadoUnSistemaAbierto();
+
+    cuandoSeCambiaElNombre('Mi almacén nuevo');
+
+    entoncesSoloElSistemaQuedaPendiente();
+  });
+
+  it('un cambio se puede deshacer', () => {
+    dadoUnSistemaAbiertoYEditado('Mi almacén nuevo');
+
+    cuandoSeDeshace();
+
+    entoncesElSistemaSeLlama('Mi almacén');
+  });
+
+  it('sin cambios no hay nada que deshacer', () => {
+    dadoUnSistemaAbiertoYEditado('Mi almacén nuevo');
+
+    cuandoSeDeshaceDosVeces();
+
+    entoncesSePudoDeshacer(false);
   });
 
   it('el historial guarda como máximo 30 pasos', () => {
-    conUnSistema();
+    dadoUnSistemaAbierto();
 
-    for (let i = 0; i < 40; i++) {
-      store().commit((s) => {
-        s.name = `Nombre ${i}`;
-      });
-    }
+    cuandoSeCambiaElNombreCuarentaVeces();
 
-    expect(store().historial).toHaveLength(30);
-  });
-
-  it('quitar un sistema lo marca para borrar y no lo deja pendiente de guardar', () => {
-    const sistema = conUnSistema();
-    store().commit((s) => {
-      s.name = 'x';
-    });
-
-    store().eliminarSistema(sistema.id);
-
-    expect(store().sistemas).toEqual([]);
-    expect(store().pendientes).toEqual([]);
-    expect(store().eliminados).toEqual([sistema.id]);
-    expect(store().activeId).toBeNull();
-  });
-
-  it('marcar guardados limpia solo lo enviado', () => {
-    const a = makeTemplate('shop', {}, false);
-    const b = makeTemplate('warehouse', {}, false);
-    store().hidratar('usuario-1', []);
-    store().agregarSistema(a);
-    store().agregarSistema(b);
-
-    store().marcarGuardados([a.id], []);
-
-    expect(store().pendientes).toEqual([b.id]);
-  });
-
-  it('elige una pestaña y un bloque, y los lectores los encuentran', () => {
-    const sistema = conUnSistema();
-    const bloque = sistema.sections[0]?.blocks[0];
-    if (!bloque) throw new Error('Falta un bloque');
-
-    store().seleccionar(bloque.id);
-
-    expect(seleccionarBloqueElegido(store())?.id).toBe(bloque.id);
-    store().elegirSeccion(sistema.sections[0]?.id ?? '');
-    expect(store().selectedId).toBeNull();
+    entoncesElHistorialTiene(30);
   });
 
   it('deshacer una pestaña que ya no existe vuelve a la primera', () => {
-    const sistema = conUnSistema();
-    store().commit((s) => {
-      s.sections.push({ id: 'otra', name: 'Otra', blocks: [] });
-    });
-    store().elegirSeccion('otra');
+    dadoUnSistemaAbiertoConUnaPestanaNuevaElegida();
 
-    store().deshacer();
+    cuandoSeDeshace();
 
-    expect(store().sectionId).toBe(sistema.sections[0]?.id);
+    entoncesLaPestanaElegidaEsLaPrimera();
+  });
+});
+
+describe('quitar y guardar sistemas', () => {
+  it('quitar un sistema lo marca para borrar, no lo deja pendiente y lo cierra', () => {
+    dadoUnSistemaAbiertoYEditado('x');
+
+    cuandoSeEliminaElSistema();
+
+    entoncesQuedaMarcadoParaBorrarYCerrado();
   });
 
-  it('los avisos tienen un número que cambia cada vez', () => {
-    store().avisar('Uno');
-    const primero = store().aviso?.id ?? 0;
-    store().avisar('Uno');
+  it('marcar guardados limpia sólo lo enviado', () => {
+    dadosDosSistemasSinGuardar();
 
-    expect(store().aviso?.id).toBeGreaterThan(primero);
-    store().cerrarAviso();
-    expect(store().aviso).toBeNull();
+    cuandoSeMarcaGuardadoElPrimero();
+
+    entoncesSoloQuedaPendienteElSegundo();
+  });
+});
+
+describe('pestañas, bloques y avisos', () => {
+  it('los lectores encuentran el bloque elegido', () => {
+    dadoUnSistemaAbierto();
+
+    cuandoSeEligeElPrimerBloque();
+
+    entoncesElBloqueElegidoEsElPrimero();
+  });
+
+  it('elegir una pestaña limpia el bloque elegido', () => {
+    dadoUnSistemaAbierto();
+
+    cuandoSeEligeLaPrimeraPestana();
+
+    entoncesNoHayBloqueElegido();
+  });
+
+  it('cada aviso tiene un número distinto', () => {
+    dadoUnAviso();
+
+    cuandoSeAvisaOtraVez();
+
+    entoncesElAvisoTieneOtroNumero();
+  });
+
+  it('cerrar el aviso lo saca', () => {
+    dadoUnAviso();
+
+    cuandoSeCierraElAviso();
+
+    entoncesNoHayAviso();
   });
 });

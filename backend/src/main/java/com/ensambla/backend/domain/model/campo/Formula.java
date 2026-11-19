@@ -3,9 +3,12 @@ package com.ensambla.backend.domain.model.campo;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Expresión aritmética de un campo FORMULA: números, referencias a campos con la forma {@code {id-del-campo}},
@@ -17,6 +20,8 @@ public final class Formula {
     public static final int MAX_CARACTERES = 500;
 
     private static final int LARGO_UUID = 36;
+
+    private static final String REFERENCIA_INVALIDA = "Hay una referencia a un campo que no es válida";
 
     private final Nodo raiz;
 
@@ -67,6 +72,39 @@ public final class Formula {
         return limpio.scale() < 0 ? limpio.setScale(0) : limpio;
     }
 
+    /** Las cuatro operaciones, con el símbolo que las escribe; la división por cero da {@code null}. */
+    private enum Operador {
+
+        SUMA('+', BigDecimal::add),
+        RESTA('-', BigDecimal::subtract),
+        PRODUCTO('*', BigDecimal::multiply),
+        DIVISION('/', Formula::dividir);
+
+        static final List<Operador> ADITIVOS = List.of(SUMA, RESTA);
+        static final List<Operador> MULTIPLICATIVOS = List.of(PRODUCTO, DIVISION);
+
+        private final char simbolo;
+
+        private final BinaryOperator<BigDecimal> operacion;
+
+        Operador(char simbolo, BinaryOperator<BigDecimal> operacion) {
+            this.simbolo = simbolo;
+            this.operacion = operacion;
+        }
+
+        char simbolo() {
+            return simbolo;
+        }
+
+        BinaryOperator<BigDecimal> operacion() {
+            return operacion;
+        }
+    }
+
+    private static BigDecimal dividir(BigDecimal dividendo, BigDecimal divisor) {
+        return divisor.signum() == 0 ? null : dividendo.divide(divisor, MathContext.DECIMAL64);
+    }
+
     private static final class Lector {
 
         private final String texto;
@@ -80,31 +118,27 @@ public final class Formula {
         }
 
         private Nodo expresion() {
-            Nodo izquierda = termino();
-            while (true) {
-                saltarEspacios();
-                if (consumir('+')) {
-                    izquierda = operar(izquierda, termino(), BigDecimal::add);
-                } else if (consumir('-')) {
-                    izquierda = operar(izquierda, termino(), BigDecimal::subtract);
-                } else {
-                    return izquierda;
-                }
-            }
+            return encadenar(this::termino, Operador.ADITIVOS);
         }
 
         private Nodo termino() {
-            Nodo izquierda = factor();
-            while (true) {
-                saltarEspacios();
-                if (consumir('*')) {
-                    izquierda = operar(izquierda, factor(), BigDecimal::multiply);
-                } else if (consumir('/')) {
-                    izquierda = operar(izquierda, factor(), Lector::dividir);
-                } else {
-                    return izquierda;
-                }
+            return encadenar(this::factor, Operador.MULTIPLICATIVOS);
+        }
+
+        /** Operandos unidos por operadores del mismo nivel, de izquierda a derecha: {@code a - b + c}. */
+        private Nodo encadenar(Supplier<Nodo> operando, List<Operador> operadores) {
+            Nodo izquierda = operando.get();
+            Optional<Operador> operador = siguienteOperador(operadores);
+            while (operador.isPresent()) {
+                izquierda = operar(izquierda, operando.get(), operador.get().operacion());
+                operador = siguienteOperador(operadores);
             }
+            return izquierda;
+        }
+
+        private Optional<Operador> siguienteOperador(List<Operador> operadores) {
+            saltarEspacios();
+            return operadores.stream().filter(operador -> consumir(operador.simbolo())).findFirst();
         }
 
         private Nodo factor() {
@@ -112,42 +146,47 @@ public final class Formula {
             if (terminado()) {
                 throw error("La fórmula está incompleta");
             }
-            char actual = texto.charAt(posicion);
             if (consumir('-')) {
-                Nodo interno = factor();
-                return valorDe -> negar(interno.evaluar(valorDe));
+                return negado(factor());
             }
             if (consumir('(')) {
-                Nodo interno = expresion();
-                saltarEspacios();
-                if (!consumir(')')) {
-                    throw error("Falta cerrar un paréntesis");
-                }
-                return interno;
+                return entreParentesis();
             }
-            if (actual == '{') {
-                return referencia();
+            return texto.charAt(posicion) == '{' ? referencia() : numero();
+        }
+
+        private static Nodo negado(Nodo interno) {
+            return valorDe -> negar(interno.evaluar(valorDe));
+        }
+
+        private Nodo entreParentesis() {
+            Nodo interno = expresion();
+            saltarEspacios();
+            if (!consumir(')')) {
+                throw error("Falta cerrar un paréntesis");
             }
-            return numero();
+            return interno;
         }
 
         private Nodo referencia() {
             int inicio = posicion + 1;
             int fin = inicio + LARGO_UUID;
             if (fin >= texto.length() || texto.charAt(fin) != '}') {
-                throw error("Hay una referencia a un campo que no es válida");
+                throw error(REFERENCIA_INVALIDA);
             }
-            CampoId id;
-            try {
-                id = CampoId.de(texto.substring(inicio, fin));
-            } catch (IllegalArgumentException e) {
-                throw error("Hay una referencia a un campo que no es válida");
-            }
+            CampoId id = campoReferido(texto.substring(inicio, fin));
             posicion = fin + 1;
             referencias.add(id);
             return valorDe -> valorDe.apply(id);
         }
 
+        private CampoId campoReferido(String id) {
+            try {
+                return CampoId.de(id);
+            } catch (IllegalArgumentException e) {
+                throw error(REFERENCIA_INVALIDA);
+            }
+        }
         private Nodo numero() {
             int inicio = posicion;
             while (!terminado() && (Character.isDigit(texto.charAt(posicion)) || texto.charAt(posicion) == '.')) {
@@ -171,9 +210,6 @@ public final class Formula {
             };
         }
 
-        private static BigDecimal dividir(BigDecimal dividendo, BigDecimal divisor) {
-            return divisor.signum() == 0 ? null : dividendo.divide(divisor, MathContext.DECIMAL64);
-        }
 
         private static BigDecimal negar(BigDecimal valor) {
             return valor == null ? null : valor.negate();

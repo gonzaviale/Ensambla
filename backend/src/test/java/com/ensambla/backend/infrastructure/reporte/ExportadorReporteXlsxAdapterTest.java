@@ -4,7 +4,6 @@ import com.ensambla.backend.domain.model.reporte.TablaReporte;
 import org.dhatim.fastexcel.reader.Cell;
 import org.dhatim.fastexcel.reader.ReadableWorkbook;
 import org.dhatim.fastexcel.reader.Row;
-import org.dhatim.fastexcel.reader.Sheet;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -19,16 +18,106 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class ExportadorReporteXlsxAdapterTest {
 
     private final ExportadorReporteXlsxAdapter adapter = new ExportadorReporteXlsxAdapter();
+    private TablaReporte tabla;
+    private List<Row> filas;
+    private Throwable error;
 
     @Test
-    @DisplayName("El archivo tiene los encabezados, cada fila con su tipo de dato y la fila de totales al final")
-    void exportarShouldWriteHeadersTypedRowsAndTotals() throws IOException {
-        TablaReporte tabla = new TablaReporte(
+    @DisplayName("El archivo tiene los encabezados y una fila por cada fila de la tabla más la de totales")
+    void elArchivoTieneLosEncabezadosLasFilasYLosTotales() throws IOException {
+        dadoUnReporteDePedidos();
+
+        cuandoSeExporta();
+
+        entoncesElArchivoTieneFilas(4);
+        entoncesLosEncabezadosSon("Producto", "Cantidad", "Fecha", "Pagado", "Cargado");
+    }
+
+    @Test
+    @DisplayName("Cada celda se escribe con su tipo de dato: texto, número, fecha y fecha con hora")
+    void cadaCeldaSeEscribeConSuTipoDeDato() throws IOException {
+        dadoUnReporteDePedidos();
+
+        cuandoSeExporta();
+
+        entoncesLaCeldaDice(1, 0, "Pan");
+        entoncesLaCeldaTieneElNumero(1, 1, new BigDecimal("2.5"));
+        entoncesLaCeldaTieneLaFecha(1, 2, LocalDateTime.parse("2026-10-12T00:00:00"));
+        entoncesLaCeldaTieneLaFecha(1, 4, LocalDateTime.parse("2026-10-12T22:30:00"));
+    }
+
+    @Test
+    @DisplayName("Una celda sin valor queda vacía")
+    void unaCeldaSinValorQuedaVacia() throws IOException {
+        dadoUnReporteDePedidos();
+
+        cuandoSeExporta();
+
+        entoncesLaCeldaDice(2, 2, "");
+    }
+
+    @Test
+    @DisplayName("La fila de totales va al final")
+    void laFilaDeTotalesVaAlFinal() throws IOException {
+        dadoUnReporteDePedidos();
+
+        cuandoSeExporta();
+
+        entoncesLaCeldaDice(3, 0, "Total (2 filas)");
+        entoncesLaCeldaTieneElNumero(3, 1, new BigDecimal("3.5"));
+    }
+
+    @Test
+    @DisplayName("Un valor de otro tipo se escribe como texto")
+    void unValorDeOtroTipoSeEscribeComoTexto() throws IOException {
+        dadoUnReporteConUnaCelda(true);
+
+        cuandoSeExporta();
+
+        entoncesLaCeldaDice(1, 0, "true");
+    }
+
+    @Test
+    @DisplayName("La hoja se nombra sin los caracteres que Excel no admite")
+    void laHojaSeNombraSinLosCaracteresQueExcelNoAdmite() {
+        entoncesLaHojaDe("Pedidos: [2026]/?*", "Pedidos   2026");
+    }
+
+    @Test
+    @DisplayName("El nombre de la hoja se corta en 31 caracteres")
+    void elNombreDeLaHojaSeCortaEnTreintaYUnCaracteres() {
+        entoncesElNombreDeLaHojaDeTieneCaracteres("x".repeat(40), 31);
+    }
+
+    @Test
+    @DisplayName("Una hoja que queda sin nombre se llama Reporte")
+    void unaHojaQueQuedaSinNombreSeLlamaReporte() {
+        entoncesLaHojaDe(" ??? ", "Reporte");
+    }
+
+    @Test
+    @DisplayName("Un nombre corto y válido queda igual")
+    void unNombreCortoYValidoQuedaIgual() {
+        entoncesLaHojaDe("Corto", "Corto");
+    }
+
+    @Test
+    @DisplayName("Si no se puede escribir el archivo avisa con una excepción")
+    void siNoSePuedeEscribirElArchivoAvisaConUnaExcepcion() {
+        dadoUnReporteConUnaCelda("x");
+
+        cuandoSeEscribeEnUnDiscoLleno();
+
+        entoncesFallaLaEscritura();
+    }
+
+    private void dadoUnReporteDePedidos() {
+        tabla = new TablaReporte(
                 "Pedidos",
                 List.of("Producto", "Cantidad", "Fecha", "Pagado", "Cargado"),
                 List.of(
@@ -37,58 +126,60 @@ class ExportadorReporteXlsxAdapterTest {
                         Arrays.asList("Torta", new BigDecimal("1"), null, "No",
                                 LocalDateTime.parse("2026-10-11T09:00:00"))),
                 Arrays.asList("Total (2 filas)", new BigDecimal("3.5"), null, null, null));
-
-        List<Row> filas = leer(adapter.exportar(tabla));
-
-        assertThat(filas).hasSize(4);
-        assertThat(filas.get(0).stream().map(Cell::getText)).containsExactly(
-                "Producto", "Cantidad", "Fecha", "Pagado", "Cargado");
-        assertThat(filas.get(1).getCellText(0)).isEqualTo("Pan");
-        assertThat(filas.get(1).getCellAsNumber(1)).get().isEqualTo(new BigDecimal("2.5"));
-        assertThat(filas.get(1).getCellAsDate(2)).get().isEqualTo(LocalDateTime.parse("2026-10-12T00:00:00"));
-        assertThat(filas.get(1).getCellAsDate(4)).get().isEqualTo(LocalDateTime.parse("2026-10-12T22:30:00"));
-        assertThat(filas.get(2).getCellText(2)).isEmpty();
-        assertThat(filas.get(3).getCellText(0)).isEqualTo("Total (2 filas)");
-        assertThat(filas.get(3).getCellAsNumber(1)).get().isEqualTo(new BigDecimal("3.5"));
     }
 
-    @Test
-    @DisplayName("Un valor de otro tipo se escribe como texto")
-    void exportarShouldWriteOtherValuesAsText() throws IOException {
-        TablaReporte tabla = new TablaReporte("Hoja", List.of("A"), List.of(List.of(true)), List.of());
-
-        List<Row> filas = leer(adapter.exportar(tabla));
-
-        assertThat(filas.get(1).getCellText(0)).isEqualTo("true");
+    private void dadoUnReporteConUnaCelda(Object valor) {
+        tabla = new TablaReporte("Hoja", List.of("A"), List.of(List.of(valor)), List.of());
     }
 
-    @Test
-    @DisplayName("La hoja tiene el nombre de la tabla sin los caracteres que Excel no admite")
-    void nombreDeHojaShouldDropInvalidCharactersAndCapLength() {
-        assertThat(ExportadorReporteXlsxAdapter.nombreDeHoja("Pedidos: [2026]/?*")).isEqualTo("Pedidos   2026");
-        assertThat(ExportadorReporteXlsxAdapter.nombreDeHoja("x".repeat(40))).hasSize(31);
-        assertThat(ExportadorReporteXlsxAdapter.nombreDeHoja(" ??? ")).isEqualTo("Reporte");
-        assertThat(ExportadorReporteXlsxAdapter.nombreDeHoja("Corto")).isEqualTo("Corto");
+    private void cuandoSeExporta() throws IOException {
+        try (ReadableWorkbook libro = new ReadableWorkbook(new ByteArrayInputStream(adapter.exportar(tabla)))) {
+            filas = libro.getFirstSheet().read();
+        }
     }
 
-    @Test
-    @DisplayName("Si no se puede escribir el archivo avisa con una excepción")
-    void escribirShouldFailWhenTheStreamFails() {
-        OutputStream roto = new OutputStream() {
+    private void cuandoSeEscribeEnUnDiscoLleno() {
+        error = catchThrowable(() -> adapter.escribir(tabla, unDiscoLleno()));
+    }
+
+    private static OutputStream unDiscoLleno() {
+        return new OutputStream() {
             @Override
             public void write(int b) throws IOException {
                 throw new IOException("sin espacio");
             }
         };
-        TablaReporte tabla = new TablaReporte("Hoja", List.of("A"), List.of(List.of("x")), List.of());
-
-        assertThatThrownBy(() -> adapter.escribir(tabla, roto)).isInstanceOf(UncheckedIOException.class);
     }
 
-    private static List<Row> leer(byte[] contenido) throws IOException {
-        try (ReadableWorkbook libro = new ReadableWorkbook(new ByteArrayInputStream(contenido))) {
-            Sheet hoja = libro.getFirstSheet();
-            return hoja.read();
-        }
+    private void entoncesElArchivoTieneFilas(int cantidad) {
+        assertThat(filas).hasSize(cantidad);
+    }
+
+    private void entoncesLosEncabezadosSon(String... encabezados) {
+        assertThat(filas.getFirst().stream().map(Cell::getText)).containsExactly(encabezados);
+    }
+
+    private void entoncesLaCeldaDice(int fila, int columna, String texto) {
+        assertThat(filas.get(fila).getCellText(columna)).isEqualTo(texto);
+    }
+
+    private void entoncesLaCeldaTieneElNumero(int fila, int columna, BigDecimal numero) {
+        assertThat(filas.get(fila).getCellAsNumber(columna)).contains(numero);
+    }
+
+    private void entoncesLaCeldaTieneLaFecha(int fila, int columna, LocalDateTime fecha) {
+        assertThat(filas.get(fila).getCellAsDate(columna)).contains(fecha);
+    }
+
+    private void entoncesFallaLaEscritura() {
+        assertThat(error).isInstanceOf(UncheckedIOException.class);
+    }
+
+    private static void entoncesLaHojaDe(String nombre, String seLlama) {
+        assertThat(ExportadorReporteXlsxAdapter.nombreDeHoja(nombre)).isEqualTo(seLlama);
+    }
+
+    private static void entoncesElNombreDeLaHojaDeTieneCaracteres(String nombre, int cantidad) {
+        assertThat(ExportadorReporteXlsxAdapter.nombreDeHoja(nombre)).hasSize(cantidad);
     }
 }

@@ -15,7 +15,7 @@ import java.time.OffsetDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.inOrder;
@@ -37,32 +37,74 @@ class VinculacionWhatsappServiceTest {
     private final VerificacionWhatsappRepository verificacionRepository = mock(VerificacionWhatsappRepository.class);
     private final VinculacionWhatsappService service =
             new VinculacionWhatsappService(vinculoRepository, verificacionRepository);
+    private VinculoWhatsapp vinculo;
+    private Throwable error;
 
     @Test
-    @DisplayName("Vincular reemplaza el número anterior, guarda el nuevo y descarta la verificación en curso")
-    void vincularShouldReplacePreviousLink() {
-        when(vinculoRepository.save(any(VinculoWhatsapp.class))).thenAnswer(i -> i.getArgument(0));
+    @DisplayName("Vincular guarda el número nuevo en el negocio del usuario")
+    void vincularGuardaElNumeroNuevo() {
+        dadoQueGuardarDevuelveLoGuardado();
 
-        VinculoWhatsapp vinculo = service.vincular(USUARIO_ID, NEGOCIO_ID, TELEFONO, AHORA);
+        cuandoSeVincula();
 
-        assertThat(vinculo.getTelefono()).isEqualTo("5491122334455");
+        entoncesQuedoVinculadoA("5491122334455");
+    }
+
+    @Test
+    @DisplayName("Vincular borra el número anterior y la verificación en curso antes de guardar el nuevo")
+    void vincularReemplazaElNumeroAnterior() {
+        dadoQueGuardarDevuelveLoGuardado();
+
+        cuandoSeVincula();
+
+        entoncesSeBorroLoAnteriorAntesDeGuardar();
+    }
+
+    @Test
+    @DisplayName("Un número que ya es de otra cuenta no se vincula ni toca el vínculo actual")
+    void unNumeroDeOtraCuentaNoSeVincula() {
+        dadoQueElNumeroEsDeOtraCuenta();
+
+        cuandoSeIntentaVincular();
+
+        entoncesSeRechazaPorque("Ese número de WhatsApp ya está vinculado a otra cuenta");
+        entoncesNoSeTocoElVinculoActual();
+    }
+
+    private void dadoQueGuardarDevuelveLoGuardado() {
+        when(vinculoRepository.save(any(VinculoWhatsapp.class))).thenAnswer(guardado -> guardado.getArgument(0));
+    }
+
+    private void dadoQueElNumeroEsDeOtraCuenta() {
+        when(vinculoRepository.findByTelefono("5491122334455")).thenReturn(Optional.of(
+                VinculoWhatsapp.nuevo(OTRO_USUARIO_ID, NEGOCIO_ID, TELEFONO, AHORA)));
+    }
+
+    private void cuandoSeVincula() {
+        vinculo = service.vincular(USUARIO_ID, NEGOCIO_ID, TELEFONO, AHORA);
+    }
+
+    private void cuandoSeIntentaVincular() {
+        error = catchThrowable(this::cuandoSeVincula);
+    }
+
+    private void entoncesQuedoVinculadoA(String telefono) {
+        assertThat(vinculo.getTelefono()).isEqualTo(telefono);
         assertThat(vinculo.getNegocioId()).isEqualTo(NEGOCIO_ID);
+    }
+
+    private void entoncesSeBorroLoAnteriorAntesDeGuardar() {
         InOrder orden = inOrder(vinculoRepository, verificacionRepository);
         orden.verify(vinculoRepository).deleteByUsuarioId(USUARIO_ID);
         orden.verify(verificacionRepository).deleteByUsuarioId(USUARIO_ID);
         orden.verify(vinculoRepository).save(any(VinculoWhatsapp.class));
     }
 
-    @Test
-    @DisplayName("Un número que ya es de otra cuenta no se vincula ni toca el vínculo actual")
-    void vincularShouldRejectNumberOfAnotherUser() {
-        when(vinculoRepository.findByTelefono("5491122334455")).thenReturn(Optional.of(
-                VinculoWhatsapp.nuevo(OTRO_USUARIO_ID, NEGOCIO_ID, TELEFONO, AHORA)));
+    private void entoncesSeRechazaPorque(String mensaje) {
+        assertThat(error).isInstanceOf(DuplicateResourceException.class).hasMessage(mensaje);
+    }
 
-        assertThatThrownBy(() -> service.vincular(USUARIO_ID, NEGOCIO_ID, TELEFONO, AHORA))
-                .isInstanceOf(DuplicateResourceException.class)
-                .hasMessage("Ese número de WhatsApp ya está vinculado a otra cuenta");
-
+    private void entoncesNoSeTocoElVinculoActual() {
         verify(vinculoRepository, never()).deleteByUsuarioId(any());
         verify(vinculoRepository, never()).save(any());
     }
