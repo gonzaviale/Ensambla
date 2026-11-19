@@ -1,12 +1,16 @@
 package com.ensambla.backend.domain.useCase.metrica.crearMetrica;
 
-import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.metrica.DefinicionMetrica;
 import com.ensambla.backend.domain.model.metrica.Metrica;
+import com.ensambla.backend.domain.model.metrica.MetricasDelCuaderno;
 import com.ensambla.backend.domain.model.metrica.MotorMetricas;
+import com.ensambla.backend.domain.model.metrica.ResultadoMetrica;
 import com.ensambla.backend.domain.model.negocio.Negocio;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.metrica.MetricaRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
@@ -17,8 +21,6 @@ import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.util.Comparator;
-import java.util.List;
 
 /**
  * Guarda una métrica en el cuaderno, al final del panel: la que eligió la persona del catálogo de su rubro o la que
@@ -42,30 +44,44 @@ public class CrearMetrica {
     private final Clock clock;
 
     public MetricaItem execute(CrearMetricaRequest request) {
-        Negocio negocio = negocioRepository.obtenerNegocioDelUsuario(request.usuarioId());
-        Proyecto proyecto = proyectoRepository.obtener(negocio.getId(), request.proyectoId());
+        Negocio negocio = obtenerNegocioDelUsuario(request.usuarioId());
+        Proyecto proyecto = obtenerCuaderno(negocio.getId(), request.proyectoId());
         OffsetDateTime ahora = OffsetDateTime.now(clock);
-        DefinicionMetrica definicion = new DefinicionMetrica(
-                request.nombre(), request.fuente(), request.calculo(), request.agrupar(), request.periodo(),
-                request.soloFiado());
-        Metrica guardada = transaccionPort.ejecutar(() -> guardar(negocio, request, definicion, ahora));
-        return MetricaItem.de(guardada, motorMetricas.calcular(
-                definicion, datosDeProyectoService.cargar(proyecto, negocio.getId()), ZonaNegocio.dia(ahora)));
+        Metrica guardada = agregarAlFinalDelPanel(negocio.getId(), request, ahora);
+        return MetricaItem.de(guardada, calcularHoy(request.definicion(), proyecto, negocio.getId(), ahora));
     }
 
-    private Metrica guardar(
-            Negocio negocio, CrearMetricaRequest request, DefinicionMetrica definicion, OffsetDateTime ahora) {
-        List<Metrica> existentes =
-                metricaRepository.findAllByProyectoIdAndNegocioId(request.proyectoId(), negocio.getId());
-        if (existentes.size() >= Metrica.MAXIMO_POR_CUADERNO) {
-            throw new BusinessRuleException(
-                    "Ya tenés " + Metrica.MAXIMO_POR_CUADERNO + " métricas: quitá alguna para agregar otra");
-        }
-        if (existentes.stream().anyMatch(existente -> existente.getDefinicion().esIgualA(definicion))) {
-            throw new BusinessRuleException("Ya tenés esa métrica en el cuaderno");
-        }
-        int orden = existentes.stream().map(Metrica::getOrden).max(Comparator.naturalOrder()).orElse(-1) + 1;
-        return metricaRepository.save(Metrica.nueva(
-                negocio.getId(), request.proyectoId(), definicion, orden, request.autoria(), ahora));
+    private Negocio obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerNegocioDelUsuario(usuarioId);
+    }
+
+    private Proyecto obtenerCuaderno(NegocioId negocioId, ProyectoId proyectoId) {
+        return proyectoRepository.obtener(negocioId, proyectoId);
+    }
+
+    private Metrica agregarAlFinalDelPanel(NegocioId negocioId, CrearMetricaRequest request, OffsetDateTime ahora) {
+        return transaccionPort.ejecutar(() -> guardarDespuesDeLasQueHay(negocioId, request, ahora));
+    }
+
+    private Metrica guardarDespuesDeLasQueHay(NegocioId negocioId, CrearMetricaRequest request, OffsetDateTime ahora) {
+        DefinicionMetrica definicion = request.definicion();
+        MetricasDelCuaderno guardadas = metricasDelCuaderno(request.proyectoId(), negocioId);
+        guardadas.exigirLugarPara(definicion);
+        return guardar(Metrica.nueva(negocioId, request.proyectoId(), definicion, guardadas.siguienteOrden(),
+                request.autoria(), ahora));
+    }
+
+    private MetricasDelCuaderno metricasDelCuaderno(ProyectoId proyectoId, NegocioId negocioId) {
+        return new MetricasDelCuaderno(metricaRepository.findAllByProyectoIdAndNegocioId(proyectoId, negocioId));
+    }
+
+    private Metrica guardar(Metrica metrica) {
+        return metricaRepository.save(metrica);
+    }
+
+    private ResultadoMetrica calcularHoy(DefinicionMetrica definicion, Proyecto proyecto, NegocioId negocioId,
+                                         OffsetDateTime ahora) {
+        return motorMetricas.calcular(definicion, datosDeProyectoService.cargar(proyecto, negocioId),
+                ZonaNegocio.dia(ahora));
     }
 }

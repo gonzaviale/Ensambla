@@ -1,10 +1,14 @@
 package com.ensambla.backend.domain.useCase.metrica.listarMetricas;
 
 import com.ensambla.backend.domain.model.common.ZonaNegocio;
+import com.ensambla.backend.domain.model.metrica.Metrica;
 import com.ensambla.backend.domain.model.metrica.MotorMetricas;
 import com.ensambla.backend.domain.model.negocio.Negocio;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.reporte.DatosDeProyecto;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.metrica.MetricaRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
@@ -37,12 +41,32 @@ public class ListarMetricas {
     private final Clock clock;
 
     public List<MetricaItem> execute(ListarMetricasRequest request) {
-        Negocio negocio = negocioRepository.obtenerNegocioDelUsuario(request.usuarioId());
-        Proyecto proyecto = proyectoRepository.obtener(negocio.getId(), request.proyectoId());
-        DatosDeProyecto datos = datosDeProyectoService.cargar(proyecto, negocio.getId());
+        Negocio negocio = obtenerNegocioDelUsuario(request.usuarioId());
+        Proyecto proyecto = obtenerCuaderno(negocio.getId(), request.proyectoId());
+        DatosDeProyecto datos = leerElCuaderno(proyecto, negocio.getId());
         LocalDate hoy = ZonaNegocio.dia(OffsetDateTime.now(clock));
-        return metricaRepository.findAllByProyectoIdAndNegocioId(request.proyectoId(), negocio.getId()).stream()
-                .map(metrica -> MetricaItem.de(metrica, motorMetricas.calcular(metrica.getDefinicion(), datos, hoy)))
+        return metricasGuardadas(request.proyectoId(), negocio.getId()).stream()
+                .map(metrica -> conLoQueDaHoy(metrica, datos, hoy))
                 .toList();
+    }
+
+    private Negocio obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerNegocioDelUsuario(usuarioId);
+    }
+
+    private Proyecto obtenerCuaderno(NegocioId negocioId, ProyectoId proyectoId) {
+        return proyectoRepository.obtener(negocioId, proyectoId);
+    }
+
+    private DatosDeProyecto leerElCuaderno(Proyecto proyecto, NegocioId negocioId) {
+        return datosDeProyectoService.cargar(proyecto, negocioId);
+    }
+
+    private List<Metrica> metricasGuardadas(ProyectoId proyectoId, NegocioId negocioId) {
+        return metricaRepository.findAllByProyectoIdAndNegocioId(proyectoId, negocioId);
+    }
+
+    private MetricaItem conLoQueDaHoy(Metrica metrica, DatosDeProyecto datos, LocalDate hoy) {
+        return MetricaItem.de(metrica, motorMetricas.calcular(metrica.getDefinicion(), datos, hoy));
     }
 }
