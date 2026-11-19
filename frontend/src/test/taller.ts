@@ -41,23 +41,39 @@ export const dadoQueSamiArmoUnaPropuestaDeAlmacen = async () => {
 };
 
 let sistemaAjustado: Sistema;
+let emailDeAna: string;
 
 export const elSistemaQueSeAjusta = () => sistemaAjustado;
 
-/** Abre «Ajustar con Sami» sobre un almacén de Ana; `preparar` le deja los datos que la prueba necesita. */
-export const dadoQueSeAjustaConSamiUnAlmacenDeAna = async (
+export const elEmailDeAna = () => emailDeAna;
+
+/** Abre un almacén de Ana en su pantalla; `preparar` le deja los datos que la prueba necesita. */
+export const dadoQueSeAbreUnAlmacenDeAna = async (
   preparar: (sistema: Sistema) => void = () => undefined,
+  { conEjemplos = false }: { conEjemplos?: boolean } = {},
 ) => {
   const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
-  sistemaAjustado = makeTemplate('shop', {}, false);
+  emailDeAna = usuario.email;
+  sistemaAjustado = makeTemplate('shop', {}, conEjemplos);
   sistemaAjustado.name = 'Almacén de Ana';
   preparar(sistemaAjustado);
   estado.sistemas.set(usuario.email, [sistemaAjustado]);
   router = renderApp(`/sistemas/${sistemaAjustado.id}?modo=usar`);
   await screen.findByRole('heading', { level: 1, name: /Almacén de Ana/ }, ESPERA);
   user = userEvent.setup();
+};
+
+export const cuandoSePideAjustarConSami = async () => {
   await clickButton(user, /Ajustar con Sami/);
   await verifyHeadingPresentAsync('Construyamos juntos');
+};
+
+/** Abre «Ajustar con Sami» sobre un almacén de Ana. */
+export const dadoQueSeAjustaConSamiUnAlmacenDeAna = async (
+  preparar: (sistema: Sistema) => void = () => undefined,
+) => {
+  await dadoQueSeAbreUnAlmacenDeAna(preparar);
+  await cuandoSePideAjustarConSami();
 };
 
 export const campoDeLaConversacion = () =>
