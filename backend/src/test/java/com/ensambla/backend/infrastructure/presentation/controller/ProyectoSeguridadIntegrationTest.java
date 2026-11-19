@@ -30,6 +30,7 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.security.web.csrf.DefaultCsrfToken;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
@@ -78,6 +79,10 @@ class ProyectoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     private String csrfToken;
 
+    private ResultActions respuesta;
+    private UUID ajenoNegocioId;
+    private UUID ajenoId;
+
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
@@ -90,81 +95,67 @@ class ProyectoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("La lista HTTP contiene sólo proyectos del usuario autenticado")
     void laListaHTTPContieneSoloProyectosDelUsuarioAutenticado() throws Exception {
-        dadoProyecto(negocioId, "Propio");
-        dadoProyecto(NegocioId.de(dadoNegocio(UsuarioId.de(dadoUsuario()))), "Ajeno");
+        dadoElEscenarioDeLaListaHTTPContieneSoloProyectosDelUsuarioAutenticado();
 
-        mockMvc.perform(get("/api/proyectos").session(sesion))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].nombre").value("Propio"));
+        cuandoSeEjecutaLaListaHTTPContieneSoloProyectosDelUsuarioAutenticado();
+
+        entoncesSeVerificaLaListaHTTPContieneSoloProyectosDelUsuarioAutenticado();
     }
 
     @Test
     @DisplayName("Consultar un proyecto ajeno devuelve 404")
     void consultarUnProyectoAjenoDevuelve404() throws Exception {
-        UUID ajenoId = dadoProyecto(NegocioId.de(dadoNegocio(UsuarioId.de(dadoUsuario()))), "Ajeno");
+        dadoElEscenarioDeConsultarUnProyectoAjenoDevuelve404();
 
-        mockMvc.perform(get("/api/proyectos/{id}", ajenoId).session(sesion))
-                .andExpect(status().isNotFound());
+        cuandoSeEjecutaConsultarUnProyectoAjenoDevuelve404();
+
+        entoncesSeVerificaConsultarUnProyectoAjenoDevuelve404();
     }
 
     @Test
     @DisplayName("Crear ignora negocioId del body y persiste en el negocio de la sesión")
     void crearIgnoraNegocioIdDelBodyYPersisteEnElNegocioDeLaSesion() throws Exception {
-        UUID ajenoId = dadoNegocio(UsuarioId.de(dadoUsuario()));
+        dadoElEscenarioDeCrearIgnoraNegocioIdDelBodyYPersisteEnElNegocioDeLaSesion();
 
-        mockMvc.perform(post("/api/proyectos").session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json")
-                        .content("{\"nombre\":\" Nuevo \",\"negocioId\":\"" + ajenoId + "\"}"))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.nombre").value("Nuevo"));
+        cuandoSeEjecutaCrearIgnoraNegocioIdDelBodyYPersisteEnElNegocioDeLaSesion();
 
-        assertThat(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(negocioId.valor())).hasSize(1);
-        assertThat(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(ajenoId)).isEmpty();
+        entoncesSeVerificaCrearIgnoraNegocioIdDelBodyYPersisteEnElNegocioDeLaSesion();
     }
 
     @Test
     @DisplayName("Un PATCH ajeno responde 404 y conserva el nombre original")
     void unPATCHAjenoResponde404YConservaElNombreOriginal() throws Exception {
-        UUID ajenoNegocioId = dadoNegocio(UsuarioId.de(dadoUsuario()));
-        UUID ajenoId = dadoProyecto(NegocioId.de(ajenoNegocioId), "Ajeno");
+        dadoElEscenarioDeUnPATCHAjenoResponde404YConservaElNombreOriginal();
 
-        mockMvc.perform(patch("/api/proyectos/{id}", ajenoId).session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json").content("{\"nombre\":\"Cambio\"}"))
-                .andExpect(status().isNotFound());
+        cuandoSeEjecutaUnPATCHAjenoResponde404YConservaElNombreOriginal();
 
-        assertThat(proyectos.findByIdAndNegocioId(ajenoId, ajenoNegocioId).orElseThrow().getNombre())
-                .isEqualTo("Ajeno");
+        entoncesSeVerificaUnPATCHAjenoResponde404YConservaElNombreOriginal();
     }
 
     @Test
     @DisplayName("Un DELETE ajeno responde 404 y conserva el proyecto")
     void unDELETEAjenoResponde404YConservaElProyecto() throws Exception {
-        UUID ajenoNegocioId = dadoNegocio(UsuarioId.de(dadoUsuario()));
-        UUID ajenoId = dadoProyecto(NegocioId.de(ajenoNegocioId), "Ajeno");
+        dadoElEscenarioDeUnDELETEAjenoResponde404YConservaElProyecto();
 
-        mockMvc.perform(delete("/api/proyectos/{id}", ajenoId).session(sesion).header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isNotFound());
+        cuandoSeEjecutaUnDELETEAjenoResponde404YConservaElProyecto();
 
-        assertThat(proyectos.findByIdAndNegocioId(ajenoId, ajenoNegocioId)).isPresent();
+        entoncesSeVerificaUnDELETEAjenoResponde404YConservaElProyecto();
     }
 
     @Test
     @DisplayName("Crear sin CSRF devuelve 403 y no guarda datos")
     void crearSinCSRFDevuelve403YNoGuardaDatos() throws Exception {
-        mockMvc.perform(post("/api/proyectos").session(sesion)
-                        .contentType("application/json").content("{\"nombre\":\"Nuevo\"}"))
-                .andExpect(status().isForbidden());
+        cuandoSeEjecutaCrearSinCSRFDevuelve403YNoGuardaDatos();
 
-        assertThat(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(negocioId.valor())).isEmpty();
+        entoncesSeVerificaCrearSinCSRFDevuelve403YNoGuardaDatos();
     }
 
     @Test
     @DisplayName("Crear desde plantilla exige una sesión válida")
     void crearDesdePlantillaExigeUnaSesionValida() throws Exception {
-        mockMvc.perform(post("/api/proyectos/desde-plantilla/{id}", UUID.randomUUID())
-                        .session(dadoSesionSinUsuario()).header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isUnauthorized());
+        cuandoSeEjecutaCrearDesdePlantillaExigeUnaSesionValida();
+
+        entoncesSeVerificaCrearDesdePlantillaExigeUnaSesionValida();
     }
 
     // --- dado ---
@@ -228,6 +219,110 @@ class ProyectoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
         csrfToken = JsonMapper.builder().build().readValue(body, CsrfResponse.class).token();
         return session;
     }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeLaListaHTTPContieneSoloProyectosDelUsuarioAutenticado() throws Exception {
+        dadoProyecto(negocioId, "Propio");
+        dadoProyecto(NegocioId.de(dadoNegocio(UsuarioId.de(dadoUsuario()))), "Ajeno");
+    }
+
+    private void dadoElEscenarioDeConsultarUnProyectoAjenoDevuelve404() throws Exception {
+        ajenoId = dadoProyecto(NegocioId.de(dadoNegocio(UsuarioId.de(dadoUsuario()))), "Ajeno");
+    }
+
+    private void dadoElEscenarioDeCrearIgnoraNegocioIdDelBodyYPersisteEnElNegocioDeLaSesion() throws Exception {
+        ajenoId = dadoNegocio(UsuarioId.de(dadoUsuario()));
+    }
+
+    private void dadoElEscenarioDeUnPATCHAjenoResponde404YConservaElNombreOriginal() throws Exception {
+        ajenoNegocioId = dadoNegocio(UsuarioId.de(dadoUsuario()));
+        ajenoId = dadoProyecto(NegocioId.de(ajenoNegocioId), "Ajeno");
+    }
+
+    private void dadoElEscenarioDeUnDELETEAjenoResponde404YConservaElProyecto() throws Exception {
+        ajenoNegocioId = dadoNegocio(UsuarioId.de(dadoUsuario()));
+        ajenoId = dadoProyecto(NegocioId.de(ajenoNegocioId), "Ajeno");
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaLaListaHTTPContieneSoloProyectosDelUsuarioAutenticado() throws Exception {
+        respuesta = mockMvc.perform(get("/api/proyectos").session(sesion));
+    }
+
+    private void cuandoSeEjecutaConsultarUnProyectoAjenoDevuelve404() throws Exception {
+        respuesta = mockMvc.perform(get("/api/proyectos/{id}", ajenoId).session(sesion));
+    }
+
+    private void cuandoSeEjecutaCrearIgnoraNegocioIdDelBodyYPersisteEnElNegocioDeLaSesion() throws Exception {
+        respuesta = mockMvc.perform(post("/api/proyectos").session(sesion).header("X-CSRF-TOKEN", csrfToken)
+                        .contentType("application/json")
+                        .content("{\"nombre\":\" Nuevo \",\"negocioId\":\"" + ajenoId + "\"}"));
+    }
+
+    private void cuandoSeEjecutaUnPATCHAjenoResponde404YConservaElNombreOriginal() throws Exception {
+        respuesta = mockMvc.perform(patch("/api/proyectos/{id}", ajenoId).session(sesion).header("X-CSRF-TOKEN", csrfToken)
+                        .contentType("application/json").content("{\"nombre\":\"Cambio\"}"));
+    }
+
+    private void cuandoSeEjecutaUnDELETEAjenoResponde404YConservaElProyecto() throws Exception {
+        respuesta = mockMvc.perform(delete("/api/proyectos/{id}", ajenoId).session(sesion).header("X-CSRF-TOKEN", csrfToken));
+    }
+
+    private void cuandoSeEjecutaCrearSinCSRFDevuelve403YNoGuardaDatos() throws Exception {
+        respuesta = mockMvc.perform(post("/api/proyectos").session(sesion)
+                        .contentType("application/json").content("{\"nombre\":\"Nuevo\"}"));
+    }
+
+    private void cuandoSeEjecutaCrearDesdePlantillaExigeUnaSesionValida() throws Exception {
+        respuesta = mockMvc.perform(post("/api/proyectos/desde-plantilla/{id}", UUID.randomUUID())
+                        .session(dadoSesionSinUsuario()).header("X-CSRF-TOKEN", csrfToken));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaLaListaHTTPContieneSoloProyectosDelUsuarioAutenticado() throws Exception {
+        respuesta
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].nombre").value("Propio"));
+    }
+
+    private void entoncesSeVerificaConsultarUnProyectoAjenoDevuelve404() throws Exception {
+        respuesta
+                .andExpect(status().isNotFound());
+    }
+
+    private void entoncesSeVerificaCrearIgnoraNegocioIdDelBodyYPersisteEnElNegocioDeLaSesion() throws Exception {
+        respuesta
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.nombre").value("Nuevo"));
+        assertThat(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(negocioId.valor())).hasSize(1);
+        assertThat(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(ajenoId)).isEmpty();
+    }
+
+    private void entoncesSeVerificaUnPATCHAjenoResponde404YConservaElNombreOriginal() throws Exception {
+        respuesta
+                .andExpect(status().isNotFound());
+        assertThat(proyectos.findByIdAndNegocioId(ajenoId, ajenoNegocioId).orElseThrow().getNombre())
+                .isEqualTo("Ajeno");
+    }
+
+    private void entoncesSeVerificaUnDELETEAjenoResponde404YConservaElProyecto() throws Exception {
+        respuesta
+                .andExpect(status().isNotFound());
+        assertThat(proyectos.findByIdAndNegocioId(ajenoId, ajenoNegocioId)).isPresent();
+    }
+
+    private void entoncesSeVerificaCrearSinCSRFDevuelve403YNoGuardaDatos() throws Exception {
+        respuesta
+                .andExpect(status().isForbidden());
+        assertThat(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(negocioId.valor())).isEmpty();
+    }
+
+    private void entoncesSeVerificaCrearDesdePlantillaExigeUnaSesionValida() throws Exception {
+        respuesta
+                .andExpect(status().isUnauthorized());
+    }
 }
-
-
