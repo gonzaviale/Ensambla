@@ -12,6 +12,7 @@ import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
 import com.ensambla.backend.domain.service.pago.RenovacionPremiumService;
 import com.ensambla.backend.domain.useCase.pago.conciliarPagos.ConciliarPagos;
 import com.ensambla.backend.domain.useCase.pago.contratarPremium.ContratarPremium;
+import com.ensambla.backend.domain.useCase.plan.PruebaPremiumResponse;
 import com.ensambla.backend.infrastructure.pago.MercadoPagoProperties;
 import com.ensambla.backend.infrastructure.pago.MercadoPagoSuscripcionesAdapter;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
@@ -33,6 +34,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.ObjectMapper;
@@ -114,6 +116,13 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
     private UsuarioId usuarioId;
     private NegocioId negocioId;
     private String csrf;
+    private RenovacionPremium renovacion;
+    private PruebaPremiumResponse prueba;
+    private ResultActions respuesta;
+    private ResultActions segundaRespuesta;
+    private UUID anterior;
+    private String factura;
+    private String recursoId;
 
     @BeforeEach
     void setUp() {
@@ -163,253 +172,175 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("El primer cobro conserva los días restantes de prueba y todavía no inicia tiempo pago")
     void elPrimerCobroConservaLosDiasRestantesDePruebaYTodaviaNoIniciaTiempoPago() throws Exception {
-        var prueba = pruebaPremiumService.iniciar(negocioId, AHORA.minusDays(3));
+        dadoUnaPruebaIniciadaHaceTresDias();
 
-        mockMvc.perform(post("/api/planes/renovacion").session(sesion).header("X-CSRF-TOKEN", csrf))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.periodoDias").value(30))
-                .andExpect(jsonPath("$.contrato.importe").value(14900))
-                .andExpect(jsonPath("$.contrato.moneda").value("ARS"))
-                .andExpect(jsonPath("$.contrato.estado").value("PENDIENTE"));
+        cuandoSePideElContrato();
 
-        RenovacionPremium renovacion = renovacion();
-        assertThat(renovacion.getPrimerCobroEn()).isEqualTo(prueba.finEn());
-        assertThat(jdbcTemplate.queryForObject("SELECT estado FROM suscripcion WHERE negocio_id=?",
-                String.class, negocioId.valor())).isEqualTo("PRUEBA");
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM pago_premium WHERE negocio_id=?",
-                Integer.class, negocioId.valor())).isZero();
+        entoncesElContratoQuedaPendienteDeTreintaDiasPor14900Pesos();
+        entoncesElPrimerCobroEsAlTerminarLaPrueba();
+        entoncesLaSuscripcionSigueEnPrueba();
+        entoncesNoHayPagosRegistrados();
     }
 
     @Test
     @DisplayName("Autorizar la suscripción no habilita Premium sin pago aprobado")
     void autorizarLaSuscripcionNoHabilitaPremiumSinPagoAprobado() throws Exception {
-        dadoContrato();
-        RenovacionPremium renovacion = renovacion();
-        remotos.put(renovacion.getProveedorId(), contrato(renovacion, "authorized", AHORA.plusSeconds(1)));
+        dadoUnContratoPendiente();
 
-        mockMvc.perform(post("/api/planes/renovacion/actualizar").session(sesion).header("X-CSRF-TOKEN", csrf))
-                .andExpect(status().isNoContent());
+        cuandoElProveedorAutorizaLaSuscripcionYSeActualiza();
 
-        assertThat(planActual()).isEqualTo("GRATUITO");
-        assertThat(renovacion().getEstado()).isEqualTo("AUTORIZADA");
+        entoncesLaRespuestaNoTieneContenido();
+        entoncesElPlanEs("GRATUITO");
+        entoncesLaRenovacionEstaEn("AUTORIZADA");
     }
 
     @Test
     @DisplayName("Un pago aprobado concede sólo su período de treinta días y un duplicado no lo extiende")
     void unPagoAprobadoConcedeSoloSuPeriodoDeTreintaDiasYUnDuplicadoNoLoExtiende() throws Exception {
-        dadoContrato();
-        RenovacionPremium renovacion = renovacion();
-        dadoPago(pago(renovacion, UUID.randomUUID().toString(), "approved", AHORA, AHORA));
+        dadoUnContratoConUnPagoRemoto("approved");
 
-        sincronizar(renovacion.getId());
-        sincronizar(renovacion.getId());
+        cuandoSeSincronizaDosVeces();
 
-        assertThat(planActual()).isEqualTo("PREMIUM");
-        assertThat(finPagado()).isEqualTo(AHORA.plusDays(30));
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM pago_premium WHERE negocio_id=?",
-                Integer.class, negocioId.valor())).isOne();
+        entoncesElPlanEs("PREMIUM");
+        entoncesElPeriodoPagadoTerminaEn(AHORA.plusDays(30));
+        entoncesHayPagosRegistrados(1);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"pending", "rejected", "cancelled"})
     @DisplayName("Un pago pendiente, rechazado o cancelado no habilita Premium")
     void unPagoPendienteRechazadoOCanceladoNoHabilitaPremium(String estado) throws Exception {
-        dadoContrato();
-        RenovacionPremium renovacion = renovacion();
-        dadoPago(pago(renovacion, UUID.randomUUID().toString(), estado, AHORA, AHORA));
+        dadoUnContratoConUnPagoRemoto(estado);
 
-        sincronizar(renovacion.getId());
+        cuandoSeSincroniza();
 
-        assertThat(planActual()).isEqualTo("GRATUITO");
+        entoncesElPlanEs("GRATUITO");
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"pending", "rejected"})
     @DisplayName("Un siguiente cobro pendiente o rechazado conserva los días del período ya pagado")
     void unSiguienteCobroPendienteORechazadoConservaLosDiasDelPeriodoYaPagado(String estado) throws Exception {
-        dadoContrato();
-        RenovacionPremium renovacion = renovacion();
-        aplicarPago(renovacion,
-                pago(renovacion, facturaId("primera"), "approved", AHORA, AHORA), AHORA);
-        dadoPago(pago(renovacion, facturaId("segunda"), estado, AHORA.plusDays(30), AHORA.plusDays(29)));
-        when(clock.instant()).thenReturn(AHORA.plusDays(29).toInstant());
+        dadoUnPrimerPeriodoPagadoYUnSiguienteCobro(estado, AHORA.plusDays(29));
 
-        sincronizar(renovacion.getId());
+        cuandoSeSincroniza();
 
-        assertThat(planActual()).isEqualTo("PREMIUM");
-        assertThat(finPagado()).isEqualTo(AHORA.plusDays(30));
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM pago_premium WHERE negocio_id=?",
-                Integer.class, negocioId.valor())).isEqualTo(2);
+        entoncesElPlanEs("PREMIUM");
+        entoncesElPeriodoPagadoTerminaEn(AHORA.plusDays(30));
+        entoncesHayPagosRegistrados(2);
     }
 
     @Test
     @DisplayName("Al vencer el período pagado una renovación rechazada vuelve a Gratuito y conserva los datos")
     void alVencerElPeriodoPagadoUnaRenovacionRechazadaVuelveAGratuitoYConservaLosDatos() throws Exception {
-        dadoContrato();
-        RenovacionPremium renovacion = renovacion();
-        aplicarPago(renovacion,
-                pago(renovacion, facturaId("primera"), "approved", AHORA, AHORA), AHORA);
-        jdbcTemplate.update("INSERT INTO proyecto(negocio_id,nombre) VALUES (?,'Conservado tras rechazo')",
-                negocioId.valor());
-        dadoPago(pago(renovacion, facturaId("segunda"), "rejected", AHORA.plusDays(30), AHORA.plusDays(30)));
-        when(clock.instant()).thenReturn(AHORA.plusDays(30).toInstant());
+        dadoUnPrimerPeriodoPagadoUnProyectoYUnSiguienteCobroRechazado();
 
-        sincronizar(renovacion.getId());
+        cuandoSeSincroniza();
 
-        assertThat(planActual()).isEqualTo("GRATUITO");
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM proyecto WHERE negocio_id=?",
-                Integer.class, negocioId.valor())).isOne();
-        assertThat(jdbcTemplate.queryForObject("SELECT estado FROM pago_premium WHERE factura_id=?",
-                String.class, facturaId("primera"))).isEqualTo("approved");
+        entoncesElPlanEs("GRATUITO");
+        entoncesElNegocioConservaSuProyecto();
+        entoncesElPagoDeLaFacturaEstaEn("primera", "approved");
     }
 
     @Test
     @DisplayName("Reembolsar un período futuro conserva el período actual ya pagado")
     void reembolsarUnPeriodoFuturoConservaElPeriodoActualYaPagado() throws Exception {
-        dadoContrato();
-        RenovacionPremium renovacion = renovacion();
-        aplicarPago(renovacion,
-                pago(renovacion, facturaId("primera"), "approved", AHORA, AHORA), AHORA);
-        aplicarPago(renovacion,
-                pago(renovacion, facturaId("segunda"), "approved", AHORA.plusDays(30), AHORA), AHORA);
+        dadoDosPeriodosPagados(AHORA.plusDays(30), AHORA);
 
-        aplicarPago(renovacion,
-                pago(renovacion, facturaId("segunda"), "refunded", AHORA.plusDays(30), AHORA.plusMinutes(1)),
-                AHORA.plusMinutes(1));
+        cuandoSeReembolsaLaFactura("segunda", AHORA.plusDays(30), AHORA.plusMinutes(1));
 
-        assertThat(planActual()).isEqualTo("PREMIUM");
-        assertThat(finPagado()).isEqualTo(AHORA.plusDays(30));
-        assertThat(jdbcTemplate.queryForObject("SELECT estado FROM pago_premium WHERE factura_id=?",
-                String.class, facturaId("primera"))).isEqualTo("approved");
-        assertThat(jdbcTemplate.queryForObject("SELECT estado FROM pago_premium WHERE factura_id=?",
-                String.class, facturaId("segunda"))).isEqualTo("refunded");
+        entoncesElPlanEs("PREMIUM");
+        entoncesElPeriodoPagadoTerminaEn(AHORA.plusDays(30));
+        entoncesElPagoDeLaFacturaEstaEn("primera", "approved");
+        entoncesElPagoDeLaFacturaEstaEn("segunda", "refunded");
     }
 
     @Test
     @DisplayName("Reembolsar una factura anterior no elimina el período renovado de otra factura aprobada")
     void reembolsarUnaFacturaAnteriorNoEliminaElPeriodoRenovadoDeOtraFacturaAprobada() throws Exception {
-        dadoContrato();
-        RenovacionPremium renovacion = renovacion();
-        aplicarPago(renovacion,
-                pago(renovacion, facturaId("primera"), "approved", AHORA, AHORA), AHORA);
-        aplicarPago(renovacion,
-                pago(renovacion, facturaId("segunda"), "approved", AHORA.plusDays(30), AHORA.plusDays(30)),
-                AHORA.plusDays(30));
+        dadoDosPeriodosPagados(AHORA.plusDays(30), AHORA.plusDays(30));
 
-        aplicarPago(renovacion,
-                pago(renovacion, facturaId("primera"), "refunded", AHORA, AHORA.plusDays(31)), AHORA.plusDays(31));
+        cuandoSeReembolsaLaFactura("primera", AHORA, AHORA.plusDays(31));
 
-        assertThat(planActual()).isEqualTo("PREMIUM");
-        assertThat(finPagado()).isEqualTo(AHORA.plusDays(60));
-        assertThat(jdbcTemplate.queryForObject("SELECT estado FROM pago_premium WHERE factura_id=?",
-                String.class, facturaId("segunda"))).isEqualTo("approved");
+        entoncesElPlanEs("PREMIUM");
+        entoncesElPeriodoPagadoTerminaEn(AHORA.plusDays(60));
+        entoncesElPagoDeLaFacturaEstaEn("segunda", "approved");
     }
 
     @Test
     @DisplayName("Un reembolso completo retira sólo ese período y una entrega vieja no lo restaura")
     void unReembolsoCompletoRetiraSoloEsePeriodoYUnaEntregaViejaNoLoRestaura() throws Exception {
-        dadoContrato();
-        RenovacionPremium renovacion = renovacion();
-        String factura = UUID.randomUUID().toString();
-        aplicarPago(renovacion,
-                pago(renovacion, factura, "approved", AHORA, AHORA), AHORA);
+        dadoUnPeriodoPagadoDeUnaFacturaCualquiera();
 
-        aplicarPago(renovacion,
-                pago(renovacion, factura, "refunded", AHORA, AHORA.plusMinutes(1)), AHORA.plusMinutes(1));
-        aplicarPago(renovacion,
-                pago(renovacion, factura, "approved", AHORA, AHORA), AHORA);
+        cuandoSeReembolsaLaFacturaYLlegaUnaEntregaVieja();
 
-        assertThat(planActual()).isEqualTo("GRATUITO");
+        entoncesElPlanEs("GRATUITO");
     }
 
     @Test
     @DisplayName("Cancelar desde Planes conserva el período ya pagado y confirma la baja con el proveedor")
     void cancelarDesdePlanesConservaElPeriodoYaPagadoYConfirmaLaBajaConElProveedor() throws Exception {
-        dadoContrato();
-        RenovacionPremium renovacion = renovacion();
-        aplicarPago(renovacion,
-                pago(renovacion, UUID.randomUUID().toString(), "approved", AHORA, AHORA), AHORA);
+        dadoUnPeriodoPagadoDeUnaFacturaCualquiera();
 
-        mockMvc.perform(post("/api/planes/renovacion/cancelar").session(sesion).header("X-CSRF-TOKEN", csrf))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.contrato.estado").value("CANCELADA"))
-                .andExpect(jsonPath("$.contrato.cancelacionSolicitada").value(true));
+        cuandoSePideCancelarLaRenovacion();
 
-        assertThat(planActual()).isEqualTo("PREMIUM");
-        assertThat(finPagado()).isEqualTo(AHORA.plusDays(30));
+        entoncesLaRespuestaInformaUnContratoCanceladoConBajaSolicitada();
+        entoncesElPlanEs("PREMIUM");
+        entoncesElPeriodoPagadoTerminaEn(AHORA.plusDays(30));
     }
 
     @Test
     @DisplayName("Cancelar durante la prueba no elimina los días gratuitos restantes")
     void cancelarDuranteLaPruebaNoEliminaLosDiasGratuitosRestantes() throws Exception {
-        pruebaPremiumService.iniciar(negocioId, AHORA.minusDays(3));
-        dadoContrato();
+        dadoUnaPruebaIniciadaHaceTresDias();
+        dadoUnContratoPendiente();
 
-        mockMvc.perform(post("/api/planes/renovacion/cancelar").session(sesion).header("X-CSRF-TOKEN", csrf))
-                .andExpect(status().isOk());
+        cuandoSePideCancelarLaRenovacion();
 
-        assertThat(jdbcTemplate.queryForObject("SELECT estado FROM suscripcion WHERE negocio_id=?",
-                String.class, negocioId.valor())).isEqualTo("PRUEBA");
+        entoncesLaRespuestaEsExitosa();
+        entoncesLaSuscripcionSigueEnPrueba();
     }
 
     @Test
     @DisplayName("Una falla al cancelar conserva la intención y la conciliación recupera la baja")
     void unaFallaAlCancelarConservaLaIntencionYLaConciliacionRecuperaLaBaja() throws Exception {
-        dadoContrato();
-        doThrow(new PasarelaPagoException()).doAnswer(invocacion -> {
-            RenovacionPremium renovacion = renovacion();
-            remotos.put(renovacion.getProveedorId(), contrato(renovacion, "cancelled", AHORA.plusSeconds(1)));
-            return null;
-        }).when(pasarelaSuscripcionesPort).cancelar(anyString());
+        dadoUnContratoCuyaPrimeraBajaFallaEnElProveedor();
 
-        mockMvc.perform(post("/api/planes/renovacion/cancelar").session(sesion).header("X-CSRF-TOKEN", csrf))
-                .andExpect(status().isBadGateway());
-        sincronizar(renovacion().getId());
+        cuandoSeIntentaCancelarYLuegoSeConcilia();
 
-        assertThat(renovacion().isCancelacionSolicitada()).isTrue();
-        assertThat(renovacion().getEstado()).isEqualTo("CANCELADA");
+        entoncesLaRespuestaEsUnaFallaDeLaPasarela();
+        entoncesLaBajaQuedaSolicitada();
+        entoncesLaRenovacionEstaEn("CANCELADA");
     }
 
     @Test
     @DisplayName("Una respuesta de creación perdida se recupera por referencia sin crear otro contrato")
     void unaRespuestaDeCreacionPerdidaSeRecuperaPorReferenciaSinCrearOtroContrato() throws Exception {
-        doAnswer(invocacion -> {
-            RenovacionPremium renovacion = invocacion.getArgument(0);
-            ContratoRemoto remoto = contrato(renovacion, "pending", AHORA);
-            remotos.put(remoto.id(), remoto);
-            throw new PasarelaPagoException();
-        }).when(pasarelaSuscripcionesPort).crear(any(), anyString());
+        dadoUnProveedorQueCreaElContratoPeroPierdeLaRespuesta();
 
-        mockMvc.perform(post("/api/planes/renovacion").session(sesion).header("X-CSRF-TOKEN", csrf))
-                .andExpect(status().isBadGateway());
-        dadoContrato();
+        cuandoSePideElContratoYSeReintenta();
 
-        verify(pasarelaSuscripcionesPort, times(1)).crear(any(), anyString());
-        assertThat(renovacion().getProveedorId()).isNotBlank();
+        entoncesLaPrimeraRespuestaEsUnaFallaDeLaPasarela();
+        entoncesElReintentoRecuperaElContratoSinCrearOtro();
     }
 
     @Test
     @DisplayName("Dos preparaciones concurrentes comparten un único contrato abierto")
     void dosPreparacionesConcurrentesCompartenUnUnicoContratoAbierto() throws Exception {
-        try (var executor = Executors.newFixedThreadPool(2)) {
-            var primera = executor.submit(() -> contratarPremium.execute(usuarioId));
-            var segunda = executor.submit(() -> contratarPremium.execute(usuarioId));
+        cuandoSePreparanDosContratacionesALaVez();
 
-            primera.get();
-            segunda.get();
-
-            verify(pasarelaSuscripcionesPort, times(1)).crear(any(), anyString());
-            assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM renovacion_premium WHERE negocio_id=?",
-                    Integer.class, negocioId.valor())).isOne();
-        }
+        entoncesSeCreaUnSoloContratoEnElProveedor();
+        entoncesHayUnaSolaRenovacionAbierta();
     }
 
     @Test
     @DisplayName("La consulta usa la sesión e ignora negocio e importe enviados por el navegador")
     void laConsultaUsaLaSesionEIgnoraNegocioEImporteEnviadosPorElNavegador() throws Exception {
-        dadoContrato();
+        dadoUnContratoPendiente();
 
-        mockMvc.perform(get("/api/planes/renovacion").session(sesion).param("negocioId", UUID.randomUUID().toString()))
-                .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
-                .andExpect(jsonPath("$.contrato.id").value(renovacion().getId().toString()));
+        cuandoSeConsultaLaRenovacionConUnNegocioAjeno();
+
+        entoncesSeResponseConElContratoDeLaSesionSinCache();
     }
 
     @ParameterizedTest
@@ -417,226 +348,281 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
             "/api/planes/renovacion/actualizar"})
     @DisplayName("Las escrituras de pago exigen sesión y CSRF")
     void lasEscriturasDePagoExigenSesionYCsrf(String ruta) throws Exception {
-        mockMvc.perform(post(ruta)).andExpect(status().isUnauthorized());
-        mockMvc.perform(post(ruta).session(sesion)).andExpect(status().isForbidden());
+        cuandoSeEscribeSinSesionYSinCsrf(ruta);
+
+        entoncesSinSesionSeRechazaConUnauthorized();
+        entoncesSinCsrfSeRechazaConForbidden();
     }
 
     @Test
     @DisplayName("La configuración incompleta no crea contratos ni habilita el cobro")
     void laConfiguracionIncompletaNoCreaContratosNiHabilitaElCobro() throws Exception {
-        when(pasarelaSuscripcionesPort.disponible()).thenReturn(false);
+        dadoUnaPasarelaSinConfigurar();
 
-        mockMvc.perform(post("/api/planes/renovacion").session(sesion).header("X-CSRF-TOKEN", csrf))
-                .andExpect(status().isBadRequest());
-        mockMvc.perform(get("/api/planes/renovacion").session(sesion)).andExpect(status().isOk())
-                .andExpect(jsonPath("$.habilitada").value(false)).andExpect(jsonPath("$.contrato").doesNotExist());
+        cuandoSePideElContratoYSeConsultaLaRenovacion();
 
-        assertThat(renovacionPremiumService.consultar(negocioId)).isEmpty();
+        entoncesSeRechazaElContratoYElCobroQuedaDeshabilitado();
+        entoncesNoSeCreaNingunaRenovacion();
     }
 
     @Test
     @DisplayName("Una renovación cancelada no revive por una lectura posterior de autorización")
     void unaRenovacionCanceladaNoRevivePorUnaLecturaPosteriorDeAutorizacion() throws Exception {
-        dadoContrato();
-        RenovacionPremium renovacion = renovacion();
-        renovacionPremiumService.actualizarContrato(renovacion.getId(),
-                contrato(renovacion, "cancelled", AHORA.plusSeconds(2)), AHORA);
+        dadoUnContratoCanceladoPorElProveedor();
 
-        renovacionPremiumService.actualizarContrato(renovacion.getId(),
-                contrato(renovacion, "authorized", AHORA.plusSeconds(3)), AHORA);
+        cuandoLlegaUnaLecturaPosteriorDeAutorizacion();
 
-        assertThat(renovacion().getEstado()).isEqualTo("CANCELADA");
+        entoncesLaRenovacionEstaEn("CANCELADA");
     }
 
     @Test
     @DisplayName("Al vencer el período pago vuelve al gratuito sin borrar sus proyectos")
     void alVencerElPeriodoPagoVuelveAlGratuitoSinBorrarSusProyectos() throws Exception {
-        dadoContrato();
-        RenovacionPremium renovacion = renovacion();
-        aplicarPago(renovacion,
-                pago(renovacion, UUID.randomUUID().toString(), "approved", AHORA, AHORA), AHORA);
-        jdbcTemplate.update("INSERT INTO proyecto(negocio_id,nombre) VALUES (?,'Conservado')", negocioId.valor());
+        dadoUnPeriodoPagadoYUnProyectoConservado();
 
-        recalcular(renovacion, AHORA.plusDays(30));
+        cuandoVenceElPeriodoPagado();
 
-        assertThat(planActual()).isEqualTo("GRATUITO");
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM proyecto WHERE negocio_id=?",
-                Integer.class, negocioId.valor())).isOne();
-    }
-
-    private void dadoContrato() throws Exception {
-        mockMvc.perform(post("/api/planes/renovacion").session(sesion).header("X-CSRF-TOKEN", csrf))
-                .andExpect(status().isOk());
+        entoncesElPlanEs("GRATUITO");
+        entoncesElNegocioConservaSuProyecto();
     }
 
     @Test
     @DisplayName("Una contratación abierta impide iniciar después una prueba con cobro anticipado")
     void unaContratacionAbiertaImpideIniciarDespuesUnaPruebaConCobroAnticipado() throws Exception {
-        dadoContrato();
+        dadoUnContratoPendiente();
 
-        mockMvc.perform(get("/api/planes").session(sesion)).andExpect(status().isOk())
-                .andExpect(jsonPath("$.suscripcion.puedeIniciarPrueba").value(false));
-        mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrf))
-                .andExpect(status().isForbidden()).andExpect(jsonPath("$.codigo").value("RENOVACION_EN_CURSO"));
+        cuandoSeConsultanLosPlanesYSeIntentaIniciarLaPrueba();
 
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id=?",
-                Integer.class, negocioId.valor())).isZero();
+        entoncesNoSePuedeIniciarLaPruebaPorLaRenovacionEnCurso();
+        entoncesNoHayPruebasIniciadas(0);
     }
 
     @Test
     @DisplayName("Después de cancelar una contratación sin pagos todavía puede iniciar su única prueba")
     void despuesDeCancelarUnaContratacionSinPagosTodaviaPuedeIniciarSuUnicaPrueba() throws Exception {
-        dadoContrato();
-        mockMvc.perform(post("/api/planes/renovacion/cancelar").session(sesion).header("X-CSRF-TOKEN", csrf))
-                .andExpect(status().isOk());
+        dadoUnContratoCancelado();
 
-        mockMvc.perform(get("/api/planes").session(sesion)).andExpect(status().isOk())
-                .andExpect(jsonPath("$.suscripcion.puedeIniciarPrueba").value(true));
-        mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrf))
-                .andExpect(status().isOk());
+        cuandoSeConsultanLosPlanesYSeIniciaLaPrueba();
 
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id=?",
-                Integer.class, negocioId.valor())).isOne();
+        entoncesSePuedeIniciarLaPrueba();
+        entoncesNoHayPruebasIniciadas(1);
     }
 
     @Test
     @DisplayName("Una contratación nueva se elige antes que el historial cancelado aunque compartan hora")
     void unaContratacionNuevaSeEligeAntesQueElHistorialCanceladoAunqueCompartanHora() throws Exception {
-        dadoContrato();
-        UUID anterior = renovacion().getId().valor();
-        mockMvc.perform(post("/api/planes/renovacion/cancelar").session(sesion).header("X-CSRF-TOKEN", csrf))
-                .andExpect(status().isOk());
+        dadoUnContratoCancelado();
 
-        dadoContrato();
+        cuandoSeContrataDeNuevo();
 
-        assertThat(renovacion().getId()).isNotEqualTo(anterior);
-        assertThat(renovacion().getEstado()).isEqualTo("PENDIENTE");
+        entoncesLaRenovacionActualEsOtraYEstaPendiente();
     }
 
     @Test
     @DisplayName("La conciliación rota los contratos consultados incluso si no recibieron eventos")
     void laConciliacionRotaLosContratosConsultadosInclusoSiNoRecibieronEventos() throws Exception {
-        dadoContrato();
-        RenovacionPremium renovacion = renovacion();
+        dadoUnContratoPendienteConsultableUnMinutoDespues();
 
-        when(pasarelaSuscripcionesPort.consultar(anyString())).thenAnswer(invocacion -> Optional
-                .ofNullable(remotos.get(invocacion.<String>getArgument(0))).orElseThrow(PasarelaPagoException::new));
-        when(clock.instant()).thenReturn(AHORA.plusMinutes(1).toInstant());
+        cuandoSeConcilianLosPagos();
 
-        conciliarPagos.execute();
-
-        assertThat(renovacion().getSincronizadoEn()).isEqualTo(AHORA.plusMinutes(1));
+        entoncesLaRenovacionFueSincronizadaEn(AHORA.plusMinutes(1));
     }
 
     @Test
     @DisplayName("Cancelar dos veces no vuelve a solicitar una baja ya confirmada")
     void cancelarDosVecesNoVuelveASolicitarUnaBajaYaConfirmada() throws Exception {
-        dadoContrato();
-        mockMvc.perform(post("/api/planes/renovacion/cancelar").session(sesion).header("X-CSRF-TOKEN", csrf))
-                .andExpect(status().isOk());
+        dadoUnContratoCancelado();
 
-        mockMvc.perform(post("/api/planes/renovacion/cancelar").session(sesion).header("X-CSRF-TOKEN", csrf))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.contrato.estado").value("CANCELADA"));
+        cuandoSePideCancelarLaRenovacion();
 
-        verify(pasarelaSuscripcionesPort, times(1)).cancelar(anyString());
+        entoncesLaRespuestaInformaUnContratoCancelado();
+        entoncesLaBajaSeSolicitoUnaSolaVezAlProveedor();
     }
 
     @Test
     @DisplayName("Cada factura cubre su ciclo y una aprobación anticipada no extiende el período actual")
     void cadaFacturaCubreSuCicloYUnaAprobacionAnticipadaNoExtiendeElPeriodoActual() throws Exception {
-        dadoContrato();
-        RenovacionPremium renovacion = renovacion();
-        aplicarPago(renovacion,
-                pago(renovacion, UUID.randomUUID().toString(), "approved", AHORA, AHORA), AHORA);
+        dadoUnPrimerPeriodoPagado();
 
-        aplicarPago(renovacion,
-                pago(renovacion, UUID.randomUUID().toString(), "approved", AHORA.plusDays(30), AHORA), AHORA);
-        assertThat(finPagado()).isEqualTo(AHORA.plusDays(30));
-        recalcular(renovacion, AHORA.plusDays(30));
+        cuandoLlegaLaAprobacionAnticipadaDeLaSegundaFactura();
 
-        assertThat(finPagado()).isEqualTo(AHORA.plusDays(60));
+        entoncesElPeriodoPagadoTerminaEn(AHORA.plusDays(30));
+
+        cuandoVenceElPeriodoPagado();
+
+        entoncesElPeriodoPagadoTerminaEn(AHORA.plusDays(60));
     }
 
     @Test
     @DisplayName("Un webhook válido concilia un contrato conocido sin requerir sesión ni CSRF")
     void unWebhookValidoConciliaUnContratoConocidoSinRequerirSesionNiCSRF() throws Exception {
-        dadoContrato();
-        RenovacionPremium renovacion = renovacion();
-        when(pasarelaSuscripcionesPort.identificarContrato("subscription_preapproval", "mp-evento"))
-                .thenReturn(renovacion.getProveedorId());
-        dadoPago(pago(renovacion, UUID.randomUUID().toString(), "approved", AHORA, AHORA));
+        dadoUnContratoConUnPagoAprobadoYUnEventoConocido();
 
-        mockMvc.perform(post("/api/pagos/mercadopago").param("type", "subscription_preapproval")
-                        .param("data.id", "mp-evento").header("x-signature", "firma")
-                        .header("x-request-id", "solicitud"))
-                .andExpect(status().isOk());
+        cuandoLlegaElWebhookDeMercadoPagoSinSesion();
 
-        assertThat(planActual()).isEqualTo("PREMIUM");
+        entoncesLaRespuestaEsExitosa();
+        entoncesElPlanEs("PREMIUM");
     }
 
     @Test
     @DisplayName("Un webhook no autenticado por firma devuelve 401 y no cambia el plan")
     void unWebhookNoAutenticadoPorFirmaDevuelve401YNoCambiaElPlan() throws Exception {
-        doThrow(new NotificacionPagoInvalidaException()).when(pasarelaSuscripcionesPort)
-                .validarNotificacion(null, null, "123");
+        dadoUnWebhookConFirmaInvalida();
 
-        mockMvc.perform(post("/api/pagos/mercadopago").param("type", "payment").param("data.id", "123"))
-                .andExpect(status().isUnauthorized()).andExpect(header().string("Cache-Control", "no-store"));
+        cuandoLlegaElWebhookDePago();
 
-        assertThat(planActual()).isEqualTo("GRATUITO");
+        entoncesSeRechazaConUnauthorizedSinCache();
+        entoncesElPlanEs("GRATUITO");
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"subscription_authorized_payment", "payment"})
     @DisplayName("El aviso firmado de la segunda factura renueva una sola vez aunque llegue dos días tarde")
     void elAvisoFirmadoDeLaSegundaFacturaRenuevaUnaSolaVezAunqueLlegueDosDiasTarde(String tipo) throws Exception {
-        String recursoId = dadoSecondInvoiceWithRealSignatureValidation(tipo, "approved", AHORA.plusDays(32));
+        dadoUnaSegundaFacturaConFirmaReal(tipo, "approved", AHORA.plusDays(32));
 
-        notificarSegundaFactura(tipo, recursoId);
-        notificarSegundaFactura(tipo, recursoId);
+        cuandoLlegaDosVecesElAvisoFirmadoDeLaSegundaFactura(tipo);
 
-        assertThat(planActual()).isEqualTo("PREMIUM");
-        assertThat(finPagado()).isEqualTo(AHORA.plusDays(60));
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM pago_premium WHERE negocio_id=?",
-                Integer.class, negocioId.valor())).isEqualTo(2);
-        assertThat(jdbcTemplate.queryForObject("SELECT estado FROM pago_premium WHERE factura_id=?",
-                String.class, facturaId("segunda-firmada"))).isEqualTo("approved");
+        entoncesLosDosAvisosSeAceptan();
+        entoncesElPlanEs("PREMIUM");
+        entoncesElPeriodoPagadoTerminaEn(AHORA.plusDays(60));
+        entoncesHayPagosRegistrados(2);
+        entoncesElPagoDeLaFacturaEstaEn("segunda-firmada", "approved");
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"pending", "rejected"})
     @DisplayName("El aviso firmado de una segunda factura sin cobrar no renueva al vencer el primer período")
     void elAvisoFirmadoDeUnaSegundaFacturaSinCobrarNoRenuevaAlVencerElPrimerPeriodo(String estado) throws Exception {
-        String recursoId = dadoSecondInvoiceWithRealSignatureValidation(
-                "subscription_authorized_payment", estado, AHORA.plusDays(30));
+        dadoUnaSegundaFacturaConFirmaReal("subscription_authorized_payment", estado, AHORA.plusDays(30));
 
-        notificarSegundaFactura("subscription_authorized_payment", recursoId);
+        cuandoLlegaUnaVezElAvisoFirmadoDeLaSegundaFactura("subscription_authorized_payment");
 
-        assertThat(planActual()).isEqualTo("GRATUITO");
-        assertThat(jdbcTemplate.queryForObject("SELECT estado FROM pago_premium WHERE factura_id=?",
-                String.class, facturaId("primera-firmada"))).isEqualTo("approved");
-        assertThat(jdbcTemplate.queryForObject("SELECT estado FROM pago_premium WHERE factura_id=?",
-                String.class, facturaId("segunda-firmada"))).isEqualTo(estado);
-    }
-
-    // --- cuando ---
-    private void sincronizar(RenovacionId id) {
-        renovacionPremiumService.sincronizar(id, OffsetDateTime.now(clock));
+        entoncesElPlanEs("GRATUITO");
+        entoncesElPagoDeLaFacturaEstaEn("primera-firmada", "approved");
+        entoncesElPagoDeLaFacturaEstaEn("segunda-firmada", estado);
     }
 
     // --- dado ---
+    private void dadoUnContratoPendiente() throws Exception {
+        contratar();
+        renovacion = renovacion();
+    }
 
-    private String dadoSecondInvoiceWithRealSignatureValidation(String tipo, String estado,
-                                                                 OffsetDateTime instante) throws Exception {
-        dadoContrato();
-        RenovacionPremium renovacion = renovacion();
-        aplicarPago(renovacion,
-                pago(renovacion, facturaId("primera-firmada"), "approved", AHORA, AHORA), AHORA);
+    private void dadoUnaPruebaIniciadaHaceTresDias() {
+        prueba = pruebaPremiumService.iniciar(negocioId, AHORA.minusDays(3));
+    }
+
+    private void dadoUnContratoConUnPagoRemoto(String estado) throws Exception {
+        dadoUnContratoPendiente();
+        dadoPago(pago(renovacion, UUID.randomUUID().toString(), estado, AHORA, AHORA));
+    }
+
+    private void dadoUnPrimerPeriodoPagado() throws Exception {
+        dadoUnPrimerPeriodoPagadoDeLaFactura("primera");
+    }
+
+    private void dadoUnPrimerPeriodoPagadoDeLaFactura(String nombre) throws Exception {
+        dadoUnContratoPendiente();
+        aplicarPago(renovacion, pago(renovacion, facturaId(nombre), "approved", AHORA, AHORA), AHORA);
+    }
+
+    private void dadoUnPeriodoPagadoDeUnaFacturaCualquiera() throws Exception {
+        dadoUnContratoPendiente();
+        factura = UUID.randomUUID().toString();
+        aplicarPago(renovacion, pago(renovacion, factura, "approved", AHORA, AHORA), AHORA);
+    }
+
+    private void dadoUnPrimerPeriodoPagadoYUnSiguienteCobro(String estado, OffsetDateTime ahora) throws Exception {
+        dadoUnPrimerPeriodoPagado();
+        dadoPago(pago(renovacion, facturaId("segunda"), estado, AHORA.plusDays(30), AHORA.plusDays(29)));
+        when(clock.instant()).thenReturn(ahora.toInstant());
+    }
+
+    private void dadoUnPrimerPeriodoPagadoUnProyectoYUnSiguienteCobroRechazado() throws Exception {
+        dadoUnPrimerPeriodoPagado();
+        jdbcTemplate.update("INSERT INTO proyecto(negocio_id,nombre) VALUES (?,'Conservado tras rechazo')",
+                negocioId.valor());
+        dadoPago(pago(renovacion, facturaId("segunda"), "rejected", AHORA.plusDays(30), AHORA.plusDays(30)));
+        when(clock.instant()).thenReturn(AHORA.plusDays(30).toInstant());
+    }
+
+    private void dadoDosPeriodosPagados(OffsetDateTime finDelSegundo, OffsetDateTime cobradoElSegundo)
+            throws Exception {
+        dadoUnPrimerPeriodoPagado();
+        aplicarPago(renovacion, pago(renovacion, facturaId("segunda"), "approved", finDelSegundo, cobradoElSegundo),
+                cobradoElSegundo);
+    }
+
+    private void dadoUnPeriodoPagadoYUnProyectoConservado() throws Exception {
+        dadoUnPrimerPeriodoPagado();
+        jdbcTemplate.update("INSERT INTO proyecto(negocio_id,nombre) VALUES (?,'Conservado')", negocioId.valor());
+    }
+
+    private void dadoUnContratoCanceladoPorElProveedor() throws Exception {
+        dadoUnContratoPendiente();
+        renovacionPremiumService.actualizarContrato(renovacion.getId(),
+                contrato(renovacion, "cancelled", AHORA.plusSeconds(2)), AHORA);
+    }
+
+    private void dadoUnContratoCancelado() throws Exception {
+        dadoUnContratoPendiente();
+        anterior = renovacion.getId().valor();
+        cancelar().andExpect(status().isOk());
+    }
+
+    private void dadoUnContratoCuyaPrimeraBajaFallaEnElProveedor() throws Exception {
+        dadoUnContratoPendiente();
+        doThrow(new PasarelaPagoException()).doAnswer(invocacion -> {
+            remotos.put(renovacion.getProveedorId(), contrato(renovacion, "cancelled", AHORA.plusSeconds(1)));
+            return null;
+        }).when(pasarelaSuscripcionesPort).cancelar(anyString());
+    }
+
+    private void dadoUnProveedorQueCreaElContratoPeroPierdeLaRespuesta() {
+        doAnswer(invocacion -> {
+            RenovacionPremium nueva = invocacion.getArgument(0);
+            ContratoRemoto remoto = contrato(nueva, "pending", AHORA);
+            remotos.put(remoto.id(), remoto);
+            throw new PasarelaPagoException();
+        }).when(pasarelaSuscripcionesPort).crear(any(), anyString());
+    }
+
+    private void dadoUnaPasarelaSinConfigurar() {
+        when(pasarelaSuscripcionesPort.disponible()).thenReturn(false);
+    }
+
+    private void dadoUnContratoPendienteConsultableUnMinutoDespues() throws Exception {
+        dadoUnContratoPendiente();
+        when(pasarelaSuscripcionesPort.consultar(anyString())).thenAnswer(invocacion -> Optional
+                .ofNullable(remotos.get(invocacion.<String>getArgument(0))).orElseThrow(PasarelaPagoException::new));
+        when(clock.instant()).thenReturn(AHORA.plusMinutes(1).toInstant());
+    }
+
+    private void dadoUnContratoConUnPagoAprobadoYUnEventoConocido() throws Exception {
+        dadoUnContratoPendiente();
+        when(pasarelaSuscripcionesPort.identificarContrato("subscription_preapproval", "mp-evento"))
+                .thenReturn(renovacion.getProveedorId());
+        dadoPago(pago(renovacion, UUID.randomUUID().toString(), "approved", AHORA, AHORA));
+    }
+
+    private void dadoUnWebhookConFirmaInvalida() {
+        doThrow(new NotificacionPagoInvalidaException()).when(pasarelaSuscripcionesPort)
+                .validarNotificacion(null, null, "123");
+    }
+
+    private void dadoUnaSegundaFacturaConFirmaReal(String tipo, String estado, OffsetDateTime instante)
+            throws Exception {
+        dadoUnPrimerPeriodoPagadoDeLaFactura("primera-firmada");
         remotos.put(renovacion.getProveedorId(), contrato(renovacion, "authorized", AHORA.plusDays(30)));
         dadoPago(pago(renovacion, facturaId("segunda-firmada"), estado, AHORA.plusDays(30), AHORA.plusDays(30)));
         when(clock.instant()).thenReturn(instante.toInstant());
-        String recursoId = facturaId("segunda-firmada");
+        recursoId = facturaId("segunda-firmada");
         when(pasarelaSuscripcionesPort.identificarContrato(tipo, recursoId)).thenReturn(renovacion.getProveedorId());
+        dadoUnValidadorDeFirmaReal();
+    }
+
+    private void dadoUnValidadorDeFirmaReal() {
         MercadoPagoProperties propiedades = new MercadoPagoProperties();
         propiedades.setHabilitado(true);
         propiedades.setWebhookSecret(SECRETO_WEBHOOK_LOCAL);
@@ -645,22 +631,152 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
             validador.validarNotificacion(invocacion.getArgument(0), invocacion.getArgument(1), invocacion.getArgument(2));
             return null;
         }).when(pasarelaSuscripcionesPort).validarNotificacion(anyString(), anyString(), anyString());
-        return recursoId;
+    }
+
+    private void dadoPago(PagoRemoto pago) {
+        when(pasarelaSuscripcionesPort.listarPagos(pago.contratoId())).thenReturn(List.of(pago));
     }
 
     // --- cuando ---
+    private void cuandoSePideElContrato() throws Exception {
+        respuesta = mockMvc.perform(post("/api/planes/renovacion").session(sesion).header("X-CSRF-TOKEN", csrf));
+    }
 
-    private void notificarSegundaFactura(String tipo, String recursoId) throws Exception {
+    private void cuandoElProveedorAutorizaLaSuscripcionYSeActualiza() throws Exception {
+        remotos.put(renovacion.getProveedorId(), contrato(renovacion, "authorized", AHORA.plusSeconds(1)));
+        respuesta = mockMvc.perform(post("/api/planes/renovacion/actualizar").session(sesion)
+                .header("X-CSRF-TOKEN", csrf));
+    }
+
+    private void cuandoSeSincroniza() {
+        sincronizar(renovacion.getId());
+    }
+
+    private void cuandoSeSincronizaDosVeces() {
+        sincronizar(renovacion.getId());
+        sincronizar(renovacion.getId());
+    }
+
+    private void cuandoSeReembolsaLaFactura(String nombre, OffsetDateTime fin, OffsetDateTime cuando) {
+        aplicarPago(renovacion, pago(renovacion, facturaId(nombre), "refunded", fin, cuando), cuando);
+    }
+
+    private void cuandoSeReembolsaLaFacturaYLlegaUnaEntregaVieja() {
+        aplicarPago(renovacion, pago(renovacion, factura, "refunded", AHORA, AHORA.plusMinutes(1)),
+                AHORA.plusMinutes(1));
+        aplicarPago(renovacion, pago(renovacion, factura, "approved", AHORA, AHORA), AHORA);
+    }
+
+    private void cuandoSePideCancelarLaRenovacion() throws Exception {
+        respuesta = cancelar();
+    }
+
+    private void cuandoSeIntentaCancelarYLuegoSeConcilia() throws Exception {
+        respuesta = cancelar();
+        sincronizar(renovacion().getId());
+    }
+
+    private void cuandoSePideElContratoYSeReintenta() throws Exception {
+        respuesta = mockMvc.perform(post("/api/planes/renovacion").session(sesion).header("X-CSRF-TOKEN", csrf));
+        segundaRespuesta = mockMvc.perform(post("/api/planes/renovacion").session(sesion)
+                .header("X-CSRF-TOKEN", csrf));
+    }
+
+    private void cuandoSePreparanDosContratacionesALaVez() throws Exception {
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var primera = executor.submit(() -> contratarPremium.execute(usuarioId));
+            var segunda = executor.submit(() -> contratarPremium.execute(usuarioId));
+            primera.get();
+            segunda.get();
+        }
+    }
+
+    private void cuandoSeConsultaLaRenovacionConUnNegocioAjeno() throws Exception {
+        respuesta = mockMvc.perform(get("/api/planes/renovacion").session(sesion)
+                .param("negocioId", UUID.randomUUID().toString()));
+    }
+
+    private void cuandoSeEscribeSinSesionYSinCsrf(String ruta) throws Exception {
+        respuesta = mockMvc.perform(post(ruta));
+        segundaRespuesta = mockMvc.perform(post(ruta).session(sesion));
+    }
+
+    private void cuandoSePideElContratoYSeConsultaLaRenovacion() throws Exception {
+        respuesta = mockMvc.perform(post("/api/planes/renovacion").session(sesion).header("X-CSRF-TOKEN", csrf));
+        segundaRespuesta = mockMvc.perform(get("/api/planes/renovacion").session(sesion));
+    }
+
+    private void cuandoLlegaUnaLecturaPosteriorDeAutorizacion() {
+        renovacionPremiumService.actualizarContrato(renovacion.getId(),
+                contrato(renovacion, "authorized", AHORA.plusSeconds(3)), AHORA);
+    }
+
+    private void cuandoVenceElPeriodoPagado() {
+        recalcular(renovacion, AHORA.plusDays(30));
+    }
+
+    private void cuandoSeConsultanLosPlanesYSeIntentaIniciarLaPrueba() throws Exception {
+        respuesta = mockMvc.perform(get("/api/planes").session(sesion));
+        segundaRespuesta = mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrf));
+    }
+
+    private void cuandoSeConsultanLosPlanesYSeIniciaLaPrueba() throws Exception {
+        cuandoSeConsultanLosPlanesYSeIntentaIniciarLaPrueba();
+    }
+
+    private void cuandoSeContrataDeNuevo() throws Exception {
+        contratar();
+    }
+
+    private void cuandoSeConcilianLosPagos() {
+        conciliarPagos.execute();
+    }
+
+    private void cuandoLlegaLaAprobacionAnticipadaDeLaSegundaFactura() {
+        aplicarPago(renovacion, pago(renovacion, UUID.randomUUID().toString(), "approved", AHORA.plusDays(30), AHORA),
+                AHORA);
+    }
+
+    private void cuandoLlegaElWebhookDeMercadoPagoSinSesion() throws Exception {
+        respuesta = mockMvc.perform(post("/api/pagos/mercadopago").param("type", "subscription_preapproval")
+                .param("data.id", "mp-evento").header("x-signature", "firma").header("x-request-id", "solicitud"));
+    }
+
+    private void cuandoLlegaElWebhookDePago() throws Exception {
+        respuesta = mockMvc.perform(post("/api/pagos/mercadopago").param("type", "payment").param("data.id", "123"));
+    }
+
+    private void cuandoLlegaDosVecesElAvisoFirmadoDeLaSegundaFactura(String tipo) throws Exception {
+        respuesta = notificarSegundaFactura(tipo, recursoId);
+        segundaRespuesta = notificarSegundaFactura(tipo, recursoId);
+    }
+
+    private void cuandoLlegaUnaVezElAvisoFirmadoDeLaSegundaFactura(String tipo) throws Exception {
+        respuesta = notificarSegundaFactura(tipo, recursoId);
+    }
+
+    private ResultActions notificarSegundaFactura(String tipo, String recurso) throws Exception {
         String tiempo = Long.toString(clock.instant().getEpochSecond());
-        String manifiesto = "id:" + recursoId + ";request-id:" + SOLICITUD_SEGUNDA_FACTURA + ";ts:" + tiempo + ";";
+        String manifiesto = "id:" + recurso + ";request-id:" + SOLICITUD_SEGUNDA_FACTURA + ";ts:" + tiempo + ";";
         Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(new SecretKeySpec(SECRETO_WEBHOOK_LOCAL.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
         String firma = HexFormat.of().formatHex(mac.doFinal(manifiesto.getBytes(StandardCharsets.UTF_8)));
+        return mockMvc.perform(post("/api/pagos/mercadopago").param("type", tipo).param("data.id", recurso)
+                .header("x-signature", "ts=" + tiempo + ",v1=" + firma)
+                .header("x-request-id", SOLICITUD_SEGUNDA_FACTURA));
+    }
 
-        mockMvc.perform(post("/api/pagos/mercadopago").param("type", tipo).param("data.id", recursoId)
-                        .header("x-signature", "ts=" + tiempo + ",v1=" + firma)
-                        .header("x-request-id", SOLICITUD_SEGUNDA_FACTURA))
+    private void contratar() throws Exception {
+        mockMvc.perform(post("/api/planes/renovacion").session(sesion).header("X-CSRF-TOKEN", csrf))
                 .andExpect(status().isOk());
+    }
+
+    private ResultActions cancelar() throws Exception {
+        return mockMvc.perform(post("/api/planes/renovacion/cancelar").session(sesion).header("X-CSRF-TOKEN", csrf));
+    }
+
+    private void sincronizar(RenovacionId id) {
+        renovacionPremiumService.sincronizar(id, OffsetDateTime.now(clock));
     }
 
     /** Aplica el pago como lo hace la sincronización: la pasarela lo informa y se recalcula en {@code ahora}. */
@@ -677,16 +793,164 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
         sincronizar(renovacion.getId());
     }
 
+    // --- entonces ---
+    private void entoncesElContratoQuedaPendienteDeTreintaDiasPor14900Pesos() throws Exception {
+        respuesta.andExpect(status().isOk()).andExpect(jsonPath("$.periodoDias").value(30))
+                .andExpect(jsonPath("$.contrato.importe").value(14900))
+                .andExpect(jsonPath("$.contrato.moneda").value("ARS"))
+                .andExpect(jsonPath("$.contrato.estado").value("PENDIENTE"));
+    }
+
+    private void entoncesElPrimerCobroEsAlTerminarLaPrueba() {
+        assertThat(renovacion().getPrimerCobroEn()).isEqualTo(prueba.finEn());
+    }
+
+    private void entoncesLaSuscripcionSigueEnPrueba() {
+        assertThat(jdbcTemplate.queryForObject("SELECT estado FROM suscripcion WHERE negocio_id=?",
+                String.class, negocioId.valor())).isEqualTo("PRUEBA");
+    }
+
+    private void entoncesNoHayPagosRegistrados() {
+        entoncesHayPagosRegistrados(0);
+    }
+
+    private void entoncesHayPagosRegistrados(int cantidad) {
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM pago_premium WHERE negocio_id=?",
+                Integer.class, negocioId.valor())).isEqualTo(cantidad);
+    }
+
+    private void entoncesNoHayPruebasIniciadas(int cantidad) {
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id=?",
+                Integer.class, negocioId.valor())).isEqualTo(cantidad);
+    }
+
+    private void entoncesLaRespuestaNoTieneContenido() throws Exception {
+        respuesta.andExpect(status().isNoContent());
+    }
+
+    private void entoncesLaRespuestaEsExitosa() throws Exception {
+        respuesta.andExpect(status().isOk());
+    }
+
+    private void entoncesElPlanEs(String codigo) {
+        assertThat(planActual()).isEqualTo(codigo);
+    }
+
+    private void entoncesLaRenovacionEstaEn(String estado) {
+        assertThat(renovacion().getEstado()).isEqualTo(estado);
+    }
+
+    private void entoncesElPeriodoPagadoTerminaEn(OffsetDateTime fin) {
+        assertThat(finPagado()).isEqualTo(fin);
+    }
+
+    private void entoncesElPagoDeLaFacturaEstaEn(String nombre, String estado) {
+        assertThat(jdbcTemplate.queryForObject("SELECT estado FROM pago_premium WHERE factura_id=?",
+                String.class, facturaId(nombre))).isEqualTo(estado);
+    }
+
+    private void entoncesElNegocioConservaSuProyecto() {
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM proyecto WHERE negocio_id=?",
+                Integer.class, negocioId.valor())).isOne();
+    }
+
+    private void entoncesLaRespuestaInformaUnContratoCanceladoConBajaSolicitada() throws Exception {
+        respuesta.andExpect(status().isOk()).andExpect(jsonPath("$.contrato.estado").value("CANCELADA"))
+                .andExpect(jsonPath("$.contrato.cancelacionSolicitada").value(true));
+    }
+
+    private void entoncesLaRespuestaInformaUnContratoCancelado() throws Exception {
+        respuesta.andExpect(status().isOk()).andExpect(jsonPath("$.contrato.estado").value("CANCELADA"));
+    }
+
+    private void entoncesLaRespuestaEsUnaFallaDeLaPasarela() throws Exception {
+        respuesta.andExpect(status().isBadGateway());
+    }
+
+    private void entoncesLaBajaQuedaSolicitada() {
+        assertThat(renovacion().isCancelacionSolicitada()).isTrue();
+    }
+
+    private void entoncesLaPrimeraRespuestaEsUnaFallaDeLaPasarela() throws Exception {
+        entoncesLaRespuestaEsUnaFallaDeLaPasarela();
+    }
+
+    private void entoncesElReintentoRecuperaElContratoSinCrearOtro() throws Exception {
+        segundaRespuesta.andExpect(status().isOk());
+        verify(pasarelaSuscripcionesPort, times(1)).crear(any(), anyString());
+        assertThat(renovacion().getProveedorId()).isNotBlank();
+    }
+
+    private void entoncesSeCreaUnSoloContratoEnElProveedor() {
+        verify(pasarelaSuscripcionesPort, times(1)).crear(any(), anyString());
+    }
+
+    private void entoncesHayUnaSolaRenovacionAbierta() {
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM renovacion_premium WHERE negocio_id=?",
+                Integer.class, negocioId.valor())).isOne();
+    }
+
+    private void entoncesSeResponseConElContratoDeLaSesionSinCache() throws Exception {
+        respuesta.andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.contrato.id").value(renovacion().getId().toString()));
+    }
+
+    private void entoncesSinSesionSeRechazaConUnauthorized() throws Exception {
+        respuesta.andExpect(status().isUnauthorized());
+    }
+
+    private void entoncesSinCsrfSeRechazaConForbidden() throws Exception {
+        segundaRespuesta.andExpect(status().isForbidden());
+    }
+
+    private void entoncesSeRechazaElContratoYElCobroQuedaDeshabilitado() throws Exception {
+        respuesta.andExpect(status().isBadRequest());
+        segundaRespuesta.andExpect(status().isOk()).andExpect(jsonPath("$.habilitada").value(false))
+                .andExpect(jsonPath("$.contrato").doesNotExist());
+    }
+
+    private void entoncesNoSeCreaNingunaRenovacion() {
+        assertThat(renovacionPremiumService.consultar(negocioId)).isEmpty();
+    }
+
+    private void entoncesNoSePuedeIniciarLaPruebaPorLaRenovacionEnCurso() throws Exception {
+        respuesta.andExpect(status().isOk()).andExpect(jsonPath("$.suscripcion.puedeIniciarPrueba").value(false));
+        segundaRespuesta.andExpect(status().isForbidden()).andExpect(jsonPath("$.codigo").value("RENOVACION_EN_CURSO"));
+    }
+
+    private void entoncesSePuedeIniciarLaPrueba() throws Exception {
+        respuesta.andExpect(status().isOk()).andExpect(jsonPath("$.suscripcion.puedeIniciarPrueba").value(true));
+        segundaRespuesta.andExpect(status().isOk());
+    }
+
+    private void entoncesLaRenovacionActualEsOtraYEstaPendiente() {
+        assertThat(renovacion().getId()).isNotEqualTo(anterior);
+        assertThat(renovacion().getEstado()).isEqualTo("PENDIENTE");
+    }
+
+    private void entoncesLaRenovacionFueSincronizadaEn(OffsetDateTime instante) {
+        assertThat(renovacion().getSincronizadoEn()).isEqualTo(instante);
+    }
+
+    private void entoncesLaBajaSeSolicitoUnaSolaVezAlProveedor() {
+        verify(pasarelaSuscripcionesPort, times(1)).cancelar(anyString());
+    }
+
+    private void entoncesSeRechazaConUnauthorizedSinCache() throws Exception {
+        respuesta.andExpect(status().isUnauthorized()).andExpect(header().string("Cache-Control", "no-store"));
+    }
+
+    private void entoncesLosDosAvisosSeAceptan() throws Exception {
+        respuesta.andExpect(status().isOk());
+        segundaRespuesta.andExpect(status().isOk());
+    }
+
     private RenovacionPremium renovacion() {
         return renovacionPremiumService.consultar(negocioId).orElseThrow();
     }
 
     private String facturaId(String nombre) {
         return negocioId + "-" + nombre;
-    }
-
-    private void dadoPago(PagoRemoto pago) {
-        when(pasarelaSuscripcionesPort.listarPagos(pago.contratoId())).thenReturn(List.of(pago));
     }
 
     private String planActual() {
