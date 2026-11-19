@@ -56,6 +56,13 @@ const cuandoSeRenombra = async (usuario: UserEvent, actual: string, nuevo: strin
   await usuario.click(screen.getByRole('button', { name: 'Guardar nombre' }));
 };
 
+const cuandoSePideConPalabras = async (usuario: UserEvent, pedido: string) => {
+  await usuario.click(screen.getByRole('button', { name: /Agregar métrica/ }));
+  await usuario.click(screen.getByRole('button', { name: 'Pedila con tus palabras' }));
+  await usuario.type(screen.getByLabelText('¿Qué querés ver?'), pedido);
+  await usuario.click(screen.getByRole('button', { name: 'Ver qué entendí' }));
+};
+
 const entoncesElPanelMuestraEnOrden = async (nombres: string[]) => {
   await waitFor(() =>
     expect(
@@ -163,6 +170,35 @@ describe('Inicio: métricas a medida', () => {
     await dadoUnPanelConVentasYGastos();
     expect(screen.getByRole('button', { name: 'Subir Ventas de la semana' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Bajar Gastos del mes' })).toBeDisabled();
+  });
+
+  it('pide una métrica con sus palabras, la mira y la guarda', async () => {
+    const { usuario } = await abrirInicio();
+    await cuandoSePideConPalabras(usuario, '¿Qué producto vendo más este mes?');
+    const vista = await screen.findByLabelText('Así quedaría');
+    expect(
+      within(vista).getByRole('heading', { name: 'Qué producto vendo más este mes' }),
+    ).toBeInTheDocument();
+    expect(within(vista).getByText(/Por producto/)).toBeInTheDocument();
+    await usuario.click(within(vista).getByRole('button', { name: 'Guardar métrica' }));
+    await entoncesElPanelMuestraEnOrden(['Qué producto vendo más este mes']);
+  });
+
+  it('si no entiende el pedido dice qué falta y da ejemplos', async () => {
+    const { usuario } = await abrirInicio();
+    await cuandoSePideConPalabras(usuario, 'hola, ¿cómo andás?');
+    const aviso = await screen.findByRole('alert');
+    expect(aviso).toHaveTextContent('Decime si es de tus ventas, tus gastos o tu stock');
+    expect(within(aviso).getByText('«Cuánto vendí esta semana»')).toBeInTheDocument();
+  });
+
+  it('descarta lo que entendió sin guardar nada', async () => {
+    const { usuario, almacen } = await abrirInicio();
+    await cuandoSePideConPalabras(usuario, 'cuánto gasté en total');
+    const vista = await screen.findByLabelText('Así quedaría');
+    await usuario.click(within(vista).getByRole('button', { name: 'Descartar' }));
+    expect(screen.queryByLabelText('Así quedaría')).not.toBeInTheDocument();
+    expect(estado.metricas.get(almacen.id) ?? []).toEqual([]);
   });
 
   it('muestra el error del servidor al guardar una métrica repetida', async () => {

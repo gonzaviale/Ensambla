@@ -1,7 +1,7 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { ResultadoDeLaMetrica } from '@/components/sistema/metricas/MetricasAMedida';
 import { leerErrorServidor } from '@/hooks/errores';
-import { useGuardarMetrica, useVerComoQueda } from '@/hooks/metricas/mutations';
+import { useEntenderPedido, useGuardarMetrica, useVerComoQueda } from '@/hooks/metricas/mutations';
 import { useMetricasSugeridas } from '@/hooks/metricas/queries';
 import {
   ETIQUETA_DE_AGRUPACION,
@@ -20,6 +20,7 @@ import {
   FUENTES_DE_METRICA,
   type AutoriaDeMetrica,
   type DefinicionDeMetrica,
+  type MetricaSugerida,
 } from '@/types/metricas';
 
 const NO_SE_PUDO_GUARDAR = 'No pudimos guardarla. Probá de nuevo.';
@@ -30,8 +31,8 @@ const mensajeDe = (error: unknown) => {
   return delServidor && delServidor.status > 0 ? delServidor.mensaje : NO_SE_PUDO_GUARDAR;
 };
 
-// Dos caminos para sumar una métrica sin escribirla a mano: elegir una de las sugeridas para el rubro, o armar la
-// propia eligiendo de listas (qué mirar, cómo, repartida por qué y de cuándo). «Ver cómo queda» la calcula sin guardar.
+// Tres caminos para sumar una métrica sin escribir fórmulas: elegir una de las sugeridas para el rubro, armar la
+// propia eligiendo de listas, o pedirla con tus palabras. En los dos últimos se ve cómo queda antes de guardarla.
 export function AgregarMetrica({
   sistemaId,
   onCerrar,
@@ -39,8 +40,9 @@ export function AgregarMetrica({
   sistemaId: string;
   onCerrar: () => void;
 }) {
-  const [camino, setCamino] = useState<'sugeridas' | 'propia'>('sugeridas');
+  const [camino, setCamino] = useState<Camino>('sugeridas');
   const guardar = useGuardarMetrica(sistemaId);
+  const { Componente } = CAMINOS[camino];
 
   const guardarMetrica = (definicion: DefinicionDeMetrica, autoria: AutoriaDeMetrica) =>
     guardar.mutate({ ...definicion, autoria }, { onSuccess: onCerrar });
@@ -48,22 +50,7 @@ export function AgregarMetrica({
   return (
     <div className="agregar-metrica">
       <div className="agregar-metrica-cabecera">
-        <div className="selector-periodo" role="group" aria-label="Cómo querés agregarla">
-          <button
-            type="button"
-            aria-pressed={camino === 'sugeridas'}
-            onClick={() => setCamino('sugeridas')}
-          >
-            Sugeridas para tu negocio
-          </button>
-          <button
-            type="button"
-            aria-pressed={camino === 'propia'}
-            onClick={() => setCamino('propia')}
-          >
-            Armar la mía
-          </button>
-        </div>
+        <SelectorDeCamino camino={camino} onElegir={setCamino} />
         <button type="button" className="agregar-metrica-cerrar" onClick={onCerrar}>
           Cerrar
         </button>
@@ -73,15 +60,30 @@ export function AgregarMetrica({
           {mensajeDe(guardar.error)}
         </p>
       )}
-      {camino === 'sugeridas' ? (
-        <Sugeridas sistemaId={sistemaId} guardando={guardar.isPending} onAgregar={guardarMetrica} />
-      ) : (
-        <ArmarLaMia
-          sistemaId={sistemaId}
-          guardando={guardar.isPending}
-          onAgregar={guardarMetrica}
-        />
-      )}
+      <Componente sistemaId={sistemaId} guardando={guardar.isPending} onAgregar={guardarMetrica} />
+    </div>
+  );
+}
+
+function SelectorDeCamino({
+  camino,
+  onElegir,
+}: {
+  camino: Camino;
+  onElegir: (camino: Camino) => void;
+}) {
+  return (
+    <div className="selector-periodo" role="group" aria-label="Cómo querés agregarla">
+      {ORDEN_DE_LOS_CAMINOS.map((opcion) => (
+        <button
+          key={opcion}
+          type="button"
+          aria-pressed={camino === opcion}
+          onClick={() => onElegir(opcion)}
+        >
+          {CAMINOS[opcion].etiqueta}
+        </button>
+      ))}
     </div>
   );
 }
@@ -90,6 +92,19 @@ type PropsDelCamino = {
   sistemaId: string;
   guardando: boolean;
   onAgregar: (definicion: DefinicionDeMetrica, autoria: AutoriaDeMetrica) => void;
+};
+
+type Camino = 'sugeridas' | 'propia' | 'palabras';
+
+const ORDEN_DE_LOS_CAMINOS: Camino[] = ['sugeridas', 'propia', 'palabras'];
+
+const CAMINOS: Record<
+  Camino,
+  { etiqueta: string; Componente: (props: PropsDelCamino) => ReactNode }
+> = {
+  sugeridas: { etiqueta: 'Sugeridas para tu negocio', Componente: Sugeridas },
+  propia: { etiqueta: 'Armar la mía', Componente: ArmarLaMia },
+  palabras: { etiqueta: 'Pedila con tus palabras', Componente: PedilaConTusPalabras },
 };
 
 function Sugeridas({ sistemaId, guardando, onAgregar }: PropsDelCamino) {
@@ -274,5 +289,123 @@ function ArmarLaMia({ sistemaId, guardando, onAgregar }: PropsDelCamino) {
         </div>
       )}
     </form>
+  );
+}
+
+const EJEMPLOS_DE_PEDIDOS = [
+  'Cuánto vendí esta semana',
+  'Qué producto vendo más este mes',
+  'Cuánto me deben por cliente',
+  'En qué gasté más este mes',
+];
+
+// Se escribe lo que se quiere ver y se entiende con un diccionario fijo (sin IA): la receta y su número se muestran
+// antes de guardar, y si no se entendió o no se puede calcular, se dice por qué.
+function PedilaConTusPalabras({ sistemaId, guardando, onAgregar }: PropsDelCamino) {
+  const { pedido, setPedido, entender, propuesta, aviso, entendiendo, descartar } =
+    usePedidoEnPalabras(sistemaId);
+  return (
+    <form className="agregar-metrica-form" onSubmit={entender} noValidate>
+      <label>
+        ¿Qué querés ver?
+        <input
+          type="text"
+          value={pedido}
+          maxLength={200}
+          placeholder="Por ejemplo: cuánto vendí esta semana"
+          onChange={(evento) => setPedido(evento.target.value)}
+        />
+      </label>
+      <div className="agregar-metrica-acciones">
+        <button type="submit" className="agregar-metrica-ver" disabled={entendiendo}>
+          Ver qué entendí
+        </button>
+      </div>
+      {aviso && <AvisoDelPedido texto={aviso} />}
+      {propuesta && (
+        <PropuestaDelPedido
+          propuesta={propuesta}
+          guardando={guardando}
+          onGuardar={() => onAgregar(propuesta.definicion, 'PROPIA')}
+          onDescartar={descartar}
+        />
+      )}
+    </form>
+  );
+}
+
+/** Lo que la persona escribe y lo que respondió el servidor: la propuesta o por qué no se pudo. */
+function usePedidoEnPalabras(sistemaId: string) {
+  const entendido = useEntenderPedido(sistemaId);
+  const [pedido, setPedido] = useState('');
+  const [faltaElPedido, setFaltaElPedido] = useState(false);
+  const entender = (evento: FormEvent) => {
+    evento.preventDefault();
+    const limpio = pedido.trim();
+    setFaltaElPedido(limpio === '');
+    if (limpio !== '') entendido.mutate(limpio);
+  };
+  return {
+    pedido,
+    setPedido,
+    entender,
+    propuesta: entendido.data,
+    aviso: avisoDelPedido(faltaElPedido, entendido.error),
+    entendiendo: entendido.isPending,
+    descartar: entendido.reset,
+  };
+}
+
+function avisoDelPedido(faltaElPedido: boolean, error: unknown) {
+  if (faltaElPedido) return 'Contanos qué querés ver.';
+  if (!error) return null;
+  const delServidor = leerErrorServidor(error);
+  return delServidor && delServidor.status > 0
+    ? delServidor.mensaje
+    : 'No pudimos entenderlo ahora. Probá de nuevo.';
+}
+
+function AvisoDelPedido({ texto }: { texto: string }) {
+  return (
+    <div className="agregar-metrica-no-entendi" role="alert">
+      <p>{texto}</p>
+      <p>Podés probar con:</p>
+      <ul>
+        {EJEMPLOS_DE_PEDIDOS.map((ejemplo) => (
+          <li key={ejemplo}>«{ejemplo}»</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+type PropsDeLaPropuesta = {
+  propuesta: MetricaSugerida;
+  guardando: boolean;
+  onGuardar: () => void;
+  onDescartar: () => void;
+};
+
+function PropuestaDelPedido({ propuesta, guardando, onGuardar, onDescartar }: PropsDeLaPropuesta) {
+  const { definicion, resultado } = propuesta;
+  return (
+    <div className="agregar-metrica-vista" aria-label="Así quedaría">
+      <h3>{definicion.nombre}</h3>
+      <p className="metrica-medida-receta">{resumenDeLaReceta(definicion)}</p>
+      <ResultadoDeLaMetrica resultado={resultado} />
+      <div className="agregar-metrica-acciones">
+        <button
+          type="button"
+          className="metricas-medida-agregar"
+          disabled={guardando}
+          onClick={onGuardar}
+        >
+          Guardar métrica
+        </button>
+        <button type="button" className="agregar-metrica-ver" onClick={onDescartar}>
+          Descartar
+        </button>
+      </div>
+    </div>
   );
 }

@@ -3,6 +3,7 @@ import {
   metricaSchema,
   metricasSchema,
   resultadoDeMetricaSchema,
+  sugeridaSchema,
   sugeridasSchema,
   type DefinicionDeMetrica,
   type NuevaMetrica,
@@ -40,3 +41,7 @@ export const moverMetrica = (sistemaId: string, metricaId: string, lugar: number
     { lugar },
     z.undefined(),
   );
+
+/** Entiende un pedido en palabras y devuelve la receta que arma, con lo que daría hoy. No guarda nada. */
+export const interpretarPedidoDeMetrica = (sistemaId: string, pedido: string) =>
+  http.post(`${rutaDe(sistemaId)}/interpretar`, { pedido }, sugeridaSchema);

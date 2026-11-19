@@ -9,6 +9,7 @@ import {
 } from '@/types/metricas';
 import { estado, sistemasDe, type MetricaGuardada } from '../db/estado';
 import { calcularMetricaDeEjemplo, MAXIMO_DE_METRICAS, sugeridasDe } from '../db/metricas';
+import { interpretarPedido } from '../db/pedidosDeMetricas';
 import { errorResponse } from '../errores';
 import { api, cuenta, LATENCIA_BACKEND_MS, pathDe } from './comun';
 
@@ -118,6 +119,19 @@ export const handlersMetricas = [
     );
     return new HttpResponse(null, { status: 204 });
   }),
+  http.post(api('/proyectos/:sistemaId/metricas/interpretar'), async ({ request, params }) => {
+    const { sistema, error } = cuaderno(request, String(params.sistemaId), true);
+    if (error) return error;
+    const pedido = pedidoSchema.safeParse(await request.json());
+    if (!pedido.success) return errorDeCampos(request, pedido.error);
+    const receta = interpretarPedido(pedido.data.pedido);
+    if ('motivo' in receta) return errorResponse(400, receta.motivo, pathDe(request));
+    await delay(LATENCIA_BACKEND_MS);
+    return HttpResponse.json({
+      definicion: receta,
+      resultado: calcularMetricaDeEjemplo(receta, sistema, hoy()),
+    });
+  }),
   http.patch(api('/proyectos/:sistemaId/metricas/:metricaId'), async ({ request, params }) => {
     const { sistema, error } = cuaderno(request, String(params.sistemaId), true);
     if (error) return error;
@@ -153,6 +167,9 @@ export const handlersMetricas = [
 ];
 
 const renombrarSchema = definicionSchema.pick({ nombre: true });
+const pedidoSchema = z.object({
+  pedido: z.string().trim().min(1, 'Contanos qué querés ver').max(200, 'Máximo 200 caracteres'),
+});
 const moverSchema = z.object({ lugar: z.number().int().min(0, 'El primer lugar es el 0') });
 
 const errorDeCampos = (request: Request, error: z.ZodError) =>

@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   crearMetrica,
   eliminarMetrica,
+  interpretarPedidoDeMetrica,
   moverMetrica,
   previsualizarMetrica,
   renombrarMetrica,
@@ -55,4 +56,11 @@ export function useMoverMetrica(sistemaId: string, metricaId: string) {
 function useVolverAPedirLasMetricas(sistemaId: string) {
   const queryClient = useQueryClient();
   return () => queryClient.invalidateQueries({ queryKey: metricasKeys.cuaderno(sistemaId) });
+}
+
+/** Entiende lo que la persona escribió y propone la métrica con su número; no guarda nada hasta que confirme. */
+export function useEntenderPedido(sistemaId: string) {
+  return useMutation({
+    mutationFn: (pedido: string) => interpretarPedidoDeMetrica(sistemaId, pedido),
+  });
 }
