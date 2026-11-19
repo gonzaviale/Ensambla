@@ -19,50 +19,118 @@ class ProgresoObjetivoTest {
     private static final LocalDate LUNES_SIGUIENTE = LocalDate.of(2026, 11, 9);
     private static final LocalDate DOMINGO_ANTERIOR = LocalDate.of(2026, 11, 1);
 
+    private ProgresoObjetivo foto;
+    private List<ProgresoObjetivo> fotos;
+    private List<ProgresoObjetivo> ultimasDeCadaSemana;
+
     @Test
     @DisplayName("Una foto nueva lleva un id propio y los datos recibidos")
-    void deShouldCreateAPhotoWithItsOwnId() {
-        ProgresoObjetivo result = ProgresoObjetivo.de(OBJETIVO_ID, MINI_ID, MARTES, BigDecimal.TEN, AHORA);
+    void unaFotoNuevaLlevaUnIdPropioYLosDatosRecibidos() {
+        cuandoSeCreaUnaFotoDeUnMiniObjetivo();
 
-        assertThat(result.id()).isNotNull();
-        assertThat(result.objetivoId()).isEqualTo(OBJETIVO_ID);
-        assertThat(result.miniObjetivoId()).isEqualTo(MINI_ID);
-        assertThat(result.dia()).isEqualTo(MARTES);
-        assertThat(result.valor()).isEqualTo(BigDecimal.TEN);
-        assertThat(result.medidoEn()).isEqualTo(AHORA);
+        entoncesLlevaUnIdPropioYLosDatosRecibidos();
     }
 
     @Test
     @DisplayName("Es la foto del objetivo mayor cuando no tiene mini-objetivo")
-    void esDelObjetivoShouldBeTrueOnlyWithoutMiniObjetivo() {
-        assertThat(foto(null, MARTES, "1").esDelObjetivo()).isTrue();
-        assertThat(foto(MINI_ID, MARTES, "1").esDelObjetivo()).isFalse();
+    void esLaFotoDelObjetivoMayorCuandoNoTieneMiniObjetivo() {
+        dadoUnaFotoSinMiniObjetivo();
+
+        entoncesEsLaFotoDelObjetivo();
+    }
+
+    @Test
+    @DisplayName("No es la foto del objetivo mayor cuando tiene mini-objetivo")
+    void noEsLaFotoDelObjetivoMayorCuandoTieneMiniObjetivo() {
+        dadoUnaFotoDeUnMiniObjetivo();
+
+        entoncesNoEsLaFotoDelObjetivo();
     }
 
     @Test
     @DisplayName("Se queda con la última foto de cada semana, de lunes a domingo, de la más vieja a la más nueva")
-    void ultimaDeCadaSemanaShouldKeepTheLastPhotoOfEachWeek() {
-        List<ProgresoObjetivo> fotos = List.of(
-                foto(null, LUNES_SIGUIENTE, "30"),
-                foto(null, JUEVES, "20"),
-                foto(null, MARTES, "10"),
-                foto(null, DOMINGO_ANTERIOR, "5"));
+    void seQuedaConLaUltimaFotoDeCadaSemanaDeLunesADomingoDeLaMasViejaALaMasNueva() {
+        dadoFotosDeTresSemanas();
 
-        List<ProgresoObjetivo> result = ProgresoObjetivo.ultimaDeCadaSemana(fotos);
+        cuandoSeTomaLaUltimaDeCadaSemana();
 
-        assertThat(result).extracting(ProgresoObjetivo::valor)
-                .usingElementComparator(BigDecimal::compareTo)
-                .containsExactly(new BigDecimal("5"), new BigDecimal("20"), new BigDecimal("30"));
+        entoncesQuedaUnaFotoPorSemanaDeLaMasViejaALaMasNueva();
     }
 
     @Test
     @DisplayName("Sin fotos no hay semanas")
-    void ultimaDeCadaSemanaShouldBeEmptyWithoutPhotos() {
-        assertThat(ProgresoObjetivo.ultimaDeCadaSemana(List.of())).isEmpty();
+    void sinFotosNoHaySemanas() {
+        dadoQueNoHayFotos();
+
+        cuandoSeTomaLaUltimaDeCadaSemana();
+
+        entoncesNoHaySemanas();
     }
 
-    // --- helpers ---
-    private static ProgresoObjetivo foto(MiniObjetivoId miniObjetivoId, LocalDate dia, String valor) {
+    // --- dado ---
+
+    private void dadoUnaFotoSinMiniObjetivo() {
+        foto = unaFoto(null, MARTES, "1");
+    }
+
+    private void dadoUnaFotoDeUnMiniObjetivo() {
+        foto = unaFoto(MINI_ID, MARTES, "1");
+    }
+
+    private void dadoFotosDeTresSemanas() {
+        fotos = List.of(
+                unaFoto(null, LUNES_SIGUIENTE, "30"),
+                unaFoto(null, JUEVES, "20"),
+                unaFoto(null, MARTES, "10"),
+                unaFoto(null, DOMINGO_ANTERIOR, "5"));
+    }
+
+    private void dadoQueNoHayFotos() {
+        fotos = List.of();
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeCreaUnaFotoDeUnMiniObjetivo() {
+        foto = ProgresoObjetivo.de(OBJETIVO_ID, MINI_ID, MARTES, BigDecimal.TEN, AHORA);
+    }
+
+    private void cuandoSeTomaLaUltimaDeCadaSemana() {
+        ultimasDeCadaSemana = ProgresoObjetivo.ultimaDeCadaSemana(fotos);
+    }
+
+    // --- entonces ---
+
+    private void entoncesLlevaUnIdPropioYLosDatosRecibidos() {
+        assertThat(foto.id()).isNotNull();
+        assertThat(foto.objetivoId()).isEqualTo(OBJETIVO_ID);
+        assertThat(foto.miniObjetivoId()).isEqualTo(MINI_ID);
+        assertThat(foto.dia()).isEqualTo(MARTES);
+        assertThat(foto.valor()).isEqualTo(BigDecimal.TEN);
+        assertThat(foto.medidoEn()).isEqualTo(AHORA);
+    }
+
+    private void entoncesEsLaFotoDelObjetivo() {
+        assertThat(foto.esDelObjetivo()).isTrue();
+    }
+
+    private void entoncesNoEsLaFotoDelObjetivo() {
+        assertThat(foto.esDelObjetivo()).isFalse();
+    }
+
+    private void entoncesQuedaUnaFotoPorSemanaDeLaMasViejaALaMasNueva() {
+        assertThat(ultimasDeCadaSemana).extracting(ProgresoObjetivo::valor)
+                .usingElementComparator(BigDecimal::compareTo)
+                .containsExactly(new BigDecimal("5"), new BigDecimal("20"), new BigDecimal("30"));
+    }
+
+    private void entoncesNoHaySemanas() {
+        assertThat(ultimasDeCadaSemana).isEmpty();
+    }
+
+    // --- datos ---
+
+    private static ProgresoObjetivo unaFoto(MiniObjetivoId miniObjetivoId, LocalDate dia, String valor) {
         return ProgresoObjetivo.de(OBJETIVO_ID, miniObjetivoId, dia, new BigDecimal(valor), AHORA);
     }
 }

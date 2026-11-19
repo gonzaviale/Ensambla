@@ -15,26 +15,47 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ReajusteMiniObjetivoTest {
 
+    private MiniObjetivo nuevo;
+    private ReajusteMiniObjetivo reajuste;
+
     @Test
     @DisplayName("Guarda el anterior y el nuevo con sus títulos y metas, el tipo y el motivo")
-    void deShouldKeepBothMiniObjetivosAndTheReason() {
-        MiniObjetivo nuevo = miniObjetivo();
+    void guardaElAnteriorYElNuevoConSusTitulosYMetasElTipoYElMotivo() {
+        dadoUnMiniObjetivoNuevoQueReemplazaAlAnterior();
+
+        cuandoSeRegistraElReajuste();
+
+        entoncesGuardaAmbosMiniObjetivosYElMotivo();
+    }
+
+    // --- dado ---
+
+    private void dadoUnMiniObjetivoNuevoQueReemplazaAlAnterior() {
+        nuevo = miniObjetivo();
         nuevo.setId(OTRO_MINI_ID);
         nuevo.setTitulo("Vender un 10 % más por semana");
         nuevo.setMeta(new BigDecimal("179667.00"));
+    }
 
-        ReajusteMiniObjetivo result = ReajusteMiniObjetivo.de(
+    // --- cuando ---
+
+    private void cuandoSeRegistraElReajuste() {
+        reajuste = ReajusteMiniObjetivo.de(
                 miniObjetivo(), nuevo, TipoReajuste.REEMPLAZAR, "Hace 2 semanas que no avanza", AHORA);
+    }
 
-        assertThat(result.id()).isNotNull();
-        assertThat(result.miniAnteriorId()).isEqualTo(MINI_ID);
-        assertThat(result.miniNuevoId()).isEqualTo(OTRO_MINI_ID);
-        assertThat(result.tipo()).isEqualTo(TipoReajuste.REEMPLAZAR);
-        assertThat(result.motivo()).isEqualTo("Hace 2 semanas que no avanza");
-        assertThat(result.tituloAnterior()).isEqualTo(TITULO);
-        assertThat(result.metaAnterior()).isEqualTo(META_MINI);
-        assertThat(result.tituloNuevo()).isEqualTo("Vender un 10 % más por semana");
-        assertThat(result.metaNueva()).isEqualByComparingTo("179667.00");
-        assertThat(result.creadoEn()).isEqualTo(AHORA);
+    // --- entonces ---
+
+    private void entoncesGuardaAmbosMiniObjetivosYElMotivo() {
+        assertThat(reajuste.id()).isNotNull();
+        assertThat(reajuste.miniAnteriorId()).isEqualTo(MINI_ID);
+        assertThat(reajuste.miniNuevoId()).isEqualTo(OTRO_MINI_ID);
+        assertThat(reajuste.tipo()).isEqualTo(TipoReajuste.REEMPLAZAR);
+        assertThat(reajuste.motivo()).isEqualTo("Hace 2 semanas que no avanza");
+        assertThat(reajuste.tituloAnterior()).isEqualTo(TITULO);
+        assertThat(reajuste.metaAnterior()).isEqualTo(META_MINI);
+        assertThat(reajuste.tituloNuevo()).isEqualTo("Vender un 10 % más por semana");
+        assertThat(reajuste.metaNueva()).isEqualByComparingTo("179667.00");
+        assertThat(reajuste.creadoEn()).isEqualTo(AHORA);
     }
 }
