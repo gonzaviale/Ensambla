@@ -92,7 +92,9 @@ export function ajustarALaFuente(
     fuente,
     calculo: calculosDe(fuente).includes(definicion.calculo) ? definicion.calculo : 'SUMA',
     agrupar: agrupacionesDe(fuente).includes(definicion.agrupar) ? definicion.agrupar : 'NINGUNA',
-    periodo: periodos.includes(definicion.periodo) ? definicion.periodo : (periodos.at(-1) ?? 'TODO'),
+    periodo: periodos.includes(definicion.periodo)
+      ? definicion.periodo
+      : (periodos.at(-1) ?? 'TODO'),
     soloFiado: permiteFiado(fuente) && definicion.soloFiado,
   };
 }
@@ -115,23 +117,27 @@ const cantidadDe = (fuente: FuenteDeMetrica, cantidad: number) => {
 
 /** «De dónde sale» el número, en palabras: la tabla, el período, cuántas filas entraron y cuántas quedaron afuera. */
 export function textoDeDondeSale({ deDondeSale }: ResultadoDeMetrica) {
-  const { fuente, filasUsadas, filasSinDato, desde, hasta } = deDondeSale;
-  const periodo =
-    desde && hasta
-      ? desde === hasta
-        ? ` de hoy (${fechaCorta(hasta)})`
-        : `, del ${fechaCorta(desde)} al ${fechaCorta(hasta)}`
-      : ', con todo lo cargado';
-  const partes = [`Sale de ${TABLA_DE[fuente]}${periodo}.`];
-  if (filasUsadas > 0) partes.push(`${filasUsadas === 1 ? 'Se usó' : 'Se usaron'} ${cantidadDe(fuente, filasUsadas)}.`);
-  if (filasSinDato > 0) {
+  const { fuente, filasUsadas, filasSinDato } = deDondeSale;
+  const partes = [`Sale de ${TABLA_DE[fuente]}${periodoMirado(deDondeSale)}.`];
+  if (filasUsadas > 0)
     partes.push(
-      `${cantidadDe(fuente, filasSinDato)} quedó${filasSinDato === 1 ? '' : 'aron'} afuera porque ` +
-        `le${filasSinDato === 1 ? '' : 's'} falta un dato.`,
+      `${filasUsadas === 1 ? 'Se usó' : 'Se usaron'} ${cantidadDe(fuente, filasUsadas)}.`,
     );
-  }
+  if (filasSinDato > 0)
+    partes.push(`${cantidadDe(fuente, filasSinDato)} ${lasQueQuedaronAfuera(filasSinDato)}.`);
   return partes.join(' ');
 }
+
+function periodoMirado({ desde, hasta }: ResultadoDeMetrica['deDondeSale']) {
+  if (!desde || !hasta) return ', con todo lo cargado';
+  if (desde === hasta) return ` de hoy (${fechaCorta(hasta)})`;
+  return `, del ${fechaCorta(desde)} al ${fechaCorta(hasta)}`;
+}
+
+const lasQueQuedaronAfuera = (cantidad: number) =>
+  cantidad === 1
+    ? 'quedó afuera porque le falta un dato'
+    : 'quedaron afuera porque les falta un dato';
 
 /** La receta en una frase corta, para la lista de sugeridas: «Plata de ventas · Por producto · Este mes». */
 export function resumenDeLaReceta(definicion: DefinicionDeMetrica) {

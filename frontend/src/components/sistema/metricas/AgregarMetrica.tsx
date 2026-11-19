@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { ApiError } from '@/api/apiError';
 import { ResultadoDeLaMetrica } from '@/components/sistema/metricas/MetricasAMedida';
+import { leerErrorServidor } from '@/hooks/errores';
 import { useGuardarMetrica, useVerComoQueda } from '@/hooks/metricas/mutations';
 import { useMetricasSugeridas } from '@/hooks/metricas/queries';
 import {
@@ -22,12 +22,23 @@ import {
   type DefinicionDeMetrica,
 } from '@/types/metricas';
 
-const mensajeDe = (error: unknown) =>
-  error instanceof ApiError ? error.message : 'No pudimos guardarla. Probá de nuevo.';
+const NO_SE_PUDO_GUARDAR = 'No pudimos guardarla. Probá de nuevo.';
+
+// Si el servidor dijo por qué (por ejemplo, que ya está), se muestra eso; si no respondió, el aviso genérico.
+const mensajeDe = (error: unknown) => {
+  const delServidor = leerErrorServidor(error);
+  return delServidor && delServidor.status > 0 ? delServidor.mensaje : NO_SE_PUDO_GUARDAR;
+};
 
 // Dos caminos para sumar una métrica sin escribirla a mano: elegir una de las sugeridas para el rubro, o armar la
 // propia eligiendo de listas (qué mirar, cómo, repartida por qué y de cuándo). «Ver cómo queda» la calcula sin guardar.
-export function AgregarMetrica({ sistemaId, onCerrar }: { sistemaId: string; onCerrar: () => void }) {
+export function AgregarMetrica({
+  sistemaId,
+  onCerrar,
+}: {
+  sistemaId: string;
+  onCerrar: () => void;
+}) {
   const [camino, setCamino] = useState<'sugeridas' | 'propia'>('sugeridas');
   const guardar = useGuardarMetrica(sistemaId);
 
@@ -38,10 +49,18 @@ export function AgregarMetrica({ sistemaId, onCerrar }: { sistemaId: string; onC
     <div className="agregar-metrica">
       <div className="agregar-metrica-cabecera">
         <div className="selector-periodo" role="group" aria-label="Cómo querés agregarla">
-          <button type="button" aria-pressed={camino === 'sugeridas'} onClick={() => setCamino('sugeridas')}>
+          <button
+            type="button"
+            aria-pressed={camino === 'sugeridas'}
+            onClick={() => setCamino('sugeridas')}
+          >
             Sugeridas para tu negocio
           </button>
-          <button type="button" aria-pressed={camino === 'propia'} onClick={() => setCamino('propia')}>
+          <button
+            type="button"
+            aria-pressed={camino === 'propia'}
+            onClick={() => setCamino('propia')}
+          >
             Armar la mía
           </button>
         </div>
@@ -57,7 +76,11 @@ export function AgregarMetrica({ sistemaId, onCerrar }: { sistemaId: string; onC
       {camino === 'sugeridas' ? (
         <Sugeridas sistemaId={sistemaId} guardando={guardar.isPending} onAgregar={guardarMetrica} />
       ) : (
-        <ArmarLaMia sistemaId={sistemaId} guardando={guardar.isPending} onAgregar={guardarMetrica} />
+        <ArmarLaMia
+          sistemaId={sistemaId}
+          guardando={guardar.isPending}
+          onAgregar={guardarMetrica}
+        />
       )}
     </div>
   );
@@ -87,11 +110,18 @@ function Sugeridas({ sistemaId, guardando, onAgregar }: PropsDelCamino) {
       </p>
     );
   if (sugeridas.length === 0)
-    return <p className="metricas-medida-aviso">Ya agregaste todas las sugeridas. Probá armar la tuya.</p>;
+    return (
+      <p className="metricas-medida-aviso">
+        Ya agregaste todas las sugeridas. Probá armar la tuya.
+      </p>
+    );
   return (
     <ul className="metricas-medida-lista">
       {sugeridas.map(({ definicion, resultado }) => (
-        <li key={`${definicion.nombre}-${resumenDeLaReceta(definicion)}`} className="metrica-medida">
+        <li
+          key={`${definicion.nombre}-${resumenDeLaReceta(definicion)}`}
+          className="metrica-medida"
+        >
           <h3>{definicion.nombre}</h3>
           <p className="metrica-medida-receta">{resumenDeLaReceta(definicion)}</p>
           <ResultadoDeLaMetrica resultado={resultado} />
@@ -121,6 +151,7 @@ function ArmarLaMia({ sistemaId, guardando, onAgregar }: PropsDelCamino) {
     vista.reset();
   };
   const conNombre = definicion.nombre.trim().length > 0;
+  const faltaElNombre = sinNombre && !conNombre;
 
   const guardarLaMia = (evento: FormEvent) => {
     evento.preventDefault();
@@ -136,16 +167,23 @@ function ArmarLaMia({ sistemaId, guardando, onAgregar }: PropsDelCamino) {
           type="text"
           value={definicion.nombre}
           maxLength={80}
-          aria-invalid={sinNombre && !conNombre}
+          aria-invalid={faltaElNombre}
+          aria-describedby={faltaElNombre ? 'agregar-metrica-sin-nombre' : undefined}
           onChange={(e) => cambiar({ ...definicion, nombre: e.target.value })}
         />
-        {sinNombre && !conNombre && <span className="metrica-medida-error">Ponele un nombre.</span>}
       </label>
+      {faltaElNombre && (
+        <span id="agregar-metrica-sin-nombre" className="metrica-medida-error">
+          Ponele un nombre.
+        </span>
+      )}
       <label>
         ¿Qué querés mirar?
         <select
           value={definicion.fuente}
-          onChange={(e) => cambiar(ajustarALaFuente(definicion, e.target.value as DefinicionDeMetrica['fuente']))}
+          onChange={(e) =>
+            cambiar(ajustarALaFuente(definicion, e.target.value as DefinicionDeMetrica['fuente']))
+          }
         >
           {FUENTES_DE_METRICA.map((fuente) => (
             <option key={fuente} value={fuente}>
@@ -158,7 +196,9 @@ function ArmarLaMia({ sistemaId, guardando, onAgregar }: PropsDelCamino) {
         ¿Qué cuenta querés hacer?
         <select
           value={definicion.calculo}
-          onChange={(e) => cambiar({ ...definicion, calculo: e.target.value as DefinicionDeMetrica['calculo'] })}
+          onChange={(e) =>
+            cambiar({ ...definicion, calculo: e.target.value as DefinicionDeMetrica['calculo'] })
+          }
         >
           {calculosDe(definicion.fuente).map((calculo) => (
             <option key={calculo} value={calculo}>
@@ -171,7 +211,9 @@ function ArmarLaMia({ sistemaId, guardando, onAgregar }: PropsDelCamino) {
         ¿Cómo la querés repartir?
         <select
           value={definicion.agrupar}
-          onChange={(e) => cambiar({ ...definicion, agrupar: e.target.value as DefinicionDeMetrica['agrupar'] })}
+          onChange={(e) =>
+            cambiar({ ...definicion, agrupar: e.target.value as DefinicionDeMetrica['agrupar'] })
+          }
         >
           {agrupacionesDe(definicion.fuente).map((agrupar) => (
             <option key={agrupar} value={agrupar}>
@@ -184,7 +226,9 @@ function ArmarLaMia({ sistemaId, guardando, onAgregar }: PropsDelCamino) {
         ¿De cuándo?
         <select
           value={definicion.periodo}
-          onChange={(e) => cambiar({ ...definicion, periodo: e.target.value as DefinicionDeMetrica['periodo'] })}
+          onChange={(e) =>
+            cambiar({ ...definicion, periodo: e.target.value as DefinicionDeMetrica['periodo'] })
+          }
         >
           {periodosDe(definicion.fuente).map((periodo) => (
             <option key={periodo} value={periodo}>
@@ -209,7 +253,9 @@ function ArmarLaMia({ sistemaId, guardando, onAgregar }: PropsDelCamino) {
           type="button"
           className="agregar-metrica-ver"
           disabled={vista.isPending}
-          onClick={() => vista.mutate({ ...definicion, nombre: definicion.nombre.trim() || 'Vista previa' })}
+          onClick={() =>
+            vista.mutate({ ...definicion, nombre: definicion.nombre.trim() || 'Vista previa' })
+          }
         >
           Ver cómo queda
         </button>
