@@ -10,16 +10,34 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class PruebaPremiumResponseTest {
 
+    private PruebaPremium prueba;
+    private PruebaPremiumResponse respuesta;
+
     @Test
     @DisplayName("Mapea fechas, páginas utilizadas y límite total de prueba")
     void mapeaFechasPaginasUtilizadasYLimiteTotalDePrueba() {
-        PruebaPremium prueba = new PruebaPremium(NEGOCIO_ID, INSTANTE, INSTANTE.plusDays(7), 3);
+        dadoUnaPruebaConTresPaginasUsadas();
 
-        PruebaPremiumResponse result = PruebaPremiumResponse.de(prueba);
+        cuandoSeArmaLaRespuesta();
 
-        assertThat(result.inicioEn()).isEqualTo(INSTANTE);
-        assertThat(result.finEn()).isEqualTo(INSTANTE.plusDays(7));
-        assertThat(result.paginasIaUtilizadas()).isEqualTo(3);
-        assertThat(result.limitePaginasIa()).isEqualTo(10);
+        entoncesCopiaLasFechasLasPaginasUsadasYElLimiteTotal();
+    }
+
+    // --- dado ---
+    private void dadoUnaPruebaConTresPaginasUsadas() {
+        prueba = new PruebaPremium(NEGOCIO_ID, INSTANTE, INSTANTE.plusDays(7), 3);
+    }
+
+    // --- cuando ---
+    private void cuandoSeArmaLaRespuesta() {
+        respuesta = PruebaPremiumResponse.de(prueba);
+    }
+
+    // --- entonces ---
+    private void entoncesCopiaLasFechasLasPaginasUsadasYElLimiteTotal() {
+        assertThat(respuesta.inicioEn()).isEqualTo(INSTANTE);
+        assertThat(respuesta.finEn()).isEqualTo(INSTANTE.plusDays(7));
+        assertThat(respuesta.paginasIaUtilizadas()).isEqualTo(3);
+        assertThat(respuesta.limitePaginasIa()).isEqualTo(10);
     }
 }
