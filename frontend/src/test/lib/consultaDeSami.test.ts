@@ -12,35 +12,93 @@ const MIERCOLES = '2026-11-18';
 const DOMINGO = '2026-11-22';
 const LUNES_SIGUIENTE = '2026-11-23';
 
+let pregunta: boolean;
+let dia: string;
+
 describe('cuándo pregunta Sami', () => {
-  it.each([LUNES, MARTES])('no pregunta por lo de esta semana el %s', (dia) => {
-    expect(esHoraDePreguntar(LUNES, dia)).toBe(false);
+  it.each([LUNES, MARTES])('no pregunta por lo de esta semana el %s', (hoy) => {
+    cuandoSeConsultaSiEsHoraDePreguntarDeLaSemanaDelLunes(hoy);
+
+    entoncesNoPregunta();
   });
 
-  it.each([MIERCOLES, DOMINGO])('pregunta por lo de esta semana desde el miércoles: %s', (dia) => {
-    expect(esHoraDePreguntar(LUNES, dia)).toBe(true);
+  it.each([MIERCOLES, DOMINGO])('pregunta por lo de esta semana desde el miércoles: %s', (hoy) => {
+    cuandoSeConsultaSiEsHoraDePreguntarDeLaSemanaDelLunes(hoy);
+
+    entoncesPregunta();
   });
 
   it('pregunta siempre por lo que quedó de una semana anterior', () => {
-    expect(esHoraDePreguntar(LUNES, LUNES_SIGUIENTE)).toBe(true);
+    cuandoSeConsultaSiEsHoraDePreguntarDeLaSemanaDelLunes(LUNES_SIGUIENTE);
+
+    entoncesPregunta();
   });
 
   it('el día siguiente cruza el fin de mes', () => {
-    expect(diaSiguiente('2026-11-30')).toBe('2026-12-01');
+    cuandoSePideElDiaSiguienteDe('2026-11-30');
+
+    entoncesElDiaEs('2026-12-01');
   });
 });
 
 describe('dejar una pregunta para después', () => {
-  it('queda en pausa el resto del día y vuelve al día siguiente', () => {
-    posponerHastaManana('mini-1', MIERCOLES);
+  it('queda en pausa el resto del día', () => {
+    dadoUnaPreguntaPospuestaElMiercoles('mini-1');
 
-    expect(estaPospuesta('mini-1', MIERCOLES)).toBe(true);
-    expect(estaPospuesta('mini-1', diaSiguiente(MIERCOLES))).toBe(false);
+    cuandoSeConsultaSiEstaPospuesta('mini-1', MIERCOLES);
+
+    entoncesLaPreguntaEstaPospuesta();
+  });
+
+  it('vuelve al día siguiente', () => {
+    dadoUnaPreguntaPospuestaElMiercoles('mini-1');
+
+    cuandoSeConsultaSiEstaPospuesta('mini-1', diaSiguiente(MIERCOLES));
+
+    entoncesLaPreguntaNoEstaPospuesta();
   });
 
   it('no afecta a las otras preguntas', () => {
-    posponerHastaManana('mini-1', MIERCOLES);
+    dadoUnaPreguntaPospuestaElMiercoles('mini-1');
 
-    expect(estaPospuesta('mini-2', MIERCOLES)).toBe(false);
+    cuandoSeConsultaSiEstaPospuesta('mini-2', MIERCOLES);
+
+    entoncesLaPreguntaNoEstaPospuesta();
   });
 });
+
+function dadoUnaPreguntaPospuestaElMiercoles(id: string) {
+  posponerHastaManana(id, MIERCOLES);
+}
+
+function cuandoSeConsultaSiEsHoraDePreguntarDeLaSemanaDelLunes(hoy: string) {
+  pregunta = esHoraDePreguntar(LUNES, hoy);
+}
+
+function cuandoSePideElDiaSiguienteDe(fecha: string) {
+  dia = diaSiguiente(fecha);
+}
+
+function cuandoSeConsultaSiEstaPospuesta(id: string, hoy: string) {
+  pregunta = estaPospuesta(id, hoy);
+}
+
+function entoncesNoPregunta() {
+  expect(pregunta).toBe(false);
+}
+
+function entoncesPregunta() {
+  expect(pregunta).toBe(true);
+}
+
+function entoncesElDiaEs(esperado: string) {
+  expect(dia).toBe(esperado);
+}
+
+function entoncesLaPreguntaEstaPospuesta() {
+  expect(pregunta).toBe(true);
+}
+
+function entoncesLaPreguntaNoEstaPospuesta() {
+  expect(pregunta).toBe(false);
+}
