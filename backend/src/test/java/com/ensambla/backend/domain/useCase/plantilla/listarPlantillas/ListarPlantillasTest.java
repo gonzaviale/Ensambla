@@ -25,6 +25,7 @@ class ListarPlantillasTest {
     private PlantillaRepository plantillaRepository;
 
     private ListarPlantillas listarPlantillas;
+    private ListarPlantillasResponse respuesta;
 
     @BeforeEach
     void setUp() {
@@ -33,18 +34,32 @@ class ListarPlantillasTest {
 
     @Test
     @DisplayName("Lista las plantillas activas y las devuelve mapeadas")
-    void executeShouldReturnMappedPlantillas() {
-        givenRepositoryListsPlantillas(List.of(Plantilla.builder().id(PLANTILLA_ID).nombre(NOMBRE).build()));
+    void listaLasPlantillasActivasYLasDevuelveMapeadas() {
+        dadoUnaPlantillaActivaDePedidos();
 
-        ListarPlantillasResponse response = listarPlantillas.execute();
+        cuandoSeListanLasPlantillas();
 
-        assertThat(response.content()).hasSize(1);
-        assertThat(response.content().getFirst().id()).isEqualTo(PLANTILLA_ID);
-        assertThat(response.content().getFirst().nombre()).isEqualTo(NOMBRE);
+        entoncesSeDevuelveLaPlantillaDePedidos();
     }
 
-    // --- arrange ---
-    private void givenRepositoryListsPlantillas(List<Plantilla> plantillas) {
-        when(plantillaRepository.findAllActivas()).thenReturn(plantillas);
+    // --- dado ---
+
+    private void dadoUnaPlantillaActivaDePedidos() {
+        List<Plantilla> activas = List.of(Plantilla.builder().id(PLANTILLA_ID).nombre(NOMBRE).build());
+        when(plantillaRepository.findAllActivas()).thenReturn(activas);
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeListanLasPlantillas() {
+        respuesta = listarPlantillas.execute();
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeDevuelveLaPlantillaDePedidos() {
+        assertThat(respuesta.content()).hasSize(1);
+        assertThat(respuesta.content().getFirst().id()).isEqualTo(PLANTILLA_ID);
+        assertThat(respuesta.content().getFirst().nombre()).isEqualTo(NOMBRE);
     }
 }
