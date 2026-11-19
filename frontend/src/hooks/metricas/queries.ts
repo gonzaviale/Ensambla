@@ -1,5 +1,11 @@
-import { queryOptions, useQuery } from '@tanstack/react-query';
-import { listarFuentesDelCuaderno, listarMetricas, listarMetricasSugeridas } from '@/api/metricas';
+import { keepPreviousData, queryOptions, useQuery } from '@tanstack/react-query';
+import {
+  listarFuentesDelCuaderno,
+  listarMetricas,
+  listarMetricasSugeridas,
+  previsualizarMetrica,
+} from '@/api/metricas';
+import type { DefinicionDeMetrica } from '@/types/metricas';
 
 export const metricasKeys = {
   /** Todo lo de un cuaderno cuelga de esta clave: al guardar o quitar una se vuelve a pedir junto. */
@@ -7,6 +13,8 @@ export const metricasKeys = {
   lista: (sistemaId: string) => [...metricasKeys.cuaderno(sistemaId), 'lista'] as const,
   sugeridas: (sistemaId: string) => [...metricasKeys.cuaderno(sistemaId), 'sugeridas'] as const,
   fuentes: (sistemaId: string) => [...metricasKeys.cuaderno(sistemaId), 'fuentes'] as const,
+  vista: (sistemaId: string, receta: Omit<DefinicionDeMetrica, 'nombre'>) =>
+    [...metricasKeys.cuaderno(sistemaId), 'vista', receta] as const,
 };
 
 export const metricasQuery = (sistemaId: string) =>
@@ -59,4 +67,26 @@ export function useMetricasSugeridas(sistemaId: string, habilitado: boolean) {
     fallo: consulta.isError,
     reintentar: consulta.refetch,
   };
+}
+
+// El nombre no cambia el número: la vista se pide por la receta y, mientras llega la nueva, se ve la anterior.
+const sinNombre = ({ fuente, calculo, agrupar, periodo, soloFiado }: DefinicionDeMetrica) => ({
+  fuente,
+  calculo,
+  agrupar,
+  periodo,
+  soloFiado,
+});
+
+/** Cómo queda la receta que se está armando, calculada con los datos del cuaderno; no guarda nada. */
+export function useVistaEnVivo(sistemaId: string, definicion: DefinicionDeMetrica) {
+  const receta = sinNombre(definicion);
+  const consulta = useQuery({
+    queryKey: metricasKeys.vista(sistemaId, receta),
+    queryFn: () => previsualizarMetrica(sistemaId, { ...receta, nombre: 'Vista previa' }),
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
+    retry: false,
+  });
+  return { resultado: consulta.data, fallo: consulta.isError };
 }

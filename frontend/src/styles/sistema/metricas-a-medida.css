@@ -38,8 +38,8 @@
 }
 .metricas-medida-agregar:hover,
 .agregar-metrica-ver:hover {
-  border-color: var(--magenta, var(--coral));
-  background: var(--magenta, var(--coral));
+  border-color: var(--resalte, var(--coral));
+  background: var(--resalte, var(--coral));
   color: #fff;
 }
 .metricas-medida-agregar:disabled,
@@ -102,7 +102,7 @@
   color: var(--petrol);
 }
 .metrica-medida-icono:hover {
-  color: var(--magenta, var(--coral));
+  color: var(--resalte, var(--coral));
 }
 .metrica-medida-renombrar {
   display: grid;
@@ -147,8 +147,8 @@
 .metrica-medida-guardar:hover,
 .metrica-medida-cancelar:hover,
 .metrica-medida-lugar button:hover:not(:disabled) {
-  border-color: var(--magenta, var(--coral));
-  background: var(--magenta, var(--coral));
+  border-color: var(--resalte, var(--coral));
+  background: var(--resalte, var(--coral));
   color: #fff;
 }
 .metrica-medida-guardar:disabled,
@@ -216,64 +216,15 @@
   color: var(--ink);
   font-weight: 700;
 }
-.agregar-metrica {
-  display: grid;
-  gap: 16px;
-  padding: 16px;
-  border: 2px solid var(--petrol);
-  border-radius: 16px;
-  background: #fff;
-}
-.agregar-metrica-cabecera {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.agregar-metrica-cerrar {
-  border: 0;
-  background: transparent;
-  color: var(--petrol);
-  font-weight: 700;
-  text-decoration: underline;
-}
-.agregar-metrica-form {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
-}
-.agregar-metrica-form label {
-  display: grid;
-  gap: 4px;
-  color: var(--ink);
-  font-weight: 700;
-}
-.agregar-metrica-form input[type='text'],
-.agregar-metrica-form select {
-  padding: 10px;
-  border: 2px solid var(--line);
-  border-radius: 10px;
-  background: #fff;
-  color: var(--ink);
-}
 .agregar-metrica-check {
   display: flex !important;
   align-items: center;
   gap: 8px !important;
 }
-.agregar-metrica-acciones,
-.agregar-metrica-vista {
+.agregar-metrica-acciones {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  grid-column: 1 / -1;
-}
-.agregar-metrica-vista {
-  flex-direction: column;
-  padding: 12px;
-  border: 2px dashed var(--line);
-  border-radius: 12px;
 }
 .agregar-metrica-entendi {
   grid-column: 1 / -1;
@@ -314,22 +265,54 @@
 
 /* «Tu negocio» en solapas: la de ventas (petróleo) y una por métrica, cada una con su color de la paleta. La activa
    lleva el borde entero de su color y se pega a la tarjeta de abajo, del mismo color (nunca una raya de otro color
-   arriba); el hover es magenta. En el celular la tira se desliza de costado. */
+   arriba); el hover es coral. En el celular la tira se desliza de costado. */
 .panel-negocio {
-  --magenta: #b52d66;
+  --resalte: #f85f5a;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   min-width: 0;
 }
-.panel-negocio-solapas {
+/* La tira va dentro de una barra: flechas a los costados cuando no entra y «Agregar métrica» siempre a la vista. La
+   tira arranca después de la curva de la tarjeta, así la primera solapa se apoya en el borde recto. */
+.panel-negocio-barra {
   position: relative;
+  min-width: 0;
+  max-width: 100%;
   z-index: 1;
   display: flex;
   align-items: flex-end;
-  gap: 4px;
+  gap: 6px;
   margin-bottom: -2px;
-  padding: 0 6px;
+  padding: 0 0 0 18px;
+}
+.panel-negocio-solapas {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
+}
+.panel-negocio-flecha {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-bottom: 6px;
+  border: 2px solid var(--c-estructura);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--c-estructura);
+  cursor: pointer;
+}
+.panel-negocio-flecha:hover {
+  border-color: var(--resalte);
+  color: var(--resalte);
+}
+.panel-negocio-solapa[aria-selected='true'] .panel-negocio-solapa-nombre {
+  max-width: 320px;
 }
 .panel-negocio-solapas::-webkit-scrollbar {
   display: none;
@@ -344,9 +327,6 @@
 [data-color='coral'] {
   --color-solapa: #f85f5a;
 }
-[data-color='magenta'] {
-  --color-solapa: var(--magenta);
-}
 [data-color='celeste'] {
   --color-solapa: #4eb2d4;
 }
@@ -358,7 +338,6 @@
   flex: none;
   align-items: center;
   gap: 8px;
-  max-width: 220px;
   padding: 10px 16px;
   border: 2px solid transparent;
   border-bottom: 0;
@@ -372,7 +351,7 @@
   transition: color 0.15s ease;
 }
 .panel-negocio-solapa:hover {
-  color: var(--magenta);
+  color: var(--resalte);
 }
 .panel-negocio-solapa[aria-selected='true'] {
   border-color: var(--color-solapa);
@@ -387,6 +366,7 @@
   background: var(--color-solapa);
 }
 .panel-negocio-solapa-nombre {
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -410,8 +390,8 @@
 }
 .panel-negocio-agregar:hover,
 .panel-negocio-agregar[aria-selected='true'] {
-  background: var(--magenta);
-  box-shadow: 0 3px 0 #85204b;
+  background: var(--c-estructura);
+  box-shadow: 0 3px 0 #003e53;
 }
 .panel-negocio-solapa:focus-visible,
 .panel-negocio-agregar:focus-visible,
@@ -466,7 +446,7 @@
   font-weight: 800;
 }
 .panel-negocio-metrica .metrica-medida-origen:hover {
-  color: var(--magenta);
+  color: var(--resalte);
 }
 
 /* El menú de la métrica abierta: un botón de línea y la lista flotante. */
@@ -487,8 +467,8 @@
 }
 .panel-negocio-menu-boton:hover,
 .panel-negocio-menu-boton[aria-expanded='true'] {
-  border-color: var(--magenta);
-  color: var(--magenta);
+  border-color: var(--resalte);
+  color: var(--resalte);
 }
 .panel-negocio-menu-lista {
   position: absolute;
@@ -521,7 +501,7 @@
   cursor: pointer;
 }
 .panel-negocio-menu-lista button:hover:not(:disabled) {
-  color: var(--magenta);
+  color: var(--resalte);
 }
 .panel-negocio-menu-lista button:disabled {
   opacity: 0.45;
@@ -576,7 +556,7 @@
   cursor: pointer;
 }
 .grafico-metrica-ver-todo:hover {
-  color: var(--magenta);
+  color: var(--resalte);
 }
 .selector-grafico {
   display: inline-flex;
@@ -599,7 +579,7 @@
   cursor: pointer;
 }
 .selector-grafico button:hover {
-  color: var(--magenta);
+  color: var(--resalte);
 }
 .selector-grafico button[aria-checked='true'] {
   background: var(--c-estructura);
@@ -695,7 +675,7 @@
 }
 .grafico-linea-punto:hover,
 .grafico-linea-punto:focus-visible {
-  background: var(--magenta);
+  background: var(--resalte);
   outline: none;
 }
 .grafico-linea-dias {
@@ -720,4 +700,313 @@
   .grafico-dona-lista {
     width: 100%;
   }
+}
+
+/* Ventana centrada encima del inicio (agregar una métrica, cambiarle el nombre). En el celular ocupa toda la pantalla. */
+.ventana-flotante-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overscroll-behavior: contain;
+  background: rgb(38 52 67 / 60%);
+}
+.ventana-flotante {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-height: calc(100dvh - 48px);
+  padding: 24px;
+  overflow-y: auto;
+  border: 2px solid var(--c-estructura);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 24px 60px rgb(0 80 106 / 25%);
+  color: var(--ink);
+  animation: ventana-flotante-entra 0.18s ease-out;
+}
+.ventana-flotante-mediana {
+  max-width: 820px;
+}
+.ventana-flotante-chica {
+  max-width: 440px;
+}
+.ventana-flotante:focus {
+  outline: none;
+}
+@keyframes ventana-flotante-entra {
+  from {
+    transform: translateY(12px) scale(0.98);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ventana-flotante {
+    animation: none;
+  }
+}
+@media (max-width: 640px) {
+  .ventana-flotante-fondo {
+    padding: 0;
+  }
+  .ventana-flotante {
+    height: 100%;
+    max-height: none;
+    border-radius: 0;
+  }
+}
+.ventana-flotante-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ventana-flotante-cabecera h2 {
+  margin: 0;
+  color: var(--petrol);
+  font-size: 22px;
+}
+.ventana-flotante-cerrar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--petrol);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--petrol);
+}
+.ventana-flotante-cerrar:hover {
+  border-color: var(--resalte);
+  background: var(--resalte);
+  color: #fff;
+}
+.aviso-ya-la-tenes {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--petrol);
+  font-weight: 700;
+}
+.aviso-ya-la-tenes .icon {
+  width: 20px;
+  height: 20px;
+  color: var(--blue);
+}
+.panel-agregar-pestanas {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.panel-agregar-pestanas button {
+  padding: 10px 8px;
+  border: 2px solid var(--petrol);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--petrol);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.panel-agregar-pestanas button[aria-selected='true'] {
+  background: var(--petrol);
+  color: #fff;
+}
+.panel-agregar-pestanas button:hover {
+  border-color: var(--resalte);
+}
+.panel-agregar-cuerpo {
+  display: grid;
+  gap: 16px;
+}
+
+/* Sugeridas: tarjetas blancas con borde de un color de la paleta y su gráfico en chico. */
+.panel-agregar-sugeridas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.panel-agregar-sugerida {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 2px solid var(--orange);
+  border-radius: 16px;
+  background: #fff;
+}
+.panel-agregar-sugerida:nth-child(4n + 2) {
+  border-color: var(--resalte);
+}
+.panel-agregar-sugerida:nth-child(4n + 3) {
+  border-color: var(--blue);
+}
+.panel-agregar-sugerida:nth-child(4n + 4) {
+  border-color: var(--coral);
+}
+.panel-agregar-sugerida h3,
+.panel-agregar-propuesta h3 {
+  margin: 0;
+  color: var(--petrol);
+  font-size: 17px;
+}
+.panel-agregar-sugerida .metricas-medida-agregar {
+  justify-self: start;
+}
+.vista-previa-chica .metrica-medida-valor {
+  font-size: 22px;
+}
+.vista-previa-chica .grafico-metrica-ver-todo {
+  display: none;
+}
+.panel-agregar-propuesta {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 2px solid var(--petrol);
+  border-radius: 16px;
+  background: #fff;
+}
+
+/* Armala vos: los cinco pasos arriba y, en cada uno, tarjetas con ícono en lugar de listas desplegables. */
+.armala-vos {
+  display: grid;
+  gap: 16px;
+}
+.armala-vos-pasos {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.armala-vos-pasos button {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  width: 100%;
+  padding: 6px 2px;
+  border: 2px solid var(--petrol);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.2;
+}
+.armala-vos-pasos button[aria-current='step'] {
+  background: var(--petrol);
+  color: #fff;
+}
+.armala-vos-numero {
+  font-size: 15px;
+  font-weight: 800;
+}
+.armala-vos-corto {
+  font-weight: 700;
+}
+.armala-vos-elegido {
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.armala-vos-paso {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 14px;
+  border: 2px solid var(--color-solapa, var(--petrol));
+  border-radius: 16px;
+  background: #fff;
+}
+.armala-vos-paso[data-color='petroleo'] {
+  --color-solapa: var(--petrol);
+}
+.armala-vos-paso legend {
+  padding: 0 6px;
+  color: var(--petrol);
+  font-weight: 800;
+}
+.armala-vos-paso label {
+  display: grid;
+  gap: 4px;
+  font-weight: 700;
+}
+.armala-vos-paso input[type='text'] {
+  padding: 10px;
+  border: 2px solid var(--petrol);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+}
+.armala-vos-paso .metricas-medida-agregar {
+  justify-self: start;
+}
+.armala-vos-tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+}
+.armala-vos-tarjeta {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 14px 8px;
+  border: 2px solid var(--color-solapa);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 700;
+  text-align: center;
+}
+.armala-vos-tarjeta .icon {
+  width: 26px;
+  height: 26px;
+  color: var(--color-solapa);
+}
+.armala-vos-tarjeta:hover {
+  border-color: var(--resalte);
+}
+.armala-vos-tarjeta[aria-checked='true'] {
+  background: var(--color-solapa);
+  color: #fff;
+}
+.armala-vos-tarjeta[aria-checked='true'] .icon {
+  color: #fff;
+}
+
+/* Pedila con tus palabras. */
+.panel-agregar-pedido {
+  display: grid;
+  gap: 12px;
+}
+.panel-agregar-pedido label {
+  display: grid;
+  gap: 4px;
+  font-weight: 700;
+}
+.panel-agregar-pedido input[type='text'] {
+  padding: 10px;
+  border: 2px solid var(--petrol);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+}
+.panel-agregar-pedido > .agregar-metrica-ver {
+  justify-self: start;
+}
+
+/* Mientras llegan los números de ventas, el hueco ya tiene el marco de la tarjeta: la solapa nunca queda en el aire. */
+.panel-negocio .tablero-cargando {
+  padding: 18px;
+  border: 2px solid var(--c-estructura);
+  border-radius: 20px;
+  background: #fff;
 }

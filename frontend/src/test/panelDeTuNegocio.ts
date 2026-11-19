@@ -52,8 +52,28 @@ const solapa = (nombre: string) => screen.findByRole('tab', { name: nombre }, ES
 export const cuandoSeAbreLaSolapa = async (usuario: UserEvent, nombre: string) =>
   usuario.click(await solapa(nombre));
 
-export const cuandoSeAbreAgregarMetrica = (usuario: UserEvent) =>
-  cuandoSeAbreLaSolapa(usuario, 'Agregar métrica');
+export const cuandoSeAbreAgregarMetrica = async (usuario: UserEvent) =>
+  usuario.click(await screen.findByRole('button', { name: 'Agregar métrica' }, ESPERA));
+
+export const cuandoSeEligeLaPestana = async (usuario: UserEvent, pestana: string) => {
+  await cuandoSeAbreAgregarMetrica(usuario);
+  await usuario.click(screen.getByRole('tab', { name: pestana }));
+};
+
+/** En «Armala vos», toca la tarjeta de una pregunta (y pasa al paso siguiente). */
+export const cuandoSeEligeLaTarjeta = async (
+  usuario: UserEvent,
+  pregunta: string,
+  tarjeta: string,
+) =>
+  usuario.click(
+    within(await screen.findByRole('radiogroup', { name: pregunta }, ESPERA)).getByRole('radio', {
+      name: tarjeta,
+    }),
+  );
+
+export const cuandoSeVaAlPaso = (usuario: UserEvent, paso: string) =>
+  usuario.click(screen.getByRole('button', { name: paso }));
 
 export async function cuandoSeEligeDelMenu(usuario: UserEvent, metrica: string, opcion: string) {
   await usuario.click(await screen.findByRole('button', { name: `Opciones de ${metrica}` }));
@@ -77,11 +97,11 @@ export async function cuandoSeAgregaLaSugerida(usuario: UserEvent, nombre: strin
 const nombresDeLasSolapas = () =>
   screen.getAllByRole('tab').map((unaSolapa) => unaSolapa.textContent?.trim());
 
+export const entoncesElPanelParaAgregarSeCerro = () =>
+  waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument(), ESPERA);
+
 export const entoncesLasSolapasSon = (nombres: string[]) =>
-  waitFor(
-    () => expect(nombresDeLasSolapas()).toEqual(['Ventas', ...nombres, 'Agregar métrica']),
-    ESPERA,
-  );
+  waitFor(() => expect(nombresDeLasSolapas()).toEqual(['Ventas', ...nombres]), ESPERA);
 
 export const entoncesEstaAbiertaLaSolapa = (nombre: string) =>
   waitFor(

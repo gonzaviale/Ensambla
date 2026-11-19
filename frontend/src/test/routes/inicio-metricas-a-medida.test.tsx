@@ -9,11 +9,15 @@ import {
   cuandoSeAbreAgregarMetrica,
   cuandoSeAbreLaSolapa,
   cuandoSeAgregaLaSugerida,
+  cuandoSeEligeLaPestana,
+  cuandoSeEligeLaTarjeta,
+  cuandoSeVaAlPaso,
   cuandoSeEligeVerlaComo,
   cuandoSeEligeDelMenu,
   cuandoSeRenombra,
   dadoElInicioDelAlmacen,
   entoncesElMenuNoDejaMoverA,
+  entoncesElPanelParaAgregarSeCerro,
   entoncesEstaAbiertaLaSolapa,
   entoncesLaSolapaMuestra,
   entoncesLaSolapaMuestraElTitulo,
@@ -24,21 +28,17 @@ import {
 } from '@/test/panelDeTuNegocio';
 
 const cuandoSePideConPalabras = async (usuario: UserEvent, pedido: string) => {
-  await cuandoSeAbreAgregarMetrica(usuario);
-  await usuario.click(screen.getByRole('button', { name: 'Pedila con tus palabras' }));
+  await cuandoSeEligeLaPestana(usuario, 'Pedila con tus palabras');
   await usuario.type(screen.getByLabelText('¿Qué querés ver?'), pedido);
   await usuario.click(screen.getByRole('button', { name: 'Ver qué entendí' }));
 };
 
-const cuandoSeAbreArmarLaMia = async (usuario: UserEvent) => {
-  await cuandoSeAbreAgregarMetrica(usuario);
-  await usuario.click(screen.getByRole('button', { name: 'Armar la mía' }));
-};
+const cuandoSeAbreArmalaVos = (usuario: UserEvent) => cuandoSeEligeLaPestana(usuario, 'Armala vos');
 
 describe('Inicio: métricas en solapas de «Tu negocio»', () => {
   beforeEach(() => estado.metricas.clear());
 
-  it('sin métricas guardadas muestra la solapa de ventas y la de agregar', async () => {
+  it('sin métricas guardadas muestra sólo la solapa de ventas', async () => {
     await dadoElInicioDelAlmacen();
 
     await entoncesLasSolapasSon([]);
@@ -70,6 +70,29 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
     await cuandoSeAgregaLaSugerida(usuario, 'Qué producto vendo más');
 
     await entoncesEstaAbiertaLaSolapa('Qué producto vendo más');
+    await entoncesElPanelParaAgregarSeCerro();
+  });
+
+  it('cada sugerida se ve con su gráfico antes de agregarla', async () => {
+    const { usuario } = await dadoElInicioDelAlmacen();
+
+    await cuandoSeAbreAgregarMetrica(usuario);
+
+    const sugerida = (await screen.findByRole('heading', { name: 'Qué producto vendo más' }))
+      .parentElement as HTMLElement;
+    expect(
+      within(sugerida).getByRole('list', { name: 'Qué producto vendo más' }),
+    ).toBeInTheDocument();
+  });
+
+  it('el panel para agregar se cierra con Escape sin cambiar la solapa abierta', async () => {
+    const { usuario } = await dadoElInicioDelAlmacen();
+    await cuandoSeAbreAgregarMetrica(usuario);
+
+    await usuario.keyboard('{Escape}');
+
+    await entoncesElPanelParaAgregarSeCerro();
+    await entoncesEstaAbiertaLaSolapa('Ventas');
   });
 
   it('dice de dónde sale el número en palabras simples', async () => {
@@ -146,19 +169,14 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
     await entoncesQuedoGuardadaComo(almacen.id, 'DONA');
   });
 
-  it('arma una propia, la mira antes de guardar y avisa si falta el nombre', async () => {
+  it('arma una propia en cinco pasos con tarjetas, con la vista previa en vivo', async () => {
     const { usuario } = await dadoElInicioDelAlmacen();
-    await cuandoSeAbreArmarLaMia(usuario);
+    await cuandoSeAbreArmalaVos(usuario);
 
-    await usuario.click(await screen.findByRole('button', { name: 'Guardar métrica' }));
-    expect(screen.getByText('Ponele un nombre.')).toBeInTheDocument();
-
-    await usuario.selectOptions(
-      screen.getByLabelText('¿Cómo la querés repartir?'),
-      'DIA_DE_LA_SEMANA',
-    );
-    await usuario.selectOptions(screen.getByLabelText('¿De cuándo?'), 'TODO');
-    await usuario.click(screen.getByRole('button', { name: 'Ver cómo queda' }));
+    await cuandoSeEligeLaTarjeta(usuario, '¿Qué querés mirar?', 'Ventas');
+    await cuandoSeEligeLaTarjeta(usuario, '¿Qué cuenta querés hacer?', 'Plata de ventas');
+    await cuandoSeEligeLaTarjeta(usuario, '¿Cómo la querés repartir?', 'Por día de la semana');
+    await cuandoSeEligeLaTarjeta(usuario, '¿De cuándo?', 'Todo lo cargado');
     expect(await screen.findByLabelText('Así quedaría')).toBeInTheDocument();
 
     await usuario.type(screen.getByLabelText('Nombre'), 'Ventas por día');
@@ -166,23 +184,35 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
     await entoncesEstaAbiertaLaSolapa('Ventas por día');
   });
 
+  it('avisa si falta el nombre al guardar la propia', async () => {
+    const { usuario } = await dadoElInicioDelAlmacen();
+    await cuandoSeAbreArmalaVos(usuario);
+    await screen.findByRole('radiogroup', { name: '¿Qué querés mirar?' });
+
+    await cuandoSeVaAlPaso(usuario, 'Paso 5: Nombre');
+    await usuario.click(screen.getByRole('button', { name: 'Guardar métrica' }));
+
+    expect(screen.getByText('Ponele un nombre.')).toBeInTheDocument();
+  });
+
   it('sólo ofrece armar de lo que el negocio cargó: sin gastos no ofrece gastos', async () => {
     const { usuario } = await dadoElInicioDelAlmacen();
-    await cuandoSeAbreArmarLaMia(usuario);
-    const queMirar = await screen.findByLabelText('¿Qué querés mirar?');
+    await cuandoSeAbreArmalaVos(usuario);
+    const queMirar = await screen.findByRole('radiogroup', { name: '¿Qué querés mirar?' });
     expect(
       within(queMirar)
-        .getAllByRole('option')
+        .getAllByRole('radio')
         .map((opcion) => opcion.textContent),
     ).toEqual(['Ventas', 'Productos en stock']);
   });
 
-  it('marca «Ya la tenés» la sugerida que ya muestra el panel de ventas y no deja agregarla', async () => {
+  it('avisa «Ya la tenés» en la sugerida que ya muestra el panel de ventas, sin botón para agregarla', async () => {
     const { usuario } = await dadoElInicioDelAlmacen();
     await cuandoSeAbreAgregarMetrica(usuario);
-    expect(
-      await screen.findByRole('button', { name: 'Ya tenés Cuánto vendí esta semana' }),
-    ).toBeDisabled();
+    const sugerida = (await screen.findByRole('heading', { name: 'Cuánto vendí esta semana' }))
+      .parentElement as HTMLElement;
+    expect(within(sugerida).getByRole('status')).toHaveTextContent('Ya la tenés en tu panel');
+    expect(within(sugerida).queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('pide una métrica con sus palabras, la mira y la guarda como una solapa', async () => {
@@ -221,8 +251,10 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
 
   it('no deja guardar lo que ya muestra el panel de ventas y dice por qué', async () => {
     const { usuario } = await dadoElInicioDelAlmacen();
-    await cuandoSeAbreArmarLaMia(usuario);
-    await usuario.type(await screen.findByLabelText('Nombre'), 'Total del mes');
+    await cuandoSeAbreArmalaVos(usuario);
+    await screen.findByRole('radiogroup', { name: '¿Qué querés mirar?' });
+    await cuandoSeVaAlPaso(usuario, 'Paso 5: Nombre');
+    await usuario.type(screen.getByLabelText('Nombre'), 'Total del mes');
     await usuario.click(screen.getByRole('button', { name: 'Guardar métrica' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Esa ya la tenés en el panel');
   });

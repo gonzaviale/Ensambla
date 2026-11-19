@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { GraficoDeLaMetrica } from '@/components/sistema/metricas/GraficoDeLaMetrica';
 import { MenuDeLaMetrica } from '@/components/sistema/metricas/MenuDeLaMetrica';
 import { SelectorDeGrafico } from '@/components/sistema/metricas/SelectorDeGrafico';
+import { VentanaFlotante } from '@/components/sistema/metricas/VentanaFlotante';
 import { useRenombrarMetrica } from '@/hooks/metricas/mutations';
 import { useGraficoDeLaMetrica } from '@/hooks/metricas/useGraficoDeLaMetrica';
 import { resumenDeLaReceta, textoDeDondeSale } from '@/lib/metricas/metricasAMedida';
@@ -25,17 +26,16 @@ export function SolapaDeMetrica(props: Props) {
   return (
     <article className="panel-negocio-metrica" data-color={color}>
       <header className="panel-negocio-metrica-cabecera">
-        {renombrando ? (
-          <RenombrarLaMetrica
-            metrica={metrica}
-            sistemaId={sistemaId}
-            onCerrar={() => setRenombrando(false)}
-          />
-        ) : (
-          <TituloDeLaMetrica metrica={metrica} />
-        )}
+        <TituloDeLaMetrica metrica={metrica} />
         <MenuDeLaMetrica {...props} onRenombrar={() => setRenombrando(true)} />
       </header>
+      {renombrando && (
+        <RenombrarLaMetrica
+          metrica={metrica}
+          sistemaId={sistemaId}
+          onCerrar={() => setRenombrando(false)}
+        />
+      )}
       <ElGraficoDeLaMetrica metrica={metrica} sistemaId={sistemaId} />
       <DeDondeSale resultado={metrica.resultado} />
     </article>
@@ -79,29 +79,31 @@ function RenombrarLaMetrica({ metrica, sistemaId, onCerrar }: PropsDeRenombrar) 
     onCerrar,
   );
   return (
-    <form className="metrica-medida-renombrar" onSubmit={guardar} noValidate>
-      <label htmlFor={`nombre-${metrica.id}`}>Nombre de la métrica</label>
-      <input
-        id={`nombre-${metrica.id}`}
-        value={nombre}
-        maxLength={80}
-        autoFocus
-        onChange={(evento) => setNombre(evento.target.value)}
-      />
-      {aviso && (
-        <p className="metrica-medida-error" role="alert">
-          {aviso}
-        </p>
-      )}
-      <div className="metrica-medida-renombrar-botones">
-        <button type="submit" className="metrica-medida-guardar" disabled={guardando}>
-          Guardar nombre
-        </button>
-        <button type="button" className="metrica-medida-cancelar" onClick={onCerrar}>
-          Cancelar
-        </button>
-      </div>
-    </form>
+    <VentanaFlotante titulo="Cambiar el nombre" tamano="chica" onCerrar={onCerrar}>
+      <form className="metrica-medida-renombrar" onSubmit={guardar} noValidate>
+        <label htmlFor={`nombre-${metrica.id}`}>Nombre de la métrica</label>
+        <input
+          id={`nombre-${metrica.id}`}
+          value={nombre}
+          maxLength={80}
+          autoFocus
+          onChange={(evento) => setNombre(evento.target.value)}
+        />
+        {aviso && (
+          <p className="metrica-medida-error" role="alert">
+            {aviso}
+          </p>
+        )}
+        <div className="metrica-medida-renombrar-botones">
+          <button type="submit" className="metrica-medida-guardar" disabled={guardando}>
+            Guardar nombre
+          </button>
+          <button type="button" className="metrica-medida-cancelar" onClick={onCerrar}>
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </VentanaFlotante>
   );
 }
 
