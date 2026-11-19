@@ -21,6 +21,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
@@ -56,6 +57,8 @@ class ObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     private MockMvc mockMvc;
     private MockHttpSession sesion;
 
+    private ResultActions respuesta;
+
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
@@ -76,27 +79,17 @@ class ObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("El endpoint exige la sesión del negocio")
     void elEndpointExigeLaSesionDelNegocio() throws Exception {
-        mockMvc.perform(get(API))
-                .andExpect(status().isUnauthorized());
+        cuandoSeEjecutaElEndpointExigeLaSesionDelNegocio();
+
+        entoncesSeVerificaElEndpointExigeLaSesionDelNegocio();
     }
 
     @Test
     @DisplayName("Devuelve desde PostgreSQL los tres productos elegidos para el almacén de demostración")
     void devuelveDesdePostgreSQLLosTresProductosElegidosParaElAlmacenDeDemostracion() throws Exception {
-        mockMvc.perform(get(API).session(sesion))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(3))
-                .andExpect(jsonPath("$[0].tipo").value("SUBIR_PRECIO"))
-                .andExpect(jsonPath("$[0].nombre").value("Yerba Playadito 1 kg"))
-                .andExpect(jsonPath("$[0].precio").value(3600))
-                .andExpect(jsonPath("$[0].costo").value(2700))
-                .andExpect(jsonPath("$[0].stock").value(4))
-                .andExpect(jsonPath("$[0].precioZona").isEmpty())
-                .andExpect(jsonPath("$[1].tipo").value("MOVER_PARADO"))
-                .andExpect(jsonPath("$[1].nombre").value("Azúcar Ledesma 1 kg"))
-                .andExpect(jsonPath("$[1].vendidas30Dias").value(0))
-                .andExpect(jsonPath("$[2].tipo").value("PONER_A_LA_VISTA"))
-                .andExpect(jsonPath("$[2].nombre").value("Coca-Cola 2,25 L"));
+        cuandoSeEjecutaDevuelveDesdePostgreSQLLosTresProductosElegidosParaElAlmacenDeDemostracion();
+
+        entoncesSeVerificaDevuelveDesdePostgreSQLLosTresProductosElegidosParaElAlmacenDeDemostracion();
     }
 
     // --- dado ---
@@ -164,5 +157,39 @@ class ObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     private static String frontId() {
         return "e" + UUID.randomUUID();
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaElEndpointExigeLaSesionDelNegocio() throws Exception {
+        respuesta = mockMvc.perform(get(API));
+    }
+
+    private void cuandoSeEjecutaDevuelveDesdePostgreSQLLosTresProductosElegidosParaElAlmacenDeDemostracion() throws Exception {
+        respuesta = mockMvc.perform(get(API).session(sesion));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaElEndpointExigeLaSesionDelNegocio() throws Exception {
+        respuesta
+                .andExpect(status().isUnauthorized());
+    }
+
+    private void entoncesSeVerificaDevuelveDesdePostgreSQLLosTresProductosElegidosParaElAlmacenDeDemostracion() throws Exception {
+        respuesta
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[0].tipo").value("SUBIR_PRECIO"))
+                .andExpect(jsonPath("$[0].nombre").value("Yerba Playadito 1 kg"))
+                .andExpect(jsonPath("$[0].precio").value(3600))
+                .andExpect(jsonPath("$[0].costo").value(2700))
+                .andExpect(jsonPath("$[0].stock").value(4))
+                .andExpect(jsonPath("$[0].precioZona").isEmpty())
+                .andExpect(jsonPath("$[1].tipo").value("MOVER_PARADO"))
+                .andExpect(jsonPath("$[1].nombre").value("Azúcar Ledesma 1 kg"))
+                .andExpect(jsonPath("$[1].vendidas30Dias").value(0))
+                .andExpect(jsonPath("$[2].tipo").value("PONER_A_LA_VISTA"))
+                .andExpect(jsonPath("$[2].nombre").value("Coca-Cola 2,25 L"));
     }
 }
