@@ -9,13 +9,23 @@ import static org.mockito.Mockito.verify;
 
 class MonitoreoAvisosWorkerTest {
 
+    private final EjecutarMotorAvisos ejecutarMotorAvisos = mock(EjecutarMotorAvisos.class);
+
     @Test
     @DisplayName("Cada ciclo corre el motor de avisos")
     void cadaCicloCorreElMotorDeAvisos() {
-        EjecutarMotorAvisos useCase = mock(EjecutarMotorAvisos.class);
+        cuandoCorreUnCicloDelMonitoreo();
 
-        new MonitoreoAvisosWorker(useCase).monitorear();
+        entoncesSeEjecutaElMotorDeAvisos();
+    }
 
-        verify(useCase).execute();
+    // --- cuando ---
+    private void cuandoCorreUnCicloDelMonitoreo() {
+        new MonitoreoAvisosWorker(ejecutarMotorAvisos).monitorear();
+    }
+
+    // --- entonces ---
+    private void entoncesSeEjecutaElMotorDeAvisos() {
+        verify(ejecutarMotorAvisos).execute();
     }
 }

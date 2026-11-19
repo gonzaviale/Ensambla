@@ -9,13 +9,23 @@ import static org.mockito.Mockito.verify;
 
 class ImpactoAvisosWorkerTest {
 
+    private final MedirImpactoAvisos medirImpactoAvisos = mock(MedirImpactoAvisos.class);
+
     @Test
     @DisplayName("Cada ciclo mide el impacto de los avisos aplicados")
     void cadaCicloMideElImpactoDeLosAvisosAplicados() {
-        MedirImpactoAvisos useCase = mock(MedirImpactoAvisos.class);
+        cuandoCorreUnCicloDeMedicion();
 
-        new ImpactoAvisosWorker(useCase).medir();
+        entoncesSeMideElImpactoDeLosAvisos();
+    }
 
-        verify(useCase).execute();
+    // --- cuando ---
+    private void cuandoCorreUnCicloDeMedicion() {
+        new ImpactoAvisosWorker(medirImpactoAvisos).medir();
+    }
+
+    // --- entonces ---
+    private void entoncesSeMideElImpactoDeLosAvisos() {
+        verify(medirImpactoAvisos).execute();
     }
 }

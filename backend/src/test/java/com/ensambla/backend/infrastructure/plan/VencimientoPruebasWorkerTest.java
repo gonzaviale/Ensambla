@@ -8,52 +8,99 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
 class VencimientoPruebasWorkerTest {
 
+    private final VencerPruebas vencerPruebas = mock(VencerPruebas.class);
+    private final CountDownLatch primerVencimiento = new CountDownLatch(1);
+    private ApplicationContextRunner contexto;
+    private int workersRegistrados;
+    private boolean vencioAlMenosUnaVez;
+
     @Test
     @DisplayName("Cada ciclo ejecuta el vencimiento de pruebas")
     void cadaCicloEjecutaElVencimientoDePruebas() {
-        VencerPruebas vencerPruebas = mock(VencerPruebas.class);
+        cuandoCorreUnCicloDelWorker();
 
-        new VencimientoPruebasWorker(vencerPruebas).vencer();
-
-        verify(vencerPruebas).execute();
+        entoncesSeVencenLasPruebas();
     }
 
     @Test
     @DisplayName("El vencimiento se agenda automáticamente por defecto")
     void elVencimientoSeAgendaAutomaticamentePorDefecto() {
-        VencerPruebas vencerPruebas = mock(VencerPruebas.class);
-        ApplicationContextRunner runner = dadoRunner(vencerPruebas)
-                .withPropertyValues("ensambla.planes.pruebas.intervalo=100",
-                        "ensambla.planes.pruebas.demora-inicial=10");
+        dadoUnWorkerQueVenceCadaCienMilisegundos();
 
-        runner.run(context -> {
-            assertThat(context).hasSingleBean(VencimientoPruebasWorker.class);
-            verify(vencerPruebas, timeout(3000).atLeastOnce()).execute();
-        });
+        cuandoSeArrancaElContextoYSeEsperaElPrimerVencimiento();
+
+        entoncesElWorkerSeRegistraYVenceAlMenosUnaVez();
     }
 
     @Test
     @DisplayName("El worker puede deshabilitarse explícitamente en las pruebas")
     void elWorkerPuedeDeshabilitarseExplicitamenteEnLasPruebas() {
-        ApplicationContextRunner runner = dadoRunner(mock(VencerPruebas.class))
-                .withPropertyValues("ensambla.planes.pruebas.habilitado=false");
+        dadoUnWorkerDeshabilitado();
 
-        runner.run(context -> assertThat(context).doesNotHaveBean(VencimientoPruebasWorker.class));
+        cuandoSeArrancaElContexto();
+
+        entoncesNoSeRegistraElWorker();
     }
 
     // --- dado ---
-    private ApplicationContextRunner dadoRunner(VencerPruebas vencerPruebas) {
+    private void dadoUnWorkerQueVenceCadaCienMilisegundos() {
+        doAnswer(invocacion -> {
+            primerVencimiento.countDown();
+            return null;
+        }).when(vencerPruebas).execute();
+        contexto = dadoRunner().withPropertyValues("ensambla.planes.pruebas.intervalo=100",
+                "ensambla.planes.pruebas.demora-inicial=10");
+    }
+
+    private void dadoUnWorkerDeshabilitado() {
+        contexto = dadoRunner().withPropertyValues("ensambla.planes.pruebas.habilitado=false");
+    }
+
+    private ApplicationContextRunner dadoRunner() {
         return new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(VencimientoPruebasWorker.class))
                 .withUserConfiguration(Programacion.class)
                 .withBean(VencerPruebas.class, () -> vencerPruebas);
+    }
+
+    // --- cuando ---
+    private void cuandoCorreUnCicloDelWorker() {
+        new VencimientoPruebasWorker(vencerPruebas).vencer();
+    }
+
+    private void cuandoSeArrancaElContexto() {
+        contexto.run(arrancado -> workersRegistrados = arrancado.getBeansOfType(VencimientoPruebasWorker.class).size());
+    }
+
+    private void cuandoSeArrancaElContextoYSeEsperaElPrimerVencimiento() {
+        contexto.run(arrancado -> {
+            workersRegistrados = arrancado.getBeansOfType(VencimientoPruebasWorker.class).size();
+            vencioAlMenosUnaVez = primerVencimiento.await(3, TimeUnit.SECONDS);
+        });
+    }
+
+    // --- entonces ---
+    private void entoncesSeVencenLasPruebas() {
+        verify(vencerPruebas).execute();
+    }
+
+    private void entoncesElWorkerSeRegistraYVenceAlMenosUnaVez() {
+        assertThat(workersRegistrados).isEqualTo(1);
+        assertThat(vencioAlMenosUnaVez).isTrue();
+    }
+
+    private void entoncesNoSeRegistraElWorker() {
+        assertThat(workersRegistrados).isZero();
     }
 
     @Configuration
