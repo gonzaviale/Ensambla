@@ -313,7 +313,8 @@
 }
 
 /* «Tu negocio» en solapas: la de ventas (petróleo) y una por métrica, cada una con su color de la paleta. La activa
-   se pega a la tarjeta de abajo; el hover es magenta. En el celular la tira se desliza de costado. */
+   lleva el borde entero de su color y se pega a la tarjeta de abajo, del mismo color (nunca una raya de otro color
+   arriba); el hover es magenta. En el celular la tira se desliza de costado. */
 .panel-negocio {
   --magenta: #b52d66;
   display: grid;
@@ -325,7 +326,7 @@
   display: flex;
   align-items: flex-end;
   gap: 4px;
-  margin-bottom: -1px;
+  margin-bottom: -2px;
   padding: 0 6px;
   overflow-x: auto;
   scrollbar-width: none;
@@ -358,8 +359,8 @@
   align-items: center;
   gap: 8px;
   max-width: 220px;
-  padding: 11px 16px 10px;
-  border: 1px solid transparent;
+  padding: 10px 16px;
+  border: 2px solid transparent;
   border-bottom: 0;
   border-radius: 14px 14px 0 0;
   background: transparent;
@@ -374,9 +375,8 @@
   color: var(--magenta);
 }
 .panel-negocio-solapa[aria-selected='true'] {
-  border-color: var(--c-borde);
+  border-color: var(--color-solapa);
   background: #fff;
-  box-shadow: inset 0 4px 0 var(--color-solapa);
   color: var(--c-estructura);
 }
 .panel-negocio-solapa-punto {
@@ -422,20 +422,21 @@
 .panel-negocio-cuerpo {
   min-width: 0;
 }
+.panel-negocio .grafico-barra-etiqueta {
+  color: var(--c-estructura);
+}
 .panel-negocio-cuerpo > .agregar-metrica {
-  border: 1px solid var(--c-borde);
-  border-top: 4px solid var(--c-accion);
+  border: 2px solid var(--c-accion);
   border-radius: 20px;
   box-shadow: var(--sombra-reposo);
 }
 
-/* El cuerpo de una métrica: tarjeta blanca con el borde de arriba de su color, título en petróleo. */
+/* El cuerpo de una métrica: tarjeta blanca con el borde entero de su color, título en petróleo. */
 .panel-negocio-metrica {
   display: grid;
   gap: 12px;
   padding: 20px 24px;
-  border: 1px solid var(--c-borde);
-  border-top: 4px solid var(--color-solapa);
+  border: 2px solid var(--color-solapa);
   border-radius: 20px;
   background: #fff;
   box-shadow: var(--sombra-reposo);
