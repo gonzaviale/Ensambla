@@ -21,25 +21,58 @@ class PreferenciaRepositoryTest {
     private static final UsuarioId USUARIO_ID = UsuarioId.de("b0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-21T10:00:00Z");
 
-    private final PreferenciaRepository preferenciaRepository = mock(PreferenciaRepository.class, CALLS_REAL_METHODS);
+    private final PreferenciaRepository preferenciaRepository =
+            mock(PreferenciaRepository.class, CALLS_REAL_METHODS);
+
+    private PreferenciaUsuario guardada;
+    private PreferenciaUsuario obtenida;
+
     @Test
     @DisplayName("Obtener devuelve lo guardado")
-    void obtenerShouldReturnStoredPreferencias() {
-        PreferenciaUsuario guardada = PreferenciaUsuario.inicial(USUARIO_ID, AHORA);
-        when(preferenciaRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(guardada));
+    void obtenerDevuelveLoGuardado() {
+        dadoQueElUsuarioYaGuardoPreferencias();
 
-        assertThat(preferenciaRepository.obtenerOInicial(USUARIO_ID, AHORA)).isSameAs(guardada);
+        cuandoSeObtienenLasPreferencias();
+
+        entoncesSeDevuelvenLasGuardadas();
     }
 
     @Test
     @DisplayName("Obtener devuelve las iniciales sin escribir cuando nunca guardó nada")
-    void obtenerShouldReturnInitialWithoutSaving() {
+    void obtenerDevuelveLasInicialesSinEscribirCuandoNuncaGuardoNada() {
+        dadoQueElUsuarioNuncaGuardoPreferencias();
+
+        cuandoSeObtienenLasPreferencias();
+
+        entoncesSeDevuelvenLasInicialesSinGuardarNada();
+    }
+
+    // --- dado ---
+
+    private void dadoQueElUsuarioYaGuardoPreferencias() {
+        guardada = PreferenciaUsuario.inicial(USUARIO_ID, AHORA);
+        when(preferenciaRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(guardada));
+    }
+
+    private void dadoQueElUsuarioNuncaGuardoPreferencias() {
         when(preferenciaRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
+    }
 
-        PreferenciaUsuario result = preferenciaRepository.obtenerOInicial(USUARIO_ID, AHORA);
+    // --- cuando ---
 
-        assertThat(result.getUsuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(result.getDescartadas()).isEmpty();
+    private void cuandoSeObtienenLasPreferencias() {
+        obtenida = preferenciaRepository.obtenerOInicial(USUARIO_ID, AHORA);
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeDevuelvenLasGuardadas() {
+        assertThat(obtenida).isSameAs(guardada);
+    }
+
+    private void entoncesSeDevuelvenLasInicialesSinGuardarNada() {
+        assertThat(obtenida.getUsuarioId()).isEqualTo(USUARIO_ID);
+        assertThat(obtenida.getDescartadas()).isEmpty();
         verify(preferenciaRepository, never()).save(any());
     }
 }

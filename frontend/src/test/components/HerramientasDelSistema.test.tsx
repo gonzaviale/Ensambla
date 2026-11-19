@@ -3,66 +3,123 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { HerramientasDelSistema } from '@/components/sistema/editor/HerramientasDelSistema';
 
-const montar = () => {
-  const acciones = {
-    onDistribucion: vi.fn(),
-    onBloques: vi.fn(),
-    onSecciones: vi.fn(),
-    onNuevaSeccion: vi.fn(),
-    onFoto: vi.fn(),
-    onResumen: vi.fn(),
-  };
-  render(<HerramientasDelSistema distribucion="mosaic" {...acciones} />);
-  return { user: userEvent.setup(), ...acciones };
-};
+type Usuario = ReturnType<typeof userEvent.setup>;
+
+let user: Usuario;
+const crearAcciones = () => ({
+  onDistribucion: vi.fn(),
+  onBloques: vi.fn(),
+  onSecciones: vi.fn(),
+  onNuevaSeccion: vi.fn(),
+  onFoto: vi.fn(),
+  onResumen: vi.fn(),
+});
+
+let acciones: ReturnType<typeof crearAcciones>;
 
 describe('HerramientasDelSistema', () => {
   it('son dos íconos y cada uno despliega lo suyo al tocarlo', async () => {
-    const { user } = montar();
-    const agregar = screen.getByRole('button', { name: 'Agregar y organizar' });
-    const distribucion = screen.getByRole('button', { name: 'Distribución de los bloques' });
+    dadasLasHerramientas();
 
-    expect(agregar).toHaveAttribute('aria-expanded', 'false');
-    await user.click(agregar);
-    expect(agregar).toHaveAttribute('aria-expanded', 'true');
-    await user.click(distribucion);
-    expect(agregar).toHaveAttribute('aria-expanded', 'false');
-    expect(distribucion).toHaveAttribute('aria-expanded', 'true');
+    await cuandoSeToca(agregar());
+
+    entoncesElPanelEstaAbierto(agregar());
   });
 
-  it('elegir una opción hace lo que dice y cierra el panel', async () => {
-    const { user, onBloques, onResumen } = montar();
-    const agregar = screen.getByRole('button', { name: 'Agregar y organizar' });
+  it('abrir uno cierra el otro', async () => {
+    dadasLasHerramientas();
+    await cuandoSeToca(agregar());
 
-    await user.click(agregar);
-    await user.click(screen.getByRole('button', { name: 'Bloques' }));
-    expect(onBloques).toHaveBeenCalledOnce();
-    expect(agregar).toHaveAttribute('aria-expanded', 'false');
+    await cuandoSeToca(distribucion());
 
-    await user.click(agregar);
-    await user.click(screen.getByRole('button', { name: /Resumen en PDF/ }));
-    expect(onResumen).toHaveBeenCalledOnce();
+    entoncesElPanelEstaCerrado(agregar());
+    entoncesElPanelEstaAbierto(distribucion());
+  });
+
+  it('elegir una opción hace lo que dice', async () => {
+    dadasLasHerramientas();
+    await cuandoSeToca(agregar());
+
+    await cuandoSeToca(screen.getByRole('button', { name: 'Bloques' }));
+
+    entoncesSeLlamo('onBloques');
+  });
+
+  it('elegir una opción cierra el panel', async () => {
+    dadasLasHerramientas();
+    await cuandoSeToca(agregar());
+
+    await cuandoSeToca(screen.getByRole('button', { name: 'Bloques' }));
+
+    entoncesElPanelEstaCerrado(agregar());
+  });
+
+  it('el resumen en PDF también hace lo que dice', async () => {
+    dadasLasHerramientas();
+    await cuandoSeToca(agregar());
+
+    await cuandoSeToca(screen.getByRole('button', { name: /Resumen en PDF/ }));
+
+    entoncesSeLlamo('onResumen');
   });
 
   it('los mosaicos se eligen desde el segundo ícono', async () => {
-    const { user, onDistribucion } = montar();
+    dadasLasHerramientas();
+    await cuandoSeToca(distribucion());
 
-    await user.click(screen.getByRole('button', { name: 'Distribución de los bloques' }));
-    await user.click(screen.getByRole('button', { name: /2 columnas/ }));
+    await cuandoSeToca(screen.getByRole('button', { name: /2 columnas/ }));
 
-    expect(onDistribucion).toHaveBeenCalledWith('two');
+    entoncesSeEligioLaDistribucion('two');
   });
 
-  it('Escape y tocar afuera cierran el panel', async () => {
-    const { user } = montar();
-    const agregar = screen.getByRole('button', { name: 'Agregar y organizar' });
+  it('Escape cierra el panel', async () => {
+    dadasLasHerramientas();
+    await cuandoSeToca(agregar());
 
-    await user.click(agregar);
-    await user.keyboard('{Escape}');
-    expect(agregar).toHaveAttribute('aria-expanded', 'false');
+    await cuandoSePresiona('{Escape}');
 
-    await user.click(agregar);
-    await user.click(document.body);
-    expect(agregar).toHaveAttribute('aria-expanded', 'false');
+    entoncesElPanelEstaCerrado(agregar());
+  });
+
+  it('tocar afuera cierra el panel', async () => {
+    dadasLasHerramientas();
+    await cuandoSeToca(agregar());
+
+    await cuandoSeToca(document.body);
+
+    entoncesElPanelEstaCerrado(agregar());
   });
 });
+
+const agregar = () => screen.getByRole('button', { name: 'Agregar y organizar' });
+const distribucion = () => screen.getByRole('button', { name: 'Distribución de los bloques' });
+
+function dadasLasHerramientas() {
+  acciones = crearAcciones();
+  render(<HerramientasDelSistema distribucion="mosaic" {...acciones} />);
+  user = userEvent.setup();
+}
+
+async function cuandoSeToca(elemento: HTMLElement) {
+  await user.click(elemento);
+}
+
+async function cuandoSePresiona(tecla: string) {
+  await user.keyboard(tecla);
+}
+
+function entoncesElPanelEstaAbierto(boton: HTMLElement) {
+  expect(boton).toHaveAttribute('aria-expanded', 'true');
+}
+
+function entoncesElPanelEstaCerrado(boton: HTMLElement) {
+  expect(boton).toHaveAttribute('aria-expanded', 'false');
+}
+
+function entoncesSeLlamo(accion: 'onBloques' | 'onResumen') {
+  expect(acciones[accion]).toHaveBeenCalledOnce();
+}
+
+function entoncesSeEligioLaDistribucion(distribucionElegida: string) {
+  expect(acciones.onDistribucion).toHaveBeenCalledWith(distribucionElegida);
+}

@@ -1,33 +1,33 @@
 import { describe, it } from 'vitest';
 import {
-  givenCierreConEfectivo,
-  whenSeCuentaEfectivo,
-  whenSeExplicaDiferencia,
-  thenNoSePuedeGuardarCierre,
-  thenSePuedeGuardarCierre,
-  thenSeGuardaRecuentoCero,
+  dadoCierreConEfectivo,
+  cuandoSeCuentaEfectivo,
+  cuandoSeExplicaDiferencia,
+  entoncesNoSePuedeGuardarCierre,
+  entoncesSePuedeGuardarCierre,
+  entoncesSeGuardaRecuentoCero,
 } from '@/test/caja/recuentoCajaHelpers';
 
 describe('recuento obligatorio al cerrar caja', () => {
   it('exige escribir el efectivo contado antes de guardar', () => {
-    givenCierreConEfectivo();
-    thenNoSePuedeGuardarCierre();
+    dadoCierreConEfectivo();
+    entoncesNoSePuedeGuardarCierre();
   });
   it('exige explicar la diferencia aunque el recuento sea cero', async () => {
-    const { user, confirmar } = givenCierreConEfectivo();
-    await whenSeCuentaEfectivo(user, '0');
-    thenNoSePuedeGuardarCierre();
-    await whenSeExplicaDiferencia(user);
-    thenSeGuardaRecuentoCero(confirmar);
+    const { user, confirmar } = dadoCierreConEfectivo();
+    await cuandoSeCuentaEfectivo(user, '0');
+    entoncesNoSePuedeGuardarCierre();
+    await cuandoSeExplicaDiferencia(user);
+    entoncesSeGuardaRecuentoCero(confirmar);
   });
   it('acepta cero sin motivo cuando no se esperaba efectivo', async () => {
-    const { user } = givenCierreConEfectivo(0);
-    await whenSeCuentaEfectivo(user, '0');
-    thenSePuedeGuardarCierre();
+    const { user } = dadoCierreConEfectivo(0);
+    await cuandoSeCuentaEfectivo(user, '0');
+    entoncesSePuedeGuardarCierre();
   });
   it('acepta el efectivo coincidente sin exigir una nota', async () => {
-    const { user } = givenCierreConEfectivo();
-    await whenSeCuentaEfectivo(user, '1000');
-    thenSePuedeGuardarCierre();
+    const { user } = dadoCierreConEfectivo();
+    await cuandoSeCuentaEfectivo(user, '1000');
+    entoncesSePuedeGuardarCierre();
   });
 });

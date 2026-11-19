@@ -2,6 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { alcanceDeLaMeta, leerObjetivo } from '@/lib/lecturaObjetivo';
 
 const NEGOCIO = { hayVentas: true, vendiste: 1_000_000, queda: 250_000 };
+const NEGOCIO_CHICO = { hayVentas: true, vendiste: 83_000, queda: 28_000 };
+
+type Lectura = ReturnType<typeof leerObjetivo>;
+type Alcance = ReturnType<typeof alcanceDeLaMeta>;
+
+let lectura: Lectura;
+let alcance: Alcance;
 
 describe('leerObjetivo', () => {
   it.each([
@@ -25,92 +32,170 @@ describe('leerObjetivo', () => {
     ['Quiero que el negocio me deje $300.000', 300_000],
     ['ganar 400 mil por mes vendiendo 30 unidades por día', 400_000],
   ])('«%s» → meta %d', (texto, meta) => {
-    expect(leerObjetivo(texto).meta).toBe(meta);
+    cuandoSeLee(texto);
+
+    entoncesLaMetaEs(meta);
+  });
+
+  it('una meta de ventas es un objetivo de vender', () => {
+    cuandoSeLee('Quiero vender $2.000.000 por mes', NEGOCIO);
+
+    entoncesElTipoEs('VENDER');
   });
 
   it('una meta de ventas la pasa a ganancia con lo que queda hoy de cada venta', () => {
-    const lectura = leerObjetivo('Quiero vender $2.000.000 por mes', NEGOCIO);
-    expect(lectura.tipo).toBe('VENDER');
-    expect(lectura.meta).toBe(500_000);
-    expect(lectura.explicacion).toMatch(/25 %/);
+    cuandoSeLee('Quiero vender $2.000.000 por mes', NEGOCIO);
+
+    entoncesLaMetaEs(500_000);
+    entoncesLaExplicacionDice(/25 %/);
   });
 
   it('«en ventas» después del monto también es vender', () => {
-    expect(leerObjetivo('Quiero llegar a 1 millón en ventas', NEGOCIO).meta).toBe(250_000);
+    cuandoSeLee('Quiero llegar a 1 millón en ventas', NEGOCIO);
+
+    entoncesLaMetaEs(250_000);
   });
 
   it('una meta de ventas sin datos no inventa la ganancia', () => {
-    const lectura = leerObjetivo('Quiero vender $2.000.000 por mes');
-    expect(lectura.meta).toBeNull();
-    expect(lectura.avisos).toContain('Escribí abajo cuánto querés que te quede por mes, en pesos.');
+    cuandoSeLee('Quiero vender $2.000.000 por mes');
+
+    entoncesLaMetaEs(null);
+    entoncesAvisa('Escribí abajo cuánto querés que te quede por mes, en pesos.');
   });
 
-  it('crecer un porcentaje se calcula sobre lo que queda hoy', () => {
-    expect(leerObjetivo('Quiero ganar un 20 % más', NEGOCIO).meta).toBe(300_000);
-    expect(leerObjetivo('Quiero duplicar lo que gano', NEGOCIO).meta).toBe(500_000);
-    expect(leerObjetivo('Quiero ganar un 20 % más').meta).toBeNull();
+  it.each([
+    ['Quiero ganar un 20 % más', NEGOCIO, 300_000],
+    ['Quiero duplicar lo que gano', NEGOCIO, 500_000],
+    ['Quiero ganar un 20 % más', undefined, null],
+  ])('crecer «%s» se calcula sobre lo que queda hoy', (texto, negocio, meta) => {
+    cuandoSeLee(texto, negocio);
+
+    entoncesLaMetaEs(meta);
   });
 
-  it('sin monto no inventa una meta', () => {
-    for (const texto of [
-      'Quiero recuperar mis gastos antes del día 20',
-      'Quiero crecer',
-      'Quiero $5',
-    ]) {
-      expect(leerObjetivo(texto).meta).toBeNull();
-    }
-    expect(leerObjetivo('Quiero recuperar mis gastos').tipo).toBe('CUBRIR_GASTOS');
+  it.each(['Quiero recuperar mis gastos antes del día 20', 'Quiero crecer', 'Quiero $5'])(
+    'sin monto no inventa una meta: «%s»',
+    (texto) => {
+      cuandoSeLee(texto);
+
+      entoncesLaMetaEs(null);
+    },
+  );
+
+  it('recuperar los gastos es un objetivo de cubrir gastos', () => {
+    cuandoSeLee('Quiero recuperar mis gastos');
+
+    entoncesElTipoEs('CUBRIR_GASTOS');
   });
 
   it('avisa si había más de un monto y cuál tomó', () => {
-    const lectura = leerObjetivo('Quiero ganar $400.000 o $500.000');
-    expect(lectura.meta).toBe(400_000);
-    expect(lectura.avisos[0]).toMatch(/También escribiste \$500\.000/);
+    cuandoSeLee('Quiero ganar $400.000 o $500.000');
+
+    entoncesLaMetaEs(400_000);
+    entoncesElPrimerAvisoDice(/También escribiste \$500\.000/);
   });
 
   it('avisa si la meta ya se cumple hoy', () => {
-    expect(leerObjetivo('Quiero ganar $100.000', NEGOCIO).avisos[0]).toMatch(/ya la cumplís/);
+    cuandoSeLee('Quiero ganar $100.000', NEGOCIO);
+
+    entoncesElPrimerAvisoDice(/ya la cumplís/);
   });
 
-  it('explica retirar y cubrir gastos con sus palabras', () => {
-    expect(leerObjetivo('Quiero retirar $150.000').explicacion).toMatch(
-      /^Retirar \$150\.000 por mes/,
-    );
-    expect(leerObjetivo('Quiero cubrir $300.000 de alquiler').explicacion).toMatch(
-      /para tus gastos/,
-    );
-    expect(leerObjetivo('Quiero ganar $100.000 por semana').explicacion).toMatch(
-      /unos \$429\.000 por mes/,
-    );
+  it.each([
+    ['Quiero retirar $150.000', /^Retirar \$150\.000 por mes/],
+    ['Quiero cubrir $300.000 de alquiler', /para tus gastos/],
+    ['Quiero ganar $100.000 por semana', /unos \$429\.000 por mes/],
+  ])('explica «%s» con sus palabras', (texto, explicacion) => {
+    cuandoSeLee(texto);
+
+    entoncesLaExplicacionDice(explicacion);
   });
 });
 
 describe('alcanceDeLaMeta', () => {
-  const negocio = { hayVentas: true, vendiste: 83_000, queda: 28_000 };
+  it('una meta mayor a lo que se vende no se alcanza', () => {
+    cuandoSeMideElAlcanceDe(1_000_000, NEGOCIO_CHICO);
 
-  it('una meta mayor a lo que se vende no se alcanza y sugiere un primer escalón', () => {
-    const alcance = alcanceDeLaMeta(1_000_000, negocio);
-    expect(alcance?.nivel).toBe('imposible');
-    expect(alcance?.sugerida).toBe(36_000);
-    expect(alcance?.mensaje).toMatch(/Hoy vendés unos \$83\.000 por mes/);
+    entoncesElNivelEs('imposible');
+  });
+
+  it('una meta mayor a lo que se vende sugiere un primer escalón', () => {
+    cuandoSeMideElAlcanceDe(1_000_000, NEGOCIO_CHICO);
+
+    entoncesSeSugiere(36_000);
+    entoncesElMensajeDice(/Hoy vendés unos \$83\.000 por mes/);
   });
 
   it('más del doble de lo que queda hoy está lejos pero se puede', () => {
-    expect(alcanceDeLaMeta(70_000, negocio)?.nivel).toBe('lejos');
+    cuandoSeMideElAlcanceDe(70_000, NEGOCIO_CHICO);
+
+    entoncesElNivelEs('lejos');
   });
 
   it('una meta cercana no avisa nada', () => {
-    expect(alcanceDeLaMeta(40_000, negocio)).toBeNull();
+    cuandoSeMideElAlcanceDe(40_000, NEGOCIO_CHICO);
+
+    entoncesNoHayAlcance();
   });
 
-  it('sin ventas o si hoy no queda nada no inventa un escalón', () => {
-    expect(alcanceDeLaMeta(1_000_000, { hayVentas: false, vendiste: 0, queda: 0 })).toBeNull();
-    const sinQueda = alcanceDeLaMeta(1_000_000, {
-      hayVentas: true,
-      vendiste: 83_000,
-      queda: -5_000,
-    });
-    expect(sinQueda?.nivel).toBe('imposible');
-    expect(sinQueda?.sugerida).toBeNull();
+  it('sin ventas no inventa un escalón', () => {
+    cuandoSeMideElAlcanceDe(1_000_000, { hayVentas: false, vendiste: 0, queda: 0 });
+
+    entoncesNoHayAlcance();
+  });
+
+  it('si hoy no queda nada no sugiere un escalón', () => {
+    cuandoSeMideElAlcanceDe(1_000_000, { hayVentas: true, vendiste: 83_000, queda: -5_000 });
+
+    entoncesElNivelEs('imposible');
+    entoncesNoSeSugiereNada();
   });
 });
+
+function cuandoSeLee(texto: string, negocio?: typeof NEGOCIO) {
+  lectura = leerObjetivo(texto, negocio);
+}
+
+function cuandoSeMideElAlcanceDe(meta: number, negocio: Parameters<typeof alcanceDeLaMeta>[1]) {
+  alcance = alcanceDeLaMeta(meta, negocio);
+}
+
+function entoncesLaMetaEs(meta: number | null) {
+  expect(lectura.meta).toBe(meta);
+}
+
+function entoncesElTipoEs(tipo: string) {
+  expect(lectura.tipo).toBe(tipo);
+}
+
+function entoncesLaExplicacionDice(esperado: RegExp) {
+  expect(lectura.explicacion).toMatch(esperado);
+}
+
+function entoncesAvisa(aviso: string) {
+  expect(lectura.avisos).toContain(aviso);
+}
+
+function entoncesElPrimerAvisoDice(esperado: RegExp) {
+  expect(lectura.avisos[0]).toMatch(esperado);
+}
+
+function entoncesElNivelEs(nivel: string) {
+  expect(alcance?.nivel).toBe(nivel);
+}
+
+function entoncesSeSugiere(monto: number) {
+  expect(alcance?.sugerida).toBe(monto);
+}
+
+function entoncesNoSeSugiereNada() {
+  expect(alcance?.sugerida).toBeNull();
+}
+
+function entoncesElMensajeDice(esperado: RegExp) {
+  expect(alcance?.mensaje).toMatch(esperado);
+}
+
+function entoncesNoHayAlcance() {
+  expect(alcance).toBeNull();
+}

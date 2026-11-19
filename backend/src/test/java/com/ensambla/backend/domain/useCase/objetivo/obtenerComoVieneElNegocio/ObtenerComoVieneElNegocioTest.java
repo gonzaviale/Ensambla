@@ -32,6 +32,7 @@ class ObtenerComoVieneElNegocioTest {
 
     private static final UsuarioId USUARIO_ID = UsuarioId.de("b9000000-0000-4000-8000-000000000001");
     private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+
     /** En UTC ya es el 20 de octubre, pero en Argentina todavía es el 19: el período va del 20/9 al 19/10. */
     private static final Instant INSTANTE = Instant.parse("2026-10-20T01:00:00Z");
     private static final UUID YERBA = UUID.fromString("d0000000-0000-4000-8000-000000000001");
@@ -39,47 +40,50 @@ class ObtenerComoVieneElNegocioTest {
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final SistemaRepository sistemaRepository = mock(SistemaRepository.class);
     private final DatosDeProyectoService datosDeProyectoService = mock(DatosDeProyectoService.class);
-
     private final ObtenerComoVieneElNegocio obtenerComoVieneElNegocio = new ObtenerComoVieneElNegocio(
             negocioRepository, sistemaRepository, datosDeProyectoService, Clock.fixed(INSTANTE, ZoneOffset.UTC));
 
+    private ObtenerComoVieneElNegocioResponse respuesta;
+
     @BeforeEach
-    void setUp() {
+    void dadoElNegocioDeLaSesion() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @Test
     @DisplayName("Suma los sistemas del negocio de la sesión en los 30 días que terminan hoy, en hora argentina")
-    void executeShouldAddEverySystemOfTheBusinessInArgentineTime() {
-        givenSistemas(
-                List.of(venta(2, "2026-10-19"), venta(9, "2026-10-20")),
-                List.of(venta(1, "2026-09-20"), venta(9, "2026-09-19")));
+    void sumaLosSistemasDelNegocioDeLaSesionEnLos30DiasQueTerminanHoyEnHoraArgentina() {
+        dadoDosSistemasConVentasDentroYFueraDelPeriodo();
 
-        ObtenerComoVieneElNegocioResponse response = whenObtener();
+        cuandoSeObtieneComoVieneElNegocio();
 
-        assertThat(response.hayVentas()).isTrue();
-        assertThat(response.vendiste()).isEqualTo(10200);
-        assertThat(response.mercaderia()).isEqualTo(8100);
-        assertThat(response.queda()).isEqualTo(2100);
-        assertThat(response.semanas()).hasSize(6);
-        assertThat(response.semanas().getLast()).isEqualTo(new ObtenerComoVieneElNegocioResponse.Semana("Hoy", 2100));
+        entoncesSeSumanLosDosSistemasEnElPeriodoEnHoraArgentina();
     }
 
     @Test
     @DisplayName("Un negocio sin sistemas responde sin ventas y sin semanas")
-    void executeShouldReturnNoSalesWhenTheBusinessHasNoSystems() {
-        when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
+    void unNegocioSinSistemasRespondeSinVentasYSinSemanas() {
+        dadoUnNegocioSinSistemas();
 
-        ObtenerComoVieneElNegocioResponse response = whenObtener();
+        cuandoSeObtieneComoVieneElNegocio();
 
-        assertThat(response.hayVentas()).isFalse();
-        assertThat(response.vendiste()).isZero();
-        assertThat(response.semanas()).isEmpty();
+        entoncesRespondeSinVentasNiSemanas();
     }
 
-    // --- arrange ---
+    // --- dado ---
+
+    private void dadoDosSistemasConVentasDentroYFueraDelPeriodo() {
+        dadoSistemasConVentas(
+                List.of(venta(2, "2026-10-19"), venta(9, "2026-10-20")),
+                List.of(venta(1, "2026-09-20"), venta(9, "2026-09-19")));
+    }
+
+    private void dadoUnNegocioSinSistemas() {
+        when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
+    }
+
     @SafeVarargs
-    private void givenSistemas(List<Registro>... ventasPorSistema) {
+    private void dadoSistemasConVentas(List<Registro>... ventasPorSistema) {
         List<Sistema> sistemas = new ArrayList<>();
         for (List<Registro> ventas : ventasPorSistema) {
             Sistema sistema = mock(Sistema.class);
@@ -93,12 +97,32 @@ class ObtenerComoVieneElNegocioTest {
         when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(sistemas);
     }
 
-    // --- act ---
-    private ObtenerComoVieneElNegocioResponse whenObtener() {
-        return obtenerComoVieneElNegocio.execute(new ObtenerComoVieneElNegocioRequest(USUARIO_ID));
+    // --- cuando ---
+
+    private void cuandoSeObtieneComoVieneElNegocio() {
+        respuesta = obtenerComoVieneElNegocio.execute(new ObtenerComoVieneElNegocioRequest(USUARIO_ID));
     }
 
-    // --- helpers ---
+    // --- entonces ---
+
+    private void entoncesSeSumanLosDosSistemasEnElPeriodoEnHoraArgentina() {
+        assertThat(respuesta.hayVentas()).isTrue();
+        assertThat(respuesta.vendiste()).isEqualTo(10200);
+        assertThat(respuesta.mercaderia()).isEqualTo(8100);
+        assertThat(respuesta.queda()).isEqualTo(2100);
+        assertThat(respuesta.semanas()).hasSize(6);
+        assertThat(respuesta.semanas().getLast())
+                .isEqualTo(new ObtenerComoVieneElNegocioResponse.Semana("Hoy", 2100));
+    }
+
+    private void entoncesRespondeSinVentasNiSemanas() {
+        assertThat(respuesta.hayVentas()).isFalse();
+        assertThat(respuesta.vendiste()).isZero();
+        assertThat(respuesta.semanas()).isEmpty();
+    }
+
+    // --- datos ---
+
     private static Registro yerba() {
         return AvisoTestData.producto(YERBA, "Yerba Nobleza Gaucha", 40, 3400, 2700);
     }

@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.useCase.objetivo.eliminarObjetivo;
 
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.objetivo.ObjetivoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
@@ -17,8 +18,16 @@ public class EliminarObjetivo {
     private final TransaccionPort transaccionPort;
 
     public void execute(EliminarObjetivoRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        transaccionPort.ejecutar(() -> eliminar(negocioId, request.objetivoId()));
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+        eliminarEnTransaccion(negocioId, request.objetivoId());
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private void eliminarEnTransaccion(NegocioId negocioId, ObjetivoId objetivoId) {
+        transaccionPort.ejecutar(() -> eliminar(negocioId, objetivoId));
     }
 
     private void eliminar(NegocioId negocioId, ObjetivoId objetivoId) {

@@ -63,7 +63,7 @@ const periodo = (ingresos: number, ingresosAnteriores: number) => ({
   ventasFiadas: 0,
 });
 
-const givenResumen = (semana: [number, number], diasConVentas: number): ResumenInicio => ({
+const dadoResumen = (semana: [number, number], diasConVentas: number): ResumenInicio => ({
   sistema: 'x',
   hoy: '2026-11-16',
   hayVentas: true,
@@ -81,18 +81,18 @@ const givenResumen = (semana: [number, number], diasConVentas: number): ResumenI
 
 describe('hayVentasParaComparar', () => {
   it('con ventas esta semana y la anterior, en varios días, hay con qué comparar', () => {
-    expect(hayVentasParaComparar(givenResumen([5000, 4000], 6))).toBe(true);
+    expect(hayVentasParaComparar(dadoResumen([5000, 4000], 6))).toBe(true);
   });
 
   it('con una sola venta en un solo día no hay con qué comparar', () => {
-    expect(hayVentasParaComparar(givenResumen([1500, 0], 1))).toBe(false);
+    expect(hayVentasParaComparar(dadoResumen([1500, 0], 1))).toBe(false);
   });
 
   it('sin ventas la semana anterior no hay con qué comparar', () => {
-    expect(hayVentasParaComparar(givenResumen([5000, 0], 4))).toBe(false);
+    expect(hayVentasParaComparar(dadoResumen([5000, 0], 4))).toBe(false);
   });
 
   it('con ventas de las dos semanas pero un solo día con ventas no alcanza', () => {
-    expect(hayVentasParaComparar(givenResumen([5000, 4000], 1))).toBe(false);
+    expect(hayVentasParaComparar(dadoResumen([5000, 4000], 1))).toBe(false);
   });
 });

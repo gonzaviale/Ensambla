@@ -8,7 +8,7 @@ const archivo = (bytes: number, tipo = 'image/jpeg') =>
 
 const mapa = (ancho: number, alto: number) => ({ width: ancho, height: alto, close: vi.fn() });
 
-function givenCanvas(contexto: object | null, blob: Blob | null) {
+function dadoCanvas(contexto: object | null, blob: Blob | null) {
   const canvas = {
     width: 0,
     height: 0,
@@ -68,7 +68,7 @@ describe('reducirImagen', () => {
     vi.stubGlobal('createImageBitmap', vi.fn().mockResolvedValue(imagen));
     const contexto = contexto2d();
     const reducida = new Blob([new Uint8Array(MB)], { type: 'image/jpeg' });
-    const canvas = givenCanvas(contexto, reducida);
+    const canvas = dadoCanvas(contexto, reducida);
 
     const resultado = await reducirImagen(archivo(6 * MB, 'image/png'));
 
@@ -82,7 +82,7 @@ describe('reducirImagen', () => {
   it('con otro lado máximo (el de las fotos para Sami) achica hasta ese lado', async () => {
     vi.stubGlobal('createImageBitmap', vi.fn().mockResolvedValue(mapa(4000, 3000)));
     const reducida = new Blob([new Uint8Array(MB)], { type: 'image/jpeg' });
-    const canvas = givenCanvas(contexto2d(), reducida);
+    const canvas = dadoCanvas(contexto2d(), reducida);
 
     expect(await reducirImagen(archivo(6 * MB), 1600)).toBe(reducida);
     expect([canvas.width, canvas.height]).toEqual([1600, 1200]);
@@ -90,7 +90,7 @@ describe('reducirImagen', () => {
 
   it('si la versión achicada pesa más que la original, manda la original', async () => {
     vi.stubGlobal('createImageBitmap', vi.fn().mockResolvedValue(mapa(1800, 1200)));
-    givenCanvas(contexto2d(), new Blob([new Uint8Array(4 * MB)]));
+    dadoCanvas(contexto2d(), new Blob([new Uint8Array(4 * MB)]));
     const foto = archivo(2 * MB);
 
     expect(await reducirImagen(foto)).toBe(foto);
@@ -98,7 +98,7 @@ describe('reducirImagen', () => {
 
   it('si el canvas no devuelve imagen, manda la original', async () => {
     vi.stubGlobal('createImageBitmap', vi.fn().mockResolvedValue(mapa(4000, 3000)));
-    givenCanvas(contexto2d(), null);
+    dadoCanvas(contexto2d(), null);
     const foto = archivo(6 * MB);
 
     expect(await reducirImagen(foto)).toBe(foto);
@@ -107,7 +107,7 @@ describe('reducirImagen', () => {
   it('si el canvas no tiene contexto, manda la original', async () => {
     const imagen = mapa(4000, 3000);
     vi.stubGlobal('createImageBitmap', vi.fn().mockResolvedValue(imagen));
-    givenCanvas(null, null);
+    dadoCanvas(null, null);
     const foto = archivo(6 * MB);
 
     expect(await reducirImagen(foto)).toBe(foto);

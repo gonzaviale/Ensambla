@@ -18,7 +18,7 @@ import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.USUARIO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.objetivo;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -31,6 +31,9 @@ class ListarMiniObjetivosTest {
     private final MiniObjetivoRepository miniObjetivoRepository = mock(MiniObjetivoRepository.class);
     private ListarMiniObjetivos listarMiniObjetivos;
 
+    private ListarMiniObjetivosResponse respuesta;
+    private Throwable rechazo;
+
     @BeforeEach
     void setUp() {
         listarMiniObjetivos = new ListarMiniObjetivos(negocioRepository, objetivoRepository, miniObjetivoRepository);
@@ -39,31 +42,56 @@ class ListarMiniObjetivosTest {
 
     @Test
     @DisplayName("Devuelve los mini-objetivos del objetivo del negocio de la sesión")
-    void executeShouldReturnTheMiniObjetivosOfTheObjetivo() {
-        when(objetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID)).thenReturn(objetivo());
-        when(miniObjetivoRepository.findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID))
-                .thenReturn(List.of(miniObjetivo()));
+    void devuelveLosMiniObjetivosDelObjetivoDelNegocioDeLaSesion() {
+        dadoUnObjetivoConUnMiniObjetivo();
 
-        ListarMiniObjetivosResponse result = whenListar();
+        cuandoSeListan();
 
-        assertThat(result.minis()).extracting(MiniObjetivoItem::id).containsExactly(MINI_ID);
-        verify(miniObjetivoRepository).findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID);
+        entoncesSeDevuelveElMiniObjetivoDelObjetivo();
     }
 
     @Test
     @DisplayName("Un objetivo de otro negocio responde como inexistente y no consulta sus mini-objetivos")
-    void executeShouldFailWhenTheObjetivoBelongsToAnotherBusiness() {
-        when(objetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID))
-                .thenThrow(new ResourceNotFoundException("Objetivo no encontrado"));
+    void unObjetivoDeOtroNegocioRespondeComoInexistenteYNoConsultaSusMiniObjetivos() {
+        dadoUnObjetivoDeOtroNegocio();
 
-        assertThatThrownBy(this::whenListar)
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Objetivo no encontrado");
-        verifyNoInteractions(miniObjetivoRepository);
+        cuandoSeIntentaListar();
+
+        entoncesSeRechazaComoInexistenteSinConsultarMiniObjetivos();
     }
 
-    // --- act ---
-    private ListarMiniObjetivosResponse whenListar() {
-        return listarMiniObjetivos.execute(new ListarMiniObjetivosRequest(USUARIO_ID, OBJETIVO_ID));
+    // --- dado ---
+
+    private void dadoUnObjetivoConUnMiniObjetivo() {
+        when(objetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID)).thenReturn(objetivo());
+        when(miniObjetivoRepository.findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID))
+                .thenReturn(List.of(miniObjetivo()));
+    }
+
+    private void dadoUnObjetivoDeOtroNegocio() {
+        when(objetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID))
+                .thenThrow(new ResourceNotFoundException("Objetivo no encontrado"));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeListan() {
+        respuesta = listarMiniObjetivos.execute(new ListarMiniObjetivosRequest(USUARIO_ID, OBJETIVO_ID));
+    }
+
+    private void cuandoSeIntentaListar() {
+        rechazo = catchThrowable(this::cuandoSeListan);
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeDevuelveElMiniObjetivoDelObjetivo() {
+        assertThat(respuesta.minis()).extracting(MiniObjetivoItem::id).containsExactly(MINI_ID);
+        verify(miniObjetivoRepository).findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID);
+    }
+
+    private void entoncesSeRechazaComoInexistenteSinConsultarMiniObjetivos() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class).hasMessage("Objetivo no encontrado");
+        verifyNoInteractions(miniObjetivoRepository);
     }
 }

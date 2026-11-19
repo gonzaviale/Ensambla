@@ -6,6 +6,7 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.objetivo.PasoObjetivo;
 import com.ensambla.backend.domain.model.objetivo.PasosObjetivo;
 import com.ensambla.backend.domain.model.reporte.DatosDeProyecto;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
@@ -36,16 +37,24 @@ public class ObtenerPasos {
     private final Clock clock;
 
     public ObtenerPasosResponse execute(ObtenerPasosRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        List<DatosDeProyecto> datos = sistemaRepository.findAllByNegocioId(negocioId).stream()
-                .map(datosDeProyectoService::cargar)
-                .toList();
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+        List<DatosDeProyecto> datos = cargarDatosDeLosCuadernos(negocioId);
         List<PasoObjetivo> pasos = PasosObjetivo.elegir(
                 datos,
                 metricasVentas,
                 ZonaNegocio.dia(OffsetDateTime.now(clock)),
                 zonaDe(negocioId));
         return ObtenerPasosResponse.de(pasos);
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private List<DatosDeProyecto> cargarDatosDeLosCuadernos(NegocioId negocioId) {
+        return sistemaRepository.findAllByNegocioId(negocioId).stream()
+                .map(datosDeProyectoService::cargar)
+                .toList();
     }
 
     private AnalisisZona zonaDe(NegocioId negocioId) {

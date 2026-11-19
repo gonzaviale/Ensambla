@@ -10,12 +10,73 @@ import { ESPERA, setupUsuarioConSesion } from '@/test/testHelpers';
 
 const FILAS = 25;
 
+type Usuario = ReturnType<typeof userEvent.setup>;
+
+let user: Usuario;
+let bloque: HTMLElement;
+let inventario: Bloque;
+
+describe('las tablas de la sección se cargan de a poco', () => {
+  it('muestran 10 registros con el scroll del bloque', async () => {
+    await dadoUnSistemaConMuchosRegistros();
+
+    entoncesSeVenFilas(10);
+    entoncesElBloqueTieneScrollYDiceCuantosRegistrosHay();
+  });
+
+  it('suman de a 10 hasta el final', async () => {
+    await dadoUnSistemaConMuchosRegistros();
+
+    await cuandoSePideMostrarMas(`Mostrar 10 más · quedan ${FILAS - 10}`);
+    entoncesSeVenFilas(20);
+
+    await cuandoSePideMostrarMas('Mostrar 5 más · quedan 5');
+    entoncesSeVenFilas(FILAS);
+    entoncesYaNoSeOfreceMostrarMas();
+  });
+
+  it('al llegar al final del scroll del bloque se suma la tanda siguiente', async () => {
+    await dadoUnSistemaConMuchosRegistros();
+
+    cuandoSeLlegaAlFinalDelScroll();
+
+    await entoncesSeVenFilasConEspera(20);
+  });
+
+  it('la búsqueda filtra sobre todos los registros, también los que todavía no se dibujaron', async () => {
+    await dadoUnSistemaConMuchosRegistros();
+
+    await cuandoSeBuscaProducto('Producto 24');
+
+    entoncesSoloSeVeElProducto('Producto 24');
+    entoncesYaNoSeOfreceMostrarMas();
+  });
+
+  it('al borrar la búsqueda vuelven los primeros 10 registros', async () => {
+    await dadoUnSistemaConMuchosRegistros();
+    await cuandoSeBuscaProducto('Producto 24');
+
+    await cuandoSeBorraLaBusqueda();
+
+    entoncesSeVenFilas(10);
+  });
+
+  it('un registro que todavía no se dibujó aparece cuando se pide llevar la vista a él', async () => {
+    await dadoUnSistemaConMuchosRegistros();
+
+    cuandoSePideLlevarLaVistaAlRegistro('fila-17');
+
+    await entoncesApareceElRegistro('fila-17');
+    entoncesSeVenFilas(18);
+  });
+});
+
 /** Un almacén con muchos productos, abierto en su pantalla de siempre. */
-const abrirSistemaConMuchosRegistros = async () => {
+async function dadoUnSistemaConMuchosRegistros() {
   const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
   const sistema = makeTemplate('shop', {}, false);
   sistema.name = 'Almacén de Ana';
-  const inventario = allBlocks(sistema).find((bloque) => bloque.type === 'inventory') as Bloque;
+  inventario = allBlocks(sistema).find((candidato) => candidato.type === 'inventory') as Bloque;
   const clave = inventario.fields[0]?.key ?? 'name';
   inventario.rows = Array.from({ length: FILAS }, (_, indice) => ({
     id: `fila-${indice}`,
@@ -24,66 +85,64 @@ const abrirSistemaConMuchosRegistros = async () => {
   estado.sistemas.set(usuario.email, [sistema]);
   renderApp(`/sistemas/${sistema.id}?modo=usar`);
   await screen.findByRole('heading', { level: 1, name: /Almacén de Ana/ }, ESPERA);
-  const bloque = document.querySelector<HTMLElement>(`[data-block="${inventario.id}"]`);
-  if (!bloque) throw new Error('Falta el bloque del inventario');
-  return { user: userEvent.setup(), bloque, inventario };
-};
+  const encontrado = document.querySelector<HTMLElement>(`[data-block="${inventario.id}"]`);
+  if (!encontrado) throw new Error('Falta el bloque del inventario');
+  bloque = encontrado;
+  user = userEvent.setup();
+}
 
-const filasDe = (bloque: HTMLElement) => bloque.querySelectorAll('tbody tr[data-record]');
+const filasVisibles = () => bloque.querySelectorAll('tbody tr[data-record]');
 
-describe('las tablas de la sección se cargan de a poco', () => {
-  it('muestran 10 registros con el scroll del bloque y suman de a 10 hasta el final', async () => {
-    const { user, bloque } = await abrirSistemaConMuchosRegistros();
+async function cuandoSePideMostrarMas(nombre: string) {
+  await user.click(within(bloque).getByRole('button', { name: nombre }));
+}
 
-    expect(filasDe(bloque)).toHaveLength(10);
-    expect(bloque.querySelector('.table-scroll')).not.toBeNull();
-    expect(within(bloque).getByText(`${FILAS} registros`)).toBeVisible();
-
-    await user.click(
-      within(bloque).getByRole('button', { name: `Mostrar 10 más · quedan ${FILAS - 10}` }),
-    );
-    expect(filasDe(bloque)).toHaveLength(20);
-
-    await user.click(within(bloque).getByRole('button', { name: 'Mostrar 5 más · quedan 5' }));
-    expect(filasDe(bloque)).toHaveLength(FILAS);
-    expect(within(bloque).queryByRole('button', { name: /^Mostrar \d+ más/ })).toBeNull();
+function cuandoSeLlegaAlFinalDelScroll() {
+  const scroll = bloque.querySelector<HTMLElement>('.table-scroll');
+  if (!scroll) throw new Error('Falta el scroll del bloque');
+  Object.defineProperties(scroll, {
+    scrollTop: { value: 400, configurable: true },
+    clientHeight: { value: 375, configurable: true },
+    scrollHeight: { value: 800, configurable: true },
   });
+  fireEvent.scroll(scroll);
+}
 
-  it('al llegar al final del scroll del bloque se suma la tanda siguiente', async () => {
-    const { bloque } = await abrirSistemaConMuchosRegistros();
-    const scroll = bloque.querySelector<HTMLElement>('.table-scroll');
-    if (!scroll) throw new Error('Falta el scroll del bloque');
-    Object.defineProperties(scroll, {
-      scrollTop: { value: 400, configurable: true },
-      clientHeight: { value: 375, configurable: true },
-      scrollHeight: { value: 800, configurable: true },
-    });
+async function cuandoSeBuscaProducto(texto: string) {
+  await user.type(within(bloque).getByRole('textbox'), texto);
+}
 
-    fireEvent.scroll(scroll);
+async function cuandoSeBorraLaBusqueda() {
+  await user.clear(within(bloque).getByRole('textbox'));
+}
 
-    await waitFor(() => expect(filasDe(bloque)).toHaveLength(20));
-  });
+function cuandoSePideLlevarLaVistaAlRegistro(id: string) {
+  expect(bloque.querySelector(`[data-record="${id}"]`)).toBeNull();
+  act(() => pedirMostrarFila(inventario.id, id));
+}
 
-  it('la búsqueda filtra sobre todos los registros, también los que todavía no se dibujaron', async () => {
-    const { user, bloque } = await abrirSistemaConMuchosRegistros();
+function entoncesSeVenFilas(cantidad: number) {
+  expect(filasVisibles()).toHaveLength(cantidad);
+}
 
-    await user.type(within(bloque).getByRole('textbox'), 'Producto 24');
+async function entoncesSeVenFilasConEspera(cantidad: number) {
+  await waitFor(() => expect(filasVisibles()).toHaveLength(cantidad));
+}
 
-    expect(filasDe(bloque)).toHaveLength(1);
-    expect(filasDe(bloque)[0]).toHaveTextContent('Producto 24');
-    expect(within(bloque).queryByRole('button', { name: /^Mostrar \d+ más/ })).toBeNull();
+function entoncesElBloqueTieneScrollYDiceCuantosRegistrosHay() {
+  expect(bloque.querySelector('.table-scroll')).not.toBeNull();
+  expect(within(bloque).getByText(`${FILAS} registros`)).toBeVisible();
+}
 
-    await user.clear(within(bloque).getByRole('textbox'));
-    expect(filasDe(bloque)).toHaveLength(10);
-  });
+function entoncesYaNoSeOfreceMostrarMas() {
+  expect(within(bloque).queryByRole('button', { name: /^Mostrar \d+ más/ })).toBeNull();
+}
 
-  it('un registro que todavía no se dibujó aparece cuando se pide llevar la vista a él', async () => {
-    const { bloque, inventario } = await abrirSistemaConMuchosRegistros();
-    expect(bloque.querySelector('[data-record="fila-17"]')).toBeNull();
+function entoncesSoloSeVeElProducto(nombre: string) {
+  expect(filasVisibles()).toHaveLength(1);
+  expect(filasVisibles()[0]).toHaveTextContent(nombre);
+}
 
-    act(() => pedirMostrarFila(inventario.id, 'fila-17'));
-
-    await waitFor(() => expect(bloque.querySelector('[data-record="fila-17"]')).not.toBeNull());
-    expect(filasDe(bloque)).toHaveLength(18);
-  });
-});
+async function entoncesApareceElRegistro(id: string) {
+  await waitFor(() => expect(bloque.querySelector(`[data-record="${id}"]`)).not.toBeNull());
+}

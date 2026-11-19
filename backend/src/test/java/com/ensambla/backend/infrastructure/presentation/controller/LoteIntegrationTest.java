@@ -6,7 +6,6 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
-import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;
 import com.ensambla.backend.infrastructure.repository.entity.FotoCuadernoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.LoteSubidaEntity;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
@@ -16,6 +15,7 @@ import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.I
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.INegocioJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IUsuarioJpaRepository;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
+import com.ensambla.backend.support.SesionHttpDePrueba;
 import com.ensambla.backend.support.SuscripcionesDePrueba;
 import jakarta.servlet.Filter;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,15 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.security.web.csrf.DefaultCsrfToken;
-import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -45,7 +37,6 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.UUID;
 
 import static com.ensambla.backend.support.LoteTestData.AHORA;
@@ -95,8 +86,10 @@ class LoteIntegrationTest extends PostgresRepositoryTestSupport {
 
     private MockMvc mockMvc;
     private NegocioId negocioId;
-    private MockHttpSession sesion;
-    private String csrfToken;
+    private SesionHttpDePrueba sesion;
+    private ResultActions respuesta;
+    private LoteId loteId;
+    private long lotesAntes;
 
     @DynamicPropertySource
     static void archivosDelCuaderno(DynamicPropertyRegistry registry) {
@@ -106,78 +99,138 @@ class LoteIntegrationTest extends PostgresRepositoryTestSupport {
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        UsuarioId usuarioId = UsuarioId.de(givenUsuario());
-        negocioId = NegocioId.de(givenNegocio(usuarioId));
-        sesion = givenSesion(usuarioId);
+        UsuarioId usuarioId = UsuarioId.de(crearUsuario());
+        negocioId = NegocioId.de(crearNegocio(usuarioId));
+        sesion = SesionHttpDePrueba.autenticada(mockMvc, usuarioId.toString());
     }
 
     @Test
     @DisplayName("Una foto válida responde 201 con el id del lote pendiente guardado en el negocio de la sesión")
-    void subirShouldCreatePendingLote() throws Exception {
-        ResultActions result = subir(sesion, foto(JPEG));
+    void unaFotoValidaResponde201ConElIdDelLotePendienteGuardadoEnElNegocioDeLaSesion() throws Exception {
+        cuandoSeSubeUnaFoto(JPEG);
 
-        result.andExpect(status().isCreated())
-                .andExpect(jsonPath("$.estado").value("PENDIENTE"));
-        LoteSubidaEntity lote = lotes.findById(loteId(result).valor()).orElseThrow();
-        assertThat(lote.getNegocioId()).isEqualTo(negocioId.valor());
-        assertThat(lote.getEstado()).isEqualTo(EstadoLote.PENDIENTE);
+        entoncesSeCreaUnLotePendienteEnElNegocioDeLaSesion();
     }
 
     @Test
     @DisplayName("La foto queda en la carpeta del negocio y la lectura de IA la encuentra con los mismos bytes")
-    void subirShouldStoreFotoReadableByProcesamiento() throws Exception {
-        LoteId loteId = loteId(subir(sesion, foto(JPEG)));
+    void laFotoQuedaEnLaCarpetaDelNegocioYLaLecturaDeIaLaEncuentraConLosMismosBytes() throws Exception {
+        cuandoSeSubeUnaFoto(JPEG);
 
-        FotoCuadernoEntity foto = fotoDe(loteId);
+        entoncesLaFotoQuedaEnLaCarpetaDelNegocioYSeLeeIgual();
+    }
+
+    @Test
+    @DisplayName("Un archivo que no es una foto responde 400 con un mensaje claro y no crea el lote")
+    void unArchivoQueNoEsUnaFotoResponde400ConUnMensajeClaroYNoCreaElLote() throws Exception {
+        dadoLaCantidadDeLotesActual();
+
+        cuandoSeSubeUnaFoto("no soy una foto".getBytes(StandardCharsets.UTF_8));
+
+        entoncesSeRechazaElArchivoSinCrearElLote();
+    }
+
+    @Test
+    @DisplayName("Otro negocio no puede consultar el lote: responde 404")
+    void otroNegocioNoPuedeConsultarElLoteRespondeNoEncontrado() throws Exception {
+        dadoUnLoteSubido();
+        dadoUnaSesionDeOtroNegocio();
+
+        cuandoSeConsultaElLote();
+
+        entoncesRespondeNoEncontrado();
+    }
+
+    @Test
+    @DisplayName("El dueño consulta su lote y ve sus fotos")
+    void elDuenioConsultaSuLoteYVeSusFotos() throws Exception {
+        dadoUnLoteSubido();
+
+        cuandoSeConsultaElLote();
+
+        entoncesSeVeLaFotoDelLote();
+    }
+
+    @Test
+    @DisplayName("Subir sin el token CSRF responde 403")
+    void subirSinElTokenCsrfResponde403() throws Exception {
+        cuandoSeSubeUnaFotoSinCsrf();
+
+        entoncesSeProhibe();
+    }
+
+    // --- dado ---
+
+    private void dadoLaCantidadDeLotesActual() {
+        lotesAntes = lotes.count();
+    }
+
+    private void dadoUnLoteSubido() throws Exception {
+        cuandoSeSubeUnaFoto(JPEG);
+        loteId = idDelLoteCreado();
+    }
+
+    private void dadoUnaSesionDeOtroNegocio() throws Exception {
+        UsuarioId otroUsuario = UsuarioId.de(crearUsuario());
+        crearNegocio(otroUsuario);
+        sesion = SesionHttpDePrueba.autenticada(mockMvc, otroUsuario.toString());
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeSubeUnaFoto(byte[] contenido) throws Exception {
+        respuesta = mockMvc.perform(multipart("/api/lotes")
+                .file(foto(contenido))
+                .session(sesion.sesion())
+                .header("X-CSRF-TOKEN", sesion.tokenCsrf()));
+    }
+
+    private void cuandoSeSubeUnaFotoSinCsrf() throws Exception {
+        respuesta = mockMvc.perform(multipart("/api/lotes").file(foto(JPEG)).session(sesion.sesion()));
+    }
+
+    private void cuandoSeConsultaElLote() throws Exception {
+        respuesta = mockMvc.perform(get("/api/lotes/{id}", loteId).session(sesion.sesion()));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeCreaUnLotePendienteEnElNegocioDeLaSesion() throws Exception {
+        respuesta.andExpect(status().isCreated()).andExpect(jsonPath("$.estado").value("PENDIENTE"));
+        LoteSubidaEntity lote = lotes.findById(idDelLoteCreado().valor()).orElseThrow();
+        assertThat(lote.getNegocioId()).isEqualTo(negocioId.valor());
+        assertThat(lote.getEstado()).isEqualTo(EstadoLote.PENDIENTE);
+    }
+
+    private void entoncesLaFotoQuedaEnLaCarpetaDelNegocioYSeLeeIgual() throws Exception {
+        FotoCuadernoEntity foto = fotoDe(idDelLoteCreado());
         assertThat(foto.getClaveAlmacenamiento()).startsWith(negocioId + "/fotos/");
         assertThat(archivosRaiz.resolve(foto.getClaveAlmacenamiento())).exists();
         assertThat(archivoCuadernoPort.leer(negocioId, foto.getClaveAlmacenamiento())).isEqualTo(JPEG);
     }
 
-    @Test
-    @DisplayName("Un archivo que no es una foto responde 400 con un mensaje claro y no crea el lote")
-    void subirShouldRejectInvalidFile() throws Exception {
-        long lotesAntes = lotes.count();
-
-        ResultActions result = subir(sesion, foto("no soy una foto".getBytes(StandardCharsets.UTF_8)));
-
-        result.andExpect(status().isBadRequest())
+    private void entoncesSeRechazaElArchivoSinCrearElLote() throws Exception {
+        respuesta.andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("La foto 1 no es una imagen JPEG, PNG, WEBP o HEIC ni un PDF"));
         assertThat(lotes.count()).isEqualTo(lotesAntes);
     }
 
-    @Test
-    @DisplayName("Otro negocio no puede consultar el lote: responde 404")
-    void obtenerShouldHideLoteFromOtherNegocio() throws Exception {
-        LoteId loteId = loteId(subir(sesion, foto(JPEG)));
-        MockHttpSession otraSesion = givenSesion(UsuarioId.de(givenUsuarioConNegocio()));
-
-        ResultActions result = mockMvc.perform(get("/api/lotes/{id}", loteId).session(otraSesion));
-
-        result.andExpect(status().isNotFound());
+    private void entoncesRespondeNoEncontrado() throws Exception {
+        respuesta.andExpect(status().isNotFound());
     }
 
-    @Test
-    @DisplayName("El dueño consulta su lote y ve sus fotos")
-    void obtenerShouldReturnOwnLote() throws Exception {
-        LoteId loteId = loteId(subir(sesion, foto(JPEG)));
-
-        ResultActions result = mockMvc.perform(get("/api/lotes/{id}", loteId).session(sesion));
-
-        result.andExpect(status().isOk())
+    private void entoncesSeVeLaFotoDelLote() throws Exception {
+        respuesta.andExpect(status().isOk())
                 .andExpect(jsonPath("$.fotos[0].tipoContenido").value("image/jpeg"));
     }
 
-    @Test
-    @DisplayName("Subir sin el token CSRF responde 403")
-    void subirShouldRequireCsrf() throws Exception {
-        ResultActions result = mockMvc.perform(multipart("/api/lotes").file(foto(JPEG)).session(sesion));
-
-        result.andExpect(status().isForbidden());
+    private void entoncesSeProhibe() throws Exception {
+        respuesta.andExpect(status().isForbidden());
     }
 
-    // --- arrange ---
-    private UUID givenUsuario() {
+    // --- datos ---
+
+    private UUID crearUsuario() {
         return usuarios.saveAndFlush(UsuarioEntity.builder()
                 .nombre("Persona")
                 .email(UUID.randomUUID() + "@example.com")
@@ -187,7 +240,7 @@ class LoteIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenNegocio(UsuarioId usuarioId) {
+    private UUID crearNegocio(UsuarioId usuarioId) {
         UUID creadoId = negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(usuarioId.valor())
@@ -198,47 +251,16 @@ class LoteIntegrationTest extends PostgresRepositoryTestSupport {
         return creadoId;
     }
 
-    private UUID givenUsuarioConNegocio() {
-        UsuarioId usuarioId = UsuarioId.de(givenUsuario());
-        givenNegocio(usuarioId);
-        return usuarioId.valor();
-    }
-
-    private MockHttpSession givenSesion(UsuarioId usuarioId) throws Exception {
-        MockHttpSession session = new MockHttpSession();
-        var securityContext = SecurityContextHolder.createEmptyContext();
-        securityContext.setAuthentication(
-                UsernamePasswordAuthenticationToken.authenticated(usuarioId.toString(), null, List.of()));
-        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, securityContext);
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setSession(session);
-        new HttpSessionCsrfTokenRepository().saveToken(
-                new DefaultCsrfToken("X-CSRF-TOKEN", "_csrf", "token"), request, new MockHttpServletResponse());
-        String body = mockMvc.perform(get("/api/auth/csrf").session(session))
-                .andReturn().getResponse().getContentAsString();
-        csrfToken = json.readValue(body, CsrfResponse.class).token();
-        return session;
-    }
-
-    // --- act ---
-    private ResultActions subir(MockHttpSession session, MockMultipartFile archivo) throws Exception {
-        return mockMvc.perform(multipart("/api/lotes")
-                .file(archivo)
-                .session(session)
-                .header("X-CSRF-TOKEN", csrfToken));
-    }
-
-    // --- helpers ---
     private MockMultipartFile foto(byte[] contenido) {
         return new MockMultipartFile("fotos", "pagina.jpg", "image/jpeg", contenido);
     }
 
-    private LoteId loteId(ResultActions result) throws Exception {
-        JsonNode body = json.readTree(result.andReturn().getResponse().getContentAsString());
-        return LoteId.de(UUID.fromString(body.path("id").asString()));
+    private LoteId idDelLoteCreado() throws Exception {
+        JsonNode cuerpo = json.readTree(respuesta.andReturn().getResponse().getContentAsString());
+        return LoteId.de(UUID.fromString(cuerpo.path("id").asString()));
     }
 
-    private FotoCuadernoEntity fotoDe(LoteId loteId) {
-        return fotos.findAllByLoteIdAndNegocioIdOrderByPosicionAsc(loteId.valor(), negocioId.valor()).getFirst();
+    private FotoCuadernoEntity fotoDe(LoteId lote) {
+        return fotos.findAllByLoteIdAndNegocioIdOrderByPosicionAsc(lote.valor(), negocioId.valor()).getFirst();
     }
 }

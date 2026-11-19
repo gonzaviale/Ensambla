@@ -15,7 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class PromptLecturaCuadernoTest {
 
@@ -24,6 +24,8 @@ class PromptLecturaCuadernoTest {
     private static final PaginaCuaderno PAGINA = new PaginaCuaderno(1, new byte[]{1}, "image/png");
 
     private PromptLecturaCuaderno prompt;
+    private PeticionModeloVision peticion;
+    private Throwable rechazo;
 
     @BeforeEach
     void setUp() {
@@ -32,39 +34,118 @@ class PromptLecturaCuadernoTest {
 
     @Test
     @DisplayName("Arma la petición con instrucciones, esquema y páginas")
-    void peticionShouldCarryInstruccionesEsquemaAndPaginas() {
-        PeticionModeloVision peticion = prompt.peticion(List.of(PAGINA), List.of(), null);
+    void armaLaPeticionConInstruccionesEsquemaYPaginas() {
+        cuandoSePideLaPeticionSinBloques();
 
+        entoncesLaPeticionLlevaInstruccionesEsquemaYPaginas();
+    }
+
+    @Test
+    @DisplayName("Sin bloques existentes le pide a la IA que proponga uno nuevo")
+    void sinBloquesExistentesLePideALaIaQueProponganUnoNuevo() {
+        cuandoSePideLaPeticionSinBloques();
+
+        entoncesElContextoPideProponerUnBloqueNuevo();
+    }
+
+    @Test
+    @DisplayName("Lista los bloques existentes con su id, nombre y los campos con su tipo")
+    void listaLosBloquesExistentesConSuIdNombreYLosCamposConSuTipo() {
+        cuandoSePideLaPeticionConElBloqueDeVentas();
+
+        entoncesElContextoListaElBloqueDeVentasConSusCampos();
+    }
+
+    @Test
+    @DisplayName("Con destino fijo le muestra a la IA sólo ese bloque y le deja agregar las columnas que falten")
+    void conDestinoFijoLeMuestraALaIaSoloEseBloqueYLeDejaAgregarLasColumnasQueFalten() {
+        cuandoSePideLaPeticionConDestinoFijoEntreGastosYVentas();
+
+        entoncesElContextoMuestraSoloElDestinoYPermiteAgregarColumnas();
+    }
+
+    @Test
+    @DisplayName("Muestra a qué tabla apunta cada campo de conexión y pide el texto escrito")
+    void muestraAQueTablaApuntaCadaCampoDeConexionYPideElTextoEscrito() {
+        cuandoSePideLaPeticionConUnCampoDeConexionAClientes();
+
+        entoncesElContextoMuestraLaTablaDeLaConexion();
+    }
+
+    @Test
+    @DisplayName("La versión del prompt cambia cuando con destino fijo la IA puede proponer campos nuevos")
+    void laVersionDelPromptCambiaCuandoConDestinoFijoLaIaPuedeProponerCamposNuevos() {
+        entoncesLaVersionDelPromptEsV3();
+    }
+
+    @Test
+    @DisplayName("Los recursos reales del classpath existen y piden la salida estructurada")
+    void losRecursosRealesDelClasspathExistenYPidenLaSalidaEstructurada() {
+        cuandoSePideLaPeticionConLosRecursosReales();
+
+        entoncesLaPeticionPideLaSalidaEstructurada();
+    }
+
+    @Test
+    @DisplayName("Falla al arrancar si falta un recurso de IA")
+    void fallaAlArrancarSiFaltaUnRecursoDeIa() {
+        cuandoSeIntentaArmarElPromptConUnRecursoInexistente();
+
+        entoncesSeRechazaPorQueNoSePudoLeerElRecurso();
+    }
+
+    // --- cuando ---
+
+    private void cuandoSePideLaPeticionSinBloques() {
+        peticion = prompt.peticion(List.of(PAGINA), List.of(), null);
+    }
+
+    private void cuandoSePideLaPeticionConElBloqueDeVentas() {
+        peticion = prompt.peticion(List.of(PAGINA), List.of(ventas()), null);
+    }
+
+    private void cuandoSePideLaPeticionConDestinoFijoEntreGastosYVentas() {
+        BloqueConocido gastos = new BloqueConocido(GASTOS_ID, "Gastos", List.of());
+        peticion = prompt.peticion(List.of(PAGINA), List.of(gastos, ventas()), VENTAS_ID);
+    }
+
+    private void cuandoSePideLaPeticionConUnCampoDeConexionAClientes() {
+        BloqueConocido ventas = new BloqueConocido(VENTAS_ID, "Ventas", List.of(
+                new CampoContexto("Cliente", TipoCampo.RELACION, List.of(), "Clientes")));
+        peticion = prompt.peticion(List.of(PAGINA), List.of(ventas), VENTAS_ID);
+    }
+
+    private void cuandoSePideLaPeticionConLosRecursosReales() {
+        PromptLecturaCuaderno real = new PromptLecturaCuaderno(new ClassPathResource("ia/prompt-lectura-cuaderno.md"),
+                new ClassPathResource("ia/esquema-lectura-cuaderno.json"));
+        peticion = real.peticion(List.of(PAGINA), List.of(), null);
+    }
+
+    private void cuandoSeIntentaArmarElPromptConUnRecursoInexistente() {
+        ClassPathResource inexistente = new ClassPathResource("ia/no-existe.md");
+        ByteArrayResource esquema = texto("{}");
+        rechazo = catchThrowable(() -> new PromptLecturaCuaderno(inexistente, esquema));
+    }
+
+    // --- entonces ---
+
+    private void entoncesLaPeticionLlevaInstruccionesEsquemaYPaginas() {
         assertThat(peticion.instrucciones()).isEqualTo("Leé el cuaderno");
         assertThat(peticion.esquemaJson()).isEqualTo("{}");
         assertThat(peticion.paginas()).containsExactly(PAGINA);
     }
 
-    @Test
-    @DisplayName("Sin bloques existentes le pide a la IA que proponga uno nuevo")
-    void peticionShouldAskForNewBloqueWhenNegocioHasNoBloques() {
-        PeticionModeloVision peticion = prompt.peticion(List.of(PAGINA), List.of(), null);
-
+    private void entoncesElContextoPideProponerUnBloqueNuevo() {
         assertThat(peticion.contexto()).isEqualTo(PromptLecturaCuaderno.SIN_BLOQUES);
     }
 
-    @Test
-    @DisplayName("Lista los bloques existentes con su id, nombre y los campos con su tipo")
-    void peticionShouldListBloquesExistentes() {
-        PeticionModeloVision peticion = prompt.peticion(List.of(PAGINA), List.of(ventas()), null);
-
+    private void entoncesElContextoListaElBloqueDeVentasConSusCampos() {
         assertThat(peticion.contexto()).isEqualTo(PromptLecturaCuaderno.ENCABEZADO_BLOQUES
                 + "\n- 00000000-0000-0000-0000-000000000001: Ventas [Fecha (FECHA), Monto (NUMERO),"
                 + " Estado (OPCION: Pagado|Debe)]");
     }
 
-    @Test
-    @DisplayName("Con destino fijo le muestra a la IA sólo ese bloque y le deja agregar las columnas que falten")
-    void peticionShouldShowOnlyDestinoWhenBloqueDestinoIsChosen() {
-        BloqueConocido gastos = new BloqueConocido(GASTOS_ID, "Gastos", List.of());
-
-        PeticionModeloVision peticion = prompt.peticion(List.of(PAGINA), List.of(gastos, ventas()), VENTAS_ID);
-
+    private void entoncesElContextoMuestraSoloElDestinoYPermiteAgregarColumnas() {
         assertThat(peticion.contexto()).startsWith(PromptLecturaCuaderno.ENCABEZADO_DESTINO)
                 .contains("- 00000000-0000-0000-0000-000000000001: Ventas [Fecha (FECHA)")
                 .doesNotContain("Gastos");
@@ -72,48 +153,27 @@ class PromptLecturaCuadernoTest {
                 .doesNotContain("no agregues campos");
     }
 
-    @Test
-    @DisplayName("Muestra a qué tabla apunta cada campo de conexión y pide el texto escrito")
-    void peticionShouldShowTableOfConexionCampo() {
-        BloqueConocido ventas = new BloqueConocido(VENTAS_ID, "Ventas", List.of(
-                new CampoContexto("Cliente", TipoCampo.RELACION, List.of(), "Clientes")));
-
-        PeticionModeloVision peticion = prompt.peticion(List.of(PAGINA), List.of(ventas), VENTAS_ID);
-
+    private void entoncesElContextoMuestraLaTablaDeLaConexion() {
         assertThat(peticion.contexto()).endsWith(
                 "[Cliente (RELACION → Clientes: devolvé el texto tal como está escrito)]");
     }
 
-    @Test
-    @DisplayName("La versión del prompt cambia cuando con destino fijo la IA puede proponer campos nuevos")
-    void versionShouldBeV3() {
+    private void entoncesLaVersionDelPromptEsV3() {
         assertThat(PromptLecturaCuaderno.VERSION).isEqualTo("v3");
     }
 
-    @Test
-    @DisplayName("Los recursos reales del classpath existen y piden la salida estructurada")
-    void classpathResourcesShouldExist() {
-        PromptLecturaCuaderno real = new PromptLecturaCuaderno(new ClassPathResource("ia/prompt-lectura-cuaderno.md"),
-                new ClassPathResource("ia/esquema-lectura-cuaderno.json"));
-
-        PeticionModeloVision peticion = real.peticion(List.of(PAGINA), List.of(), null);
-
+    private void entoncesLaPeticionPideLaSalidaEstructurada() {
         assertThat(peticion.instrucciones()).contains("Respondé únicamente con el JSON");
         assertThat(peticion.esquemaJson()).contains("\"tipoRegistro\"", "\"confianza\"");
     }
 
-    @Test
-    @DisplayName("Falla al arrancar si falta un recurso de IA")
-    void constructorShouldFailWhenResourceIsMissing() {
-        ClassPathResource inexistente = new ClassPathResource("ia/no-existe.md");
-        ByteArrayResource esquema = texto("{}");
-
-        assertThatThrownBy(() -> new PromptLecturaCuaderno(inexistente, esquema))
-                .isInstanceOf(IllegalStateException.class)
+    private void entoncesSeRechazaPorQueNoSePudoLeerElRecurso() {
+        assertThat(rechazo).isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("No se pudo leer el recurso de IA");
     }
 
-    // --- arrange ---
+    // --- datos ---
+
     private static BloqueConocido ventas() {
         return new BloqueConocido(VENTAS_ID, "Ventas", List.of(
                 new CampoContexto("Fecha", TipoCampo.FECHA, List.of()),

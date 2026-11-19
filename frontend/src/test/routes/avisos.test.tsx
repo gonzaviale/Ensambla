@@ -544,35 +544,35 @@ describe('los avisos del motor del servidor', () => {
 
   describe('la sección y el porqué de cada aviso', () => {
     const TITULO = 'Te quedaste sin Yerba Playadito 1 kg';
-    const givenUnSoloAvisoDeStock = () => abrirConAvisosDelServidor(avisoDelServidor());
-    const givenUnAvisoSinMasQueContar = () =>
+    const dadoUnSoloAvisoDeStock = () => abrirConAvisosDelServidor(avisoDelServidor());
+    const dadoUnAvisoSinMasQueContar = () =>
       abrirConAvisosDelServidor(
         avisoDelServidor({ detalle: 'Vendiste 0 en 30 días.', motivos: [] }),
       );
-    const givenUnAvisoConAccionDeDatos = () =>
+    const dadoUnAvisoConAccionDeDatos = () =>
       abrirConAvisosDelServidor(
         avisoDelServidor({
           acciones: [{ tipo: 'EDITAR_REGISTRO', texto: 'Subir a $ 4.200', registroId: 'fila-1' }],
         }),
       );
-    const whenSeAbreLaPantalla = ({ user }: { user: ReturnType<typeof userEvent.setup> }) =>
+    const cuandoSeAbreLaPantalla = ({ user }: { user: ReturnType<typeof userEvent.setup> }) =>
       abrirPanel(user);
 
     it('un aviso solo se muestra en su sección igual que varios', async () => {
-      const abierta = await givenUnSoloAvisoDeStock();
-      await whenSeAbreLaPantalla(abierta);
+      const abierta = await dadoUnSoloAvisoDeStock();
+      await cuandoSeAbreLaPantalla(abierta);
       entoncesElAvisoEstaEnSuSeccion('1 producto sin stock', TITULO);
     });
 
     it('la fila que no tiene más para contar no ofrece el ojo', async () => {
-      const abierta = await givenUnAvisoSinMasQueContar();
-      await whenSeAbreLaPantalla(abierta);
+      const abierta = await dadoUnAvisoSinMasQueContar();
+      await cuandoSeAbreLaPantalla(abierta);
       entoncesLaFilaNoOfreceElPorQue(tarjeta(TITULO));
     });
 
     it('aplicar desde el porqué ejecuta la acción y cierra el modal', async () => {
-      const abierta = await givenUnAvisoConAccionDeDatos();
-      await whenSeAbreLaPantalla(abierta);
+      const abierta = await dadoUnAvisoConAccionDeDatos();
+      await cuandoSeAbreLaPantalla(abierta);
       await cuandoSeAbreElPorQue(abierta.user, tarjeta(TITULO));
       await cuandoSeAplicaDesdeElPorQue(abierta.user, TITULO, 'Subir a $ 4.200');
       await verifyToastAsync('Listo, aplicamos el cambio.');

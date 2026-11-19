@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { CompararNegocios } from '@/components/negocios/CompararNegocios';
 import type { ResumenConjunto } from '@/types/negocios';
 
+type Usuario = ReturnType<typeof userEvent.setup>;
+
 const RESUMEN: ResumenConjunto = {
   dias: 30,
   total: {
@@ -50,16 +52,100 @@ const RESUMEN: ResumenConjunto = {
   ],
 };
 
-const montar = () => {
-  render(<CompararNegocios resumen={RESUMEN} />);
-  return userEvent.setup();
-};
+const ORDEN_POR_VENTAS = ['Almacén San Justo', 'Kiosco de la estación', 'Puesto de la feria'];
+const ORDEN_POR_QUEDA_ASCENDENTE = [
+  'Kiosco de la estación',
+  'Almacén San Justo',
+  'Puesto de la feria',
+];
+
+let user: Usuario;
+
+describe('CompararNegocios', () => {
+  it('muestra los totales de toda la cuenta', () => {
+    dadoElResumenMostrado();
+
+    entoncesLosTotalesSonDeToda();
+  });
+
+  it('no muestra los avisos pendientes en los totales', () => {
+    dadoElResumenMostrado();
+
+    entoncesLosTotalesNoMuestranAvisos();
+  });
+
+  it('arranca ordenada por lo vendido, con el negocio sin ventas al final', () => {
+    dadoElResumenMostrado();
+
+    entoncesLasFilasEstanEnOrden(ORDEN_POR_VENTAS);
+  });
+
+  it('arranca marcando la columna de lo vendido como descendente', () => {
+    dadoElResumenMostrado();
+
+    entoncesLaColumnaEstaOrdenada(/Vendiste/, 'descending');
+  });
+
+  it('tocar una columna ordena por ella', async () => {
+    dadoElResumenMostrado();
+
+    await cuandoSeTocaLaColumna(/Te queda/);
+
+    entoncesLasFilasEstanEnOrden(ORDEN_POR_VENTAS);
+  });
+
+  it('tocar una columna dos veces da vuelta el orden', async () => {
+    dadoElResumenMostrado();
+
+    await cuandoSeTocaLaColumna(/Te queda/);
+    await cuandoSeTocaLaColumna(/Te queda/);
+
+    entoncesLasFilasEstanEnOrden(ORDEN_POR_QUEDA_ASCENDENTE);
+  });
+
+  it('la columna ordenada se marca y las otras no', async () => {
+    dadoElResumenMostrado();
+
+    await cuandoSeTocaLaColumna(/Te queda/);
+    await cuandoSeTocaLaColumna(/Te queda/);
+
+    entoncesLaColumnaEstaOrdenada(/Te queda/, 'ascending');
+    entoncesLaColumnaNoEstaOrdenada(/Vendiste/);
+  });
+
+  it('cada fila dice sus números', () => {
+    dadoElResumenMostrado();
+
+    entoncesLaFilaDice('Kiosco de la estación', '$280.000');
+  });
+
+  it('marca lo negativo', () => {
+    dadoElResumenMostrado();
+
+    entoncesLoNegativoSeMarcaEnElKiosco();
+  });
+
+  it('no marca como en uso a un negocio que no se eligió', () => {
+    dadoElResumenMostrado();
+
+    entoncesLaFilaNoDice('Almacén San Justo', 'El que estás usando');
+  });
+
+  it('un negocio sin ventas lo dice', () => {
+    dadoElResumenMostrado();
+
+    entoncesLaFilaDice('Puesto de la feria', 'Sin ventas en estos 30 días');
+  });
+
+  it('un negocio sin ventas no inventa ceros', () => {
+    dadoElResumenMostrado();
+
+    entoncesLaFeriaNoInventaCeros();
+  });
+});
 
 const tabla = () => screen.getByRole('table', { name: 'Negocio por negocio' });
-const nombresDeLasFilas = () =>
-  within(tabla())
-    .getAllByRole('rowheader')
-    .map((celda) => celda.querySelector('.comparar-nombre')?.textContent);
+
 const fila = (nombre: string) => {
   const encontrada = within(tabla())
     .getAllByRole('row')
@@ -68,71 +154,59 @@ const fila = (nombre: string) => {
   return encontrada;
 };
 
-describe('CompararNegocios', () => {
-  it('muestra los totales de toda la cuenta', () => {
-    montar();
+function dadoElResumenMostrado() {
+  render(<CompararNegocios resumen={RESUMEN} />);
+  user = userEvent.setup();
+}
 
-    const totales = screen.getByRole('region', { name: 'Todos tus negocios juntos' });
-    expect(totales).toHaveTextContent('3 negocios');
-    expect(within(totales).getByText('Vendiste').nextElementSibling).toHaveTextContent(
-      '$1.530.000',
-    );
-    expect(within(totales).getByText('Te queda').nextElementSibling).toHaveTextContent('$768.000');
-    expect(within(totales).queryByText('Avisos pendientes')).toBeNull();
-  });
+async function cuandoSeTocaLaColumna(nombre: RegExp) {
+  await user.click(screen.getByRole('button', { name: nombre }));
+}
 
-  it('arranca ordenada por lo vendido, con el negocio sin ventas al final', () => {
-    montar();
+function entoncesLosTotalesSonDeToda() {
+  const totales = screen.getByRole('region', { name: 'Todos tus negocios juntos' });
+  expect(totales).toHaveTextContent('3 negocios');
+  expect(within(totales).getByText('Vendiste').nextElementSibling).toHaveTextContent('$1.530.000');
+  expect(within(totales).getByText('Te queda').nextElementSibling).toHaveTextContent('$768.000');
+}
 
-    expect(nombresDeLasFilas()).toEqual([
-      'Almacén San Justo',
-      'Kiosco de la estación',
-      'Puesto de la feria',
-    ]);
-    expect(screen.getByRole('columnheader', { name: /Vendiste/ })).toHaveAttribute(
-      'aria-sort',
-      'descending',
-    );
-  });
+function entoncesLosTotalesNoMuestranAvisos() {
+  const totales = screen.getByRole('region', { name: 'Todos tus negocios juntos' });
+  expect(within(totales).queryByText('Avisos pendientes')).toBeNull();
+}
 
-  it('tocar una columna ordena por ella y tocarla de nuevo da vuelta el orden', async () => {
-    const user = montar();
+function entoncesLasFilasEstanEnOrden(nombres: string[]) {
+  const mostrados = within(tabla())
+    .getAllByRole('rowheader')
+    .map((celda) => celda.querySelector('.comparar-nombre')?.textContent);
+  expect(mostrados).toEqual(nombres);
+}
 
-    await user.click(screen.getByRole('button', { name: /Te queda/ }));
-    expect(nombresDeLasFilas()).toEqual([
-      'Almacén San Justo',
-      'Kiosco de la estación',
-      'Puesto de la feria',
-    ]);
-    await user.click(screen.getByRole('button', { name: /Te queda/ }));
+function entoncesLaColumnaEstaOrdenada(nombre: RegExp, sentido: string) {
+  expect(screen.getByRole('columnheader', { name: nombre })).toHaveAttribute('aria-sort', sentido);
+}
 
-    expect(nombresDeLasFilas()).toEqual([
-      'Kiosco de la estación',
-      'Almacén San Justo',
-      'Puesto de la feria',
-    ]);
-    expect(screen.getByRole('columnheader', { name: /Te queda/ })).toHaveAttribute(
-      'aria-sort',
-      'ascending',
-    );
-    expect(screen.getByRole('columnheader', { name: /Vendiste/ })).not.toHaveAttribute('aria-sort');
-  });
+function entoncesLaColumnaNoEstaOrdenada(nombre: RegExp) {
+  expect(screen.getByRole('columnheader', { name: nombre })).not.toHaveAttribute('aria-sort');
+}
 
-  it('cada fila dice sus números, y marca lo negativo', () => {
-    montar();
+function entoncesLaFilaDice(nombre: string, texto: string) {
+  expect(fila(nombre)).toHaveTextContent(texto);
+}
 
-    const kiosco = fila('Kiosco de la estación');
-    expect(kiosco).toHaveTextContent('$280.000');
-    expect(within(kiosco).getByText('-$72.000')).toHaveAttribute('data-negativo', 'true');
-    expect(fila('Almacén San Justo')).not.toHaveTextContent('El que estás usando');
-  });
+function entoncesLaFilaNoDice(nombre: string, texto: string) {
+  expect(fila(nombre)).not.toHaveTextContent(texto);
+}
 
-  it('un negocio sin ventas lo dice y no inventa ceros', () => {
-    montar();
+function entoncesLoNegativoSeMarcaEnElKiosco() {
+  expect(within(fila('Kiosco de la estación')).getByText('-$72.000')).toHaveAttribute(
+    'data-negativo',
+    'true',
+  );
+}
 
-    const feria = fila('Puesto de la feria');
-    expect(feria).toHaveTextContent('Sin ventas en estos 30 días');
-    expect(within(feria).getAllByText('—')).toHaveLength(4);
-    expect(feria).not.toHaveTextContent('$0');
-  });
-});
+function entoncesLaFeriaNoInventaCeros() {
+  const feria = fila('Puesto de la feria');
+  expect(within(feria).getAllByText('—')).toHaveLength(4);
+  expect(feria).not.toHaveTextContent('$0');
+}

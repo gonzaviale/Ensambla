@@ -40,51 +40,91 @@ class PreferenciasCasosDeUsoTest {
     private final GuardarPreferencias guardarPreferencias = config.guardarPreferencias(
             preferenciaRepository, new TransaccionDirecta(), CLOCK);
 
+    private PreferenciasItem resultado;
+
     @Test
     @DisplayName("Obtener mapea las preferencias del usuario de sesión")
-    void obtenerShouldMapPreferencias() {
-        PreferenciaUsuario preferencia = PreferenciaUsuario.inicial(USUARIO_ID, AHORA);
-        preferencia.actualizar(List.of("a1"), Map.of("STOCK", false), true, "Gonza", AHORA);
-        givenGuardada(preferencia);
+    void obtenerMapeaLasPreferenciasDelUsuarioDeSesion() {
+        dadoUnUsuarioConPreferenciasGuardadas();
 
-        PreferenciasItem result = obtenerPreferencias.execute(new ObtenerPreferenciasRequest(USUARIO_ID));
+        cuandoSeObtienenLasPreferencias();
 
-        assertThat(result).isEqualTo(
-                new PreferenciasItem(List.of("a1"), Map.of("STOCK", false), true, "Gonza"));
+        entoncesSeMapeanLasPreferenciasGuardadas();
     }
 
     @Test
     @DisplayName("Guardar actualiza las preferencias existentes y las persiste")
-    void guardarShouldUpdateAndSave() {
-        givenGuardada(PreferenciaUsuario.inicial(USUARIO_ID, AHORA.minusDays(1)));
-        givenSaveDevuelveLoGuardado();
+    void guardarActualizaLasPreferenciasExistentesYLasPersiste() {
+        dadoUnUsuarioConPreferenciasDeAyer();
+        dadoQueGuardarDevuelveLoGuardado();
 
-        PreferenciasItem result = guardarPreferencias.execute(
-                new GuardarPreferenciasRequest(USUARIO_ID, List.of("a1"), Map.of("ZONA", false), true, "Gonza"));
+        cuandoSeGuardanLasPreferenciasDeZona();
 
-        assertThat(result).isEqualTo(new PreferenciasItem(List.of("a1"), Map.of("ZONA", false), true, "Gonza"));
-        verify(preferenciaRepository).save(any(PreferenciaUsuario.class));
+        entoncesSeActualizanYSePersisten();
     }
 
     @Test
     @DisplayName("Guardar crea las preferencias cuando todavía no existían")
-    void guardarShouldCreateWhenMissing() {
-        when(preferenciaRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
-        givenSaveDevuelveLoGuardado();
+    void guardarCreaLasPreferenciasCuandoTodaviaNoExistian() {
+        dadoUnUsuarioSinPreferencias();
+        dadoQueGuardarDevuelveLoGuardado();
 
-        PreferenciasItem result = guardarPreferencias.execute(
-                new GuardarPreferenciasRequest(USUARIO_ID, List.of(), Map.of(), false, null));
+        cuandoSeGuardanPreferenciasVacias();
 
-        assertThat(result.descartadas()).isEmpty();
-        verify(preferenciaRepository).save(any(PreferenciaUsuario.class));
+        entoncesSeCreanVaciasYSePersisten();
     }
 
-    // --- arrange ---
-    private void givenGuardada(PreferenciaUsuario preferencia) {
+    // --- dado ---
+
+    private void dadoUnUsuarioConPreferenciasGuardadas() {
+        PreferenciaUsuario preferencia = PreferenciaUsuario.inicial(USUARIO_ID, AHORA);
+        preferencia.actualizar(List.of("a1"), Map.of("STOCK", false), true, "Gonza", AHORA);
         when(preferenciaRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(preferencia));
     }
 
-    private void givenSaveDevuelveLoGuardado() {
+    private void dadoUnUsuarioConPreferenciasDeAyer() {
+        when(preferenciaRepository.findByUsuarioId(USUARIO_ID))
+                .thenReturn(Optional.of(PreferenciaUsuario.inicial(USUARIO_ID, AHORA.minusDays(1))));
+    }
+
+    private void dadoUnUsuarioSinPreferencias() {
+        when(preferenciaRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
+    }
+
+    private void dadoQueGuardarDevuelveLoGuardado() {
         when(preferenciaRepository.save(any(PreferenciaUsuario.class))).thenAnswer(call -> call.getArgument(0));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeObtienenLasPreferencias() {
+        resultado = obtenerPreferencias.execute(new ObtenerPreferenciasRequest(USUARIO_ID));
+    }
+
+    private void cuandoSeGuardanLasPreferenciasDeZona() {
+        resultado = guardarPreferencias.execute(
+                new GuardarPreferenciasRequest(USUARIO_ID, List.of("a1"), Map.of("ZONA", false), true, "Gonza"));
+    }
+
+    private void cuandoSeGuardanPreferenciasVacias() {
+        resultado = guardarPreferencias.execute(
+                new GuardarPreferenciasRequest(USUARIO_ID, List.of(), Map.of(), false, null));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeMapeanLasPreferenciasGuardadas() {
+        assertThat(resultado).isEqualTo(
+                new PreferenciasItem(List.of("a1"), Map.of("STOCK", false), true, "Gonza"));
+    }
+
+    private void entoncesSeActualizanYSePersisten() {
+        assertThat(resultado).isEqualTo(new PreferenciasItem(List.of("a1"), Map.of("ZONA", false), true, "Gonza"));
+        verify(preferenciaRepository).save(any(PreferenciaUsuario.class));
+    }
+
+    private void entoncesSeCreanVaciasYSePersisten() {
+        assertThat(resultado.descartadas()).isEmpty();
+        verify(preferenciaRepository).save(any(PreferenciaUsuario.class));
     }
 }

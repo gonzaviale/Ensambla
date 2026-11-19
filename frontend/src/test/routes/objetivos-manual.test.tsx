@@ -4,25 +4,25 @@ import { sembrarDemoCargada } from '@/mocks/db/demoCargada';
 import { estado } from '@/mocks/db/estado';
 import { ID_OBJETIVO_SIN_DATOS_DE_EJEMPLO } from '@/mocks/db/objetivosAutogestionados';
 import {
-  givenQueHoyEsLunes,
-  givenQueHoyEsMiercoles,
+  dadoQueHoyEsLunes,
+  dadoQueHoyEsMiercoles,
   seccionDeSami,
-  thenElPaginadorDice,
-  thenLaOpcionEsta,
-  thenLaOpcionNoSePuedeElegir,
-  thenNoHayBotonDeEnviar,
-  thenNoHayPaginador,
-  thenNoHayPreguntasDeSami,
-  thenNoSePideTodavia,
-  thenSePideElPaso,
-  thenSePreguntaPor,
+  entoncesElPaginadorDice,
+  entoncesLaOpcionEsta,
+  entoncesLaOpcionNoSePuedeElegir,
+  entoncesNoHayBotonDeEnviar,
+  entoncesNoHayPaginador,
+  entoncesNoHayPreguntasDeSami,
+  entoncesNoSePideTodavia,
+  entoncesSePideElPaso,
+  entoncesSePreguntaPor,
   volverAlTiempoReal,
-  whenSeDejaParaMasTarde,
-  whenSeElige,
-  whenSePasaALaSiguientePregunta,
-  whenSeResponde,
-  whenSeVuelveALaPreguntaAnterior,
-  whenSeVuelveUnPaso,
+  cuandoSeDejaParaMasTarde,
+  cuandoSeElige,
+  cuandoSePasaALaSiguientePregunta,
+  cuandoSeResponde,
+  cuandoSeVuelveALaPreguntaAnterior,
+  cuandoSeVuelveUnPaso,
 } from '@/test/preguntasDeSami';
 import { renderApp } from '@/test/renderApp';
 import { ESPERA, setupServerError, setupUsuarioConSesion } from '@/test/testHelpers';
@@ -40,21 +40,21 @@ const conObjetivoSinDatos = () => {
   return usuario;
 };
 
-const givenQueSamiPreguntaUnMiercoles = async () => {
-  givenQueHoyEsMiercoles();
+const dadoQueSamiPreguntaUnMiercoles = async () => {
+  dadoQueHoyEsMiercoles();
   conObjetivoSinDatos();
   renderApp('/objetivos');
   return seccionDeSami();
 };
 
-const givenQueSamiPreguntaUnLunes = async () => {
-  givenQueHoyEsLunes();
+const dadoQueSamiPreguntaUnLunes = async () => {
+  dadoQueHoyEsLunes();
   conObjetivoSinDatos();
   renderApp('/objetivos');
   return seccionDeSami();
 };
 
-const givenQueElServidorYaTeniaLaRespuesta = () =>
+const dadoQueElServidorYaTeniaLaRespuesta = () =>
   setupServerError(
     'post',
     `/objetivos/${ID_OBJETIVO_SIN_DATOS_DE_EJEMPLO}/mini-objetivos/${MINI_SIN_CONTAR}/respuesta`,
@@ -66,69 +66,73 @@ describe('mini-objetivos manuales', () => {
   afterEach(volverAlTiempoReal);
 
   it('Sami pregunta una cosa por vez, sin contador ni alarma', async () => {
-    const seccion = await givenQueSamiPreguntaUnMiercoles();
+    const seccion = await dadoQueSamiPreguntaUnMiercoles();
 
-    thenSePreguntaPor(seccion, [PRIMERA]);
-    thenElPaginadorDice(seccion, '1 de 2');
+    entoncesSePreguntaPor(seccion, [PRIMERA]);
+    entoncesElPaginadorDice(seccion, '1 de 2');
     expect(seccion.queryByText(/\(\d+\)/)).not.toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.queryByText(/Lo lograste/)).not.toBeInTheDocument();
   });
 
   it('con las flechas se pasa de una pregunta a la otra, del más viejo al más nuevo', async () => {
-    await givenQueSamiPreguntaUnMiercoles();
+    await dadoQueSamiPreguntaUnMiercoles();
 
-    await whenSePasaALaSiguientePregunta();
+    await cuandoSePasaALaSiguientePregunta();
 
     const seccion = await seccionDeSami();
-    thenSePreguntaPor(seccion, [SEGUNDA]);
-    thenElPaginadorDice(seccion, '2 de 2');
+    entoncesSePreguntaPor(seccion, [SEGUNDA]);
+    entoncesElPaginadorDice(seccion, '2 de 2');
     expect(seccion.getByText('Que más gente conozca mi local')).toBeVisible();
   });
 
   it('se puede volver a la pregunta anterior', async () => {
-    await givenQueSamiPreguntaUnMiercoles();
-    await whenSePasaALaSiguientePregunta();
+    await dadoQueSamiPreguntaUnMiercoles();
+    await cuandoSePasaALaSiguientePregunta();
 
-    await whenSeVuelveALaPreguntaAnterior();
+    await cuandoSeVuelveALaPreguntaAnterior();
 
-    thenSePreguntaPor(await seccionDeSami(), [PRIMERA]);
+    entoncesSePreguntaPor(await seccionDeSami(), [PRIMERA]);
   });
 
   it('el lunes no pregunta por lo de esta semana, solo por lo que quedó sin contar', async () => {
-    const seccion = await givenQueSamiPreguntaUnLunes();
+    const seccion = await dadoQueSamiPreguntaUnLunes();
 
-    thenSePreguntaPor(seccion, [PRIMERA]);
-    thenNoHayPaginador(seccion);
+    entoncesSePreguntaPor(seccion, [PRIMERA]);
+    entoncesNoHayPaginador(seccion);
   });
 
   it('«Más tarde» deja la pregunta para mañana', async () => {
-    await givenQueSamiPreguntaUnLunes();
+    await dadoQueSamiPreguntaUnLunes();
 
-    await whenSeDejaParaMasTarde(PRIMERA);
+    await cuandoSeDejaParaMasTarde(PRIMERA);
 
-    await thenNoHayPreguntasDeSami();
+    await entoncesNoHayPreguntasDeSami();
   });
 
   it('cada pregunta aparece en su propia página, siempre en el mismo lugar', async () => {
-    await givenQueSamiPreguntaUnMiercoles();
-    thenSePideElPaso(PRIMERA, '¿Lo hiciste?');
-    thenNoSePideTodavia(PRIMERA, '¿Qué pasó?');
-    thenNoHayBotonDeEnviar(PRIMERA);
+    await dadoQueSamiPreguntaUnMiercoles();
+    entoncesSePideElPaso(PRIMERA, '¿Lo hiciste?');
+    entoncesNoSePideTodavia(PRIMERA, '¿Qué pasó?');
+    entoncesNoHayBotonDeEnviar(PRIMERA);
 
-    await whenSeElige(PRIMERA, 'Sí');
+    await cuandoSeElige(PRIMERA, 'Sí');
 
-    thenSePideElPaso(PRIMERA, '¿Qué pasó?');
-    thenNoSePideTodavia(PRIMERA, '¿Lo hiciste?');
+    entoncesSePideElPaso(PRIMERA, '¿Qué pasó?');
+    entoncesNoSePideTodavia(PRIMERA, '¿Lo hiciste?');
     // Si lo hiciste, tuviste tiempo.
-    thenLaOpcionNoSePuedeElegir(PRIMERA, 'No tuve tiempo');
+    entoncesLaOpcionNoSePuedeElegir(PRIMERA, 'No tuve tiempo');
   });
 
   it('se responde en dos toques y la respuesta queda guardada', async () => {
-    await givenQueSamiPreguntaUnMiercoles();
-    await whenSePasaALaSiguientePregunta();
+    await dadoQueSamiPreguntaUnMiercoles();
+    await cuandoSePasaALaSiguientePregunta();
 
-    await whenSeResponde(SEGUNDA, { hizo: 'Sí', quePaso: 'Funcionó', comentario: 'Vino gente nueva' });
+    await cuandoSeResponde(SEGUNDA, {
+      hizo: 'Sí',
+      quePaso: 'Funcionó',
+      comentario: 'Vino gente nueva',
+    });
 
     await waitFor(() => expect(estado.respuestasDeMinis.get(MINI_PENDIENTE)).toBeDefined(), ESPERA);
     expect(estado.respuestasDeMinis.get(MINI_PENDIENTE)).toMatchObject({
@@ -143,37 +147,37 @@ describe('mini-objetivos manuales', () => {
   });
 
   it('al responder una aparece la otra que faltaba', async () => {
-    await givenQueSamiPreguntaUnMiercoles();
+    await dadoQueSamiPreguntaUnMiercoles();
 
-    await whenSeResponde(PRIMERA, { hizo: 'Sí', quePaso: 'Funcionó' });
+    await cuandoSeResponde(PRIMERA, { hizo: 'Sí', quePaso: 'Funcionó' });
 
     const seccion = await seccionDeSami();
-    await waitFor(() => thenSePreguntaPor(seccion, [SEGUNDA]), ESPERA);
-    thenNoHayPaginador(seccion);
+    await waitFor(() => entoncesSePreguntaPor(seccion, [SEGUNDA]), ESPERA);
+    entoncesNoHayPaginador(seccion);
   });
 
   it('en parte o no, deja elegir «no tuve tiempo» y la persona puede volver y cambiar de idea', async () => {
-    await givenQueSamiPreguntaUnMiercoles();
-    await whenSeElige(PRIMERA, 'No');
-    await whenSeElige(PRIMERA, 'No tuve tiempo');
+    await dadoQueSamiPreguntaUnMiercoles();
+    await cuandoSeElige(PRIMERA, 'No');
+    await cuandoSeElige(PRIMERA, 'No tuve tiempo');
 
-    await whenSeVuelveUnPaso(PRIMERA);
-    thenLaOpcionEsta(PRIMERA, 'No tuve tiempo', 'elegida');
-    await whenSeVuelveUnPaso(PRIMERA);
-    thenLaOpcionEsta(PRIMERA, 'No', 'elegida');
+    await cuandoSeVuelveUnPaso(PRIMERA);
+    entoncesLaOpcionEsta(PRIMERA, 'No tuve tiempo', 'elegida');
+    await cuandoSeVuelveUnPaso(PRIMERA);
+    entoncesLaOpcionEsta(PRIMERA, 'No', 'elegida');
     // Cambia a «sí»: «no tuve tiempo» ya no vale y hay que elegir de nuevo.
-    await whenSeElige(PRIMERA, 'Sí');
+    await cuandoSeElige(PRIMERA, 'Sí');
 
-    thenLaOpcionNoSePuedeElegir(PRIMERA, 'No tuve tiempo');
-    thenLaOpcionEsta(PRIMERA, 'No tuve tiempo', 'sinElegir');
-    thenNoHayBotonDeEnviar(PRIMERA);
+    entoncesLaOpcionNoSePuedeElegir(PRIMERA, 'No tuve tiempo');
+    entoncesLaOpcionEsta(PRIMERA, 'No tuve tiempo', 'sinElegir');
+    entoncesNoHayBotonDeEnviar(PRIMERA);
   });
 
   it('si el servidor ya tenía la respuesta, lo dice y no pisa la primera', async () => {
-    await givenQueSamiPreguntaUnMiercoles();
-    givenQueElServidorYaTeniaLaRespuesta();
+    await dadoQueSamiPreguntaUnMiercoles();
+    dadoQueElServidorYaTeniaLaRespuesta();
 
-    await whenSeResponde(PRIMERA, { hizo: 'Sí', quePaso: 'Funcionó' });
+    await cuandoSeResponde(PRIMERA, { hizo: 'Sí', quePaso: 'Funcionó' });
 
     expect(await screen.findByRole('alert', {}, ESPERA)).toHaveTextContent(
       'Ya le contaste a Sami cómo te fue esta semana.',

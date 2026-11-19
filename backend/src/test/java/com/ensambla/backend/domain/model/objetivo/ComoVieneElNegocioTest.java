@@ -37,10 +37,74 @@ class ComoVieneElNegocioTest {
     private static final CampoId GASTO_TOTAL_ID = CampoId.de("f0000000-0000-4000-8000-000000000023");
     private static final CampoId GASTO_CATEGORIA_ID = CampoId.de("f0000000-0000-4000-8000-000000000024");
 
+    private List<DatosDeProyecto> sistemas = List.of();
+    private ComoVieneElNegocio negocio;
+
     @Test
     @DisplayName("Cuenta lo vendido, la mercadería, los gastos sin la categoría Mercadería, lo que queda y el fiado de los últimos 30 días")
-    void armarShouldSummarizeTheLastThirtyDays() {
-        DatosDeProyecto almacen = proyecto(
+    void cuentaLoVendidoLaMercaderiaLosGastosSinLaCategoriaMercaderiaLoQueQuedaYElFiadoDeLosUltimos30Dias() {
+        dadoUnAlmacenConVentasYGastosDeLosUltimos30Dias();
+
+        cuandoSeArmaComoVieneElNegocio();
+
+        entoncesLosImportesSon(56100, 40500, 8000, 7600, 17000);
+        entoncesHayVentas();
+    }
+
+    @Test
+    @DisplayName("Arma seis semanas, de la más antigua a Hoy, cada una con el resultado de los 30 días que terminan esa semana")
+    void armaSeisSemanasDeLaMasAntiguaAHoyCadaUnaConElResultadoDeLos30DiasQueTerminanEsaSemana() {
+        dadoUnAlmacenConVentasEnOctubreYUnGasto();
+
+        cuandoSeArmaComoVieneElNegocio();
+
+        entoncesSeArmanLasSeisSemanas();
+    }
+
+    @Test
+    @DisplayName("Suma todos los sistemas del negocio, aunque alguno no tenga tabla de gastos")
+    void sumaTodosLosSistemasDelNegocioAunqueAlgunoNoTengaTablaDeGastos() {
+        dadoUnAlmacenYUnKioscoSinTablaDeGastos();
+
+        cuandoSeArmaComoVieneElNegocio();
+
+        entoncesLosImportesSon(5400, 2700, 400, 2300, 2000);
+    }
+
+    @Test
+    @DisplayName("Redondea los importes a pesos enteros")
+    void redondeaLosImportesAPesosEnteros() {
+        dadoUnaVentaConPrecioDeCentavos();
+
+        cuandoSeArmaComoVieneElNegocio();
+
+        entoncesLosImportesSon(3401, 2700, 0, 701, 0);
+    }
+
+    @Test
+    @DisplayName("Sin ventas en los últimos 30 días no inventa números: todo en cero y sin semanas")
+    void sinVentasEnLosUltimos30DiasNoInventaNumerosTodoEnCeroYSinSemanas() {
+        dadoUnAlmacenSoloConVentasViejas();
+
+        cuandoSeArmaComoVieneElNegocio();
+
+        entoncesTodoEstaEnCeroYSinSemanas();
+    }
+
+    @Test
+    @DisplayName("Un negocio sin sistemas no tiene ventas")
+    void unNegocioSinSistemasNoTieneVentas() {
+        dadoUnNegocioSinSistemas();
+
+        cuandoSeArmaComoVieneElNegocio();
+
+        entoncesNoHayVentasNiSemanas();
+    }
+
+    // --- dado ---
+
+    private void dadoUnAlmacenConVentasYGastosDeLosUltimos30Dias() {
+        sistemas = List.of(proyecto(
                 List.of(venta(YERBA, 10, 3400, "2026-10-10", false),
                         venta(YERBA, 5, 3400, "2026-10-15", true),
                         venta(FIDEOS, 3, 1700, "2026-10-12", false),
@@ -48,26 +112,59 @@ class ComoVieneElNegocioTest {
                 List.of(gasto("2026-10-05", 8000, "Servicios"),
                         gasto("2026-10-06", 50000, "Mercadería"),
                         gasto("2026-10-07", 20000, " mercaderia "),
-                        gasto("2026-08-01", 9999, "Alquiler")));
-
-        ComoVieneElNegocio negocio = ComoVieneElNegocio.armar(List.of(almacen), HOY);
-
-        thenImportes(negocio, 56100, 40500, 8000, 7600, 17000);
-        assertThat(negocio.hayVentas()).isTrue();
+                        gasto("2026-08-01", 9999, "Alquiler"))));
     }
 
-    @Test
-    @DisplayName("Arma seis semanas, de la más antigua a Hoy, cada una con el resultado de los 30 días que terminan esa semana")
-    void armarShouldBuildTheLastSixWeeks() {
-        DatosDeProyecto almacen = proyecto(
+    private void dadoUnAlmacenConVentasEnOctubreYUnGasto() {
+        sistemas = List.of(proyecto(
                 List.of(venta(YERBA, 10, 3400, "2026-10-10", false),
                         venta(YERBA, 5, 3400, "2026-10-15", true),
                         venta(FIDEOS, 3, 1700, "2026-10-12", false)),
-                List.of(gasto("2026-10-05", 8000, "Servicios")));
+                List.of(gasto("2026-10-05", 8000, "Servicios"))));
+    }
 
-        List<Semana> semanas = ComoVieneElNegocio.armar(List.of(almacen), HOY).semanas();
+    private void dadoUnAlmacenYUnKioscoSinTablaDeGastos() {
+        DatosDeProyecto almacen = proyecto(List.of(venta(YERBA, 1, 3400, "2026-10-19", false)),
+                List.of(gasto("2026-10-19", 400, "Servicios")));
+        DatosDeProyecto kiosco = proyectoSinGastos(List.of(venta(GALLETITAS, 2, 1000, "2026-10-18", true)));
+        sistemas = List.of(almacen, kiosco);
+    }
 
-        assertThat(semanas).containsExactly(
+    private void dadoUnaVentaConPrecioDeCentavos() {
+        sistemas = List.of(proyectoSinGastos(List.of(venta(YERBA, 1, 3400.5, "2026-10-19", false))));
+    }
+
+    private void dadoUnAlmacenSoloConVentasViejas() {
+        sistemas = List.of(proyecto(List.of(venta(YERBA, 3, 3400, "2026-08-01", false)),
+                List.of(gasto("2026-10-10", 8000, "Servicios"))));
+    }
+
+    private void dadoUnNegocioSinSistemas() {
+        sistemas = List.of();
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeArmaComoVieneElNegocio() {
+        negocio = ComoVieneElNegocio.armar(sistemas, HOY);
+    }
+
+    // --- entonces ---
+
+    private void entoncesLosImportesSon(long vendiste, long mercaderia, long gastos, long queda, long teDeben) {
+        assertThat(negocio.vendiste()).isEqualTo(vendiste);
+        assertThat(negocio.mercaderia()).isEqualTo(mercaderia);
+        assertThat(negocio.gastos()).isEqualTo(gastos);
+        assertThat(negocio.queda()).isEqualTo(queda);
+        assertThat(negocio.teDeben()).isEqualTo(teDeben);
+    }
+
+    private void entoncesHayVentas() {
+        assertThat(negocio.hayVentas()).isTrue();
+    }
+
+    private void entoncesSeArmanLasSeisSemanas() {
+        assertThat(negocio.semanas()).containsExactly(
                 new Semana("Hace 5 sem.", 0),
                 new Semana("Hace 4 sem.", 0),
                 new Semana("Hace 3 sem.", 0),
@@ -76,59 +173,17 @@ class ComoVieneElNegocioTest {
                 new Semana("Hoy", 7600));
     }
 
-    @Test
-    @DisplayName("Suma todos los sistemas del negocio, aunque alguno no tenga tabla de gastos")
-    void armarShouldAddEverySystemOfTheBusiness() {
-        DatosDeProyecto almacen = proyecto(List.of(venta(YERBA, 1, 3400, "2026-10-19", false)),
-                List.of(gasto("2026-10-19", 400, "Servicios")));
-        DatosDeProyecto kiosco = proyectoSinGastos(List.of(venta(GALLETITAS, 2, 1000, "2026-10-18", true)));
-
-        ComoVieneElNegocio negocio = ComoVieneElNegocio.armar(List.of(almacen, kiosco), HOY);
-
-        thenImportes(negocio, 5400, 2700, 400, 2300, 2000);
-    }
-
-    @Test
-    @DisplayName("Redondea los importes a pesos enteros")
-    void armarShouldRoundToWholePesos() {
-        DatosDeProyecto almacen = proyectoSinGastos(List.of(venta(YERBA, 1, 3400.5, "2026-10-19", false)));
-
-        ComoVieneElNegocio negocio = ComoVieneElNegocio.armar(List.of(almacen), HOY);
-
-        thenImportes(negocio, 3401, 2700, 0, 701, 0);
-    }
-
-    @Test
-    @DisplayName("Sin ventas en los últimos 30 días no inventa números: todo en cero y sin semanas")
-    void armarShouldReturnNothingWithoutSales() {
-        DatosDeProyecto almacen = proyecto(List.of(venta(YERBA, 3, 3400, "2026-08-01", false)),
-                List.of(gasto("2026-10-10", 8000, "Servicios")));
-
-        ComoVieneElNegocio negocio = ComoVieneElNegocio.armar(List.of(almacen), HOY);
-
+    private void entoncesTodoEstaEnCeroYSinSemanas() {
         assertThat(negocio).isEqualTo(new ComoVieneElNegocio(false, 0, 0, 0, 0, 0, List.of()));
     }
 
-    @Test
-    @DisplayName("Un negocio sin sistemas no tiene ventas")
-    void armarShouldReturnNothingWithoutSystems() {
-        ComoVieneElNegocio negocio = ComoVieneElNegocio.armar(List.of(), HOY);
-
+    private void entoncesNoHayVentasNiSemanas() {
         assertThat(negocio.hayVentas()).isFalse();
         assertThat(negocio.semanas()).isEmpty();
     }
 
-    // --- assert ---
-    private static void thenImportes(ComoVieneElNegocio negocio, long vendiste, long mercaderia, long gastos,
-                                     long queda, long teDeben) {
-        assertThat(negocio.vendiste()).isEqualTo(vendiste);
-        assertThat(negocio.mercaderia()).isEqualTo(mercaderia);
-        assertThat(negocio.gastos()).isEqualTo(gastos);
-        assertThat(negocio.queda()).isEqualTo(queda);
-        assertThat(negocio.teDeben()).isEqualTo(teDeben);
-    }
+    // --- datos: proyectos ---
 
-    // --- helpers: proyectos ---
     private static DatosDeProyecto proyecto(List<Registro> ventas, List<Registro> gastos) {
         return new DatosDeProyecto("Almacén", List.of(inventario()), List.of(bloqueDeVentas(ventas)),
                 List.of(gastosDe(gastos)));
@@ -146,7 +201,8 @@ class ComoVieneElNegocioTest {
                 AvisoTestData.producto(GALLETITAS, "Galletitas", 10, 1000, 0));
     }
 
-    // --- helpers: ventas ---
+    // --- datos: ventas ---
+
     private static Registro venta(UUID producto, int cantidad, Number precio, String fecha, boolean fiado) {
         Map<String, Object> valores = new LinkedHashMap<>();
         valores.put(AvisoTestData.CAMPO_PRODUCTO_ID.toString(), producto.toString());
@@ -167,7 +223,8 @@ class ComoVieneElNegocioTest {
         return new BloqueVentas(bloque, AvisoTestData.camposPorClave(bloque), ventas);
     }
 
-    // --- helpers: gastos ---
+    // --- datos: gastos ---
+
     private static Registro gasto(String fecha, int total, String categoria) {
         Map<String, Object> valores = new LinkedHashMap<>();
         valores.put(GASTO_FECHA_ID.toString(), fecha);

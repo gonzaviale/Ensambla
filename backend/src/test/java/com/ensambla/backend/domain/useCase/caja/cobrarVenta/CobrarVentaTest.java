@@ -6,8 +6,8 @@ import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.bloque.TipoBloque;
-import com.ensambla.backend.domain.model.caja.VentaCaja;
 import com.ensambla.backend.domain.model.caja.MedioPagoCaja;
+import com.ensambla.backend.domain.model.caja.VentaCaja;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.registro.Registro;
@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -60,6 +60,10 @@ class CobrarVentaTest {
     private CobrarVenta cobrarVenta;
     private Sistema sistema;
 
+    private CobrarVentaResponse respuesta;
+    private Throwable rechazo;
+    private VentaCaja ventaPrevia;
+
     @BeforeEach
     void setUp() {
         cobrarVenta = new CobrarVenta(negocioRepository, usoPlanRepository, sistemaRepository,
@@ -70,274 +74,401 @@ class CobrarVentaTest {
 
     @Test
     @DisplayName("Confirma la venta por peso y descuenta kilos del inventario en una sola operación")
-    void executeShouldPersistSaleAndStock() {
-        givenCaja();
-        when(ventaCajaRepository.save(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
+    void confirmaLaVentaPorPesoYDescuentaKilosDelInventarioEnUnaSolaOperacion() {
+        dadoUnaCajaQueGuardaLasVentas();
 
-        CobrarVentaResponse respuesta = cobrarVenta.execute(CajaTestData.request("0.5"));
+        cuandoSeCobraMedioKilo();
 
-        thenSaleAndStockAreSaved(respuesta);
+        entoncesSeGuardanLaVentaYElDescuentoDeStock();
     }
 
     @Test
     @DisplayName("Repetir la misma operación devuelve el comprobante sin volver a descontar")
-    void executeShouldReturnSameReceiptWhenRetried() {
-        givenUsuario();
-        CobrarVentaRequest request = CajaTestData.request("0.5");
-        VentaCaja venta = ventaPrevia(request.huella());
-        when(ventaCajaRepository.findByIdAndNegocioId(request.id(), CajaTestData.NEGOCIO))
-                .thenReturn(Optional.of(venta));
+    void repetirLaMismaOperacionDevuelveElComprobanteSinVolverADescontar() {
+        dadoUnaVentaPreviaConLaMismaHuella();
 
-        CobrarVentaResponse respuesta = cobrarVenta.execute(request);
+        cuandoSeCobraMedioKilo();
 
-        assertThat(respuesta.id()).isEqualTo(venta.id());
-        verify(sistemaRepository, never()).guardar(any(Sistema.class));
+        entoncesSeDevuelveElComprobanteDeLaVentaPrevia();
+        entoncesNoSeVuelveADescontar();
     }
 
     @Test
     @DisplayName("Reutilizar una operación con otros datos responde conflicto")
-    void executeShouldRejectChangedRetry() {
-        givenUsuario();
-        when(ventaCajaRepository.findByIdAndNegocioId(CajaTestData.OPERACION, CajaTestData.NEGOCIO))
-                .thenReturn(Optional.of(ventaPrevia("otra huella")));
+    void reutilizarUnaOperacionConOtrosDatosRespondeConflicto() {
+        dadoUnaVentaPreviaConOtraHuella();
 
-        assertThatThrownBy(() -> cobrarVenta.execute(CajaTestData.request("0.5")))
-                .isInstanceOf(DuplicateResourceException.class);
+        cuandoSeIntentaCobrarMedioKilo();
+
+        entoncesSeRechazaCon(DuplicateResourceException.class);
     }
 
     @Test
     @DisplayName("Un sistema de otro negocio responde como inexistente")
-    void executeShouldHideForeignSystem() {
-        givenUsuario();
-        when(sistemaRepository.findAllByNegocioId(CajaTestData.NEGOCIO)).thenReturn(List.of());
+    void unSistemaDeOtroNegocioRespondeComoInexistente() {
+        dadoUnNegocioSinSistemas();
 
-        assertThatThrownBy(() -> cobrarVenta.execute(CajaTestData.request("0.5")))
-                .isInstanceOf(ResourceNotFoundException.class);
+        cuandoSeIntentaCobrarMedioKilo();
+
+        entoncesSeRechazaCon(ResourceNotFoundException.class);
     }
 
     @Test
     @DisplayName("Rechaza ventas que no apuntan al inventario elegido")
-    void executeShouldRejectWrongRelation() {
-        givenVentasRelacionadasConOtroInventario();
+    void rechazaVentasQueNoApuntanAlInventarioElegido() {
+        dadoUnaTablaDeVentasRelacionadaConOtroInventario();
 
-        thenRejects(BusinessRuleException.class);
+        cuandoSeIntentaCobrarMedioKilo();
+
+        entoncesSeRechazaSinGuardarNada(BusinessRuleException.class);
     }
 
     @Test
     @DisplayName("Rechaza una tabla de tipo distinto aunque el id coincida")
-    void executeShouldRejectWrongTableType() {
-        givenCaja();
-        inventario().setTipo(TipoBloque.PEDIDOS);
+    void rechazaUnaTablaDeTipoDistintoAunqueElIdCoincida() {
+        dadoUnInventarioQueEnRealidadEsDePedidos();
 
-        thenRejects(ResourceNotFoundException.class);
+        cuandoSeIntentaCobrarMedioKilo();
+
+        entoncesSeRechazaSinGuardarNada(ResourceNotFoundException.class);
     }
 
     @Test
     @DisplayName("Rechaza un producto que desapareció del inventario")
-    void executeShouldRejectDeletedProduct() {
-        givenCaja();
-        producto().setId(RegistroId.nuevo());
+    void rechazaUnProductoQueDesaparecioDelInventario() {
+        dadoUnProductoQueDesaparecioDelInventario();
 
-        thenRejects(ResourceNotFoundException.class);
+        cuandoSeIntentaCobrarMedioKilo();
+
+        entoncesSeRechazaSinGuardarNada(ResourceNotFoundException.class);
     }
 
     @Test
     @DisplayName("No confirma si el precio cambió mientras se armaba la compra")
-    void executeShouldRevalidatePrice() {
-        givenCaja();
-        CajaTestData.poner(inventario(), producto(), "price", new BigDecimal("5000"));
+    void noConfirmaSiElPrecioCambioMientrasSeArmabaLaCompra() {
+        dadoUnProductoConElPrecioCambiado();
 
-        thenRejects(DuplicateResourceException.class);
+        cuandoSeIntentaCobrarMedioKilo();
+
+        entoncesSeRechazaSinGuardarNada(DuplicateResourceException.class);
     }
 
     @Test
     @DisplayName("No confirma si la forma de venta cambió")
-    void executeShouldRevalidateSaleMode() {
-        givenCaja();
-        CajaTestData.poner(inventario(), producto(), "saleMode", "unidad");
+    void noConfirmaSiLaFormaDeVentaCambio() {
+        dadoUnProductoConLaFormaDeVentaCambiada();
 
-        thenRejects(DuplicateResourceException.class);
+        cuandoSeIntentaCobrarMedioKilo();
+
+        entoncesSeRechazaSinGuardarNada(DuplicateResourceException.class);
     }
 
     @Test
     @DisplayName("Una salida sin stock rechaza la compra completa")
-    void executeShouldRejectInsufficientStock() {
-        givenCaja();
-        CajaTestData.poner(inventario(), producto(), "quantity", BigDecimal.ZERO);
+    void unaSalidaSinStockRechazaLaCompraCompleta() {
+        dadoUnProductoSinStock();
 
-        thenRejects(DuplicateResourceException.class);
+        cuandoSeIntentaCobrarMedioKilo();
+
+        entoncesSeRechazaSinGuardarNada(DuplicateResourceException.class);
     }
 
     @Test
     @DisplayName("Un artículo sin control de stock registra la venta sin inventar existencias")
-    void executeShouldSkipUntrackedStock() {
-        givenCaja();
-        CajaTestData.poner(inventario(), producto(), "stockControl", false);
-        when(ventaCajaRepository.save(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
+    void unArticuloSinControlDeStockRegistraLaVentaSinInventarExistencias() {
+        dadoUnProductoSinControlDeStock();
 
-        cobrarVenta.execute(CajaTestData.request("0.5"));
+        cuandoSeCobraMedioKilo();
 
-        assertThat(valor("quantity")).isEqualTo(new BigDecimal("2"));
+        entoncesElStockDelProductoQuedaEn("2");
     }
 
     @Test
     @DisplayName("Rechaza datos numéricos ausentes sin tratarlos como cero")
-    void executeShouldRejectMissingPrice() {
-        givenCaja();
-        inventario().getCampos().removeIf(campo -> campo.getClave().equals("price"));
+    void rechazaDatosNumericosAusentesSinTratarlosComoCero() {
+        dadoUnInventarioSinCampoDePrecio();
 
-        thenRejects(BusinessRuleException.class);
+        cuandoSeIntentaCobrarMedioKilo();
+
+        entoncesSeRechazaSinGuardarNada(BusinessRuleException.class);
     }
 
     @Test
     @DisplayName("Explica qué campo necesita una tabla de ventas incompatible")
-    void executeShouldRejectMissingSalesField() {
-        givenCaja();
-        ventas().getCampos().removeIf(campo -> campo.getClave().equals("price"));
+    void explicaQueCampoNecesitaUnaTablaDeVentasIncompatible() {
+        dadoUnaTablaDeVentasSinCampoDePrecio();
 
-        thenRejects(BusinessRuleException.class);
+        cuandoSeIntentaCobrarMedioKilo();
+
+        entoncesSeRechazaSinGuardarNada(BusinessRuleException.class);
     }
 
     @Test
     @DisplayName("Una venta fiada conserva al cliente y no inventa un cobro")
-    void executeShouldRegisterCreditSaleWithCustomer() {
-        givenCajaConCliente();
+    void unaVentaFiadaConservaAlClienteYNoInventaUnCobro() {
+        dadoUnaCajaConUnCliente();
 
-        CobrarVentaResponse respuesta = cobrarVenta.execute(solicitudConCliente(List.of()));
+        cuandoSeCobraAlClienteEntregando(List.of());
 
-        thenPendingBalanceIs(respuesta, "2000", "PENDIENTE");
-        assertThat(respuesta.pagos()).isEmpty();
-        assertThat(respuesta.recibido()).isEqualByComparingTo("0");
-        assertThat(valor("quantity")).isEqualTo(new BigDecimal("1.5"));
+        entoncesLaDeudaQuedaPendienteEn("2000", "PENDIENTE");
+        entoncesNoSeRegistraNingunPago();
+        entoncesElStockDelProductoQuedaEn("1.5");
     }
 
     @Test
     @DisplayName("Una entrega parcial conserva el saldo y lo marca en la fila de ventas")
-    void executeShouldRegisterPartialPayment() {
-        givenCajaConCliente();
+    void unaEntregaParcialConservaElSaldoYLoMarcaEnLaFilaDeVentas() {
+        dadoUnaCajaConUnCliente();
 
-        CobrarVentaResponse respuesta = cobrarVenta.execute(solicitudConCliente(
-                List.of(new CobrarVentaRequest.PagoRequest("TRANSFERENCIA", new BigDecimal("800")))));
+        cuandoSeCobraAlClienteEntregando(List.of(new CobrarVentaRequest.PagoRequest("TRANSFERENCIA", new BigDecimal("800"))));
 
-        thenPendingBalanceIs(respuesta, "1200", "PARCIAL");
-        Registro fila = sistema.registrosPorBloque().get(CajaTestData.VENTAS).getFirst();
-        assertThat(fila.getValores().get(campoVentas("credit").getId().toString())).isEqualTo(true);
-        assertThat(fila.getValores().get(campoVentas("customer").getId().toString()))
-                .isEqualTo(CajaTestData.CLIENTE.toString());
+        entoncesLaDeudaQuedaPendienteEn("1200", "PARCIAL");
+        entoncesLaFilaDeVentasQuedaFiadaAlCliente();
     }
 
     @Test
     @DisplayName("Permite asociar un cliente a una venta pagada aunque la tabla use texto")
-    void executeShouldUseCustomerNameWhenSalesFieldIsText() {
-        givenClienteRegistradoComoTexto();
+    void permiteAsociarUnClienteAUnaVentaPagadaAunqueLaTablaUseTexto() {
+        dadoUnaTablaDeVentasQueGuardaElClienteComoTexto();
 
-        CobrarVentaResponse respuesta = whenSeCobraLaVentaConCliente();
+        cuandoSeCobraAlClienteSinEntregaExplicita();
 
-        thenSeConservaElNombreDelCliente(respuesta);
+        entoncesLaDeudaQuedaPendienteEn("0", "PAGADA");
+        entoncesLaFilaDeVentasConservaElNombreDelCliente();
     }
 
     @Test
     @DisplayName("Una venta pagada permite conservar el comprador sin identificar")
-    void executeShouldAllowAnonymousPaidSaleWithCustomerFields() {
-        givenCajaConCliente();
+    void unaVentaPagadaPermiteConservarElCompradorSinIdentificar() {
+        dadoUnaCajaConUnCliente();
 
-        CobrarVentaResponse respuesta = cobrarVenta.execute(CajaTestData.request("0.5"));
+        cuandoSeCobraMedioKilo();
 
-        assertThat(respuesta.clienteId()).isNull();
-        Registro fila = sistema.registrosPorBloque().get(CajaTestData.VENTAS).getFirst();
-        assertThat(fila.getValores().get(campoVentas("credit").getId().toString())).isEqualTo(false);
+        entoncesLaVentaNoTieneCliente();
+        entoncesLaFilaDeVentasNoQuedaFiada();
     }
 
     @Test
     @DisplayName("Oculta un cliente que no pertenece al negocio sin descontar stock")
-    void executeShouldHideMissingCustomer() {
-        givenCaja();
+    void ocultaUnClienteQueNoPerteneceAlNegocioSinDescontarStock() {
+        dadoUnaCajaSinClientes();
 
-        assertThatThrownBy(() -> cobrarVenta.execute(solicitudConCliente(List.of())))
-                .isInstanceOf(ResourceNotFoundException.class);
+        cuandoSeIntentaCobrarAlClienteEntregando(List.of());
 
-        assertThat(valor("quantity")).isEqualTo(new BigDecimal("2"));
+        entoncesSeRechazaCon(ResourceNotFoundException.class);
+        entoncesElStockDelProductoQuedaEn("2");
     }
 
     @Test
     @DisplayName("No permite fiar a un cliente de ejemplo")
-    void executeShouldRejectExampleCustomer() {
-        givenCaja();
-        CajaTestData.agregarCliente(sistema);
-        sistema.registrosPorBloque().get(CajaTestData.CLIENTES).getFirst().setEsEjemplo(true);
+    void noPermiteFiarAUnClienteDeEjemplo() {
+        dadoUnClienteDeEjemplo();
 
-        assertThatThrownBy(() -> cobrarVenta.execute(solicitudConCliente(List.of())))
-                .isInstanceOf(ResourceNotFoundException.class);
+        cuandoSeIntentaCobrarAlClienteEntregando(List.of());
+
+        entoncesSeRechazaCon(ResourceNotFoundException.class);
     }
 
     @Test
     @DisplayName("Rechaza un cliente de una tabla distinta a la relacionada con ventas")
-    void executeShouldRejectCustomerFromWrongTable() {
-        givenClienteRelacionadoConOtraTabla();
+    void rechazaUnClienteDeUnaTablaDistintaALaRelacionadaConVentas() {
+        dadoUnClienteRelacionadoConOtraTabla();
 
-        thenSeRechazaElClienteDeOtraTabla();
-    }
+        cuandoSeIntentaCobrarAlClienteEntregando(List.of());
 
-    private void givenVentasRelacionadasConOtroInventario() {
-        givenCaja();
-        CajaTestData.cambiarCampo(ventas(), "product", TipoCampo.RELACION, BloqueId.nuevo());
-    }
-
-    private void givenClienteRegistradoComoTexto() {
-        givenCajaConCliente();
-        CajaTestData.cambiarCampo(ventas(), "customer", TipoCampo.TEXTO, null);
-    }
-
-    private CobrarVentaResponse whenSeCobraLaVentaConCliente() {
-        return cobrarVenta.execute(solicitudConCliente(null));
-    }
-
-    private void thenSeConservaElNombreDelCliente(CobrarVentaResponse respuesta) {
-        thenPendingBalanceIs(respuesta, "0", "PAGADA");
-        Registro fila = sistema.registrosPorBloque().get(CajaTestData.VENTAS).getFirst();
-        assertThat(fila.getValores().get(campoVentas("customer").getId().toString())).isEqualTo("Ana López");
-    }
-
-    private void givenClienteRelacionadoConOtraTabla() {
-        givenCaja();
-        CajaTestData.agregarCliente(sistema);
-        CajaTestData.cambiarCampo(ventas(), "customer", TipoCampo.RELACION, BloqueId.nuevo());
-    }
-
-    private void thenSeRechazaElClienteDeOtraTabla() {
-        assertThatThrownBy(() -> cobrarVenta.execute(solicitudConCliente(List.of())))
-                .isInstanceOf(ResourceNotFoundException.class);
+        entoncesSeRechazaCon(ResourceNotFoundException.class);
     }
 
     @Test
     @DisplayName("No confunde otro cliente con el solicitado")
-    void executeShouldMatchExactCustomerId() {
-        givenCaja();
-        CajaTestData.agregarCliente(sistema);
-        sistema.registrosPorBloque().get(CajaTestData.CLIENTES).getFirst().setId(RegistroId.nuevo());
+    void noConfundeOtroClienteConElSolicitado() {
+        dadoUnClienteConOtroId();
 
-        assertThatThrownBy(() -> cobrarVenta.execute(solicitudConCliente(List.of())))
-                .isInstanceOf(ResourceNotFoundException.class);
+        cuandoSeIntentaCobrarAlClienteEntregando(List.of());
+
+        entoncesSeRechazaCon(ResourceNotFoundException.class);
     }
 
-    // --- arrange ---
-    private void givenCajaConCliente() {
-        givenCaja();
-        CajaTestData.agregarCliente(sistema);
+    // --- dado ---
+
+    private void dadoUnUsuarioDelNegocio() {
+        when(negocioRepository.obtenerIdDelUsuario(CajaTestData.USUARIO)).thenReturn(CajaTestData.NEGOCIO);
+    }
+
+    private void dadoUnaCaja() {
+        dadoUnUsuarioDelNegocio();
+        when(sistemaRepository.findAllByNegocioId(CajaTestData.NEGOCIO)).thenReturn(List.of(sistema));
+    }
+
+    private void dadoQueGuardarUnaVentaLaDevuelve() {
         when(ventaCajaRepository.save(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
     }
 
-    private CobrarVentaRequest solicitudConCliente(List<CobrarVentaRequest.PagoRequest> pagos) {
-        CobrarVentaRequest base = CajaTestData.request("0.5");
-        return new CobrarVentaRequest(base.usuarioId(), base.id(), base.proyectoId(), base.inventarioId(),
-                base.ventasId(), base.lineas(), base.medio(), base.recibido(), pagos, CajaTestData.CLIENTE);
+    private void dadoUnaCajaQueGuardaLasVentas() {
+        dadoUnaCaja();
+        dadoQueGuardarUnaVentaLaDevuelve();
     }
 
-    private Campo campoVentas(String clave) {
-        return ventas().getCampos().stream().filter(campo -> clave.equals(campo.getClave())).findFirst().orElseThrow();
+    private void dadoUnaCajaConUnCliente() {
+        dadoUnaCajaQueGuardaLasVentas();
+        CajaTestData.agregarCliente(sistema);
     }
 
-    private void thenPendingBalanceIs(CobrarVentaResponse respuesta, String saldo, String estado) {
+    private void dadoUnaCajaSinClientes() {
+        dadoUnaCaja();
+    }
+
+    private void dadoUnaVentaPreviaConLaMismaHuella() {
+        dadoUnUsuarioDelNegocio();
+        ventaPrevia = unaVentaPreviaConHuella(CajaTestData.request("0.5").huella());
+        when(ventaCajaRepository.findByIdAndNegocioId(CajaTestData.OPERACION, CajaTestData.NEGOCIO))
+                .thenReturn(Optional.of(ventaPrevia));
+    }
+
+    private void dadoUnaVentaPreviaConOtraHuella() {
+        dadoUnUsuarioDelNegocio();
+        when(ventaCajaRepository.findByIdAndNegocioId(CajaTestData.OPERACION, CajaTestData.NEGOCIO))
+                .thenReturn(Optional.of(unaVentaPreviaConHuella("otra huella")));
+    }
+
+    private void dadoUnNegocioSinSistemas() {
+        dadoUnUsuarioDelNegocio();
+        when(sistemaRepository.findAllByNegocioId(CajaTestData.NEGOCIO)).thenReturn(List.of());
+    }
+
+    private void dadoUnaTablaDeVentasRelacionadaConOtroInventario() {
+        dadoUnaCaja();
+        CajaTestData.cambiarCampo(ventas(), "product", TipoCampo.RELACION, BloqueId.nuevo());
+    }
+
+    private void dadoUnInventarioQueEnRealidadEsDePedidos() {
+        dadoUnaCaja();
+        inventario().setTipo(TipoBloque.PEDIDOS);
+    }
+
+    private void dadoUnProductoQueDesaparecioDelInventario() {
+        dadoUnaCaja();
+        producto().setId(RegistroId.nuevo());
+    }
+
+    private void dadoUnProductoConElPrecioCambiado() {
+        dadoUnaCaja();
+        CajaTestData.poner(inventario(), producto(), "price", new BigDecimal("5000"));
+    }
+
+    private void dadoUnProductoConLaFormaDeVentaCambiada() {
+        dadoUnaCaja();
+        CajaTestData.poner(inventario(), producto(), "saleMode", "unidad");
+    }
+
+    private void dadoUnProductoSinStock() {
+        dadoUnaCaja();
+        CajaTestData.poner(inventario(), producto(), "quantity", BigDecimal.ZERO);
+    }
+
+    private void dadoUnProductoSinControlDeStock() {
+        dadoUnaCajaQueGuardaLasVentas();
+        CajaTestData.poner(inventario(), producto(), "stockControl", false);
+    }
+
+    private void dadoUnInventarioSinCampoDePrecio() {
+        dadoUnaCaja();
+        inventario().getCampos().removeIf(campo -> campo.getClave().equals("price"));
+    }
+
+    private void dadoUnaTablaDeVentasSinCampoDePrecio() {
+        dadoUnaCaja();
+        ventas().getCampos().removeIf(campo -> campo.getClave().equals("price"));
+    }
+
+    private void dadoUnaTablaDeVentasQueGuardaElClienteComoTexto() {
+        dadoUnaCajaConUnCliente();
+        CajaTestData.cambiarCampo(ventas(), "customer", TipoCampo.TEXTO, null);
+    }
+
+    private void dadoUnClienteDeEjemplo() {
+        dadoUnaCaja();
+        CajaTestData.agregarCliente(sistema);
+        elCliente().setEsEjemplo(true);
+    }
+
+    private void dadoUnClienteRelacionadoConOtraTabla() {
+        dadoUnaCaja();
+        CajaTestData.agregarCliente(sistema);
+        CajaTestData.cambiarCampo(ventas(), "customer", TipoCampo.RELACION, BloqueId.nuevo());
+    }
+
+    private void dadoUnClienteConOtroId() {
+        dadoUnaCaja();
+        CajaTestData.agregarCliente(sistema);
+        elCliente().setId(RegistroId.nuevo());
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeCobraMedioKilo() {
+        respuesta = cobrarVenta.execute(CajaTestData.request("0.5"));
+    }
+
+    private void cuandoSeIntentaCobrarMedioKilo() {
+        rechazo = catchThrowable(() -> cobrarVenta.execute(CajaTestData.request("0.5")));
+    }
+
+    private void cuandoSeCobraAlClienteEntregando(List<CobrarVentaRequest.PagoRequest> pagos) {
+        respuesta = cobrarVenta.execute(solicitudConCliente(pagos));
+    }
+
+    private void cuandoSeCobraAlClienteSinEntregaExplicita() {
+        respuesta = cobrarVenta.execute(solicitudConCliente(null));
+    }
+
+    private void cuandoSeIntentaCobrarAlClienteEntregando(List<CobrarVentaRequest.PagoRequest> pagos) {
+        rechazo = catchThrowable(() -> cobrarVenta.execute(solicitudConCliente(pagos)));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeGuardanLaVentaYElDescuentoDeStock() {
+        assertThat(respuesta.total()).isEqualByComparingTo("2000");
+        entoncesElStockDelProductoQuedaEn("1.5");
+        entoncesSeGuardoLaFilaDeVentasDeLaOperacion();
+        verify(usoPlanRepository).bloquearNegocio(CajaTestData.NEGOCIO);
+        verify(controlPlanService).validarAltaRegistros(CajaTestData.NEGOCIO, 1, CajaTestData.AHORA);
+    }
+
+    private void entoncesSeGuardoLaFilaDeVentasDeLaOperacion() {
+        ArgumentCaptor<Sistema> guardado = ArgumentCaptor.forClass(Sistema.class);
+        verify(sistemaRepository).guardar(guardado.capture());
+        Registro fila = guardado.getValue().registrosPorBloque().get(CajaTestData.VENTAS).getFirst();
+        assertThat(fila.getOrigen()).isEqualTo("Caja " + CajaTestData.OPERACION);
+        assertThat(fila.getCreadoEn()).isEqualTo(CajaTestData.AHORA);
+        assertThat(fila.getId()).isNotNull();
+        assertThat(fila.getOrden()).isZero();
+    }
+
+    private void entoncesSeDevuelveElComprobanteDeLaVentaPrevia() {
+        assertThat(respuesta.id()).isEqualTo(ventaPrevia.id());
+    }
+
+    private void entoncesNoSeVuelveADescontar() {
+        verify(sistemaRepository, never()).guardar(any(Sistema.class));
+    }
+
+    private void entoncesSeRechazaCon(Class<? extends Throwable> tipo) {
+        assertThat(rechazo).isInstanceOf(tipo);
+    }
+
+    private void entoncesSeRechazaSinGuardarNada(Class<? extends Throwable> tipo) {
+        entoncesSeRechazaCon(tipo);
+        verify(ventaCajaRepository, never()).save(any());
+        verify(sistemaRepository, never()).guardar(any(Sistema.class));
+    }
+
+    private void entoncesElStockDelProductoQuedaEn(String cantidad) {
+        assertThat(valorDelProducto("quantity")).isEqualTo(new BigDecimal(cantidad));
+    }
+
+    private void entoncesLaDeudaQuedaPendienteEn(String saldo, String estado) {
         assertThat(respuesta.saldo()).isEqualByComparingTo(saldo);
         assertThat(respuesta.cobrado()).isEqualByComparingTo(respuesta.total().subtract(new BigDecimal(saldo)));
         assertThat(respuesta.estado()).isEqualTo(estado);
@@ -345,38 +476,37 @@ class CobrarVentaTest {
         assertThat(respuesta.clienteNombre()).isEqualTo("Ana López");
     }
 
-    private void givenUsuario() {
-        when(negocioRepository.obtenerIdDelUsuario(CajaTestData.USUARIO)).thenReturn(CajaTestData.NEGOCIO);
+    private void entoncesNoSeRegistraNingunPago() {
+        assertThat(respuesta.pagos()).isEmpty();
+        assertThat(respuesta.recibido()).isEqualByComparingTo("0");
     }
 
-    private void givenCaja() {
-        givenUsuario();
-        when(sistemaRepository.findAllByNegocioId(CajaTestData.NEGOCIO)).thenReturn(List.of(sistema));
+    private void entoncesLaFilaDeVentasQuedaFiadaAlCliente() {
+        assertThat(valorDeLaFilaDeVentas("credit")).isEqualTo(true);
+        assertThat(valorDeLaFilaDeVentas("customer")).isEqualTo(CajaTestData.CLIENTE.toString());
     }
 
-    // --- assert ---
-    private void thenRejects(Class<? extends RuntimeException> tipo) {
-        assertThatThrownBy(() -> cobrarVenta.execute(CajaTestData.request("0.5"))).isInstanceOf(tipo);
-        verify(ventaCajaRepository, never()).save(any());
-        verify(sistemaRepository, never()).guardar(any(Sistema.class));
+    private void entoncesLaFilaDeVentasConservaElNombreDelCliente() {
+        assertThat(valorDeLaFilaDeVentas("customer")).isEqualTo("Ana López");
     }
 
-    private void thenSaleAndStockAreSaved(CobrarVentaResponse respuesta) {
-        assertThat(respuesta.total()).isEqualByComparingTo("2000");
-        assertThat(valor("quantity")).isEqualTo(new BigDecimal("1.5"));
-        ArgumentCaptor<Sistema> captor = ArgumentCaptor.forClass(Sistema.class);
-        verify(sistemaRepository).guardar(captor.capture());
-        Registro fila = captor.getValue().registrosPorBloque().get(CajaTestData.VENTAS).getFirst();
-        assertThat(fila.getOrigen()).isEqualTo("Caja " + CajaTestData.OPERACION);
-        assertThat(fila.getCreadoEn()).isEqualTo(CajaTestData.AHORA);
-        assertThat(fila.getId()).isNotNull();
-        assertThat(fila.getOrden()).isZero();
-        verify(usoPlanRepository).bloquearNegocio(CajaTestData.NEGOCIO);
-        verify(controlPlanService).validarAltaRegistros(CajaTestData.NEGOCIO, 1, CajaTestData.AHORA);
+    private void entoncesLaVentaNoTieneCliente() {
+        assertThat(respuesta.clienteId()).isNull();
     }
 
-    // --- helpers ---
-    private VentaCaja ventaPrevia(String huella) {
+    private void entoncesLaFilaDeVentasNoQuedaFiada() {
+        assertThat(valorDeLaFilaDeVentas("credit")).isEqualTo(false);
+    }
+
+    // --- datos ---
+
+    private CobrarVentaRequest solicitudConCliente(List<CobrarVentaRequest.PagoRequest> pagos) {
+        CobrarVentaRequest base = CajaTestData.request("0.5");
+        return new CobrarVentaRequest(base.usuarioId(), base.id(), base.proyectoId(), base.inventarioId(),
+                base.ventasId(), base.lineas(), base.medio(), base.recibido(), pagos, CajaTestData.CLIENTE);
+    }
+
+    private VentaCaja unaVentaPreviaConHuella(String huella) {
         return new VentaCaja(CajaTestData.OPERACION, CajaTestData.NEGOCIO, CajaTestData.PROYECTO,
                 huella, List.of(), MedioPagoCaja.EFECTIVO,
                 BigDecimal.TEN, BigDecimal.TEN, BigDecimal.ZERO, CajaTestData.AHORA);
@@ -394,9 +524,20 @@ class CobrarVentaTest {
         return sistema.registrosPorBloque().get(CajaTestData.INVENTARIO).getFirst();
     }
 
-    private Object valor(String clave) {
-        Campo campo = inventario().getCampos().stream().filter(item -> item.getClave().equals(clave))
-                .findFirst().orElseThrow();
-        return producto().getValores().get(campo.getId().toString());
+    private Registro elCliente() {
+        return sistema.registrosPorBloque().get(CajaTestData.CLIENTES).getFirst();
+    }
+
+    private Object valorDelProducto(String clave) {
+        return producto().getValores().get(campoDe(inventario(), clave).getId().toString());
+    }
+
+    private Object valorDeLaFilaDeVentas(String clave) {
+        Registro fila = sistema.registrosPorBloque().get(CajaTestData.VENTAS).getFirst();
+        return fila.getValores().get(campoDe(ventas(), clave).getId().toString());
+    }
+
+    private Campo campoDe(Bloque bloque, String clave) {
+        return bloque.getCampos().stream().filter(campo -> clave.equals(campo.getClave())).findFirst().orElseThrow();
     }
 }

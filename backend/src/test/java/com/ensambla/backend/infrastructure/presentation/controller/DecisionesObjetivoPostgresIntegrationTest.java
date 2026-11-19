@@ -9,7 +9,6 @@ import com.ensambla.backend.domain.model.objetivo.EstadoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.SemanaObjetivo;
 import com.ensambla.backend.domain.model.objetivo.TipoMiniObjetivo;
 import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
-import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;
 import com.ensambla.backend.infrastructure.repository.entity.AvisoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.MiniObjetivoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
@@ -19,6 +18,7 @@ import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.I
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.INegocioJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IUsuarioJpaRepository;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
+import com.ensambla.backend.support.SesionHttpDePrueba;
 import com.ensambla.backend.support.SuscripcionesDePrueba;
 import jakarta.persistence.EntityManager;
 import jakarta.servlet.Filter;
@@ -28,20 +28,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.mock.web.MockHttpSession;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.security.web.csrf.DefaultCsrfToken;
-import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -65,6 +56,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class DecisionesObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     private static final OffsetDateTime AHORA = OffsetDateTime.now();
+    private static final String ACEPTADO = "{\"tipo\":\"ACEPTADO\"}";
 
     @Autowired
     private SuscripcionesDePrueba suscripcionService;
@@ -95,34 +87,264 @@ class DecisionesObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSu
     private IMiniObjetivoJpaRepository minis;
 
     private MockMvc mockMvc;
-    private MockHttpSession sesion;
-    private String csrfToken;
+    private SesionHttpDePrueba sesion;
     private UUID negocioId;
     private UUID productoId;
     private String semanaDeHoy;
+    private UUID objetivoId;
+    private UUID otroObjetivoId;
+    private UUID objetivoAlcanzadoId;
+    private UUID miniId;
+    private UUID avisoId;
+    private ResultActions respuesta;
 
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        UUID usuarioId = givenUsuario();
-        negocioId = givenNegocio(usuarioId);
+        UUID usuarioId = crearUsuario();
+        negocioId = crearNegocio(usuarioId);
         productoId = UUID.randomUUID();
-        sesion = givenSesion(usuarioId);
-        LocalDate hoy = ZonaNegocio.dia(OffsetDateTime.now());
-        semanaDeHoy = SemanaObjetivo.lunesDe(hoy).toString();
+        sesion = SesionHttpDePrueba.autenticada(mockMvc, usuarioId.toString());
+        semanaDeHoy = SemanaObjetivo.lunesDe(ZonaNegocio.dia(OffsetDateTime.now())).toString();
     }
 
     @Test
     @DisplayName("Aplicar un aviso deja la decisión en la semana de hoy, vinculada al mini-objetivo del producto")
-    void aplicarShouldRecordTheDecisionInTheCurrentWeek() throws Exception {
-        UUID objetivoId = givenObjetivo(negocioId, 500000);
-        UUID miniId = givenMini(objetivoId);
-        UUID avisoId = givenAvisoEstancado();
+    void aplicarUnAvisoDejaLaDecisionEnLaSemanaDeHoyVinculadaAlMiniObjetivoDelProducto() throws Exception {
+        dadoUnObjetivoConUnMiniObjetivoEnCurso();
+        dadoUnAvisoEstancadoAplicado();
 
-        whenResolver("aplicar", avisoId);
+        cuandoSeListanLasDecisionesDelObjetivo();
 
-        mockMvc.perform(get("/api/objetivos/{id}/decisiones", objetivoId).session(sesion))
-                .andExpect(status().isOk())
+        entoncesLaDecisionQuedaEnLaSemanaDeHoyVinculadaAlMiniObjetivo();
+    }
+
+    @Test
+    @DisplayName("Cuando el impacto del aviso ya se midió la decisión trae su efecto en el ingreso semanal")
+    void cuandoElImpactoDelAvisoYaSeMidioLaDecisionTraeSuEfectoEnElIngresoSemanal() throws Exception {
+        dadoUnObjetivoActivo();
+        dadoUnAvisoEstancadoAplicado();
+        dadoUnImpactoMedidoDelAviso();
+
+        cuandoSeListanLasDecisionesDelObjetivo();
+
+        entoncesLaDecisionTraeSuEfectoMedido();
+    }
+
+    @Test
+    @DisplayName("Descartar un aviso deja la decisión de descartado, sin medición")
+    void descartarUnAvisoDejaLaDecisionDeDescartadoSinMedicion() throws Exception {
+        dadoUnObjetivoActivo();
+        dadoUnAvisoEstancadoDescartado();
+
+        cuandoSeListanLasDecisionesDelObjetivo();
+
+        entoncesLaDecisionQuedaDescartadaSinMedicion();
+    }
+
+    @Test
+    @DisplayName("La decisión se anota en cada objetivo activo y no en los que ya llegaron a su meta")
+    void laDecisionSeAnotaEnCadaObjetivoActivoYNoEnLosQueYaLlegaronASuMeta() throws Exception {
+        dadoDosObjetivosActivosYUnoAlcanzado();
+        dadoUnAvisoEstancado();
+
+        cuandoSeAplicaElAviso();
+
+        entoncesSeAnotaUnaDecisionPorObjetivoActivoYNingunaEnElAlcanzado();
+    }
+
+    @Test
+    @DisplayName("Sin objetivos aplicar un aviso funciona igual y no anota nada")
+    void sinObjetivosAplicarUnAvisoFuncionaIgualYNoAnotaNada() throws Exception {
+        dadoUnAvisoEstancado();
+
+        cuandoSeAplicaElAviso();
+
+        entoncesElAvisoSeAplicaYNoSeAnotaNingunaDecision();
+    }
+
+    @Test
+    @DisplayName("Aceptar el paso de un mini-objetivo responde 201 y queda en el historial")
+    void aceptarElPasoDeUnMiniObjetivoResponde201YQuedaEnElHistorial() throws Exception {
+        dadoUnObjetivoConUnMiniObjetivoEnCurso();
+
+        cuandoSeDecideElPaso(ACEPTADO);
+
+        entoncesElPasoAceptadoQuedaEnElHistorial();
+    }
+
+    @Test
+    @DisplayName("Ignorar el paso es explícito: queda anotado como ignorado")
+    void ignorarElPasoEsExplicitoQuedaAnotadoComoIgnorado() throws Exception {
+        dadoUnObjetivoConUnMiniObjetivoEnCurso();
+
+        cuandoSeDecideElPaso("{\"tipo\":\"IGNORADO\"}");
+
+        entoncesElPasoQuedaAnotadoComoIgnorado();
+    }
+
+    @Test
+    @DisplayName("Decidir el paso de un mini-objetivo que ya no está en curso responde 400")
+    void decidirElPasoDeUnMiniObjetivoQueYaNoEstaEnCursoResponde400() throws Exception {
+        dadoUnObjetivoConUnMiniObjetivoEnCurso();
+        dadoQueElMiniObjetivoFueAbandonado();
+
+        cuandoSeDecideElPaso(ACEPTADO);
+
+        entoncesSeRechazaElPedido();
+    }
+
+    @Test
+    @DisplayName("Una decisión que no es de paso responde 400")
+    void unaDecisionQueNoEsDePasoResponde400() throws Exception {
+        dadoUnObjetivoConUnMiniObjetivoEnCurso();
+
+        cuandoSeDecideElPaso("{\"tipo\":\"AVISO_APLICADO\"}");
+
+        entoncesSeRechazaElPedido();
+    }
+
+    @Test
+    @DisplayName("Una decisión sin cuerpo válido responde 400")
+    void unaDecisionSinCuerpoValidoResponde400() throws Exception {
+        dadoUnObjetivoConUnMiniObjetivoEnCurso();
+
+        cuandoSeDecideElPaso("{}");
+
+        entoncesSeRechazaElPedido();
+    }
+
+    @Test
+    @DisplayName("Listar las decisiones de un objetivo de otro negocio responde 404")
+    void listarLasDecisionesDeUnObjetivoDeOtroNegocioResponde404() throws Exception {
+        dadoUnObjetivoDeOtroNegocio();
+
+        cuandoSeListanLasDecisionesDelObjetivo();
+
+        entoncesRespondeNoEncontrado();
+    }
+
+    @Test
+    @DisplayName("Decidir el paso de un objetivo de otro negocio responde 404 y no se anota nada")
+    void decidirElPasoDeUnObjetivoDeOtroNegocioResponde404YNoSeAnotaNada() throws Exception {
+        dadoUnObjetivoDeOtroNegocio();
+
+        cuandoSeDecideElPasoDeUnMiniObjetivoInexistente();
+
+        entoncesRespondeNoEncontradoYNoSeAnotaNada();
+    }
+
+    @Test
+    @DisplayName("Sin sesión responde 401")
+    void sinSesionResponde401() throws Exception {
+        cuandoSeListanLasDecisionesSinSesion();
+
+        entoncesNoAutoriza();
+    }
+
+    @Test
+    @DisplayName("Sin token CSRF decidir un paso responde 403")
+    void sinTokenCsrfDecidirUnPasoResponde403() throws Exception {
+        cuandoSeDecideUnPasoSinCsrf();
+
+        entoncesSeProhibe();
+    }
+
+    // --- dado ---
+
+    private void dadoUnObjetivoActivo() {
+        objetivoId = crearObjetivo(negocioId, 500000);
+    }
+
+    private void dadoUnObjetivoConUnMiniObjetivoEnCurso() {
+        dadoUnObjetivoActivo();
+        miniId = crearMini(objetivoId);
+    }
+
+    private void dadoDosObjetivosActivosYUnoAlcanzado() {
+        objetivoId = crearObjetivo(negocioId, 500000);
+        otroObjetivoId = crearObjetivo(negocioId, 600000);
+        objetivoAlcanzadoId = crearObjetivo(negocioId, 100);
+        jdbcTemplate.update("UPDATE objetivo SET alcanzado_en = now() WHERE id = ?", objetivoAlcanzadoId);
+    }
+
+    private void dadoUnObjetivoDeOtroNegocio() {
+        UUID otroNegocio = crearNegocio(crearUsuario());
+        objetivoId = crearObjetivo(otroNegocio, 400000);
+    }
+
+    private void dadoUnAvisoEstancado() {
+        avisoId = crearAvisoEstancado();
+    }
+
+    private void dadoUnAvisoEstancadoAplicado() throws Exception {
+        dadoUnAvisoEstancado();
+        resolverElAviso("aplicar");
+    }
+
+    private void dadoUnAvisoEstancadoDescartado() throws Exception {
+        dadoUnAvisoEstancado();
+        resolverElAviso("descartar");
+    }
+
+    /** Lo que deja MedirImpactoAvisos cuando termina la ventana: el ingreso por día pasa de $100 a $150. */
+    private void dadoUnImpactoMedidoDelAviso() {
+        AvisoEntity aviso = avisos.findById(avisoId).orElseThrow();
+        Map<String, Object> impacto = new LinkedHashMap<>();
+        impacto.put("ventanaDias", 14);
+        impacto.put("unidadesPorDiaAntes", 2);
+        impacto.put("unidadesPorDiaDespues", 3);
+        impacto.put("ingresoPorDiaAntes", 100);
+        impacto.put("ingresoPorDiaDespues", 150);
+        Map<String, Object> datos = new LinkedHashMap<>(aviso.getDatos());
+        datos.put("impacto", impacto);
+        aviso.setDatos(datos);
+        avisos.saveAndFlush(aviso);
+    }
+
+    private void dadoQueElMiniObjetivoFueAbandonado() {
+        MiniObjetivoEntity abandonado = minis.findById(miniId).orElseThrow();
+        abandonado.setEstado(EstadoMiniObjetivo.ABANDONADO);
+        minis.saveAndFlush(abandonado);
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeListanLasDecisionesDelObjetivo() throws Exception {
+        respuesta = mockMvc.perform(get("/api/objetivos/{id}/decisiones", objetivoId).session(sesion.sesion()));
+    }
+
+    private void cuandoSeListanLasDecisionesSinSesion() throws Exception {
+        respuesta = mockMvc.perform(get("/api/objetivos/{id}/decisiones", UUID.randomUUID()));
+    }
+
+    private void cuandoSeAplicaElAviso() throws Exception {
+        respuesta = resolverElAviso("aplicar");
+    }
+
+    private void cuandoSeDecideElPaso(String cuerpo) throws Exception {
+        respuesta = mockMvc.perform(post("/api/objetivos/{id}/mini-objetivos/{mini}/decisiones", objetivoId, miniId)
+                .session(sesion.sesion()).header("X-CSRF-TOKEN", sesion.tokenCsrf())
+                .contentType("application/json").content(cuerpo));
+    }
+
+    private void cuandoSeDecideElPasoDeUnMiniObjetivoInexistente() throws Exception {
+        respuesta = mockMvc.perform(post("/api/objetivos/{id}/mini-objetivos/{mini}/decisiones", objetivoId,
+                UUID.randomUUID())
+                .session(sesion.sesion()).header("X-CSRF-TOKEN", sesion.tokenCsrf())
+                .contentType("application/json").content(ACEPTADO));
+    }
+
+    private void cuandoSeDecideUnPasoSinCsrf() throws Exception {
+        respuesta = mockMvc.perform(post("/api/objetivos/{id}/mini-objetivos/{mini}/decisiones", UUID.randomUUID(),
+                UUID.randomUUID())
+                .session(sesion.sesion()).contentType("application/json").content(ACEPTADO));
+    }
+
+    // --- entonces ---
+
+    private void entoncesLaDecisionQuedaEnLaSemanaDeHoyVinculadaAlMiniObjetivo() throws Exception {
+        respuesta.andExpect(status().isOk())
                 .andExpect(jsonPath("$.semanas.length()").value(1))
                 .andExpect(jsonPath("$.semanas[0].semanaInicio").value(semanaDeHoy))
                 .andExpect(jsonPath("$.semanas[0].decisiones[0].tipo").value("AVISO_APLICADO"))
@@ -134,156 +356,78 @@ class DecisionesObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSu
                 .andExpect(jsonPath("$.semanas[0].decisiones[0].deltaIngresoSemanal").doesNotExist());
     }
 
-    @Test
-    @DisplayName("Cuando el impacto del aviso ya se midió la decisión trae su efecto en el ingreso semanal")
-    void listarShouldShowTheEffectOnceTheImpactWasMeasured() throws Exception {
-        UUID objetivoId = givenObjetivo(negocioId, 500000);
-        UUID avisoId = givenAvisoEstancado();
-        whenResolver("aplicar", avisoId);
-        givenImpactoMedido(avisoId);
-
-        mockMvc.perform(get("/api/objetivos/{id}/decisiones", objetivoId).session(sesion))
-                .andExpect(status().isOk())
+    private void entoncesLaDecisionTraeSuEfectoMedido() throws Exception {
+        respuesta.andExpect(status().isOk())
                 .andExpect(jsonPath("$.semanas[0].decisiones[0].efecto").value("MEDIDO"))
                 .andExpect(jsonPath("$.semanas[0].decisiones[0].deltaIngresoSemanal").value(350.0));
     }
 
-    @Test
-    @DisplayName("Descartar un aviso deja la decisión de descartado, sin medición")
-    void descartarShouldRecordTheDiscardedDecision() throws Exception {
-        UUID objetivoId = givenObjetivo(negocioId, 500000);
-        UUID avisoId = givenAvisoEstancado();
-
-        whenResolver("descartar", avisoId);
-
-        mockMvc.perform(get("/api/objetivos/{id}/decisiones", objetivoId).session(sesion))
-                .andExpect(jsonPath("$.semanas[0].decisiones[0].tipo").value("AVISO_DESCARTADO"))
+    private void entoncesLaDecisionQuedaDescartadaSinMedicion() throws Exception {
+        respuesta.andExpect(jsonPath("$.semanas[0].decisiones[0].tipo").value("AVISO_DESCARTADO"))
                 .andExpect(jsonPath("$.semanas[0].decisiones[0].efecto").value("SIN_MEDICION"));
     }
 
-    @Test
-    @DisplayName("La decisión se anota en cada objetivo activo y no en los que ya llegaron a su meta")
-    void aplicarShouldRecordOneDecisionPerActiveObjetivo() throws Exception {
-        UUID activo = givenObjetivo(negocioId, 500000);
-        UUID otroActivo = givenObjetivo(negocioId, 600000);
-        UUID alcanzado = givenObjetivo(negocioId, 100);
-        jdbcTemplate.update("UPDATE objetivo SET alcanzado_en = now() WHERE id = ?", alcanzado);
-        UUID avisoId = givenAvisoEstancado();
-
-        whenResolver("aplicar", avisoId);
-
-        assertThat(decisionesDe(activo)).isEqualTo(1);
-        assertThat(decisionesDe(otroActivo)).isEqualTo(1);
-        assertThat(decisionesDe(alcanzado)).isZero();
+    private void entoncesSeAnotaUnaDecisionPorObjetivoActivoYNingunaEnElAlcanzado() {
+        assertThat(decisionesDe(objetivoId)).isEqualTo(1);
+        assertThat(decisionesDe(otroObjetivoId)).isEqualTo(1);
+        assertThat(decisionesDe(objetivoAlcanzadoId)).isZero();
     }
 
-    @Test
-    @DisplayName("Sin objetivos aplicar un aviso funciona igual y no anota nada")
-    void aplicarShouldStillWorkWithoutObjetivos() throws Exception {
-        UUID avisoId = givenAvisoEstancado();
-
-        whenResolver("aplicar", avisoId);
-
+    private void entoncesElAvisoSeAplicaYNoSeAnotaNingunaDecision() throws Exception {
+        respuesta.andExpect(status().isOk());
         entityManager.flush();
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM decision_objetivo WHERE negocio_id = ?", Integer.class, negocioId)).isZero();
     }
 
-    @Test
-    @DisplayName("Aceptar el paso de un mini-objetivo responde 201 y queda en el historial")
-    void decidirPasoShouldRecordTheAcceptedStep() throws Exception {
-        UUID objetivoId = givenObjetivo(negocioId, 500000);
-        UUID miniId = givenMini(objetivoId);
-
-        mockMvc.perform(post("/api/objetivos/{id}/mini-objetivos/{mini}/decisiones", objetivoId, miniId)
-                        .session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json").content("{\"tipo\":\"ACEPTADO\"}"))
-                .andExpect(status().isCreated())
+    private void entoncesElPasoAceptadoQuedaEnElHistorial() throws Exception {
+        respuesta.andExpect(status().isCreated())
                 .andExpect(jsonPath("$.tipo").value("PASO_ACEPTADO"))
                 .andExpect(jsonPath("$.miniObjetivoId").value(miniId.toString()));
-
-        mockMvc.perform(get("/api/objetivos/{id}/decisiones", objetivoId).session(sesion))
+        mockMvc.perform(get("/api/objetivos/{id}/decisiones", objetivoId).session(sesion.sesion()))
                 .andExpect(jsonPath("$.semanas[0].decisiones[0].tipo").value("PASO_ACEPTADO"))
                 .andExpect(jsonPath("$.semanas[0].decisiones[0].efecto").value("SIN_MEDICION"));
     }
 
-    @Test
-    @DisplayName("Ignorar el paso es explícito: queda anotado como ignorado")
-    void decidirPasoShouldRecordTheIgnoredStep() throws Exception {
-        UUID objetivoId = givenObjetivo(negocioId, 500000);
-        UUID miniId = givenMini(objetivoId);
-
-        mockMvc.perform(post("/api/objetivos/{id}/mini-objetivos/{mini}/decisiones", objetivoId, miniId)
-                        .session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json").content("{\"tipo\":\"IGNORADO\"}"))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.tipo").value("PASO_IGNORADO"));
+    private void entoncesElPasoQuedaAnotadoComoIgnorado() throws Exception {
+        respuesta.andExpect(status().isCreated()).andExpect(jsonPath("$.tipo").value("PASO_IGNORADO"));
     }
 
-    @Test
-    @DisplayName("Decidir el paso de un mini-objetivo que ya no está en curso responde 400")
-    void decidirPasoShouldRejectAMiniObjetivoNoLongerInProgress() throws Exception {
-        UUID objetivoId = givenObjetivo(negocioId, 500000);
-        UUID miniId = givenMini(objetivoId);
-        MiniObjetivoEntity abandonado = minis.findById(miniId).orElseThrow();
-        abandonado.setEstado(EstadoMiniObjetivo.ABANDONADO);
-        minis.saveAndFlush(abandonado);
-
-        mockMvc.perform(post("/api/objetivos/{id}/mini-objetivos/{mini}/decisiones", objetivoId, miniId)
-                        .session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json").content("{\"tipo\":\"ACEPTADO\"}"))
-                .andExpect(status().isBadRequest());
+    private void entoncesSeRechazaElPedido() throws Exception {
+        respuesta.andExpect(status().isBadRequest());
     }
 
-    @Test
-    @DisplayName("Una decisión que no es de paso, o sin cuerpo válido, responde 400")
-    void decidirPasoShouldRejectAnInvalidBody() throws Exception {
-        UUID objetivoId = givenObjetivo(negocioId, 500000);
-        UUID miniId = givenMini(objetivoId);
-
-        mockMvc.perform(post("/api/objetivos/{id}/mini-objetivos/{mini}/decisiones", objetivoId, miniId)
-                        .session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json").content("{\"tipo\":\"AVISO_APLICADO\"}"))
-                .andExpect(status().isBadRequest());
-        mockMvc.perform(post("/api/objetivos/{id}/mini-objetivos/{mini}/decisiones", objetivoId, miniId)
-                        .session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json").content("{}"))
-                .andExpect(status().isBadRequest());
+    private void entoncesRespondeNoEncontrado() throws Exception {
+        respuesta.andExpect(status().isNotFound());
     }
 
-    @Test
-    @DisplayName("Un objetivo o mini-objetivo de otro negocio responde 404 y no se anota nada")
-    void shouldReturn404ForAnotherBusiness() throws Exception {
-        UUID ajeno = givenObjetivoDeOtroNegocio();
-
-        mockMvc.perform(get("/api/objetivos/{id}/decisiones", ajeno).session(sesion))
-                .andExpect(status().isNotFound());
-        mockMvc.perform(post("/api/objetivos/{id}/mini-objetivos/{mini}/decisiones", ajeno, UUID.randomUUID())
-                        .session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json").content("{\"tipo\":\"ACEPTADO\"}"))
-                .andExpect(status().isNotFound());
-        assertThat(decisionesDe(ajeno)).isZero();
+    private void entoncesRespondeNoEncontradoYNoSeAnotaNada() throws Exception {
+        respuesta.andExpect(status().isNotFound());
+        assertThat(decisionesDe(objetivoId)).isZero();
     }
 
-    @Test
-    @DisplayName("Sin sesión responde 401 y sin token CSRF decidir un paso responde 403")
-    void shouldRequireSessionAndCsrf() throws Exception {
-        mockMvc.perform(get("/api/objetivos/{id}/decisiones", UUID.randomUUID()))
-                .andExpect(status().isUnauthorized());
-        mockMvc.perform(post("/api/objetivos/{id}/mini-objetivos/{mini}/decisiones", UUID.randomUUID(),
-                        UUID.randomUUID())
-                        .session(sesion).contentType("application/json").content("{\"tipo\":\"ACEPTADO\"}"))
-                .andExpect(status().isForbidden());
+    private void entoncesNoAutoriza() throws Exception {
+        respuesta.andExpect(status().isUnauthorized());
     }
 
-    // --- act ---
-    private void whenResolver(String accion, UUID avisoId) throws Exception {
-        mockMvc.perform(post("/api/avisos/{id}/" + accion, avisoId).session(sesion).header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isOk());
+    private void entoncesSeProhibe() throws Exception {
+        respuesta.andExpect(status().isForbidden());
     }
 
-    // --- arrange ---
-    private UUID givenUsuario() {
+    // --- datos ---
+
+    private ResultActions resolverElAviso(String accion) throws Exception {
+        return mockMvc.perform(post("/api/avisos/{id}/" + accion, avisoId)
+                .session(sesion.sesion()).header("X-CSRF-TOKEN", sesion.tokenCsrf()));
+    }
+
+    private int decisionesDe(UUID objetivo) {
+        entityManager.flush();
+        return jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM decision_objetivo WHERE objetivo_id = ?", Integer.class, objetivo);
+    }
+
+    private UUID crearUsuario() {
         return usuarios.saveAndFlush(UsuarioEntity.builder()
                 .nombre("Persona")
                 .email(UUID.randomUUID() + "@example.com")
@@ -293,7 +437,7 @@ class DecisionesObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSu
                 .build()).getId();
     }
 
-    private UUID givenNegocio(UUID usuarioId) {
+    private UUID crearNegocio(UUID usuarioId) {
         UUID creado = negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(usuarioId)
@@ -304,23 +448,18 @@ class DecisionesObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSu
         return creado;
     }
 
-    private UUID givenObjetivo(UUID negocio, int meta) {
+    private UUID crearObjetivo(UUID negocio, int meta) {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO objetivo (id, negocio_id, texto, meta) VALUES (?, ?, 'Ganar más', ?)",
                 id, negocio, meta);
         return id;
     }
 
-    private UUID givenObjetivoDeOtroNegocio() {
-        UUID otroNegocio = givenNegocio(givenUsuario());
-        return givenObjetivo(otroNegocio, 400000);
-    }
-
     /** Un mini-objetivo en curso del producto del aviso. */
-    private UUID givenMini(UUID objetivoId) {
+    private UUID crearMini(UUID objetivo) {
         return minis.saveAndFlush(MiniObjetivoEntity.builder()
                 .id(UUID.randomUUID())
-                .objetivoId(objetivoId)
+                .objetivoId(objetivo)
                 .negocioId(negocioId)
                 .posicion((short) 1)
                 .tipo(TipoMiniObjetivo.SUBIR_PRECIO)
@@ -340,7 +479,7 @@ class DecisionesObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSu
     }
 
     /** Un aviso pendiente de «producto estancado» sobre el producto del mini-objetivo, sin acción que ejecutar. */
-    private UUID givenAvisoEstancado() {
+    private UUID crearAvisoEstancado() {
         return avisos.saveAndFlush(AvisoEntity.builder()
                 .negocioId(negocioId).tipo(TipoAviso.ESTANCADO).grupo(GrupoAviso.VENTAS).prioridad((short) 2)
                 .entidad("registro:" + productoId).huella("ESTANCADO:" + productoId + ":" + UUID.randomUUID())
@@ -348,43 +487,5 @@ class DecisionesObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSu
                 .acciones(List.of()).estado(EstadoAviso.PENDIENTE)
                 .creadoEn(AHORA).actualizadoEn(AHORA)
                 .build()).getId();
-    }
-
-    /** Lo que deja MedirImpactoAvisos cuando termina la ventana: el ingreso por día pasa de $100 a $150. */
-    private void givenImpactoMedido(UUID avisoId) {
-        AvisoEntity aviso = avisos.findById(avisoId).orElseThrow();
-        Map<String, Object> impacto = new LinkedHashMap<>();
-        impacto.put("ventanaDias", 14);
-        impacto.put("unidadesPorDiaAntes", 2);
-        impacto.put("unidadesPorDiaDespues", 3);
-        impacto.put("ingresoPorDiaAntes", 100);
-        impacto.put("ingresoPorDiaDespues", 150);
-        Map<String, Object> datos = new LinkedHashMap<>(aviso.getDatos());
-        datos.put("impacto", impacto);
-        aviso.setDatos(datos);
-        avisos.saveAndFlush(aviso);
-    }
-
-    private MockHttpSession givenSesion(UUID usuarioId) throws Exception {
-        MockHttpSession session = new MockHttpSession();
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setSession(session);
-        new HttpSessionCsrfTokenRepository().saveToken(
-                new DefaultCsrfToken("X-CSRF-TOKEN", "_csrf", "token"), request, new MockHttpServletResponse());
-        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-        securityContext.setAuthentication(
-                UsernamePasswordAuthenticationToken.authenticated(usuarioId.toString(), null, List.of()));
-        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, securityContext);
-        String body = mockMvc.perform(get("/api/auth/csrf").session(session))
-                .andReturn().getResponse().getContentAsString();
-        csrfToken = JsonMapper.builder().build().readValue(body, CsrfResponse.class).token();
-        return session;
-    }
-
-    // --- assert ---
-    private int decisionesDe(UUID objetivoId) {
-        entityManager.flush();
-        return jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM decision_objetivo WHERE objetivo_id = ?", Integer.class, objetivoId);
     }
 }

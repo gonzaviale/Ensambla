@@ -24,47 +24,73 @@ class ListarDecisionesResponseTest {
 
     private static final LocalDate ESTA_SEMANA = LocalDate.of(2026, 11, 9);
     private static final LocalDate SEMANA_ANTERIOR = LocalDate.of(2026, 11, 2);
+    private static final AvisoId AVISO_ID = AvisoId.de("e0000000-0000-4000-8000-000000000001");
+
+    private ListarDecisionesResponse respuesta;
+    private DecisionObjetivo decision;
 
     @Test
     @DisplayName("Agrupa por semana, de la más nueva a la más vieja, y dentro de la semana de la más nueva a la más vieja")
-    void deShouldGroupByWeekNewestFirst() {
-        DecisionObjetivo vieja = decision("vieja", SEMANA_ANTERIOR, AHORA.minusDays(7));
-        DecisionObjetivo primera = decision("primera", ESTA_SEMANA, AHORA.minusDays(1));
-        DecisionObjetivo ultima = decision("ultima", ESTA_SEMANA, AHORA);
+    void agrupaPorSemanaDeLaMasNuevaALaMasViejaYDentroDeLaSemanaDeLaMasNuevaALaMasVieja() {
+        cuandoSeArmaLaRespuestaDeTresDecisionesEnDosSemanas();
 
-        ListarDecisionesResponse result = ListarDecisionesResponse.de(List.of(vieja, primera, ultima), Map.of());
-
-        assertThat(result.semanas()).extracting(ListarDecisionesResponse.SemanaDecisiones::semanaInicio)
-                .containsExactly(ESTA_SEMANA, SEMANA_ANTERIOR);
-        assertThat(result.semanas().get(0).decisiones()).extracting(DecisionItem::descripcion)
-                .containsExactly("ultima", "primera");
-        assertThat(result.semanas().get(1).decisiones()).extracting(DecisionItem::descripcion)
-                .containsExactly("vieja");
+        entoncesLasSemanasVanDeLaMasNuevaALaMasVieja();
+        entoncesLasDecisionesDeCadaSemanaVanDeLaMasNuevaALaMasVieja();
     }
 
     @Test
     @DisplayName("Copia todos los datos de la decisión")
-    void deShouldCopyEveryField() {
-        AvisoId avisoId = AvisoId.de("e0000000-0000-4000-8000-000000000001");
-        DecisionObjetivo decision = new DecisionObjetivo(
-                DecisionObjetivoId.de("00000000-0000-4000-8000-0000000000d1"), NEGOCIO_ID, OBJETIVO_ID, MINI_ID,
-                TipoDecision.AVISO_DESCARTADO, avisoId, PRODUCTO_ID, "Bajá el precio", AHORA, ESTA_SEMANA);
+    void copiaTodosLosDatosDeLaDecision() {
+        cuandoSeArmaLaRespuestaDeUnDescarteDeAviso();
 
-        DecisionItem result = ListarDecisionesResponse.de(List.of(decision), Map.of())
-                .semanas().getFirst().decisiones().getFirst();
-
-        assertThat(result.id()).isEqualTo(decision.id());
-        assertThat(result.tipo()).isEqualTo(TipoDecision.AVISO_DESCARTADO);
-        assertThat(result.miniObjetivoId()).isEqualTo(MINI_ID);
-        assertThat(result.avisoId()).isEqualTo(avisoId);
-        assertThat(result.registroId()).isEqualTo(PRODUCTO_ID);
-        assertThat(result.descripcion()).isEqualTo("Bajá el precio");
-        assertThat(result.tomadaEn()).isEqualTo(AHORA);
-        assertThat(result.semanaInicio()).isEqualTo(ESTA_SEMANA);
+        entoncesCopiaTodosLosDatosDeLaDecision();
     }
 
-    // --- helpers ---
-    private static DecisionObjetivo decision(String descripcion, LocalDate semana, OffsetDateTime tomadaEn) {
+    // --- cuando ---
+
+    private void cuandoSeArmaLaRespuestaDeTresDecisionesEnDosSemanas() {
+        DecisionObjetivo vieja = unaDecision("vieja", SEMANA_ANTERIOR, AHORA.minusDays(7));
+        DecisionObjetivo primera = unaDecision("primera", ESTA_SEMANA, AHORA.minusDays(1));
+        DecisionObjetivo ultima = unaDecision("ultima", ESTA_SEMANA, AHORA);
+        respuesta = ListarDecisionesResponse.de(List.of(vieja, primera, ultima), Map.of());
+    }
+
+    private void cuandoSeArmaLaRespuestaDeUnDescarteDeAviso() {
+        decision = new DecisionObjetivo(
+                DecisionObjetivoId.de("00000000-0000-4000-8000-0000000000d1"), NEGOCIO_ID, OBJETIVO_ID, MINI_ID,
+                TipoDecision.AVISO_DESCARTADO, AVISO_ID, PRODUCTO_ID, "Bajá el precio", AHORA, ESTA_SEMANA);
+        respuesta = ListarDecisionesResponse.de(List.of(decision), Map.of());
+    }
+
+    // --- entonces ---
+
+    private void entoncesLasSemanasVanDeLaMasNuevaALaMasVieja() {
+        assertThat(respuesta.semanas()).extracting(ListarDecisionesResponse.SemanaDecisiones::semanaInicio)
+                .containsExactly(ESTA_SEMANA, SEMANA_ANTERIOR);
+    }
+
+    private void entoncesLasDecisionesDeCadaSemanaVanDeLaMasNuevaALaMasVieja() {
+        assertThat(respuesta.semanas().get(0).decisiones()).extracting(DecisionItem::descripcion)
+                .containsExactly("ultima", "primera");
+        assertThat(respuesta.semanas().get(1).decisiones()).extracting(DecisionItem::descripcion)
+                .containsExactly("vieja");
+    }
+
+    private void entoncesCopiaTodosLosDatosDeLaDecision() {
+        DecisionItem item = respuesta.semanas().getFirst().decisiones().getFirst();
+        assertThat(item.id()).isEqualTo(decision.id());
+        assertThat(item.tipo()).isEqualTo(TipoDecision.AVISO_DESCARTADO);
+        assertThat(item.miniObjetivoId()).isEqualTo(MINI_ID);
+        assertThat(item.avisoId()).isEqualTo(AVISO_ID);
+        assertThat(item.registroId()).isEqualTo(PRODUCTO_ID);
+        assertThat(item.descripcion()).isEqualTo("Bajá el precio");
+        assertThat(item.tomadaEn()).isEqualTo(AHORA);
+        assertThat(item.semanaInicio()).isEqualTo(ESTA_SEMANA);
+    }
+
+    // --- datos ---
+
+    private static DecisionObjetivo unaDecision(String descripcion, LocalDate semana, OffsetDateTime tomadaEn) {
         return new DecisionObjetivo(DecisionObjetivoId.nuevo(), NEGOCIO_ID, OBJETIVO_ID, null,
                 TipoDecision.PASO_ACEPTADO, null, null, descripcion, tomadaEn, semana);
     }

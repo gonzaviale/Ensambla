@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.objetivo.medirObjetivos;
 
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.service.objetivo.MonitoreoObjetivosService;
@@ -25,8 +26,19 @@ public class MedirObjetivos {
     private final Clock clock;
 
     public void execute(MedirObjetivosRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        OffsetDateTime ahora = OffsetDateTime.now(clock);
-        transaccionPort.ejecutar(() -> monitoreoObjetivosService.monitorear(negocioId, ahora));
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+        medirEnTransaccion(negocioId, OffsetDateTime.now(clock));
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private void medirEnTransaccion(NegocioId negocioId, OffsetDateTime ahora) {
+        transaccionPort.ejecutar(() -> medir(negocioId, ahora));
+    }
+
+    private void medir(NegocioId negocioId, OffsetDateTime ahora) {
+        monitoreoObjetivosService.monitorear(negocioId, ahora);
     }
 }

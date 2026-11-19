@@ -60,9 +60,13 @@ public class MedirImpactoAvisos {
     private final int ventanaDias;
 
     public void execute() {
-        for (NegocioId negocioId : negocioRepository.findAllIds()) {
+        for (NegocioId negocioId : obtenerNegocios()) {
             medirNegocio(negocioId);
         }
+    }
+
+    private List<NegocioId> obtenerNegocios() {
+        return negocioRepository.findAllIds();
     }
 
     private void medirNegocio(NegocioId negocioId) {

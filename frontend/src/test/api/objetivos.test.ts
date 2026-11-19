@@ -12,29 +12,66 @@ const PASO = {
   precioZona: { minimo: 3500, promedio: 3900, maximo: 4300 },
 };
 
+type Pasos = Awaited<ReturnType<typeof obtenerPasosObjetivo>>;
+
+let pasos: Pasos;
+let rechazo: Promise<Pasos>;
+
 describe('API de objetivos', () => {
   it('obtiene los productos elegidos por el servidor con sus datos reales', async () => {
-    setupUsuarioConSesion();
-    setupServerResponse('get', '/objetivos/pasos', 200, [PASO]);
+    dadoQueElServidorElige([PASO]);
 
-    const pasos = await obtenerPasosObjetivo();
+    await cuandoSePidenLosPasos();
 
-    expect(pasos).toEqual([PASO]);
+    entoncesSeRecibenLosPasos([PASO]);
   });
 
-  it('admite una lista vacía y un producto sin precio de zona', async () => {
-    setupUsuarioConSesion();
-    setupServerResponse('get', '/objetivos/pasos', 200, [{ ...PASO, precioZona: null }]);
+  it('admite un producto sin precio de zona', async () => {
+    dadoQueElServidorElige([{ ...PASO, precioZona: null }]);
 
-    expect((await obtenerPasosObjetivo())[0]?.precioZona).toBeNull();
-    setupServerResponse('get', '/objetivos/pasos', 200, []);
-    expect(await obtenerPasosObjetivo()).toEqual([]);
+    await cuandoSePidenLosPasos();
+
+    entoncesElPrimerPasoNoTienePrecioDeZona();
+  });
+
+  it('admite una lista vacía', async () => {
+    dadoQueElServidorElige([]);
+
+    await cuandoSePidenLosPasos();
+
+    entoncesSeRecibenLosPasos([]);
   });
 
   it('rechaza una respuesta que no respeta el contrato', async () => {
-    setupUsuarioConSesion();
-    setupServerResponse('get', '/objetivos/pasos', 200, [{ ...PASO, vendidas30Dias: -1 }]);
+    dadoQueElServidorElige([{ ...PASO, vendidas30Dias: -1 }]);
 
-    await expect(obtenerPasosObjetivo()).rejects.toMatchObject({ name: 'ZodError' });
+    cuandoSeIntentanPedirLosPasos();
+
+    await entoncesSeRechazaElContrato();
   });
 });
+
+function dadoQueElServidorElige(respuesta: unknown[]) {
+  setupUsuarioConSesion();
+  setupServerResponse('get', '/objetivos/pasos', 200, respuesta);
+}
+
+async function cuandoSePidenLosPasos() {
+  pasos = await obtenerPasosObjetivo();
+}
+
+function cuandoSeIntentanPedirLosPasos() {
+  rechazo = obtenerPasosObjetivo();
+}
+
+function entoncesSeRecibenLosPasos(esperados: unknown[]) {
+  expect(pasos).toEqual(esperados);
+}
+
+function entoncesElPrimerPasoNoTienePrecioDeZona() {
+  expect(pasos[0]?.precioZona).toBeNull();
+}
+
+async function entoncesSeRechazaElContrato() {
+  await expect(rechazo).rejects.toMatchObject({ name: 'ZodError' });
+}

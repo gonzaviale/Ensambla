@@ -38,6 +38,8 @@ class ConsumoSamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     private UsuarioId usuarioId;
     private NegocioId negocioId;
+    private final List<Boolean> reservas = new ArrayList<>();
+    private int reservadas;
 
     @BeforeEach
     void setUp() {
@@ -57,68 +59,118 @@ class ConsumoSamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Reserva consultas hasta el límite del día y rechaza la siguiente")
-    void reservarShouldAllowUpToTheLimitAndRejectTheNext() {
-        assertThat(consumoSamiRepository.reservar(negocioId, HOY, 2, AHORA)).isTrue();
-        assertThat(consumoSamiRepository.reservar(negocioId, HOY, 2, AHORA)).isTrue();
-        assertThat(consumoSamiRepository.reservar(negocioId, HOY, 2, AHORA)).isFalse();
+    void reservaConsultasHastaElLimiteDelDiaYRechazaLaSiguiente() {
+        cuandoSeReservaTresVecesConLimiteDeDos();
 
-        assertThat(consultas(HOY)).isEqualTo(2);
+        entoncesSeAceptanLasDosPrimerasYSeRechazaLaTercera();
     }
 
     @Test
     @DisplayName("Con límite cero no reserva ni crea la fila del día")
-    void reservarShouldRejectWhenLimitIsZero() {
-        assertThat(consumoSamiRepository.reservar(negocioId, HOY, 0, AHORA)).isFalse();
+    void conLimiteCeroNoReservaNiCreaLaFilaDelDia() {
+        cuandoSeReservaUnaVezConLimite(0);
 
-        assertThat(jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM consumo_sami_diario WHERE negocio_id = ?", Integer.class, negocioId.valor()))
-                        .isZero();
+        entoncesNoSeReservaNiSeCreaLaFilaDelDia();
     }
 
     @Test
     @DisplayName("Cada día tiene su propio cupo")
-    void reservarShouldKeepSeparateQuotaPerDay() {
-        assertThat(consumoSamiRepository.reservar(negocioId, HOY, 1, AHORA)).isTrue();
-        assertThat(consumoSamiRepository.reservar(negocioId, HOY, 1, AHORA)).isFalse();
+    void cadaDiaTieneSuPropioCupo() {
+        cuandoSeAgotaElCupoDeHoyYSePideElDeManana();
 
-        assertThat(consumoSamiRepository.reservar(negocioId, HOY.plusDays(1), 1, AHORA)).isTrue();
+        entoncesElCupoDeMananaEstaDisponible();
     }
 
     @Test
     @DisplayName("Pedidos simultáneos del mismo negocio nunca pasan el límite")
-    void reservarShouldNeverExceedTheLimitUnderConcurrency() throws Exception {
-        int limite = 3;
-        int pedidos = 12;
-        ExecutorService pool = Executors.newFixedThreadPool(pedidos);
-        CountDownLatch salida = new CountDownLatch(1);
-        List<Future<Boolean>> resultados = new ArrayList<>();
-        for (int i = 0; i < pedidos; i++) {
-            resultados.add(pool.submit(() -> {
-                salida.await();
-                return consumoSamiRepository.reservar(negocioId, HOY, limite, AHORA);
-            }));
-        }
+    void pedidosSimultaneosDelMismoNegocioNuncaPasanElLimite() throws Exception {
+        cuandoSeReservaDoceVecesALaVezConLimiteDeTres();
 
-        salida.countDown();
-        int reservadas = 0;
-        for (Future<Boolean> resultado : resultados) {
-            reservadas += resultado.get(30, TimeUnit.SECONDS) ? 1 : 0;
-        }
-        pool.shutdown();
-
-        assertThat(reservadas).isEqualTo(limite);
-        assertThat(consultas(HOY)).isEqualTo(limite);
+        entoncesSoloSeReservanTres();
     }
 
     @Test
     @DisplayName("Registra los tokens y el modelo de cada consulta reservada")
-    void registrarShouldAddTokensAndKeepModel() {
-        consumoSamiRepository.reservar(negocioId, HOY, 5, AHORA);
-        consumoSamiRepository.reservar(negocioId, HOY, 5, AHORA);
+    void registraLosTokensYElModeloDeCadaConsultaReservada() {
+        dadoDosConsultasReservadas();
 
+        cuandoSeRegistraElConsumoDeAmbas();
+
+        entoncesSeSumanLosTokensYSeConservaElUltimoModelo();
+    }
+
+    // --- dado ---
+
+    private void dadoDosConsultasReservadas() {
+        consumoSamiRepository.reservar(negocioId, HOY, 5, AHORA);
+        consumoSamiRepository.reservar(negocioId, HOY, 5, AHORA);
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeReservaTresVecesConLimiteDeDos() {
+        for (int i = 0; i < 3; i++) {
+            reservas.add(consumoSamiRepository.reservar(negocioId, HOY, 2, AHORA));
+        }
+    }
+
+    private void cuandoSeReservaUnaVezConLimite(int limite) {
+        reservas.add(consumoSamiRepository.reservar(negocioId, HOY, limite, AHORA));
+    }
+
+    private void cuandoSeAgotaElCupoDeHoyYSePideElDeManana() {
+        reservas.add(consumoSamiRepository.reservar(negocioId, HOY, 1, AHORA));
+        reservas.add(consumoSamiRepository.reservar(negocioId, HOY, 1, AHORA));
+        reservas.add(consumoSamiRepository.reservar(negocioId, HOY.plusDays(1), 1, AHORA));
+    }
+
+    private void cuandoSeReservaDoceVecesALaVezConLimiteDeTres() throws Exception {
+        ExecutorService pool = Executors.newFixedThreadPool(12);
+        CountDownLatch salida = new CountDownLatch(1);
+        List<Future<Boolean>> resultados = new ArrayList<>();
+        for (int i = 0; i < 12; i++) {
+            resultados.add(pool.submit(() -> {
+                salida.await();
+                return consumoSamiRepository.reservar(negocioId, HOY, 3, AHORA);
+            }));
+        }
+        salida.countDown();
+        for (Future<Boolean> resultado : resultados) {
+            reservadas += resultado.get(30, TimeUnit.SECONDS) ? 1 : 0;
+        }
+        pool.shutdown();
+    }
+
+    private void cuandoSeRegistraElConsumoDeAmbas() {
         consumoSamiRepository.registrar(negocioId, HOY, new ConsumoIaSami("bedrock", "haiku", 100, 20), AHORA);
-        consumoSamiRepository.registrar(negocioId, HOY, new ConsumoIaSami("bedrock", "haiku + sonnet", 250, 50), AHORA);
+        consumoSamiRepository.registrar(negocioId, HOY,
+                new ConsumoIaSami("bedrock", "haiku + sonnet", 250, 50), AHORA);
+    }
 
+    // --- entonces ---
+
+    private void entoncesSeAceptanLasDosPrimerasYSeRechazaLaTercera() {
+        assertThat(reservas).containsExactly(true, true, false);
+        assertThat(consultas(HOY)).isEqualTo(2);
+    }
+
+    private void entoncesNoSeReservaNiSeCreaLaFilaDelDia() {
+        assertThat(reservas).containsExactly(false);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM consumo_sami_diario WHERE negocio_id = ?", Integer.class, negocioId.valor()))
+                .isZero();
+    }
+
+    private void entoncesElCupoDeMananaEstaDisponible() {
+        assertThat(reservas).containsExactly(true, false, true);
+    }
+
+    private void entoncesSoloSeReservanTres() {
+        assertThat(reservadas).isEqualTo(3);
+        assertThat(consultas(HOY)).isEqualTo(3);
+    }
+
+    private void entoncesSeSumanLosTokensYSeConservaElUltimoModelo() {
         Map<String, Object> fila = jdbcTemplate.queryForMap(
                 "SELECT consultas, tokens_entrada, tokens_salida, modelo FROM consumo_sami_diario"
                         + " WHERE negocio_id = ? AND fecha = ?", negocioId.valor(), HOY);
@@ -127,6 +179,8 @@ class ConsumoSamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         assertThat(fila.get("tokens_salida")).isEqualTo(70L);
         assertThat(fila.get("modelo")).isEqualTo("haiku + sonnet");
     }
+
+    // --- datos ---
 
     private int consultas(LocalDate fecha) {
         return jdbcTemplate.queryForObject(

@@ -12,6 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 import java.security.Principal;
 import java.util.List;
@@ -30,6 +31,7 @@ class ComoVieneElNegocioControllerTest {
 
     private ObtenerComoVieneElNegocio obtenerComoVieneElNegocio;
     private MockMvc mockMvc;
+    private ResultActions respuesta;
 
     @BeforeEach
     void setUp() {
@@ -41,13 +43,32 @@ class ComoVieneElNegocioControllerTest {
 
     @Test
     @DisplayName("GET devuelve cómo viene el negocio del usuario de la sesión, con los nombres del contrato")
-    void obtenerShouldReturnTheBusinessOfTheSessionUser() throws Exception {
+    void getDevuelveComoVieneElNegocioDelUsuarioDeLaSesionConLosNombresDelContrato() throws Exception {
+        dadoUnNegocioConVentasYDeudas();
+
+        cuandoSePideComoVieneElNegocio();
+
+        entoncesSeDevuelveComoVieneElNegocioConLosNombresDelContrato();
+    }
+
+    // --- dado ---
+
+    private void dadoUnNegocioConVentasYDeudas() {
         when(obtenerComoVieneElNegocio.execute(new ObtenerComoVieneElNegocioRequest(USUARIO_ID)))
                 .thenReturn(new ObtenerComoVieneElNegocioResponse(true, 56100, 40500, 8000, 7600, 17000,
                         List.of(new Semana("Hace 1 sem.", 4100), new Semana("Hoy", 7600))));
+    }
 
-        mockMvc.perform(get("/api/objetivos/negocio").principal(sesion))
-                .andExpect(status().isOk())
+    // --- cuando ---
+
+    private void cuandoSePideComoVieneElNegocio() throws Exception {
+        respuesta = mockMvc.perform(get("/api/objetivos/negocio").principal(sesion));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeDevuelveComoVieneElNegocioConLosNombresDelContrato() throws Exception {
+        respuesta.andExpect(status().isOk())
                 .andExpect(jsonPath("$.hayVentas").value(true))
                 .andExpect(jsonPath("$.vendiste").value(56100))
                 .andExpect(jsonPath("$.mercaderia").value(40500))

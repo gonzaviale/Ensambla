@@ -18,13 +18,29 @@ class ProveedorIaSimuladoTest {
     private final ProveedorIaSimulado proveedor = new ProveedorIaSimulado(
             new ClassPathResource("ia/lectura-simulada.json"), SamiPruebas::kitsReales);
 
+    private ClienteModeloVision vision;
+    private ClienteModeloTexto texto;
+    private ClienteModeloConHerramientas conHerramientas;
+
     @Test
     @DisplayName("Arma las tres puertas sin costo y sin red")
-    void proveedorShouldBuildTheThreeSimulatedClients() {
-        ClienteModeloVision vision = proveedor.vision(AJUSTES);
-        ClienteModeloTexto texto = proveedor.texto(AJUSTES, null, 700);
-        ClienteModeloConHerramientas conHerramientas = proveedor.conHerramientas(AJUSTES, 900, List.of());
+    void armaLasTresPuertasSinCostoYSinRed() {
+        cuandoSeArmanLasTresPuertas();
 
+        entoncesSeArmanLosTresClientesSimulados();
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeArmanLasTresPuertas() {
+        vision = proveedor.vision(AJUSTES);
+        texto = proveedor.texto(AJUSTES, null, 700);
+        conHerramientas = proveedor.conHerramientas(AJUSTES, 900, List.of());
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeArmanLosTresClientesSimulados() {
         assertThat(proveedor.nombre()).isEqualTo("simulado");
         assertThat(vision).isInstanceOf(ClienteModeloVisionSimulado.class);
         assertThat(texto).isInstanceOf(ClienteModeloTextoSimulado.class);

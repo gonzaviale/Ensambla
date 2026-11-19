@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { ElegirNegocio, type EstadoDeLaEleccion } from '@/components/negocios/ElegirNegocio';
 import type { NegocioParaElegir } from '@/lib/negocios/presentacion';
 
+type Usuario = ReturnType<typeof userEvent.setup>;
+
 const ALMACEN: NegocioParaElegir = {
   id: 'almacen',
   nombre: 'Almacén Don Pepe',
@@ -30,93 +32,181 @@ const listo = (
   negocios: NegocioParaElegir[] = [ALMACEN, KIOSCO, FERIA],
 ): EstadoDeLaEleccion => ({ tipo: 'listo', negocios, activoId });
 
-const montar = (estado: EstadoDeLaEleccion) => {
-  const onElegir = vi.fn();
-  render(<ElegirNegocio estado={estado} onElegir={onElegir} />);
-  return { user: userEvent.setup(), onElegir };
-};
-
-const opcion = (nombre: string) => screen.getByRole('button', { name: nombre });
+let user: Usuario;
+let onElegir: ReturnType<typeof vi.fn>;
+let reintentar: ReturnType<typeof vi.fn>;
 
 describe('ElegirNegocio', () => {
   it('ofrece cada negocio por su nombre, en el orden del servidor', () => {
-    montar(listo());
+    dadaLaEleccion(listo());
 
-    expect(screen.getAllByRole('button').map((boton) => boton.textContent)).toEqual([
-      expect.stringContaining('Almacén Don Pepe'),
-      expect.stringContaining('Kiosco de la esquina'),
-      expect.stringContaining('Puesto de la feria'),
+    entoncesLosNegociosSeOfrecenEnOrden([
+      'Almacén Don Pepe',
+      'Kiosco de la esquina',
+      'Puesto de la feria',
     ]);
   });
 
-  it('dice de cada negocio cómo viene y sus avisos, sin montos', () => {
-    montar(listo());
+  it('dice de cada negocio cómo viene', () => {
+    dadaLaEleccion(listo());
 
-    const kiosco = opcion('Kiosco de la esquina');
-    expect(kiosco).toHaveTextContent('Atención');
-    expect(kiosco).toHaveAccessibleDescription('1 aviso pendiente');
-    expect(kiosco).not.toHaveTextContent('$');
-    expect(opcion('Almacén Don Pepe')).toHaveTextContent('Viene bien');
-    expect(opcion('Puesto de la feria')).toHaveAccessibleDescription('Sin avisos pendientes');
+    entoncesElNegocioDice('Kiosco de la esquina', 'Atención');
+    entoncesElNegocioDice('Almacén Don Pepe', 'Viene bien');
   });
 
-  it('le da a cada negocio su color de la paleta según su lugar en la lista', () => {
-    montar(listo());
+  it('dice de cada negocio sus avisos', () => {
+    dadaLaEleccion(listo());
 
-    expect(opcion('Almacén Don Pepe')).toHaveAttribute('data-color', 'petrol');
-    expect(opcion('Kiosco de la esquina')).toHaveAttribute('data-color', 'orange');
-    expect(opcion('Puesto de la feria')).toHaveAttribute('data-color', 'coral');
+    entoncesElNegocioSeDescribeComo('Kiosco de la esquina', '1 aviso pendiente');
+    entoncesElNegocioSeDescribeComo('Puesto de la feria', 'Sin avisos pendientes');
   });
 
-  it('marca los avisos pendientes y el estado para que se vean', () => {
-    montar(listo());
+  it('no muestra montos', () => {
+    dadaLaEleccion(listo());
 
-    const kiosco = opcion('Kiosco de la esquina');
-    expect(kiosco).toHaveAttribute('data-estado', 'ATENCION');
-    expect(within(kiosco).getByText('1 aviso pendiente')).toHaveAttribute('data-hay', 'true');
-    expect(
-      within(opcion('Puesto de la feria')).getByText('Sin avisos pendientes'),
-    ).not.toHaveAttribute('data-hay');
+    entoncesElNegocioNoDice('Kiosco de la esquina', '$');
+  });
+
+  it.each([
+    ['Almacén Don Pepe', 'petrol'],
+    ['Kiosco de la esquina', 'orange'],
+    ['Puesto de la feria', 'coral'],
+  ])('le da a %s el color %s según su lugar en la lista', (nombre, color) => {
+    dadaLaEleccion(listo());
+
+    entoncesElNegocioTieneElAtributo(nombre, 'data-color', color);
+  });
+
+  it('marca el estado para que se vea', () => {
+    dadaLaEleccion(listo());
+
+    entoncesElNegocioTieneElAtributo('Kiosco de la esquina', 'data-estado', 'ATENCION');
+  });
+
+  it('resalta los avisos pendientes y no los que no hay', () => {
+    dadaLaEleccion(listo());
+
+    entoncesLosAvisosSeResaltanSoloEnElKiosco();
   });
 
   it('señala el último negocio que se usó', () => {
-    montar(listo('kiosco'));
+    dadaLaEleccion(listo('kiosco'));
 
-    expect(opcion('Kiosco de la esquina')).toHaveAccessibleDescription(
+    entoncesElNegocioSeDescribeComo(
+      'Kiosco de la esquina',
       '1 aviso pendiente · El último que usaste',
     );
-    expect(opcion('Almacén Don Pepe')).not.toHaveTextContent('El último que usaste');
+  });
+
+  it('no señala como último a los otros negocios', () => {
+    dadaLaEleccion(listo('kiosco'));
+
+    entoncesElNegocioNoDice('Almacén Don Pepe', 'El último que usaste');
   });
 
   it('si no se sabe cuántos avisos tiene un negocio, no dice nada de ellos', () => {
-    montar(listo('kiosco', [{ ...KIOSCO, avisosPendientes: null }]));
+    dadaLaEleccion(listo('kiosco', [{ ...KIOSCO, avisosPendientes: null }]));
 
-    expect(opcion('Kiosco de la esquina')).toHaveAccessibleDescription('El último que usaste');
-    expect(opcion('Kiosco de la esquina')).not.toHaveTextContent('aviso');
+    entoncesElNegocioSeDescribeComo('Kiosco de la esquina', 'El último que usaste');
+    entoncesElNegocioNoDice('Kiosco de la esquina', 'aviso');
   });
 
   it('tocar un negocio avisa cuál se eligió', async () => {
-    const { user, onElegir } = montar(listo());
+    dadaLaEleccion(listo());
 
-    await user.click(opcion('Kiosco de la esquina'));
+    await cuandoSeTocaElNegocio('Kiosco de la esquina');
 
-    expect(onElegir).toHaveBeenCalledWith('kiosco');
+    entoncesSeEligio('kiosco');
   });
 
-  it('mientras carga lo anuncia y no ofrece negocios', () => {
-    montar({ tipo: 'cargando' });
+  it('mientras carga lo anuncia', () => {
+    dadaLaEleccion({ tipo: 'cargando' });
 
-    expect(screen.getByRole('status')).toHaveTextContent('Buscando tus negocios…');
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    entoncesSeAnuncia('Buscando tus negocios…');
+  });
+
+  it('mientras carga no ofrece negocios', () => {
+    dadaLaEleccion({ tipo: 'cargando' });
+
+    entoncesNoSeOfreceNingunNegocio();
+  });
+
+  it('si falla lo avisa', () => {
+    dadaUnaEleccionQueFallo();
+
+    entoncesSeAnuncia('No pudimos traer tus negocios ahora.');
   });
 
   it('si falla deja probar de nuevo', async () => {
-    const reintentar = vi.fn();
-    const { user } = montar({ tipo: 'error', reintentar });
+    dadaUnaEleccionQueFallo();
 
-    expect(screen.getByRole('status')).toHaveTextContent('No pudimos traer tus negocios ahora.');
-    await user.click(screen.getByRole('button', { name: 'Probar de nuevo' }));
+    await cuandoSePruebaDeNuevo();
 
-    expect(reintentar).toHaveBeenCalledOnce();
+    entoncesSeReintentoUnaVez();
   });
 });
+
+const opcion = (nombre: string) => screen.getByRole('button', { name: nombre });
+
+function dadaLaEleccion(estado: EstadoDeLaEleccion) {
+  onElegir = vi.fn();
+  render(<ElegirNegocio estado={estado} onElegir={onElegir} />);
+  user = userEvent.setup();
+}
+
+function dadaUnaEleccionQueFallo() {
+  reintentar = vi.fn();
+  dadaLaEleccion({ tipo: 'error', reintentar });
+}
+
+async function cuandoSeTocaElNegocio(nombre: string) {
+  await user.click(opcion(nombre));
+}
+
+async function cuandoSePruebaDeNuevo() {
+  await user.click(screen.getByRole('button', { name: 'Probar de nuevo' }));
+}
+
+function entoncesLosNegociosSeOfrecenEnOrden(nombres: string[]) {
+  const ofrecidos = screen.getAllByRole('button').map((boton) => boton.textContent);
+  expect(ofrecidos).toEqual(nombres.map((nombre) => expect.stringContaining(nombre)));
+}
+
+function entoncesElNegocioDice(nombre: string, texto: string) {
+  expect(opcion(nombre)).toHaveTextContent(texto);
+}
+
+function entoncesElNegocioNoDice(nombre: string, texto: string) {
+  expect(opcion(nombre)).not.toHaveTextContent(texto);
+}
+
+function entoncesElNegocioSeDescribeComo(nombre: string, descripcion: string) {
+  expect(opcion(nombre)).toHaveAccessibleDescription(descripcion);
+}
+
+function entoncesElNegocioTieneElAtributo(nombre: string, atributo: string, valor: string) {
+  expect(opcion(nombre)).toHaveAttribute(atributo, valor);
+}
+
+function entoncesLosAvisosSeResaltanSoloEnElKiosco() {
+  const kiosco = within(opcion('Kiosco de la esquina')).getByText('1 aviso pendiente');
+  expect(kiosco).toHaveAttribute('data-hay', 'true');
+  const feria = within(opcion('Puesto de la feria')).getByText('Sin avisos pendientes');
+  expect(feria).not.toHaveAttribute('data-hay');
+}
+
+function entoncesSeEligio(id: string) {
+  expect(onElegir).toHaveBeenCalledWith(id);
+}
+
+function entoncesSeAnuncia(texto: string) {
+  expect(screen.getByRole('status')).toHaveTextContent(texto);
+}
+
+function entoncesNoSeOfreceNingunNegocio() {
+  expect(screen.queryByRole('button')).not.toBeInTheDocument();
+}
+
+function entoncesSeReintentoUnaVez() {
+  expect(reintentar).toHaveBeenCalledOnce();
+}

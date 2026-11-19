@@ -7,13 +7,13 @@ import { crearImporteLibre, lineaParaCobrar } from '@/lib/caja/importeLibre';
 import { esDeudaAntigua } from '@/lib/caja/antiguedadDeuda';
 import type { LineaCaja, VentaCaja } from '@/types/caja';
 
-export function givenFormularioImporteLibre() {
+export function dadoFormularioImporteLibre() {
   const cerrado = vi.fn();
   const agregado = vi.fn(crearImporteLibre);
   render(<ImporteLibreCaja onAgregar={agregado} onCerrar={cerrado} />);
   return { user: userEvent.setup(), agregado, cerrado };
 }
-export async function whenSeAgregaServicio(
+export async function cuandoSeAgregaServicio(
   user: ReturnType<typeof userEvent.setup>,
   importe = '2500',
 ) {
@@ -21,22 +21,22 @@ export async function whenSeAgregaServicio(
   await user.type(screen.getByLabelText('Importe ($)'), importe);
   await user.click(screen.getByRole('button', { name: 'Agregar a la compra' }));
 }
-export function thenSeAgregaImporteSinProducto(
+export function entoncesSeAgregaImporteSinProducto(
   agregado: ReturnType<typeof vi.fn>,
   cerrado: ReturnType<typeof vi.fn>,
 ) {
   expect(agregado).toHaveBeenCalledWith('Servicio', '2500');
   expect(cerrado).toHaveBeenCalledOnce();
 }
-export function thenSeRechazaImporteCero(cerrado: ReturnType<typeof vi.fn>) {
+export function entoncesSeRechazaImporteCero(cerrado: ReturnType<typeof vi.fn>) {
   expect(screen.getByRole('alert')).toHaveTextContent('El precio debe ser mayor a cero');
   expect(cerrado).not.toHaveBeenCalled();
 }
-export function givenDosImportesLibres(): [LineaCaja, LineaCaja] {
+export function dadoDosImportesLibres(): [LineaCaja, LineaCaja] {
   return [crearImporteLibre('Servicio A', '10'), crearImporteLibre('Servicio B', '20')];
 }
-export function thenNoSeAgrupanImportesDistintos(
-  lineas: ReturnType<typeof givenDosImportesLibres>,
+export function entoncesNoSeAgrupanImportesDistintos(
+  lineas: ReturnType<typeof dadoDosImportesLibres>,
 ) {
   const compra = agregarLinea([lineas[0]], lineas[1]);
   expect(compra).toHaveLength(2);
@@ -45,7 +45,7 @@ export function thenNoSeAgrupanImportesDistintos(
     { productoId: null, descripcion: 'Servicio B', cantidad: 1, precio: 20, modo: 'UNIDAD' },
   ]);
 }
-export function givenDeudaDesde(creadoEn: string, saldo = 100): VentaCaja {
+export function dadoDeudaDesde(creadoEn: string, saldo = 100): VentaCaja {
   return {
     id: 'venta',
     lineas: [],
@@ -58,6 +58,6 @@ export function givenDeudaDesde(creadoEn: string, saldo = 100): VentaCaja {
     saldo,
   };
 }
-export function thenEsDeudaAntigua(venta: VentaCaja, hoy: string, esperado: boolean) {
+export function entoncesEsDeudaAntigua(venta: VentaCaja, hoy: string, esperado: boolean) {
   expect(esDeudaAntigua(venta, new Date(hoy))).toBe(esperado);
 }

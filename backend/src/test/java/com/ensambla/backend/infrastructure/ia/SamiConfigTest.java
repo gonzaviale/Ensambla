@@ -17,11 +17,8 @@ import com.ensambla.backend.domain.model.sami.taller.LlamadaHerramienta;
 import com.ensambla.backend.domain.model.sami.taller.PiezaKit;
 import com.ensambla.backend.domain.model.sami.taller.ResultadoTallerIa;
 import com.ensambla.backend.domain.model.sami.taller.ValidacionTaller;
-import com.ensambla.backend.domain.port.SamiIaPort;
-import com.ensambla.backend.domain.port.TallerIaPort;
 import com.ensambla.backend.support.SamiPruebas;
 import com.ensambla.backend.support.TallerDePrueba;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -48,20 +45,219 @@ class SamiConfigTest {
     private static final String RAPIDO = "modelo-rapido";
     private static final String AVANZADO = "modelo-avanzado";
     private static final String CLAVE = "clave-de-prueba";
+    private static final String DUDOSA = "{\"plantilla\":\"Ventas\",\"confianza\":0.2,\"columnas\":[]}";
+    private static final String[] HERRAMIENTAS = {"agregar_pieza", "usar_kit", "quitar_pieza", "renombrar_pieza",
+            "renombrar_sistema", "agregar_campo", "quitar_campo", "editar_campo", "cargar_registros",
+            "editar_registros", "borrar_registros", "conectar", "separar_en_seccion", "cambiar_distribucion",
+            "ofrecer_opciones"};
 
     private final SamiConfig config = new SamiConfig();
-    private ConsultaIaSami consulta;
+    private final ConsultaIaSami consulta = new ConsultaIaSami("vendo velas", List.of(), SamiPruebas.plantillas());
 
-    @BeforeEach
-    void setUp() {
-        consulta = new ConsultaIaSami("vendo velas", List.of(), SamiPruebas.plantillas());
-    }
+    private BedrockRuntimeClient bedrock = mock(BedrockRuntimeClient.class);
+    private AnthropicClient anthropic = mock(AnthropicClient.class);
+    private DiccionarioSami diccionario;
+    private PropuestaIaSami propuesta;
+    private ResultadoTallerIa resultadoDelTaller;
+    private CatalogoComponentes catalogo;
+    private KitsRubro kits;
+    private DefinicionHerramienta[] definiciones;
 
     @Test
     @DisplayName("Carga el diccionario del recurso con plantillas, términos, columnas y preguntas")
-    void diccionarioSamiShouldLoadBundledDictionary() {
-        DiccionarioSami diccionario = config.diccionarioSami(JsonMapper.builder().build());
+    void cargaElDiccionarioDelRecursoConPlantillasTerminosColumnasYPreguntas() {
+        cuandoSeCargaElDiccionario();
 
+        entoncesElDiccionarioTienePlantillasTerminosColumnasYPreguntas();
+    }
+
+    @Test
+    @DisplayName("Todas las plantillas y columnas del diccionario existen en la base y las preguntas apuntan a ellas")
+    void todasLasPlantillasYColumnasDelDiccionarioExistenEnLaBaseYLasPreguntasApuntanAEllas() {
+        cuandoSeCargaElDiccionario();
+
+        entoncesElDiccionarioSoloReferenciaPlantillasConocidas();
+    }
+
+    @Test
+    @DisplayName("Con el proveedor global simulado y sin pisarlo, la IA de Sami elige la primera plantilla sin costo")
+    void conElProveedorGlobalSimuladoYSinPisarloLaIaDeSamiEligeLaPrimeraPlantillaSinCosto() {
+        cuandoSeProponeConSami(null, AVANZADO, "simulado");
+
+        entoncesSeProponeInventarioSinCosto();
+    }
+
+    @Test
+    @DisplayName("Si Sami pisa el proveedor con bedrock usa el modelo rápido y escala al avanzado cuando no está seguro")
+    void siSamiPisaElProveedorConBedrockUsaElModeloRapidoYEscalaAlAvanzadoCuandoNoEstaSeguro() {
+        dadoUnBedrockQueResponde(DUDOSA);
+
+        cuandoSeProponeConSami("bedrock", AVANZADO, "simulado");
+
+        entoncesSeEscalaDelRapidoAlAvanzado();
+    }
+
+    @Test
+    @DisplayName("Sin modelo avanzado ni en Sami ni en el proveedor nunca escala")
+    void sinModeloAvanzadoNiEnSamiNiEnElProveedorNuncaEscala() {
+        dadoUnBedrockQueResponde(DUDOSA);
+
+        cuandoSeProponeConSami("bedrock", "  ", "simulado");
+
+        entoncesSoloSeConsultaElModeloRapido();
+    }
+
+    @Test
+    @DisplayName("Con el proveedor global anthropic y sin pisarlo, Sami usa Claude de la API de Anthropic")
+    void conElProveedorGlobalAnthropicYSinPisarloSamiUsaClaudeDeLaApiDeAnthropic() {
+        dadoUnAnthropicQueResponde("{\"plantilla\":\"Ventas\",\"confianza\":0.9,\"columnas\":[]}");
+
+        cuandoSeProponeConSami(null, null, "anthropic");
+
+        entoncesSamiUsaClaudeDeAnthropic();
+    }
+
+    @Test
+    @DisplayName("Con el proveedor simulado, la IA del taller no cuesta nada y pregunta con botonera")
+    void conElProveedorSimuladoLaIaDelTallerNoCuestaNadaYPreguntaConBotonera() {
+        cuandoSeConversaEnElTaller(null, AVANZADO, "simulado", "ayuda");
+
+        entoncesElTallerEsSimuladoYPreguntaConBotonera();
+    }
+
+    @Test
+    @DisplayName("Si Sami pisa el proveedor con simulado, el taller no llama al proveedor global")
+    void siSamiPisaElProveedorConSimuladoElTallerNoLlamaAlProveedorGlobal() {
+        cuandoSeConversaEnElTaller("simulado", null, "bedrock", "ayuda");
+
+        entoncesElTallerEsSimulado();
+    }
+
+    @Test
+    @DisplayName("Con el proveedor global bedrock, el taller usa el modelo rápido, una sola llamada y las quince herramientas")
+    void conElProveedorGlobalBedrockElTallerUsaElModeloRapidoUnaSolaLlamadaYLasQuinceHerramientas() {
+        dadoUnBedrockQueResponde("Hola");
+
+        cuandoSeConversaEnElTaller(null, AVANZADO, "bedrock", "hola");
+
+        entoncesElTallerUsaElModeloRapidoConLasQuinceHerramientasEnBedrock();
+    }
+
+    @Test
+    @DisplayName("Con el proveedor global anthropic, el taller manda las quince herramientas a la API de Anthropic")
+    void conElProveedorGlobalAnthropicElTallerMandaLasQuinceHerramientasALaApiDeAnthropic() {
+        dadoUnAnthropicQueResponde("Hola");
+
+        cuandoSeConversaEnElTaller(null, null, "anthropic", "hola");
+
+        entoncesElTallerManda15HerramientasAAnthropic();
+    }
+
+    @Test
+    @DisplayName("Carga el catálogo de componentes generado por el frontend con sus diez tipos")
+    void cargaElCatalogoDeComponentesGeneradoPorElFrontendConSusDiezTipos() {
+        cuandoSeCargaElCatalogo();
+
+        entoncesElCatalogoTieneLosDiezTiposConSuSingular();
+    }
+
+    @Test
+    @DisplayName("Carga los diez kits por rubro con ids únicos y términos en minúscula y sin tildes")
+    void cargaLosDiezKitsPorRubroConIdsUnicosYTerminosEnMinusculaYSinTildes() {
+        cuandoSeCarganLosKits();
+
+        entoncesSeCarganLosDiezKitsConTerminosNormalizados();
+    }
+
+    @Test
+    @DisplayName("Cada pieza de un kit usa un componente del catálogo, con datos válidos y sin repetir tipos")
+    void cadaPiezaDeUnKitUsaUnComponenteDelCatalogoConDatosValidosYSinRepetirTipos() {
+        cuandoSeCarganElCatalogoYLosKits();
+
+        entoncesLasPiezasDeLosKitsUsanComponentesDelCatalogoConDatosValidos();
+    }
+
+    @Test
+    @DisplayName("Las conexiones de cada kit unen dos piezas distintas del mismo kit y tienen etiqueta")
+    void lasConexionesDeCadaKitUnenDosPiezasDistintasDelMismoKitYTienenEtiqueta() {
+        cuandoSeCarganLosKits();
+
+        entoncesLasConexionesUnenPiezasDistintasDelMismoKit();
+    }
+
+    @Test
+    @DisplayName("Cada kit se arma entero, sin descartes, sobre un sistema vacío")
+    void cadaKitSeArmaEnteroSinDescartesSobreUnSistemaVacio() {
+        cuandoSeCarganLosKits();
+
+        entoncesCadaKitSeArmaEnteroSobreUnSistemaVacio();
+    }
+
+    @Test
+    @DisplayName("Cada kit se reconoce por su propio nombre, que es lo que ofrece la botonera")
+    void cadaKitSeReconocePorSuPropioNombreQueEsLoQueOfreceLaBotonera() {
+        cuandoSeCarganLosKits();
+
+        entoncesCadaKitSeReconocePorSuNombre();
+    }
+
+    @Test
+    @DisplayName("Las herramientas del taller del recurso coinciden con las que valida el dominio")
+    void lasHerramientasDelTallerDelRecursoCoincidenConLasQueValidaElDominio() throws Exception {
+        cuandoSeLeenLasHerramientasDelRecurso();
+
+        entoncesLasHerramientasDelRecursoCoincidenConLasDelDominio();
+    }
+
+    // --- dado ---
+
+    private void dadoUnBedrockQueResponde(String texto) {
+        bedrock = bedrockQueResponde(texto);
+    }
+
+    private void dadoUnAnthropicQueResponde(String texto) {
+        anthropic = anthropicQueResponde(texto);
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeCargaElDiccionario() {
+        diccionario = config.diccionarioSami(JsonMapper.builder().build());
+    }
+
+    private void cuandoSeProponeConSami(String proveedorDeSami, String avanzadoDeSami, String proveedorGlobal) {
+        propuesta = config.samiIaPort(config.promptSami(), JsonMapper.builder().build(),
+                sami(proveedorDeSami, avanzadoDeSami), global(proveedorGlobal), proveedores()).proponer(consulta);
+    }
+
+    private void cuandoSeConversaEnElTaller(String proveedorDeSami, String avanzadoDeSami, String proveedorGlobal,
+                                            String mensaje) {
+        resultadoDelTaller = config.tallerIaPort(promptTaller(), JsonMapper.builder().build(),
+                sami(proveedorDeSami, avanzadoDeSami), global(proveedorGlobal), proveedores())
+                .conversar(consultaDeTaller(mensaje));
+    }
+
+    private void cuandoSeCargaElCatalogo() {
+        catalogo = config.catalogoComponentes(JsonMapper.builder().build());
+    }
+
+    private void cuandoSeCarganLosKits() {
+        kits = kits();
+    }
+
+    private void cuandoSeCarganElCatalogoYLosKits() {
+        cuandoSeCargaElCatalogo();
+        cuandoSeCarganLosKits();
+    }
+
+    private void cuandoSeLeenLasHerramientasDelRecurso() throws Exception {
+        definiciones = JsonMapper.builder().build().readValue(
+                getClass().getResourceAsStream("/ia/herramientas-taller.json"), DefinicionHerramienta[].class);
+    }
+
+    // --- entonces ---
+
+    private void entoncesElDiccionarioTienePlantillasTerminosColumnasYPreguntas() {
         assertThat(diccionario.plantillas()).extracting("plantilla")
                 .containsExactly("Ventas", "Inventario", "Pedidos", "Clientes", "Gastos");
         assertThat(diccionario.plantillas()).allSatisfy(plantilla -> assertThat(plantilla.terminos()).isNotEmpty());
@@ -69,99 +265,46 @@ class SamiConfigTest {
         assertThat(diccionario.preguntas()).extracting("id").contains("principal", "venta-o-stock");
     }
 
-    @Test
-    @DisplayName("Todas las plantillas y columnas del diccionario existen en la base y las preguntas apuntan a ellas")
-    void diccionarioSamiShouldOnlyReferenceKnownTemplates() {
-        DiccionarioSami diccionario = config.diccionarioSami(JsonMapper.builder().build());
+    private void entoncesElDiccionarioSoloReferenciaPlantillasConocidas() {
         List<String> nombres = diccionario.plantillas().stream().map(p -> p.plantilla()).toList();
-
         assertThat(diccionario.columnas()).allSatisfy(columna -> assertThat(nombres).containsAll(columna.plantillas()));
         assertThat(diccionario.preguntas()).allSatisfy(pregunta -> assertThat(pregunta.opciones())
                 .allSatisfy(opcion -> assertThat(opcion.plantilla() == null || nombres.contains(opcion.plantilla()))
                         .isTrue()));
     }
 
-    @Test
-    @DisplayName("Con el proveedor global simulado y sin pisarlo, la IA de Sami elige la primera plantilla sin costo")
-    void samiIaPortShouldUseSimulatedProviderWhenGlobalIsSimulated() {
-        SamiIaPort port = config.samiIaPort(config.promptSami(), JsonMapper.builder().build(), sami(null, AVANZADO),
-                global("simulado"), proveedores(mock(BedrockRuntimeClient.class)));
-
-        PropuestaIaSami result = port.proponer(consulta);
-
-        assertThat(result.plantilla()).isEqualTo("Inventario");
-        assertThat(result.consumo().proveedor()).isEqualTo("simulado");
+    private void entoncesSeProponeInventarioSinCosto() {
+        assertThat(propuesta.plantilla()).isEqualTo("Inventario");
+        assertThat(propuesta.consumo().proveedor()).isEqualTo("simulado");
     }
 
-    @Test
-    @DisplayName("Si Sami pisa el proveedor con bedrock usa el modelo rápido y escala al avanzado cuando no está seguro")
-    void samiIaPortShouldEscalateFromFastToAdvancedModelWhenSamiOverridesProvider() {
-        BedrockRuntimeClient bedrock = bedrockQueResponde("{\"plantilla\":\"Ventas\",\"confianza\":0.2,\"columnas\":[]}");
-
-        PropuestaIaSami result = config.samiIaPort(config.promptSami(), JsonMapper.builder().build(),
-                sami("bedrock", AVANZADO), global("simulado"), proveedores(bedrock)).proponer(consulta);
-
-        assertThat(result.consumo().modelo()).isEqualTo(RAPIDO + " + " + AVANZADO);
-        assertThat(modelosConsultados(bedrock, 2)).containsExactly(RAPIDO, AVANZADO);
+    private void entoncesSeEscalaDelRapidoAlAvanzado() {
+        assertThat(propuesta.consumo().modelo()).isEqualTo(RAPIDO + " + " + AVANZADO);
+        assertThat(modelosConsultados(2)).containsExactly(RAPIDO, AVANZADO);
     }
 
-    @Test
-    @DisplayName("Sin modelo avanzado ni en Sami ni en el proveedor nunca escala")
-    void samiIaPortShouldNotEscalateWithoutAdvancedModel() {
-        BedrockRuntimeClient bedrock = bedrockQueResponde("{\"plantilla\":\"Ventas\",\"confianza\":0.2,\"columnas\":[]}");
-
-        config.samiIaPort(config.promptSami(), JsonMapper.builder().build(), sami("bedrock", "  "),
-                global("simulado"), proveedores(bedrock)).proponer(consulta);
-
-        assertThat(modelosConsultados(bedrock, 1)).containsExactly(RAPIDO);
+    private void entoncesSoloSeConsultaElModeloRapido() {
+        assertThat(modelosConsultados(1)).containsExactly(RAPIDO);
     }
 
-    @Test
-    @DisplayName("Con el proveedor global anthropic y sin pisarlo, Sami usa Claude de la API de Anthropic")
-    void samiIaPortShouldUseAnthropicWhenGlobalIsAnthropic() {
-        AnthropicClient anthropic = anthropicQueResponde("{\"plantilla\":\"Ventas\",\"confianza\":0.9,\"columnas\":[]}");
-
-        PropuestaIaSami result = config.samiIaPort(config.promptSami(), JsonMapper.builder().build(),
-                sami(null, null), global("anthropic"), proveedores(anthropic)).proponer(consulta);
-
-        assertThat(result.plantilla()).isEqualTo("Ventas");
-        assertThat(result.consumo().proveedor()).isEqualTo("anthropic");
-        assertThat(result.consumo().modelo()).isEqualTo("haiku");
+    private void entoncesSamiUsaClaudeDeAnthropic() {
+        assertThat(propuesta.plantilla()).isEqualTo("Ventas");
+        assertThat(propuesta.consumo().proveedor()).isEqualTo("anthropic");
+        assertThat(propuesta.consumo().modelo()).isEqualTo("haiku");
     }
 
-    @Test
-    @DisplayName("Con el proveedor simulado, la IA del taller no cuesta nada y pregunta con botonera")
-    void tallerIaPortShouldUseSimulatedProviderWhenGlobalIsSimulated() {
-        TallerIaPort port = config.tallerIaPort(promptTaller(), JsonMapper.builder().build(), sami(null, AVANZADO),
-                global("simulado"), proveedores(mock(BedrockRuntimeClient.class)));
-
-        ResultadoTallerIa result = port.conversar(consultaDeTaller("ayuda"));
-
-        assertThat(result.consumo().proveedor()).isEqualTo("simulado");
-        assertThat(result.llamadas().getFirst().nombre()).isEqualTo("ofrecer_opciones");
+    private void entoncesElTallerEsSimuladoYPreguntaConBotonera() {
+        entoncesElTallerEsSimulado();
+        assertThat(resultadoDelTaller.llamadas().getFirst().nombre()).isEqualTo("ofrecer_opciones");
     }
 
-    @Test
-    @DisplayName("Si Sami pisa el proveedor con simulado, el taller no llama al proveedor global")
-    void tallerIaPortShouldUseSamiOverrideOverGlobalProvider() {
-        BedrockRuntimeClient bedrock = mock(BedrockRuntimeClient.class);
-
-        ResultadoTallerIa result = config.tallerIaPort(promptTaller(), JsonMapper.builder().build(),
-                sami("simulado", null), global("bedrock"), proveedores(bedrock)).conversar(consultaDeTaller("ayuda"));
-
-        assertThat(result.consumo().proveedor()).isEqualTo("simulado");
+    private void entoncesElTallerEsSimulado() {
+        assertThat(resultadoDelTaller.consumo().proveedor()).isEqualTo("simulado");
     }
 
-    @Test
-    @DisplayName("Con el proveedor global bedrock, el taller usa el modelo rápido, una sola llamada y las quince herramientas")
-    void tallerIaPortShouldUseFastModelWithAllToolsWhenGlobalIsBedrock() {
-        BedrockRuntimeClient bedrock = bedrockQueResponde("Hola");
-
-        ResultadoTallerIa result = config.tallerIaPort(promptTaller(), JsonMapper.builder().build(),
-                sami(null, AVANZADO), global("bedrock"), proveedores(bedrock)).conversar(consultaDeTaller("hola"));
-
-        assertThat(result.texto()).isEqualTo("Hola");
-        assertThat(result.consumo().modelo()).isEqualTo(RAPIDO);
+    private void entoncesElTallerUsaElModeloRapidoConLasQuinceHerramientasEnBedrock() {
+        assertThat(resultadoDelTaller.texto()).isEqualTo("Hola");
+        assertThat(resultadoDelTaller.consumo().modelo()).isEqualTo(RAPIDO);
         ArgumentCaptor<ConverseRequest> captor = ArgumentCaptor.forClass(ConverseRequest.class);
         verify(bedrock).converse(captor.capture());
         assertThat(captor.getValue().inferenceConfig().maxTokens()).isEqualTo(400);
@@ -171,15 +314,8 @@ class SamiConfigTest {
                 .containsExactly(HERRAMIENTAS);
     }
 
-    @Test
-    @DisplayName("Con el proveedor global anthropic, el taller manda las quince herramientas a la API de Anthropic")
-    void tallerIaPortShouldSendAllToolsWhenGlobalIsAnthropic() {
-        AnthropicClient anthropic = anthropicQueResponde("Hola");
-
-        ResultadoTallerIa result = config.tallerIaPort(promptTaller(), JsonMapper.builder().build(),
-                sami(null, null), global("anthropic"), proveedores(anthropic)).conversar(consultaDeTaller("hola"));
-
-        assertThat(result.consumo().proveedor()).isEqualTo("anthropic");
+    private void entoncesElTallerManda15HerramientasAAnthropic() {
+        assertThat(resultadoDelTaller.consumo().proveedor()).isEqualTo("anthropic");
         ArgumentCaptor<MessageCreateParams> captor = ArgumentCaptor.forClass(MessageCreateParams.class);
         verify(anthropic.messages()).create(captor.capture());
         assertThat(captor.getValue().tools().orElseThrow())
@@ -187,21 +323,13 @@ class SamiConfigTest {
                 .containsExactly(HERRAMIENTAS);
     }
 
-    @Test
-    @DisplayName("Carga el catálogo de componentes generado por el frontend con sus diez tipos")
-    void catalogoComponentesShouldLoadBundledCatalog() {
-        CatalogoComponentes catalogo = config.catalogoComponentes(JsonMapper.builder().build());
-
+    private void entoncesElCatalogoTieneLosDiezTiposConSuSingular() {
         assertThat(catalogo.componentes()).extracting(ComponenteCatalogo::tipo).containsExactly(
                 "inventory", "orders", "clients", "sales", "expenses", "summary", "form", "note", "entries", "exits");
         assertThat(catalogo.componentes()).allSatisfy(componente -> assertThat(componente.singular()).isNotBlank());
     }
 
-    @Test
-    @DisplayName("Carga los diez kits por rubro con ids únicos y términos en minúscula y sin tildes")
-    void kitsRubroShouldLoadTenKitsWithUniqueIds() {
-        KitsRubro kits = kits();
-
+    private void entoncesSeCarganLosDiezKitsConTerminosNormalizados() {
         assertThat(kits.kits()).extracting(KitRubro::id).containsExactly("almacen", "dietetica", "velas",
                 "panaderia", "viandas", "ropa", "peluqueria", "taller-mecanico", "ferreteria", "libreria");
         assertThat(kits.kits()).allSatisfy(kit -> assertThat(kit.terminos())
@@ -209,12 +337,8 @@ class SamiConfigTest {
                 .allMatch(termino -> termino.matches("[a-z0-9 ]+")));
     }
 
-    @Test
-    @DisplayName("Cada pieza de un kit usa un componente del catálogo, con datos válidos y sin repetir tipos")
-    void kitsRubroShouldOnlyUseCatalogComponentsAndValidFields() {
-        CatalogoComponentes catalogo = config.catalogoComponentes(JsonMapper.builder().build());
-
-        for (KitRubro kit : kits().kits()) {
+    private void entoncesLasPiezasDeLosKitsUsanComponentesDelCatalogoConDatosValidos() {
+        for (KitRubro kit : kits.kits()) {
             List<String> tipos = kit.piezas().stream().map(PiezaKit::tipo).toList();
             assertThat(tipos).as("tipos de %s", kit.id()).allMatch(tipo -> catalogo.buscar(tipo).isPresent());
             assertThat(tipos.stream().filter(tipo -> !tipo.equals(CatalogoComponentes.TIPO_A_MEDIDA)))
@@ -222,27 +346,27 @@ class SamiConfigTest {
             assertThat(kit.piezas()).extracting(PiezaKit::nombre).as("nombres de %s", kit.id())
                     .doesNotHaveDuplicates()
                     .allMatch(nombre -> nombre != null && !nombre.isBlank());
-            for (PiezaKit pieza : kit.piezas()) {
-                List<String> etiquetas = etiquetas(catalogo, pieza);
-                assertThat(etiquetas).as("datos de %s/%s", kit.id(), pieza.nombre()).doesNotHaveDuplicates()
-                        .hasSizeLessThanOrEqualTo(CatalogoTaller.MAX_CAMPOS_POR_PIEZA);
-                assertThat(pieza.campos()).as("datos extra de %s/%s", kit.id(), pieza.nombre())
-                        .hasSizeLessThanOrEqualTo(CatalogoTaller.MAX_CAMPOS_EXTRA)
-                        .allSatisfy(campo -> assertThat(CatalogoTaller.TIPOS_DE_CAMPO).contains(campo.tipo()))
-                        .allSatisfy(campo -> assertThat(campo.opciones().size()).isBetween(
-                                campo.tipo().equals("select") ? 2 : 0, campo.tipo().equals("select") ? 6 : 0));
-                assertThat(pieza.ejemplos()).as("ejemplos de %s/%s", kit.id(), pieza.nombre())
-                        .hasSizeBetween(2, 3)
-                        .allSatisfy(fila -> assertThat(etiquetas).containsAll(fila.keySet()))
-                        .allSatisfy(fila -> assertThat(fila.values()).allMatch(this::esValorDeEjemplo));
-            }
+            kit.piezas().forEach(pieza -> assertQueLaPiezaEsValida(kit, pieza));
         }
     }
 
-    @Test
-    @DisplayName("Las conexiones de cada kit unen dos piezas distintas del mismo kit y tienen etiqueta")
-    void kitsRubroShouldOnlyConnectPiecesOfTheKit() {
-        for (KitRubro kit : kits().kits()) {
+    private void assertQueLaPiezaEsValida(KitRubro kit, PiezaKit pieza) {
+        List<String> etiquetas = etiquetas(pieza);
+        assertThat(etiquetas).as("datos de %s/%s", kit.id(), pieza.nombre()).doesNotHaveDuplicates()
+                .hasSizeLessThanOrEqualTo(CatalogoTaller.MAX_CAMPOS_POR_PIEZA);
+        assertThat(pieza.campos()).as("datos extra de %s/%s", kit.id(), pieza.nombre())
+                .hasSizeLessThanOrEqualTo(CatalogoTaller.MAX_CAMPOS_EXTRA)
+                .allSatisfy(campo -> assertThat(CatalogoTaller.TIPOS_DE_CAMPO).contains(campo.tipo()))
+                .allSatisfy(campo -> assertThat(campo.opciones().size()).isBetween(
+                        campo.tipo().equals("select") ? 2 : 0, campo.tipo().equals("select") ? 6 : 0));
+        assertThat(pieza.ejemplos()).as("ejemplos de %s/%s", kit.id(), pieza.nombre())
+                .hasSizeBetween(2, 3)
+                .allSatisfy(fila -> assertThat(etiquetas).containsAll(fila.keySet()))
+                .allSatisfy(fila -> assertThat(fila.values()).allMatch(this::esValorDeEjemplo));
+    }
+
+    private void entoncesLasConexionesUnenPiezasDistintasDelMismoKit() {
+        for (KitRubro kit : kits.kits()) {
             List<String> nombres = kit.piezas().stream().map(PiezaKit::nombre).toList();
             assertThat(kit.conexiones()).as("conexiones de %s", kit.id()).allSatisfy(conexion -> {
                 assertThat(nombres).contains(conexion.desde(), conexion.hacia());
@@ -254,12 +378,9 @@ class SamiConfigTest {
         }
     }
 
-    @Test
-    @DisplayName("Cada kit se arma entero, sin descartes, sobre un sistema vacío")
-    void kitsRubroShouldExpandWithoutDiscards() {
-        TallerDePrueba taller = new TallerDePrueba(kits());
-
-        for (KitRubro kit : kits().kits()) {
+    private void entoncesCadaKitSeArmaEnteroSobreUnSistemaVacio() {
+        TallerDePrueba taller = new TallerDePrueba(kits);
+        for (KitRubro kit : kits.kits()) {
             ValidacionTaller result = taller.validar(
                     List.of(new LlamadaHerramienta("usar_kit", Map.of("rubro", kit.id()))),
                     new EstadoTaller("Mi sistema", "mosaic", List.of()));
@@ -279,12 +400,9 @@ class SamiConfigTest {
         }
     }
 
-    @Test
-    @DisplayName("Cada kit se reconoce por su propio nombre, que es lo que ofrece la botonera")
-    void kitsRubroShouldBeDetectedByTheirOwnName() {
-        TallerDePrueba taller = new TallerDePrueba(kits());
-
-        for (KitRubro kit : kits().kits()) {
+    private void entoncesCadaKitSeReconocePorSuNombre() {
+        TallerDePrueba taller = new TallerDePrueba(kits);
+        for (KitRubro kit : kits.kits()) {
             assertThat(taller.rubro(kit.nombre(), new EstadoTaller(null, "mosaic", List.of()), List.of()))
                     .as("rubro de «%s»", kit.nombre())
                     .map(KitRubro::id)
@@ -292,21 +410,13 @@ class SamiConfigTest {
         }
     }
 
-    @Test
-    @DisplayName("Las herramientas del taller del recurso coinciden con las que valida el dominio")
-    void bundledToolsShouldMatchTheDomainTools() throws Exception {
-        DefinicionHerramienta[] definiciones = JsonMapper.builder().build().readValue(
-                getClass().getResourceAsStream("/ia/herramientas-taller.json"), DefinicionHerramienta[].class);
-
+    private void entoncesLasHerramientasDelRecursoCoincidenConLasDelDominio() {
         assertThat(definiciones).extracting(DefinicionHerramienta::name).containsExactlyInAnyOrder(
                 Arrays.stream(HerramientaTaller.values()).map(HerramientaTaller::nombre).toArray(String[]::new));
         assertThat(definiciones).allSatisfy(definicion -> assertThat(definicion.inputSchema()).containsKey("type"));
     }
 
-    // --- helpers ---
-    private static final String[] HERRAMIENTAS = {"agregar_pieza", "usar_kit", "quitar_pieza", "renombrar_pieza",
-            "renombrar_sistema", "agregar_campo", "quitar_campo", "editar_campo", "cargar_registros",
-            "editar_registros", "borrar_registros", "conectar", "separar_en_seccion", "cambiar_distribucion", "ofrecer_opciones"};
+    // --- datos ---
 
     private ConsultaTaller consultaDeTaller(String mensaje) {
         return new ConsultaTaller(mensaje, new EstadoTaller("Mi almacén", "mosaic", List.of()), List.of());
@@ -321,7 +431,7 @@ class SamiConfigTest {
     }
 
     /** Las etiquetas de una pieza de kit: las de su componente más las extra. */
-    private List<String> etiquetas(CatalogoComponentes catalogo, PiezaKit pieza) {
+    private List<String> etiquetas(PiezaKit pieza) {
         List<String> etiquetas = new ArrayList<>();
         catalogo.buscar(pieza.tipo()).orElseThrow().campos().forEach(campo -> etiquetas.add(campo.etiqueta()));
         pieza.campos().forEach(campo -> etiquetas.add(campo.etiqueta()));
@@ -347,23 +457,14 @@ class SamiConfigTest {
                 "anthropic", new IaProperties.Proveedor(CLAVE, null, null, "haiku", null, "haiku")));
     }
 
-    private ProveedoresIa proveedores(BedrockRuntimeClient bedrock) {
-        return proveedores(bedrock, mock(AnthropicClient.class));
-    }
-
-    private ProveedoresIa proveedores(AnthropicClient anthropic) {
-        return proveedores(mock(BedrockRuntimeClient.class), anthropic);
-    }
-
-    private ProveedoresIa proveedores(BedrockRuntimeClient bedrock, AnthropicClient anthropic) {
+    private ProveedoresIa proveedores() {
         return new ProveedoresIa(List.of(
                 new ProveedorIaSimulado(new ClassPathResource("ia/lectura-simulada.json"), this::kits),
                 new ProveedorIaBedrock(ajustes -> bedrock),
                 new ProveedorIaAnthropic(ajustes -> anthropic)));
     }
 
-    // --- assert ---
-    private List<String> modelosConsultados(BedrockRuntimeClient bedrock, int veces) {
+    private List<String> modelosConsultados(int veces) {
         ArgumentCaptor<ConverseRequest> captor = ArgumentCaptor.forClass(ConverseRequest.class);
         verify(bedrock, times(veces)).converse(captor.capture());
         return captor.getAllValues().stream().map(ConverseRequest::modelId).toList();

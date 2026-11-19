@@ -1,6 +1,5 @@
 package com.ensambla.backend.domain.model.aviso;
 
-import com.ensambla.backend.domain.model.aviso.AccionCrearRegistro;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
@@ -27,21 +26,417 @@ class ReglaComboBajaRotacionTest {
     private static final UUID LECHE_ID = UUID.fromString("d0000000-0000-4000-8000-000000000004");
     private static final String ALFAJOR = "Alfajor Capitán del Espacio";
     private static final String GALLETITAS = "Galletitas Sonrisas";
+    private static final int POSICION_DEL_ALFAJOR = 0;
+    private static final int POSICION_DE_LAS_GALLETITAS = 1;
 
-    private final ReglaComboBajaRotacion regla = new ReglaComboBajaRotacion(
-            new MetricasVentas(30, new BigDecimal("0.5")), 3, new BigDecimal("0.1"));
+    private ReglaComboBajaRotacion regla = unaReglaConDescuento(new BigDecimal("0.1"));
+    private List<Registro> ventas = new ArrayList<>();
+    private final List<Registro> productos = new ArrayList<>();
+
+    private TipoAviso tipo;
+    private List<ResultadoRegla> resultados;
+    private List<ResultadoRegla> resultadosDelEscenarioBase;
 
     @Test
     @DisplayName("Es la regla de los avisos de combo")
-    void tipoShouldBeCombo() {
-        assertThat(regla.tipo()).isEqualTo(TipoAviso.COMBO);
+    void esLaReglaDeLosAvisosDeCombo() {
+        cuandoSePideElTipo();
+
+        entoncesElTipoEsCombo();
     }
 
     @Test
     @DisplayName("Propone el combo de dos productos de baja rotación que se llevaron juntos, con un 10 % menos")
-    void evaluarShouldProposeComboWhenPairSellsTogetherAndRotatesLittle() {
-        List<ResultadoRegla> resultados = whenEvaluar(ventasConCuatroCanastas(), alfajor(), galletitas());
+    void proponeElComboDeDosProductosDeBajaRotacionQueSeLlevaronJuntosConUnDiezPorCientoMenos() {
+        dadoCuatroCanastasDeAlfajorYGalletitas();
 
+        cuandoSeEvaluaElNegocio();
+
+        entoncesSeProponeElComboDeLosDosProductos();
+        entoncesSeExplicaElPrecioSugerido();
+    }
+
+    @Test
+    @DisplayName("Ofrece crear el combo como un producto nuevo del inventario, con la suma de los costos")
+    void ofreceCrearElComboComoUnProductoNuevoDelInventarioConLaSumaDeLosCostos() {
+        dadoCuatroCanastasDeAlfajorYGalletitas();
+
+        cuandoSeEvaluaElNegocio();
+
+        entoncesSeOfreceCrearElComboConLaSumaDeLosCostos();
+    }
+
+    @Test
+    @DisplayName("El combo no lleva costo si el alfajor no lo tiene")
+    void elComboNoLlevaCostoSiElAlfajorNoLoTiene() {
+        dadoCuatroCanastasDeAlfajorYGalletitas();
+        dadoQueElAlfajorNoTieneCosto();
+
+        cuandoSeEvaluaElNegocio();
+
+        entoncesElComboNoLlevaCosto();
+    }
+
+    @Test
+    @DisplayName("El combo no lleva costo si las galletitas lo tienen en cero")
+    void elComboNoLlevaCostoSiLasGalletitasLoTienenEnCero() {
+        dadoCuatroCanastasDeAlfajorYGalletitas();
+        dadoQueLasGalletitasTienenCostoCero();
+
+        cuandoSeEvaluaElNegocio();
+
+        entoncesElComboNoLlevaCosto();
+    }
+
+    @Test
+    @DisplayName("Si sólo el alfajor rota poco, lo dice")
+    void siSoloElAlfajorRotaPocoLoDice() {
+        dadoCuatroCanastasDeAlfajorYGalletitas();
+        dadoQueLasGalletitasTambienSeVendenPorSeparado();
+
+        cuandoSeEvaluaElNegocio();
+
+        entoncesElDetalleEmpiezaCon("Alfajor Capitán del Espacio sale poco por separado, pero 4 veces");
+    }
+
+    @Test
+    @DisplayName("Si sólo las galletitas rotan poco, lo dice")
+    void siSoloLasGalletitasRotanPocoLoDice() {
+        dadoCuatroCanastasDeAlfajorYGalletitas();
+        dadoQueElAlfajorTambienSeVendePorSeparado();
+
+        cuandoSeEvaluaElNegocio();
+
+        entoncesElDetalleEmpiezaCon("Galletitas Sonrisas sale poco por separado, pero 4 veces");
+    }
+
+    @Test
+    @DisplayName("No propone el combo si ninguno de los dos rota poco")
+    void noProponeElComboSiNingunoDeLosDosRotaPoco() {
+        dadoCuatroCanastasDeAlfajorYGalletitas();
+        dadoQueAmbosSeVendenTambienPorSeparado();
+
+        cuandoSeEvaluaElNegocio();
+
+        entoncesNoSeProponeNingunCombo();
+    }
+
+    @Test
+    @DisplayName("No propone el combo si el par se llevó juntos menos veces que la frecuencia mínima")
+    void noProponeElComboSiElParSeLlevoJuntosMenosVecesQueLaFrecuenciaMinima() {
+        dadoSoloDosCanastasDeAlfajorYGalletitas();
+
+        cuandoSeEvaluaElNegocio();
+
+        entoncesNoSeProponeNingunCombo();
+    }
+
+    @Test
+    @DisplayName("Una canasta es el mismo cliente el mismo día: en otro día o con otro cliente no cuentan juntos")
+    void unaCanastaEsElMismoClienteElMismoDiaEnOtroDiaOConOtroClienteNoCuentanJuntos() {
+        dadoVentasDelParEnOtroDiaOConOtroCliente();
+
+        cuandoSeEvaluaElNegocio();
+
+        entoncesNoSeProponeNingunCombo();
+    }
+
+    @Test
+    @DisplayName("Reconoce al mismo cliente aunque cambien las tildes y las mayúsculas")
+    void reconoceAlMismoClienteAunqueCambienLasTildesYLasMayusculas() {
+        dadoUnaCanastaConElClienteEscritoDeDosFormas();
+
+        cuandoSeEvaluaElNegocio();
+
+        entoncesSeProponeUnSoloCombo();
+    }
+
+    @Test
+    @DisplayName("Sin cliente en las ventas no hay canastas y no avisa")
+    void sinClienteEnLasVentasNoHayCanastasYNoAvisa() {
+        dadoVentasDelParSinCliente();
+
+        cuandoSeEvaluaElNegocio();
+
+        entoncesNoSeProponeNingunCombo();
+    }
+
+    @Test
+    @DisplayName("Las canastas de hace más de un período no cuentan")
+    void lasCanastasDeHaceMasDeUnPeriodoNoCuentan() {
+        dadoCanastasDeHaceMasDeUnPeriodo();
+
+        cuandoSeEvaluaElNegocio();
+
+        entoncesNoSeProponeNingunCombo();
+    }
+
+    @Test
+    @DisplayName("No propone el combo si ya existe uno en el inventario que nombra a los dos productos")
+    void noProponeElComboSiYaExisteUnoEnElInventarioQueNombraALosDosProductos() {
+        dadoCuatroCanastasDeAlfajorYGalletitas();
+        dadoUnComboYaCreadoConLosDosProductos();
+
+        cuandoSeEvaluaElNegocio();
+
+        entoncesNoSeProponeNingunCombo();
+    }
+
+    @Test
+    @DisplayName("Otro combo o un producto que nombra a uno solo no impide proponerlo")
+    void otroComboOUnProductoQueNombraAUnoSoloNoImpideProponerlo() {
+        dadoCuatroCanastasDeAlfajorYGalletitas();
+        dadoOtroComboYUnProductoQueNombraAUnoSolo();
+
+        cuandoSeEvaluaElNegocio();
+
+        entoncesSeProponeUnSoloCombo();
+    }
+
+    @Test
+    @DisplayName("No propone el combo si el alfajor no tiene precio")
+    void noProponeElComboSiElAlfajorNoTienePrecio() {
+        dadoCuatroCanastasDeAlfajorYGalletitas();
+        dadoQueElAlfajorNoTienePrecio();
+
+        cuandoSeEvaluaElNegocio();
+
+        entoncesNoSeProponeNingunCombo();
+    }
+
+    @Test
+    @DisplayName("No propone el combo si las galletitas tienen el precio en cero")
+    void noProponeElComboSiLasGalletitasTienenElPrecioEnCero() {
+        dadoCuatroCanastasDeAlfajorYGalletitas();
+        dadoQueLasGalletitasTienenPrecioCero();
+
+        cuandoSeEvaluaElNegocio();
+
+        entoncesNoSeProponeNingunCombo();
+    }
+
+    @Test
+    @DisplayName("No propone el combo si el alfajor tiene el precio en cero")
+    void noProponeElComboSiElAlfajorTieneElPrecioEnCero() {
+        dadoCuatroCanastasDeAlfajorYGalletitas();
+        dadoQueElAlfajorTienePrecioCero();
+
+        cuandoSeEvaluaElNegocio();
+
+        entoncesNoSeProponeNingunCombo();
+    }
+
+    @Test
+    @DisplayName("No propone el combo si el precio sugerido no queda por debajo de la suma")
+    void noProponeElComboSiElPrecioSugeridoNoQuedaPorDebajoDeLaSuma() {
+        dadoCuatroCanastasDeAlfajorYGalletitas();
+        dadoUnaReglaSinDescuento();
+
+        cuandoSeEvaluaElNegocio();
+
+        entoncesNoSeProponeNingunCombo();
+    }
+
+    @Test
+    @DisplayName("No propone el combo si alguno de los dos productos ya no está en el inventario")
+    void noProponeElComboSiAlgunoDeLosDosProductosYaNoEstaEnElInventario() {
+        dadoCuatroCanastasDeAlfajorYGalletitas();
+        dadoQueLasGalletitasYaNoEstanEnElInventario();
+
+        cuandoSeEvaluaElNegocio();
+
+        entoncesNoSeProponeNingunCombo();
+    }
+
+    @Test
+    @DisplayName("No avisa sin la fecha de hoy")
+    void noAvisaSinLaFechaDeHoy() {
+        dadoCuatroCanastasDeAlfajorYGalletitas();
+
+        cuandoSeEvaluaElNegocioSinLaFechaDeHoy();
+
+        entoncesNoSeProponeNingunCombo();
+    }
+
+    @Test
+    @DisplayName("No avisa sin ventas")
+    void noAvisaSinVentas() {
+        dadoUnInventarioConAlfajorYGalletitasSinVentas();
+
+        cuandoSeEvaluaElNegocio();
+
+        entoncesNoSeProponeNingunCombo();
+    }
+
+    @Test
+    @DisplayName("La huella no cambia con la cantidad de canastas")
+    void laHuellaNoCambiaConLaCantidadDeCanastas() {
+        dadoCuatroCanastasDeAlfajorYGalletitas();
+        dadoUnaCanastaMas();
+
+        cuandoSeEvaluaElNegocioYElEscenarioBase();
+
+        entoncesLaHuellaEsLaMismaQueLaDelEscenarioBase();
+    }
+
+    @Test
+    @DisplayName("La huella cambia cuando cambia un precio")
+    void laHuellaCambiaCuandoCambiaUnPrecio() {
+        dadoCuatroCanastasDeAlfajorYGalletitas();
+        dadoQueElAlfajorCuestaNovecientos();
+
+        cuandoSeEvaluaElNegocioYElEscenarioBase();
+
+        entoncesLaHuellaDifiereDeLaDelEscenarioBase();
+    }
+
+    // --- dado ---
+
+    private void dadoCuatroCanastasDeAlfajorYGalletitas() {
+        ventas = ventasConCuatroCanastas();
+        dadoElInventarioDeAlfajorYGalletitas();
+    }
+
+    private void dadoUnInventarioConAlfajorYGalletitasSinVentas() {
+        ventas = new ArrayList<>();
+        dadoElInventarioDeAlfajorYGalletitas();
+    }
+
+    private void dadoElInventarioDeAlfajorYGalletitas() {
+        productos.clear();
+        productos.addAll(List.of(alfajor(), galletitas()));
+    }
+
+    private void dadoQueElAlfajorNoTieneCosto() {
+        productos.set(POSICION_DEL_ALFAJOR, AvisoTestData.producto(ALFAJOR_ID, ALFAJOR, 40, 800, null));
+    }
+
+    private void dadoQueLasGalletitasTienenCostoCero() {
+        productos.set(POSICION_DE_LAS_GALLETITAS, AvisoTestData.producto(GALLETITAS_ID, GALLETITAS, 25, 1100, 0));
+    }
+
+    private void dadoQueLasGalletitasTambienSeVendenPorSeparado() {
+        ventas.add(venta(GALLETITAS_ID, 40, 1100, "2026-10-14", null));
+    }
+
+    private void dadoQueElAlfajorTambienSeVendePorSeparado() {
+        ventas.add(venta(ALFAJOR_ID, 40, 800, "2026-10-14", null));
+    }
+
+    private void dadoQueAmbosSeVendenTambienPorSeparado() {
+        dadoQueElAlfajorTambienSeVendePorSeparado();
+        dadoQueLasGalletitasTambienSeVendenPorSeparado();
+    }
+
+    private void dadoSoloDosCanastasDeAlfajorYGalletitas() {
+        ventas = ventasDelResto();
+        ventas.addAll(canasta("2026-10-16", "Doña Rosa"));
+        ventas.addAll(canasta("2026-10-10", "Bar La Esquina"));
+        dadoElInventarioDeAlfajorYGalletitas();
+    }
+
+    private void dadoVentasDelParEnOtroDiaOConOtroCliente() {
+        ventas = ventasDelResto();
+        for (String dia : List.of("2026-10-16", "2026-10-10", "2026-10-04", "2026-09-27")) {
+            ventas.add(venta(ALFAJOR_ID, 1, 800, dia, "Doña Rosa"));
+            ventas.add(venta(GALLETITAS_ID, 1, 1100, dia, "Bar La Esquina"));
+        }
+        ventas.add(venta(ALFAJOR_ID, 1, 800, "2026-10-17", "Doña Rosa"));
+        ventas.add(venta(GALLETITAS_ID, 1, 1100, "2026-10-18", "Doña Rosa"));
+        dadoElInventarioDeAlfajorYGalletitas();
+    }
+
+    private void dadoUnaCanastaConElClienteEscritoDeDosFormas() {
+        ventas = ventasDelResto();
+        ventas.add(venta(ALFAJOR_ID, 1, 800, "2026-10-16", "Doña Rosa"));
+        ventas.add(venta(GALLETITAS_ID, 1, 1100, "2026-10-16", "DOÑA ROSA"));
+        ventas.addAll(canasta("2026-10-10", "Bar La Esquina"));
+        ventas.addAll(canasta("2026-10-04", "Club Social"));
+        dadoElInventarioDeAlfajorYGalletitas();
+    }
+
+    private void dadoVentasDelParSinCliente() {
+        ventas = ventasDelResto();
+        for (String dia : List.of("2026-10-16", "2026-10-10", "2026-10-04", "2026-09-27")) {
+            ventas.add(venta(ALFAJOR_ID, 1, 800, dia, null));
+            ventas.add(venta(GALLETITAS_ID, 1, 1100, dia, null));
+        }
+        dadoElInventarioDeAlfajorYGalletitas();
+    }
+
+    private void dadoCanastasDeHaceMasDeUnPeriodo() {
+        ventas = ventasDelResto();
+        for (String dia : List.of("2026-08-16", "2026-08-10", "2026-08-04", "2026-07-27")) {
+            ventas.addAll(canasta(dia, "Doña Rosa"));
+        }
+        dadoElInventarioDeAlfajorYGalletitas();
+    }
+
+    private void dadoUnComboYaCreadoConLosDosProductos() {
+        productos.add(AvisoTestData.producto(UUID.randomUUID(),
+                "Combo Alfajor Capitán del Espacio + Galletitas Sonrisas", 0, 1710, null));
+    }
+
+    private void dadoOtroComboYUnProductoQueNombraAUnoSolo() {
+        productos.add(AvisoTestData.producto(UUID.randomUUID(), "Combo Yerba + Fideos", 0, 3000, null));
+        productos.add(AvisoTestData.producto(UUID.randomUUID(), "Combo Alfajor Capitán del Espacio x3", 0, 2000, null));
+    }
+
+    private void dadoQueElAlfajorNoTienePrecio() {
+        productos.set(POSICION_DEL_ALFAJOR, AvisoTestData.producto(ALFAJOR_ID, ALFAJOR, 40, null, 520));
+    }
+
+    private void dadoQueLasGalletitasTienenPrecioCero() {
+        productos.set(POSICION_DE_LAS_GALLETITAS, AvisoTestData.producto(GALLETITAS_ID, GALLETITAS, 25, 0, 750));
+    }
+
+    private void dadoQueElAlfajorTienePrecioCero() {
+        productos.set(POSICION_DEL_ALFAJOR, AvisoTestData.producto(ALFAJOR_ID, ALFAJOR, 40, 0, 520));
+    }
+
+    private void dadoUnaReglaSinDescuento() {
+        regla = unaReglaConDescuento(BigDecimal.ZERO);
+    }
+
+    private void dadoQueLasGalletitasYaNoEstanEnElInventario() {
+        productos.remove(POSICION_DE_LAS_GALLETITAS);
+    }
+
+    private void dadoUnaCanastaMas() {
+        ventas.addAll(canasta("2026-10-12", "Doña Rosa"));
+    }
+
+    private void dadoQueElAlfajorCuestaNovecientos() {
+        productos.set(POSICION_DEL_ALFAJOR, AvisoTestData.producto(ALFAJOR_ID, ALFAJOR, 40, 900, 520));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSePideElTipo() {
+        tipo = regla.tipo();
+    }
+
+    private void cuandoSeEvaluaElNegocio() {
+        resultados = regla.evaluar(contextoDeHoy());
+    }
+
+    private void cuandoSeEvaluaElNegocioSinLaFechaDeHoy() {
+        ContextoNegocio sinHoy = new ContextoNegocio(AvisoTestData.NEGOCIO_ID, List.of(inventarioActual()));
+        resultados = regla.evaluar(sinHoy);
+    }
+
+    private void cuandoSeEvaluaElNegocioYElEscenarioBase() {
+        cuandoSeEvaluaElNegocio();
+        resultadosDelEscenarioBase = evaluarElEscenarioBase();
+    }
+
+    // --- entonces ---
+
+    private void entoncesElTipoEsCombo() {
+        assertThat(tipo).isEqualTo(TipoAviso.COMBO);
+    }
+
+    private void entoncesSeProponeElComboDeLosDosProductos() {
         assertThat(resultados).singleElement().satisfies(resultado -> {
             assertThat(resultado.entidad())
                     .isEqualTo(ResultadoRegla.entidadDeCombo(RegistroId.de(ALFAJOR_ID), RegistroId.de(GALLETITAS_ID)));
@@ -50,6 +445,11 @@ class ReglaComboBajaRotacionTest {
             assertThat(resultado.titulo()).isEqualTo("Alfajor Capitán del Espacio y Galletitas Sonrisas se venden juntos");
             assertThat(resultado.detalle()).isEqualTo("Los dos salen poco por separado, pero 4 veces se los llevó "
                     + "el mismo cliente el mismo día.");
+        });
+    }
+
+    private void entoncesSeExplicaElPrecioSugerido() {
+        assertThat(resultados).singleElement().satisfies(resultado -> {
             assertThat(resultado.motivos()).containsExactly(
                     "Por separado suman $1.900; como combo, $1.710 (10 % menos) puede ayudar a que roten.",
                     "El combo se crea como un producto nuevo del inventario; después cargás cuántos armás.");
@@ -58,201 +458,66 @@ class ReglaComboBajaRotacionTest {
         });
     }
 
-    @Test
-    @DisplayName("Ofrece crear el combo como un producto nuevo del inventario, con la suma de los costos")
-    void evaluarShouldOfferCrearRegistroAction() {
-        List<ResultadoRegla> resultados = whenEvaluar(ventasConCuatroCanastas(), alfajor(), galletitas());
-
-        assertThat(resultados).singleElement().satisfies(resultado -> {
-            assertThat(resultado.acciones()).singleElement().isEqualTo(AccionesDePrueba.crearEnElInventario(
-                    "Crear el combo", Map.of(
-                            "name", "Combo Alfajor Capitán del Espacio + Galletitas Sonrisas",
-                            "quantity", 0,
-                            "price", new BigDecimal("1710"),
-                            "cost", new BigDecimal("1270"))));
-        });
+    private void entoncesSeOfreceCrearElComboConLaSumaDeLosCostos() {
+        assertThat(resultados).singleElement().satisfies(resultado ->
+                assertThat(resultado.acciones()).singleElement().isEqualTo(AccionesDePrueba.crearEnElInventario(
+                        "Crear el combo", Map.of(
+                                "name", "Combo Alfajor Capitán del Espacio + Galletitas Sonrisas",
+                                "quantity", 0,
+                                "price", new BigDecimal("1710"),
+                                "cost", new BigDecimal("1270")))));
     }
 
-    @Test
-    @DisplayName("El combo no lleva costo si alguno de los productos no lo tiene")
-    void evaluarShouldOmitCostWhenAnyProductHasNoCost() {
-        List<ResultadoRegla> sinCostoA = whenEvaluar(ventasConCuatroCanastas(),
-                AvisoTestData.producto(ALFAJOR_ID, ALFAJOR, 40, 800, null), galletitas());
-        List<ResultadoRegla> sinCostoB = whenEvaluar(ventasConCuatroCanastas(), alfajor(),
-                AvisoTestData.producto(GALLETITAS_ID, GALLETITAS, 25, 1100, 0));
-
-        assertThat(valoresDeLaAccion(sinCostoA.get(0))).doesNotContainKey("cost");
-        assertThat(valoresDeLaAccion(sinCostoB.get(0))).doesNotContainKey("cost");
+    private void entoncesElComboNoLlevaCosto() {
+        assertThat(valoresDeLaAccion(resultados.get(0))).doesNotContainKey("cost");
     }
 
-    @Test
-    @DisplayName("Si sólo uno de los dos rota poco, dice cuál")
-    void evaluarShouldNameTheOneThatRotatesLittle() {
-        List<Registro> galletitasSeVenden = ventasConCuatroCanastas();
-        galletitasSeVenden.add(venta(GALLETITAS_ID, 40, 1100, "2026-10-14", null));
-        List<Registro> alfajorSeVende = ventasConCuatroCanastas();
-        alfajorSeVende.add(venta(ALFAJOR_ID, 40, 800, "2026-10-14", null));
-
-        List<ResultadoRegla> bajaElAlfajor = whenEvaluar(galletitasSeVenden, alfajor(), galletitas());
-        List<ResultadoRegla> bajaLaGalletita = whenEvaluar(alfajorSeVende, alfajor(), galletitas());
-
-        assertThat(bajaElAlfajor).singleElement().satisfies(resultado -> assertThat(resultado.detalle())
-                .startsWith("Alfajor Capitán del Espacio sale poco por separado, pero 4 veces"));
-        assertThat(bajaLaGalletita).singleElement().satisfies(resultado -> assertThat(resultado.detalle())
-                .startsWith("Galletitas Sonrisas sale poco por separado, pero 4 veces"));
+    private void entoncesElDetalleEmpiezaCon(String texto) {
+        assertThat(resultados).singleElement().satisfies(resultado -> assertThat(resultado.detalle()).startsWith(texto));
     }
 
-    @Test
-    @DisplayName("No propone el combo si ninguno de los dos rota poco")
-    void evaluarShouldReturnNothingWhenNeitherRotatesLittle() {
-        List<Registro> ventas = ventasConCuatroCanastas();
-        ventas.add(venta(ALFAJOR_ID, 40, 800, "2026-10-14", null));
-        ventas.add(venta(GALLETITAS_ID, 40, 1100, "2026-10-14", null));
-
-        assertThat(whenEvaluar(ventas, alfajor(), galletitas())).isEmpty();
+    private void entoncesNoSeProponeNingunCombo() {
+        assertThat(resultados).isEmpty();
     }
 
-    @Test
-    @DisplayName("No propone el combo si el par se llevó juntos menos veces que la frecuencia mínima")
-    void evaluarShouldReturnNothingWhenPairIsNotFrequentEnough() {
-        List<Registro> ventas = ventasDelResto();
-        ventas.addAll(canasta("2026-10-16", "Doña Rosa"));
-        ventas.addAll(canasta("2026-10-10", "Bar La Esquina"));
-
-        assertThat(whenEvaluar(ventas, alfajor(), galletitas())).isEmpty();
+    private void entoncesSeProponeUnSoloCombo() {
+        assertThat(resultados).hasSize(1);
     }
 
-    @Test
-    @DisplayName("Una canasta es el mismo cliente el mismo día: en otro día o con otro cliente no cuentan juntos")
-    void evaluarShouldNotCountSalesOfDifferentDaysOrClientsAsTheSameBasket() {
-        List<Registro> ventas = ventasDelResto();
-        for (String dia : List.of("2026-10-16", "2026-10-10", "2026-10-04", "2026-09-27")) {
-            ventas.add(venta(ALFAJOR_ID, 1, 800, dia, "Doña Rosa"));
-            ventas.add(venta(GALLETITAS_ID, 1, 1100, dia, "Bar La Esquina"));
-        }
-        ventas.add(venta(ALFAJOR_ID, 1, 800, "2026-10-17", "Doña Rosa"));
-        ventas.add(venta(GALLETITAS_ID, 1, 1100, "2026-10-18", "Doña Rosa"));
-
-        assertThat(whenEvaluar(ventas, alfajor(), galletitas())).isEmpty();
+    private void entoncesLaHuellaEsLaMismaQueLaDelEscenarioBase() {
+        assertThat(huellaDe(resultados)).isEqualTo(huellaDe(resultadosDelEscenarioBase));
     }
 
-    @Test
-    @DisplayName("Reconoce al mismo cliente aunque cambien las tildes y las mayúsculas")
-    void evaluarShouldMatchClientIgnoringAccentsAndCase() {
-        List<Registro> ventas = ventasDelResto();
-        ventas.add(venta(ALFAJOR_ID, 1, 800, "2026-10-16", "Doña Rosa"));
-        ventas.add(venta(GALLETITAS_ID, 1, 1100, "2026-10-16", "DOÑA ROSA"));
-        ventas.addAll(canasta("2026-10-10", "Bar La Esquina"));
-        ventas.addAll(canasta("2026-10-04", "Club Social"));
-
-        assertThat(whenEvaluar(ventas, alfajor(), galletitas())).hasSize(1);
+    private void entoncesLaHuellaDifiereDeLaDelEscenarioBase() {
+        assertThat(huellaDe(resultados)).isNotEqualTo(huellaDe(resultadosDelEscenarioBase));
     }
 
-    @Test
-    @DisplayName("Sin cliente en las ventas no hay canastas y no avisa")
-    void evaluarShouldReturnNothingWhenSalesHaveNoClient() {
-        List<Registro> ventas = ventasDelResto();
-        for (String dia : List.of("2026-10-16", "2026-10-10", "2026-10-04", "2026-09-27")) {
-            ventas.add(venta(ALFAJOR_ID, 1, 800, dia, null));
-            ventas.add(venta(GALLETITAS_ID, 1, 1100, dia, null));
-        }
+    // --- datos ---
 
-        assertThat(whenEvaluar(ventas, alfajor(), galletitas())).isEmpty();
+    private static ReglaComboBajaRotacion unaReglaConDescuento(BigDecimal descuento) {
+        return new ReglaComboBajaRotacion(new MetricasVentas(30, new BigDecimal("0.5")), 3, descuento);
     }
 
-    @Test
-    @DisplayName("Las canastas de hace más de un período no cuentan")
-    void evaluarShouldIgnoreBasketsOlderThanThePeriod() {
-        List<Registro> ventas = ventasDelResto();
-        for (String dia : List.of("2026-08-16", "2026-08-10", "2026-08-04", "2026-07-27")) {
-            ventas.addAll(canasta(dia, "Doña Rosa"));
-        }
-
-        assertThat(whenEvaluar(ventas, alfajor(), galletitas())).isEmpty();
+    private ContextoNegocio contextoDeHoy() {
+        return new ContextoNegocio(AvisoTestData.NEGOCIO_ID, HOY, List.of(inventarioActual()),
+                List.of(AvisoTestData.ventas(ventas.toArray(new Registro[0]))), AnalisisZona.sinZona());
     }
 
-    @Test
-    @DisplayName("No propone el combo si ya existe uno en el inventario que nombra a los dos productos")
-    void evaluarShouldReturnNothingWhenComboAlreadyExists() {
-        Registro combo = AvisoTestData.producto(UUID.randomUUID(),
-                "Combo Alfajor Capitán del Espacio + Galletitas Sonrisas", 0, 1710, null);
-
-        assertThat(whenEvaluar(ventasConCuatroCanastas(), alfajor(), galletitas(), combo)).isEmpty();
+    private BloqueInventario inventarioActual() {
+        return AvisoTestData.inventarioConPrecios(productos.toArray(new Registro[0]));
     }
 
-    @Test
-    @DisplayName("Otro combo o un producto que nombra a uno solo no impide proponerlo")
-    void evaluarShouldStillProposeWhenOtherProductsMentionOnlyOneOrNoneOfThem() {
-        Registro otroCombo = AvisoTestData.producto(UUID.randomUUID(), "Combo Yerba + Fideos", 0, 3000, null);
-        Registro soloUno = AvisoTestData.producto(UUID.randomUUID(), "Combo Alfajor Capitán del Espacio x3", 0, 2000,
-                null);
-
-        assertThat(whenEvaluar(ventasConCuatroCanastas(), alfajor(), galletitas(), otroCombo, soloUno)).hasSize(1);
-    }
-
-    @Test
-    @DisplayName("No propone el combo si un producto no tiene precio o lo tiene en cero")
-    void evaluarShouldReturnNothingWhenProductHasNoPrice() {
-        assertThat(whenEvaluar(ventasConCuatroCanastas(),
-                AvisoTestData.producto(ALFAJOR_ID, ALFAJOR, 40, null, 520), galletitas())).isEmpty();
-        assertThat(whenEvaluar(ventasConCuatroCanastas(), alfajor(),
-                AvisoTestData.producto(GALLETITAS_ID, GALLETITAS, 25, 0, 750))).isEmpty();
-        assertThat(whenEvaluar(ventasConCuatroCanastas(),
-                AvisoTestData.producto(ALFAJOR_ID, ALFAJOR, 40, 0, 520), galletitas())).isEmpty();
-    }
-
-    @Test
-    @DisplayName("No propone el combo si el precio sugerido no queda por debajo de la suma")
-    void evaluarShouldReturnNothingWhenComboPriceIsNotLowerThanTheSum() {
-        ReglaComboBajaRotacion sinDescuento = new ReglaComboBajaRotacion(
-                new MetricasVentas(30, new BigDecimal("0.5")), 3, BigDecimal.ZERO);
-
-        assertThat(evaluar(sinDescuento, ventasConCuatroCanastas(), alfajor(), galletitas())).isEmpty();
-    }
-
-    @Test
-    @DisplayName("No propone el combo si alguno de los dos productos ya no está en el inventario")
-    void evaluarShouldReturnNothingWhenAProductIsNotInInventory() {
-        assertThat(whenEvaluar(ventasConCuatroCanastas(), alfajor())).isEmpty();
-    }
-
-    @Test
-    @DisplayName("No avisa sin la fecha de hoy ni sin ventas")
-    void evaluarShouldReturnNothingWithoutHoyOrSales() {
-        ContextoNegocio sinHoy = new ContextoNegocio(AvisoTestData.NEGOCIO_ID,
-                List.of(AvisoTestData.inventarioConPrecios(alfajor(), galletitas())));
-
-        assertThat(regla.evaluar(sinHoy)).isEmpty();
-        assertThat(whenEvaluar(List.of(), alfajor(), galletitas())).isEmpty();
-    }
-
-    @Test
-    @DisplayName("La huella no cambia con la cantidad de canastas pero sí cuando cambia un precio")
-    void evaluarShouldKeepHuellaWhenOnlyBasketsChangeAndChangeItWhenPriceChanges() {
-        ResultadoRegla base = whenEvaluar(ventasConCuatroCanastas(), alfajor(), galletitas()).get(0);
-        List<Registro> masCanastas = ventasConCuatroCanastas();
-        masCanastas.addAll(canasta("2026-10-12", "Doña Rosa"));
-        ResultadoRegla conMasCanastas = whenEvaluar(masCanastas, alfajor(), galletitas()).get(0);
-        ResultadoRegla otroPrecio = whenEvaluar(ventasConCuatroCanastas(),
-                AvisoTestData.producto(ALFAJOR_ID, ALFAJOR, 40, 900, 520), galletitas()).get(0);
-
-        assertThat(conMasCanastas.huellaPara(TipoAviso.COMBO)).isEqualTo(base.huellaPara(TipoAviso.COMBO));
-        assertThat(otroPrecio.huellaPara(TipoAviso.COMBO)).isNotEqualTo(base.huellaPara(TipoAviso.COMBO));
-    }
-
-    // --- act ---
-    private List<ResultadoRegla> whenEvaluar(List<Registro> ventas, Registro... productos) {
-        return evaluar(regla, ventas, productos);
-    }
-
-    private static List<ResultadoRegla> evaluar(ReglaComboBajaRotacion regla, List<Registro> ventas,
-                                                Registro... productos) {
-        BloqueInventario inventario = AvisoTestData.inventarioConPrecios(productos);
+    private List<ResultadoRegla> evaluarElEscenarioBase() {
+        BloqueInventario inventario = AvisoTestData.inventarioConPrecios(alfajor(), galletitas());
         return regla.evaluar(new ContextoNegocio(AvisoTestData.NEGOCIO_ID, HOY, List.of(inventario),
-                List.of(AvisoTestData.ventas(ventas.toArray(new Registro[0]))), AnalisisZona.sinZona()));
+                List.of(AvisoTestData.ventas(ventasConCuatroCanastas().toArray(new Registro[0]))),
+                AnalisisZona.sinZona()));
     }
 
-    // --- helpers ---
+    private static String huellaDe(List<ResultadoRegla> resultados) {
+        return resultados.get(0).huellaPara(TipoAviso.COMBO);
+    }
+
     private static Registro alfajor() {
         return AvisoTestData.producto(ALFAJOR_ID, ALFAJOR, 40, 800, 520);
     }

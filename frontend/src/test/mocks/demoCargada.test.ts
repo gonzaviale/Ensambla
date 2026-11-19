@@ -7,8 +7,63 @@ import { makeSystem } from '@/lib/sistema/core';
 import { hoy } from '@/lib/sistema/formato';
 
 const EMAIL = 'demo@ensambla.local';
+const NEGOCIOS_DE_EJEMPLO = ['Almacén de barrio', 'Kiosco de la estación', 'Puesto de la feria'];
 
-const nombresDeLosNegocios = () => sistemasDe(EMAIL).map((sistema) => sistema.name);
+describe('sembrarDemoCargada', () => {
+  beforeEach(() => reiniciarEstado());
+
+  it('deja tres negocios, cada uno en su cuaderno', () => {
+    cuandoSeSiembraLaDemo();
+
+    entoncesLosNegociosSon(NEGOCIOS_DE_EJEMPLO);
+    entoncesLosCuadernosSon('demo-almacen', 'demo-kiosco', 'demo-feria');
+  });
+
+  it('deja Premium activo', () => {
+    cuandoSeSiembraLaDemo();
+
+    entoncesElPlanActualEs('PREMIUM');
+  });
+
+  it('el almacén muestra un caso con saldo a favor', () => {
+    cuandoSeSiembraLaDemo();
+
+    entoncesElSaldoDelNegocioEsPositivo('demo-almacen');
+  });
+
+  it('el kiosco muestra un caso con saldo en contra', () => {
+    cuandoSeSiembraLaDemo();
+
+    entoncesElSaldoDelNegocioEsNegativo('demo-kiosco');
+  });
+
+  it('la feria muestra un caso sin datos', () => {
+    cuandoSeSiembraLaDemo();
+
+    entoncesElNegocioNoTieneDatos('demo-feria');
+  });
+
+  it('al sembrar de nuevo no duplica los de ejemplo y conserva los negocios propios', () => {
+    dadoUnNegocioPropio('Mi verdulería');
+
+    cuandoSeSiembraLaDemoDosVeces();
+
+    entoncesLosNegociosSon([...NEGOCIOS_DE_EJEMPLO, 'Mi verdulería']);
+  });
+});
+
+function dadoUnNegocioPropio(nombre: string) {
+  estado.sistemas.set(EMAIL, [makeSystem(nombre, ['inventory'], false)]);
+}
+
+function cuandoSeSiembraLaDemo() {
+  sembrarDemoCargada(EMAIL);
+}
+
+function cuandoSeSiembraLaDemoDosVeces() {
+  sembrarDemoCargada(EMAIL);
+  sembrarDemoCargada(EMAIL);
+}
 
 const panelDelNegocio = (id: string) => {
   const sistema = sistemasDe(EMAIL).find((item) => item.id === id);
@@ -16,45 +71,26 @@ const panelDelNegocio = (id: string) => {
   return panelDe(sistema, hoy(), 30);
 };
 
-describe('sembrarDemoCargada', () => {
-  beforeEach(() => reiniciarEstado());
+function entoncesLosNegociosSon(nombres: string[]) {
+  expect(sistemasDe(EMAIL).map((sistema) => sistema.name)).toEqual(nombres);
+}
 
-  it('deja tres negocios, cada uno en su cuaderno, y Premium activo', () => {
-    sembrarDemoCargada(EMAIL);
+function entoncesLosCuadernosSon(...ids: string[]) {
+  expect(sistemasDe(EMAIL).map((sistema) => sistema.id)).toEqual(ids);
+}
 
-    expect(nombresDeLosNegocios()).toEqual([
-      'Almacén de barrio',
-      'Kiosco de la estación',
-      'Puesto de la feria',
-    ]);
-    expect(sistemasDe(EMAIL).map((sistema) => sistema.id)).toEqual([
-      'demo-almacen',
-      'demo-kiosco',
-      'demo-feria',
-    ]);
-    expect(planesDe(EMAIL).suscripcion.codigoPlanActual).toBe('PREMIUM');
-  });
+function entoncesElPlanActualEs(codigo: string) {
+  expect(planesDe(EMAIL).suscripcion.codigoPlanActual).toBe(codigo);
+}
 
-  it('cada negocio muestra un caso distinto', () => {
-    sembrarDemoCargada(EMAIL);
+function entoncesElSaldoDelNegocioEsPositivo(id: string) {
+  expect(panelDelNegocio(id).metricas?.queda).toBeGreaterThan(0);
+}
 
-    expect(panelDelNegocio('demo-almacen').metricas?.queda).toBeGreaterThan(0);
-    expect(panelDelNegocio('demo-kiosco').metricas?.queda).toBeLessThan(0);
-    expect(panelDelNegocio('demo-feria').hayDatos).toBe(false);
-  });
+function entoncesElSaldoDelNegocioEsNegativo(id: string) {
+  expect(panelDelNegocio(id).metricas?.queda).toBeLessThan(0);
+}
 
-  it('al sembrar de nuevo no duplica los de ejemplo y conserva los negocios propios', () => {
-    const propio = makeSystem('Mi verdulería', ['inventory'], false);
-    estado.sistemas.set(EMAIL, [propio]);
-
-    sembrarDemoCargada(EMAIL);
-    sembrarDemoCargada(EMAIL);
-
-    expect(nombresDeLosNegocios()).toEqual([
-      'Almacén de barrio',
-      'Kiosco de la estación',
-      'Puesto de la feria',
-      'Mi verdulería',
-    ]);
-  });
-});
+function entoncesElNegocioNoTieneDatos(id: string) {
+  expect(panelDelNegocio(id).hayDatos).toBe(false);
+}

@@ -2,11 +2,14 @@ package com.ensambla.backend.domain.useCase.inventario.registrarMovimiento;
 
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.inventario.MovimientoStock;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.Referencia;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
@@ -40,8 +43,21 @@ public class RegistrarMovimiento {
     private final Clock clock;
 
     public RegistrarMovimientoResponse execute(RegistrarMovimientoRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        MovimientoStock nuevo = MovimientoStock.nuevo(
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+        MovimientoStock nuevo = movimientoDe(request, negocioId);
+        Bloque bloque = obtenerBloque(request.bloqueId(), negocioId);
+        Registro producto = obtenerProducto(request.registroId(), negocioId);
+        producto.exigirDelBloque(bloque.getId());
+        MovimientoStock guardado = registrarEnTransaccion(nuevo);
+        return respuestaDe(guardado, producto, bloque, negocioId);
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private MovimientoStock movimientoDe(RegistrarMovimientoRequest request, NegocioId negocioId) {
+        return MovimientoStock.nuevo(
                 negocioId,
                 request.registroId(),
                 request.tipo(),
@@ -50,14 +66,33 @@ public class RegistrarMovimiento {
                 request.nota(),
                 LocalDate.now(clock),
                 OffsetDateTime.now(clock));
-        Bloque bloque = bloqueRepository.obtener(request.bloqueId(), negocioId);
-        Registro producto = registroRepository.obtener(request.registroId(), negocioId);
-        producto.exigirDelBloque(bloque.getId());
-        MovimientoStock guardado = transaccionPort.ejecutar(() -> registrar(nuevo));
-        List<Campo> campos = campoRepository.findByBloqueIdAndNegocioId(bloque.getId(), negocioId);
-        BigDecimal stock = movimientoStockRepository.stockCompletoDe(List.of(producto.getId()), negocioId)
-                .get(producto.getId());
+    }
+
+    private Bloque obtenerBloque(BloqueId bloqueId, NegocioId negocioId) {
+        return bloqueRepository.obtener(bloqueId, negocioId);
+    }
+
+    private Registro obtenerProducto(RegistroId registroId, NegocioId negocioId) {
+        return registroRepository.obtener(registroId, negocioId);
+    }
+
+    private MovimientoStock registrarEnTransaccion(MovimientoStock movimiento) {
+        return transaccionPort.ejecutar(() -> registrar(movimiento));
+    }
+
+    private RegistrarMovimientoResponse respuestaDe(MovimientoStock guardado, Registro producto, Bloque bloque,
+                                                    NegocioId negocioId) {
+        List<Campo> campos = obtenerCampos(bloque, negocioId);
+        BigDecimal stock = stockDe(producto.getId(), negocioId);
         return RegistrarMovimientoResponse.de(guardado, Referencia.de(producto, campos).etiqueta(), stock);
+    }
+
+    private List<Campo> obtenerCampos(Bloque bloque, NegocioId negocioId) {
+        return campoRepository.findByBloqueIdAndNegocioId(bloque.getId(), negocioId);
+    }
+
+    private BigDecimal stockDe(RegistroId productoId, NegocioId negocioId) {
+        return movimientoStockRepository.stockCompletoDe(List.of(productoId), negocioId).get(productoId);
     }
 
     /**
@@ -73,9 +108,7 @@ public class RegistrarMovimiento {
     }
 
     private void validarStockSuficiente(MovimientoStock salida) {
-        BigDecimal stock = movimientoStockRepository
-                .stockCompletoDe(List.of(salida.getRegistroId()), salida.getNegocioId())
-                .get(salida.getRegistroId());
+        BigDecimal stock = stockDe(salida.getRegistroId(), salida.getNegocioId());
         if (salida.getCantidad().compareTo(stock) > 0) {
             throw new RegistroInvalidoException(Map.of(
                     "cantidad", "No hay stock suficiente: quedan " + stock.stripTrailingZeros().toPlainString()));

@@ -31,45 +31,59 @@ class ListarObjetivosTest {
             negocioRepository,
             objetivoRepository);
 
+    private List<ObjetivoItem> objetivos;
+
     @BeforeEach
-    void givenNegocioDeLaSesion() {
+    void dadoElNegocioDeLaSesion() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @Test
     @DisplayName("Lista los objetivos del negocio de la sesión en el orden del repositorio")
-    void executeShouldReturnObjetivosOfSessionNegocio() {
-        givenObjetivos(objetivo(), otroObjetivo());
+    void listaLosObjetivosDelNegocioDeLaSesionEnElOrdenDelRepositorio() {
+        dadoDosObjetivosEnElNegocio();
 
-        List<ObjetivoItem> result = whenListar();
+        cuandoSeListan();
 
-        assertThat(result).extracting(ObjetivoItem::id).containsExactly(OBJETIVO_ID, OTRO_OBJETIVO_ID);
-        verify(objetivoRepository).findAllByNegocioId(NEGOCIO_ID);
+        entoncesSeListanEnElOrdenDelRepositorio();
     }
 
     @Test
     @DisplayName("Devuelve una lista vacía cuando el negocio no tiene objetivos")
-    void executeShouldReturnEmptyListWhenNoObjetivos() {
-        givenObjetivos();
+    void devuelveUnaListaVaciaCuandoElNegocioNoTieneObjetivos() {
+        dadoUnNegocioSinObjetivos();
 
-        List<ObjetivoItem> result = whenListar();
+        cuandoSeListan();
 
-        assertThat(result).isEmpty();
+        entoncesNoHayObjetivos();
     }
 
-    // --- arrange ---
-    private void givenObjetivos(Objetivo... objetivos) {
-        when(objetivoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(objetivos));
-    }
+    // --- dado ---
 
-    private Objetivo otroObjetivo() {
+    private void dadoDosObjetivosEnElNegocio() {
         Objetivo otro = objetivo();
         otro.setId(OTRO_OBJETIVO_ID);
-        return otro;
+        when(objetivoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(objetivo(), otro));
     }
 
-    // --- act ---
-    private List<ObjetivoItem> whenListar() {
-        return listarObjetivos.execute(new ListarObjetivosRequest(USUARIO_ID));
+    private void dadoUnNegocioSinObjetivos() {
+        when(objetivoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeListan() {
+        objetivos = listarObjetivos.execute(new ListarObjetivosRequest(USUARIO_ID));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeListanEnElOrdenDelRepositorio() {
+        assertThat(objetivos).extracting(ObjetivoItem::id).containsExactly(OBJETIVO_ID, OTRO_OBJETIVO_ID);
+        verify(objetivoRepository).findAllByNegocioId(NEGOCIO_ID);
+    }
+
+    private void entoncesNoHayObjetivos() {
+        assertThat(objetivos).isEmpty();
     }
 }

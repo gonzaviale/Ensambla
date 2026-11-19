@@ -25,6 +25,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 import java.math.BigDecimal;
 import java.security.Principal;
@@ -60,6 +61,7 @@ class InventarioControllerTest {
     private ListarMovimientos listarMovimientos;
     private ConsultarStock consultarStock;
     private MockMvc mockMvc;
+    private ResultActions respuesta;
 
     @BeforeEach
     void setUp() {
@@ -77,72 +79,174 @@ class InventarioControllerTest {
 
     @Test
     @DisplayName("POST registra el movimiento con el usuario de la sesión y responde 201 con el stock")
-    void registrarShouldReturn201WithStockAndPassSessionUser() throws Exception {
-        when(registrarMovimiento.execute(any(RegistrarMovimientoRequest.class)))
-                .thenReturn(new RegistrarMovimientoResponse(ITEM, new BigDecimal("12")));
-        String cuerpo = "{\"registroId\":\"" + PRODUCTO_ID + "\",\"tipo\":\"ENTRADA\",\"cantidad\":2.5,"
-                + "\"fecha\":\"2026-10-13\",\"nota\":\"Compra\"}";
+    void postRegistraElMovimientoConElUsuarioDeLaSesionYResponde201ConElStock() throws Exception {
+        dadoUnMovimientoRegistrable();
 
-        mockMvc.perform(post("/api/bloques/{id}/movimientos", BLOQUE_ID)
-                        .principal(sesion).contentType(MediaType.APPLICATION_JSON).content(cuerpo))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.movimiento.id").value(MOVIMIENTO_ID.toString()))
-                .andExpect(jsonPath("$.movimiento.producto").value("Harina"))
-                .andExpect(jsonPath("$.movimiento.tipo").value("ENTRADA"))
-                .andExpect(jsonPath("$.stockActual").value(12));
-        ArgumentCaptor<RegistrarMovimientoRequest> request = ArgumentCaptor.forClass(RegistrarMovimientoRequest.class);
-        verify(registrarMovimiento).execute(request.capture());
-        assertThat(request.getValue()).isEqualTo(new RegistrarMovimientoRequest(
-                USUARIO_ID, BLOQUE_ID, PRODUCTO_ID, "ENTRADA", new BigDecimal("2.5"),
-                LocalDate.parse("2026-10-13"), "Compra"));
+        cuandoSeRegistraUnaEntradaDeHarina();
+
+        entoncesSeResponde201ConElMovimientoYElStock();
+        entoncesElCasoDeUsoRecibeLaEntradaDelUsuario();
     }
 
     @Test
     @DisplayName("POST con datos inválidos responde 400 con el mensaje de cada dato")
-    void registrarShouldReturn400WithFieldErrors() throws Exception {
-        when(registrarMovimiento.execute(any(RegistrarMovimientoRequest.class)))
-                .thenThrow(new RegistroInvalidoException(Map.of("cantidad", "Tiene que ser mayor a cero")));
+    void postConDatosInvalidosResponde400ConElMensajeDeCadaDato() throws Exception {
+        dadoUnMovimientoInvalido();
 
-        mockMvc.perform(post("/api/bloques/{id}/movimientos", BLOQUE_ID)
-                        .principal(sesion).contentType(MediaType.APPLICATION_JSON).content("{}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors.cantidad").value("Tiene que ser mayor a cero"));
+        cuandoSeRegistraUnMovimientoSinDatos();
+
+        entoncesSeResponde400ConElMensajeDeLaCantidad();
     }
 
     @Test
     @DisplayName("GET de movimientos devuelve la lista y pasa el producto elegido")
-    void movimientosShouldReturnListAndPassProduct() throws Exception {
-        when(listarMovimientos.execute(any(ListarMovimientosRequest.class))).thenReturn(List.of(ITEM));
+    void getDeMovimientosDevuelveLaListaYPasaElProductoElegido() throws Exception {
+        dadoUnBloqueConUnMovimiento();
 
-        mockMvc.perform(get("/api/bloques/{id}/movimientos", BLOQUE_ID)
-                        .param("registroId", PRODUCTO_ID.toString()).principal(sesion))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].producto").value("Harina"))
-                .andExpect(jsonPath("$[0].cantidad").value(2.5))
-                .andExpect(jsonPath("$[0].fecha").value("2026-10-13"));
-        verify(listarMovimientos).execute(new ListarMovimientosRequest(USUARIO_ID, BLOQUE_ID, PRODUCTO_ID));
+        cuandoSeListanLosMovimientosDelProducto();
+
+        entoncesSeDevuelveElMovimientoDeHarina();
+        entoncesSeConsultanLosMovimientosDelProducto();
     }
 
     @Test
     @DisplayName("GET de movimientos sin producto trae los de todo el bloque")
-    void movimientosShouldNotFilterWithoutProduct() throws Exception {
-        when(listarMovimientos.execute(any(ListarMovimientosRequest.class))).thenReturn(List.of());
+    void getDeMovimientosSinProductoTraeLosDeTodoElBloque() throws Exception {
+        dadoUnBloqueSinMovimientos();
 
-        mockMvc.perform(get("/api/bloques/{id}/movimientos", BLOQUE_ID).principal(sesion))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isEmpty());
-        verify(listarMovimientos).execute(new ListarMovimientosRequest(USUARIO_ID, BLOQUE_ID, null));
+        cuandoSeListanLosMovimientosDelBloque();
+
+        entoncesSeDevuelveUnaListaVacia();
+        entoncesSeConsultanLosMovimientosSinFiltrarPorProducto();
     }
 
     @Test
     @DisplayName("GET del stock devuelve la página con las claves que espera el frontend")
-    void stockShouldReturnPageWithFrontendKeys() throws Exception {
+    void getDelStockDevuelveLaPaginaConLasClavesQueEsperaElFrontend() throws Exception {
+        dadoUnaPaginaDeStockDeHarina();
+
+        cuandoSeConsultaElStockBuscandoHarina();
+
+        entoncesSeDevuelveLaPaginaConLasClavesDelFrontend();
+        entoncesSeConsultaElStockBuscandoHarina();
+    }
+
+    @Test
+    @DisplayName("GET del stock de una sola página marca primera y última")
+    void getDelStockDeUnaSolaPaginaMarcaPrimeraYUltima() throws Exception {
+        dadoUnStockDeUnaSolaPagina();
+
+        cuandoSeConsultaElStockDelBloque();
+
+        entoncesLaPaginaEsPrimeraYUltima();
+    }
+
+    // --- dado ---
+
+    private void dadoUnMovimientoRegistrable() {
+        when(registrarMovimiento.execute(any(RegistrarMovimientoRequest.class)))
+                .thenReturn(new RegistrarMovimientoResponse(ITEM, new BigDecimal("12")));
+    }
+
+    private void dadoUnMovimientoInvalido() {
+        when(registrarMovimiento.execute(any(RegistrarMovimientoRequest.class)))
+                .thenThrow(new RegistroInvalidoException(Map.of("cantidad", "Tiene que ser mayor a cero")));
+    }
+
+    private void dadoUnBloqueConUnMovimiento() {
+        when(listarMovimientos.execute(any(ListarMovimientosRequest.class))).thenReturn(List.of(ITEM));
+    }
+
+    private void dadoUnBloqueSinMovimientos() {
+        when(listarMovimientos.execute(any(ListarMovimientosRequest.class))).thenReturn(List.of());
+    }
+
+    private void dadoUnaPaginaDeStockDeHarina() {
         when(consultarStock.execute(any(ConsultarStockRequest.class))).thenReturn(new ConsultarStockResponse(
                 List.of(new StockItem(PRODUCTO_ID, "Harina", new BigDecimal("8"))), 1, 20, 41, 3));
+    }
 
-        mockMvc.perform(get("/api/bloques/{id}/stock", BLOQUE_ID)
-                        .param("q", "har").param("pagina", "1").param("tamanio", "20").principal(sesion))
-                .andExpect(status().isOk())
+    private void dadoUnStockDeUnaSolaPagina() {
+        when(consultarStock.execute(any(ConsultarStockRequest.class)))
+                .thenReturn(new ConsultarStockResponse(List.of(), 0, 20, 0, 1));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeRegistraUnaEntradaDeHarina() throws Exception {
+        String cuerpo = "{\"registroId\":\"" + PRODUCTO_ID + "\",\"tipo\":\"ENTRADA\",\"cantidad\":2.5,"
+                + "\"fecha\":\"2026-10-13\",\"nota\":\"Compra\"}";
+        respuesta = mockMvc.perform(post("/api/bloques/{id}/movimientos", BLOQUE_ID)
+                .principal(sesion).contentType(MediaType.APPLICATION_JSON).content(cuerpo));
+    }
+
+    private void cuandoSeRegistraUnMovimientoSinDatos() throws Exception {
+        respuesta = mockMvc.perform(post("/api/bloques/{id}/movimientos", BLOQUE_ID)
+                .principal(sesion).contentType(MediaType.APPLICATION_JSON).content("{}"));
+    }
+
+    private void cuandoSeListanLosMovimientosDelProducto() throws Exception {
+        respuesta = mockMvc.perform(get("/api/bloques/{id}/movimientos", BLOQUE_ID)
+                .param("registroId", PRODUCTO_ID.toString()).principal(sesion));
+    }
+
+    private void cuandoSeListanLosMovimientosDelBloque() throws Exception {
+        respuesta = mockMvc.perform(get("/api/bloques/{id}/movimientos", BLOQUE_ID).principal(sesion));
+    }
+
+    private void cuandoSeConsultaElStockBuscandoHarina() throws Exception {
+        respuesta = mockMvc.perform(get("/api/bloques/{id}/stock", BLOQUE_ID)
+                .param("q", "har").param("pagina", "1").param("tamanio", "20").principal(sesion));
+    }
+
+    private void cuandoSeConsultaElStockDelBloque() throws Exception {
+        respuesta = mockMvc.perform(get("/api/bloques/{id}/stock", BLOQUE_ID).principal(sesion));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeResponde201ConElMovimientoYElStock() throws Exception {
+        respuesta.andExpect(status().isCreated())
+                .andExpect(jsonPath("$.movimiento.id").value(MOVIMIENTO_ID.toString()))
+                .andExpect(jsonPath("$.movimiento.producto").value("Harina"))
+                .andExpect(jsonPath("$.movimiento.tipo").value("ENTRADA"))
+                .andExpect(jsonPath("$.stockActual").value(12));
+    }
+
+    private void entoncesElCasoDeUsoRecibeLaEntradaDelUsuario() {
+        ArgumentCaptor<RegistrarMovimientoRequest> pedido = ArgumentCaptor.forClass(RegistrarMovimientoRequest.class);
+        verify(registrarMovimiento).execute(pedido.capture());
+        assertThat(pedido.getValue()).isEqualTo(new RegistrarMovimientoRequest(
+                USUARIO_ID, BLOQUE_ID, PRODUCTO_ID, "ENTRADA", new BigDecimal("2.5"),
+                LocalDate.parse("2026-10-13"), "Compra"));
+    }
+
+    private void entoncesSeResponde400ConElMensajeDeLaCantidad() throws Exception {
+        respuesta.andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.cantidad").value("Tiene que ser mayor a cero"));
+    }
+
+    private void entoncesSeDevuelveElMovimientoDeHarina() throws Exception {
+        respuesta.andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].producto").value("Harina"))
+                .andExpect(jsonPath("$[0].cantidad").value(2.5))
+                .andExpect(jsonPath("$[0].fecha").value("2026-10-13"));
+    }
+
+    private void entoncesSeConsultanLosMovimientosDelProducto() {
+        verify(listarMovimientos).execute(new ListarMovimientosRequest(USUARIO_ID, BLOQUE_ID, PRODUCTO_ID));
+    }
+
+    private void entoncesSeDevuelveUnaListaVacia() throws Exception {
+        respuesta.andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
+    }
+
+    private void entoncesSeConsultanLosMovimientosSinFiltrarPorProducto() {
+        verify(listarMovimientos).execute(new ListarMovimientosRequest(USUARIO_ID, BLOQUE_ID, null));
+    }
+
+    private void entoncesSeDevuelveLaPaginaConLasClavesDelFrontend() throws Exception {
+        respuesta.andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].registroId").value(PRODUCTO_ID.toString()))
                 .andExpect(jsonPath("$.content[0].producto").value("Harina"))
                 .andExpect(jsonPath("$.content[0].stock").value(8))
@@ -152,17 +256,14 @@ class InventarioControllerTest {
                 .andExpect(jsonPath("$.totalPages").value(3))
                 .andExpect(jsonPath("$.first").value(false))
                 .andExpect(jsonPath("$.last").value(false));
+    }
+
+    private void entoncesSeConsultaElStockBuscandoHarina() {
         verify(consultarStock).execute(new ConsultarStockRequest(USUARIO_ID, BLOQUE_ID, "har", 1, 20));
     }
 
-    @Test
-    @DisplayName("GET del stock de una sola página marca primera y última")
-    void stockShouldFlagFirstAndLastPage() throws Exception {
-        when(consultarStock.execute(any(ConsultarStockRequest.class)))
-                .thenReturn(new ConsultarStockResponse(List.of(), 0, 20, 0, 1));
-
-        mockMvc.perform(get("/api/bloques/{id}/stock", BLOQUE_ID).principal(sesion))
-                .andExpect(status().isOk())
+    private void entoncesLaPaginaEsPrimeraYUltima() throws Exception {
+        respuesta.andExpect(status().isOk())
                 .andExpect(jsonPath("$.first").value(true))
                 .andExpect(jsonPath("$.last").value(true));
     }

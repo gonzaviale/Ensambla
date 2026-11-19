@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'vitest';
 import type { Aviso, TipoDeAviso } from '@/lib/sistema/alertas';
 import { sugerenciasDeLaHome } from '@/lib/sistema/sugerenciasDeLaHome';
+import { cuandoSeCalcula, entoncesElResultadoEs } from '@/test/calculo';
 
 const aviso = (id: string, tipo: TipoDeAviso, prioridad: 1 | 2 | 3): Aviso => ({
   id,
@@ -15,7 +16,8 @@ const aviso = (id: string, tipo: TipoDeAviso, prioridad: 1 | 2 | 3): Aviso => ({
   acciones: [],
 });
 
-const ids = (avisos: Aviso[]) => avisos.map((item) => item.id);
+const sugeridas = (avisos: Aviso[], maximo?: number) =>
+  sugerenciasDeLaHome(avisos, maximo).map((item) => item.id);
 
 describe('sugerenciasDeLaHome', () => {
   it('toma la más urgente de cada tema aunque otros avisos sean más urgentes', () => {
@@ -27,16 +29,25 @@ describe('sugerenciasDeLaHome', () => {
       aviso('precio', 'precio_zona', 1),
     ];
 
-    expect(ids(sugerenciasDeLaHome(avisos))).toEqual(['falta-1', 'parado', 'precio']);
+    cuandoSeCalcula(() => sugeridas(avisos));
+
+    entoncesElResultadoEs(['falta-1', 'parado', 'precio']);
   });
 
-  it('«se vende mucho» y «revisar el precio» también son del tema de precio frente a la zona', () => {
-    expect(
-      ids(sugerenciasDeLaHome([aviso('falta', 'stock', 3), aviso('barato', 'muy_vendido', 1)])),
-    ).toEqual(['falta', 'barato']);
-    expect(
-      ids(sugerenciasDeLaHome([aviso('falta', 'stock', 3), aviso('revisar', 'revisar_precio', 1)])),
-    ).toEqual(['falta', 'revisar']);
+  it('«se vende mucho» es del tema de precio frente a la zona', () => {
+    const avisos = [aviso('falta', 'stock', 3), aviso('barato', 'muy_vendido', 1)];
+
+    cuandoSeCalcula(() => sugeridas(avisos));
+
+    entoncesElResultadoEs(['falta', 'barato']);
+  });
+
+  it('«revisar el precio» es del tema de precio frente a la zona', () => {
+    const avisos = [aviso('falta', 'stock', 3), aviso('revisar', 'revisar_precio', 1)];
+
+    cuandoSeCalcula(() => sugeridas(avisos));
+
+    entoncesElResultadoEs(['falta', 'revisar']);
   });
 
   it('si falta algún tema, completa con las siguientes más urgentes', () => {
@@ -47,7 +58,9 @@ describe('sugerenciasDeLaHome', () => {
       aviso('falta-4', 'stock', 1),
     ];
 
-    expect(ids(sugerenciasDeLaHome(avisos))).toEqual(['falta-1', 'falta-2', 'falta-3']);
+    cuandoSeCalcula(() => sugeridas(avisos));
+
+    entoncesElResultadoEs(['falta-1', 'falta-2', 'falta-3']);
   });
 
   it('respeta el orden de urgencia y no repite avisos', () => {
@@ -58,12 +71,21 @@ describe('sugerenciasDeLaHome', () => {
       aviso('precio', 'precio_zona', 1),
     ];
 
-    expect(ids(sugerenciasDeLaHome(avisos))).toEqual(['falta', 'parado', 'precio']);
+    cuandoSeCalcula(() => sugeridas(avisos));
+
+    entoncesElResultadoEs(['falta', 'parado', 'precio']);
   });
 
-  it('con pocos avisos devuelve los que hay, y sin avisos ninguno', () => {
-    expect(ids(sugerenciasDeLaHome([aviso('solo', 'combo', 1)]))).toEqual(['solo']);
-    expect(sugerenciasDeLaHome([])).toEqual([]);
+  it('con pocos avisos devuelve los que hay', () => {
+    cuandoSeCalcula(() => sugeridas([aviso('solo', 'combo', 1)]));
+
+    entoncesElResultadoEs(['solo']);
+  });
+
+  it('sin avisos no sugiere ninguno', () => {
+    cuandoSeCalcula(() => sugeridas([]));
+
+    entoncesElResultadoEs([]);
   });
 
   it('el máximo se puede cambiar', () => {
@@ -73,6 +95,8 @@ describe('sugerenciasDeLaHome', () => {
       aviso('c', 'precio_zona', 1),
     ];
 
-    expect(ids(sugerenciasDeLaHome(avisos, 2))).toEqual(['a', 'b']);
+    cuandoSeCalcula(() => sugeridas(avisos, 2));
+
+    entoncesElResultadoEs(['a', 'b']);
   });
 });

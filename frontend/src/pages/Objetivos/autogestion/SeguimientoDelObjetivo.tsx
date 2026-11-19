@@ -225,6 +225,8 @@ export function SeguimientoDelObjetivo({
               <h3>Lo que pasó</h3>
               <div
                 id="recorrido-semanas"
+                role="region"
+                aria-label="Recorrido de las semanas"
                 ref={recorrido}
                 className={`recorrido-scroll ${verTodasLasSemanas ? 'abierto' : ''}`.trim()}
                 tabIndex={verTodasLasSemanas ? 0 : undefined}

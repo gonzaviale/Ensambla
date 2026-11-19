@@ -12,21 +12,58 @@ class CandidatosDelNegocioTest {
 
     private static final BigDecimal META = new BigDecimal("500000.00");
 
+    private CandidatosDelNegocio negocio;
+    private boolean alcanza;
+
     @Test
-    @DisplayName("Alcanza la meta cuando el resultado la iguala o la pasa")
-    void alcanzaShouldBeTrueWhenTheResultReachesTheGoal() {
-        assertThat(negocioConResultado("500000").alcanza(META)).isTrue();
-        assertThat(negocioConResultado("620000").alcanza(META)).isTrue();
+    @DisplayName("Alcanza la meta cuando el resultado la iguala")
+    void alcanzaLaMetaCuandoElResultadoLaIguala() {
+        dadoUnNegocioConResultado("500000");
+
+        cuandoSeComparaConLaMeta();
+
+        entoncesAlcanzaLaMeta();
+    }
+
+    @Test
+    @DisplayName("Alcanza la meta cuando el resultado la pasa")
+    void alcanzaLaMetaCuandoElResultadoLaPasa() {
+        dadoUnNegocioConResultado("620000");
+
+        cuandoSeComparaConLaMeta();
+
+        entoncesAlcanzaLaMeta();
     }
 
     @Test
     @DisplayName("No alcanza la meta cuando el resultado queda por debajo")
-    void alcanzaShouldBeFalseWhenTheResultIsBelowTheGoal() {
-        assertThat(negocioConResultado("499999").alcanza(META)).isFalse();
+    void noAlcanzaLaMetaCuandoElResultadoQuedaPorDebajo() {
+        dadoUnNegocioConResultado("499999");
+
+        cuandoSeComparaConLaMeta();
+
+        entoncesNoAlcanzaLaMeta();
     }
 
-    // --- helpers ---
-    private static CandidatosDelNegocio negocioConResultado(String resultado) {
-        return new CandidatosDelNegocio(new BigDecimal(resultado), List.of());
+    // --- dado ---
+
+    private void dadoUnNegocioConResultado(String resultado) {
+        negocio = new CandidatosDelNegocio(new BigDecimal(resultado), List.of());
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeComparaConLaMeta() {
+        alcanza = negocio.alcanza(META);
+    }
+
+    // --- entonces ---
+
+    private void entoncesAlcanzaLaMeta() {
+        assertThat(alcanza).isTrue();
+    }
+
+    private void entoncesNoAlcanzaLaMeta() {
+        assertThat(alcanza).isFalse();
     }
 }

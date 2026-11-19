@@ -19,33 +19,60 @@ class ListarPlantillasResponseTest {
     private static final String ICONO = "box";
     private static final Map<String, Object> ESTRUCTURA = Map.of("bloques", List.of());
 
+    private ListarPlantillasResponse respuesta;
+
     @Test
     @DisplayName("Mapea cada campo de la plantilla al item")
-    void deShouldMapEveryPlantillaField() {
-        ListarPlantillasResponse response = ListarPlantillasResponse.de(List.of(plantilla(PRIMER_ID)));
+    void mapeaCadaCampoDeLaPlantillaAlItem() {
+        cuandoSeArmaLaRespuestaConLasPlantillas(unaPlantilla(PRIMER_ID));
 
-        thenItemHasEveryPlantillaField(response.content().getFirst());
+        entoncesElItemTieneTodosLosCamposDeLaPlantilla();
     }
 
     @Test
     @DisplayName("Conserva el orden de las plantillas")
-    void deShouldKeepPlantillasOrder() {
-        ListarPlantillasResponse response =
-                ListarPlantillasResponse.de(List.of(plantilla(PRIMER_ID), plantilla(SEGUNDO_ID)));
+    void conservaElOrdenDeLasPlantillas() {
+        cuandoSeArmaLaRespuestaConLasPlantillas(unaPlantilla(PRIMER_ID), unaPlantilla(SEGUNDO_ID));
 
-        assertThat(response.content()).extracting(PlantillaItem::id).containsExactly(PRIMER_ID, SEGUNDO_ID);
+        entoncesLasPlantillasQuedanEnElOrdenOriginal();
     }
 
     @Test
     @DisplayName("Devuelve contenido vacío cuando no hay plantillas")
-    void deShouldReturnEmptyContentWhenThereAreNoPlantillas() {
-        ListarPlantillasResponse response = ListarPlantillasResponse.de(List.of());
+    void devuelveContenidoVacioCuandoNoHayPlantillas() {
+        cuandoSeArmaLaRespuestaConLasPlantillas();
 
-        assertThat(response.content()).isEmpty();
+        entoncesElContenidoEstaVacio();
     }
 
-    // --- helpers ---
-    private Plantilla plantilla(PlantillaId id) {
+    // --- cuando ---
+
+    private void cuandoSeArmaLaRespuestaConLasPlantillas(Plantilla... plantillas) {
+        respuesta = ListarPlantillasResponse.de(List.of(plantillas));
+    }
+
+    // --- entonces ---
+
+    private void entoncesElItemTieneTodosLosCamposDeLaPlantilla() {
+        PlantillaItem item = respuesta.content().getFirst();
+        assertThat(item.id()).isEqualTo(PRIMER_ID);
+        assertThat(item.nombre()).isEqualTo(NOMBRE);
+        assertThat(item.descripcion()).isEqualTo(DESCRIPCION);
+        assertThat(item.icono()).isEqualTo(ICONO);
+        assertThat(item.estructura()).isEqualTo(ESTRUCTURA);
+    }
+
+    private void entoncesLasPlantillasQuedanEnElOrdenOriginal() {
+        assertThat(respuesta.content()).extracting(PlantillaItem::id).containsExactly(PRIMER_ID, SEGUNDO_ID);
+    }
+
+    private void entoncesElContenidoEstaVacio() {
+        assertThat(respuesta.content()).isEmpty();
+    }
+
+    // --- datos ---
+
+    private Plantilla unaPlantilla(PlantillaId id) {
         return Plantilla.builder()
                 .id(id)
                 .nombre(NOMBRE)
@@ -53,14 +80,5 @@ class ListarPlantillasResponseTest {
                 .icono(ICONO)
                 .estructura(ESTRUCTURA)
                 .build();
-    }
-
-    // --- assert ---
-    private void thenItemHasEveryPlantillaField(PlantillaItem item) {
-        assertThat(item.id()).isEqualTo(PRIMER_ID);
-        assertThat(item.nombre()).isEqualTo(NOMBRE);
-        assertThat(item.descripcion()).isEqualTo(DESCRIPCION);
-        assertThat(item.icono()).isEqualTo(ICONO);
-        assertThat(item.estructura()).isEqualTo(ESTRUCTURA);
     }
 }

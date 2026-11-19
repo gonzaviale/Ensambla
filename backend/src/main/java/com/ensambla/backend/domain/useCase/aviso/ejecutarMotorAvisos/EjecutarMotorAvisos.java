@@ -78,21 +78,27 @@ public class EjecutarMotorAvisos {
     private final Clock clock;
 
     public void execute() {
-        for (NegocioId negocioId : negocioRepository.findAllIds()) {
+        for (NegocioId negocioId : obtenerNegocios()) {
             ejecutarNegocio(negocioId);
         }
+    }
+
+    private List<NegocioId> obtenerNegocios() {
+        return negocioRepository.findAllIds();
     }
 
     private void ejecutarNegocio(NegocioId negocioId) {
         try {
             OffsetDateTime ahora = OffsetDateTime.now(clock);
-            transaccionPort.ejecutar(() -> {
-                ContextoNegocio contexto = armarContexto(negocioId, hoyEn(ahora));
-                reglas.forEach(regla -> sincronizar(negocioId, regla.tipo(), regla.evaluar(contexto), ahora));
-            });
+            transaccionPort.ejecutar(() -> evaluarLasReglas(negocioId, ahora));
         } catch (RuntimeException e) {
             log.warn("El motor de avisos falló en el negocio {}", negocioId, e);
         }
+    }
+
+    private void evaluarLasReglas(NegocioId negocioId, OffsetDateTime ahora) {
+        ContextoNegocio contexto = armarContexto(negocioId, hoyEn(ahora));
+        reglas.forEach(regla -> sincronizar(negocioId, regla.tipo(), regla.evaluar(contexto), ahora));
     }
 
     /** El día de hoy según el reloj del negocio: las ventas se anotan con fecha argentina. */
@@ -100,13 +106,8 @@ public class EjecutarMotorAvisos {
         return ahora.atZoneSameInstant(ZONA_NEGOCIO).toLocalDate();
     }
 
-    // --- contexto: las tablas de inventario y de ventas del negocio con sus campos y registros, y su zona ---
-
     private ContextoNegocio armarContexto(NegocioId negocioId, LocalDate hoy) {
-        List<Proyecto> proyectos = proyectoRepository.findAllByNegocioId(negocioId).stream()
-                .map(proyecto -> proyectoRepository.findByIdAndNegocioId(proyecto.getId(), negocioId))
-                .flatMap(Optional::stream)
-                .toList();
+        List<Proyecto> proyectos = obtenerProyectos(negocioId);
         List<BloqueInventario> inventarios = proyectos.stream()
                 .flatMap(proyecto -> inventariosDe(proyecto, negocioId).stream())
                 .toList();
@@ -115,6 +116,13 @@ public class EjecutarMotorAvisos {
                 .toList();
         return new ContextoNegocio(negocioId, hoy, inventarios, ventas, zonaDe(negocioId),
                 cambiosDePrecioDe(negocioId, hoy));
+    }
+
+    private List<Proyecto> obtenerProyectos(NegocioId negocioId) {
+        return proyectoRepository.findAllByNegocioId(negocioId).stream()
+                .map(proyecto -> proyectoRepository.findByIdAndNegocioId(proyecto.getId(), negocioId))
+                .flatMap(Optional::stream)
+                .toList();
     }
 
     /** Los cambios de precio del período: un aumento más viejo ya no cuenta para ningún aviso. */
@@ -132,19 +140,20 @@ public class EjecutarMotorAvisos {
     }
 
     private List<BloqueInventario> inventariosDe(Proyecto proyecto, NegocioId negocioId) {
-        BloqueId entradasId = proyecto.getBloques().stream()
+        BloqueId entradasId = bloqueDeEntradas(proyecto);
+        return proyecto.getBloques().stream()
+                .filter(bloque -> bloque.getTipo() == TipoBloque.INVENTARIO)
+                .map(bloque -> new BloqueInventario(
+                        bloque, entradasId, camposPorClave(bloque), registrosReales(bloque, negocioId)))
+                .toList();
+    }
+
+    private BloqueId bloqueDeEntradas(Proyecto proyecto) {
+        return proyecto.getBloques().stream()
                 .filter(bloque -> bloque.getTipo() == TipoBloque.ENTRADAS)
                 .map(Bloque::getId)
                 .findFirst()
                 .orElse(null);
-        return proyecto.getBloques().stream()
-                .filter(bloque -> bloque.getTipo() == TipoBloque.INVENTARIO)
-                .map(bloque -> new BloqueInventario(
-                        bloque,
-                        entradasId,
-                        camposPorClave(bloque),
-                        registrosReales(bloque, negocioId)))
-                .toList();
     }
 
     private List<BloqueVentas> ventasDe(Proyecto proyecto, NegocioId negocioId) {
@@ -169,32 +178,54 @@ public class EjecutarMotorAvisos {
         return porClave;
     }
 
-    // --- sincronización de los avisos de una regla ---
-
     private void sincronizar(NegocioId negocioId, TipoAviso tipo, List<ResultadoRegla> resultados,
             OffsetDateTime ahora) {
-        List<Aviso> pendientes = avisoRepository.findByNegocioIdAndTipoAndEstado(
-                negocioId, tipo, EstadoAviso.PENDIENTE);
+        List<Aviso> pendientes = obtenerPendientes(negocioId, tipo);
         Set<AvisoId> vigentes = new HashSet<>();
-        for (ResultadoRegla resultado : resultados) {
-            Optional<Aviso> existente = avisoRepository.findByNegocioIdAndHuella(
-                    negocioId, resultado.huellaPara(tipo));
-            if (existente.isPresent()) {
-                if (existente.get().estaPendiente() || existente.get().getEstado() == EstadoAviso.VENCIDO) {
-                    vencerOtrosPendientesDe(resultado.entidad(), existente.get(), pendientes, ahora);
-                    vigentes.add(avisoRepository.save(reactivar(existente.get(), resultado, ahora)).getId());
-                }
-                continue;
-            }
-            Aviso aviso = pendienteDe(resultado.entidad(), pendientes)
-                    .map(pendiente -> reactivar(pendiente, resultado, ahora))
-                    .orElseGet(() -> Aviso.nuevo(negocioId, tipo, resultado, ahora));
-            vigentes.add(avisoRepository.save(aviso).getId());
+        resultados.forEach(resultado -> sincronizarResultado(negocioId, tipo, resultado, pendientes, ahora)
+                .ifPresent(vigentes::add));
+        vencerLosQueYaNoVigen(pendientes, vigentes, ahora);
+    }
+
+    /** El aviso que queda vigente por este resultado, o nada si la persona ya lo resolvió. */
+    private Optional<AvisoId> sincronizarResultado(NegocioId negocioId, TipoAviso tipo, ResultadoRegla resultado,
+            List<Aviso> pendientes, OffsetDateTime ahora) {
+        Optional<Aviso> existente = buscarPorHuella(negocioId, resultado.huellaPara(tipo));
+        if (existente.isPresent()) {
+            return reactivarExistente(existente.get(), resultado, pendientes, ahora);
         }
+        Aviso aviso = pendienteDe(resultado.entidad(), pendientes)
+                .map(pendiente -> reactivar(pendiente, resultado, ahora))
+                .orElseGet(() -> Aviso.nuevo(negocioId, tipo, resultado, ahora));
+        return Optional.of(guardar(aviso).getId());
+    }
+
+    private Optional<AvisoId> reactivarExistente(Aviso existente, ResultadoRegla resultado, List<Aviso> pendientes,
+            OffsetDateTime ahora) {
+        if (!existente.sePuedeReactivar()) {
+            return Optional.empty();
+        }
+        vencerOtrosPendientesDe(resultado.entidad(), existente, pendientes, ahora);
+        return Optional.of(guardar(reactivar(existente, resultado, ahora)).getId());
+    }
+
+    private void vencerLosQueYaNoVigen(List<Aviso> pendientes, Set<AvisoId> vigentes, OffsetDateTime ahora) {
         pendientes.stream()
                 .filter(pendiente -> !vigentes.contains(pendiente.getId()))
                 .filter(Aviso::estaPendiente)
-                .forEach(pendiente -> avisoRepository.save(vencida(pendiente, ahora)));
+                .forEach(pendiente -> guardar(vencida(pendiente, ahora)));
+    }
+
+    private List<Aviso> obtenerPendientes(NegocioId negocioId, TipoAviso tipo) {
+        return avisoRepository.findByNegocioIdAndTipoAndEstado(negocioId, tipo, EstadoAviso.PENDIENTE);
+    }
+
+    private Optional<Aviso> buscarPorHuella(NegocioId negocioId, String huella) {
+        return avisoRepository.findByNegocioIdAndHuella(negocioId, huella);
+    }
+
+    private Aviso guardar(Aviso aviso) {
+        return avisoRepository.save(aviso);
     }
 
     private void vencerOtrosPendientesDe(String entidad, Aviso conservado, List<Aviso> pendientes,
@@ -202,7 +233,7 @@ public class EjecutarMotorAvisos {
         pendientes.stream()
                 .filter(pendiente -> pendiente.getEntidad().equals(entidad))
                 .filter(pendiente -> !pendiente.getId().equals(conservado.getId()))
-                .forEach(pendiente -> avisoRepository.save(vencida(pendiente, ahora)));
+                .forEach(pendiente -> guardar(vencida(pendiente, ahora)));
     }
 
     private static Optional<Aviso> pendienteDe(String entidad, List<Aviso> pendientes) {

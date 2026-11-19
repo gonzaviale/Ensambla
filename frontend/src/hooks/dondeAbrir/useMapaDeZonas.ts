@@ -223,10 +223,13 @@ function moverLaVista(
   vista: Vista,
 ) {
   const primera = ranking.at(0);
-  if (vista.primerAjuste && primera) {
+  const esElPrimerAjuste = vista.primerAjuste && primera !== undefined;
+  const cambioLaZonaElegida = seleccionadaId && seleccionadaId !== vista.ultimaSeleccion;
+  if (esElPrimerAjuste && primera) {
     encuadrarElPodio(instancia, primera, ranking, local);
     vista.primerAjuste = false;
-  } else if (seleccionadaId && seleccionadaId !== vista.ultimaSeleccion) {
+  }
+  if (!esElPrimerAjuste && cambioLaZonaElegida) {
     irALaZonaElegida(instancia, ranking, seleccionadaId);
   }
   vista.ultimaSeleccion = seleccionadaId;

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'vitest';
 import {
   colorDelNegocio,
   detalleDelNegocio,
@@ -8,6 +8,7 @@ import {
   rubroLegible,
   textoDeAvisos,
 } from '@/lib/negocios/presentacion';
+import { cuandoSeCalcula, entoncesElResultadoEs } from '@/test/calculo';
 import type { ResumenDeNegocio } from '@/types/negocios';
 
 const KIOSCO: ResumenDeNegocio = {
@@ -24,19 +25,35 @@ const KIOSCO: ResumenDeNegocio = {
 
 describe('estadoDelNegocio', () => {
   it('sin ventas en el período no lo juzga', () => {
-    expect(estadoDelNegocio({ hayDatos: false, queda: null })).toBe('SIN_DATOS');
+    cuandoSeCalcula(() => estadoDelNegocio({ hayDatos: false, queda: null }));
+
+    entoncesElResultadoEs('SIN_DATOS');
   });
 
-  it('pide atención si lo que queda es negativo y si no, viene bien', () => {
-    expect(estadoDelNegocio({ hayDatos: true, queda: -1 })).toBe('ATENCION');
-    expect(estadoDelNegocio({ hayDatos: true, queda: 0 })).toBe('BIEN');
-    expect(estadoDelNegocio({ hayDatos: true, queda: null })).toBe('BIEN');
+  it('pide atención si lo que queda es negativo', () => {
+    cuandoSeCalcula(() => estadoDelNegocio({ hayDatos: true, queda: -1 }));
+
+    entoncesElResultadoEs('ATENCION');
+  });
+
+  it('viene bien si no queda en negativo', () => {
+    cuandoSeCalcula(() => estadoDelNegocio({ hayDatos: true, queda: 0 }));
+
+    entoncesElResultadoEs('BIEN');
+  });
+
+  it('viene bien si todavía no se sabe lo que queda', () => {
+    cuandoSeCalcula(() => estadoDelNegocio({ hayDatos: true, queda: null }));
+
+    entoncesElResultadoEs('BIEN');
   });
 });
 
 describe('paraElegir', () => {
   it('toma del resumen lo justo para elegir, sin montos', () => {
-    expect(paraElegir(KIOSCO)).toEqual({
+    cuandoSeCalcula(() => paraElegir(KIOSCO));
+
+    entoncesElResultadoEs({
       id: 'kiosco',
       nombre: 'Kiosco de la esquina',
       avisosPendientes: 2,
@@ -46,37 +63,77 @@ describe('paraElegir', () => {
 });
 
 describe('textoDeAvisos', () => {
-  it('dice cuántos avisos pendientes hay, en singular o plural, o que no hay', () => {
-    expect(textoDeAvisos(0)).toBe('Sin avisos pendientes');
-    expect(textoDeAvisos(1)).toBe('1 aviso pendiente');
-    expect(textoDeAvisos(4)).toBe('4 avisos pendientes');
+  it('dice que no hay avisos pendientes', () => {
+    cuandoSeCalcula(() => textoDeAvisos(0));
+
+    entoncesElResultadoEs('Sin avisos pendientes');
+  });
+
+  it('dice un aviso pendiente en singular', () => {
+    cuandoSeCalcula(() => textoDeAvisos(1));
+
+    entoncesElResultadoEs('1 aviso pendiente');
+  });
+
+  it('dice varios avisos pendientes en plural', () => {
+    cuandoSeCalcula(() => textoDeAvisos(4));
+
+    entoncesElResultadoEs('4 avisos pendientes');
   });
 });
 
 describe('rubroLegible', () => {
   it('pasa el código del rubro a un texto con mayúscula inicial', () => {
-    expect(rubroLegible('KIOSCO')).toBe('Kiosco');
-    expect(rubroLegible('VENTA_ONLINE')).toBe('Venta online');
+    cuandoSeCalcula(() => rubroLegible('KIOSCO'));
+
+    entoncesElResultadoEs('Kiosco');
+  });
+
+  it('cambia los guiones bajos por espacios', () => {
+    cuandoSeCalcula(() => rubroLegible('VENTA_ONLINE'));
+
+    entoncesElResultadoEs('Venta online');
   });
 });
 
 describe('colorDelNegocio', () => {
-  it('le da a cada negocio un color de la paleta según su lugar, y vuelve a empezar después del tercero', () => {
-    expect([0, 1, 2].map(colorDelNegocio)).toEqual(['petrol', 'orange', 'coral']);
-    expect(colorDelNegocio(3)).toBe('petrol');
+  it('le da a cada negocio un color de la paleta según su lugar', () => {
+    cuandoSeCalcula(() => [0, 1, 2].map(colorDelNegocio));
+
+    entoncesElResultadoEs(['petrol', 'orange', 'coral']);
+  });
+
+  it('vuelve a empezar después del tercero', () => {
+    cuandoSeCalcula(() => colorDelNegocio(3));
+
+    entoncesElResultadoEs('petrol');
   });
 });
 
 describe('inicialDelNegocio', () => {
-  it('usa la primera letra en mayúscula, y una N si no hay nombre', () => {
-    expect(inicialDelNegocio(' almacén')).toBe('A');
-    expect(inicialDelNegocio('')).toBe('N');
+  it('usa la primera letra en mayúscula', () => {
+    cuandoSeCalcula(() => inicialDelNegocio(' almacén'));
+
+    entoncesElResultadoEs('A');
+  });
+
+  it('usa una N si no hay nombre', () => {
+    cuandoSeCalcula(() => inicialDelNegocio(''));
+
+    entoncesElResultadoEs('N');
   });
 });
 
 describe('detalleDelNegocio', () => {
-  it('junta el rubro y las tablas, y sin rubro dice sólo las tablas', () => {
-    expect(detalleDelNegocio('Kiosco', 4)).toBe('Kiosco · 4 tablas');
-    expect(detalleDelNegocio(undefined, 1)).toBe('1 tabla');
+  it('junta el rubro y las tablas', () => {
+    cuandoSeCalcula(() => detalleDelNegocio('Kiosco', 4));
+
+    entoncesElResultadoEs('Kiosco · 4 tablas');
+  });
+
+  it('sin rubro dice sólo las tablas', () => {
+    cuandoSeCalcula(() => detalleDelNegocio(undefined, 1));
+
+    entoncesElResultadoEs('1 tabla');
   });
 });

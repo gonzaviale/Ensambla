@@ -24,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.List;
 
@@ -45,7 +46,9 @@ class CobrosCajaControllerTest {
     private RegistrarCobro registrar;
     @Mock
     private ListarVentasCaja listar;
+
     private MockMvc mockMvc;
+    private ResultActions respuesta;
 
     @BeforeEach
     void setUp() {
@@ -56,77 +59,147 @@ class CobrosCajaControllerTest {
 
     @Test
     @DisplayName("El pago posterior conserva al usuario de la sesión y devuelve su comprobante")
-    void registrarShouldReturnReceiptAndMapAuthenticatedUser() throws Exception {
-        when(registrar.execute(any())).thenReturn(CobroCajaItem.de(CobroCajaTestData.cobro()));
+    void elPagoPosteriorConservaAlUsuarioDeLaSesionYDevuelveSuComprobante() throws Exception {
+        dadoUnCobroRegistrado();
 
-        mockMvc.perform(post("/api/caja/cobros").principal(authentication()).contentType("application/json").content(cuerpo()))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.importe").value(600))
+        cuandoSeRegistraElCobroComoUsuarioAutenticado();
+
+        entoncesSeDevuelveElComprobanteDelCobro();
+        entoncesElCasoDeUsoRecibeElCobroDelUsuario();
+    }
+
+    @Test
+    @DisplayName("Lista saldos actuales, cobros e importes originales de las ventas")
+    void listaSaldosActualesCobrosEImportesOriginalesDeLasVentas() throws Exception {
+        dadoUnaVentaConSaldoYUnCobro();
+
+        cuandoSeListanLasVentasDeLaCaja();
+
+        entoncesSeDevuelvenSaldosCobrosEImportesOriginales();
+    }
+
+    @Test
+    @DisplayName("Rechaza un pago sin aplicaciones antes de llegar al caso de uso")
+    void rechazaUnPagoSinAplicacionesAntesDeLlegarAlCasoDeUso() throws Exception {
+        cuandoSeRegistraUnCobroSinAplicaciones();
+
+        entoncesSeRechazaElCobroSinLlegarAlCasoDeUso();
+    }
+
+    @Test
+    @DisplayName("Un identificador inválido no llega a consultar las cuentas")
+    void unIdentificadorInvalidoNoLlegaAConsultarLasCuentas() throws Exception {
+        cuandoSeListanLasVentasConUnInventarioInvalido();
+
+        entoncesSeRechazaLaConsultaSinLlegarAlCasoDeUso();
+    }
+
+    @Test
+    @DisplayName("Una venta de otro negocio responde 404 al intentar cobrarla")
+    void unaVentaDeOtroNegocioResponde404AlIntentarCobrarla() throws Exception {
+        dadoUnaVentaAjena();
+
+        cuandoSeRegistraElCobroComoUsuarioAutenticado();
+
+        entoncesRespondeNoEncontrado();
+    }
+
+    // --- dado ---
+
+    private void dadoUnCobroRegistrado() {
+        when(registrar.execute(any())).thenReturn(CobroCajaItem.de(CobroCajaTestData.cobro()));
+    }
+
+    private void dadoUnaVentaConSaldoYUnCobro() {
+        when(listar.execute(any())).thenReturn(ListarVentasCajaResponse.de(
+                List.of(CobroCajaTestData.venta()), List.of(CobroCajaTestData.cobro())));
+    }
+
+    private void dadoUnaVentaAjena() {
+        when(registrar.execute(any())).thenThrow(new ResourceNotFoundException("Venta no encontrada"));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeRegistraElCobroComoUsuarioAutenticado() throws Exception {
+        respuesta = mockMvc.perform(post("/api/caja/cobros").principal(sesion())
+                .contentType("application/json").content(cuerpoDelCobro()));
+    }
+
+    private void cuandoSeRegistraUnCobroSinAplicaciones() throws Exception {
+        respuesta = mockMvc.perform(post("/api/caja/cobros").contentType("application/json")
+                .content(cuerpoDelCobroSinAplicaciones()));
+    }
+
+    private void cuandoSeListanLasVentasDeLaCaja() throws Exception {
+        respuesta = mockMvc.perform(get("/api/caja/ventas").principal(sesion())
+                .param("proyectoId", CajaTestData.PROYECTO.toString())
+                .param("inventarioId", CajaTestData.INVENTARIO.toString()));
+    }
+
+    private void cuandoSeListanLasVentasConUnInventarioInvalido() throws Exception {
+        respuesta = mockMvc.perform(get("/api/caja/ventas")
+                .param("proyectoId", CajaTestData.PROYECTO.toString())
+                .param("inventarioId", "invalido"));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeDevuelveElComprobanteDelCobro() throws Exception {
+        respuesta.andExpect(status().isOk())
+                .andExpect(jsonPath("$.importe").value(600))
                 .andExpect(jsonPath("$.clienteId").value(CajaTestData.CLIENTE.toString()))
                 .andExpect(jsonPath("$.clienteNombre").value("Ana López"))
                 .andExpect(jsonPath("$.aplicaciones[0].ventaId").value(CajaTestData.OPERACION.toString()))
                 .andExpect(jsonPath("$.aplicaciones[0].importe").value(600))
                 .andExpect(jsonPath("$.aplicaciones[0].pagos[0].medio").value("TRANSFERENCIA"))
                 .andExpect(jsonPath("$.aplicaciones[0].pagos[0].importe").value(600));
+    }
 
+    private void entoncesElCasoDeUsoRecibeElCobroDelUsuario() {
         ArgumentCaptor<RegistrarCobroRequest> captor = ArgumentCaptor.forClass(RegistrarCobroRequest.class);
         verify(registrar).execute(captor.capture());
         assertThat(captor.getValue()).isEqualTo(CobroCajaTestData.request());
     }
 
-    @Test
-    @DisplayName("Lista saldos actuales, cobros e importes originales de las ventas")
-    void listarShouldReturnCurrentAccountsAndOriginalPayments() throws Exception {
-        when(listar.execute(any())).thenReturn(ListarVentasCajaResponse.de(
-                List.of(CobroCajaTestData.venta()), List.of(CobroCajaTestData.cobro())));
-
-        mockMvc.perform(get("/api/caja/ventas").principal(authentication())
-                        .param("proyectoId", CajaTestData.PROYECTO.toString())
-                        .param("inventarioId", CajaTestData.INVENTARIO.toString()))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.ventas[0].saldo").value(1200))
+    private void entoncesSeDevuelvenSaldosCobrosEImportesOriginales() throws Exception {
+        respuesta.andExpect(status().isOk())
+                .andExpect(jsonPath("$.ventas[0].saldo").value(1200))
                 .andExpect(jsonPath("$.ventas[0].pagosIniciales[0].importe").value(800))
                 .andExpect(jsonPath("$.cobros[0].importe").value(600));
     }
 
-    @Test
-    @DisplayName("Rechaza un pago sin aplicaciones antes de llegar al caso de uso")
-    void registrarShouldRejectEmptyApplications() throws Exception {
-        String cuerpo = "{\"id\":\"" + CobroCajaTestData.COBRO + "\",\"proyectoId\":\"" + CajaTestData.PROYECTO
-                + "\",\"inventarioId\":\"" + CajaTestData.INVENTARIO + "\",\"aplicaciones\":[]}";
-
-        mockMvc.perform(post("/api/caja/cobros").contentType("application/json").content(cuerpo))
-                .andExpect(status().isBadRequest());
-
+    private void entoncesSeRechazaElCobroSinLlegarAlCasoDeUso() throws Exception {
+        respuesta.andExpect(status().isBadRequest());
         verifyNoInteractions(registrar);
     }
 
-    @Test
-    @DisplayName("Un identificador inválido no llega a consultar las cuentas")
-    void listarShouldRejectInvalidInventoryId() throws Exception {
-        mockMvc.perform(get("/api/caja/ventas").param("proyectoId", CajaTestData.PROYECTO.toString())
-                        .param("inventarioId", "invalido"))
-                .andExpect(status().isBadRequest());
-
+    private void entoncesSeRechazaLaConsultaSinLlegarAlCasoDeUso() throws Exception {
+        respuesta.andExpect(status().isBadRequest());
         verifyNoInteractions(listar);
     }
 
-    @Test
-    @DisplayName("Una venta de otro negocio responde 404 al intentar cobrarla")
-    void registrarShouldHideForeignSale() throws Exception {
-        when(registrar.execute(any())).thenThrow(new ResourceNotFoundException("Venta no encontrada"));
-
-        mockMvc.perform(post("/api/caja/cobros").principal(authentication()).contentType("application/json").content(cuerpo()))
-                .andExpect(status().isNotFound());
+    private void entoncesRespondeNoEncontrado() throws Exception {
+        respuesta.andExpect(status().isNotFound());
     }
 
-    // --- helpers ---
-    private UsernamePasswordAuthenticationToken authentication() {
+    // --- datos ---
+
+    private UsernamePasswordAuthenticationToken sesion() {
         return UsernamePasswordAuthenticationToken.authenticated(CajaTestData.USUARIO.toString(), null, List.of());
     }
 
-    private String cuerpo() {
+    private String cuerpoDelCobro() {
         return """
                 {"id":"%s","proyectoId":"%s","inventarioId":"%s","aplicaciones":[
                 {"ventaId":"%s","pagos":[{"medio":"TRANSFERENCIA","importe":600}]}]}
-                """.formatted(CobroCajaTestData.COBRO, CajaTestData.PROYECTO, CajaTestData.INVENTARIO, CajaTestData.OPERACION);
+                """.formatted(CobroCajaTestData.COBRO, CajaTestData.PROYECTO, CajaTestData.INVENTARIO,
+                CajaTestData.OPERACION);
+    }
+
+    private String cuerpoDelCobroSinAplicaciones() {
+        return """
+                {"id":"%s","proyectoId":"%s","inventarioId":"%s","aplicaciones":[]}
+                """.formatted(CobroCajaTestData.COBRO, CajaTestData.PROYECTO, CajaTestData.INVENTARIO);
     }
 }

@@ -22,13 +22,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,7 +38,8 @@ import static com.ensambla.backend.support.PagoTestData.PROVEEDOR_ID;
 import static com.ensambla.backend.support.PagoTestData.RENOVACION_ID;
 import static com.ensambla.backend.support.PagoTestData.pago;
 import static com.ensambla.backend.support.PagoTestData.renovacion;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -71,6 +71,8 @@ class RenovacionPremiumSincronizacionTest {
     private SuscripcionRepository suscripcionRepository;
 
     private RenovacionPremiumService renovacionPremiumService;
+    private RenovacionPremium renovacion;
+    private Throwable rechazo;
 
     @BeforeEach
     void setUp() {
@@ -82,96 +84,246 @@ class RenovacionPremiumSincronizacionTest {
     @Test
     @DisplayName("Un contrato en preparación sin resultado remoto no se crea de nuevo")
     void unContratoEnPreparacionSinResultadoRemotoNoSeCreaDeNuevo() {
-        RenovacionPremium renovacion = renovacion();
-        renovacion.setProveedorId(null);
-        when(renovacionPremiumRepository.findById(RENOVACION_ID)).thenReturn(Optional.of(renovacion));
-        when(pasarelaSuscripcionesPort.buscar(RENOVACION_ID)).thenReturn(Optional.empty());
+        dadoUnContratoEnPreparacionSinResultadoRemoto();
 
-        renovacionPremiumService.sincronizar(RENOVACION_ID, AHORA);
+        cuandoSeSincroniza();
 
-        verify(pasarelaSuscripcionesPort).buscar(RENOVACION_ID);
-        verify(renovacionPremiumRepository, never()).save(any());
-        verifyNoInteractions(pagoPremiumRepository, suscripcionRepository);
+        entoncesSeBuscaElContratoSinCrearloNiTocarPagosNiSuscripciones();
     }
 
-    @ParameterizedTest
-    @ValueSource(ints = {0, 1, 2, 3, 4})
-    @DisplayName("Un pago con referencia, contrato, importe, moneda o fecha ajenos no habilita acceso")
-    void unPagoConReferenciaContratoImporteMonedaOFechaAjenosNoHabilitaAcceso(int caso) {
-        RenovacionPremium renovacion = dadoRenovacionSincronizada();
-        PagoRemoto base = pago(renovacion, "factura", "approved", AHORA, AHORA);
-        dadoPagos(new PagoRemoto(base.facturaId(), base.pagoId(), caso == 1 ? "otro" : base.contratoId(),
-                caso == 0 ? RenovacionId.nuevo() : base.referencia(), caso == 2 ? BigDecimal.ONE : base.importe(),
-                caso == 3 ? "USD" : base.moneda(), base.estado(), caso == 4 ? AHORA.minusSeconds(1) : AHORA, AHORA));
+    @Test
+    @DisplayName("Un pago con referencia ajena no habilita acceso")
+    void unPagoConReferenciaAjenaNoHabilitaAcceso() {
+        dadoUnaRenovacionSincronizada();
+        dadoUnPagoConReferenciaAjena();
 
-        assertThatThrownBy(() -> renovacionPremiumService.sincronizar(RENOVACION_ID, AHORA))
-                .isInstanceOf(PasarelaPagoException.class);
+        cuandoSeIntentaSincronizar();
 
-        verifyNoInteractions(pagoPremiumRepository, suscripcionRepository);
+        entoncesLaPasarelaLoRechazaSinTocarPagosNiSuscripciones();
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    @DisplayName("Una factura existente no puede cambiar de negocio ni de período")
-    void unaFacturaExistenteNoPuedeCambiarDeNegocioNiDePeriodo(boolean otroContrato) {
-        RenovacionPremium renovacion = dadoRenovacionSincronizada();
-        dadoPagos(pago(renovacion, "factura", "approved", AHORA, AHORA));
-        when(pagoPremiumRepository.findByFacturaId("factura")).thenReturn(Optional.of(PagoPremium.builder()
-                .renovacionId(otroContrato ? RenovacionId.nuevo() : RENOVACION_ID)
-                .inicioEn(otroContrato ? AHORA : AHORA.minusDays(1)).build()));
+    @Test
+    @DisplayName("Un pago con contrato ajeno no habilita acceso")
+    void unPagoConContratoAjenoNoHabilitaAcceso() {
+        dadoUnaRenovacionSincronizada();
+        dadoUnPagoConContratoAjeno();
 
-        assertThatThrownBy(() -> renovacionPremiumService.sincronizar(RENOVACION_ID, AHORA))
-                .isInstanceOf(PasarelaPagoException.class);
-        verify(pagoPremiumRepository, never()).save(any());
+        cuandoSeIntentaSincronizar();
+
+        entoncesLaPasarelaLoRechazaSinTocarPagosNiSuscripciones();
+    }
+
+    @Test
+    @DisplayName("Un pago con importe ajeno no habilita acceso")
+    void unPagoConImporteAjenoNoHabilitaAcceso() {
+        dadoUnaRenovacionSincronizada();
+        dadoUnPagoConImporteAjeno();
+
+        cuandoSeIntentaSincronizar();
+
+        entoncesLaPasarelaLoRechazaSinTocarPagosNiSuscripciones();
+    }
+
+    @Test
+    @DisplayName("Un pago con moneda ajena no habilita acceso")
+    void unPagoConMonedaAjenaNoHabilitaAcceso() {
+        dadoUnaRenovacionSincronizada();
+        dadoUnPagoConMonedaAjena();
+
+        cuandoSeIntentaSincronizar();
+
+        entoncesLaPasarelaLoRechazaSinTocarPagosNiSuscripciones();
+    }
+
+    @Test
+    @DisplayName("Un pago con fecha de inicio ajena no habilita acceso")
+    void unPagoConFechaDeInicioAjenaNoHabilitaAcceso() {
+        dadoUnaRenovacionSincronizada();
+        dadoUnPagoConFechaDeInicioAjena();
+
+        cuandoSeIntentaSincronizar();
+
+        entoncesLaPasarelaLoRechazaSinTocarPagosNiSuscripciones();
+    }
+
+    @Test
+    @DisplayName("Una factura existente no puede cambiar de negocio")
+    void unaFacturaExistenteNoPuedeCambiarDeNegocio() {
+        dadoUnaRenovacionSincronizada();
+        dadoUnPagoAprobado();
+        dadoQueLaFacturaYaEstaGuardadaEnOtroContrato();
+
+        cuandoSeIntentaSincronizar();
+
+        entoncesLaPasarelaLoRechazaSinGuardarElPago();
+    }
+
+    @Test
+    @DisplayName("Una factura existente no puede cambiar de período")
+    void unaFacturaExistenteNoPuedeCambiarDePeriodo() {
+        dadoUnaRenovacionSincronizada();
+        dadoUnPagoAprobado();
+        dadoQueLaFacturaYaEstaGuardadaEnOtroPeriodo();
+
+        cuandoSeIntentaSincronizar();
+
+        entoncesLaPasarelaLoRechazaSinGuardarElPago();
     }
 
     @Test
     @DisplayName("Una suscripción Premium heredada no se degrada sin historial de pagos de esta integración")
     void unaSuscripcionPremiumHeredadaNoSeDegradaSinHistorialDePagosDeEstaIntegracion() {
-        dadoRenovacionSincronizada();
-        dadoPagos();
-        dadoRecalculo(suscripcion(EstadoSuscripcion.ACTIVA));
-        when(planRepository.findByCodigo(CodigoPlan.PREMIUM)).thenReturn(Optional.of(premium()));
-        when(pagoPremiumRepository.existeByNegocioId(NEGOCIO_ID)).thenReturn(false);
+        dadoUnaRenovacionSincronizada();
+        dadoQueElProveedorNoTienePagos();
+        dadoUnaSuscripcionPremiumHeredadaSinHistorialDePagos();
 
-        renovacionPremiumService.sincronizar(RENOVACION_ID, AHORA);
+        cuandoSeSincroniza();
 
-        verify(suscripcionRepository, never()).save(any());
+        entoncesNoSeGuardaLaSuscripcion();
     }
 
     @Test
     @DisplayName("Una prueba sin pagos conserva su vigencia al conciliar")
     void unaPruebaSinPagosConservaSuVigenciaAlConciliar() {
-        dadoRenovacionSincronizada();
-        dadoPagos();
-        dadoRecalculo(suscripcion(EstadoSuscripcion.PRUEBA));
+        dadoUnaRenovacionSincronizada();
+        dadoQueElProveedorNoTienePagos();
+        dadoUnaPruebaVigente();
 
-        renovacionPremiumService.sincronizar(RENOVACION_ID, AHORA);
+        cuandoSeSincroniza();
 
-        verifyNoInteractions(planRepository);
-        verify(suscripcionRepository, never()).save(any());
+        entoncesLaPruebaConservaSuVigenciaSinConsultarPlanes();
     }
 
     // --- dado ---
-    private RenovacionPremium dadoRenovacionSincronizada() {
-        RenovacionPremium renovacion = renovacion();
+
+    private void dadoUnContratoEnPreparacionSinResultadoRemoto() {
+        renovacion = renovacion();
+        renovacion.setProveedorId(null);
+        when(renovacionPremiumRepository.findById(RENOVACION_ID)).thenReturn(Optional.of(renovacion));
+        when(pasarelaSuscripcionesPort.buscar(RENOVACION_ID)).thenReturn(Optional.empty());
+    }
+
+    private void dadoUnaRenovacionSincronizada() {
+        renovacion = renovacion();
         when(renovacionPremiumRepository.findById(RENOVACION_ID)).thenReturn(Optional.of(renovacion));
         when(renovacionPremiumRepository.findNegocioIdById(RENOVACION_ID)).thenReturn(Optional.of(NEGOCIO_ID));
         when(renovacionPremiumRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(pasarelaSuscripcionesPort.consultar(PROVEEDOR_ID)).thenReturn(contratoAutorizado(renovacion));
-        return renovacion;
     }
 
-    private void dadoPagos(PagoRemoto... pagos) {
+    private void dadoUnPagoAprobado() {
+        dadoLosPagos(pagoBase());
+    }
+
+    private void dadoUnPagoConReferenciaAjena() {
+        PagoRemoto base = pagoBase();
+        dadoLosPagos(new PagoRemoto(base.facturaId(), base.pagoId(), base.contratoId(), RenovacionId.nuevo(),
+                base.importe(), base.moneda(), base.estado(), AHORA, AHORA));
+    }
+
+    private void dadoUnPagoConContratoAjeno() {
+        PagoRemoto base = pagoBase();
+        dadoLosPagos(new PagoRemoto(base.facturaId(), base.pagoId(), "otro", base.referencia(), base.importe(),
+                base.moneda(), base.estado(), AHORA, AHORA));
+    }
+
+    private void dadoUnPagoConImporteAjeno() {
+        PagoRemoto base = pagoBase();
+        dadoLosPagos(new PagoRemoto(base.facturaId(), base.pagoId(), base.contratoId(), base.referencia(),
+                BigDecimal.ONE, base.moneda(), base.estado(), AHORA, AHORA));
+    }
+
+    private void dadoUnPagoConMonedaAjena() {
+        PagoRemoto base = pagoBase();
+        dadoLosPagos(new PagoRemoto(base.facturaId(), base.pagoId(), base.contratoId(), base.referencia(),
+                base.importe(), "USD", base.estado(), AHORA, AHORA));
+    }
+
+    private void dadoUnPagoConFechaDeInicioAjena() {
+        PagoRemoto base = pagoBase();
+        dadoLosPagos(new PagoRemoto(base.facturaId(), base.pagoId(), base.contratoId(), base.referencia(),
+                base.importe(), base.moneda(), base.estado(), AHORA.minusSeconds(1), AHORA));
+    }
+
+    private void dadoQueLaFacturaYaEstaGuardadaEnOtroContrato() {
+        dadoUnaFacturaGuardada(RenovacionId.nuevo(), AHORA);
+    }
+
+    private void dadoQueLaFacturaYaEstaGuardadaEnOtroPeriodo() {
+        dadoUnaFacturaGuardada(RENOVACION_ID, AHORA.minusDays(1));
+    }
+
+    private void dadoUnaFacturaGuardada(RenovacionId renovacionId, OffsetDateTime inicio) {
+        when(pagoPremiumRepository.findByFacturaId("factura")).thenReturn(Optional.of(PagoPremium.builder()
+                .renovacionId(renovacionId).inicioEn(inicio).build()));
+    }
+
+    private void dadoQueElProveedorNoTienePagos() {
+        dadoLosPagos();
+    }
+
+    private void dadoLosPagos(PagoRemoto... pagos) {
         when(pasarelaSuscripcionesPort.listarPagos(PROVEEDOR_ID)).thenReturn(List.of(pagos));
     }
 
-    private void dadoRecalculo(Suscripcion suscripcion) {
+    private void dadoUnaSuscripcionPremiumHeredadaSinHistorialDePagos() {
+        dadoElRecalculoDe(suscripcion(EstadoSuscripcion.ACTIVA));
+        when(planRepository.findByCodigo(CodigoPlan.PREMIUM)).thenReturn(Optional.of(premium()));
+        when(pagoPremiumRepository.existeByNegocioId(NEGOCIO_ID)).thenReturn(false);
+    }
+
+    private void dadoUnaPruebaVigente() {
+        dadoElRecalculoDe(suscripcion(EstadoSuscripcion.PRUEBA));
+    }
+
+    private void dadoElRecalculoDe(Suscripcion suscripcion) {
         when(pagoPremiumRepository.findVigente(NEGOCIO_ID, AHORA)).thenReturn(Optional.empty());
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
     }
 
-    // --- helpers ---
+    // --- cuando ---
+
+    private void cuandoSeSincroniza() {
+        renovacionPremiumService.sincronizar(RENOVACION_ID, AHORA);
+    }
+
+    private void cuandoSeIntentaSincronizar() {
+        rechazo = catchThrowable(this::cuandoSeSincroniza);
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeBuscaElContratoSinCrearloNiTocarPagosNiSuscripciones() {
+        verify(pasarelaSuscripcionesPort).buscar(RENOVACION_ID);
+        verify(renovacionPremiumRepository, never()).save(any());
+        verifyNoInteractions(pagoPremiumRepository, suscripcionRepository);
+    }
+
+    private void entoncesLaPasarelaLoRechazaSinTocarPagosNiSuscripciones() {
+        assertThat(rechazo).isInstanceOf(PasarelaPagoException.class);
+        verifyNoInteractions(pagoPremiumRepository, suscripcionRepository);
+    }
+
+    private void entoncesLaPasarelaLoRechazaSinGuardarElPago() {
+        assertThat(rechazo).isInstanceOf(PasarelaPagoException.class);
+        verify(pagoPremiumRepository, never()).save(any());
+    }
+
+    private void entoncesNoSeGuardaLaSuscripcion() {
+        verify(suscripcionRepository, never()).save(any());
+    }
+
+    private void entoncesLaPruebaConservaSuVigenciaSinConsultarPlanes() {
+        verifyNoInteractions(planRepository);
+        verify(suscripcionRepository, never()).save(any());
+    }
+
+    // --- datos ---
+
+    private PagoRemoto pagoBase() {
+        return pago(renovacion, "factura", "approved", AHORA, AHORA);
+    }
+
     private static ContratoRemoto contratoAutorizado(RenovacionPremium renovacion) {
         return new ContratoRemoto(PROVEEDOR_ID, renovacion.getId(), renovacion.getEnlace(), "authorized",
                 renovacion.getImporte(), renovacion.getMoneda(), 30, "days", renovacion.getPrimerCobroEn(),

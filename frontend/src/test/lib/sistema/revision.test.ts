@@ -16,351 +16,523 @@ import {
   type AccionDeRevision,
   type Revision,
 } from '@/lib/sistema/revision';
+import type { Bloque } from '@/lib/sistema/tipos';
+
+const FILAS = ['registro-0', 'registro-1', 'registro-2'];
+const OPCIONES_DE_PROVEEDOR = ['Distribuidora Sur', 'Mayorista Norte'];
 
 const destino = () => makeBlock('inventory');
 
-const columna = (revision: Revision) => {
-  const campo = revision.camposNuevos[0];
-  if (!campo) throw new Error('Falta la columna nueva');
-  return campo;
-};
-
-const lectura = () => {
-  const bloque = destino();
-  return lecturaDeEjemplo({
+const lecturaDe = (destinoExistente: boolean, bloque = destino()) =>
+  lecturaDeEjemplo({
     tipo: 'inventory',
     campos: bloque.fields,
     vinculos: {},
-    destinoExistente: true,
+    destinoExistente,
   });
+
+const lectura = () => lecturaDe(true);
+
+const dosColumnasNuevas = (marca2 = 'marca') =>
+  iniciarRevision({
+    filas: [{ a: 'x', b: 'y' }],
+    camposNuevos: [
+      { key: 'a', label: 'Marca', type: 'text', required: false },
+      { key: 'b', label: marca2, type: 'text', required: false },
+    ],
+    dudas: [],
+  });
+
+const elemento = <T>(lista: readonly T[], indice: number): T => {
+  const encontrado = lista[indice];
+  if (encontrado === undefined) throw new Error(`Falta el elemento ${indice}`);
+  return encontrado;
 };
 
-const revisar = (...acciones: AccionDeRevision[]): Revision =>
-  acciones.reduce(reducirRevision, iniciarRevision(lectura()));
+const quitarTodas = (): AccionDeRevision[] =>
+  FILAS.map((filaId): AccionDeRevision => ({ tipo: 'quitarFila', filaId }));
+
+let revision: Revision;
+let revisionOriginal: Revision;
+let incorporacion: ReturnType<typeof aIncorporacion>;
+let bloqueOriginal: Bloque;
+let resultado: unknown;
 
 describe('iniciar la revisión', () => {
-  it('arma un registro por fila leída, con sus datos dudosos, y deja pendientes las columnas nuevas', () => {
-    const revision = iniciarRevision(lectura());
+  it('arma un registro por fila leída', () => {
+    cuandoSeIniciaLaRevision();
 
-    expect(revision.filas.map((fila) => fila.id)).toEqual([
-      'registro-0',
-      'registro-1',
-      'registro-2',
+    entoncesLasFilasSon(FILAS);
+  });
+
+  it('cada registro trae sus datos dudosos', () => {
+    cuandoSeIniciaLaRevision();
+
+    entoncesLasDudasPorRegistroSon([
+      {},
+      { name: 'La letra no se lee con claridad.' },
+      { quantity: 'No estamos seguros de este número.' },
     ]);
-    expect(revision.filas[1]?.dudas).toEqual({ name: 'La letra no se lee con claridad.' });
-    expect(revision.filas[2]?.dudas).toEqual({ quantity: 'No estamos seguros de este número.' });
-    expect(revision.filas[0]?.dudas).toEqual({});
-    expect(cantidadDeDudas(revision)).toBe(2);
-    expect(revision.camposNuevos).toEqual([
+    entoncesHayDudas(2);
+  });
+
+  it('deja pendientes las columnas nuevas', () => {
+    cuandoSeIniciaLaRevision();
+
+    entoncesLasColumnasNuevasSon([
       { clave: 'proveedor', label: 'Proveedor', tipo: 'text', estado: 'pendiente' },
     ]);
   });
 
   it('una lectura de un bloque nuevo no trae columnas nuevas', () => {
-    const bloque = destino();
-    const lecturaNueva = lecturaDeEjemplo({
-      tipo: 'inventory',
-      campos: bloque.fields,
-      vinculos: {},
-      destinoExistente: false,
-    });
+    cuandoSeCalculan(() => iniciarRevision(lecturaDe(false)).camposNuevos);
 
-    expect(iniciarRevision(lecturaNueva).camposNuevos).toEqual([]);
+    entoncesElResultadoEs([]);
   });
 
   it('no propone una columna que el bloque ya tiene, aunque la escriba distinto', () => {
     const bloque = destino();
     bloque.fields.push({ key: 'otro', label: 'PROVEEDOR ', type: 'text', required: false });
-    const conCampo = lecturaDeEjemplo({
-      tipo: 'inventory',
-      campos: bloque.fields,
-      vinculos: {},
-      destinoExistente: true,
-    });
 
-    expect(conCampo.camposNuevos).toEqual([]);
+    cuandoSeCalculan(() => lecturaDe(true, bloque).camposNuevos);
+
+    entoncesElResultadoEs([]);
   });
 });
 
 describe('corregir los registros', () => {
-  it('corregir un dato dudoso lo resuelve y el registro deja de ser de ejemplo', () => {
-    const revision = revisar({
-      tipo: 'editar',
-      filaId: 'registro-1',
-      clave: 'name',
-      valor: 'Arroz',
-    });
+  it('corregir un dato dudoso cambia el dato', () => {
+    cuandoSeAplican({ tipo: 'editar', filaId: 'registro-1', clave: 'name', valor: 'Arroz' });
 
-    expect(revision.filas[1]?.valores.name).toBe('Arroz');
-    expect(revision.filas[1]?.dudas).toEqual({});
-    expect(revision.filas[1]?.editada).toBe(true);
-    expect(revision.filas[0]?.editada).toBe(false);
+    entoncesElRegistroTieneElNombre('registro-1', 'Arroz');
+  });
+
+  it('corregir un dato dudoso resuelve la duda', () => {
+    cuandoSeAplican({ tipo: 'editar', filaId: 'registro-1', clave: 'name', valor: 'Arroz' });
+
+    entoncesElRegistroNoTieneDudas(1);
+  });
+
+  it('corregir un dato deja de ser un registro de ejemplo y no toca a los otros', () => {
+    cuandoSeAplican({ tipo: 'editar', filaId: 'registro-1', clave: 'name', valor: 'Arroz' });
+
+    entoncesSoloElRegistroQuedaEditado(1);
   });
 
   it('«Está bien» resuelve la duda sin cambiar el dato', () => {
-    const antes = iniciarRevision(lectura());
-    const revision = reducirRevision(antes, {
-      tipo: 'estaBien',
-      filaId: 'registro-2',
-      clave: 'quantity',
-    });
+    cuandoSeMarcaQueEstaBien('registro-2', 'quantity');
 
-    expect(revision.filas[2]?.dudas).toEqual({});
-    expect(revision.filas[2]?.valores).toEqual(antes.filas[2]?.valores);
-    expect(revision.filas[2]?.editada).toBe(false);
+    entoncesLaDudaSeResolvioSinCambiarElDato(2);
   });
 
-  it('quitar un registro lo saca y restaurarlo lo devuelve a su lugar', () => {
-    const antes = iniciarRevision(lectura());
-    const quitado = reducirRevision(antes, { tipo: 'quitarFila', filaId: 'registro-1' });
-    const fila = antes.filas[1];
-    if (!fila) throw new Error('Falta la fila');
+  it('quitar un registro lo saca', () => {
+    cuandoSeAplican({ tipo: 'quitarFila', filaId: 'registro-1' });
 
-    expect(quitado.filas.map((item) => item.id)).toEqual(['registro-0', 'registro-2']);
-    expect(
-      reducirRevision(quitado, { tipo: 'restaurarFila', fila, indice: 1 }).filas.map(
-        (item) => item.id,
-      ),
-    ).toEqual(['registro-0', 'registro-1', 'registro-2']);
+    entoncesLasFilasSon(['registro-0', 'registro-2']);
+  });
+
+  it('restaurar un registro lo devuelve a su lugar', () => {
+    cuandoSeQuitaYSeRestauraElRegistro(1);
+
+    entoncesLasFilasSon(FILAS);
   });
 });
 
 describe('las columnas nuevas', () => {
-  it('se aceptan, se descartan y se reabren', () => {
-    expect(revisar({ tipo: 'aceptarCampo', clave: 'proveedor' }).camposNuevos[0]?.estado).toBe(
-      'aceptado',
-    );
-    expect(revisar({ tipo: 'descartarCampo', clave: 'proveedor' }).camposNuevos[0]?.estado).toBe(
-      'descartado',
-    );
-    expect(
-      revisar(
+  it.each([
+    ['se aceptan', [{ tipo: 'aceptarCampo', clave: 'proveedor' }], 'aceptado'],
+    ['se descartan', [{ tipo: 'descartarCampo', clave: 'proveedor' }], 'descartado'],
+    [
+      'se reabren',
+      [
         { tipo: 'descartarCampo', clave: 'proveedor' },
         { tipo: 'reabrirCampo', clave: 'proveedor' },
-      ).camposNuevos[0]?.estado,
-    ).toBe('pendiente');
+      ],
+      'pendiente',
+    ],
+  ] as [string, AccionDeRevision[], string][])('%s', (_nombre, acciones, estado) => {
+    cuandoSeAplican(...acciones);
+
+    entoncesLaPrimeraColumnaEsta(estado);
   });
 
-  it('se renombran y cambian de tipo; otras columnas no se tocan', () => {
-    const revision = revisar(
+  it('se renombran y cambian de tipo', () => {
+    cuandoSeAplican(
       { tipo: 'renombrarCampo', clave: 'proveedor', label: 'Quién lo vende' },
       { tipo: 'cambiarTipoDeCampo', clave: 'proveedor', tipoDeCampo: 'textarea' },
-      { tipo: 'renombrarCampo', clave: 'otra', label: 'Nada' },
     );
 
-    expect(revision.camposNuevos[0]).toMatchObject({ label: 'Quién lo vende', tipo: 'textarea' });
-    expect(camposSinDecidir(revision)).toHaveLength(1);
+    entoncesLaPrimeraColumnaCoincideCon({ label: 'Quién lo vende', tipo: 'textarea' });
+  });
+
+  it('renombrar una columna que no existe no toca las otras', () => {
+    cuandoSeAplican({ tipo: 'renombrarCampo', clave: 'otra', label: 'Nada' });
+
+    entoncesQuedaUnaColumnaSinDecidir();
   });
 
   it('una columna de tipo «Opciones» ofrece los valores distintos que se leyeron', () => {
-    const revision = revisar({
-      tipo: 'cambiarTipoDeCampo',
-      clave: 'proveedor',
-      tipoDeCampo: 'select',
-    });
+    cuandoSeAplican({ tipo: 'cambiarTipoDeCampo', clave: 'proveedor', tipoDeCampo: 'select' });
 
-    expect(opcionesDeLaColumna(revision, 'proveedor')).toEqual([
-      'Distribuidora Sur',
-      'Mayorista Norte',
-    ]);
-    const campo = revision.camposNuevos[0];
-    if (!campo) throw new Error('Falta la columna');
-    expect(campoDeColumnaNueva(campo, revision)).toMatchObject({
-      type: 'select',
-      options: ['Distribuidora Sur', 'Mayorista Norte'],
-      required: false,
-    });
+    entoncesLaColumnaOfreceLasOpciones(OPCIONES_DE_PROVEEDOR);
   });
 
-  it('las tarjetas muestran las columnas nuevas hasta que se descartan', () => {
-    const existentes = destino().fields;
-    const pendiente = revisar();
-    const aceptada = revisar({ tipo: 'aceptarCampo', clave: 'proveedor' });
-    const descartada = revisar({ tipo: 'descartarCampo', clave: 'proveedor' });
+  it('el campo que se crearía para una columna de opciones las incluye', () => {
+    cuandoSeAplican({ tipo: 'cambiarTipoDeCampo', clave: 'proveedor', tipoDeCampo: 'select' });
 
-    expect(camposDeLasTarjetas(existentes, pendiente).map((campo) => campo.key)).toContain(
-      'proveedor',
-    );
-    expect(camposDeLasTarjetas(existentes, aceptada).map((campo) => campo.key)).toContain(
-      'proveedor',
-    );
-    expect(camposDeLasTarjetas(existentes, descartada).map((campo) => campo.key)).toEqual(
-      existentes.map((campo) => campo.key),
-    );
+    entoncesElCampoNuevoEsDeOpciones(OPCIONES_DE_PROVEEDOR);
   });
+
+  it.each([
+    ['pendiente', [], true],
+    ['aceptada', [{ tipo: 'aceptarCampo', clave: 'proveedor' }], true],
+    ['descartada', [{ tipo: 'descartarCampo', clave: 'proveedor' }], false],
+  ] as [string, AccionDeRevision[], boolean][])(
+    'una columna %s: las tarjetas la muestran = %s',
+    (_estado, acciones, seMuestra) => {
+      cuandoSeAplican(...acciones);
+
+      entoncesLasTarjetasMuestranLaColumna(seMuestra);
+    },
+  );
 });
 
 describe('el nombre de una columna nueva', () => {
   const existentes = destino().fields;
 
-  it('tiene que existir y no repetir un campo del bloque, sin importar tildes ni mayúsculas', () => {
-    const vacio = revisar({ tipo: 'renombrarCampo', clave: 'proveedor', label: '  ' });
-    const repetido = revisar({ tipo: 'renombrarCampo', clave: 'proveedor', label: 'PRÉCIO' });
-    const libre = revisar({ tipo: 'renombrarCampo', clave: 'proveedor', label: 'Marca' });
+  it('tiene que existir', () => {
+    cuandoSeRenombraLaColumna('  ');
 
-    expect(errorDeNombre(columna(vacio), vacio, existentes)).toBe('Elegí un nombre para el campo.');
-    expect(errorDeNombre(columna(repetido), repetido, existentes)).toBe(
-      'Ya hay un campo con ese nombre.',
-    );
-    expect(errorDeNombre(columna(libre), libre, existentes)).toBeUndefined();
+    entoncesElErrorDeNombreEs(existentes, 'Elegí un nombre para el campo.');
   });
 
-  it('no puede repetir otra columna nueva, salvo que esa esté descartada', () => {
-    const base = iniciarRevision({
-      filas: [{ a: 'x', b: 'y' }],
-      camposNuevos: [
-        { key: 'a', label: 'Marca', type: 'text', required: false },
-        { key: 'b', label: 'marca', type: 'text', required: false },
-      ],
-      dudas: [],
-    });
-    const [primera, segunda] = base.camposNuevos;
-    if (!primera || !segunda) throw new Error('Faltan columnas');
+  it('no puede repetir un campo del bloque, sin importar tildes ni mayúsculas', () => {
+    cuandoSeRenombraLaColumna('PRÉCIO');
 
-    expect(errorDeNombre(segunda, base, [])).toBe('Ya hay un campo con ese nombre.');
-    const sinLaPrimera = reducirRevision(base, { tipo: 'descartarCampo', clave: 'a' });
-    expect(errorDeNombre(segunda, sinLaPrimera, [])).toBeUndefined();
+    entoncesElErrorDeNombreEs(existentes, 'Ya hay un campo con ese nombre.');
+  });
+
+  it('un nombre libre no tiene error', () => {
+    cuandoSeRenombraLaColumna('Marca');
+
+    entoncesElErrorDeNombreEs(existentes, undefined);
+  });
+
+  it('no puede repetir otra columna nueva', () => {
+    cuandoSeCalculan(() => {
+      const base = dosColumnasNuevas();
+      return errorDeNombre(elemento(base.camposNuevos, 1), base, []);
+    });
+
+    entoncesElResultadoEs('Ya hay un campo con ese nombre.');
+  });
+
+  it('puede repetir una columna nueva que está descartada', () => {
+    cuandoSeCalculan(() => {
+      const base = dosColumnasNuevas();
+      const sinLaPrimera = reducirRevision(base, { tipo: 'descartarCampo', clave: 'a' });
+      return errorDeNombre(elemento(base.camposNuevos, 1), sinLaPrimera, []);
+    });
+
+    entoncesElResultadoEs(undefined);
   });
 });
 
 describe('qué falta para incorporar', () => {
   const existentes = destino().fields;
 
-  it('pide decidir las columnas nuevas, dejar algún registro y un nombre válido', () => {
-    expect(motivosPendientes(revisar(), existentes)).toEqual([
-      'Aceptá o descartá los campos nuevos.',
-    ]);
-    const sinRegistros = revisar(
-      { tipo: 'descartarCampo', clave: 'proveedor' },
-      ...['registro-0', 'registro-1', 'registro-2'].map((filaId): AccionDeRevision => ({
-        tipo: 'quitarFila',
-        filaId,
-      })),
-    );
-    expect(motivosPendientes(sinRegistros, existentes)).toEqual(['Dejá al menos un registro.']);
-    const nombreMalo = revisar(
+  it('pide decidir las columnas nuevas', () => {
+    cuandoSeAplican();
+
+    entoncesFaltaPara(existentes, ['Aceptá o descartá los campos nuevos.']);
+  });
+
+  it('pide dejar algún registro', () => {
+    cuandoSeAplican({ tipo: 'descartarCampo', clave: 'proveedor' }, ...quitarTodas());
+
+    entoncesFaltaPara(existentes, ['Dejá al menos un registro.']);
+  });
+
+  it('pide un nombre válido para las columnas aceptadas', () => {
+    cuandoSeAplican(
       { tipo: 'aceptarCampo', clave: 'proveedor' },
       { tipo: 'renombrarCampo', clave: 'proveedor', label: 'Precio' },
     );
-    expect(motivosPendientes(nombreMalo, existentes)).toEqual([
-      'Corregí el nombre de los campos nuevos.',
-    ]);
+
+    entoncesFaltaPara(existentes, ['Corregí el nombre de los campos nuevos.']);
   });
 
-  it('no pide nada cuando todo está decidido', () => {
-    expect(
-      motivosPendientes(revisar({ tipo: 'aceptarCampo', clave: 'proveedor' }), existentes),
-    ).toEqual([]);
-    expect(
-      motivosPendientes(revisar({ tipo: 'descartarCampo', clave: 'proveedor' }), existentes),
-    ).toEqual([]);
+  it.each([
+    ['aceptada', 'aceptarCampo'],
+    ['descartada', 'descartarCampo'],
+  ] as const)('no pide nada cuando la columna está %s', (_estado, tipo) => {
+    cuandoSeAplican({ tipo, clave: 'proveedor' });
+
+    entoncesFaltaPara(existentes, []);
   });
 
   it('un nombre repetido de una columna descartada no molesta', () => {
-    const revision = revisar(
+    cuandoSeAplican(
       { tipo: 'renombrarCampo', clave: 'proveedor', label: 'Precio' },
       { tipo: 'descartarCampo', clave: 'proveedor' },
     );
 
-    expect(motivosPendientes(revision, existentes)).toEqual([]);
+    entoncesFaltaPara(existentes, []);
   });
 });
 
 describe('los errores de cada registro', () => {
   it('aparecen en el registro y el campo que no cumplen, con los tipos ya elegidos', () => {
-    const bloque = destino();
-    const revision = revisar(
+    cuandoSeAplican(
       { tipo: 'aceptarCampo', clave: 'proveedor' },
       { tipo: 'cambiarTipoDeCampo', clave: 'proveedor', tipoDeCampo: 'number' },
     );
 
-    const errores = erroresDeLosRegistros(bloque, revision, makeSystem('Prueba'));
-
-    expect(errores['registro-0']).toEqual({ proveedor: 'Ingresá un número válido.' });
-    expect(errores['registro-1']).toEqual({ proveedor: 'Ingresá un número válido.' });
+    entoncesLosErroresIncluyen({
+      'registro-0': { proveedor: 'Ingresá un número válido.' },
+      'registro-1': { proveedor: 'Ingresá un número válido.' },
+    });
   });
 
   it('un registro sin problemas no aparece', () => {
-    const errores = erroresDeLosRegistros(destino(), revisar(), makeSystem('Prueba'));
+    cuandoSeAplican();
 
-    expect(errores).toEqual({});
+    entoncesLosErroresSon({});
   });
 });
 
 describe('lo que se incorpora', () => {
-  it('suma al final del bloque las columnas aceptadas, con clave propia, y no toca el bloque original', () => {
-    const bloque = destino();
-    const revision = revisar(
-      { tipo: 'renombrarCampo', clave: 'proveedor', label: '  Quién lo vende ' },
-      { tipo: 'aceptarCampo', clave: 'proveedor' },
-    );
+  it('suma al final del bloque las columnas aceptadas, con clave propia', () => {
+    cuandoSeIncorporaConLaColumnaRenombradaYAceptada();
 
-    const { bloque: final, filas } = aIncorporacion(bloque, revision, () => 'clave-nueva');
+    entoncesElBloqueFinalTieneLaColumnaNueva();
+  });
 
-    expect(bloque.fields).toHaveLength(5);
-    expect(final.fields).toHaveLength(6);
-    expect(final.fields.at(-1)).toEqual({
-      key: 'clave-nueva',
-      label: 'Quién lo vende',
-      type: 'text',
-      required: false,
-    });
-    expect(filas).toHaveLength(3);
-    expect(filas[0]).toMatchObject({
-      name: 'Yerba Playadito 1 kg',
-      'clave-nueva': 'Distribuidora Sur',
-    });
-    expect(filas[0]).not.toHaveProperty('proveedor');
+  it('no toca el bloque original', () => {
+    cuandoSeIncorporaConLaColumnaRenombradaYAceptada();
+
+    entoncesElBloqueOriginalSigueConCincoCampos();
+  });
+
+  it('los registros llevan los datos de la columna aceptada con su clave nueva', () => {
+    cuandoSeIncorporaConLaColumnaRenombradaYAceptada();
+
+    entoncesLosRegistrosUsanLaClaveNueva();
   });
 
   it('una columna descartada no se crea y sus datos se ignoran', () => {
-    const bloque = destino();
+    cuandoSeIncorpora(destino(), [{ tipo: 'descartarCampo', clave: 'proveedor' }]);
 
-    const { bloque: final, filas } = aIncorporacion(
-      bloque,
-      revisar({ tipo: 'descartarCampo', clave: 'proveedor' }),
-    );
-
-    expect(final.fields).toHaveLength(5);
-    for (const fila of filas)
-      expect(Object.keys(fila)).toEqual(bloque.fields.map((campo) => campo.key));
+    entoncesNoSeCreaLaColumnaNiSusDatos();
   });
 
-  it('sólo van los registros que quedaron y los corregidos dejan de ser de ejemplo', () => {
-    const revision = revisar(
+  it('sólo van los registros que quedaron', () => {
+    cuandoSeIncorpora(destino(), [
       { tipo: 'descartarCampo', clave: 'proveedor' },
       { tipo: 'quitarFila', filaId: 'registro-0' },
       { tipo: 'editar', filaId: 'registro-1', clave: 'name', valor: 'Arroz' },
-    );
+    ]);
 
-    const { filas } = aIncorporacion(destino(), revision);
+    entoncesVanDosRegistros();
+  });
 
-    expect(filas).toHaveLength(2);
-    expect(filas[0]).toMatchObject({ name: 'Arroz', __example: false });
-    expect(filas[1]).not.toHaveProperty('__example');
+  it('los registros corregidos dejan de ser de ejemplo', () => {
+    cuandoSeIncorpora(destino(), [
+      { tipo: 'descartarCampo', clave: 'proveedor' },
+      { tipo: 'quitarFila', filaId: 'registro-0' },
+      { tipo: 'editar', filaId: 'registro-1', clave: 'name', valor: 'Arroz' },
+    ]);
+
+    entoncesSoloElRegistroCorregidoDejaDeSerDeEjemplo();
   });
 
   it('con una clave por defecto cada columna nueva recibe una clave distinta', () => {
-    const revision = iniciarRevision({
-      filas: [{ a: '1', b: '2' }],
-      camposNuevos: [
-        { key: 'a', label: 'Uno', type: 'text', required: false },
-        { key: 'b', label: 'Dos', type: 'text', required: false },
-      ],
-      dudas: [],
-    });
-    const aceptadas = reducirRevision(
-      reducirRevision(revision, { tipo: 'aceptarCampo', clave: 'a' }),
-      {
-        tipo: 'aceptarCampo',
-        clave: 'b',
-      },
-    );
+    cuandoSeIncorporanDosColumnasConLaClavePorDefecto();
 
-    const { bloque } = aIncorporacion(makeBlock('note'), aceptadas);
-
-    const claves = bloque.fields.map((campo) => campo.key);
-    expect(new Set(claves).size).toBe(claves.length);
-    expect(claves.every((clave) => clave.length > 3)).toBe(true);
+    entoncesLasClavesSonDistintas();
   });
 });
+
+// --- cuando ---
+
+function cuandoSeIniciaLaRevision() {
+  revision = iniciarRevision(lectura());
+}
+
+function cuandoSeAplican(...acciones: AccionDeRevision[]) {
+  revision = acciones.reduce(reducirRevision, iniciarRevision(lectura()));
+}
+
+function cuandoSeCalculan(calculo: () => unknown) {
+  resultado = calculo();
+}
+
+function cuandoSeMarcaQueEstaBien(filaId: string, clave: string) {
+  revisionOriginal = iniciarRevision(lectura());
+  revision = reducirRevision(revisionOriginal, { tipo: 'estaBien', filaId, clave });
+}
+
+function cuandoSeQuitaYSeRestauraElRegistro(indice: number) {
+  const antes = iniciarRevision(lectura());
+  const fila = elemento(antes.filas, indice);
+  const quitado = reducirRevision(antes, { tipo: 'quitarFila', filaId: fila.id });
+  revision = reducirRevision(quitado, { tipo: 'restaurarFila', fila, indice });
+}
+
+function cuandoSeRenombraLaColumna(label: string) {
+  cuandoSeAplican({ tipo: 'renombrarCampo', clave: 'proveedor', label });
+}
+
+function cuandoSeIncorpora(bloque: Bloque, acciones: AccionDeRevision[]) {
+  bloqueOriginal = bloque;
+  cuandoSeAplican(...acciones);
+  incorporacion = aIncorporacion(bloque, revision, () => 'clave-nueva');
+}
+
+function cuandoSeIncorporaConLaColumnaRenombradaYAceptada() {
+  cuandoSeIncorpora(destino(), [
+    { tipo: 'renombrarCampo', clave: 'proveedor', label: '  Quién lo vende ' },
+    { tipo: 'aceptarCampo', clave: 'proveedor' },
+  ]);
+}
+
+function cuandoSeIncorporanDosColumnasConLaClavePorDefecto() {
+  const base = dosColumnasNuevas('Dos');
+  const aceptadas = ['a', 'b'].reduce(
+    (actual, clave) => reducirRevision(actual, { tipo: 'aceptarCampo', clave }),
+    base,
+  );
+  incorporacion = aIncorporacion(makeBlock('note'), aceptadas);
+}
+
+// --- entonces ---
+
+function entoncesElResultadoEs(esperado: unknown) {
+  expect(resultado).toEqual(esperado);
+}
+
+function entoncesLasFilasSon(ids: string[]) {
+  expect(revision.filas.map((fila) => fila.id)).toEqual(ids);
+}
+
+function entoncesLasDudasPorRegistroSon(dudas: unknown[]) {
+  expect(revision.filas.map((fila) => fila.dudas)).toEqual(dudas);
+}
+
+function entoncesHayDudas(cantidad: number) {
+  expect(cantidadDeDudas(revision)).toBe(cantidad);
+}
+
+function entoncesLasColumnasNuevasSon(columnas: unknown[]) {
+  expect(revision.camposNuevos).toEqual(columnas);
+}
+
+function entoncesElRegistroTieneElNombre(filaId: string, nombre: string) {
+  expect(revision.filas.find((fila) => fila.id === filaId)?.valores.name).toBe(nombre);
+}
+
+function entoncesElRegistroNoTieneDudas(indice: number) {
+  expect(revision.filas[indice]?.dudas).toEqual({});
+}
+
+function entoncesSoloElRegistroQuedaEditado(indice: number) {
+  expect(revision.filas.map((fila) => fila.editada)).toEqual(
+    revision.filas.map((_fila, posicion) => posicion === indice),
+  );
+}
+
+function entoncesLaDudaSeResolvioSinCambiarElDato(indice: number) {
+  expect(revision.filas[indice]?.dudas).toEqual({});
+  expect(revision.filas[indice]?.valores).toEqual(revisionOriginal.filas[indice]?.valores);
+  expect(revision.filas[indice]?.editada).toBe(false);
+}
+
+function entoncesLaPrimeraColumnaEsta(estado: string) {
+  expect(revision.camposNuevos[0]?.estado).toBe(estado);
+}
+
+function entoncesLaPrimeraColumnaCoincideCon(esperado: object) {
+  expect(revision.camposNuevos[0]).toMatchObject(esperado);
+}
+
+function entoncesQuedaUnaColumnaSinDecidir() {
+  expect(camposSinDecidir(revision)).toHaveLength(1);
+}
+
+function entoncesLaColumnaOfreceLasOpciones(opciones: string[]) {
+  expect(opcionesDeLaColumna(revision, 'proveedor')).toEqual(opciones);
+}
+
+function entoncesElCampoNuevoEsDeOpciones(opciones: string[]) {
+  const campo = elemento(revision.camposNuevos, 0);
+  expect(campoDeColumnaNueva(campo, revision)).toMatchObject({
+    type: 'select',
+    options: opciones,
+    required: false,
+  });
+}
+
+function entoncesLasTarjetasMuestranLaColumna(seMuestra: boolean) {
+  const claves = camposDeLasTarjetas(destino().fields, revision).map((campo) => campo.key);
+  expect(claves.includes('proveedor')).toBe(seMuestra);
+}
+
+function entoncesElErrorDeNombreEs(existentes: Bloque['fields'], esperado: string | undefined) {
+  expect(errorDeNombre(elemento(revision.camposNuevos, 0), revision, existentes)).toBe(esperado);
+}
+
+function entoncesFaltaPara(existentes: Bloque['fields'], motivos: string[]) {
+  expect(motivosPendientes(revision, existentes)).toEqual(motivos);
+}
+
+function entoncesLosErroresIncluyen(esperados: object) {
+  expect(erroresDeLosRegistros(destino(), revision, makeSystem('Prueba'))).toMatchObject(esperados);
+}
+
+function entoncesLosErroresSon(esperados: unknown) {
+  expect(erroresDeLosRegistros(destino(), revision, makeSystem('Prueba'))).toEqual(esperados);
+}
+
+function entoncesElBloqueFinalTieneLaColumnaNueva() {
+  expect(incorporacion.bloque.fields).toHaveLength(6);
+  expect(incorporacion.bloque.fields.at(-1)).toEqual({
+    key: 'clave-nueva',
+    label: 'Quién lo vende',
+    type: 'text',
+    required: false,
+  });
+}
+
+function entoncesElBloqueOriginalSigueConCincoCampos() {
+  expect(bloqueOriginal.fields).toHaveLength(5);
+}
+
+function entoncesLosRegistrosUsanLaClaveNueva() {
+  expect(incorporacion.filas).toHaveLength(3);
+  expect(incorporacion.filas[0]).toMatchObject({
+    name: 'Yerba Playadito 1 kg',
+    'clave-nueva': 'Distribuidora Sur',
+  });
+  expect(incorporacion.filas[0]).not.toHaveProperty('proveedor');
+}
+
+function entoncesNoSeCreaLaColumnaNiSusDatos() {
+  expect(incorporacion.bloque.fields).toHaveLength(5);
+  for (const fila of incorporacion.filas)
+    expect(Object.keys(fila)).toEqual(bloqueOriginal.fields.map((campo) => campo.key));
+}
+
+function entoncesVanDosRegistros() {
+  expect(incorporacion.filas).toHaveLength(2);
+}
+
+function entoncesSoloElRegistroCorregidoDejaDeSerDeEjemplo() {
+  expect(incorporacion.filas[0]).toMatchObject({ name: 'Arroz', __example: false });
+  expect(incorporacion.filas[1]).not.toHaveProperty('__example');
+}
+
+function entoncesLasClavesSonDistintas() {
+  const claves = incorporacion.bloque.fields.map((campo) => campo.key);
+  expect(new Set(claves).size).toBe(claves.length);
+  expect(claves.every((clave) => clave.length > 3)).toBe(true);
+}

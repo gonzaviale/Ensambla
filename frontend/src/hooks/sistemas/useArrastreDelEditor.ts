@@ -90,10 +90,14 @@ export function useArrastreDelEditor(seccionId: string | undefined) {
       if (nodo && bloque && bloque !== carga.valor) {
         evento.preventDefault();
         setSobre({ bloque, lado: ladoHaciaElArrastrado(carga.valor, nodo) });
-      } else if (destino.dataset.dropSection) {
+        return;
+      }
+      if (destino.dataset.dropSection) {
         evento.preventDefault();
         setSobre({ destino: destino.dataset.dropSection });
-      } else setSobre(null);
+        return;
+      }
+      setSobre(null);
       return;
     }
     evento.preventDefault();
@@ -113,11 +117,13 @@ export function useArrastreDelEditor(seccionId: string | undefined) {
     const antes = objetivo.closest<HTMLElement>('[data-block]')?.dataset.block ?? null;
     if (origen.tipo === 'catalogo') {
       agregarBloque(origen.valor as TipoBloque, antes, seccionDestino);
-    } else if (destino.dataset.dropSection) {
-      reubicarBloque(origen.valor, seccionDestino, null);
-    } else if (antes && antes !== origen.valor) {
-      intercambiarBloques(origen.valor, antes);
+      return;
     }
+    if (destino.dataset.dropSection) {
+      reubicarBloque(origen.valor, seccionDestino, null);
+      return;
+    }
+    if (antes && antes !== origen.valor) intercambiarBloques(origen.valor, antes);
   };
 
   // El tirador de la esquina: se arrastra y el bloque salta al ancho más cercano.

@@ -19,73 +19,82 @@ class AnalizarZonaWebRequestTest {
 
     private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 
+    private Set<ConstraintViolation<AnalizarZonaWebRequest>> violaciones;
+
     @Test
     @DisplayName("Es válido con sólo un lugar escrito")
-    void validateShouldAcceptPlaceOnly() {
-        Set<ConstraintViolation<AnalizarZonaWebRequest>> result =
-                validate(new AnalizarZonaWebRequest("San Justo", null, null));
+    void esValidoConSoloUnLugarEscrito() {
+        cuandoSeValida(new AnalizarZonaWebRequest("San Justo", null, null));
 
-        assertThat(result).isEmpty();
+        entoncesNoHayViolaciones();
     }
 
     @Test
     @DisplayName("Es válido con sólo un punto del mapa")
-    void validateShouldAcceptPointOnly() {
-        Set<ConstraintViolation<AnalizarZonaWebRequest>> result =
-                validate(new AnalizarZonaWebRequest(null, LATITUD, LONGITUD));
+    void esValidoConSoloUnPuntoDelMapa() {
+        cuandoSeValida(new AnalizarZonaWebRequest(null, LATITUD, LONGITUD));
 
-        assertThat(result).isEmpty();
+        entoncesNoHayViolaciones();
     }
 
     @Test
     @DisplayName("Rechaza un pedido sin lugar ni punto")
-    void validateShouldRejectWhenNothingIsIndicated() {
-        Set<ConstraintViolation<AnalizarZonaWebRequest>> result =
-                validate(new AnalizarZonaWebRequest(null, null, null));
+    void rechazaUnPedidoSinLugarNiPunto() {
+        cuandoSeValida(new AnalizarZonaWebRequest(null, null, null));
 
-        assertThat(result).extracting(ConstraintViolation::getMessage).containsExactly(MENSAJE);
+        entoncesSePideIndicarUnLugarOUnPunto();
     }
 
     @Test
     @DisplayName("Rechaza un lugar en blanco sin punto")
-    void validateShouldRejectBlankPlaceWithoutPoint() {
-        Set<ConstraintViolation<AnalizarZonaWebRequest>> result =
-                validate(new AnalizarZonaWebRequest("   ", null, null));
+    void rechazaUnLugarEnBlancoSinPunto() {
+        cuandoSeValida(new AnalizarZonaWebRequest("   ", null, null));
 
-        assertThat(result).extracting(ConstraintViolation::getMessage).containsExactly(MENSAJE);
+        entoncesSePideIndicarUnLugarOUnPunto();
     }
 
     @Test
     @DisplayName("Rechaza un punto al que le falta la longitud")
-    void validateShouldRejectHalfPoint() {
-        Set<ConstraintViolation<AnalizarZonaWebRequest>> result =
-                validate(new AnalizarZonaWebRequest(null, LATITUD, null));
+    void rechazaUnPuntoAlQueLeFaltaLaLongitud() {
+        cuandoSeValida(new AnalizarZonaWebRequest(null, LATITUD, null));
 
-        assertThat(result).extracting(ConstraintViolation::getMessage).containsExactly(MENSAJE);
+        entoncesSePideIndicarUnLugarOUnPunto();
     }
 
     @Test
     @DisplayName("Rechaza una latitud fuera de rango")
-    void validateShouldRejectLatitudeOutOfRange() {
-        Set<ConstraintViolation<AnalizarZonaWebRequest>> result =
-                validate(new AnalizarZonaWebRequest(null, new BigDecimal("91"), LONGITUD));
+    void rechazaUnaLatitudFueraDeRango() {
+        cuandoSeValida(new AnalizarZonaWebRequest(null, new BigDecimal("91"), LONGITUD));
 
-        assertThat(result).extracting(violation -> violation.getPropertyPath().toString())
-                .containsExactly("latitud");
+        entoncesSeRechazaElCampo("latitud");
     }
 
     @Test
     @DisplayName("Rechaza una longitud fuera de rango")
-    void validateShouldRejectLongitudeOutOfRange() {
-        Set<ConstraintViolation<AnalizarZonaWebRequest>> result =
-                validate(new AnalizarZonaWebRequest(null, LATITUD, new BigDecimal("-181")));
+    void rechazaUnaLongitudFueraDeRango() {
+        cuandoSeValida(new AnalizarZonaWebRequest(null, LATITUD, new BigDecimal("-181")));
 
-        assertThat(result).extracting(violation -> violation.getPropertyPath().toString())
-                .containsExactly("longitud");
+        entoncesSeRechazaElCampo("longitud");
     }
 
-    // --- act ---
-    private Set<ConstraintViolation<AnalizarZonaWebRequest>> validate(AnalizarZonaWebRequest request) {
-        return validator.validate(request);
+    // --- cuando ---
+
+    private void cuandoSeValida(AnalizarZonaWebRequest pedido) {
+        violaciones = validator.validate(pedido);
+    }
+
+    // --- entonces ---
+
+    private void entoncesNoHayViolaciones() {
+        assertThat(violaciones).isEmpty();
+    }
+
+    private void entoncesSePideIndicarUnLugarOUnPunto() {
+        assertThat(violaciones).extracting(ConstraintViolation::getMessage).containsExactly(MENSAJE);
+    }
+
+    private void entoncesSeRechazaElCampo(String campo) {
+        assertThat(violaciones).extracting(violacion -> violacion.getPropertyPath().toString())
+                .containsExactly(campo);
     }
 }

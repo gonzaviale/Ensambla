@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'vitest';
 import { makeTemplate } from '@/lib/sistema/core';
 import { crearAlmacenCargado } from '@/lib/sistema/demo';
 import {
@@ -9,57 +9,119 @@ import {
   sistemaDelPanel,
   tieneVentas,
 } from '@/lib/sistema/panelDelNegocio';
+import {
+  cuandoSeCalcula,
+  entoncesElResultadoEs,
+  entoncesElResultadoEsIdenticoA,
+  entoncesElResultadoNoExiste,
+} from '@/test/calculo';
 
 const HOY = '2026-10-19';
 
 describe('sistemaDelPanel', () => {
   it('sin secciones no hay panel', () => {
-    expect(sistemaDelPanel([])).toBeNull();
+    cuandoSeCalcula(() => sistemaDelPanel([]));
+
+    entoncesElResultadoEs(null);
   });
 
   it('elige la primera sección con ventas aunque no sea la primera de la lista', () => {
     const vacio = makeTemplate('shop', {}, true);
     const cargado = crearAlmacenCargado(HOY);
 
-    expect(sistemaDelPanel([vacio, cargado])).toBe(cargado);
+    cuandoSeCalcula(() => sistemaDelPanel([vacio, cargado]));
+
+    entoncesElResultadoEsIdenticoA(cargado);
   });
 
   it('si ninguno tiene ventas se queda con el primero, para explicar cómo cargarlas', () => {
     const primero = makeTemplate('shop', {}, true);
     const segundo = makeTemplate('shop', {}, true);
 
-    expect(sistemaDelPanel([primero, segundo])).toBe(primero);
+    cuandoSeCalcula(() => sistemaDelPanel([primero, segundo]));
+
+    entoncesElResultadoEsIdenticoA(primero);
   });
 
   it('las filas de ejemplo no son ventas', () => {
-    expect(tieneVentas(makeTemplate('shop', {}, true))).toBe(false);
-    expect(tieneVentas(crearAlmacenCargado(HOY))).toBe(true);
+    cuandoSeCalcula(() => tieneVentas(makeTemplate('shop', {}, true)));
+
+    entoncesElResultadoEs(false);
+  });
+
+  it('las filas reales sí son ventas', () => {
+    cuandoSeCalcula(() => tieneVentas(crearAlmacenCargado(HOY)));
+
+    entoncesElResultadoEs(true);
   });
 });
 
 describe('bloqueDeVentas', () => {
-  it('es la tabla de ventas de la sección, y nada si no tiene una', () => {
-    expect(bloqueDeVentas(crearAlmacenCargado(HOY))?.type).toBe('sales');
-    expect(bloqueDeVentas(makeTemplate('business', {}, true))).toBeUndefined();
+  it('es la tabla de ventas de la sección', () => {
+    cuandoSeCalcula(() => bloqueDeVentas(crearAlmacenCargado(HOY))?.type);
+
+    entoncesElResultadoEs('sales');
+  });
+
+  it('no hay tabla de ventas si la sección no tiene una', () => {
+    cuandoSeCalcula(() => bloqueDeVentas(makeTemplate('business', {}, true)));
+
+    entoncesElResultadoNoExiste();
   });
 });
 
 describe('formato del panel', () => {
-  it('los pesos llevan el punto de los miles y el signo menos delante del peso', () => {
-    expect(pesos(839750)).toBe('$839.750');
-    expect(pesos(0)).toBe('$0');
-    expect(pesos(-12000.4)).toBe('-$12.000');
+  it('los pesos llevan el punto de los miles', () => {
+    cuandoSeCalcula(() => pesos(839750));
+
+    entoncesElResultadoEs('$839.750');
   });
 
-  it('lo que sobra lleva más, lo que falta lleva menos y el cero no lleva nada', () => {
-    expect(pesosConSigno(110000)).toBe('+$110.000');
-    expect(pesosConSigno(-2000)).toBe('-$2.000');
-    expect(pesosConSigno(0)).toBe('$0');
+  it('el cero se muestra sin decimales', () => {
+    cuandoSeCalcula(() => pesos(0));
+
+    entoncesElResultadoEs('$0');
+  });
+
+  it('los pesos negativos llevan el signo menos delante del peso', () => {
+    cuandoSeCalcula(() => pesos(-12000.4));
+
+    entoncesElResultadoEs('-$12.000');
+  });
+
+  it('lo que sobra lleva más', () => {
+    cuandoSeCalcula(() => pesosConSigno(110000));
+
+    entoncesElResultadoEs('+$110.000');
+  });
+
+  it('lo que falta lleva menos', () => {
+    cuandoSeCalcula(() => pesosConSigno(-2000));
+
+    entoncesElResultadoEs('-$2.000');
+  });
+
+  it('el cero no lleva signo', () => {
+    cuandoSeCalcula(() => pesosConSigno(0));
+
+    entoncesElResultadoEs('$0');
   });
 
   it('el porcentaje usa la coma decimal de es-AR, con un solo decimal', () => {
-    expect(porcentaje(25.9)).toBe('25,9 %');
-    expect(porcentaje(20)).toBe('20 %');
-    expect(porcentaje(20.64)).toBe('20,6 %');
+    cuandoSeCalcula(() => porcentaje(25.9));
+
+    entoncesElResultadoEs('25,9 %');
+  });
+
+  it('el porcentaje redondo no lleva decimales', () => {
+    cuandoSeCalcula(() => porcentaje(20));
+
+    entoncesElResultadoEs('20 %');
+  });
+
+  it('el porcentaje redondea a un decimal', () => {
+    cuandoSeCalcula(() => porcentaje(20.64));
+
+    entoncesElResultadoEs('20,6 %');
   });
 });

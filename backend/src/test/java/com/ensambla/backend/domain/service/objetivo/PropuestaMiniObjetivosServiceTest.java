@@ -47,6 +47,11 @@ class PropuestaMiniObjetivosServiceTest {
     private final AgregadoZonaRepository agregadoZonaRepository = mock(AgregadoZonaRepository.class);
     private PropuestaMiniObjetivosService service;
 
+    private Zona zona;
+    private CandidatosDelNegocio candidatos;
+    private MedidorMiniObjetivo medidor;
+    private List<CandidatoMiniObjetivo> candidatosDelMedidor;
+
     @BeforeEach
     void setUp() {
         service = new PropuestaMiniObjetivosService(
@@ -61,73 +66,80 @@ class PropuestaMiniObjetivosServiceTest {
 
     @Test
     @DisplayName("Calcula el resultado y los candidatos con los datos de todos los sistemas del negocio")
-    void candidatosShouldUseTheDataOfEverySystemOfTheBusiness() {
-        givenSistemasConDatos(almacen(), new DatosDeProyecto("Kiosco", List.of(), List.of(), List.of()));
+    void calculaElResultadoYLosCandidatosConLosDatosDeTodosLosSistemasDelNegocio() {
+        dadoUnNegocioConUnAlmacenYUnKioscoSinDatos();
 
-        CandidatosDelNegocio result = service.candidatos(NEGOCIO_ID, HOY);
+        cuandoSePidenLosCandidatosDelNegocio();
 
-        assertThat(result.resultado()).isEqualByComparingTo("-27000");
-        assertThat(result.candidatos()).extracting(CandidatoMiniObjetivo::tipo).contains(
-                TipoMiniObjetivo.PONER_A_LA_VISTA, TipoMiniObjetivo.VENTAS_SEMANALES, TipoMiniObjetivo.SUBIR_PRECIO);
-        verifyNoInteractions(zonaRepository, agregadoZonaRepository);
+        entoncesElResultadoEsDeMenos27000ConLosCandidatosHabituales();
+        entoncesNoSeConsultaLaZona();
     }
 
     @Test
     @DisplayName("El medidor carga los datos de todos los sistemas del negocio")
-    void medidorShouldLoadTheDataOfEverySystemOfTheBusiness() {
-        givenSistemasConDatos(almacen(), new DatosDeProyecto("Kiosco", List.of(), List.of(), List.of()));
+    void elMedidorCargaLosDatosDeTodosLosSistemasDelNegocio() {
+        dadoUnNegocioConUnAlmacenYUnKioscoSinDatos();
 
-        MedidorMiniObjetivo result = service.medidor(NEGOCIO_ID, HOY);
+        cuandoSePideElMedidor();
 
-        assertThat(result.hayVentas()).isTrue();
-        assertThat(result.resultado()).isEqualByComparingTo("-27000");
+        entoncesElMedidorTieneVentasYResultadoDeMenos27000();
     }
 
     @Test
     @DisplayName("Los candidatos de un medidor ya cargado salen sin volver a leer los sistemas")
-    void candidatosShouldUseAnAlreadyLoadedMeter() {
-        givenSistemasConDatos(almacen());
-        MedidorMiniObjetivo medidor = service.medidor(NEGOCIO_ID, HOY);
+    void losCandidatosDeUnMedidorYaCargadoSalenSinVolverALeerLosSistemas() {
+        dadoUnNegocioConUnAlmacen();
 
-        List<CandidatoMiniObjetivo> result = service.candidatos(NEGOCIO_ID, medidor);
+        cuandoSePidenLosCandidatosDeUnMedidorYaCargado();
 
-        assertThat(result).extracting(CandidatoMiniObjetivo::tipo).contains(TipoMiniObjetivo.PONER_A_LA_VISTA);
-        verify(sistemaRepository, times(1)).findAllByNegocioId(NEGOCIO_ID);
+        entoncesSeProponePonerAlaVistaYLosSistemasSeLeyeronUnaSolaVez();
     }
 
     @Test
     @DisplayName("Sin sistemas no hay resultado ni candidatos")
-    void candidatosShouldBeEmptyWhenTheBusinessHasNoSystems() {
-        when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
+    void sinSistemasNoHayResultadoNiCandidatos() {
+        dadoUnNegocioSinSistemas();
 
-        CandidatosDelNegocio result = service.candidatos(NEGOCIO_ID, HOY);
+        cuandoSePidenLosCandidatosDelNegocio();
 
-        assertThat(result.resultado()).isEqualByComparingTo("0");
-        assertThat(result.candidatos()).isEmpty();
+        entoncesNoHayResultadoNiCandidatos();
     }
 
     @Test
     @DisplayName("Con zona asignada no sube el precio por encima del máximo que se cobra en la zona")
-    void candidatosShouldUseTheZoneOfTheBusiness() {
-        Zona zona = Zona.builder().id(ZONA_ID).nombre("San Justo").build();
+    void conZonaAsignadaNoSubeElPrecioPorEncimaDelMaximoQueSeCobraEnLaZona() {
+        dadoUnNegocioConUnAlmacen();
+        dadoUnaZonaAsignadaDondeLaYerbaSeCobraHasta4300();
+
+        cuandoSePidenLosCandidatosDelNegocio();
+
+        entoncesSeAnalizaLaZonaYSeSugiereSubirCienPesosLaYerba();
+    }
+
+    // --- dado ---
+
+    private void dadoUnNegocioConUnAlmacenYUnKioscoSinDatos() {
+        dadoLosSistemasConDatos(almacen(), new DatosDeProyecto("Kiosco", List.of(), List.of(), List.of()));
+    }
+
+    private void dadoUnNegocioConUnAlmacen() {
+        dadoLosSistemasConDatos(almacen());
+    }
+
+    private void dadoUnNegocioSinSistemas() {
+        when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
+    }
+
+    private void dadoUnaZonaAsignadaDondeLaYerbaSeCobraHasta4300() {
+        zona = Zona.builder().id(ZONA_ID).nombre("San Justo").build();
         AnalisisZona analisis = new AnalisisZona("San Justo", 5, List.of(new AgregadoZonaProducto("Yerba 1 kg", 5, 5,
                 new BigDecimal("3900"), new BigDecimal("4100"), new BigDecimal("4300"), BigDecimal.TEN)));
-        givenSistemasConDatos(almacen());
         when(negocioRepository.findZonaIdById(NEGOCIO_ID)).thenReturn(Optional.of(ZONA_ID));
         when(zonaRepository.findById(ZONA_ID)).thenReturn(Optional.of(zona));
         when(agregadoZonaRepository.analizar(zona)).thenReturn(analisis);
-
-        CandidatosDelNegocio result = service.candidatos(NEGOCIO_ID, HOY);
-
-        verify(agregadoZonaRepository).analizar(zona);
-        assertThat(result.candidatos())
-                .filteredOn(candidato -> candidato.tipo() == TipoMiniObjetivo.SUBIR_PRECIO)
-                .singleElement()
-                .satisfies(candidato -> assertThat(candidato.titulo()).isEqualTo("Subile $100 a Yerba 1 kg"));
     }
 
-    // --- arrange ---
-    private void givenSistemasConDatos(DatosDeProyecto... datos) {
+    private void dadoLosSistemasConDatos(DatosDeProyecto... datos) {
         List<Sistema> sistemas = new ArrayList<>();
         for (DatosDeProyecto dato : datos) {
             Sistema sistema = mock(Sistema.class);
@@ -135,5 +147,56 @@ class PropuestaMiniObjetivosServiceTest {
             sistemas.add(sistema);
         }
         when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(sistemas);
+    }
+
+    // --- cuando ---
+
+    private void cuandoSePidenLosCandidatosDelNegocio() {
+        candidatos = service.candidatos(NEGOCIO_ID, HOY);
+    }
+
+    private void cuandoSePideElMedidor() {
+        medidor = service.medidor(NEGOCIO_ID, HOY);
+    }
+
+    private void cuandoSePidenLosCandidatosDeUnMedidorYaCargado() {
+        cuandoSePideElMedidor();
+        candidatosDelMedidor = service.candidatos(NEGOCIO_ID, medidor);
+    }
+
+    // --- entonces ---
+
+    private void entoncesElResultadoEsDeMenos27000ConLosCandidatosHabituales() {
+        assertThat(candidatos.resultado()).isEqualByComparingTo("-27000");
+        assertThat(candidatos.candidatos()).extracting(CandidatoMiniObjetivo::tipo).contains(
+                TipoMiniObjetivo.PONER_A_LA_VISTA, TipoMiniObjetivo.VENTAS_SEMANALES, TipoMiniObjetivo.SUBIR_PRECIO);
+    }
+
+    private void entoncesNoSeConsultaLaZona() {
+        verifyNoInteractions(zonaRepository, agregadoZonaRepository);
+    }
+
+    private void entoncesElMedidorTieneVentasYResultadoDeMenos27000() {
+        assertThat(medidor.hayVentas()).isTrue();
+        assertThat(medidor.resultado()).isEqualByComparingTo("-27000");
+    }
+
+    private void entoncesSeProponePonerAlaVistaYLosSistemasSeLeyeronUnaSolaVez() {
+        assertThat(candidatosDelMedidor).extracting(CandidatoMiniObjetivo::tipo)
+                .contains(TipoMiniObjetivo.PONER_A_LA_VISTA);
+        verify(sistemaRepository, times(1)).findAllByNegocioId(NEGOCIO_ID);
+    }
+
+    private void entoncesNoHayResultadoNiCandidatos() {
+        assertThat(candidatos.resultado()).isEqualByComparingTo("0");
+        assertThat(candidatos.candidatos()).isEmpty();
+    }
+
+    private void entoncesSeAnalizaLaZonaYSeSugiereSubirCienPesosLaYerba() {
+        verify(agregadoZonaRepository).analizar(zona);
+        assertThat(candidatos.candidatos())
+                .filteredOn(candidato -> candidato.tipo() == TipoMiniObjetivo.SUBIR_PRECIO)
+                .singleElement()
+                .satisfies(candidato -> assertThat(candidato.titulo()).isEqualTo("Subile $100 a Yerba 1 kg"));
     }
 }

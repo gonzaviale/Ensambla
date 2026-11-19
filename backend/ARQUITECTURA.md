@@ -282,9 +282,9 @@ void executeShouldRejectChangingTypeOfFieldUsedByFormula() {
 }
 ```
 
-Deuda conocida que todavía tiene ramas por tipo (si tocás una, la dejás semántica): `LecturaCuaderno.validarDato`,
-`InterpreteRegistrosSimulado`, `SistemaItem.TIPOS_DE_CAMPO`, `LecturaPresentationMapper`, `ConversarEnTaller` y
-`AtenderMensajeWhatsapp`.
+Deuda conocida que todavía tiene ramas por tipo (si tocás una, la dejás semántica): `AtenderMensajeWhatsapp` y,
+hasta que se mergee la rama de objetivos con Sami, `model/objetivo`. El resto del dominio ya está bajo el candado de
+`ArchitectureTest` (`PAQUETES_MIGRADOS`).
 
 ### 9. El dominio no conoce formatos de persistencia ni de transporte
 

@@ -15,55 +15,111 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class EfectoDecisionTest {
 
+    private Aviso aviso;
+    private EfectoDecision efecto;
+
     @Test
     @DisplayName("Un aviso aplicado con el impacto ya medido trae lo que cambió el ingreso semanal")
-    void deShouldBeMeasuredWhenTheImpactWasMeasured() {
-        Aviso aplicado = aviso(TipoAviso.ESTANCADO, EstadoAviso.APLICADO);
-        aplicado.registrarImpacto(impacto(), AHORA);
+    void unAvisoAplicadoConElImpactoYaMedidoTraeLoQueCambioElIngresoSemanal() {
+        dadoUnAvisoAplicadoConElImpactoMedido();
 
-        EfectoDecision result = EfectoDecision.de(decision(TipoDecision.AVISO_APLICADO, AVISO_ID), aplicado);
+        cuandoSeMideElEfectoDeAplicarlo();
 
-        assertThat(result.estado()).isEqualTo(EstadoEfecto.MEDIDO);
-        assertThat(result.deltaIngresoSemanal()).isEqualByComparingTo("350.00");
+        entoncesElEfectoEstaMedidoConElCambioDeIngreso();
     }
 
     @Test
     @DisplayName("Un aviso aplicado de los que se miden, que todavía no terminó la ventana, está midiendo")
-    void deShouldBeMeasuringWhenTheWindowHasNotEnded() {
-        Aviso aplicado = aviso(TipoAviso.ESTANCADO, EstadoAviso.APLICADO);
+    void unAvisoAplicadoDeLosQueSeMidenQueTodaviaNoTerminoLaVentanaEstaMidiendo() {
+        dadoUnAvisoAplicadoDe(TipoAviso.ESTANCADO);
 
-        EfectoDecision result = EfectoDecision.de(decision(TipoDecision.AVISO_APLICADO, AVISO_ID), aplicado);
+        cuandoSeMideElEfectoDeAplicarlo();
 
-        assertThat(result.estado()).isEqualTo(EstadoEfecto.MIDIENDO);
-        assertThat(result.deltaIngresoSemanal()).isNull();
+        entoncesElEfectoEstaMidiendoSinCambioDeIngreso();
     }
 
     @Test
     @DisplayName("Un aviso aplicado de un tipo que no se mide queda sin medición")
-    void deShouldHaveNoMeasurementWhenTheAvisoTypeIsNotMeasured() {
-        Aviso aplicado = aviso(TipoAviso.COMBO, EstadoAviso.APLICADO);
+    void unAvisoAplicadoDeUnTipoQueNoSeMideQuedaSinMedicion() {
+        dadoUnAvisoAplicadoDe(TipoAviso.COMBO);
 
-        EfectoDecision result = EfectoDecision.de(decision(TipoDecision.AVISO_APLICADO, AVISO_ID), aplicado);
+        cuandoSeMideElEfectoDeAplicarlo();
 
-        assertThat(result).isEqualTo(EfectoDecision.SIN_MEDICION);
+        entoncesElEfectoQuedaSinMedicion();
     }
 
     @Test
     @DisplayName("Si el aviso ya no existe no hay con qué medir el efecto")
-    void deShouldHaveNoMeasurementWhenTheAvisoWasDeleted() {
-        EfectoDecision result = EfectoDecision.de(decision(TipoDecision.AVISO_APLICADO, AVISO_ID), null);
+    void siElAvisoYaNoExisteNoHayConQueMedirElEfecto() {
+        cuandoSeMideElEfectoDeAplicarUnAvisoBorrado();
 
-        assertThat(result).isEqualTo(EfectoDecision.SIN_MEDICION);
+        entoncesElEfectoQuedaSinMedicion();
     }
 
     @Test
-    @DisplayName("Un aviso descartado o el paso de un mini-objetivo no se miden")
-    void deShouldHaveNoMeasurementForDiscardedAvisosAndSteps() {
-        Aviso descartado = aviso(TipoAviso.ESTANCADO, EstadoAviso.DESCARTADO);
+    @DisplayName("Un aviso descartado no se mide")
+    void unAvisoDescartadoNoSeMide() {
+        dadoUnAvisoDescartado();
 
-        assertThat(EfectoDecision.de(decision(TipoDecision.AVISO_DESCARTADO, AVISO_ID), descartado))
-                .isEqualTo(EfectoDecision.SIN_MEDICION);
-        assertThat(EfectoDecision.de(decision(TipoDecision.PASO_ACEPTADO, null), null))
-                .isEqualTo(EfectoDecision.SIN_MEDICION);
+        cuandoSeMideElEfectoDeDescartarlo();
+
+        entoncesElEfectoQuedaSinMedicion();
+    }
+
+    @Test
+    @DisplayName("El paso de un mini-objetivo no se mide")
+    void elPasoDeUnMiniObjetivoNoSeMide() {
+        cuandoSeMideElEfectoDeAceptarUnPaso();
+
+        entoncesElEfectoQuedaSinMedicion();
+    }
+
+    // --- dado ---
+
+    private void dadoUnAvisoAplicadoConElImpactoMedido() {
+        dadoUnAvisoAplicadoDe(TipoAviso.ESTANCADO);
+        aviso.registrarImpacto(impacto(), AHORA);
+    }
+
+    private void dadoUnAvisoAplicadoDe(TipoAviso tipo) {
+        aviso = aviso(tipo, EstadoAviso.APLICADO);
+    }
+
+    private void dadoUnAvisoDescartado() {
+        aviso = aviso(TipoAviso.ESTANCADO, EstadoAviso.DESCARTADO);
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeMideElEfectoDeAplicarlo() {
+        efecto = EfectoDecision.de(decision(TipoDecision.AVISO_APLICADO, AVISO_ID), aviso);
+    }
+
+    private void cuandoSeMideElEfectoDeAplicarUnAvisoBorrado() {
+        efecto = EfectoDecision.de(decision(TipoDecision.AVISO_APLICADO, AVISO_ID), null);
+    }
+
+    private void cuandoSeMideElEfectoDeDescartarlo() {
+        efecto = EfectoDecision.de(decision(TipoDecision.AVISO_DESCARTADO, AVISO_ID), aviso);
+    }
+
+    private void cuandoSeMideElEfectoDeAceptarUnPaso() {
+        efecto = EfectoDecision.de(decision(TipoDecision.PASO_ACEPTADO, null), null);
+    }
+
+    // --- entonces ---
+
+    private void entoncesElEfectoEstaMedidoConElCambioDeIngreso() {
+        assertThat(efecto.estado()).isEqualTo(EstadoEfecto.MEDIDO);
+        assertThat(efecto.deltaIngresoSemanal()).isEqualByComparingTo("350.00");
+    }
+
+    private void entoncesElEfectoEstaMidiendoSinCambioDeIngreso() {
+        assertThat(efecto.estado()).isEqualTo(EstadoEfecto.MIDIENDO);
+        assertThat(efecto.deltaIngresoSemanal()).isNull();
+    }
+
+    private void entoncesElEfectoQuedaSinMedicion() {
+        assertThat(efecto).isEqualTo(EfectoDecision.SIN_MEDICION);
     }
 }
