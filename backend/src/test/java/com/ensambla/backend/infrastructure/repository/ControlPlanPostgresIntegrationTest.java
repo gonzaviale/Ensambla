@@ -34,6 +34,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -58,6 +60,10 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     private static final LocalDate NOVIEMBRE = LocalDate.parse("2026-11-01");
     private static final LocalDate DICIEMBRE = LocalDate.parse("2026-12-01");
     private static final LocalDate AYER = LocalDate.parse("2026-10-18");
+    private static final LocalDate ULTIMO_DIA_DE_OCTUBRE = LocalDate.parse("2026-10-31");
+    private static final OffsetDateTime MEDIA_HORA_DESPUES_DE_MEDIANOCHE_DE_NOVIEMBRE =
+            OffsetDateTime.parse("2026-11-01T00:30:00-03:00");
+    private static final OffsetDateTime ULTIMO_MINUTO_DE_OCTUBRE = OffsetDateTime.parse("2026-11-01T02:59:00Z");
     private static final int PAGINAS_PARA_LLENAR_EL_GRATUITO = 9;
 
     @Autowired
@@ -107,6 +113,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     private long objetivosDelMes;
     private ConsumoDiario consumo;
     private Throwable error;
+    private UUID objetivoRegistrado;
 
     @BeforeEach
     void setUp() {
@@ -121,6 +128,9 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     @AfterEach
     void tearDown() {
+        if (otroNegocio != null) {
+            borrarNegocio(otroNegocio);
+        }
         jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId);
         jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", usuarioId);
     }
@@ -205,9 +215,9 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("La cuota se renueva al cambiar de mes argentino sin borrar el historial")
     void laCuotaSeRenuevaAlCambiarDeMesArgentinoSinBorrarElHistorial() {
-        dadoConsumo(LocalDate.parse("2026-10-31"), 10, 0);
+        dadoConsumo(ULTIMO_DIA_DE_OCTUBRE, 10, 0);
 
-        cuandoSeRegistraUnaInmediataEn(OffsetDateTime.parse("2026-11-01T00:30:00-03:00"));
+        cuandoSeRegistraUnaInmediataEn(MEDIA_HORA_DESPUES_DE_MEDIANOCHE_DE_NOVIEMBRE);
 
         entoncesElMesDeOctubreSuma(10);
         entoncesElMesDeNoviembreSuma(1);
@@ -217,10 +227,9 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @DisplayName("Finalizar después de medianoche conserva el mes en que se reservó la lectura")
     void finalizarDespuesDeMedianocheConservaElMesEnQueSeReservoLaLectura() {
         dadoUnLoteReclamado();
-        OffsetDateTime octubre = OffsetDateTime.parse("2026-11-01T02:59:00Z");
-        dadoUnaReservaDeDosPaginasEn(octubre);
+        dadoUnaReservaDeDosPaginasEn(ULTIMO_MINUTO_DE_OCTUBRE);
 
-        cuandoSeFinalizaElLoteConTimeout(octubre.plusMinutes(2));
+        cuandoSeFinalizaElLoteConTimeout(ULTIMO_MINUTO_DE_OCTUBRE.plusMinutes(2));
 
         entoncesElMesDeOctubreSuma(2);
         entoncesNoHayPaginasEnNoviembre();
@@ -256,14 +265,24 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     @Test
-    @DisplayName("Premium permite más sistemas y habilita las tres funciones aprobadas")
-    void premiumPermiteMasSistemasYHabilitaLasTresFuncionesAprobadas() {
+    @DisplayName("Premium permite más de un sistema")
+    void premiumPermiteMasDeUnSistema() {
         dadoPremium(AHORA.plusMonths(1));
 
         cuandoSeCreanDosProyectosEnSerie();
 
         entoncesElNegocioTieneProyectos(2);
-        entoncesPremiumHabilitaTodasLasFunciones();
+    }
+
+    @ParameterizedTest
+    @EnumSource(FuncionPlan.class)
+    @DisplayName("Premium habilita las funciones aprobadas")
+    void premiumHabilitaLasFuncionesAprobadas(FuncionPlan funcion) {
+        dadoPremium(AHORA.plusMonths(1));
+
+        cuandoSeValidaLaFuncion(funcion);
+
+        entoncesLaFuncionEstaHabilitada();
     }
 
     @Test
@@ -271,7 +290,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     void premiumTieneCienPaginasMensualesYVuelveAlGratuitoAlVencer() {
         dadoPremium(AHORA.plusDays(1));
         dadoConsumo(AYER, 99, 0);
-        cuandoSeRegistraUnaInmediataEn(AHORA);
+        dadoUnaPaginaInmediataRegistrada();
 
         cuandoSeRegistraUnaInmediataConError();
 
@@ -296,15 +315,22 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         cuandoSeCuentanLosObjetivosIaDeOctubre();
 
         entoncesSeCuentanDos();
-        borrarNegocio(otroNegocio);
     }
 
     @Test
-    @DisplayName("El gratuito guarda cinco objetivos con IA por mes y el sexto responde LIMITE_OBJETIVOS_IA")
-    void elGratuitoGuardaCincoObjetivosConIaPorMesYElSextoRespondeLimiteObjetivosIa() {
+    @DisplayName("El gratuito guarda cinco objetivos con IA por mes")
+    void elGratuitoGuardaCincoObjetivosConIaPorMes() {
         dadoCuatroObjetivosConIa();
-        entoncesSePuedeGuardarElQuinto();
-        dadoUnObjetivoConIaMas();
+
+        cuandoSeValidaUnObjetivoIaConError();
+
+        entoncesSeAceptaElObjetivo();
+    }
+
+    @Test
+    @DisplayName("El gratuito rechaza el sexto objetivo con IA del mes con LIMITE_OBJETIVOS_IA")
+    void elGratuitoRechazaElSextoObjetivoConIaDelMesConLimiteObjetivosIa() {
+        dadoCincoObjetivosConIa();
 
         cuandoSeValidaUnObjetivoIaConError();
 
@@ -313,25 +339,25 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     @Test
-    @DisplayName("Borrar un objetivo no devuelve la cuota del mes y borrar el negocio borra su consumo")
-    void borrarUnObjetivoNoDevuelveLaCuotaDelMesYBorrarElNegocioBorraSuConsumo() {
-        UUID objetivo = dadoUnObjetivoConIaRegistrado();
+    @DisplayName("Borrar un objetivo no devuelve la cuota del mes")
+    void borrarUnObjetivoNoDevuelveLaCuotaDelMes() {
+        dadoUnObjetivoConIaRegistrado();
 
-        cuandoSeBorraElObjetivo(objetivo);
+        cuandoSeBorraElObjetivo();
 
         entoncesLaCuotaSigueUsada(1);
     }
 
-    // --- arrange ---
+    // --- dado ---
     private void dadoDosBloquesYNuevecientosNoventaYNueveRegistros() {
-        bloqueA = givenBloque("Productos");
-        bloqueB = dadoBloqueInSameProyecto(bloqueA, "Ventas");
-        dadoRegistros(bloqueA, 999);
+        bloqueA = insertarBloque("Productos");
+        bloqueB = insertarBloqueEnElMismoProyecto(bloqueA, "Ventas");
+        insertarRegistros(bloqueA, 999);
     }
 
     private void dadoUnBloqueConRegistros(int cantidad) {
-        bloqueA = givenBloque("Productos");
-        dadoRegistros(bloqueA, cantidad);
+        bloqueA = insertarBloque("Productos");
+        insertarRegistros(bloqueA, cantidad);
     }
 
     private void dadoUnLoteReclamado() {
@@ -345,8 +371,11 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     private void dadoUnaReservaDeDosPaginasEn(OffsetDateTime momento) {
-        cuandoSeReservaUnLote(2, 100, momento);
-        entoncesLaReservaFueAceptada();
+        reservar(lote, 2, 100, momento);
+    }
+
+    private void dadoUnaPaginaInmediataRegistrada() {
+        consumoIaInmediatoService.registrar(NegocioId.de(negocioId), AHORA);
     }
 
     private void dadoConsumo(LocalDate dia, int paginas, int reservadas) {
@@ -367,7 +396,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         usoPlanRepository.registrarObjetivoIa(negocio, ObjetivoId.nuevo(), AHORA);
         usoPlanRepository.registrarObjetivoIa(negocio, ObjetivoId.nuevo(), AHORA.plusDays(3));
         usoPlanRepository.registrarObjetivoIa(negocio, ObjetivoId.nuevo(), AHORA.minusMonths(1));
-        otroNegocio = dadoOtroNegocio();
+        otroNegocio = insertarOtroNegocio();
         usoPlanRepository.registrarObjetivoIa(NegocioId.de(otroNegocio), ObjetivoId.nuevo(), AHORA);
     }
 
@@ -375,19 +404,23 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         IntStream.range(0, 4).forEach(indice -> dadoUnObjetivoConIaMas());
     }
 
+    private void dadoCincoObjetivosConIa() {
+        dadoCuatroObjetivosConIa();
+        dadoUnObjetivoConIaMas();
+    }
+
     private void dadoUnObjetivoConIaMas() {
         usoPlanRepository.registrarObjetivoIa(NegocioId.de(negocioId), ObjetivoId.nuevo(), AHORA);
     }
 
-    private UUID dadoUnObjetivoConIaRegistrado() {
-        UUID objetivo = UUID.randomUUID();
+    private void dadoUnObjetivoConIaRegistrado() {
+        objetivoRegistrado = UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO objetivo (id, negocio_id, texto, tipo, armado_con_sami) "
-                + "VALUES (?, ?, 'Que me conozcan', 'SIN_DATOS', true)", objetivo, negocioId);
-        usoPlanRepository.registrarObjetivoIa(NegocioId.de(negocioId), ObjetivoId.de(objetivo), AHORA);
-        return objetivo;
+                + "VALUES (?, ?, 'Que me conozcan', 'SIN_DATOS', true)", objetivoRegistrado, negocioId);
+        usoPlanRepository.registrarObjetivoIa(NegocioId.de(negocioId), ObjetivoId.de(objetivoRegistrado), AHORA);
     }
 
-    // --- act ---
+    // --- cuando ---
     private void cuandoSeCreanDosProyectosAlMismoTiempo() throws Exception {
         resultados = concurrently(() -> crearProyecto("Primero"), () -> crearProyecto("Segundo"));
     }
@@ -459,11 +492,15 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         error = catchThrowable(() -> controlPlanService.validarObjetivoIa(NegocioId.de(negocioId), AHORA));
     }
 
-    private void cuandoSeBorraElObjetivo(UUID objetivo) {
-        jdbcTemplate.update("DELETE FROM objetivo WHERE id = ?", objetivo);
+    private void cuandoSeBorraElObjetivo() {
+        jdbcTemplate.update("DELETE FROM objetivo WHERE id = ?", objetivoRegistrado);
     }
 
-    // --- assert ---
+    private void cuandoSeValidaLaFuncion(FuncionPlan funcion) {
+        error = catchThrowable(() -> controlPlanService.validarFuncion(NegocioId.de(negocioId), funcion, AHORA));
+    }
+
+    // --- entonces ---
     private void entoncesSoloSePermiteUno() {
         assertThat(resultados).containsExactlyInAnyOrder(true, false);
     }
@@ -514,10 +551,6 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         assertThat(paginasEn(NOVIEMBRE, DICIEMBRE)).isZero();
     }
 
-    private void entoncesLaReservaFueAceptada() {
-        assertThat(reservada).isTrue();
-    }
-
     private void entoncesLaReservaFueRechazada() {
         assertThat(reservada).isFalse();
     }
@@ -529,11 +562,8 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         assertThat(consumo.consumoCompleto()).isFalse();
     }
 
-    private void entoncesPremiumHabilitaTodasLasFunciones() {
-        for (FuncionPlan funcion : FuncionPlan.values()) {
-            assertThat(catchThrowable(
-                    () -> controlPlanService.validarFuncion(NegocioId.de(negocioId), funcion, AHORA))).isNull();
-        }
+    private void entoncesLaFuncionEstaHabilitada() {
+        assertThat(error).isNull();
     }
 
     private void entoncesPremiumYaNoHabilitaRecetasUnDiaDespues() {
@@ -554,9 +584,8 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         assertThat(objetivosDelMes).isEqualTo(2);
     }
 
-    private void entoncesSePuedeGuardarElQuinto() {
-        assertThat(catchThrowable(
-                () -> controlPlanService.validarObjetivoIa(NegocioId.de(negocioId), AHORA))).isNull();
+    private void entoncesSeAceptaElObjetivo() {
+        assertThat(error).isNull();
     }
 
     private void entoncesSeRechazaPorLimiteDeObjetivosIa() {
@@ -572,12 +601,12 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         assertThat(controlPlanService.cuotaObjetivosIa(NegocioId.de(negocioId), AHORA).usadas()).isEqualTo(usadas);
     }
 
-    // --- helpers ---
+    // --- datos ---
     private long paginasEn(LocalDate desde, LocalDate hasta) {
         return usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId), desde, hasta);
     }
 
-    private UUID givenBloque(String nombre) {
+    private UUID insertarBloque(String nombre) {
         UUID proyectoId = proyectosDePrueba.crear(NegocioId.de(negocioId), "Sistema", null, AHORA).getId().valor();
         UUID bloqueId = UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO bloque (id, negocio_id, proyecto_id, nombre) VALUES (?, ?, ?, ?)",
@@ -585,7 +614,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         return bloqueId;
     }
 
-    private UUID dadoBloqueInSameProyecto(UUID bloqueId, String nombre) {
+    private UUID insertarBloqueEnElMismoProyecto(UUID bloqueId, String nombre) {
         UUID proyectoId = jdbcTemplate.queryForObject(
                 "SELECT proyecto_id FROM bloque WHERE id = ?", UUID.class, bloqueId);
         UUID nuevoId = UUID.randomUUID();
@@ -594,7 +623,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         return nuevoId;
     }
 
-    private void dadoRegistros(UUID bloqueId, int cantidad) {
+    private void insertarRegistros(UUID bloqueId, int cantidad) {
         jdbcTemplate.update("""
                 INSERT INTO registro (negocio_id, bloque_id, valores)
                 SELECT ?, ?, '{}'::jsonb FROM generate_series(1, ?)
@@ -657,7 +686,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", duenio);
     }
 
-    private UUID dadoOtroNegocio() {
+    private UUID insertarOtroNegocio() {
         UUID otroUsuario = UUID.randomUUID();
         UUID otroNegocioId = UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO usuario (id, email, nombre) VALUES (?, ?, 'Otro')",
