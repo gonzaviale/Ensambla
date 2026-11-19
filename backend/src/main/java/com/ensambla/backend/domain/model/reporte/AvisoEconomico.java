@@ -37,6 +37,8 @@ public record AvisoEconomico(
     static final int MAXIMO_PRODUCTOS = 3;
 
     private static final BigDecimal CIEN = BigDecimal.valueOf(100);
+    private static final String PEDIDO_DE_COSTOS =
+            " Cargá el costo de tus productos para saber también cuánto ganaste.";
     private static final long CONFIANZA_ALTA = 80;
     private static final long CONFIANZA_MEDIA = 50;
 
@@ -52,7 +54,33 @@ public record AvisoEconomico(
     }
 
     public enum Tendencia {
-        MEJORA, EMPEORA
+        MEJORA(1), EMPEORA(-1);
+
+        private final int signo;
+
+        Tendencia(int signo) {
+            this.signo = signo;
+        }
+    }
+
+    /** Cuánto cambiaron las ventas y la ganancia frente a la semana anterior; la ganancia es null si no hay costos. */
+    private record Variaciones(BigDecimal ventas, BigDecimal resultado) {
+
+        boolean vendioMas() {
+            return ventas.signum() >= 0;
+        }
+
+        boolean ganoMas() {
+            return resultado == null ? vendioMas() : resultado.signum() >= 0;
+        }
+
+        Tendencia tendencia() {
+            return ganoMas() ? Tendencia.MEJORA : Tendencia.EMPEORA;
+        }
+
+        boolean tieneCostos() {
+            return resultado != null;
+        }
     }
 
     /**
@@ -65,24 +93,18 @@ public record AvisoEconomico(
         if (ventasAnteriores.signum() <= 0) {
             return null;
         }
-        BigDecimal ventas = variacion(actual.ventas().ingresos(), ventasAnteriores);
-        BigDecimal resultado = variacionDeGanancia(actual.ventas().gananciaEstimada(),
-                anterior.ventas().gananciaEstimada());
-        boolean vendioMas = ventas.signum() >= 0;
-        boolean ganoMas = resultado == null ? vendioMas : resultado.signum() >= 0;
-        Tendencia tendencia = ganoMas ? Tendencia.MEJORA : Tendencia.EMPEORA;
-        List<Cambio> cambios = cambios(actual.masVendidos(), anterior.masVendidos(), tendencia);
-        return new AvisoEconomico(
-                prioridad(vendioMas, ganoMas),
-                tendencia,
-                resultado == null ? "Ventas" : "Rentabilidad",
-                titulo(ventas, resultado, vendioMas, ganoMas),
-                explicacion(resultado, vendioMas, ganoMas),
-                ventas,
-                resultado,
-                cambios.stream().map(Cambio::nombre).toList(),
-                cambios,
-                confianza(actual.masVendidos()));
+        Variaciones variaciones = new Variaciones(
+                variacion(actual.ventas().ingresos(), ventasAnteriores),
+                variacionDeGanancia(actual.ventas().gananciaEstimada(), anterior.ventas().gananciaEstimada()));
+        return armar(variaciones, actual.masVendidos(), anterior.masVendidos());
+    }
+
+    private static AvisoEconomico armar(Variaciones variaciones, List<ProductoVendido> actuales,
+                                        List<ProductoVendido> anteriores) {
+        List<Cambio> cambios = cambios(actuales, anteriores, variaciones.tendencia());
+        return new AvisoEconomico(prioridad(variaciones), variaciones.tendencia(), categoria(variaciones),
+                titulo(variaciones), explicacion(variaciones), variaciones.ventas(), variaciones.resultado(),
+                cambios.stream().map(Cambio::nombre).toList(), cambios, confianza(actuales));
     }
 
     private static BigDecimal variacion(BigDecimal actual, BigDecimal anterior) {
@@ -93,36 +115,49 @@ public record AvisoEconomico(
         return actual == null || anterior == null || anterior.signum() <= 0 ? null : variacion(actual, anterior);
     }
 
+    private static String categoria(Variaciones variaciones) {
+        return variaciones.tieneCostos() ? "Rentabilidad" : "Ventas";
+    }
+
     /** Lo urgente es vender más y ganar menos: se trabaja más para llevarse menos. */
-    private static Nivel prioridad(boolean vendioMas, boolean ganoMas) {
-        if (ganoMas) {
+    private static Nivel prioridad(Variaciones variaciones) {
+        if (variaciones.ganoMas()) {
             return Nivel.BAJA;
         }
-        return vendioMas ? Nivel.ALTA : Nivel.MEDIA;
+        return variaciones.vendioMas() ? Nivel.ALTA : Nivel.MEDIA;
     }
 
-    private static String titulo(BigDecimal ventas, BigDecimal resultado, boolean vendioMas, boolean ganoMas) {
-        String ventasEnTexto = "Las ventas " + (vendioMas ? "subieron " : "bajaron ") + ventas.abs() + " %";
-        if (resultado == null) {
-            return ventasEnTexto + " frente a la semana pasada";
+    private static String titulo(Variaciones variaciones) {
+        String ventas = "Las ventas " + (variaciones.vendioMas() ? "subieron " : "bajaron ")
+                + variaciones.ventas().abs() + " %";
+        if (!variaciones.tieneCostos()) {
+            return ventas + " frente a la semana pasada";
         }
-        String resultadoEnTexto = "la ganancia " + (ganoMas ? "subió " : "bajó ") + resultado.abs() + " %";
-        return ventasEnTexto + (vendioMas == ganoMas ? " y " : ", pero ") + resultadoEnTexto;
+        String ganancia = "la ganancia " + (variaciones.ganoMas() ? "subió " : "bajó ")
+                + variaciones.resultado().abs() + " %";
+        return ventas + (variaciones.vendioMas() == variaciones.ganoMas() ? " y " : ", pero ") + ganancia;
     }
 
-    private static String explicacion(BigDecimal resultado, boolean vendioMas, boolean ganoMas) {
-        if (resultado == null) {
-            String base = ganoMas
-                    ? "Tu negocio está mejorando: vendiste más que la semana pasada."
-                    : "Esta semana vendiste menos que la anterior.";
-            return base + " Cargá el costo de tus productos para saber también cuánto ganaste.";
+    private static String explicacion(Variaciones variaciones) {
+        if (!variaciones.tieneCostos()) {
+            return explicacionSinCostos(variaciones) + PEDIDO_DE_COSTOS;
         }
-        if (ganoMas) {
-            return vendioMas
+        return explicacionConCostos(variaciones);
+    }
+
+    private static String explicacionSinCostos(Variaciones variaciones) {
+        return variaciones.ganoMas()
+                ? "Tu negocio está mejorando: vendiste más que la semana pasada."
+                : "Esta semana vendiste menos que la anterior.";
+    }
+
+    private static String explicacionConCostos(Variaciones variaciones) {
+        if (variaciones.ganoMas()) {
+            return variaciones.vendioMas()
                     ? "Tu negocio está mejorando: vendiste más y te quedó más ganancia que la semana pasada."
                     : "Vendiste menos, pero te quedó más ganancia: lo que vendiste te dejó más por cada venta.";
         }
-        return vendioMas
+        return variaciones.vendioMas()
                 ? "Vendiste más, pero te quedó menos ganancia: revisá los precios de los productos involucrados."
                 : "Esta semana vendiste menos y te quedó menos ganancia que la anterior.";
     }
@@ -132,19 +167,23 @@ public record AvisoEconomico(
      * cuando empeora, los que más subieron cuando mejora.
      */
     private static List<Cambio> cambios(List<ProductoVendido> actual, List<ProductoVendido> anterior,
-                                          Tendencia tendencia) {
-        Map<String, BigDecimal> cambio = new HashMap<>();
-        actual.forEach(producto -> cambio.merge(producto.nombre(), aporte(producto), BigDecimal::add));
-        anterior.forEach(producto -> cambio.merge(producto.nombre(), aporte(producto).negate(), BigDecimal::add));
-        int signo = tendencia == Tendencia.MEJORA ? 1 : -1;
+                                        Tendencia tendencia) {
         Comparator<Map.Entry<String, BigDecimal>> porCambio =
                 Comparator.comparing(entrada -> entrada.getValue().abs());
-        return cambio.entrySet().stream()
-                .filter(entrada -> entrada.getValue().signum() == signo)
+        return cambioPorProducto(actual, anterior).entrySet().stream()
+                .filter(entrada -> entrada.getValue().signum() == tendencia.signo)
                 .sorted(porCambio.reversed().thenComparing(Map.Entry::getKey))
                 .limit(MAXIMO_PRODUCTOS)
                 .map(entrada -> new Cambio(entrada.getKey(), entrada.getValue()))
                 .toList();
+    }
+
+    private static Map<String, BigDecimal> cambioPorProducto(List<ProductoVendido> actual,
+                                                             List<ProductoVendido> anterior) {
+        Map<String, BigDecimal> cambio = new HashMap<>();
+        actual.forEach(producto -> cambio.merge(producto.nombre(), aporte(producto), BigDecimal::add));
+        anterior.forEach(producto -> cambio.merge(producto.nombre(), aporte(producto).negate(), BigDecimal::add));
+        return cambio;
     }
 
     private static BigDecimal aporte(ProductoVendido producto) {

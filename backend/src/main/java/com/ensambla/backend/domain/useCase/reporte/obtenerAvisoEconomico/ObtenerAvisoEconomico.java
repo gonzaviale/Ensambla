@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.useCase.reporte.obtenerAvisoEconomico;
 import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.reporte.AvisoEconomico;
 import com.ensambla.backend.domain.model.reporte.DatosDeProyecto;
 import com.ensambla.backend.domain.model.reporte.PeriodoResumen;
@@ -11,6 +12,7 @@ import com.ensambla.backend.domain.model.zona.AnalisisZona;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
@@ -36,18 +38,35 @@ public class ObtenerAvisoEconomico {
     private final Clock clock;
 
     public ObtenerAvisoEconomicoResponse execute(ObtenerAvisoEconomicoRequest request) {
-        Negocio negocio = negocioRepository.obtenerNegocioDelUsuario(request.usuarioId());
-        Proyecto proyecto = proyectoRepository.obtener(negocio.getId(), request.proyectoId());
+        Negocio negocio = obtenerNegocioDelUsuario(request.usuarioId());
+        Proyecto proyecto = obtenerProyecto(negocio, request.proyectoId());
         LocalDate hoy = ZonaNegocio.dia(OffsetDateTime.now(clock));
-        DatosDeProyecto datos = datosDeProyectoService.cargar(proyecto, negocio.getId());
+        DatosDeProyecto datos = cargarDatos(proyecto, negocio);
+        return ObtenerAvisoEconomicoResponse.de(compararEstaSemanaConLaAnterior(negocio, datos, hoy));
+    }
+
+    private static AvisoEconomico compararEstaSemanaConLaAnterior(Negocio negocio, DatosDeProyecto datos,
+                                                                  LocalDate hoy) {
         PeriodoResumen semana = new PeriodoResumen(hoy.minusDays(DIAS_DE_UNA_SEMANA - 1L), hoy);
-        return ObtenerAvisoEconomicoResponse.de(AvisoEconomico.comparar(
+        return AvisoEconomico.comparar(
                 resumen(negocio, datos, semana, hoy),
-                resumen(negocio, datos, semana.anterior(), hoy)));
+                resumen(negocio, datos, semana.anterior(), hoy));
     }
 
     private static ResumenNegocio resumen(Negocio negocio, DatosDeProyecto datos, PeriodoResumen periodo,
                                           LocalDate hoy) {
         return ResumenNegocio.armar(negocio.getNombre(), datos, AnalisisZona.sinZona(), List.of(), periodo, hoy);
+    }
+
+    private Negocio obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerNegocioDelUsuario(usuarioId);
+    }
+
+    private Proyecto obtenerProyecto(Negocio negocio, ProyectoId proyectoId) {
+        return proyectoRepository.obtener(negocio.getId(), proyectoId);
+    }
+
+    private DatosDeProyecto cargarDatos(Proyecto proyecto, Negocio negocio) {
+        return datosDeProyectoService.cargar(proyecto, negocio.getId());
     }
 }

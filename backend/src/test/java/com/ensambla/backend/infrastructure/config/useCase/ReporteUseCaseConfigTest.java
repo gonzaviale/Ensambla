@@ -120,8 +120,9 @@ class ReporteUseCaseConfigTest {
         ExportarResumenResponse response = config.exportarResumenNegocio(
                         negocioRepository, mock(ControlPlanService.class), proyectoRepository,
                         config.datosDeProyectoService(mock(RegistroRepository.class), mock(VentaCajaRepository.class),
-                                mock(CobroCajaRepository.class)), mock(ZonaRepository.class),
-                        mock(AgregadoZonaRepository.class), avisoRepository, generador, Clock.systemUTC())
+                                mock(CobroCajaRepository.class)),
+                        config.contextoDeResumenService(negocioRepository, mock(ZonaRepository.class),
+                                mock(AgregadoZonaRepository.class), avisoRepository), generador, Clock.systemUTC())
                 .execute(new ExportarResumenRequest(USUARIO_ID, proyectoId, null, null));
 
         assertThat(response.contenido()).containsExactly(7);
@@ -161,8 +162,9 @@ class ReporteUseCaseConfigTest {
         ObtenerMetricasResponse response = config.obtenerMetricas(
                         negocioRepository, proyectoRepository,
                         config.datosDeProyectoService(mock(RegistroRepository.class), mock(VentaCajaRepository.class),
-                                mock(CobroCajaRepository.class)), mock(ZonaRepository.class),
-                        mock(AgregadoZonaRepository.class), mock(AvisoRepository.class), Clock.systemUTC())
+                                mock(CobroCajaRepository.class)),
+                        config.contextoDeResumenService(negocioRepository, mock(ZonaRepository.class),
+                                mock(AgregadoZonaRepository.class), mock(AvisoRepository.class)), Clock.systemUTC())
                 .execute(new ObtenerMetricasRequest(USUARIO_ID, proyectoId, PeriodoMetricas.MES));
 
         assertThat(response.sistema()).isEqualTo("Almacén");

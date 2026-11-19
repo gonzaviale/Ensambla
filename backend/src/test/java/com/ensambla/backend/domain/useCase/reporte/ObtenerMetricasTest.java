@@ -29,6 +29,7 @@ import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
+import com.ensambla.backend.domain.service.reporte.ContextoDeResumenService;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
 import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricas;
 import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricasRequest;
@@ -84,8 +85,9 @@ class ObtenerMetricasTest {
     private final AvisoRepository avisoRepository = mock(AvisoRepository.class);
 
     private final ObtenerMetricas obtenerMetricas = new ObtenerMetricas(
-            negocioRepository, proyectoRepository, datosDeProyectoService, zonaRepository, agregadoZonaRepository,
-            avisoRepository, Clock.fixed(INSTANTE, ZoneOffset.UTC));
+            negocioRepository, proyectoRepository, datosDeProyectoService,
+            new ContextoDeResumenService(negocioRepository, zonaRepository, agregadoZonaRepository, avisoRepository),
+            Clock.fixed(INSTANTE, ZoneOffset.UTC));
 
     private Proyecto proyecto;
 

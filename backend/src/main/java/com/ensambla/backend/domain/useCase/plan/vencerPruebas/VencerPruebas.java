@@ -2,7 +2,7 @@ package com.ensambla.backend.domain.useCase.plan.vencerPruebas;
 
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
-import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
+import com.ensambla.backend.domain.model.plan.Plan;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
@@ -33,21 +33,40 @@ public class VencerPruebas {
 
     public void execute() {
         OffsetDateTime ahora = OffsetDateTime.now(clock);
-        List<NegocioId> negocios = pruebaPremiumRepository.findNegociosVencidos(ahora);
-        negocios.forEach(negocioId -> transaccionPort.ejecutar(() -> vencer(negocioId, ahora)));
+        buscarNegociosConPruebaVencida(ahora).forEach(negocioId -> vencerEnUnaTransaccion(negocioId, ahora));
+    }
+
+    private void vencerEnUnaTransaccion(NegocioId negocioId, OffsetDateTime ahora) {
+        transaccionPort.ejecutar(() -> vencer(negocioId, ahora));
     }
 
     private void vencer(NegocioId negocioId, OffsetDateTime ahora) {
-        usoPlanRepository.bloquearNegocio(negocioId);
-        Suscripcion suscripcion = suscripcionRepository.obtener(negocioId);
+        bloquearNegocio(negocioId);
+        Suscripcion suscripcion = obtenerSuscripcion(negocioId);
         // Se vuelve a comprobar luego del bloqueo: un pago puede haberla activado desde la selección del job.
-        if (suscripcion.getEstado() == EstadoSuscripcion.PRUEBA && !suscripcion.getFinEn().isAfter(ahora)) {
-            suscripcion.setPlanId(planRepository.obtener(CodigoPlan.GRATUITO).getId());
-            suscripcion.setEstado(EstadoSuscripcion.ACTIVA);
-            suscripcion.setInicioEn(ahora);
-            suscripcion.setFinEn(null);
-            suscripcion.setActualizadoEn(ahora);
-            suscripcionRepository.save(suscripcion);
+        if (suscripcion.tieneLaPruebaVencida(ahora)) {
+            volverAlPlanGratuito(suscripcion, ahora);
         }
+    }
+
+    private void volverAlPlanGratuito(Suscripcion suscripcion, OffsetDateTime ahora) {
+        suscripcion.volverAlPlanGratuito(obtenerPlanGratuito().getId(), ahora);
+        suscripcionRepository.save(suscripcion);
+    }
+
+    private List<NegocioId> buscarNegociosConPruebaVencida(OffsetDateTime ahora) {
+        return pruebaPremiumRepository.findNegociosVencidos(ahora);
+    }
+
+    private void bloquearNegocio(NegocioId negocioId) {
+        usoPlanRepository.bloquearNegocio(negocioId);
+    }
+
+    private Suscripcion obtenerSuscripcion(NegocioId negocioId) {
+        return suscripcionRepository.obtener(negocioId);
+    }
+
+    private Plan obtenerPlanGratuito() {
+        return planRepository.obtener(CodigoPlan.GRATUITO);
     }
 }

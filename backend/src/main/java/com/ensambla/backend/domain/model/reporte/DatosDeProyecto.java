@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.caja.CobroCaja;
 import com.ensambla.backend.domain.model.caja.VentaCaja;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,6 +32,15 @@ public record DatosDeProyecto(
                            List<BloqueGastos> gastos, Map<String, String> nombresDeClientes,
                            List<BloqueEntradas> entradas) {
         this(nombre, inventarios, ventas, gastos, nombresDeClientes, entradas, List.of(), List.of());
+    }
+
+    /** Las ventas de productos anotadas hasta ese día, sin las que tienen fecha futura. */
+    public List<VentaProducto> ventasHasta(LocalDate hoy) {
+        return ventas.stream()
+                .flatMap(bloque -> bloque.registros().stream()
+                        .flatMap(registro -> VentaProducto.desde(bloque, registro).stream()))
+                .filter(venta -> !venta.fecha().isAfter(hoy))
+                .toList();
     }
 
     public List<VentaProducto> importesLibres() {

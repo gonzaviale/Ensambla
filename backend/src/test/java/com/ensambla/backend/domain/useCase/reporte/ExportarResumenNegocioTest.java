@@ -24,6 +24,7 @@ import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.domain.service.reporte.ContextoDeResumenService;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenNegocio;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenRequest;
@@ -72,8 +73,9 @@ class ExportarResumenNegocioTest {
     private final GeneradorResumenPdfPort generador = mock(GeneradorResumenPdfPort.class);
 
     private final ExportarResumenNegocio exportarResumenNegocio = new ExportarResumenNegocio(
-            negocioRepository, controlPlanService, proyectoRepository, datosDeProyectoService, zonaRepository,
-            agregadoZonaRepository, avisoRepository, generador, Clock.fixed(INSTANTE, ZoneOffset.UTC));
+            negocioRepository, controlPlanService, proyectoRepository, datosDeProyectoService,
+            new ContextoDeResumenService(negocioRepository, zonaRepository, agregadoZonaRepository, avisoRepository),
+            generador, Clock.fixed(INSTANTE, ZoneOffset.UTC));
 
     @BeforeEach
     void setUp() {

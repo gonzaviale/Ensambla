@@ -4,9 +4,11 @@ import com.ensambla.backend.domain.model.aviso.VentaProducto;
 import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.reporte.DatosDeProyecto;
 import com.ensambla.backend.domain.model.reporte.PeriodoResumen;
 import com.ensambla.backend.domain.model.reporte.ResumenNegocio;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
@@ -47,33 +49,41 @@ public class ObtenerResumenInicio {
     private final Clock clock;
 
     public ObtenerResumenInicioResponse execute(ObtenerResumenInicioRequest request) {
-        Negocio negocio = negocioRepository.obtenerNegocioDelUsuario(request.usuarioId());
-        Proyecto proyecto = proyectoRepository.obtener(negocio.getId(), request.proyectoId());
+        Negocio negocio = obtenerNegocioDelUsuario(request.usuarioId());
+        Proyecto proyecto = obtenerProyecto(negocio, request.proyectoId());
         LocalDate hoy = ZonaNegocio.dia(OffsetDateTime.now(clock));
-        DatosDeProyecto datos = datosDeProyectoService.cargar(proyecto, negocio.getId());
-        List<VentaProducto> ventas = ventasHastaHoy(datos, hoy);
-        UltimoDiaConVentas ultimoDia = ultimoDiaConVentas(negocio, datos, ventas, hoy);
-        ResumenNegocio mes = resumen(negocio, datos, hoy.minusDays(DIAS_DEL_MES - 1L), hoy, hoy);
-        ResumenNegocio semana = resumen(negocio, datos, hoy.minusDays(DIAS_DE_UNA_SEMANA - 1L), hoy, hoy);
+        DatosDeProyecto datos = cargarDatos(proyecto, negocio);
+        return armarResumenDeInicio(negocio, datos, hoy);
+    }
+
+    private ObtenerResumenInicioResponse armarResumenDeInicio(Negocio negocio, DatosDeProyecto datos, LocalDate hoy) {
+        List<VentaProducto> ventas = datos.ventasHasta(hoy);
+        ResumenNegocio mes = resumenDeLosUltimosDias(negocio, datos, DIAS_DEL_MES, hoy);
+        return ObtenerResumenInicioResponse.de(hoy, !ventas.isEmpty(), mes,
+                resumenDeLosUltimosDias(negocio, datos, DIAS_DE_LA_QUINCENA, hoy),
+                ventasDelInicio(negocio, datos, ventas, mes, hoy),
+                VentaDelDia.serie(ventas, hoy.minusDays(DIAS_DEL_MES - 1L), hoy),
+                ultimoDiaConVentas(negocio, datos, ventas, hoy),
+                tieneQuincenaDeVentas(ventas, hoy));
+    }
+
+    private Ventas ventasDelInicio(Negocio negocio, DatosDeProyecto datos, List<VentaProducto> ventas,
+                                   ResumenNegocio mes, LocalDate hoy) {
+        ResumenNegocio semana = resumenDeLosUltimosDias(negocio, datos, DIAS_DE_UNA_SEMANA, hoy);
         ResumenNegocio dia = resumen(negocio, datos, hoy, hoy, hoy);
-        BigDecimal ingresosDelMismoDiaDeLaSemanaPasada =
-                resumen(negocio, datos, hoy.minusDays(DIAS_DE_UNA_SEMANA), hoy.minusDays(DIAS_DE_UNA_SEMANA), hoy)
-                        .ventas().ingresos();
-        Ventas ventasDelInicio = new Ventas(
-                VentasDelPeriodo.de(dia, ingresosDelMismoDiaDeLaSemanaPasada, sinPrecio(ventas, hoy)),
+        return new Ventas(
+                VentasDelPeriodo.de(dia, ingresosDelMismoDiaDeLaSemanaPasada(negocio, datos, hoy),
+                        sinPrecio(ventas, hoy)),
                 VentasDelPeriodo.de(semana, semana.ventas().ingresosAnteriores(),
                         sinPrecio(ventas, hoy.minusDays(DIAS_DE_UNA_SEMANA - 1L))),
                 VentasDelPeriodo.de(mes, mes.ventas().ingresosAnteriores(),
                         sinPrecio(ventas, hoy.minusDays(DIAS_DEL_MES - 1L))));
-        return ObtenerResumenInicioResponse.de(
-                hoy,
-                !ventas.isEmpty(),
-                mes,
-                resumen(negocio, datos, hoy.minusDays(DIAS_DE_LA_QUINCENA - 1L), hoy, hoy),
-                ventasDelInicio,
-                VentaDelDia.serie(ventas, hoy.minusDays(DIAS_DEL_MES - 1L), hoy),
-                ultimoDia,
-                tieneQuincenaDeVentas(ventas, hoy));
+    }
+
+    private static BigDecimal ingresosDelMismoDiaDeLaSemanaPasada(Negocio negocio, DatosDeProyecto datos,
+                                                                  LocalDate hoy) {
+        LocalDate semanaPasada = hoy.minusDays(DIAS_DE_UNA_SEMANA);
+        return resumen(negocio, datos, semanaPasada, semanaPasada, hoy).ventas().ingresos();
     }
 
     /** Cuántas ventas del período que termina hoy no tienen precio y por eso no suman plata. */
@@ -82,14 +92,6 @@ public class ObtenerResumenInicio {
                 .filter(venta -> !venta.fecha().isBefore(desde))
                 .filter(venta -> venta.precio() == null)
                 .count();
-    }
-
-    private static List<VentaProducto> ventasHastaHoy(DatosDeProyecto datos, LocalDate hoy) {
-        return datos.ventas().stream()
-                .flatMap(bloque -> bloque.registros().stream()
-                        .flatMap(registro -> VentaProducto.desde(bloque, registro).stream()))
-                .filter(venta -> !venta.fecha().isAfter(hoy))
-                .toList();
     }
 
     private UltimoDiaConVentas ultimoDiaConVentas(Negocio negocio, DatosDeProyecto datos, List<VentaProducto> ventas,
@@ -106,9 +108,26 @@ public class ObtenerResumenInicio {
         return ventas.stream().anyMatch(venta -> !venta.fecha().isAfter(hoy.minusDays(DIAS_DE_LA_QUINCENA - 1L)));
     }
 
+    private static ResumenNegocio resumenDeLosUltimosDias(Negocio negocio, DatosDeProyecto datos, int dias,
+                                                          LocalDate hoy) {
+        return resumen(negocio, datos, hoy.minusDays(dias - 1L), hoy, hoy);
+    }
+
     private static ResumenNegocio resumen(Negocio negocio, DatosDeProyecto datos, LocalDate desde, LocalDate hasta,
                                           LocalDate hoy) {
         return ResumenNegocio.armar(negocio.getNombre(), datos, AnalisisZona.sinZona(), List.of(),
                 new PeriodoResumen(desde, hasta), hoy);
+    }
+
+    private Negocio obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerNegocioDelUsuario(usuarioId);
+    }
+
+    private Proyecto obtenerProyecto(Negocio negocio, ProyectoId proyectoId) {
+        return proyectoRepository.obtener(negocio.getId(), proyectoId);
+    }
+
+    private DatosDeProyecto cargarDatos(Proyecto proyecto, Negocio negocio) {
+        return datosDeProyectoService.cargar(proyecto, negocio.getId());
     }
 }
