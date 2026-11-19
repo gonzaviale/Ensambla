@@ -85,6 +85,73 @@ const marcasPorPaso: Record<PasoDeTutorial, (pedido: PedidoDeMarcas) => MarcaDel
 };
 
 /** Los elementos que el paso señala: lo único que se puede tocar (más lo que cada paso permite aparte). */
+const SELECTOR_DEL_FOCO: Partial<Record<PasoDeTutorial, string>> = {
+  rename: '#block-name',
+  describe: '#guide-message',
+  fillRecord: '#overlay form input:not([type="hidden"]), #overlay form select',
+};
+
+function elementoParaEnfocar(paso: PasoDeTutorial | null | undefined, pensando: boolean) {
+  if (!paso || (paso === 'describe' && pensando)) return null;
+  const selector = SELECTOR_DEL_FOCO[paso];
+  return selector ? document.querySelector<HTMLElement>(selector) : null;
+}
+
+type MedidasDelCartel = {
+  ancho: number;
+  alto: number;
+  anchoDelCartel: number;
+  altoDelCartel: number;
+};
+
+type PuntoDelCartel = { left: number; top: number };
+
+const posicionAbajoAlaDerecha = (m: MedidasDelCartel): PuntoDelCartel => ({
+  left: m.ancho - m.anchoDelCartel - 20,
+  top: m.alto - m.altoDelCartel - 20,
+});
+
+const alineadoALaIzquierdaDe = (primera: DOMRect, m: MedidasDelCartel) =>
+  Math.max(12, Math.min(m.ancho - m.anchoDelCartel - 12, primera.left));
+
+const aLaDerechaDe = (primera: DOMRect, m: MedidasDelCartel): PuntoDelCartel => ({
+  left: primera.right + 20,
+  top: Math.max(12, Math.min(m.alto - m.altoDelCartel - 12, primera.top)),
+});
+
+const arribaDe = (primera: DOMRect, m: MedidasDelCartel): PuntoDelCartel => ({
+  left: alineadoALaIzquierdaDe(primera, m),
+  top: primera.top - m.altoDelCartel - 18,
+});
+
+const abajoDe = (primera: DOMRect, m: MedidasDelCartel): PuntoDelCartel => ({
+  left: alineadoALaIzquierdaDe(primera, m),
+  top: primera.bottom + 18,
+});
+
+function posicionEnPantallaGrande(primera: DOMRect, m: MedidasDelCartel): PuntoDelCartel {
+  if (m.ancho - primera.right > m.anchoDelCartel + 34) return aLaDerechaDe(primera, m);
+  if (primera.top > m.altoDelCartel + 30) return arribaDe(primera, m);
+  if (m.alto - primera.bottom > m.altoDelCartel + 30) return abajoDe(primera, m);
+  return posicionAbajoAlaDerecha(m);
+}
+
+// En el celular el cartel va abajo, salvo con el chat de Sami abierto (abajo se escribe) o cuando
+// lo señalado está abajo: ahí sube arriba para no taparlo.
+function elCartelDebeSubir(primera: DOMRect | undefined, alto: number) {
+  const hayChatAbierto = Boolean(
+    document.querySelector('.sami-conversation.flotante:not([hidden])'),
+  );
+  const loSenaladoEstaAbajo = primera !== undefined && primera.top + primera.height / 2 > alto / 2;
+  return hayChatAbierto || loSenaladoEstaAbajo;
+}
+
+function posicionDelCartel(primera: DOMRect | undefined, m: MedidasDelCartel): PuntoDelCartel {
+  if (primera && m.ancho > 760) return posicionEnPantallaGrande(primera, m);
+  const abajo = posicionAbajoAlaDerecha(m);
+  return elCartelDebeSubir(primera, m.alto) ? { ...abajo, top: 12 } : abajo;
+}
+
 export function objetivosDelPaso(paso: PasoDeTutorial, bloqueId: string | null, pensando: boolean) {
   const marcas = marcasPorPaso[paso]({ bloqueId, pensando });
   return [...new Set(marcas.flatMap(([marca, id]) => porMarca(marca, id)))];
@@ -209,17 +276,7 @@ export function useTutorialEnPantalla() {
             : 'smooth',
         });
       }
-      const foco =
-        paso === 'rename'
-          ? document.querySelector<HTMLElement>('#block-name')
-          : paso === 'describe' && !pensando
-            ? document.querySelector<HTMLElement>('#guide-message')
-            : paso === 'fillRecord'
-              ? document.querySelector<HTMLElement>(
-                  '#overlay form input:not([type="hidden"]), #overlay form select',
-                )
-              : null;
-      foco?.focus({ preventScroll: true });
+      elementoParaEnfocar(paso, pensando)?.focus({ preventScroll: true });
     }
 
     // Reflector y cartel.
@@ -239,28 +296,12 @@ export function useTutorialEnPantalla() {
     const anchoDelCartel = Math.min(370, ancho - 24);
     const altoDelCartel = refCartel.current?.offsetHeight || 270;
     raiz.style.setProperty('--tour-space', `${altoDelCartel + 26}px`);
-    let left = ancho - anchoDelCartel - 20;
-    let top = alto - altoDelCartel - 20;
-    const primera = rects[0];
-    if (primera && ancho > 760) {
-      if (ancho - primera.right > anchoDelCartel + 34) {
-        left = primera.right + 20;
-        top = Math.max(12, Math.min(alto - altoDelCartel - 12, primera.top));
-      } else if (primera.top > altoDelCartel + 30) {
-        left = Math.max(12, Math.min(ancho - anchoDelCartel - 12, primera.left));
-        top = primera.top - altoDelCartel - 18;
-      } else if (alto - primera.bottom > altoDelCartel + 30) {
-        left = Math.max(12, Math.min(ancho - anchoDelCartel - 12, primera.left));
-        top = primera.bottom + 18;
-      }
-    } else if (
-      document.querySelector('.sami-conversation.flotante:not([hidden])') ||
-      (primera && primera.top + primera.height / 2 > alto / 2)
-    ) {
-      // En el celular el cartel va abajo, salvo con el chat de Sami abierto (abajo se escribe) o cuando
-      // lo señalado está abajo: ahí sube arriba para no taparlo.
-      top = 12;
-    }
+    const { left, top } = posicionDelCartel(rects[0], {
+      ancho,
+      alto,
+      anchoDelCartel,
+      altoDelCartel,
+    });
     setCartel({
       width: anchoDelCartel,
       left: Math.max(12, left),
