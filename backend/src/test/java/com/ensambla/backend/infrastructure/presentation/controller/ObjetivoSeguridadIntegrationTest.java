@@ -70,6 +70,12 @@ class ObjetivoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     private MockHttpSession sesion;
     private String csrfToken;
 
+    private ResultActions respuesta;
+    private ResultActions result;
+    private NegocioId ajeno;
+    private UUID ajenoId;
+    private UUID propio;
+
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
@@ -81,87 +87,65 @@ class ObjetivoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("La lista HTTP contiene sólo los objetivos del negocio de la sesión")
     void laListaHTTPContieneSoloLosObjetivosDelNegocioDeLaSesion() throws Exception {
-        dadoObjetivo(negocioId, "Propio");
-        dadoObjetivo(dadoNegocio(UsuarioId.de(dadoUsuario())), "Ajeno");
+        dadoElEscenarioDeLaListaHTTPContieneSoloLosObjetivosDelNegocioDeLaSesion();
 
-        ResultActions result = mockMvc.perform(get("/api/objetivos").session(sesion));
+        cuandoSeEjecutaLaListaHTTPContieneSoloLosObjetivosDelNegocioDeLaSesion();
 
-        result.andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].texto").value("Propio"));
+        entoncesSeVerificaLaListaHTTPContieneSoloLosObjetivosDelNegocioDeLaSesion();
     }
 
     @Test
     @DisplayName("Un objetivo creado se ve en el listado siguiente")
     void unObjetivoCreadoSeVeEnElListadoSiguiente() throws Exception {
-        mockMvc.perform(post("/api/objetivos").session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                .contentType("application/json")
-                .content("{\"texto\":\" Ganar más \",\"meta\":400000}"));
+        cuandoSeEjecutaUnObjetivoCreadoSeVeEnElListadoSiguiente();
 
-        ResultActions result = mockMvc.perform(get("/api/objetivos").session(sesion));
-
-        result.andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].texto").value("Ganar más"))
-                .andExpect(jsonPath("$[0].meta").value(400000.0));
+        entoncesSeVerificaUnObjetivoCreadoSeVeEnElListadoSiguiente();
     }
 
     @Test
     @DisplayName("Crear ignora el negocio del body y persiste en el de la sesión")
     void crearIgnoraElNegocioDelBodyYPersisteEnElDeLaSesion() throws Exception {
-        NegocioId ajeno = dadoNegocio(UsuarioId.de(dadoUsuario()));
+        dadoElEscenarioDeCrearIgnoraElNegocioDelBodyYPersisteEnElDeLaSesion();
 
-        ResultActions result = mockMvc.perform(post("/api/objetivos").session(sesion)
-                .header("X-CSRF-TOKEN", csrfToken)
-                .contentType("application/json")
-                .content("{\"texto\":\"Ganar más\",\"meta\":400000,\"negocioId\":\"" + ajeno + "\"}"));
+        cuandoSeEjecutaCrearIgnoraElNegocioDelBodyYPersisteEnElDeLaSesion();
 
-        result.andExpect(status().isCreated());
-        assertThat(objetivos.findAllByNegocioIdOrderByCreadoEnAscIdAsc(negocioId.valor())).hasSize(1);
-        assertThat(objetivos.findAllByNegocioIdOrderByCreadoEnAscIdAsc(ajeno.valor())).isEmpty();
+        entoncesSeVerificaCrearIgnoraElNegocioDelBodyYPersisteEnElDeLaSesion();
     }
 
     @Test
     @DisplayName("Crear sin CSRF devuelve 403 y no guarda datos")
     void crearSinCSRFDevuelve403YNoGuardaDatos() throws Exception {
-        ResultActions result = mockMvc.perform(post("/api/objetivos").session(sesion)
-                .contentType("application/json")
-                .content("{\"texto\":\"Ganar más\",\"meta\":400000}"));
+        cuandoSeEjecutaCrearSinCSRFDevuelve403YNoGuardaDatos();
 
-        result.andExpect(status().isForbidden());
-        assertThat(objetivos.findAllByNegocioIdOrderByCreadoEnAscIdAsc(negocioId.valor())).isEmpty();
+        entoncesSeVerificaCrearSinCSRFDevuelve403YNoGuardaDatos();
     }
 
     @Test
     @DisplayName("Listar sin sesión devuelve 401")
     void listarSinSesionDevuelve401() throws Exception {
-        ResultActions result = mockMvc.perform(get("/api/objetivos").session(dadoSesionSinUsuario()));
+        cuandoSeEjecutaListarSinSesionDevuelve401();
 
-        result.andExpect(status().isUnauthorized());
+        entoncesSeVerificaListarSinSesionDevuelve401();
     }
 
     @Test
     @DisplayName("Eliminar un objetivo propio devuelve 204 y lo borra")
     void eliminarUnObjetivoPropioDevuelve204YLoBorra() throws Exception {
-        UUID propio = dadoObjetivo(negocioId, "Propio");
+        dadoElEscenarioDeEliminarUnObjetivoPropioDevuelve204YLoBorra();
 
-        ResultActions result = mockMvc.perform(
-                delete("/api/objetivos/{id}", propio).session(sesion).header("X-CSRF-TOKEN", csrfToken));
+        cuandoSeEjecutaEliminarUnObjetivoPropioDevuelve204YLoBorra();
 
-        result.andExpect(status().isNoContent());
-        assertThat(objetivos.findByIdAndNegocioId(propio, negocioId.valor())).isEmpty();
+        entoncesSeVerificaEliminarUnObjetivoPropioDevuelve204YLoBorra();
     }
 
     @Test
     @DisplayName("Un DELETE ajeno responde 404 y conserva el objetivo")
     void unDELETEAjenoResponde404YConservaElObjetivo() throws Exception {
-        NegocioId ajeno = dadoNegocio(UsuarioId.de(dadoUsuario()));
-        UUID ajenoId = dadoObjetivo(ajeno, "Ajeno");
+        dadoElEscenarioDeUnDELETEAjenoResponde404YConservaElObjetivo();
 
-        ResultActions result = mockMvc.perform(
-                delete("/api/objetivos/{id}", ajenoId).session(sesion).header("X-CSRF-TOKEN", csrfToken));
+        cuandoSeEjecutaUnDELETEAjenoResponde404YConservaElObjetivo();
 
-        result.andExpect(status().isNotFound());
-        assertThat(objetivos.findByIdAndNegocioId(ajenoId, ajeno.valor())).isPresent();
+        entoncesSeVerificaUnDELETEAjenoResponde404YConservaElObjetivo();
     }
 
     // --- dado ---
@@ -212,5 +196,104 @@ class ObjetivoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .andReturn().getResponse().getContentAsString();
         csrfToken = JsonMapper.builder().build().readValue(body, CsrfResponse.class).token();
         return session;
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeLaListaHTTPContieneSoloLosObjetivosDelNegocioDeLaSesion() throws Exception {
+        dadoObjetivo(negocioId, "Propio");
+        dadoObjetivo(dadoNegocio(UsuarioId.de(dadoUsuario())), "Ajeno");
+    }
+
+    private void dadoElEscenarioDeCrearIgnoraElNegocioDelBodyYPersisteEnElDeLaSesion() throws Exception {
+        ajeno = dadoNegocio(UsuarioId.de(dadoUsuario()));
+    }
+
+    private void dadoElEscenarioDeEliminarUnObjetivoPropioDevuelve204YLoBorra() throws Exception {
+        propio = dadoObjetivo(negocioId, "Propio");
+    }
+
+    private void dadoElEscenarioDeUnDELETEAjenoResponde404YConservaElObjetivo() throws Exception {
+        ajeno = dadoNegocio(UsuarioId.de(dadoUsuario()));
+        ajenoId = dadoObjetivo(ajeno, "Ajeno");
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaLaListaHTTPContieneSoloLosObjetivosDelNegocioDeLaSesion() throws Exception {
+        result = mockMvc.perform(get("/api/objetivos").session(sesion));
+    }
+
+    private void cuandoSeEjecutaUnObjetivoCreadoSeVeEnElListadoSiguiente() throws Exception {
+        respuesta = mockMvc.perform(post("/api/objetivos").session(sesion).header("X-CSRF-TOKEN", csrfToken)
+                .contentType("application/json")
+                .content("{\"texto\":\" Ganar más \",\"meta\":400000}"));
+        result = mockMvc.perform(get("/api/objetivos").session(sesion));
+    }
+
+    private void cuandoSeEjecutaCrearIgnoraElNegocioDelBodyYPersisteEnElDeLaSesion() throws Exception {
+        result = mockMvc.perform(post("/api/objetivos").session(sesion)
+                .header("X-CSRF-TOKEN", csrfToken)
+                .contentType("application/json")
+                .content("{\"texto\":\"Ganar más\",\"meta\":400000,\"negocioId\":\"" + ajeno + "\"}"));
+    }
+
+    private void cuandoSeEjecutaCrearSinCSRFDevuelve403YNoGuardaDatos() throws Exception {
+        result = mockMvc.perform(post("/api/objetivos").session(sesion)
+                .contentType("application/json")
+                .content("{\"texto\":\"Ganar más\",\"meta\":400000}"));
+    }
+
+    private void cuandoSeEjecutaListarSinSesionDevuelve401() throws Exception {
+        result = mockMvc.perform(get("/api/objetivos").session(dadoSesionSinUsuario()));
+    }
+
+    private void cuandoSeEjecutaEliminarUnObjetivoPropioDevuelve204YLoBorra() throws Exception {
+        result = mockMvc.perform(
+                delete("/api/objetivos/{id}", propio).session(sesion).header("X-CSRF-TOKEN", csrfToken));
+    }
+
+    private void cuandoSeEjecutaUnDELETEAjenoResponde404YConservaElObjetivo() throws Exception {
+        result = mockMvc.perform(
+                delete("/api/objetivos/{id}", ajenoId).session(sesion).header("X-CSRF-TOKEN", csrfToken));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaLaListaHTTPContieneSoloLosObjetivosDelNegocioDeLaSesion() throws Exception {
+        result.andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].texto").value("Propio"));
+    }
+
+    private void entoncesSeVerificaUnObjetivoCreadoSeVeEnElListadoSiguiente() throws Exception {
+        result.andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].texto").value("Ganar más"))
+                .andExpect(jsonPath("$[0].meta").value(400000.0));
+    }
+
+    private void entoncesSeVerificaCrearIgnoraElNegocioDelBodyYPersisteEnElDeLaSesion() throws Exception {
+        result.andExpect(status().isCreated());
+        assertThat(objetivos.findAllByNegocioIdOrderByCreadoEnAscIdAsc(negocioId.valor())).hasSize(1);
+        assertThat(objetivos.findAllByNegocioIdOrderByCreadoEnAscIdAsc(ajeno.valor())).isEmpty();
+    }
+
+    private void entoncesSeVerificaCrearSinCSRFDevuelve403YNoGuardaDatos() throws Exception {
+        result.andExpect(status().isForbidden());
+        assertThat(objetivos.findAllByNegocioIdOrderByCreadoEnAscIdAsc(negocioId.valor())).isEmpty();
+    }
+
+    private void entoncesSeVerificaListarSinSesionDevuelve401() throws Exception {
+        result.andExpect(status().isUnauthorized());
+    }
+
+    private void entoncesSeVerificaEliminarUnObjetivoPropioDevuelve204YLoBorra() throws Exception {
+        result.andExpect(status().isNoContent());
+        assertThat(objetivos.findByIdAndNegocioId(propio, negocioId.valor())).isEmpty();
+    }
+
+    private void entoncesSeVerificaUnDELETEAjenoResponde404YConservaElObjetivo() throws Exception {
+        result.andExpect(status().isNotFound());
+        assertThat(objetivos.findByIdAndNegocioId(ajenoId, ajeno.valor())).isPresent();
     }
 }
