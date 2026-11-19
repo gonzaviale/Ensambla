@@ -61,6 +61,8 @@ class ObjetivoControllerTest {
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
     private MockMvc mockMvc;
 
+    private ResultActions respuesta;
+
     @BeforeEach
     void setUp() {
         ObjetivoController controller = new ObjetivoController(
@@ -78,106 +80,93 @@ class ObjetivoControllerTest {
     @Test
     @DisplayName("GET lista los objetivos y mapea todos sus datos a JSON")
     void gETListaLosObjetivosYMapeaTodosSusDatosAJSON() throws Exception {
-        when(listarObjetivos.execute(any())).thenReturn(List.of(dadoItem()));
+        dadoElEscenarioDeGETListaLosObjetivosYMapeaTodosSusDatosAJSON();
 
-        ResultActions result = cuandoGetListar();
+        cuandoSeEjecutaGETListaLosObjetivosYMapeaTodosSusDatosAJSON();
 
-        result.andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(OBJETIVO_ID.toString()))
-                .andExpect(jsonPath("$[0].texto").value(TEXTO))
-                .andExpect(jsonPath("$[0].meta").value(META.doubleValue()))
-                .andExpect(jsonPath("$[0].creadoEn").exists());
+        entoncesSeVerificaGETListaLosObjetivosYMapeaTodosSusDatosAJSON();
     }
 
     @Test
     @DisplayName("GET delega en el caso de uso con el usuario de la sesión")
     void gETDelegaEnElCasoDeUsoConElUsuarioDeLaSesion() throws Exception {
-        when(listarObjetivos.execute(any())).thenReturn(List.of());
+        dadoElEscenarioDeGETDelegaEnElCasoDeUsoConElUsuarioDeLaSesion();
 
-        cuandoGetListar();
+        cuandoSeEjecutaGETDelegaEnElCasoDeUsoConElUsuarioDeLaSesion();
 
-        verify(listarObjetivos).execute(new ListarObjetivosRequest(USUARIO_ID));
+        entoncesSeVerificaGETDelegaEnElCasoDeUsoConElUsuarioDeLaSesion();
     }
 
     @Test
     @DisplayName("GET devuelve una lista vacía cuando no hay objetivos")
     void gETDevuelveUnaListaVaciaCuandoNoHayObjetivos() throws Exception {
-        when(listarObjetivos.execute(any())).thenReturn(List.of());
+        dadoElEscenarioDeGETDevuelveUnaListaVaciaCuandoNoHayObjetivos();
 
-        ResultActions result = cuandoGetListar();
+        cuandoSeEjecutaGETDevuelveUnaListaVaciaCuandoNoHayObjetivos();
 
-        result.andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
+        entoncesSeVerificaGETDevuelveUnaListaVaciaCuandoNoHayObjetivos();
     }
 
     @Test
     @DisplayName("POST crea el objetivo y devuelve 201 con su ubicación")
     void pOSTCreaElObjetivoYDevuelve201ConSuUbicacion() throws Exception {
-        when(crearObjetivo.execute(any())).thenReturn(dadoItem());
+        dadoElEscenarioDePOSTCreaElObjetivoYDevuelve201ConSuUbicacion();
 
-        ResultActions result = cuandoPostCrear("{\"texto\":\"" + TEXTO + "\",\"meta\":400000.50}");
+        cuandoSeEjecutaPOSTCreaElObjetivoYDevuelve201ConSuUbicacion();
 
-        result.andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/objetivos/" + OBJETIVO_ID))
-                .andExpect(jsonPath("$.id").value(OBJETIVO_ID.toString()))
-                .andExpect(jsonPath("$.texto").value(TEXTO));
+        entoncesSeVerificaPOSTCreaElObjetivoYDevuelve201ConSuUbicacion();
     }
 
     @Test
     @DisplayName("POST pasa el texto y la meta al caso de uso con el usuario de la sesión")
     void pOSTPasaElTextoYLaMetaAlCasoDeUsoConElUsuarioDeLaSesion() throws Exception {
-        when(crearObjetivo.execute(any())).thenReturn(dadoItem());
+        dadoElEscenarioDePOSTPasaElTextoYLaMetaAlCasoDeUsoConElUsuarioDeLaSesion();
 
-        cuandoPostCrear("{\"texto\":\"" + TEXTO + "\",\"meta\":400000.50}");
+        cuandoSeEjecutaPOSTPasaElTextoYLaMetaAlCasoDeUsoConElUsuarioDeLaSesion();
 
-        verify(crearObjetivo).execute(new CrearObjetivoRequest(USUARIO_ID, TEXTO, new BigDecimal("400000.50")));
+        entoncesSeVerificaPOSTPasaElTextoYLaMetaAlCasoDeUsoConElUsuarioDeLaSesion();
     }
 
     @Test
     @DisplayName("POST ignora el negocio que indique el navegador")
     void pOSTIgnoraElNegocioQueIndiqueElNavegador() throws Exception {
-        when(crearObjetivo.execute(any())).thenReturn(dadoItem());
+        dadoElEscenarioDePOSTIgnoraElNegocioQueIndiqueElNavegador();
 
-        ResultActions result = cuandoPostCrear(
-                "{\"texto\":\"" + TEXTO + "\",\"meta\":400000.50,\"negocioId\":\"otro\"}");
+        cuandoSeEjecutaPOSTIgnoraElNegocioQueIndiqueElNavegador();
 
-        result.andExpect(status().isCreated());
-        verify(crearObjetivo).execute(new CrearObjetivoRequest(USUARIO_ID, TEXTO, new BigDecimal("400000.50")));
+        entoncesSeVerificaPOSTIgnoraElNegocioQueIndiqueElNavegador();
     }
 
     @Test
     @DisplayName("POST rechaza un texto vacío antes de invocar el caso de uso")
     void pOSTRechazaUnTextoVacioAntesDeInvocarElCasoDeUso() throws Exception {
-        ResultActions result = cuandoPostCrear("{\"texto\":\"  \",\"meta\":400000}");
+        cuandoSeEjecutaPOSTRechazaUnTextoVacioAntesDeInvocarElCasoDeUso();
 
-        result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.texto").exists());
-        verifyNoInteractions(crearObjetivo);
+        entoncesSeVerificaPOSTRechazaUnTextoVacioAntesDeInvocarElCasoDeUso();
     }
 
     @Test
     @DisplayName("POST rechaza un texto de más de 500 caracteres")
     void pOSTRechazaUnTextoDeMasDe500Caracteres() throws Exception {
-        ResultActions result = cuandoPostCrear("{\"texto\":\"" + "a".repeat(501) + "\",\"meta\":400000}");
+        cuandoSeEjecutaPOSTRechazaUnTextoDeMasDe500Caracteres();
 
-        result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.texto").exists());
-        verifyNoInteractions(crearObjetivo);
+        entoncesSeVerificaPOSTRechazaUnTextoDeMasDe500Caracteres();
     }
 
     @Test
     @DisplayName("POST rechaza un body sin meta")
     void pOSTRechazaUnBodySinMeta() throws Exception {
-        ResultActions result = cuandoPostCrear("{\"texto\":\"" + TEXTO + "\"}");
+        cuandoSeEjecutaPOSTRechazaUnBodySinMeta();
 
-        result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.meta").exists());
-        verifyNoInteractions(crearObjetivo);
+        entoncesSeVerificaPOSTRechazaUnBodySinMeta();
     }
 
     @Test
     @DisplayName("POST rechaza una meta menor a 1")
     void pOSTRechazaUnaMetaMenorA1() throws Exception {
-        ResultActions result = cuandoPostCrear("{\"texto\":\"" + TEXTO + "\",\"meta\":0}");
+        cuandoSeEjecutaPOSTRechazaUnaMetaMenorA1();
 
-        result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.meta").exists());
-        verifyNoInteractions(crearObjetivo);
+        entoncesSeVerificaPOSTRechazaUnaMetaMenorA1();
     }
 
     @Test
@@ -343,5 +332,128 @@ class ObjetivoControllerTest {
     private void entoncesSeVerificaGETPasosDevuelveUnaListaVaciaCuandoNoHayProductosParaRecomendar() throws Exception {
         resultado.andExpect(status().isOk())
                         .andExpect(jsonPath("$").isEmpty());
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeGETListaLosObjetivosYMapeaTodosSusDatosAJSON() throws Exception {
+        when(listarObjetivos.execute(any())).thenReturn(List.of(dadoItem()));
+    }
+
+    private void dadoElEscenarioDeGETDelegaEnElCasoDeUsoConElUsuarioDeLaSesion() throws Exception {
+        when(listarObjetivos.execute(any())).thenReturn(List.of());
+    }
+
+    private void dadoElEscenarioDeGETDevuelveUnaListaVaciaCuandoNoHayObjetivos() throws Exception {
+        when(listarObjetivos.execute(any())).thenReturn(List.of());
+    }
+
+    private void dadoElEscenarioDePOSTCreaElObjetivoYDevuelve201ConSuUbicacion() throws Exception {
+        when(crearObjetivo.execute(any())).thenReturn(dadoItem());
+    }
+
+    private void dadoElEscenarioDePOSTPasaElTextoYLaMetaAlCasoDeUsoConElUsuarioDeLaSesion() throws Exception {
+        when(crearObjetivo.execute(any())).thenReturn(dadoItem());
+    }
+
+    private void dadoElEscenarioDePOSTIgnoraElNegocioQueIndiqueElNavegador() throws Exception {
+        when(crearObjetivo.execute(any())).thenReturn(dadoItem());
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaGETListaLosObjetivosYMapeaTodosSusDatosAJSON() throws Exception {
+        result = cuandoGetListar();
+    }
+
+    private void cuandoSeEjecutaGETDelegaEnElCasoDeUsoConElUsuarioDeLaSesion() throws Exception {
+        respuesta = cuandoGetListar();
+    }
+
+    private void cuandoSeEjecutaGETDevuelveUnaListaVaciaCuandoNoHayObjetivos() throws Exception {
+        result = cuandoGetListar();
+    }
+
+    private void cuandoSeEjecutaPOSTCreaElObjetivoYDevuelve201ConSuUbicacion() throws Exception {
+        result = cuandoPostCrear("{\"texto\":\"" + TEXTO + "\",\"meta\":400000.50}");
+    }
+
+    private void cuandoSeEjecutaPOSTPasaElTextoYLaMetaAlCasoDeUsoConElUsuarioDeLaSesion() throws Exception {
+        respuesta = cuandoPostCrear("{\"texto\":\"" + TEXTO + "\",\"meta\":400000.50}");
+    }
+
+    private void cuandoSeEjecutaPOSTIgnoraElNegocioQueIndiqueElNavegador() throws Exception {
+        result = cuandoPostCrear(
+                "{\"texto\":\"" + TEXTO + "\",\"meta\":400000.50,\"negocioId\":\"otro\"}");
+    }
+
+    private void cuandoSeEjecutaPOSTRechazaUnTextoVacioAntesDeInvocarElCasoDeUso() throws Exception {
+        result = cuandoPostCrear("{\"texto\":\"  \",\"meta\":400000}");
+    }
+
+    private void cuandoSeEjecutaPOSTRechazaUnTextoDeMasDe500Caracteres() throws Exception {
+        result = cuandoPostCrear("{\"texto\":\"" + "a".repeat(501) + "\",\"meta\":400000}");
+    }
+
+    private void cuandoSeEjecutaPOSTRechazaUnBodySinMeta() throws Exception {
+        result = cuandoPostCrear("{\"texto\":\"" + TEXTO + "\"}");
+    }
+
+    private void cuandoSeEjecutaPOSTRechazaUnaMetaMenorA1() throws Exception {
+        result = cuandoPostCrear("{\"texto\":\"" + TEXTO + "\",\"meta\":0}");
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaGETListaLosObjetivosYMapeaTodosSusDatosAJSON() throws Exception {
+        result.andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(OBJETIVO_ID.toString()))
+                .andExpect(jsonPath("$[0].texto").value(TEXTO))
+                .andExpect(jsonPath("$[0].meta").value(META.doubleValue()))
+                .andExpect(jsonPath("$[0].creadoEn").exists());
+    }
+
+    private void entoncesSeVerificaGETDelegaEnElCasoDeUsoConElUsuarioDeLaSesion() throws Exception {
+        verify(listarObjetivos).execute(new ListarObjetivosRequest(USUARIO_ID));
+    }
+
+    private void entoncesSeVerificaGETDevuelveUnaListaVaciaCuandoNoHayObjetivos() throws Exception {
+        result.andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
+    }
+
+    private void entoncesSeVerificaPOSTCreaElObjetivoYDevuelve201ConSuUbicacion() throws Exception {
+        result.andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/api/objetivos/" + OBJETIVO_ID))
+                .andExpect(jsonPath("$.id").value(OBJETIVO_ID.toString()))
+                .andExpect(jsonPath("$.texto").value(TEXTO));
+    }
+
+    private void entoncesSeVerificaPOSTPasaElTextoYLaMetaAlCasoDeUsoConElUsuarioDeLaSesion() throws Exception {
+        verify(crearObjetivo).execute(new CrearObjetivoRequest(USUARIO_ID, TEXTO, new BigDecimal("400000.50")));
+    }
+
+    private void entoncesSeVerificaPOSTIgnoraElNegocioQueIndiqueElNavegador() throws Exception {
+        result.andExpect(status().isCreated());
+        verify(crearObjetivo).execute(new CrearObjetivoRequest(USUARIO_ID, TEXTO, new BigDecimal("400000.50")));
+    }
+
+    private void entoncesSeVerificaPOSTRechazaUnTextoVacioAntesDeInvocarElCasoDeUso() throws Exception {
+        result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.texto").exists());
+        verifyNoInteractions(crearObjetivo);
+    }
+
+    private void entoncesSeVerificaPOSTRechazaUnTextoDeMasDe500Caracteres() throws Exception {
+        result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.texto").exists());
+        verifyNoInteractions(crearObjetivo);
+    }
+
+    private void entoncesSeVerificaPOSTRechazaUnBodySinMeta() throws Exception {
+        result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.meta").exists());
+        verifyNoInteractions(crearObjetivo);
+    }
+
+    private void entoncesSeVerificaPOSTRechazaUnaMetaMenorA1() throws Exception {
+        result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.meta").exists());
+        verifyNoInteractions(crearObjetivo);
     }
 }
