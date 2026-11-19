@@ -104,10 +104,13 @@ export const verifyPathAsync = async (
   await waitFor(() => expect(router.state.location.pathname).toBe(path), ESPERA);
 };
 
-/** El aviso breve de abajo (`#toast`); hay otros `status` en pantalla, como «Sami vio un cambio». */
+/** El aviso breve de abajo (`.toast`); hay otros `status` en pantalla, como «Sami vio un cambio». */
+export const avisoBreve = () =>
+  screen.getAllByRole('status').find((nodo) => nodo.classList.contains('toast'));
+
 export const verifyToastAsync = (texto: string | RegExp) =>
   waitFor(() => {
-    const toast = document.getElementById('toast');
+    const toast = avisoBreve();
     if (!toast) throw new Error('Falta el aviso breve');
     if (typeof texto === 'string') expect(toast).toHaveTextContent(texto);
     else expect(toast.textContent).toMatch(texto);
