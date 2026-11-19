@@ -16,13 +16,13 @@ const panelCon = (metricas: Partial<NonNullable<PanelDelNegocio['metricas']>>) =
   ({ hayDatos: true, metricas }) as PanelDelNegocio;
 const PANEL_SIN_VENTAS = { hayDatos: false, metricas: null } as PanelDelNegocio;
 
-const givenNegocioGuardado = (id: string) => guardarNegocioActivo(id);
+const dadoNegocioGuardado = (id: string) => guardarNegocioActivo(id);
 
 describe('el negocio activo', () => {
   beforeEach(() => localStorage.clear());
 
   it('se recuerda en el navegador', () => {
-    givenNegocioGuardado('kiosco');
+    dadoNegocioGuardado('kiosco');
 
     expect(leerNegocioGuardado()).toBe('kiosco');
   });

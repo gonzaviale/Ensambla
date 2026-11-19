@@ -17,7 +17,7 @@ function crearNegocio(nombre: string) {
   return { sistema, inventario };
 }
 
-export function givenSegundoNegocioRecordado() {
+export function dadoSegundoNegocioRecordado() {
   const usuario = setupUsuarioConSesion();
   const primero = crearNegocio('Almacén del centro');
   const elegido = crearNegocio('Kiosco de la plaza');
@@ -26,7 +26,7 @@ export function givenSegundoNegocioRecordado() {
   return elegido;
 }
 
-export async function whenAbreLectorDesdeInicio(inventario: { name: string }) {
+export async function cuandoAbreLectorDesdeInicio(inventario: { name: string }) {
   const router = renderApp('/inicio');
   const user = userEvent.setup();
   await screen.findByRole('heading', { name: /En qué puedo/ }, ESPERA);
@@ -41,32 +41,44 @@ export async function whenAbreLectorDesdeInicio(inventario: { name: string }) {
   return { router, user };
 }
 
-type NavegacionDelLector = Awaited<ReturnType<typeof whenAbreLectorDesdeInicio>>;
-type NegocioDePrueba = ReturnType<typeof givenSegundoNegocioRecordado>;
+type NavegacionDelLector = Awaited<ReturnType<typeof cuandoAbreLectorDesdeInicio>>;
+type NegocioDePrueba = ReturnType<typeof dadoSegundoNegocioRecordado>;
 
-export function thenLectorDelNegocioElegido(caso: NavegacionDelLector, negocio: NegocioDePrueba) {
+export function entoncesLectorDelNegocioElegido(
+  caso: NavegacionDelLector,
+  negocio: NegocioDePrueba,
+) {
   expect(caso.router.state.location.pathname).toBe(`/sistemas/${negocio.sistema.id}`);
   expect(caso.router.state.location.search.escanear).toBe(negocio.inventario.id);
 }
 
-export async function whenVuelveAlInventario(caso: NavegacionDelLector, negocio: NegocioDePrueba) {
+export async function cuandoVuelveAlInventario(
+  caso: NavegacionDelLector,
+  negocio: NegocioDePrueba,
+) {
   await caso.user.click(screen.getByRole('button', { name: 'Volver al stock' }));
   await screen.findByRole('dialog', { name: negocio.inventario.name }, ESPERA);
 }
 
-export function thenConservaElNegocioAlVolver(caso: NavegacionDelLector, negocio: NegocioDePrueba) {
+export function entoncesConservaElNegocioAlVolver(
+  caso: NavegacionDelLector,
+  negocio: NegocioDePrueba,
+) {
   expect(caso.router.state.location.pathname).toBe(`/sistemas/${negocio.sistema.id}`);
   expect(caso.router.state.location.search.escanear).toBeUndefined();
   expect(screen.getByRole('dialog', { name: negocio.inventario.name })).toBeVisible();
 }
 
-export async function whenVuelveAlInicio(caso: NavegacionDelLector) {
+export async function cuandoVuelveAlInicio(caso: NavegacionDelLector) {
   const ubicacion = within(screen.getByRole('navigation', { name: 'Ubicación en el stock' }));
   await caso.user.click(ubicacion.getByRole('button', { name: 'Inicio' }));
   await screen.findByRole('heading', { name: /En qué puedo/ }, ESPERA);
 }
 
-export function thenInicioDelNegocioElegido(caso: NavegacionDelLector, negocio: NegocioDePrueba) {
+export function entoncesInicioDelNegocioElegido(
+  caso: NavegacionDelLector,
+  negocio: NegocioDePrueba,
+) {
   expect(caso.router.state.location.pathname).toBe('/inicio');
   expect(
     screen.getByRole('button', { name: `Negocio activo: ${negocio.sistema.name}` }),

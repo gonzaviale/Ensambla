@@ -131,49 +131,49 @@ describe('avisos de lectura rápida', () => {
 });
 
 describe('el orden de las secciones y cuándo hay detalle', () => {
-  const givenUnAvisoDe = (prioridad: 1 | 2 | 3, id: string): Aviso => ({
+  const dadoUnAvisoDe = (prioridad: 1 | 2 | 3, id: string): Aviso => ({
     ...avisoDeRevisarPrecio(),
     id,
     prioridad,
   });
-  const givenUnAvisoSinMasQueContar = (): Aviso => ({
+  const dadoUnAvisoSinMasQueContar = (): Aviso => ({
     ...avisoDeRevisarPrecio(),
     detalle: 'Vendiste 0 en 30 días.',
     porque: [],
     acciones: [{ tipo: 'zona', texto: 'Ver en Mi zona' }],
   });
-  const givenUnAvisoConRazon = (): Aviso => ({
-    ...givenUnAvisoSinMasQueContar(),
+  const dadoUnAvisoConRazon = (): Aviso => ({
+    ...dadoUnAvisoSinMasQueContar(),
     porque: ['Subiste el precio hace una semana.'],
   });
-  const givenUnAvisoConOtraAccion = (): Aviso => ({
-    ...givenUnAvisoSinMasQueContar(),
+  const dadoUnAvisoConOtraAccion = (): Aviso => ({
+    ...dadoUnAvisoSinMasQueContar(),
     acciones: [
       { tipo: 'zona', texto: 'Ver en Mi zona' },
       { tipo: 'zona', texto: 'Ver más' },
     ],
   });
-  const whenSeAgrupan = (...avisos: Aviso[]) => agruparAvisos(avisos).map((grupo) => grupo.clave);
+  const cuandoSeAgrupan = (...avisos: Aviso[]) => agruparAvisos(avisos).map((grupo) => grupo.clave);
 
   it('pone primero las secciones más urgentes', () => {
-    const claves = whenSeAgrupan(
-      givenUnAvisoDe(1, 'a'),
-      givenUnAvisoDe(3, 'b'),
-      givenUnAvisoDe(2, 'c'),
+    const claves = cuandoSeAgrupan(
+      dadoUnAvisoDe(1, 'a'),
+      dadoUnAvisoDe(3, 'b'),
+      dadoUnAvisoDe(2, 'c'),
     );
 
     expect(claves).toEqual(['revisar_precio:3', 'revisar_precio:2', 'revisar_precio:1']);
   });
 
   it('no ofrece el porqué si no hay nada más que contar', () => {
-    expect(tieneDetalle(givenUnAvisoSinMasQueContar())).toBe(false);
+    expect(tieneDetalle(dadoUnAvisoSinMasQueContar())).toBe(false);
   });
 
   it('ofrece el porqué si el aviso trae una razón', () => {
-    expect(tieneDetalle(givenUnAvisoConRazon())).toBe(true);
+    expect(tieneDetalle(dadoUnAvisoConRazon())).toBe(true);
   });
 
   it('ofrece el porqué si hay otra acción para elegir', () => {
-    expect(tieneDetalle(givenUnAvisoConOtraAccion())).toBe(true);
+    expect(tieneDetalle(dadoUnAvisoConOtraAccion())).toBe(true);
   });
 });
