@@ -12,262 +12,572 @@ import {
   verifyToastAsync,
 } from '@/test/testHelpers';
 
+type Router = ReturnType<typeof renderApp>;
 type Usuario = ReturnType<typeof userEvent.setup>;
+type UsuarioDePrueba = ReturnType<typeof setupUsuarioConSesion>;
 
-const abrirConBienvenida = async () => {
-  const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' }, { bienvenidaVista: false });
-  const router = renderApp('/inicio');
-  await screen.findByRole('dialog', { name: /Hola, Ana Pérez/ }, ESPERA);
-  return { router, usuario, user: userEvent.setup() };
-};
+const AVISO_DE_SALIDA = 'Podés retomar la guía desde Sami en el inicio.';
 
-const empezarLaGuia = async (user: Usuario) => {
-  await user.click(screen.getByRole('button', { name: /Hacer mi primera sección con guía/ }));
-  await esperarPaso('Tres maneras de empezar.');
-};
-
-const cartel = () => screen.getByLabelText('Guía interactiva de Sami');
-
-const esperarPaso = async (titulo: string) => {
-  await waitFor(
-    () => expect(within(cartel()).getByRole('heading', { level: 2 })).toHaveTextContent(titulo),
-    ESPERA,
-  );
-};
-
-const pasoActual = () => useSistemaStore.getState().tutorial.paso;
-
-const bloqueDelTutorial = () => {
-  const id = useSistemaStore.getState().tutorial.bloqueId;
-  const nodo = document.querySelector<HTMLElement>(`[data-block="${id}"]`);
-  if (!nodo) throw new Error('Falta el bloque del tutorial');
-  return nodo;
-};
+let router: Router;
+let user: Usuario;
+let usuario: UsuarioDePrueba;
 
 describe('la bienvenida', () => {
-  it('aparece la primera vez con el nombre y no vuelve una vez vista', async () => {
-    const { user, usuario } = await abrirConBienvenida();
+  it('aparece la primera vez con el nombre y el foco en empezar la guía', async () => {
+    await dadoUnUsuarioConLaBienvenida();
 
-    expect(screen.getByRole('button', { name: /Hacer mi primera sección con guía/ })).toHaveFocus();
-    await user.click(screen.getByRole('button', { name: /Explorar por mi cuenta/ }));
+    entoncesLaBienvenidaTieneElFocoEnEmpezarLaGuia();
+  });
 
-    expect(screen.queryByRole('dialog')).toBeNull();
-    expect(useSistemaStore.getState().tutorial.activo).toBe(false);
-    await waitFor(
-      () => expect(estado.preferencias.get(usuario.email)?.bienvenidaVista).toBe(true),
-      ESPERA,
-    );
+  it('explorar por cuenta propia la cierra sin activar el tutorial', async () => {
+    await dadoUnUsuarioConLaBienvenida();
+
+    await cuandoSeElige(/Explorar por mi cuenta/);
+
+    entoncesNoHayDialogoNiTutorialActivo();
+  });
+
+  it('explorar por cuenta propia la deja como vista', async () => {
+    await dadoUnUsuarioConLaBienvenida();
+
+    await cuandoSeElige(/Explorar por mi cuenta/);
+
+    await entoncesLaBienvenidaQuedoVista();
   });
 
   it('con Esc también se cierra y queda como vista', async () => {
-    const { user, usuario } = await abrirConBienvenida();
+    await dadoUnUsuarioConLaBienvenida();
 
-    await user.keyboard('{Escape}');
+    await cuandoSePresionaEscape();
 
-    expect(screen.queryByRole('dialog')).toBeNull();
-    await waitFor(
-      () => expect(estado.preferencias.get(usuario.email)?.bienvenidaVista).toBe(true),
-      ESPERA,
-    );
+    await entoncesLaBienvenidaSeCerroYQuedoVista();
   });
 
   it('si ya fue vista no se muestra', async () => {
-    setupUsuarioConSesion({}, { bienvenidaVista: true });
-    renderApp('/inicio');
-    await verifyHeadingPresentAsync(/En qué puedo/);
+    await dadoUnUsuarioConLaBienvenidaYaVista();
 
-    expect(screen.queryByRole('dialog')).toBeNull();
+    entoncesNoSeMuestraNingunDialogo();
   });
 });
 
 describe('el tutorial', () => {
   it('empieza desde la bienvenida con el primer paso y la etapa 1 de 5', async () => {
-    const { user } = await abrirConBienvenida();
+    await dadoUnUsuarioConLaBienvenida();
 
-    await empezarLaGuia(user);
+    await cuandoSeEmpiezaLaGuia();
 
-    expect(within(cartel()).getByLabelText('Etapa 1 de 5')).toBeVisible();
-    expect(within(cartel()).getByText('Tocá una de las tres opciones.')).toBeVisible();
-    expect(screen.queryByText(/Reiniciar la demo/)).toBeNull();
-    expect(document.querySelector('.mk-root')).toHaveClass('tutorial-running');
-    expect(document.querySelectorAll('.tour-target')).toHaveLength(1);
+    entoncesEstaEnLaEtapa1DelPrimerPaso();
+  });
+
+  it('empieza resaltando una sola pieza y sin ofrecer reiniciar la demo', async () => {
+    await dadoUnUsuarioConLaBienvenida();
+
+    await cuandoSeEmpiezaLaGuia();
+
+    entoncesHayUnaSolaPiezaResaltadaYNoSeOfreceReiniciar();
   });
 
   it('bloquea lo que no corresponde al paso y recuerda qué hacer', async () => {
-    const { user } = await abrirConBienvenida();
-    await empezarLaGuia(user);
+    await dadoUnaGuiaEnElPrimerPaso();
 
-    await user.click(screen.getByRole('button', { name: 'Zona' }));
+    await cuandoSeIntentaIrALaZona();
 
-    await verifyToastAsync('Tocá una de las tres opciones.');
-    expect(pasoActual()).toBe('choose');
-    expect(screen.getByRole('heading', { name: /En qué puedo/ })).toBeVisible();
+    await entoncesSeRecuerdaElPrimerPaso();
   });
 
-  it('sigue el camino de Sami: describir, ajustar el ancho, crear, construir, personalizar, mover, registrar y usar', async () => {
-    const { user, router } = await abrirConBienvenida();
-    await empezarLaGuia(user);
+  it('el camino de Sami: describir el negocio muestra la idea con forma', async () => {
+    await dadoUnaGuiaEnElCaminoDeSami();
 
-    await user.click(screen.getByRole('button', { name: /Crear con Sami/ }));
-    await esperarPaso('Contame lo que necesitás.');
-    await user.type(
-      await screen.findByLabelText('Contame un poco de tu negocio'),
-      'Tengo un almacén de barrio y quiero anotar mis ventas',
-    );
-    await user.click(screen.getByRole('button', { name: /Pensalo conmigo/ }));
+    await cuandoSeDescribeElNegocio('Tengo un almacén de barrio y quiero anotar mis ventas');
+
     await esperarPaso('Tu idea ya tiene forma.');
+  });
 
-    await user.click(screen.getAllByRole('button', { name: 'Fila completa' })[1] as HTMLElement);
+  it('el camino de Sami: ajustar el ancho lleva a confirmar la creación', async () => {
+    await dadoUnaGuiaConLaIdeaDeSamiConForma();
+
+    await cuandoSeAjustaElAnchoDelSegundoBloque();
+
     await esperarPaso('Cuando te cierre, la creamos.');
-    await user.click(screen.getByRole('button', { name: /Sí, crear mi sección/ }));
-    await esperarPaso('De acá se cambia.');
-    expect(router.state.location.pathname).toMatch(/^\/sistemas\//);
+  });
 
-    await waitFor(() => expect(() => bloqueDelTutorial()).not.toThrow(), ESPERA);
-    await user.click(
-      within(bloqueDelTutorial()).getByRole('button', { name: 'Personalizar bloque' }),
-    );
-    await esperarPaso('Ponelo en tus palabras.');
+  it('el camino de Sami: crear la sección lleva al editor', async () => {
+    await dadoUnaGuiaConElAnchoAjustado();
 
-    const nombre = screen.getByLabelText('Nombre');
-    expect(nombre).toHaveFocus();
-    await user.clear(nombre);
-    await user.type(nombre, 'Mercadería');
-    await user.tab();
+    await cuandoSeCreaLaSeccion();
+
+    await entoncesSeAbreElEditorEnElPasoDeCambiar();
+  });
+
+  it('el camino de Sami: personalizar el bloque lleva a ponerle nombre', async () => {
+    await dadoUnaGuiaEnElEditor();
+
+    await cuandoSePersonalizaElBloque();
+
+    await entoncesElNombreTieneElFoco();
+  });
+
+  it('el camino de Sami: renombrar el bloque lleva a moverlo', async () => {
+    await dadoUnaGuiaPersonalizandoElBloque();
+
+    await cuandoSeRenombraElBloque('Mercadería');
+
     await esperarPaso('De acá se mueve.');
+  });
 
-    await user.click(within(bloqueDelTutorial()).getByRole('button', { name: 'Mover abajo' }));
+  it('el camino de Sami: mover el bloque lleva a llenarlo', async () => {
+    await dadoUnaGuiaConElBloqueRenombrado();
+
+    await cuandoSeMueveElBloqueAbajo();
+
     await esperarPaso('De acá se llena.');
-    await user.click(within(bloqueDelTutorial()).getByRole('button', { name: /Registrar/ }));
+  });
+
+  it('el camino de Sami: registrar abre la carga de un dato', async () => {
+    await dadoUnaGuiaConElBloqueMovido();
+
+    await cuandoSeEligeRegistrarEnElBloque();
+
     await esperarPaso('Cargá un dato tuyo.');
-
-    const modal = await screen.findByRole('dialog');
-    await user.type(within(modal).getByLabelText(/Producto/), 'Yerba mate');
-    await user.type(within(modal).getByLabelText(/Cantidad/), '8');
-    await user.click(within(modal).getByRole('button', { name: 'Guardar' }));
-    await esperarPaso('Tu primera sección ya es tuya.');
-    expect(within(cartel()).getByLabelText('Etapa 5 de 5')).toBeVisible();
-
-    await user.click(within(cartel()).getByRole('button', { name: 'Salir del tutorial' }));
-    expect(screen.queryByLabelText('Guía interactiva de Sami')).toBeNull();
-    await verifyToastAsync('Podés retomar la guía desde Sami en el inicio.');
-    expect(document.querySelector('.mk-root')).not.toHaveClass('tutorial-running');
-    expect(document.querySelectorAll('.tour-target')).toHaveLength(0);
   });
 
-  it('muestra «Estoy pensando» mientras Sami arma la propuesta', async () => {
-    const { user } = await abrirConBienvenida();
-    await empezarLaGuia(user);
-    await user.click(screen.getByRole('button', { name: /Crear con Sami/ }));
-    await esperarPaso('Contame lo que necesitás.');
-    await user.type(
-      await screen.findByLabelText('Contame un poco de tu negocio'),
-      'Tengo un kiosco en la esquina',
-    );
+  it('el camino de Sami: guardar un dato termina en la etapa 5 de 5', async () => {
+    await dadoUnaGuiaCargandoUnDato();
 
-    await user.click(screen.getByRole('button', { name: /Pensalo conmigo/ }));
+    await cuandoSeGuardaElDato('Yerba mate', '8');
 
-    await esperarPaso('Tu idea ya tiene forma.');
+    await entoncesTerminaEnLaEtapa5();
   });
 
-  it('el camino de las plantillas: mirar una, volver y empezar con ella', async () => {
-    const { user } = await abrirConBienvenida();
-    await empezarLaGuia(user);
+  it('salir del tutorial cierra el cartel y avisa cómo retomarlo', async () => {
+    await dadoUnaGuiaEnLaUltimaEtapa();
 
-    await user.click(screen.getByRole('button', { name: /Elegir una plantilla/ }));
-    await esperarPaso('Una plantilla es un conjunto.');
-    await screen.findByRole('heading', { name: /Elegí una base/ }, ESPERA);
-    const tarjeta = document.querySelector<HTMLElement>(
-      '.template-page [data-template="shop"]',
-    ) as HTMLElement;
-    await user.click(within(tarjeta).getByRole('button', { name: /Ver la sección/ }));
+    await cuandoSeSaleDelTutorial();
+
+    await entoncesElCartelSeCerroYSeAvisaComoRetomarlo();
+  });
+
+  it('salir del tutorial deja de resaltar piezas', async () => {
+    await dadoUnaGuiaEnLaUltimaEtapa();
+
+    await cuandoSeSaleDelTutorial();
+
+    entoncesNoQuedaNingunaPiezaResaltada();
+  });
+
+  it('el camino de las plantillas: elegir una plantilla muestra qué es', async () => {
+    await dadoUnaGuiaEnElPrimerPaso();
+
+    await cuandoSeElige(/Elegir una plantilla/);
+
+    await entoncesSeExplicaQueEsUnaPlantilla();
+  });
+
+  it('el camino de las plantillas: ver una plantilla muestra sus piezas', async () => {
+    await dadoUnaGuiaEnLasPlantillas();
+
+    await cuandoSeMiraLaPlantillaDeAlmacen();
+
     await esperarPaso('Mirá las piezas antes de empezar.');
+  });
 
-    await user.click(screen.getByRole('button', { name: 'Seguir mirando' }));
+  it('el camino de las plantillas: seguir mirando vuelve a la lista', async () => {
+    await dadoUnaGuiaMirandoLaPlantillaDeAlmacen();
+
+    await cuandoSeElige('Seguir mirando');
+
     await esperarPaso('Una plantilla es un conjunto.');
+  });
 
-    await user.click(within(tarjeta).getByRole('button', { name: /Ver la sección/ }));
-    await esperarPaso('Mirá las piezas antes de empezar.');
-    await user.click(screen.getByRole('button', { name: /Empezar con este conjunto/ }));
+  it('el camino de las plantillas: empezar con el conjunto lleva al editor', async () => {
+    await dadoUnaGuiaMirandoLaPlantillaDeAlmacen();
+
+    await cuandoSeElige(/Empezar con este conjunto/);
+
     await esperarPaso('De acá se cambia.');
   });
 
-  it('el camino desde cero: confirmar, agregar una pieza y personalizarla', async () => {
-    const { user } = await abrirConBienvenida();
-    await empezarLaGuia(user);
+  it('el camino desde cero: confirmar muestra el lienzo propio', async () => {
+    await dadoUnaGuiaEnElPrimerPaso();
 
-    await user.click(screen.getByRole('button', { name: /Empezar de cero/ }));
+    await cuandoSeElige(/Empezar de cero/);
+
     await esperarPaso('Tu lienzo, desde cero.');
-    await user.click(screen.getByRole('button', { name: /Seguir desde cero/ }));
-    await esperarPaso('Traé tu primera pieza.');
+  });
 
-    // «Tus piezas» flota cerrada: primero se abre el ícono «Agregar y organizar» y ahí «Bloques».
-    await screen.findByRole('complementary', { name: 'Piezas disponibles' }, ESPERA);
-    await user.click(screen.getByRole('button', { name: 'Agregar y organizar' }));
-    const abrirPiezas = document.querySelector('[data-accion="mobile-library"]');
-    await user.click(abrirPiezas as HTMLElement);
-    await user.click(await screen.findByRole('button', { name: 'Agregar Clientes' }, ESPERA));
+  it('el camino desde cero: seguir pide traer la primera pieza', async () => {
+    await dadoUnaGuiaEnElLienzoDesdeCero();
+
+    await cuandoSeElige(/Seguir desde cero/);
+
+    await esperarPaso('Traé tu primera pieza.');
+  });
+
+  it('el camino desde cero: agregar una pieza lleva a personalizarla', async () => {
+    await dadoUnaGuiaPidiendoLaPrimeraPieza();
+
+    await cuandoSeAgregaLaPiezaClientes();
+
     await esperarPaso('De acá se cambia.');
   });
 
   it('cerrar el cartel de «desde cero» vuelve a elegir el camino', async () => {
-    const { user } = await abrirConBienvenida();
-    await empezarLaGuia(user);
-    await user.click(screen.getByRole('button', { name: /Empezar de cero/ }));
-    await esperarPaso('Tu lienzo, desde cero.');
+    await dadoUnaGuiaEnElLienzoDesdeCero();
 
-    await user.click(screen.getByRole('button', { name: 'Cerrar' }));
+    await cuandoSeElige('Cerrar');
 
     await esperarPaso('Tres maneras de empezar.');
   });
 
   it('Esc sale de la guía y avisa cómo retomarla', async () => {
-    const { user } = await abrirConBienvenida();
-    await empezarLaGuia(user);
+    await dadoUnaGuiaEnElPrimerPaso();
 
-    await user.keyboard('{Escape}');
+    await cuandoSePresionaEscape();
 
-    expect(screen.queryByLabelText('Guía interactiva de Sami')).toBeNull();
-    expect(useSistemaStore.getState().tutorial.activo).toBe(false);
-    await verifyToastAsync('Podés retomar la guía desde Sami en el inicio.');
+    await entoncesLaGuiaSalioYSeAvisaComoRetomarla();
   });
 
-  it('la ✕ la cierra y desde el inicio se retoma', async () => {
-    const { user } = await abrirConBienvenida();
-    await empezarLaGuia(user);
+  it('la ✕ cierra la guía', async () => {
+    await dadoUnaGuiaEnElPrimerPaso();
 
-    await user.click(within(cartel()).getByRole('button', { name: 'Salir del tutorial' }));
-    expect(screen.queryByLabelText('Guía interactiva de Sami')).toBeNull();
+    await cuandoSeSaleDelTutorial();
 
-    await user.click(screen.getByRole('button', { name: /Primera vez/ }));
+    entoncesNoHayCartelDeGuia();
+  });
+
+  it('desde el inicio se retoma la guía', async () => {
+    await dadoUnaGuiaCerradaConLaX();
+
+    await cuandoSeElige(/Primera vez/);
+
     await esperarPaso('Tres maneras de empezar.');
   });
 
   it('ir al inicio durante la guía la termina sin preguntar nada', async () => {
-    const { user, router } = await abrirConBienvenida();
-    await empezarLaGuia(user);
-    await user.click(screen.getByRole('button', { name: /Elegir una plantilla/ }));
-    await esperarPaso('Una plantilla es un conjunto.');
-    await verifyHeadingPresentAsync(/Elegí una base/);
+    await dadoUnaGuiaEnLasPlantillasYAsentada();
 
-    // El paso puede cambiar con la ruta pendiente: el logo anterior todavía se está desmontando.
-    await waitFor(() => expect(router.state.status).toBe('idle'), ESPERA);
+    await cuandoSeVaAlInicioPorElLogo();
 
-    await user.click(screen.getByRole('button', { name: 'Ensambla, ir al inicio' }));
-
-    await verifyPathAsync(router, '/inicio');
-    expect(screen.queryByLabelText('Guía interactiva de Sami')).toBeNull();
-    expect(screen.queryByText(/¿Volvemos o empezamos de nuevo\?/)).toBeNull();
-    expect(screen.queryByRole('dialog')).toBeNull();
+    await entoncesLaGuiaTerminoSinPreguntar();
   });
 
   it('el tutorial no ofrece reiniciar la demo en ningún paso', async () => {
-    const { user } = await abrirConBienvenida();
-    await empezarLaGuia(user);
-    await user.click(screen.getByRole('button', { name: /Elegir una plantilla/ }));
+    await dadoUnaGuiaEnElPrimerPaso();
 
-    expect(
-      screen.queryByText(/Reiniciar la demo|Borrar todos los sistemas de esta demo/),
-    ).toBeNull();
+    await cuandoSeElige(/Elegir una plantilla/);
+
+    entoncesNoSeOfreceReiniciarLaDemo();
   });
 });
+
+function cartel() {
+  return screen.getByLabelText('Guía interactiva de Sami');
+}
+
+async function esperarPaso(titulo: string) {
+  await waitFor(
+    () => expect(within(cartel()).getByRole('heading', { level: 2 })).toHaveTextContent(titulo),
+    ESPERA,
+  );
+}
+
+function pasoActual() {
+  return useSistemaStore.getState().tutorial.paso;
+}
+
+function bloqueDelTutorial() {
+  const id = useSistemaStore.getState().tutorial.bloqueId;
+  const nodo = document.querySelector<HTMLElement>(`[data-block="${id}"]`);
+  if (!nodo) throw new Error('Falta el bloque del tutorial');
+  return nodo;
+}
+
+function botonDeLaBienvenida() {
+  return screen.getByRole('button', { name: /Hacer mi primera sección con guía/ });
+}
+
+async function dadoUnUsuarioConLaBienvenida() {
+  usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' }, { bienvenidaVista: false });
+  router = renderApp('/inicio');
+  await screen.findByRole('dialog', { name: /Hola, Ana Pérez/ }, ESPERA);
+  user = userEvent.setup();
+}
+
+async function dadoUnUsuarioConLaBienvenidaYaVista() {
+  setupUsuarioConSesion({}, { bienvenidaVista: true });
+  router = renderApp('/inicio');
+  await verifyHeadingPresentAsync(/En qué puedo/);
+}
+
+async function dadoUnaGuiaEnElPrimerPaso() {
+  await dadoUnUsuarioConLaBienvenida();
+  await cuandoSeEmpiezaLaGuia();
+}
+
+async function dadoUnaGuiaEnElCaminoDeSami() {
+  await dadoUnaGuiaEnElPrimerPaso();
+  await cuandoSeElige(/Crear con Sami/);
+  await esperarPaso('Contame lo que necesitás.');
+}
+
+async function dadoUnaGuiaConLaIdeaDeSamiConForma() {
+  await dadoUnaGuiaEnElCaminoDeSami();
+  await cuandoSeDescribeElNegocio('Tengo un almacén de barrio y quiero anotar mis ventas');
+  await esperarPaso('Tu idea ya tiene forma.');
+}
+
+async function dadoUnaGuiaConElAnchoAjustado() {
+  await dadoUnaGuiaConLaIdeaDeSamiConForma();
+  await cuandoSeAjustaElAnchoDelSegundoBloque();
+  await esperarPaso('Cuando te cierre, la creamos.');
+}
+
+async function dadoUnaGuiaEnElEditor() {
+  await dadoUnaGuiaConElAnchoAjustado();
+  await cuandoSeCreaLaSeccion();
+  await esperarPaso('De acá se cambia.');
+  await waitFor(() => expect(() => bloqueDelTutorial()).not.toThrow(), ESPERA);
+}
+
+async function dadoUnaGuiaPersonalizandoElBloque() {
+  await dadoUnaGuiaEnElEditor();
+  await cuandoSePersonalizaElBloque();
+  await esperarPaso('Ponelo en tus palabras.');
+}
+
+async function dadoUnaGuiaConElBloqueRenombrado() {
+  await dadoUnaGuiaPersonalizandoElBloque();
+  await cuandoSeRenombraElBloque('Mercadería');
+  await esperarPaso('De acá se mueve.');
+}
+
+async function dadoUnaGuiaConElBloqueMovido() {
+  await dadoUnaGuiaConElBloqueRenombrado();
+  await cuandoSeMueveElBloqueAbajo();
+  await esperarPaso('De acá se llena.');
+}
+
+async function dadoUnaGuiaCargandoUnDato() {
+  await dadoUnaGuiaConElBloqueMovido();
+  await cuandoSeEligeRegistrarEnElBloque();
+  await esperarPaso('Cargá un dato tuyo.');
+}
+
+async function dadoUnaGuiaEnLaUltimaEtapa() {
+  await dadoUnaGuiaCargandoUnDato();
+  await cuandoSeGuardaElDato('Yerba mate', '8');
+  await esperarPaso('Tu primera sección ya es tuya.');
+}
+
+async function dadoUnaGuiaEnLasPlantillas() {
+  await dadoUnaGuiaEnElPrimerPaso();
+  await cuandoSeElige(/Elegir una plantilla/);
+  await esperarPaso('Una plantilla es un conjunto.');
+  await screen.findByRole('heading', { name: /Elegí una base/ }, ESPERA);
+}
+
+async function dadoUnaGuiaMirandoLaPlantillaDeAlmacen() {
+  await dadoUnaGuiaEnLasPlantillas();
+  await cuandoSeMiraLaPlantillaDeAlmacen();
+  await esperarPaso('Mirá las piezas antes de empezar.');
+}
+
+async function dadoUnaGuiaEnElLienzoDesdeCero() {
+  await dadoUnaGuiaEnElPrimerPaso();
+  await cuandoSeElige(/Empezar de cero/);
+  await esperarPaso('Tu lienzo, desde cero.');
+}
+
+async function dadoUnaGuiaPidiendoLaPrimeraPieza() {
+  await dadoUnaGuiaEnElLienzoDesdeCero();
+  await cuandoSeElige(/Seguir desde cero/);
+  await esperarPaso('Traé tu primera pieza.');
+}
+
+async function dadoUnaGuiaCerradaConLaX() {
+  await dadoUnaGuiaEnElPrimerPaso();
+  await cuandoSeSaleDelTutorial();
+}
+
+async function dadoUnaGuiaEnLasPlantillasYAsentada() {
+  await dadoUnaGuiaEnLasPlantillas();
+  await waitFor(() => expect(router.state.status).toBe('idle'), ESPERA);
+}
+
+async function cuandoSeElige(nombre: string | RegExp) {
+  await user.click(screen.getByRole('button', { name: nombre }));
+}
+
+async function cuandoSePresionaEscape() {
+  await user.keyboard('{Escape}');
+}
+
+async function cuandoSeEmpiezaLaGuia() {
+  await cuandoSeElige(/Hacer mi primera sección con guía/);
+  await esperarPaso('Tres maneras de empezar.');
+}
+
+async function cuandoSeIntentaIrALaZona() {
+  await cuandoSeElige('Zona');
+}
+
+async function cuandoSeDescribeElNegocio(descripcion: string) {
+  await user.type(await screen.findByLabelText('Contame un poco de tu negocio'), descripcion);
+  await cuandoSeElige(/Pensalo conmigo/);
+}
+
+async function cuandoSeAjustaElAnchoDelSegundoBloque() {
+  const botones = screen.getAllByRole('button', { name: 'Fila completa' });
+  await user.click(botones[1] as HTMLElement);
+}
+
+async function cuandoSeCreaLaSeccion() {
+  await cuandoSeElige(/Sí, crear mi sección/);
+}
+
+async function cuandoSePersonalizaElBloque() {
+  const boton = within(bloqueDelTutorial()).getByRole('button', { name: 'Personalizar bloque' });
+  await user.click(boton);
+}
+
+async function cuandoSeRenombraElBloque(nombre: string) {
+  const campo = screen.getByLabelText('Nombre');
+  await user.clear(campo);
+  await user.type(campo, nombre);
+  await user.tab();
+}
+
+async function cuandoSeMueveElBloqueAbajo() {
+  await user.click(within(bloqueDelTutorial()).getByRole('button', { name: 'Mover abajo' }));
+}
+
+async function cuandoSeEligeRegistrarEnElBloque() {
+  await user.click(within(bloqueDelTutorial()).getByRole('button', { name: /Registrar/ }));
+}
+
+async function cuandoSeGuardaElDato(producto: string, cantidad: string) {
+  const modal = await screen.findByRole('dialog');
+  await user.type(within(modal).getByLabelText(/Producto/), producto);
+  await user.type(within(modal).getByLabelText(/Cantidad/), cantidad);
+  await user.click(within(modal).getByRole('button', { name: 'Guardar' }));
+}
+
+async function cuandoSeSaleDelTutorial() {
+  await user.click(within(cartel()).getByRole('button', { name: 'Salir del tutorial' }));
+}
+
+async function cuandoSeMiraLaPlantillaDeAlmacen() {
+  const tarjeta = document.querySelector<HTMLElement>('.template-page [data-template="shop"]');
+  if (!tarjeta) throw new Error('Falta la tarjeta de la plantilla');
+  await user.click(within(tarjeta).getByRole('button', { name: /Ver la sección/ }));
+}
+
+async function cuandoSeAgregaLaPiezaClientes() {
+  await screen.findByRole('complementary', { name: 'Piezas disponibles' }, ESPERA);
+  await user.click(screen.getByRole('button', { name: 'Agregar y organizar' }));
+  await user.click(elementoDeLaBiblioteca());
+  await user.click(await screen.findByRole('button', { name: 'Agregar Clientes' }, ESPERA));
+}
+
+function elementoDeLaBiblioteca() {
+  const nodo = document.querySelector<HTMLElement>('[data-accion="mobile-library"]');
+  if (!nodo) throw new Error('Falta el acceso a las piezas');
+  return nodo;
+}
+
+async function cuandoSeVaAlInicioPorElLogo() {
+  await user.click(screen.getByRole('button', { name: 'Ensambla, ir al inicio' }));
+}
+
+function entoncesLaBienvenidaTieneElFocoEnEmpezarLaGuia() {
+  expect(botonDeLaBienvenida()).toHaveFocus();
+}
+
+function entoncesNoHayDialogoNiTutorialActivo() {
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(useSistemaStore.getState().tutorial.activo).toBe(false);
+}
+
+async function entoncesLaBienvenidaQuedoVista() {
+  await waitFor(
+    () => expect(estado.preferencias.get(usuario.email)?.bienvenidaVista).toBe(true),
+    ESPERA,
+  );
+}
+
+async function entoncesLaBienvenidaSeCerroYQuedoVista() {
+  expect(screen.queryByRole('dialog')).toBeNull();
+  await entoncesLaBienvenidaQuedoVista();
+}
+
+function entoncesNoSeMuestraNingunDialogo() {
+  expect(screen.queryByRole('dialog')).toBeNull();
+}
+
+function entoncesEstaEnLaEtapa1DelPrimerPaso() {
+  expect(within(cartel()).getByLabelText('Etapa 1 de 5')).toBeVisible();
+  expect(within(cartel()).getByText('Tocá una de las tres opciones.')).toBeVisible();
+}
+
+function entoncesHayUnaSolaPiezaResaltadaYNoSeOfreceReiniciar() {
+  expect(screen.queryByText(/Reiniciar la demo/)).toBeNull();
+  expect(document.querySelector('.mk-root')).toHaveClass('tutorial-running');
+  expect(document.querySelectorAll('.tour-target')).toHaveLength(1);
+}
+
+async function entoncesSeRecuerdaElPrimerPaso() {
+  await verifyToastAsync('Tocá una de las tres opciones.');
+  expect(pasoActual()).toBe('choose');
+  expect(screen.getByRole('heading', { name: /En qué puedo/ })).toBeVisible();
+}
+
+async function entoncesSeAbreElEditorEnElPasoDeCambiar() {
+  await esperarPaso('De acá se cambia.');
+  expect(router.state.location.pathname).toMatch(/^\/sistemas\//);
+}
+
+async function entoncesElNombreTieneElFoco() {
+  await esperarPaso('Ponelo en tus palabras.');
+  expect(screen.getByLabelText('Nombre')).toHaveFocus();
+}
+
+async function entoncesTerminaEnLaEtapa5() {
+  await esperarPaso('Tu primera sección ya es tuya.');
+  expect(within(cartel()).getByLabelText('Etapa 5 de 5')).toBeVisible();
+}
+
+async function entoncesElCartelSeCerroYSeAvisaComoRetomarlo() {
+  expect(screen.queryByLabelText('Guía interactiva de Sami')).toBeNull();
+  await verifyToastAsync(AVISO_DE_SALIDA);
+}
+
+function entoncesNoQuedaNingunaPiezaResaltada() {
+  expect(document.querySelector('.mk-root')).not.toHaveClass('tutorial-running');
+  expect(document.querySelectorAll('.tour-target')).toHaveLength(0);
+}
+
+async function entoncesSeExplicaQueEsUnaPlantilla() {
+  await esperarPaso('Una plantilla es un conjunto.');
+}
+
+async function entoncesLaGuiaSalioYSeAvisaComoRetomarla() {
+  expect(screen.queryByLabelText('Guía interactiva de Sami')).toBeNull();
+  expect(useSistemaStore.getState().tutorial.activo).toBe(false);
+  await verifyToastAsync(AVISO_DE_SALIDA);
+}
+
+function entoncesNoHayCartelDeGuia() {
+  expect(screen.queryByLabelText('Guía interactiva de Sami')).toBeNull();
+}
+
+async function entoncesLaGuiaTerminoSinPreguntar() {
+  await verifyPathAsync(router, '/inicio');
+  expect(screen.queryByLabelText('Guía interactiva de Sami')).toBeNull();
+  expect(screen.queryByText(/¿Volvemos o empezamos de nuevo\?/)).toBeNull();
+  expect(screen.queryByRole('dialog')).toBeNull();
+}
+
+function entoncesNoSeOfreceReiniciarLaDemo() {
+  const texto = /Reiniciar la demo|Borrar todos los sistemas de esta demo/;
+  expect(screen.queryByText(texto)).toBeNull();
+}
