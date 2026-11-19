@@ -28,25 +28,13 @@ public record DefinicionMetrica(
 
     /** Rechaza con un motivo claro la receta que no se puede calcular; no hace nada si es válida. */
     public void validar() {
-        if (nombre.isEmpty() || nombre.length() > LARGO_MAXIMO_DEL_NOMBRE) {
-            throw new BusinessRuleException(
-                    "El nombre de la métrica es obligatorio y tiene hasta " + LARGO_MAXIMO_DEL_NOMBRE + " letras");
-        }
-        if (fuente == null || calculo == null) {
-            throw new BusinessRuleException("Elegí de qué tabla sale la métrica y qué querés calcular");
-        }
-        if (!calculo.sirvePara(fuente)) {
-            throw new BusinessRuleException("Los gastos no tienen unidades: elegí sumar, promediar o contar");
-        }
-        if (!AgrupacionMetrica.paraFuente(fuente).contains(agrupar)) {
-            throw new BusinessRuleException("No se puede repartir " + fuente.getFilas() + " de esa manera");
-        }
-        if (soloFiado && fuente != FuenteMetrica.VENTAS) {
-            throw new BusinessRuleException("Sólo las ventas se pueden marcar como fiadas");
-        }
-        if (!fuente.tieneFecha() && periodo != PeriodoMetrica.TODO) {
-            throw new BusinessRuleException("El inventario es lo que hay hoy: no tiene períodos");
-        }
+        rechazarSi(!tieneUnNombreValido(),
+                "El nombre de la métrica es obligatorio y tiene hasta " + LARGO_MAXIMO_DEL_NOMBRE + " letras");
+        rechazarSi(fuente == null || calculo == null, "Elegí de qué tabla sale la métrica y qué querés calcular");
+        rechazarSi(!calculo.sirvePara(fuente), "Los gastos no tienen unidades: elegí sumar, promediar o contar");
+        rechazarSi(!fuente.permiteRepartirPor(agrupar), "No se puede repartir " + fuente.getFilas() + " de esa manera");
+        rechazarSi(soloFiado && !fuente.admiteFiado(), "Sólo las ventas se pueden marcar como fiadas");
+        rechazarSi(!fuente.tieneFecha() && !periodo.miraTodo(), "El inventario es lo que hay hoy: no tiene períodos");
     }
 
     public FormatoMetrica formato() {
@@ -60,5 +48,15 @@ public record DefinicionMetrica(
                 && agrupar == otra.agrupar
                 && periodo == otra.periodo
                 && soloFiado == otra.soloFiado;
+    }
+
+    private boolean tieneUnNombreValido() {
+        return !nombre.isEmpty() && nombre.length() <= LARGO_MAXIMO_DEL_NOMBRE;
+    }
+
+    private static void rechazarSi(boolean noSePuede, String motivo) {
+        if (noSePuede) {
+            throw new BusinessRuleException(motivo);
+        }
     }
 }

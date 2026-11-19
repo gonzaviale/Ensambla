@@ -16,12 +16,26 @@ public enum PeriodoMetrica {
         this.dias = dias;
     }
 
+    /** {@code true} si no tiene un comienzo: mira todo lo cargado. */
+    public boolean miraTodo() {
+        return dias == 0;
+    }
+
     /** El primer día del período, o {@code null} si mira todo lo cargado. */
     public LocalDate desde(LocalDate hoy) {
-        return dias == 0 ? null : hoy.minusDays(dias - 1L);
+        return miraTodo() ? null : hoy.minusDays(dias - 1L);
+    }
+
+    /** El último día del período (hoy), o {@code null} si mira todo lo cargado. */
+    public LocalDate hasta(LocalDate hoy) {
+        return miraTodo() ? null : hoy;
     }
 
     public boolean incluye(LocalDate fecha, LocalDate hoy) {
-        return dias == 0 || fecha != null && !fecha.isBefore(desde(hoy)) && !fecha.isAfter(hoy);
+        return miraTodo() || estaEntre(fecha, desde(hoy), hoy);
+    }
+
+    private static boolean estaEntre(LocalDate fecha, LocalDate desde, LocalDate hasta) {
+        return fecha != null && !fecha.isBefore(desde) && !fecha.isAfter(hasta);
     }
 }
