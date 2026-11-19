@@ -3,12 +3,19 @@ import {
   palabrasQueNoEntendi,
   type LineaDeLoQueEntendi,
 } from '@/lib/metricas/loQueEntendi';
-import type { PedidoInterpretado } from '@/types/metricas';
+import type { DefinicionDeMetrica, LecturaDelPedido, PedidoInterpretado } from '@/types/metricas';
 
 // «Esto entendí»: antes de guardar, la persona ve en palabras simples qué se entendió de su pedido, qué se tomó por
 // defecto porque no lo decía y qué palabras no se entendieron. Mismo recuadro que «Lo que entendió Sami» en Objetivos.
 export function LoQueEntendi({ propuesta }: { propuesta: PedidoInterpretado }) {
-  const lineas = lineasDeLoQueEntendi(propuesta.definicion, propuesta.lectura);
+  if (!propuesta.lectura) return null;
+  return <RecuadroDeLoQueEntendi definicion={propuesta.definicion} lectura={propuesta.lectura} />;
+}
+
+type PropsDelRecuadro = { definicion: DefinicionDeMetrica; lectura: LecturaDelPedido };
+
+function RecuadroDeLoQueEntendi({ definicion, lectura }: PropsDelRecuadro) {
+  const lineas = lineasDeLoQueEntendi(definicion, lectura);
   return (
     <section className="objetivos-lectura agregar-metrica-entendi" aria-label="Esto entendí">
       <p className="objetivos-etiqueta">Esto entendí</p>
@@ -17,7 +24,7 @@ export function LoQueEntendi({ propuesta }: { propuesta: PedidoInterpretado }) {
           <LineaEntendida key={linea.parte} linea={linea} />
         ))}
       </ul>
-      <PalabrasQueNoEntendi propuesta={propuesta} />
+      <PalabrasQueNoEntendi lectura={lectura} />
     </section>
   );
 }
@@ -33,11 +40,9 @@ function LineaEntendida({ linea }: { linea: LineaDeLoQueEntendi }) {
   );
 }
 
-function PalabrasQueNoEntendi({ propuesta }: { propuesta: PedidoInterpretado }) {
-  if (propuesta.lectura.noEntendidas.length === 0) return null;
+function PalabrasQueNoEntendi({ lectura }: { lectura: LecturaDelPedido }) {
+  if (lectura.noEntendidas.length === 0) return null;
   return (
-    <p className="agregar-metrica-no-entendidas">
-      No entendí: {palabrasQueNoEntendi(propuesta.lectura)}
-    </p>
+    <p className="agregar-metrica-no-entendidas">No entendí: {palabrasQueNoEntendi(lectura)}</p>
   );
 }

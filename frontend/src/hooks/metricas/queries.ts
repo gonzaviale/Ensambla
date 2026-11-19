@@ -1,11 +1,12 @@
 import { queryOptions, useQuery } from '@tanstack/react-query';
-import { listarMetricas, listarMetricasSugeridas } from '@/api/metricas';
+import { listarFuentesDelCuaderno, listarMetricas, listarMetricasSugeridas } from '@/api/metricas';
 
 export const metricasKeys = {
   /** Todo lo de un cuaderno cuelga de esta clave: al guardar o quitar una se vuelve a pedir junto. */
   cuaderno: (sistemaId: string) => ['metricas', sistemaId] as const,
   lista: (sistemaId: string) => [...metricasKeys.cuaderno(sistemaId), 'lista'] as const,
   sugeridas: (sistemaId: string) => [...metricasKeys.cuaderno(sistemaId), 'sugeridas'] as const,
+  fuentes: (sistemaId: string) => [...metricasKeys.cuaderno(sistemaId), 'fuentes'] as const,
 };
 
 export const metricasQuery = (sistemaId: string) =>
@@ -33,6 +34,20 @@ export function useMetricasAMedida(sistemaId: string) {
     fallo: consulta.isError,
     reintentar: consulta.refetch,
   };
+}
+
+const pedirLasFuentes = (sistemaId: string, signal: AbortSignal) =>
+  listarFuentesDelCuaderno(sistemaId, signal);
+
+/** De qué se puede armar una métrica en este cuaderno: lo que todavía no cargó no se ofrece. */
+export function useFuentesDelCuaderno(sistemaId: string) {
+  const consulta = useQuery({
+    queryKey: metricasKeys.fuentes(sistemaId),
+    queryFn: ({ signal }) => pedirLasFuentes(sistemaId, signal),
+    staleTime: 30_000,
+    retry: false,
+  });
+  return { fuentes: consulta.data, fallo: consulta.isError };
 }
 
 /** Las sugeridas del rubro; sólo se piden cuando la persona abre «Agregar métrica». */

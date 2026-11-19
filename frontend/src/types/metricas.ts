@@ -66,9 +66,18 @@ export const sugeridaSchema = z.object({
   resultado: resultadoDeMetricaSchema,
 });
 
-export const sugeridasSchema = z.array(sugeridaSchema);
+/** En la lista de sugeridas: si ya está a la vista (guardada o en el panel de ventas), no se puede agregar. */
+export const sugeridaDelRubroSchema = sugeridaSchema.extend({
+  yaLaTenes: z.boolean().default(false),
+});
+
+export const sugeridasSchema = z.array(sugeridaDelRubroSchema);
 
 export type MetricaSugerida = z.infer<typeof sugeridaSchema>;
+
+export type SugeridaDelRubro = z.infer<typeof sugeridaDelRubroSchema>;
+
+export const fuentesDelCuadernoSchema = z.array(z.enum(FUENTES_DE_METRICA));
 
 /** Las partes de la receta que puede decir un pedido en palabras. */
 export const PARTES_DE_LA_RECETA = [
@@ -91,7 +100,11 @@ export const lecturaDelPedidoSchema = z.object({
 export type LecturaDelPedido = z.infer<typeof lecturaDelPedidoSchema>;
 
 /** La métrica que arma un pedido en palabras: la propuesta de siempre más cómo se lo entendió. */
-export const pedidoInterpretadoSchema = sugeridaSchema.extend({ lectura: lecturaDelPedidoSchema });
+// lectura y yaLaTenes son opcionales: un servidor anterior no los manda y la propuesta igual se muestra.
+export const pedidoInterpretadoSchema = sugeridaSchema.extend({
+  lectura: lecturaDelPedidoSchema.optional(),
+  yaLaTenes: z.boolean().default(false),
+});
 
 export type PedidoInterpretado = z.infer<typeof pedidoInterpretadoSchema>;
 

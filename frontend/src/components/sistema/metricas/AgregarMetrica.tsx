@@ -3,7 +3,7 @@ import { LoQueEntendi } from '@/components/sistema/metricas/LoQueEntendi';
 import { ResultadoDeLaMetrica } from '@/components/sistema/metricas/MetricasAMedida';
 import { leerErrorServidor } from '@/hooks/errores';
 import { useEntenderPedido, useGuardarMetrica, useVerComoQueda } from '@/hooks/metricas/mutations';
-import { useMetricasSugeridas } from '@/hooks/metricas/queries';
+import { useFuentesDelCuaderno, useMetricasSugeridas } from '@/hooks/metricas/queries';
 import {
   ETIQUETA_DE_AGRUPACION,
   ETIQUETA_DE_FUENTE,
@@ -21,7 +21,9 @@ import {
   FUENTES_DE_METRICA,
   type AutoriaDeMetrica,
   type DefinicionDeMetrica,
+  type FuenteDeMetrica,
   type PedidoInterpretado,
+  type SugeridaDelRubro,
 } from '@/types/metricas';
 
 const NO_SE_PUDO_GUARDAR = 'No pudimos guardarla. Probá de nuevo.';
@@ -125,39 +127,103 @@ function Sugeridas({ sistemaId, guardando, onAgregar }: PropsDelCamino) {
         Buscando métricas para tu negocio…
       </p>
     );
-  if (sugeridas.length === 0)
-    return (
-      <p className="metricas-medida-aviso">
-        Ya agregaste todas las sugeridas. Probá armar la tuya.
-      </p>
-    );
   return (
     <ul className="metricas-medida-lista">
-      {sugeridas.map(({ definicion, resultado }) => (
-        <li
-          key={`${definicion.nombre}-${resumenDeLaReceta(definicion)}`}
-          className="metrica-medida"
-        >
-          <h3>{definicion.nombre}</h3>
-          <p className="metrica-medida-receta">{resumenDeLaReceta(definicion)}</p>
-          <ResultadoDeLaMetrica resultado={resultado} />
-          <button
-            type="button"
-            className="metricas-medida-agregar"
-            disabled={guardando}
-            aria-label={`Agregar ${definicion.nombre}`}
-            onClick={() => onAgregar(definicion, 'SUGERIDA')}
-          >
-            Agregar
-          </button>
-        </li>
+      {sugeridas.map((sugerida) => (
+        <TarjetaSugerida
+          key={`${sugerida.definicion.nombre}-${resumenDeLaReceta(sugerida.definicion)}`}
+          sugerida={sugerida}
+          guardando={guardando}
+          onAgregar={() => onAgregar(sugerida.definicion, 'SUGERIDA')}
+        />
       ))}
     </ul>
   );
 }
 
-function ArmarLaMia({ sistemaId, guardando, onAgregar }: PropsDelCamino) {
-  const [definicion, setDefinicion] = useState(definicionInicial);
+type PropsDeLaSugerida = { sugerida: SugeridaDelRubro; guardando: boolean; onAgregar: () => void };
+
+function TarjetaSugerida({ sugerida, guardando, onAgregar }: PropsDeLaSugerida) {
+  const { definicion, resultado, yaLaTenes } = sugerida;
+  return (
+    <li className="metrica-medida">
+      <h3>{definicion.nombre}</h3>
+      <p className="metrica-medida-receta">{resumenDeLaReceta(definicion)}</p>
+      <ResultadoDeLaMetrica resultado={resultado} />
+      <BotonParaAgregar
+        etiqueta={yaLaTenes ? `Ya tenés ${definicion.nombre}` : `Agregar ${definicion.nombre}`}
+        yaLaTenes={yaLaTenes}
+        guardando={guardando}
+        onAgregar={onAgregar}
+      />
+    </li>
+  );
+}
+
+type PropsDelBoton = {
+  etiqueta?: string;
+  yaLaTenes: boolean;
+  guardando: boolean;
+  onAgregar: () => void;
+  texto?: string;
+};
+
+// Lo que ya está a la vista (guardado o en el panel de ventas) se muestra, pero no se agrega dos veces.
+function BotonParaAgregar({
+  etiqueta,
+  yaLaTenes,
+  guardando,
+  onAgregar,
+  texto = 'Agregar',
+}: PropsDelBoton) {
+  if (yaLaTenes)
+    return (
+      <button type="button" className="metricas-medida-agregar" disabled aria-label={etiqueta}>
+        Ya la tenés
+      </button>
+    );
+  return (
+    <button
+      type="button"
+      className="metricas-medida-agregar"
+      disabled={guardando}
+      aria-label={etiqueta}
+      onClick={onAgregar}
+    >
+      {texto}
+    </button>
+  );
+}
+
+// Sólo se ofrece armar de lo que el negocio ya cargó: lo que no tiene, después no se puede calcular.
+function ArmarLaMia(props: PropsDelCamino) {
+  const { fuentes, fallo } = useFuentesDelCuaderno(props.sistemaId);
+  const disponibles = fallo ? [...FUENTES_DE_METRICA] : fuentes;
+  if (!disponibles)
+    return (
+      <p className="metricas-medida-aviso" role="status">
+        Buscando lo que cargaste…
+      </p>
+    );
+  if (disponibles.length === 0)
+    return (
+      <p className="metricas-medida-aviso">
+        Todavía no cargaste ventas, gastos ni stock en este negocio.
+      </p>
+    );
+  return <FormularioDeLaMia {...props} fuentes={disponibles} />;
+}
+
+const recetaInicialPara = (fuentes: FuenteDeMetrica[]) =>
+  ajustarALaFuente(definicionInicial(), fuentes[0] ?? 'VENTAS');
+
+function FormularioDeLaMia({
+  sistemaId,
+  guardando,
+  onAgregar,
+  fuentes,
+}: PropsDelCamino & { fuentes: FuenteDeMetrica[] }) {
+  const [definicion, setDefinicion] = useState(() => recetaInicialPara(fuentes));
   const [sinNombre, setSinNombre] = useState(false);
   const vista = useVerComoQueda(sistemaId);
 
@@ -201,7 +267,7 @@ function ArmarLaMia({ sistemaId, guardando, onAgregar }: PropsDelCamino) {
             cambiar(ajustarALaFuente(definicion, e.target.value as DefinicionDeMetrica['fuente']))
           }
         >
-          {FUENTES_DE_METRICA.map((fuente) => (
+          {fuentes.map((fuente) => (
             <option key={fuente} value={fuente}>
               {ETIQUETA_DE_FUENTE[fuente]}
             </option>
@@ -396,14 +462,12 @@ function PropuestaDelPedido({ propuesta, guardando, onGuardar, onDescartar }: Pr
       <p className="metrica-medida-receta">{resumenDeLaReceta(definicion)}</p>
       <ResultadoDeLaMetrica resultado={resultado} />
       <div className="agregar-metrica-acciones">
-        <button
-          type="button"
-          className="metricas-medida-agregar"
-          disabled={guardando}
-          onClick={onGuardar}
-        >
-          Guardar métrica
-        </button>
+        <BotonParaAgregar
+          yaLaTenes={propuesta.yaLaTenes}
+          guardando={guardando}
+          onAgregar={onGuardar}
+          texto="Guardar métrica"
+        />
         <button type="button" className="agregar-metrica-ver" onClick={onDescartar}>
           Descartar
         </button>

@@ -21,7 +21,7 @@ const SIN_VENTAS: ResultadoDeMetrica = {
 const interpretado = (
   definicion: DefinicionDeMetrica,
   lectura: LecturaDelPedido,
-): PedidoInterpretado => ({ definicion, resultado: SIN_VENTAS, lectura });
+): PedidoInterpretado => ({ definicion, resultado: SIN_VENTAS, lectura, yaLaTenes: false });
 
 export const EL_FINDE = interpretado(
   {

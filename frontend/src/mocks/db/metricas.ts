@@ -1,10 +1,13 @@
+import { yaEstaALaVista } from '@/lib/metricas/recetas';
 import type { Sistema } from '@/lib/sistema/tipos';
-import type {
-  DefinicionDeMetrica,
-  FuenteDeMetrica,
-  MetricaSugerida,
-  ResultadoDeMetrica,
+import {
+  FUENTES_DE_METRICA,
+  type DefinicionDeMetrica,
+  type FuenteDeMetrica,
+  type MetricaSugerida,
+  type ResultadoDeMetrica,
 } from '@/types/metricas';
+import { filasDe } from './recetasDeMetricas';
 
 // Lo mismo que hace el motor del servidor, en chico: lee las filas del cuaderno por la clave de cada campo
 // (no por el nombre que ve la persona), deja afuera las de ejemplo y nunca devuelve un cero inventado.
@@ -20,10 +23,38 @@ const TIPO_DE_BLOQUE: Record<FuenteDeMetrica, string> = {
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
 export const SUGERIDAS_DE_EJEMPLO: DefinicionDeMetrica[] = [
-  { nombre: 'Cuánto vendí esta semana', fuente: 'VENTAS', calculo: 'SUMA', agrupar: 'NINGUNA', periodo: 'SEMANA', soloFiado: false },
-  { nombre: 'Qué producto vendo más', fuente: 'VENTAS', calculo: 'UNIDADES', agrupar: 'PRODUCTO', periodo: 'MES', soloFiado: false },
-  { nombre: 'Cuánto me deben por cliente', fuente: 'VENTAS', calculo: 'SUMA', agrupar: 'CLIENTE', periodo: 'TODO', soloFiado: true },
-  { nombre: 'Gastos por categoría', fuente: 'GASTOS', calculo: 'SUMA', agrupar: 'CATEGORIA', periodo: 'MES', soloFiado: false },
+  {
+    nombre: 'Cuánto vendí esta semana',
+    fuente: 'VENTAS',
+    calculo: 'SUMA',
+    agrupar: 'NINGUNA',
+    periodo: 'SEMANA',
+    soloFiado: false,
+  },
+  {
+    nombre: 'Qué producto vendo más',
+    fuente: 'VENTAS',
+    calculo: 'UNIDADES',
+    agrupar: 'PRODUCTO',
+    periodo: 'MES',
+    soloFiado: false,
+  },
+  {
+    nombre: 'Cuánto me deben por cliente',
+    fuente: 'VENTAS',
+    calculo: 'SUMA',
+    agrupar: 'CLIENTE',
+    periodo: 'TODO',
+    soloFiado: true,
+  },
+  {
+    nombre: 'Gastos por categoría',
+    fuente: 'GASTOS',
+    calculo: 'SUMA',
+    agrupar: 'CATEGORIA',
+    periodo: 'MES',
+    soloFiado: false,
+  },
 ];
 
 const DIAS_DEL_PERIODO = { HOY: 1, SEMANA: 7, MES: 30, TODO: 0 } as const;
@@ -49,7 +80,8 @@ const numero = (valor: unknown) => (typeof valor === 'number' ? valor : null);
 function nombresPorId(sistema: Sistema) {
   const nombres = new Map<string, string>();
   for (const bloque of sistema.sections.flatMap((seccion) => seccion.blocks))
-    for (const fila of bloque.rows) if (typeof fila.name === 'string') nombres.set(fila.id, fila.name);
+    for (const fila of bloque.rows)
+      if (typeof fila.name === 'string') nombres.set(fila.id, fila.name);
   return nombres;
 }
 
@@ -61,10 +93,20 @@ function etiquetaDe(
   if (definicion.agrupar === 'DIA_DE_LA_SEMANA')
     return DIAS[new Date(`${String(fila.date)}T12:00:00`).getDay()] ?? '';
   if (definicion.agrupar === 'CLIENTE') return nombres.get(String(fila.customer)) ?? 'Sin cliente';
-  if (definicion.agrupar === 'CATEGORIA') return String(fila.category ?? '').trim() || 'Sin categoría';
+  if (definicion.agrupar === 'CATEGORIA')
+    return String(fila.category ?? '').trim() || 'Sin categoría';
   const producto = String(fila.product ?? fila.name ?? '');
   return nombres.get(producto) ?? (producto.trim() || 'Sin nombre');
 }
+
+const bloqueDe = (sistema: Sistema, fuente: FuenteDeMetrica) =>
+  sistema.sections
+    .flatMap((seccion) => seccion.blocks)
+    .find((otro) => otro.type === TIPO_DE_BLOQUE[fuente]);
+
+/** Igual que el servidor: sólo se arma una métrica de lo que el negocio ya tiene. */
+export const fuentesDe = (sistema: Sistema) =>
+  FUENTES_DE_METRICA.filter((fuente) => bloqueDe(sistema, fuente) !== undefined);
 
 /** Lo que da la receta con las filas de verdad del cuaderno, o por qué no se puede calcular. */
 export function calcularMetricaDeEjemplo(
@@ -72,14 +114,15 @@ export function calcularMetricaDeEjemplo(
   sistema: Sistema,
   hoy: string,
 ): ResultadoDeMetrica {
-  const bloque = sistema.sections
-    .flatMap((seccion) => seccion.blocks)
-    .find((otro) => otro.type === TIPO_DE_BLOQUE[definicion.fuente]);
+  const bloque = bloqueDe(sistema, definicion.fuente);
   if (!bloque)
-    return sinValor(definicion, `No encontramos la tabla de ${definicion.fuente.toLowerCase()} en este cuaderno.`);
+    return sinValor(
+      definicion,
+      `Todavía no cargaste ${filasDe(definicion.fuente)} en este negocio.`,
+    );
   const filas = bloque.rows.filter((fila) => !fila.__example);
   if (filas.length === 0)
-    return sinValor(definicion, `Todavía no cargaste ${definicion.fuente.toLowerCase()}.`);
+    return sinValor(definicion, `Todavía no cargaste ${filasDe(definicion.fuente)}.`);
 
   const dias = DIAS_DEL_PERIODO[definicion.periodo];
   const desde = dias === 0 ? null : restarDias(hoy, dias - 1);
@@ -89,7 +132,7 @@ export function calcularMetricaDeEjemplo(
       (!definicion.soloFiado || fila.credit === true),
   );
   if (delPeriodo.length === 0)
-    return sinValor(definicion, `No hay ${definicion.fuente.toLowerCase()} en este período.`);
+    return sinValor(definicion, `No hay ${filasDe(definicion.fuente)} en este período.`);
 
   const importe = (fila: Record<string, unknown>) => {
     if (definicion.fuente === 'GASTOS') return numero(fila.total);
@@ -103,7 +146,11 @@ export function calcularMetricaDeEjemplo(
     return precio === null || cantidad === null ? null : precio * cantidad;
   };
   const valorDe = (fila: Record<string, unknown>) =>
-    definicion.calculo === 'UNIDADES' ? numero(fila.quantity) : definicion.calculo === 'CONTEO' ? 1 : importe(fila);
+    definicion.calculo === 'UNIDADES'
+      ? numero(fila.quantity)
+      : definicion.calculo === 'CONTEO'
+        ? 1
+        : importe(fila);
 
   const usables = delPeriodo.filter((fila) => valorDe(fila) !== null);
   const filasSinDato = delPeriodo.length - usables.length;
@@ -152,7 +199,9 @@ export function sugeridasDe(
   guardadas: DefinicionDeMetrica[],
   hoy: string,
 ): MetricaSugerida[] {
-  return SUGERIDAS_DE_EJEMPLO.filter(
-    (sugerida) => !guardadas.some((otra) => JSON.stringify({ ...otra, nombre: '' }) === JSON.stringify({ ...sugerida, nombre: '' })),
-  ).map((definicion) => ({ definicion, resultado: calcularMetricaDeEjemplo(definicion, sistema, hoy) }));
+  return SUGERIDAS_DE_EJEMPLO.map((definicion) => ({
+    definicion,
+    resultado: calcularMetricaDeEjemplo(definicion, sistema, hoy),
+    yaLaTenes: yaEstaALaVista(definicion, guardadas),
+  }));
 }

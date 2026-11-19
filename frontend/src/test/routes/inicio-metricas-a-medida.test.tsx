@@ -86,7 +86,7 @@ describe('Inicio: métricas a medida', () => {
     const { usuario } = await abrirInicio();
     await usuario.click(screen.getByRole('button', { name: /Agregar métrica/ }));
     await usuario.click(
-      await screen.findByRole('button', { name: 'Agregar Cuánto vendí esta semana' }),
+      await screen.findByRole('button', { name: 'Agregar Qué producto vendo más' }),
     );
 
     const lista = await screen.findByRole(
@@ -95,7 +95,7 @@ describe('Inicio: métricas a medida', () => {
       { timeout: 3000 },
     );
     const tarjeta = within(lista)
-      .getByRole('heading', { name: 'Cuánto vendí esta semana' })
+      .getByRole('heading', { name: 'Qué producto vendo más' })
       .closest('li');
     expect(tarjeta).not.toBeNull();
     await usuario.click(
@@ -107,7 +107,7 @@ describe('Inicio: métricas a medida', () => {
 
     await usuario.click(
       within(tarjeta as HTMLElement).getByRole('button', {
-        name: 'Quitar Cuánto vendí esta semana',
+        name: 'Quitar Qué producto vendo más',
       }),
     );
     await waitFor(() =>
@@ -120,7 +120,7 @@ describe('Inicio: métricas a medida', () => {
     await usuario.click(screen.getByRole('button', { name: /Agregar métrica/ }));
     await usuario.click(screen.getByRole('button', { name: 'Armar la mía' }));
 
-    await usuario.click(screen.getByRole('button', { name: 'Guardar métrica' }));
+    await usuario.click(await screen.findByRole('button', { name: 'Guardar métrica' }));
     expect(screen.getByText('Ponele un nombre.')).toBeInTheDocument();
 
     await usuario.selectOptions(
@@ -136,14 +136,24 @@ describe('Inicio: métricas a medida', () => {
     expect(await screen.findByRole('heading', { name: 'Ventas por día' })).toBeInTheDocument();
   });
 
-  it('si no se puede calcular dice por qué y no muestra un cero', async () => {
+  it('sólo ofrece armar de lo que el negocio cargó: sin gastos no ofrece gastos', async () => {
     const { usuario } = await abrirInicio();
     await usuario.click(screen.getByRole('button', { name: /Agregar métrica/ }));
     await usuario.click(screen.getByRole('button', { name: 'Armar la mía' }));
-    await usuario.selectOptions(screen.getByLabelText('¿Qué querés mirar?'), 'GASTOS');
-    await usuario.click(screen.getByRole('button', { name: 'Ver cómo queda' }));
-    const vista = await screen.findByLabelText('Así quedaría');
-    expect(within(vista).getByRole('status')).toHaveTextContent(/gastos/);
+    const queMirar = await screen.findByLabelText('¿Qué querés mirar?');
+    expect(
+      within(queMirar)
+        .getAllByRole('option')
+        .map((opcion) => opcion.textContent),
+    ).toEqual(['Ventas', 'Productos en stock']);
+  });
+
+  it('marca «Ya la tenés» la sugerida que ya muestra el panel de ventas y no deja agregarla', async () => {
+    const { usuario } = await abrirInicio();
+    await usuario.click(screen.getByRole('button', { name: /Agregar métrica/ }));
+    expect(
+      await screen.findByRole('button', { name: 'Ya tenés Cuánto vendí esta semana' }),
+    ).toBeDisabled();
   });
 
   it('renombra una métrica y muestra el nombre nuevo sin cambiar lo que calcula', async () => {
@@ -210,17 +220,12 @@ describe('Inicio: métricas a medida', () => {
     expect(estado.metricas.get(almacen.id) ?? []).toEqual([]);
   });
 
-  it('muestra el error del servidor al guardar una métrica repetida', async () => {
+  it('no deja guardar lo que ya muestra el panel de ventas y dice por qué', async () => {
     const { usuario } = await abrirInicio();
-    const agregar = async () => {
-      await usuario.click(await screen.findByRole('button', { name: /Agregar métrica/ }));
-      await usuario.click(screen.getByRole('button', { name: 'Armar la mía' }));
-      await usuario.type(screen.getByLabelText('Nombre'), 'Total del mes');
-      await usuario.click(screen.getByRole('button', { name: 'Guardar métrica' }));
-    };
-    await agregar();
-    await screen.findByRole('heading', { name: 'Total del mes' });
-    await agregar();
-    expect(await screen.findByRole('alert')).toHaveTextContent('Ya tenés una métrica igual a esa.');
+    await usuario.click(await screen.findByRole('button', { name: /Agregar métrica/ }));
+    await usuario.click(screen.getByRole('button', { name: 'Armar la mía' }));
+    await usuario.type(await screen.findByLabelText('Nombre'), 'Total del mes');
+    await usuario.click(screen.getByRole('button', { name: 'Guardar métrica' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Esa ya la tenés en el panel');
   });
 });

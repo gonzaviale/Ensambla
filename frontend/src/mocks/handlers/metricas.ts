@@ -8,7 +8,13 @@ import {
   PERIODOS_DE_METRICA,
 } from '@/types/metricas';
 import { estado, sistemasDe, type MetricaGuardada } from '../db/estado';
-import { calcularMetricaDeEjemplo, MAXIMO_DE_METRICAS, sugeridasDe } from '../db/metricas';
+import { yaEstaALaVista, YA_LA_TENES } from '@/lib/metricas/recetas';
+import {
+  calcularMetricaDeEjemplo,
+  fuentesDe,
+  MAXIMO_DE_METRICAS,
+  sugeridasDe,
+} from '../db/metricas';
 import { interpretarPedido } from '../db/pedidosDeMetricas';
 import { errorResponse } from '../errores';
 import { api, cuenta, LATENCIA_BACKEND_MS, pathDe } from './comun';
@@ -23,12 +29,6 @@ const definicionSchema = z.object({
 });
 const nuevaSchema = definicionSchema.extend({ autoria: z.enum(['SUGERIDA', 'PROPIA']) });
 
-// Igual que el servidor: dos recetas son la misma si piden lo mismo, aunque se llamen distinto.
-const LO_QUE_PIDE_UNA_RECETA = ['fuente', 'calculo', 'agrupar', 'periodo', 'soloFiado'] as const;
-
-const mismaReceta = (a: z.infer<typeof definicionSchema>, b: z.infer<typeof definicionSchema>) =>
-  LO_QUE_PIDE_UNA_RECETA.every((dato) => a[dato] === b[dato]);
-
 // Igual que el backend: cada cuaderno es de una cuenta, y uno ajeno responde igual que uno que no existe.
 function cuaderno(request: Request, sistemaId: string, escritura = false) {
   const sesion = cuenta(request, escritura);
@@ -39,6 +39,9 @@ function cuaderno(request: Request, sistemaId: string, escritura = false) {
 }
 
 const guardadasDe = (sistemaId: string) => estado.metricas.get(sistemaId) ?? [];
+
+const recetasGuardadasDe = (sistemaId: string) =>
+  guardadasDe(sistemaId).map((metrica) => metrica.definicion);
 
 export const handlersMetricas = [
   http.get(api('/proyectos/:sistemaId/metricas'), async ({ request, params }) => {
@@ -53,17 +56,17 @@ export const handlersMetricas = [
       })),
     );
   }),
+  http.get(api('/proyectos/:sistemaId/metricas/fuentes'), async ({ request, params }) => {
+    const { sistema, error } = cuaderno(request, String(params.sistemaId));
+    if (error) return error;
+    await delay(LATENCIA_BACKEND_MS);
+    return HttpResponse.json(fuentesDe(sistema));
+  }),
   http.get(api('/proyectos/:sistemaId/metricas/sugeridas'), async ({ request, params }) => {
     const { sistema, error } = cuaderno(request, String(params.sistemaId));
     if (error) return error;
     await delay(LATENCIA_BACKEND_MS);
-    return HttpResponse.json(
-      sugeridasDe(
-        sistema,
-        guardadasDe(sistema.id).map((metrica) => metrica.definicion),
-        hoy(),
-      ),
-    );
+    return HttpResponse.json(sugeridasDe(sistema, recetasGuardadasDe(sistema.id), hoy()));
   }),
   http.post(api('/proyectos/:sistemaId/metricas/previsualizar'), async ({ request, params }) => {
     const { sistema, error } = cuaderno(request, String(params.sistemaId), true);
@@ -91,8 +94,8 @@ export const handlersMetricas = [
         `Ya tenés ${MAXIMO_DE_METRICAS} métricas. Quitá alguna para agregar otra.`,
         pathDe(request),
       );
-    if (guardadas.some((otra) => mismaReceta(otra.definicion, nueva.data)))
-      return errorResponse(409, 'Ya tenés una métrica igual a esa.', pathDe(request));
+    if (yaEstaALaVista(nueva.data, recetasGuardadasDe(sistema.id)))
+      return errorResponse(400, YA_LA_TENES, pathDe(request));
     await delay(LATENCIA_BACKEND_MS);
     const { autoria, ...definicion } = nueva.data;
     const creada = { id: crypto.randomUUID(), definicion, autoria };
@@ -130,6 +133,7 @@ export const handlersMetricas = [
     return HttpResponse.json({
       ...entendido,
       resultado: calcularMetricaDeEjemplo(entendido.definicion, sistema, hoy()),
+      yaLaTenes: yaEstaALaVista(entendido.definicion, recetasGuardadasDe(sistema.id)),
     });
   }),
   http.patch(api('/proyectos/:sistemaId/metricas/:metricaId'), async ({ request, params }) => {

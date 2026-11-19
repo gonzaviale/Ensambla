@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  fuentesDelCuadernoSchema,
   metricaSchema,
   metricasSchema,
   pedidoInterpretadoSchema,
@@ -15,6 +16,10 @@ const rutaDe = (sistemaId: string) => `/proyectos/${encodeURIComponent(sistemaId
 // Cada cuaderno es de un negocio: el servidor lo comprueba con la sesión y uno ajeno responde 404.
 export const listarMetricas = (sistemaId: string, signal?: AbortSignal) =>
   http.get(rutaDe(sistemaId), metricasSchema, signal);
+
+/** De qué se puede armar una métrica: sólo las ventas, los gastos o el stock que el cuaderno ya tiene. */
+export const listarFuentesDelCuaderno = (sistemaId: string, signal?: AbortSignal) =>
+  http.get(`${rutaDe(sistemaId)}/fuentes`, fuentesDelCuadernoSchema, signal);
 
 /** Las que el catálogo del rubro sugiere y el cuaderno todavía no guardó, con lo que darían hoy. */
 export const listarMetricasSugeridas = (sistemaId: string, signal?: AbortSignal) =>
