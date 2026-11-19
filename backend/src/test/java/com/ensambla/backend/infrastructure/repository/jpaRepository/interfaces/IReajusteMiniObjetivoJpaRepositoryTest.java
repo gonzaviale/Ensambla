@@ -46,72 +46,85 @@ class IReajusteMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
     private UUID nuevo;
 
     @BeforeEach
-    void setUp() {
+    void dadoUnObjetivoConDosMiniObjetivosYDosResumenes() {
         UUID negocio = givenNegocio("a@example.com").getId();
-        UUID objetivo = givenObjetivo(negocio);
-        anterior = givenMini(objetivo, negocio, (short) 1);
-        nuevo = givenMini(objetivo, negocio, (short) 2);
+        UUID objetivo = unObjetivo(negocio);
+        anterior = unMini(objetivo, negocio, (short) 1);
+        nuevo = unMini(objetivo, negocio, (short) 2);
         resumen = resumenes.saveAndFlush(IResumenSemanalJpaRepositoryTest.resumen(objetivo, SEMANA, List.of()))
                 .getId();
         otroResumen = resumenes.saveAndFlush(
                 IResumenSemanalJpaRepositoryTest.resumen(objetivo, SEMANA.plusWeeks(1), List.of())).getId();
     }
 
+    private List<ReajusteMiniObjetivoEntity> reajustesDelResumen;
+    private List<ReajusteMiniObjetivoEntity> reajustesDeVarios;
+
     @Test
     @DisplayName("Guarda el reajuste y lo relee con todos sus datos")
-    void saveShouldRoundTripTheReajuste() {
-        reajustes.saveAndFlush(reajuste(resumen, nuevo, AHORA.toString()));
+    void guardaElReajusteYLoReleeConTodosSusDatos() {
+        cuandoSeGuardaUnReajusteConMiniNuevo();
 
-        ReajusteMiniObjetivoEntity result =
-                reajustes.findAllByResumenIdInOrderByCreadoEnAscIdAsc(List.of(resumen)).getFirst();
-
-        assertThat(result.getMiniAnteriorId()).isEqualTo(anterior);
-        assertThat(result.getMiniNuevoId()).isEqualTo(nuevo);
-        assertThat(result.getTipo()).isEqualTo(TipoReajuste.REEMPLAZAR);
-        assertThat(result.getMotivo()).isEqualTo("Cambio");
-        assertThat(result.getMetaAnterior()).isEqualByComparingTo("10");
-        assertThat(result.getMetaNueva()).isEqualByComparingTo("20");
+        entoncesSeConservanTodosLosDatosDelReajuste();
     }
 
     @Test
     @DisplayName("Busca los reajustes de varios resúmenes juntos, del más viejo al más nuevo")
-    void findAllByResumenIdInShouldOrderByCreationAcrossResumenes() {
-        reajustes.saveAndFlush(reajuste(otroResumen, nuevo, AHORA.plusHours(1).toString()));
-        reajustes.saveAndFlush(reajuste(resumen, nuevo, AHORA.toString()));
+    void buscaLosReajustesDeVariosResumenesJuntosDelMasViejoAlMasNuevo() {
+        dadoUnReajusteDeCadaResumenElDelOtroMasNuevo();
 
-        List<ReajusteMiniObjetivoEntity> result =
-                reajustes.findAllByResumenIdInOrderByCreadoEnAscIdAsc(List.of(resumen, otroResumen));
+        cuandoSeBuscanLosReajustesDeLosDosResumenes();
 
-        assertThat(result).extracting(ReajusteMiniObjetivoEntity::getResumenId).containsExactly(resumen, otroResumen);
-        assertThat(reajustes.findAllByResumenIdInOrderByCreadoEnAscIdAsc(List.of(resumen))).hasSize(1);
+        entoncesVienenOrdenadosPorCreacionYSePuedeAcotarAUnResumen();
     }
 
     @Test
     @DisplayName("Al borrar el mini-objetivo nuevo el reajuste queda sin él")
-    void deleteNewMiniShouldLeaveTheReajusteWithoutIt() {
-        reajustes.saveAndFlush(reajuste(resumen, nuevo, AHORA.toString()));
+    void alBorrarElMiniObjetivoNuevoElReajusteQuedaSinEl() {
+        dadoUnReajusteConMiniNuevo();
 
-        minis.deleteById(nuevo);
-        minis.flush();
+        cuandoSeBorraElMiniObjetivoNuevo();
 
-        assertThat(jdbcTemplate.queryForList(
-                "SELECT mini_nuevo_id FROM reajuste_mini_objetivo WHERE resumen_id = ?", UUID.class, resumen))
-                .singleElement().isNull();
+        entoncesElReajusteQuedaSinMiniNuevo();
     }
 
     @Test
     @DisplayName("Al borrar el resumen se borran sus reajustes")
-    void deleteResumenShouldCascadeToItsReajustes() {
-        reajustes.saveAndFlush(reajuste(resumen, null, AHORA.toString()));
+    void alBorrarElResumenSeBorranSusReajustes() {
+        dadoUnReajusteSinMiniNuevo();
 
-        resumenes.deleteById(resumen);
-        resumenes.flush();
+        cuandoSeBorraElResumen();
 
-        assertThat(reajustes.findAllByResumenIdInOrderByCreadoEnAscIdAsc(List.of(resumen))).isEmpty();
+        entoncesNoQuedanReajustesDelResumen();
     }
 
-    // --- helpers ---
-    private ReajusteMiniObjetivoEntity reajuste(UUID resumenId, UUID miniNuevoId, String creadoEn) {
+    // --- dado ---
+    private void dadoUnReajusteConMiniNuevo() {
+        reajustes.saveAndFlush(unReajuste(resumen, nuevo, AHORA.toString()));
+    }
+
+    private void dadoUnReajusteSinMiniNuevo() {
+        reajustes.saveAndFlush(unReajusteSinMiniNuevo(resumen, AHORA.toString()));
+    }
+
+    private void dadoUnReajusteDeCadaResumenElDelOtroMasNuevo() {
+        reajustes.saveAndFlush(unReajuste(otroResumen, nuevo, AHORA.plusHours(1).toString()));
+        reajustes.saveAndFlush(unReajuste(resumen, nuevo, AHORA.toString()));
+    }
+
+    private ReajusteMiniObjetivoEntity unReajuste(UUID resumenId, UUID miniNuevoId, String creadoEn) {
+        return unReajusteBase(resumenId, miniNuevoId, creadoEn)
+                .tituloNuevo("Después")
+                .metaNueva(new BigDecimal("20"))
+                .build();
+    }
+
+    private ReajusteMiniObjetivoEntity unReajusteSinMiniNuevo(UUID resumenId, String creadoEn) {
+        return unReajusteBase(resumenId, null, creadoEn).build();
+    }
+
+    private ReajusteMiniObjetivoEntity.ReajusteMiniObjetivoEntityBuilder unReajusteBase(
+            UUID resumenId, UUID miniNuevoId, String creadoEn) {
         return ReajusteMiniObjetivoEntity.builder()
                 .id(UUID.randomUUID())
                 .resumenId(resumenId)
@@ -121,13 +134,10 @@ class IReajusteMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
                 .motivo("Cambio")
                 .tituloAnterior("Antes")
                 .metaAnterior(BigDecimal.TEN)
-                .tituloNuevo(miniNuevoId == null ? null : "Después")
-                .metaNueva(miniNuevoId == null ? null : new BigDecimal("20"))
-                .creadoEn(OffsetDateTime.parse(creadoEn))
-                .build();
+                .creadoEn(OffsetDateTime.parse(creadoEn));
     }
 
-    private UUID givenObjetivo(UUID negocioId) {
+    private UUID unObjetivo(UUID negocioId) {
         return objetivos.saveAndFlush(ObjetivoEntity.builder()
                 .negocioId(negocioId)
                 .texto("Ganar más")
@@ -136,7 +146,7 @@ class IReajusteMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenMini(UUID objetivoId, UUID negocioId, short posicion) {
+    private UUID unMini(UUID objetivoId, UUID negocioId, short posicion) {
         return minis.saveAndFlush(MiniObjetivoEntity.builder()
                 .id(UUID.randomUUID())
                 .objetivoId(objetivoId)
@@ -154,5 +164,52 @@ class IReajusteMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId();
+    }
+
+    // --- cuando ---
+    private void cuandoSeGuardaUnReajusteConMiniNuevo() {
+        dadoUnReajusteConMiniNuevo();
+    }
+
+    private void cuandoSeBuscanLosReajustesDeLosDosResumenes() {
+        reajustesDeVarios = reajustes.findAllByResumenIdInOrderByCreadoEnAscIdAsc(List.of(resumen, otroResumen));
+    }
+
+    private void cuandoSeBorraElMiniObjetivoNuevo() {
+        minis.deleteById(nuevo);
+        minis.flush();
+    }
+
+    private void cuandoSeBorraElResumen() {
+        resumenes.deleteById(resumen);
+        resumenes.flush();
+    }
+
+    // --- entonces ---
+    private void entoncesSeConservanTodosLosDatosDelReajuste() {
+        ReajusteMiniObjetivoEntity result =
+                reajustes.findAllByResumenIdInOrderByCreadoEnAscIdAsc(List.of(resumen)).getFirst();
+        assertThat(result.getMiniAnteriorId()).isEqualTo(anterior);
+        assertThat(result.getMiniNuevoId()).isEqualTo(nuevo);
+        assertThat(result.getTipo()).isEqualTo(TipoReajuste.REEMPLAZAR);
+        assertThat(result.getMotivo()).isEqualTo("Cambio");
+        assertThat(result.getMetaAnterior()).isEqualByComparingTo("10");
+        assertThat(result.getMetaNueva()).isEqualByComparingTo("20");
+    }
+
+    private void entoncesVienenOrdenadosPorCreacionYSePuedeAcotarAUnResumen() {
+        assertThat(reajustesDeVarios).extracting(ReajusteMiniObjetivoEntity::getResumenId)
+                .containsExactly(resumen, otroResumen);
+        assertThat(reajustes.findAllByResumenIdInOrderByCreadoEnAscIdAsc(List.of(resumen))).hasSize(1);
+    }
+
+    private void entoncesElReajusteQuedaSinMiniNuevo() {
+        assertThat(jdbcTemplate.queryForList(
+                "SELECT mini_nuevo_id FROM reajuste_mini_objetivo WHERE resumen_id = ?", UUID.class, resumen))
+                .singleElement().isNull();
+    }
+
+    private void entoncesNoQuedanReajustesDelResumen() {
+        assertThat(reajustes.findAllByResumenIdInOrderByCreadoEnAscIdAsc(List.of(resumen))).isEmpty();
     }
 }

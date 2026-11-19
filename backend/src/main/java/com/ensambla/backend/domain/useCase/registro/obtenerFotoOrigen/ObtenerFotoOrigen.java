@@ -5,6 +5,8 @@ import com.ensambla.backend.domain.model.lote.ArchivoFoto;
 import com.ensambla.backend.domain.model.lote.FotoCuaderno;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
@@ -21,11 +23,26 @@ public class ObtenerFotoOrigen {
     private final LoteSubidaRepository loteSubidaRepository;
 
     public FotoArchivoResponse execute(ObtenerFotoOrigenRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        Registro registro = registroRepository.obtener(request.registroId(), negocioId);
-        FotoCuaderno foto = loteSubidaRepository.findFotoByIdAndNegocioId(registro.exigirFotoOrigen(), negocioId)
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+        Registro registro = obtenerRegistro(request.registroId(), negocioId);
+        FotoCuaderno foto = obtenerFotoDeOrigen(registro, negocioId);
+        return FotoArchivoResponse.de(leerArchivo(negocioId, foto));
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private Registro obtenerRegistro(RegistroId registroId, NegocioId negocioId) {
+        return registroRepository.obtener(registroId, negocioId);
+    }
+
+    private FotoCuaderno obtenerFotoDeOrigen(Registro registro, NegocioId negocioId) {
+        return loteSubidaRepository.findFotoByIdAndNegocioId(registro.exigirFotoOrigen(), negocioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Foto no encontrada"));
-        ArchivoFoto archivo = archivoCuadernoPort.leerFoto(negocioId, foto);
-        return FotoArchivoResponse.de(archivo);
+    }
+
+    private ArchivoFoto leerArchivo(NegocioId negocioId, FotoCuaderno foto) {
+        return archivoCuadernoPort.leerFoto(negocioId, foto);
     }
 }

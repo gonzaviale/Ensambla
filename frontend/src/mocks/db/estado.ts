@@ -1,7 +1,7 @@
 import type { Sistema } from '@/lib/sistema/tipos';
 import type { AvisoDelServidor } from '@/types/avisos';
 import type { ConfiguracionNegocio } from '@/types/negocio';
-import type { ObjetivoDelServidor } from '@/types/objetivos';
+import type { ObjetivoDelServidor, RespuestaMiniObjetivo } from '@/types/objetivos';
 import type { DatosAutogestion } from './objetivosAutogestionados';
 import type { PruebaPremium } from '@/types/planes';
 import type { VerificacionWhatsapp, VinculoWhatsapp } from '@/types/whatsapp';
@@ -32,6 +32,10 @@ type Estado = {
   objetivos: Map<string, ObjetivoDelServidor[]>;
   /** Mini-objetivos, progreso, decisiones y cierres de cada objetivo (por id); se arman la primera vez que se piden. */
   autogestion: Map<string, DatosAutogestion>;
+  /** Cuántos objetivos con IA guardó cada cuenta en el mes (clave: email|AAAA-MM). */
+  objetivosConIa: Map<string, number>;
+  /** La respuesta de la semana de cada mini-objetivo manual (por id del mini); se responde una vez. */
+  respuestasDeMinis: Map<string, RespuestaMiniObjetivo>;
   pruebasPremium: Map<string, PruebaPremium>;
   contenidosDesbloqueados: Map<string, string[]>;
   paginasIa: Map<string, number>;
@@ -50,6 +54,8 @@ export const estado: Estado = {
   avisosDelServidor: new Map(),
   objetivos: new Map(),
   autogestion: new Map(),
+  objetivosConIa: new Map(),
+  respuestasDeMinis: new Map(),
   pruebasPremium: new Map(),
   contenidosDesbloqueados: new Map(),
   paginasIa: new Map(),
@@ -66,6 +72,8 @@ export function reiniciarEstado() {
   estado.avisosDelServidor = new Map();
   estado.objetivos = new Map();
   estado.autogestion = new Map();
+  estado.objetivosConIa = new Map();
+  estado.respuestasDeMinis = new Map();
   estado.pruebasPremium = new Map();
   estado.contenidosDesbloqueados = new Map();
   estado.paginasIa = new Map();

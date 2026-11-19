@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["respuesta", "entendido", "esMonetario", "minis"],
+  "properties": {
+    "respuesta": {"type": "string"},
+    "entendido": {"type": "string"},
+    "esMonetario": {"type": "boolean"},
+    "minis": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["modo"],
+        "properties": {
+          "modo": {"type": "string", "enum": ["MEDIDO", "MANUAL"]},
+          "codigo": {"type": "string"},
+          "titulo": {"type": "string"},
+          "justificacion": {"type": "string"}
+        }
+      }
+    }
+  }
+}

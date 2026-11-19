@@ -11,7 +11,11 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 
-/** Lo que la persona quiere lograr con su negocio y el resultado mensual que busca. */
+/**
+ * Lo que la persona quiere lograr con su negocio. Un objetivo {@link TipoObjetivo#MONETARIO monetario} busca un
+ * resultado mensual en pesos (la {@code meta}); los que arma Sami no tienen meta en pesos y no se dan por alcanzados
+ * solos.
+ */
 @Getter
 @Setter
 @Builder
@@ -26,8 +30,14 @@ public class Objetivo {
     /** Lo que la persona le contó a Sami, con sus palabras. */
     private String texto;
 
-    /** Resultado mensual que se quiere alcanzar. */
+    @Builder.Default
+    private TipoObjetivo tipo = TipoObjetivo.MONETARIO;
+
+    /** Resultado mensual que se quiere alcanzar; vacío si el objetivo no es monetario. */
     private BigDecimal meta;
+
+    /** Si lo armó Sami con IA: es lo que cuenta para la cuota mensual. */
+    private boolean armadoConSami;
 
     private OffsetDateTime creadoEn;
 
@@ -38,9 +48,9 @@ public class Objetivo {
         return alcanzadoEn != null;
     }
 
-    /** Si ese resultado mensual llega a la meta. */
+    /** Si ese resultado mensual llega a la meta; un objetivo sin meta en pesos nunca llega. */
     public boolean llegaA(BigDecimal resultado) {
-        return resultado.compareTo(meta) >= 0;
+        return meta != null && resultado.compareTo(meta) >= 0;
     }
 
     public Optional<HitoObjetivo> hito() {
@@ -49,6 +59,18 @@ public class Objetivo {
 
     public void marcarAlcanzado(OffsetDateTime ahora) {
         alcanzadoEn = ahora;
+    }
+
+    /** Un objetivo armado con Sami, sin meta en pesos; el id lo asigna la base. */
+    public static Objetivo conSami(
+            NegocioId negocioId, String texto, TipoObjetivo tipo, boolean armadoConSami, OffsetDateTime ahora) {
+        return Objetivo.builder()
+                .negocioId(negocioId)
+                .texto(texto.strip())
+                .tipo(tipo)
+                .armadoConSami(armadoConSami)
+                .creadoEn(ahora)
+                .build();
     }
 
     public static Objetivo nuevo(NegocioId negocioId, String texto, BigDecimal meta, OffsetDateTime ahora) {

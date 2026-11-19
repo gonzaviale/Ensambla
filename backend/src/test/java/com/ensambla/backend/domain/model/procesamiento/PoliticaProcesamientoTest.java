@@ -11,53 +11,66 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class PoliticaProcesamientoTest {
 
+    private BigDecimal costo;
+
     @Test
     @DisplayName("La lectura simulada tiene costo cero")
-    void costoShouldReturnZeroWhenSimulated() {
-        PoliticaProcesamiento politica = ProcesamientoTestData.politica();
+    void laLecturaSimuladaTieneCostoCero() {
+        cuandoSeCalculaElCostoDeUnaLecturaSimulada();
 
-        BigDecimal costo = politica.costo(ProcesamientoTestData.lectura().consumo());
-
-        assertThat(costo).isEqualByComparingTo(BigDecimal.ZERO);
+        entoncesElCostoEsCero();
     }
 
     @Test
     @DisplayName("El costo queda desconocido si falta la tarifa de entrada")
-    void costoShouldReturnNullWhenInputPriceMissing() {
-        PoliticaProcesamiento politica = givenPrices(null, BigDecimal.ONE);
+    void elCostoQuedaDesconocidoSiFaltaLaTarifaDeEntrada() {
+        cuandoSeCalculaElCostoConTarifas(null, BigDecimal.ONE);
 
-        BigDecimal costo = politica.costo(givenConsumo());
-
-        assertThat(costo).isNull();
+        entoncesElCostoEsDesconocido();
     }
 
     @Test
     @DisplayName("El costo queda desconocido si falta la tarifa de salida")
-    void costoShouldReturnNullWhenOutputPriceMissing() {
-        PoliticaProcesamiento politica = givenPrices(BigDecimal.ONE, null);
+    void elCostoQuedaDesconocidoSiFaltaLaTarifaDeSalida() {
+        cuandoSeCalculaElCostoConTarifas(BigDecimal.ONE, null);
 
-        BigDecimal costo = politica.costo(givenConsumo());
-
-        assertThat(costo).isNull();
+        entoncesElCostoEsDesconocido();
     }
 
     @Test
     @DisplayName("Calcula el costo estimado con las tarifas por millón")
-    void costoShouldCalculateConfiguredPrices() {
-        PoliticaProcesamiento politica = givenPrices(new BigDecimal("2"), new BigDecimal("6"));
+    void calculaElCostoEstimadoConLasTarifasPorMillon() {
+        cuandoSeCalculaElCostoConTarifas(new BigDecimal("2"), new BigDecimal("6"));
 
-        BigDecimal costo = politica.costo(givenConsumo());
-
-        assertThat(costo).isEqualByComparingTo("0.002600");
+        entoncesElCostoEs("0.002600");
     }
 
-    private PoliticaProcesamiento givenPrices(BigDecimal entrada, BigDecimal salida) {
+    // --- cuando ---
+    private void cuandoSeCalculaElCostoDeUnaLecturaSimulada() {
+        costo = ProcesamientoTestData.politica().costo(ProcesamientoTestData.lectura().consumo());
+    }
+
+    private void cuandoSeCalculaElCostoConTarifas(BigDecimal entrada, BigDecimal salida) {
         PoliticaProcesamiento base = ProcesamientoTestData.politica();
-        return new PoliticaProcesamiento(base.maxIntentos(), base.maxPaginas(), base.limiteDiario(),
-                base.vigenciaReclamo(), base.demoraReintento(), entrada, salida);
+        PoliticaProcesamiento politica = new PoliticaProcesamiento(base.maxIntentos(), base.maxPaginas(),
+                base.limiteDiario(), base.vigenciaReclamo(), base.demoraReintento(), entrada, salida);
+        costo = politica.costo(unConsumo());
     }
 
-    private ConsumoIa givenConsumo() {
+    private static ConsumoIa unConsumo() {
         return new ConsumoIa("real", "modelo", "v1", 1, 1000, 100, 20);
+    }
+
+    // --- entonces ---
+    private void entoncesElCostoEsCero() {
+        assertThat(costo).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    private void entoncesElCostoEsDesconocido() {
+        assertThat(costo).isNull();
+    }
+
+    private void entoncesElCostoEs(String esperado) {
+        assertThat(costo).isEqualByComparingTo(esperado);
     }
 }

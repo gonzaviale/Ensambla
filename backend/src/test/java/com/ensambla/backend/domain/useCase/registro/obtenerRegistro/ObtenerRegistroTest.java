@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,6 +35,8 @@ class ObtenerRegistroTest {
     private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
     private static final BloqueId BLOQUE_ID = BloqueId.de("c0000000-0000-4000-8000-000000000001");
     private static final RegistroId REGISTRO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
+    private static final UUID CANTIDAD_ID = UUID.fromString("e0000000-0000-4000-8000-000000000001");
+    private static final UUID DOBLE_ID = UUID.fromString("e0000000-0000-4000-8000-000000000002");
 
     @Mock
     private NegocioRepository negocioRepository;
@@ -46,54 +48,85 @@ class ObtenerRegistroTest {
     private RegistroRepository registroRepository;
 
     private ObtenerRegistro obtenerRegistro;
+    private ObtenerRegistroResponse obtenido;
+    private Throwable rechazo;
 
     @BeforeEach
-    void setUp() {
-        obtenerRegistro = new ObtenerRegistro(
-                negocioRepository, campoRepository, registroRepository);
+    void dadoUnNegocioDelUsuario() {
+        obtenerRegistro = new ObtenerRegistro(negocioRepository, campoRepository, registroRepository);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @Test
     @DisplayName("Devuelve el registro del negocio de la sesión mapeado")
-    void executeShouldReturnMappedRegistroOfTheSessionNegocio() {
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(
-                Registro.builder().id(REGISTRO_ID).bloqueId(BLOQUE_ID).valores(Map.of("campo", "dato")).build());
-        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
+    void devuelveElRegistroDelNegocioDeLaSesionMapeado() {
+        dadoUnRegistroConElDato("dato");
 
-        ObtenerRegistroResponse response = obtenerRegistro.execute(
-                new ObtenerRegistroRequest(USUARIO_ID, REGISTRO_ID));
+        cuandoSeObtieneElRegistro();
 
-        assertThat(response.registro().id()).isEqualTo(REGISTRO_ID);
-        assertThat(response.registro().valores()).containsEntry("campo", "dato");
+        entoncesSeDevuelveElRegistroConElDato("dato");
     }
 
     @Test
     @DisplayName("Incluye el valor calculado de los campos fórmula")
-    void executeShouldIncludeCalculatedFormulaValues() {
-        UUID cantidadId = UUID.fromString("e0000000-0000-4000-8000-000000000001");
-        UUID dobleId = UUID.fromString("e0000000-0000-4000-8000-000000000002");
-        Campo doble = Campo.builder().id(CampoId.de(dobleId)).tipo(TipoCampo.FORMULA)
-                .formula("{" + cantidadId + "} * 2").build();
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(Registro.builder()
-                .id(REGISTRO_ID).bloqueId(BLOQUE_ID).valores(Map.of(cantidadId.toString(), 4)).build());
-        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of(doble));
+    void incluyeElValorCalculadoDeLosCamposFormula() {
+        dadoUnRegistroConUnaCantidadDeCuatroYUnaFormulaQueLaDuplica();
 
-        ObtenerRegistroResponse response = obtenerRegistro.execute(
-                new ObtenerRegistroRequest(USUARIO_ID, REGISTRO_ID));
+        cuandoSeObtieneElRegistro();
 
-        assertThat(response.registro().valores()).containsEntry(dobleId.toString(), new BigDecimal("8"));
+        entoncesLaFormulaDuplicaLaCantidad("8");
     }
 
     @Test
     @DisplayName("Propaga 'no existe' cuando el registro es de otro negocio")
-    void executeShouldPropagateNotFound() {
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+    void propagaNoExisteCuandoElRegistroEsDeOtroNegocio() {
+        dadoQueElRegistroEsDeOtroNegocio();
+
+        cuandoSeIntentaObtenerElRegistro();
+
+        entoncesSeRechazaPorRegistroInexistente();
+    }
+
+    // --- dado ---
+    private void dadoUnRegistroConElDato(String dato) {
+        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(
+                Registro.builder().id(REGISTRO_ID).bloqueId(BLOQUE_ID).valores(Map.of("campo", dato)).build());
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
+    }
+
+    private void dadoUnRegistroConUnaCantidadDeCuatroYUnaFormulaQueLaDuplica() {
+        Campo doble = Campo.builder().id(CampoId.de(DOBLE_ID)).tipo(TipoCampo.FORMULA)
+                .formula("{" + CANTIDAD_ID + "} * 2").build();
+        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(Registro.builder()
+                .id(REGISTRO_ID).bloqueId(BLOQUE_ID).valores(Map.of(CANTIDAD_ID.toString(), 4)).build());
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of(doble));
+    }
+
+    private void dadoQueElRegistroEsDeOtroNegocio() {
         when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID))
                 .thenThrow(new ResourceNotFoundException("El registro no existe"));
+    }
 
-        assertThatThrownBy(() -> obtenerRegistro.execute(new ObtenerRegistroRequest(USUARIO_ID, REGISTRO_ID)))
-                .isInstanceOf(ResourceNotFoundException.class);
+    // --- cuando ---
+    private void cuandoSeObtieneElRegistro() {
+        obtenido = obtenerRegistro.execute(new ObtenerRegistroRequest(USUARIO_ID, REGISTRO_ID));
+    }
+
+    private void cuandoSeIntentaObtenerElRegistro() {
+        rechazo = catchThrowable(this::cuandoSeObtieneElRegistro);
+    }
+
+    // --- entonces ---
+    private void entoncesSeDevuelveElRegistroConElDato(String dato) {
+        assertThat(obtenido.registro().id()).isEqualTo(REGISTRO_ID);
+        assertThat(obtenido.registro().valores()).containsEntry("campo", dato);
+    }
+
+    private void entoncesLaFormulaDuplicaLaCantidad(String esperado) {
+        assertThat(obtenido.registro().valores()).containsEntry(DOBLE_ID.toString(), new BigDecimal(esperado));
+    }
+
+    private void entoncesSeRechazaPorRegistroInexistente() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class);
     }
 }

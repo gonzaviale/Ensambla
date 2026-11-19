@@ -15,7 +15,9 @@ public class ObjetivoRepositoryMapper {
                 .id(Identificador.opcional(source.getId(), ObjetivoId::de))
                 .negocioId(Identificador.opcional(source.getNegocioId(), NegocioId::de))
                 .texto(source.getTexto())
+                .tipo(source.getTipo())
                 .meta(source.getMeta())
+                .armadoConSami(source.isArmadoConSami())
                 .creadoEn(source.getCreadoEn())
                 .alcanzadoEn(source.getAlcanzadoEn())
                 .build();
@@ -26,7 +28,9 @@ public class ObjetivoRepositoryMapper {
                 .id(Identificador.valorDe(source.getId()))
                 .negocioId(Identificador.valorDe(source.getNegocioId()))
                 .texto(source.getTexto())
+                .tipo(source.getTipo())
                 .meta(source.getMeta())
+                .armadoConSami(source.isArmadoConSami())
                 .creadoEn(source.getCreadoEn())
                 .alcanzadoEn(source.getAlcanzadoEn())
                 .build();

@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class IProgresoObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
 
@@ -40,112 +40,110 @@ class IProgresoObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
     private UUID mini;
 
     @BeforeEach
-    void setUp() {
+    void dadoUnObjetivoConUnMiniObjetivoYOtroObjetivo() {
         negocio = givenNegocio("a@example.com").getId();
-        objetivo = givenObjetivo(negocio);
-        otroObjetivo = givenObjetivo(givenNegocio("b@example.com").getId());
-        mini = givenMini(objetivo, negocio);
+        objetivo = unObjetivo(negocio);
+        otroObjetivo = unObjetivo(givenNegocio("b@example.com").getId());
+        mini = unMini(objetivo, negocio);
     }
+
+    private UUID id;
+    private List<ProgresoObjetivoEntity> fotos;
+    private Throwable rechazo;
 
     @Test
     @DisplayName("Registra la foto de un mini-objetivo y la relee con todos sus datos")
-    void registrarShouldRoundTripTheMiniObjetivoPhoto() {
-        UUID id = UUID.randomUUID();
+    void registraLaFotoDeUnMiniObjetivoYLaReleeConTodosSusDatos() {
+        cuandoSeRegistraLaFotoDeUnMiniObjetivo();
 
-        progresos.registrar(id, objetivo, mini, DIA, new BigDecimal("12600.00"), AHORA);
-
-        ProgresoObjetivoEntity result = progresos.findAllByObjetivoIdOrderByDiaAscMedidoEnAsc(objetivo).getFirst();
-        assertThat(result.getId()).isEqualTo(id);
-        assertThat(result.getObjetivoId()).isEqualTo(objetivo);
-        assertThat(result.getMiniObjetivoId()).isEqualTo(mini);
-        assertThat(result.getDia()).isEqualTo(DIA);
-        assertThat(result.getValor()).isEqualByComparingTo("12600.00");
-        assertThat(result.getMedidoEn()).isEqualTo(AHORA);
+        entoncesSeConservanTodosLosDatosDeLaFoto();
     }
 
     @Test
     @DisplayName("Registra la foto del objetivo mayor sin mini-objetivo")
-    void registrarShouldSaveTheObjetivoPhotoWithoutMiniObjetivo() {
-        progresos.registrar(UUID.randomUUID(), objetivo, null, DIA, new BigDecimal("-27000.00"), AHORA);
+    void registraLaFotoDelObjetivoMayorSinMiniObjetivo() {
+        cuandoSeRegistraLaFotoDelObjetivoMayor();
 
-        List<ProgresoObjetivoEntity> result = progresos.findAllByObjetivoIdOrderByDiaAscMedidoEnAsc(objetivo);
-
-        assertThat(result).singleElement().satisfies(foto -> {
-            assertThat(foto.getMiniObjetivoId()).isNull();
-            assertThat(foto.getValor()).isEqualByComparingTo("-27000.00");
-        });
+        entoncesLaFotoNoTieneMiniObjetivoYTieneElValorNegativo();
     }
 
     @Test
     @DisplayName("Una segunda foto del mismo mini-objetivo y día pisa a la anterior")
-    void registrarShouldOverwriteThePhotoOfTheSameMiniObjetivoAndDay() {
-        progresos.registrar(UUID.randomUUID(), objetivo, mini, DIA, new BigDecimal("12600.00"), AHORA);
+    void unaSegundaFotoDelMismoMiniObjetivoYDiaPisaALaAnterior() {
+        dadoUnaFotoDelMiniObjetivo();
 
-        progresos.registrar(UUID.randomUUID(), objetivo, mini, DIA, new BigDecimal("13000.00"), AHORA.plusHours(1));
+        cuandoSeRegistraOtraFotoDelMismoMiniObjetivoYDia();
 
-        assertThat(progresos.findAllByObjetivoIdOrderByDiaAscMedidoEnAsc(objetivo)).singleElement()
-                .satisfies(foto -> {
-                    assertThat(foto.getValor()).isEqualByComparingTo("13000.00");
-                    assertThat(foto.getMedidoEn()).isEqualTo(AHORA.plusHours(1));
-                });
+        entoncesSoloQuedaLaSegundaFotoDelMiniObjetivo();
     }
 
     @Test
     @DisplayName("Una segunda foto del objetivo mayor en el mismo día también pisa a la anterior")
-    void registrarShouldOverwriteThePhotoOfTheObjetivoOnTheSameDay() {
-        progresos.registrar(UUID.randomUUID(), objetivo, null, DIA, new BigDecimal("-27000.00"), AHORA);
+    void unaSegundaFotoDelObjetivoMayorEnElMismoDiaTambienPisaALaAnterior() {
+        dadoUnaFotoDelObjetivoMayor();
 
-        progresos.registrar(UUID.randomUUID(), objetivo, null, DIA, new BigDecimal("-20000.00"), AHORA.plusHours(1));
+        cuandoSeRegistraOtraFotoDelObjetivoMayorEnElMismoDia();
 
-        assertThat(progresos.findAllByObjetivoIdOrderByDiaAscMedidoEnAsc(objetivo)).singleElement()
-                .satisfies(foto -> assertThat(foto.getValor()).isEqualByComparingTo("-20000.00"));
+        entoncesSoloQuedaLaSegundaFotoDelObjetivoMayor();
     }
 
     @Test
     @DisplayName("El objetivo y su mini-objetivo guardan una foto cada uno el mismo día")
-    void registrarShouldKeepOnePhotoPerSubjectAndDay() {
-        progresos.registrar(UUID.randomUUID(), objetivo, null, DIA, BigDecimal.ONE, AHORA);
-        progresos.registrar(UUID.randomUUID(), objetivo, mini, DIA, BigDecimal.TEN, AHORA);
+    void elObjetivoYSuMiniObjetivoGuardanUnaFotoCadaUnoElMismoDia() {
+        cuandoSeRegistranLasFotosDelObjetivoYDelMiniObjetivoElMismoDia();
 
-        assertThat(progresos.findAllByObjetivoIdOrderByDiaAscMedidoEnAsc(objetivo)).hasSize(2);
+        entoncesHayDosFotos();
     }
 
     @Test
     @DisplayName("Lista las fotos del objetivo de la más vieja a la más nueva y no las de otro objetivo")
-    void findAllByObjetivoIdShouldOrderByDayAndExcludeOtherObjetivos() {
-        progresos.registrar(UUID.randomUUID(), objetivo, null, DIA.plusDays(1), BigDecimal.TEN, AHORA);
-        progresos.registrar(UUID.randomUUID(), objetivo, null, DIA, BigDecimal.ONE, AHORA);
-        progresos.registrar(UUID.randomUUID(), otroObjetivo, null, DIA, BigDecimal.ZERO, AHORA);
+    void listaLasFotosDelObjetivoDeLaMasViejaALaMasNuevaYNoLasDeOtroObjetivo() {
+        dadoFotosDeDosDiasYUnaDeOtroObjetivo();
 
-        List<ProgresoObjetivoEntity> result = progresos.findAllByObjetivoIdOrderByDiaAscMedidoEnAsc(objetivo);
+        cuandoSeListanLasFotosDelObjetivo();
 
-        assertThat(result).extracting(ProgresoObjetivoEntity::getDia).containsExactly(DIA, DIA.plusDays(1));
+        entoncesLasFotosVienenPorDiaYSinLasDeOtroObjetivo();
     }
 
     @Test
     @DisplayName("Al borrar el mini-objetivo se borran sus fotos y quedan las del objetivo")
-    void deleteMiniObjetivoShouldCascadeToItsPhotos() {
-        progresos.registrar(UUID.randomUUID(), objetivo, mini, DIA, BigDecimal.TEN, AHORA);
-        progresos.registrar(UUID.randomUUID(), objetivo, null, DIA, BigDecimal.ONE, AHORA);
+    void alBorrarElMiniObjetivoSeBorranSusFotosYQuedanLasDelObjetivo() {
+        dadoUnaFotoDelMiniObjetivoYUnaDelObjetivo();
 
-        minis.deleteById(mini);
-        minis.flush();
+        cuandoSeBorraElMiniObjetivo();
 
-        assertThat(progresos.findAllByObjetivoIdOrderByDiaAscMedidoEnAsc(objetivo))
-                .singleElement()
-                .satisfies(foto -> assertThat(foto.getMiniObjetivoId()).isNull());
+        entoncesSoloQuedaLaFotoDelObjetivo();
     }
 
     @Test
     @DisplayName("No registra la foto de un objetivo que no existe")
-    void registrarShouldRejectAnUnknownObjetivo() {
-        assertThatThrownBy(() -> progresos.registrar(
-                UUID.randomUUID(), UUID.randomUUID(), null, DIA, BigDecimal.ONE, AHORA))
-                .isInstanceOf(DataIntegrityViolationException.class);
+    void noRegistraLaFotoDeUnObjetivoQueNoExiste() {
+        cuandoSeIntentaRegistrarUnaFotoDeUnObjetivoInexistente();
+
+        entoncesLaBaseRechazaPorIntegridad();
     }
 
-    // --- helpers ---
-    private UUID givenObjetivo(UUID negocioId) {
+    // --- dado ---
+    private void dadoUnaFotoDelMiniObjetivo() {
+        progresos.registrar(UUID.randomUUID(), objetivo, mini, DIA, new BigDecimal("12600.00"), AHORA);
+    }
+
+    private void dadoUnaFotoDelObjetivoMayor() {
+        progresos.registrar(UUID.randomUUID(), objetivo, null, DIA, new BigDecimal("-27000.00"), AHORA);
+    }
+
+    private void dadoFotosDeDosDiasYUnaDeOtroObjetivo() {
+        progresos.registrar(UUID.randomUUID(), objetivo, null, DIA.plusDays(1), BigDecimal.TEN, AHORA);
+        progresos.registrar(UUID.randomUUID(), objetivo, null, DIA, BigDecimal.ONE, AHORA);
+        progresos.registrar(UUID.randomUUID(), otroObjetivo, null, DIA, BigDecimal.ZERO, AHORA);
+    }
+
+    private void dadoUnaFotoDelMiniObjetivoYUnaDelObjetivo() {
+        progresos.registrar(UUID.randomUUID(), objetivo, mini, DIA, BigDecimal.TEN, AHORA);
+        progresos.registrar(UUID.randomUUID(), objetivo, null, DIA, BigDecimal.ONE, AHORA);
+    }
+
+    private UUID unObjetivo(UUID negocioId) {
         return objetivos.saveAndFlush(ObjetivoEntity.builder()
                 .negocioId(negocioId)
                 .texto("Ganar más")
@@ -154,7 +152,7 @@ class IProgresoObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenMini(UUID objetivoId, UUID negocioId) {
+    private UUID unMini(UUID objetivoId, UUID negocioId) {
         return minis.saveAndFlush(MiniObjetivoEntity.builder()
                 .id(UUID.randomUUID())
                 .objetivoId(objetivoId)
@@ -172,5 +170,93 @@ class IProgresoObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
                 .creadoEn(OffsetDateTime.parse("2026-10-10T12:00:00Z"))
                 .actualizadoEn(OffsetDateTime.parse("2026-10-10T12:00:00Z"))
                 .build()).getId();
+    }
+
+    // --- cuando ---
+    private void cuandoSeRegistraLaFotoDeUnMiniObjetivo() {
+        id = UUID.randomUUID();
+        progresos.registrar(id, objetivo, mini, DIA, new BigDecimal("12600.00"), AHORA);
+    }
+
+    private void cuandoSeRegistraLaFotoDelObjetivoMayor() {
+        progresos.registrar(UUID.randomUUID(), objetivo, null, DIA, new BigDecimal("-27000.00"), AHORA);
+    }
+
+    private void cuandoSeRegistraOtraFotoDelMismoMiniObjetivoYDia() {
+        progresos.registrar(UUID.randomUUID(), objetivo, mini, DIA, new BigDecimal("13000.00"), AHORA.plusHours(1));
+    }
+
+    private void cuandoSeRegistraOtraFotoDelObjetivoMayorEnElMismoDia() {
+        progresos.registrar(UUID.randomUUID(), objetivo, null, DIA, new BigDecimal("-20000.00"), AHORA.plusHours(1));
+    }
+
+    private void cuandoSeRegistranLasFotosDelObjetivoYDelMiniObjetivoElMismoDia() {
+        progresos.registrar(UUID.randomUUID(), objetivo, null, DIA, BigDecimal.ONE, AHORA);
+        progresos.registrar(UUID.randomUUID(), objetivo, mini, DIA, BigDecimal.TEN, AHORA);
+    }
+
+    private void cuandoSeListanLasFotosDelObjetivo() {
+        fotos = progresos.findAllByObjetivoIdOrderByDiaAscMedidoEnAsc(objetivo);
+    }
+
+    private void cuandoSeBorraElMiniObjetivo() {
+        minis.deleteById(mini);
+        minis.flush();
+    }
+
+    private void cuandoSeIntentaRegistrarUnaFotoDeUnObjetivoInexistente() {
+        rechazo = catchThrowable(() -> progresos.registrar(
+                UUID.randomUUID(), UUID.randomUUID(), null, DIA, BigDecimal.ONE, AHORA));
+    }
+
+    // --- entonces ---
+    private List<ProgresoObjetivoEntity> fotosDelObjetivo() {
+        return progresos.findAllByObjetivoIdOrderByDiaAscMedidoEnAsc(objetivo);
+    }
+
+    private void entoncesSeConservanTodosLosDatosDeLaFoto() {
+        ProgresoObjetivoEntity result = fotosDelObjetivo().getFirst();
+        assertThat(result.getId()).isEqualTo(id);
+        assertThat(result.getObjetivoId()).isEqualTo(objetivo);
+        assertThat(result.getMiniObjetivoId()).isEqualTo(mini);
+        assertThat(result.getDia()).isEqualTo(DIA);
+        assertThat(result.getValor()).isEqualByComparingTo("12600.00");
+        assertThat(result.getMedidoEn()).isEqualTo(AHORA);
+    }
+
+    private void entoncesLaFotoNoTieneMiniObjetivoYTieneElValorNegativo() {
+        assertThat(fotosDelObjetivo()).singleElement().satisfies(foto -> {
+            assertThat(foto.getMiniObjetivoId()).isNull();
+            assertThat(foto.getValor()).isEqualByComparingTo("-27000.00");
+        });
+    }
+
+    private void entoncesSoloQuedaLaSegundaFotoDelMiniObjetivo() {
+        assertThat(fotosDelObjetivo()).singleElement().satisfies(foto -> {
+            assertThat(foto.getValor()).isEqualByComparingTo("13000.00");
+            assertThat(foto.getMedidoEn()).isEqualTo(AHORA.plusHours(1));
+        });
+    }
+
+    private void entoncesSoloQuedaLaSegundaFotoDelObjetivoMayor() {
+        assertThat(fotosDelObjetivo()).singleElement()
+                .satisfies(foto -> assertThat(foto.getValor()).isEqualByComparingTo("-20000.00"));
+    }
+
+    private void entoncesHayDosFotos() {
+        assertThat(fotosDelObjetivo()).hasSize(2);
+    }
+
+    private void entoncesLasFotosVienenPorDiaYSinLasDeOtroObjetivo() {
+        assertThat(fotos).extracting(ProgresoObjetivoEntity::getDia).containsExactly(DIA, DIA.plusDays(1));
+    }
+
+    private void entoncesSoloQuedaLaFotoDelObjetivo() {
+        assertThat(fotosDelObjetivo()).singleElement()
+                .satisfies(foto -> assertThat(foto.getMiniObjetivoId()).isNull());
+    }
+
+    private void entoncesLaBaseRechazaPorIntegridad() {
+        assertThat(rechazo).isInstanceOf(DataIntegrityViolationException.class);
     }
 }

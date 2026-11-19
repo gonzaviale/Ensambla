@@ -76,6 +76,15 @@ public final class NegocioDePrueba {
         return this;
     }
 
+    /** Un producto con el mínimo de stock que definió el negocio. */
+    public NegocioDePrueba productoConMinimo(
+            UUID id, String nombreProducto, Number stock, Number minimo, Number precio, Number costo) {
+        Registro registro = AvisoTestData.producto(id, nombreProducto, stock, precio, costo);
+        registro.getValores().put(AvisoTestData.CAMPO_MINIMO_ID.toString(), minimo);
+        productos.add(registro);
+        return this;
+    }
+
     /** Una venta; sin precio no se carga el precio. */
     public NegocioDePrueba venta(UUID producto, Number cantidad, Number precio, String fecha) {
         ventas.add(AvisoTestData.venta(producto.toString(), cantidad, precio, fecha, null));

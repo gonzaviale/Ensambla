@@ -9,10 +9,10 @@ public enum DireccionOrden {
     ASC("asc"),
     DESC("desc");
 
-    private final String clave;
+    private final String texto;
 
-    DireccionOrden(String clave) {
-        this.clave = clave;
+    DireccionOrden(String texto) {
+        this.texto = texto;
     }
 
     /** Interpreta "asc" o "desc" sin distinguir mayúsculas; vacío significa descendente. */
@@ -20,13 +20,10 @@ public enum DireccionOrden {
         if (valor == null || valor.isBlank()) {
             return DESC;
         }
+        String buscado = valor.strip().toLowerCase(Locale.ROOT);
         return Arrays.stream(values())
-                .filter(direccion -> direccion.responde(valor))
+                .filter(direccion -> direccion.texto.equals(buscado))
                 .findFirst()
                 .orElseThrow(() -> new BusinessRuleException("La dirección del orden tiene que ser asc o desc"));
-    }
-
-    private boolean responde(String valor) {
-        return clave.equals(valor.strip().toLowerCase(Locale.ROOT));
     }
 }

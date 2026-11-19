@@ -65,7 +65,9 @@ export const setupUsuarioConSesion = (
 // El objetivo de ejemplo de la demo, ya guardado en el servidor simulado para esa cuenta.
 export const setupObjetivoDeEjemplo = (email: string) => {
   const { id, texto, meta } = objetivoDeEjemplo();
-  guardarObjetivosDe(email, [{ id, texto, meta, creadoEn: '2026-10-01T12:00:00' }]);
+  guardarObjetivosDe(email, [
+    { id, texto, tipo: 'MONETARIO', meta, armadoConSami: false, creadoEn: '2026-10-01T12:00:00' },
+  ]);
 };
 
 export const setupUsuarioSinSesion = (datos: Partial<UsuarioMock> = {}) => sembrarUsuario(datos);

@@ -22,29 +22,46 @@ class PlanRepositoryImplTest {
     private final PlanRepositoryImpl planRepository = new PlanRepositoryImpl(
             planJpaRepository, new PlanRepositoryMapper());
 
+    private Optional<Plan> encontrado;
+
     @Test
     @DisplayName("Recupera y mapea plan desde persistencia")
-    void findByCodigoShouldMapStoredEntity() {
-        when(planJpaRepository.findByCodigo(CodigoPlan.GRATUITO)).thenReturn(Optional.of(planEntity()));
+    void recuperaYMapeaElPlanDesdePersistencia() {
+        dadoQueExisteElPlanGratuito();
 
-        Optional<Plan> result = planRepository.findByCodigo(CodigoPlan.GRATUITO);
+        cuandoSeBuscaElPlanGratuito();
 
-        assertThat(result).isPresent();
-        thenEveryFieldMatches(result.orElseThrow());
-        verify(planJpaRepository).findByCodigo(CodigoPlan.GRATUITO);
+        entoncesSeEncuentraElPlanConTodosSusCampos();
     }
 
     @Test
     @DisplayName("Conserva el resultado vacío cuando no existe plan")
-    void findByCodigoShouldReturnEmptyWhenMissing() {
-        when(planJpaRepository.findByCodigo(CodigoPlan.GRATUITO)).thenReturn(Optional.empty());
+    void conservaElResultadoVacioCuandoNoExistePlan() {
+        dadoQueNoExisteElPlanGratuito();
 
-        Optional<Plan> result = planRepository.findByCodigo(CodigoPlan.GRATUITO);
+        cuandoSeBuscaElPlanGratuito();
 
-        assertThat(result).isEmpty();
+        entoncesNoSeEncuentraNingunPlan();
     }
-    // --- assert ---
-    private void thenEveryFieldMatches(Plan result) {
+
+    // --- dado ---
+    private void dadoQueExisteElPlanGratuito() {
+        when(planJpaRepository.findByCodigo(CodigoPlan.GRATUITO)).thenReturn(Optional.of(planEntity()));
+    }
+
+    private void dadoQueNoExisteElPlanGratuito() {
+        when(planJpaRepository.findByCodigo(CodigoPlan.GRATUITO)).thenReturn(Optional.empty());
+    }
+
+    // --- cuando ---
+    private void cuandoSeBuscaElPlanGratuito() {
+        encontrado = planRepository.findByCodigo(CodigoPlan.GRATUITO);
+    }
+
+    // --- entonces ---
+    private void entoncesSeEncuentraElPlanConTodosSusCampos() {
+        assertThat(encontrado).isPresent();
+        Plan result = encontrado.orElseThrow();
         Plan esperado = plan();
         assertThat(result.getId()).isEqualTo(esperado.getId());
         assertThat(result.getCodigo()).isEqualTo(esperado.getCodigo());
@@ -59,5 +76,10 @@ class PlanRepositoryImplTest {
         assertThat(result.getFunciones()).isEqualTo(esperado.getFunciones());
         assertThat(result.getCreadoEn()).isEqualTo(esperado.getCreadoEn());
         assertThat(result.getActualizadoEn()).isEqualTo(esperado.getActualizadoEn());
+        verify(planJpaRepository).findByCodigo(CodigoPlan.GRATUITO);
+    }
+
+    private void entoncesNoSeEncuentraNingunPlan() {
+        assertThat(encontrado).isEmpty();
     }
 }

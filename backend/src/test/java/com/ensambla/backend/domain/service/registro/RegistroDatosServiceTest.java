@@ -57,6 +57,7 @@ class RegistroDatosServiceTest {
     private static final BloqueId CLIENTES_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
     private static final CampoId CLIENTE_ID = CampoId.de("c0000000-0000-4000-8000-000000000003");
     private static final CampoId GARANTE_ID = CampoId.de("c0000000-0000-4000-8000-000000000004");
+    private static final RegistroId ANA_ID = RegistroId.de("d0000000-0000-4000-8000-000000000002");
     private static final RegistroId BETO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000003");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T12:00:00Z");
     private static final OffsetDateTime ANTES = OffsetDateTime.parse("2026-10-09T12:00:00Z");
@@ -76,30 +77,26 @@ class RegistroDatosServiceTest {
     @InjectMocks
     private RegistroDatosService registroDatosService;
 
-    private Registro registro;
     private Registro editado;
-    private Throwable rechazo;
-    private List<Registro> encontrados;
     private List<Registro> referenciables;
+    private Throwable rechazo;
 
     @Test
     @DisplayName("Edita sólo lo enviado, conserva el resto y actualiza la fecha de modificación")
     void editaSoloLoEnviadoConservaElRestoYActualizaLaFechaDeModificacion() {
-        dadoQueElRepositorioGuardaLoQueRecibe();
-        dadoUnRegistroDeHarinaConTresUnidades();
+        dadoQueGuardarDevuelveElMismoRegistro();
 
-        cuandoSeCambiaLaCantidadANueve();
+        cuandoSeEdita(registro(), campos(), Map.of(CANTIDAD_ID.toString(), 9));
 
-        entoncesSeConservaElRestoYSeActualizaLaFechaDeModificacion();
+        entoncesElRegistroEditadoConservaElNombreYTieneLaCantidadNueva(9);
     }
 
     @Test
     @DisplayName("Anota el cambio de precio cuando se edita el precio de un producto del inventario")
     void anotaElCambioDePrecioCuandoSeEditaElPrecioDeUnProductoDelInventario() {
-        dadoUnBloqueDeInventario();
-        dadoUnProductoConPrecio(1000);
+        dadoUnBloqueDeTipo(TipoBloque.INVENTARIO);
 
-        cuandoSeEditaElPrecioA(1200);
+        cuandoSeEdita(registroConPrecio(1000), camposConPrecio(), Map.of(PRECIO_ID.toString(), 1200));
 
         entoncesSeAnotaElCambioDePrecio(new BigDecimal("1000"), new BigDecimal("1200"));
     }
@@ -107,10 +104,9 @@ class RegistroDatosServiceTest {
     @Test
     @DisplayName("Anota el primer precio sin precio anterior")
     void anotaElPrimerPrecioSinPrecioAnterior() {
-        dadoUnBloqueDeInventario();
-        dadoUnRegistroDeHarinaConTresUnidades();
+        dadoUnBloqueDeTipo(TipoBloque.INVENTARIO);
 
-        cuandoSeEditaElPrecioA(1200);
+        cuandoSeEdita(registro(), camposConPrecio(), Map.of(PRECIO_ID.toString(), 1200));
 
         entoncesSeAnotaElCambioDePrecio(null, new BigDecimal("1200"));
     }
@@ -118,179 +114,182 @@ class RegistroDatosServiceTest {
     @Test
     @DisplayName("No anota nada cuando el precio no cambia")
     void noAnotaNadaCuandoElPrecioNoCambia() {
-        dadoQueElRepositorioGuardaLoQueRecibe();
-        dadoUnProductoConPrecio(1000);
+        dadoQueGuardarDevuelveElMismoRegistro();
 
-        cuandoSeEditaElPrecioA(1000);
+        cuandoSeEdita(registroConPrecio(1000), camposConPrecio(), Map.of(PRECIO_ID.toString(), 1000));
 
-        entoncesNoSeAnotaNingunCambioDePrecio();
+        entoncesNoSeAnotaNingunPrecio();
     }
 
     @Test
     @DisplayName("No anota nada cuando se borra el precio")
     void noAnotaNadaCuandoSeBorraElPrecio() {
-        dadoQueElRepositorioGuardaLoQueRecibe();
-        dadoUnProductoConPrecio(1000);
+        dadoQueGuardarDevuelveElMismoRegistro();
 
-        cuandoSeBorraElPrecio();
+        cuandoSeEdita(registroConPrecio(1000), camposConPrecio(), Collections.singletonMap(PRECIO_ID.toString(), null));
 
-        entoncesNoSeAnotaNingunCambioDePrecio();
+        entoncesNoSeAnotaNingunPrecio();
     }
 
     @Test
     @DisplayName("No anota el precio de una fila de ventas: sólo cuenta el del inventario")
     void noAnotaElPrecioDeUnaFilaDeVentasSoloCuentaElDelInventario() {
-        dadoUnBloqueDeVentas();
-        dadoUnProductoConPrecio(1000);
+        dadoUnBloqueDeTipo(TipoBloque.VENTAS);
 
-        cuandoSeEditaElPrecioA(1200);
+        cuandoSeEdita(registroConPrecio(1000), camposConPrecio(), Map.of(PRECIO_ID.toString(), 1200));
 
-        entoncesNoSeAnotaNingunCambioDePrecio();
+        entoncesNoSeAnotaNingunPrecio();
     }
 
     @Test
     @DisplayName("No anota nada cuando el bloque del registro ya no existe")
     void noAnotaNadaCuandoElBloqueDelRegistroYaNoExiste() {
+        dadoQueGuardarDevuelveElMismoRegistro();
         dadoQueElBloqueYaNoExiste();
-        dadoUnProductoConPrecio(1000);
 
-        cuandoSeEditaElPrecioA(1200);
+        cuandoSeEdita(registroConPrecio(1000), camposConPrecio(), Map.of(PRECIO_ID.toString(), 1200));
 
-        entoncesNoSeAnotaNingunCambioDePrecio();
+        entoncesNoSeAnotaNingunPrecio();
     }
 
     @Test
     @DisplayName("No guarda la edición cuando un valor nuevo no es válido")
     void noGuardaLaEdicionCuandoUnValorNuevoNoEsValido() {
-        dadoUnRegistroDeHarinaConTresUnidades();
+        Registro original = registro();
 
-        cuandoSeIntentaCambiarLaCantidadAUnTexto();
+        cuandoSeIntentaEditar(original, campos(), Map.of(CANTIDAD_ID.toString(), "muchos"));
 
-        entoncesSeRechazaSinGuardarNiCambiarElRegistro();
+        entoncesSeRechazaPorRegistroInvalido();
+        entoncesNoSeGuardoNadaYElOriginalQuedoIgual(original);
     }
 
     @Test
     @DisplayName("No guarda la edición cuando la conexión apunta a una fila que ya no existe")
     void noGuardaLaEdicionCuandoLaConexionApuntaAUnaFilaQueYaNoExiste() {
-        dadoUnRegistroDeHarinaConTresUnidades();
-        dadoQueLaFilaConectadaYaNoExiste();
+        dadoQueLaFilaYaNoExiste(BETO_ID);
 
-        cuandoSeIntentaConectarConLaFilaInexistente();
+        cuandoSeIntentaEditar(registro(), conexiones(), valoresCliente(BETO_ID));
 
-        entoncesSeRechazaSinGuardar();
+        entoncesSeRechazaPorRegistroInvalido();
+        entoncesNoSeGuardaNingunRegistro();
     }
 
     @Test
     @DisplayName("Las referencias pedidas por id salen del repositorio filtradas por bloque y negocio")
     void lasReferenciasPedidasPorIdSalenDelRepositorioFiltradasPorBloqueYNegocio() {
-        dadoReferenciasEncontradasPorId();
+        List<Registro> encontrados = dadoQueElRepositorioEncuentraElRegistroPorId();
 
-        cuandoSePidenLasReferenciasPorId();
+        cuandoSeBuscanReferenciables("ignorado", List.of(REGISTRO_ID));
 
-        entoncesSeDevuelvenLasEncontradasPorId();
+        entoncesSeDevuelvenLosRegistrosEncontrados(encontrados);
     }
 
     @Test
     @DisplayName("Sin ids busca por texto las 20 filas más nuevas del bloque")
-    void sinIdsBuscaPorTextoLas20FilasMasNuevasDelBloque() {
-        dadoUnaBusquedaPorTextoConUnaFila();
+    void sinIdsBuscaPorTextoLasVeinteFilasMasNuevasDelBloque() {
+        dadoQueLaBusquedaPorTextoDevuelveElRegistro();
 
-        cuandoSePidenLasReferenciasPorTexto();
+        cuandoSeBuscanReferenciables(" ana ", List.of());
 
-        entoncesSeDevuelveLaFilaEncontrada();
+        entoncesSeDevuelveSoloElRegistro();
     }
 
     // --- dado ---
-
-    private void dadoQueElRepositorioGuardaLoQueRecibe() {
+    private void dadoQueGuardarDevuelveElMismoRegistro() {
         when(registroRepository.save(any(Registro.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
-    private void dadoUnRegistroDeHarinaConTresUnidades() {
-        registro = unRegistro();
-    }
-
-    private void dadoUnProductoConPrecio(Object precio) {
-        registro = unRegistroConPrecio(precio);
-    }
-
-    private void dadoUnBloqueDeInventario() {
-        dadoUnBloqueDe(TipoBloque.INVENTARIO);
-    }
-
-    private void dadoUnBloqueDeVentas() {
-        dadoUnBloqueDe(TipoBloque.VENTAS);
-    }
-
-    private void dadoUnBloqueDe(TipoBloque tipo) {
-        dadoQueElRepositorioGuardaLoQueRecibe();
+    private void dadoUnBloqueDeTipo(TipoBloque tipo) {
+        dadoQueGuardarDevuelveElMismoRegistro();
         when(bloqueRepository.findByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID))
                 .thenReturn(Optional.of(Bloque.builder().id(BLOQUE_ID).tipo(tipo).build()));
     }
 
     private void dadoQueElBloqueYaNoExiste() {
-        dadoQueElRepositorioGuardaLoQueRecibe();
         when(bloqueRepository.findByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
     }
 
-    private void dadoQueLaFilaConectadaYaNoExiste() {
-        when(registroRepository.findAllByIdsAndBloque(Set.of(BETO_ID), CLIENTES_ID, NEGOCIO_ID)).thenReturn(List.of());
+    private void dadoQueLaFilaYaNoExiste(RegistroId buscada) {
+        when(registroRepository.findAllByIdsAndBloque(Set.of(buscada), CLIENTES_ID, NEGOCIO_ID))
+                .thenReturn(List.of());
     }
 
-    private void dadoReferenciasEncontradasPorId() {
-        encontrados = List.of(unRegistro());
+    private List<Registro> dadoQueElRepositorioEncuentraElRegistroPorId() {
+        List<Registro> encontrados = List.of(registro());
         when(registroRepository.findAllByIdsAndBloque(List.of(REGISTRO_ID), BLOQUE_ID, NEGOCIO_ID))
                 .thenReturn(encontrados);
+        return encontrados;
     }
 
-    private void dadoUnaBusquedaPorTextoConUnaFila() {
+    private void dadoQueLaBusquedaPorTextoDevuelveElRegistro() {
         ConsultaRegistros consulta = new ConsultaRegistros(
                 NEGOCIO_ID, BLOQUE_ID, "ana", null, DireccionOrden.DESC, 0, 20);
-        when(registroRepository.buscar(consulta)).thenReturn(new Pagina<>(List.of(unRegistro()), 0, 20, 1));
+        when(registroRepository.buscar(consulta)).thenReturn(new Pagina<>(List.of(registro()), 0, 20, 1));
+    }
+
+    private List<Campo> camposConPrecio() {
+        return List.of(
+                Campo.builder().id(NOMBRE_ID).tipo(TipoCampo.TEXTO).obligatorio(true).build(),
+                Campo.builder().id(PRECIO_ID).tipo(TipoCampo.MONEDA).clave("price").build());
+    }
+
+    private Registro registroConPrecio(Object precio) {
+        return Registro.builder()
+                .id(REGISTRO_ID)
+                .negocioId(NEGOCIO_ID)
+                .bloqueId(BLOQUE_ID)
+                .valores(Map.of(NOMBRE_ID.toString(), "Harina", PRECIO_ID.toString(), precio))
+                .creadoEn(ANTES)
+                .actualizadoEn(ANTES)
+                .build();
+    }
+
+    private List<Campo> conexiones() {
+        return List.of(
+                Campo.builder().id(CLIENTE_ID).tipo(TipoCampo.RELACION).bloqueRelacionadoId(CLIENTES_ID).build(),
+                Campo.builder().id(GARANTE_ID).tipo(TipoCampo.RELACION).bloqueRelacionadoId(CLIENTES_ID).build(),
+                Campo.builder().id(NOMBRE_ID).tipo(TipoCampo.TEXTO).build());
+    }
+
+    private Map<String, Object> valoresCliente(RegistroId filaId) {
+        return Map.of(CLIENTE_ID.toString(), filaId.toString());
+    }
+
+    private List<Campo> campos() {
+        return List.of(
+                Campo.builder().id(NOMBRE_ID).tipo(TipoCampo.TEXTO).obligatorio(true).build(),
+                Campo.builder().id(CANTIDAD_ID).tipo(TipoCampo.NUMERO).obligatorio(false).build());
+    }
+
+    private Registro registro() {
+        return Registro.builder()
+                .id(REGISTRO_ID)
+                .negocioId(NEGOCIO_ID)
+                .bloqueId(BLOQUE_ID)
+                .valores(Map.of(NOMBRE_ID.toString(), "Harina", CANTIDAD_ID.toString(), 3))
+                .creadoEn(ANTES)
+                .actualizadoEn(ANTES)
+                .build();
     }
 
     // --- cuando ---
-
-    private void cuandoSeCambiaLaCantidadANueve() {
-        editado = registroDatosService.editar(registro, camposDelInventario(),
-                Map.of(CANTIDAD_ID.toString(), 9), AHORA);
+    private void cuandoSeEdita(Registro registro, List<Campo> campos, Map<String, Object> cambios) {
+        editado = registroDatosService.editar(registro, campos, cambios, AHORA);
     }
 
-    private void cuandoSeEditaElPrecioA(Object precio) {
-        editado = registroDatosService.editar(registro, camposConPrecio(), Map.of(PRECIO_ID.toString(), precio), AHORA);
+    private void cuandoSeIntentaEditar(Registro registro, List<Campo> campos, Map<String, Object> cambios) {
+        rechazo = catchThrowable(() -> cuandoSeEdita(registro, campos, cambios));
     }
 
-    private void cuandoSeBorraElPrecio() {
-        editado = registroDatosService.editar(registro, camposConPrecio(),
-                Collections.singletonMap(PRECIO_ID.toString(), null), AHORA);
-    }
-
-    private void cuandoSeIntentaCambiarLaCantidadAUnTexto() {
-        rechazo = catchThrowable(() -> registroDatosService.editar(registro, camposDelInventario(),
-                Map.of(CANTIDAD_ID.toString(), "muchos"), AHORA));
-    }
-
-    private void cuandoSeIntentaConectarConLaFilaInexistente() {
-        rechazo = catchThrowable(() -> registroDatosService.editar(registro, conexiones(),
-                Map.of(CLIENTE_ID.toString(), BETO_ID.toString()), AHORA));
-    }
-
-    private void cuandoSePidenLasReferenciasPorId() {
-        referenciables = registroDatosService.buscarReferenciables(
-                NEGOCIO_ID, BLOQUE_ID, camposDelInventario(), "ignorado", List.of(REGISTRO_ID));
-    }
-
-    private void cuandoSePidenLasReferenciasPorTexto() {
-        referenciables = registroDatosService.buscarReferenciables(
-                NEGOCIO_ID, BLOQUE_ID, camposDelInventario(), " ana ", List.of());
+    private void cuandoSeBuscanReferenciables(String texto, List<RegistroId> ids) {
+        referenciables = registroDatosService.buscarReferenciables(NEGOCIO_ID, BLOQUE_ID, campos(), texto, ids);
     }
 
     // --- entonces ---
-
-    private void entoncesSeConservaElRestoYSeActualizaLaFechaDeModificacion() {
+    private void entoncesElRegistroEditadoConservaElNombreYTieneLaCantidadNueva(int cantidad) {
         assertThat(editado.getValores())
                 .containsEntry(NOMBRE_ID.toString(), "Harina")
-                .containsEntry(CANTIDAD_ID.toString(), 9);
+                .containsEntry(CANTIDAD_ID.toString(), cantidad);
         assertThat(editado.getActualizadoEn()).isEqualTo(AHORA);
         assertThat(editado.getCreadoEn()).isEqualTo(ANTES);
     }
@@ -306,69 +305,28 @@ class RegistroDatosServiceTest {
         assertThat(cambio.cambiadoEn()).isEqualTo(AHORA);
     }
 
-    private void entoncesNoSeAnotaNingunCambioDePrecio() {
+    private void entoncesNoSeAnotaNingunPrecio() {
         verifyNoInteractions(historialPrecioRepository);
     }
 
-    private void entoncesSeRechazaSinGuardarNiCambiarElRegistro() {
+    private void entoncesSeRechazaPorRegistroInvalido() {
         assertThat(rechazo).isInstanceOf(RegistroInvalidoException.class);
-        verifyNoMoreInteractions(registroRepository);
-        assertThat(registro.getValores()).containsEntry(CANTIDAD_ID.toString(), 3);
     }
 
-    private void entoncesSeRechazaSinGuardar() {
-        assertThat(rechazo).isInstanceOf(RegistroInvalidoException.class);
+    private void entoncesNoSeGuardoNadaYElOriginalQuedoIgual(Registro original) {
+        verifyNoMoreInteractions(registroRepository);
+        assertThat(original.getValores()).containsEntry(CANTIDAD_ID.toString(), 3);
+    }
+
+    private void entoncesNoSeGuardaNingunRegistro() {
         verify(registroRepository, never()).save(any());
     }
 
-    private void entoncesSeDevuelvenLasEncontradasPorId() {
+    private void entoncesSeDevuelvenLosRegistrosEncontrados(List<Registro> encontrados) {
         assertThat(referenciables).isSameAs(encontrados);
     }
 
-    private void entoncesSeDevuelveLaFilaEncontrada() {
+    private void entoncesSeDevuelveSoloElRegistro() {
         assertThat(referenciables).extracting(Registro::getId).containsExactly(REGISTRO_ID);
-    }
-
-    // --- datos ---
-
-    private List<Campo> camposConPrecio() {
-        return List.of(
-                Campo.builder().id(NOMBRE_ID).tipo(TipoCampo.TEXTO).obligatorio(true).build(),
-                Campo.builder().id(PRECIO_ID).tipo(TipoCampo.MONEDA).clave("price").build());
-    }
-
-    private List<Campo> conexiones() {
-        return List.of(
-                Campo.builder().id(CLIENTE_ID).tipo(TipoCampo.RELACION).bloqueRelacionadoId(CLIENTES_ID).build(),
-                Campo.builder().id(GARANTE_ID).tipo(TipoCampo.RELACION).bloqueRelacionadoId(CLIENTES_ID).build(),
-                Campo.builder().id(NOMBRE_ID).tipo(TipoCampo.TEXTO).build());
-    }
-
-    private List<Campo> camposDelInventario() {
-        return List.of(
-                Campo.builder().id(NOMBRE_ID).tipo(TipoCampo.TEXTO).obligatorio(true).build(),
-                Campo.builder().id(CANTIDAD_ID).tipo(TipoCampo.NUMERO).obligatorio(false).build());
-    }
-
-    private Registro unRegistroConPrecio(Object precio) {
-        return Registro.builder()
-                .id(REGISTRO_ID)
-                .negocioId(NEGOCIO_ID)
-                .bloqueId(BLOQUE_ID)
-                .valores(Map.of(NOMBRE_ID.toString(), "Harina", PRECIO_ID.toString(), precio))
-                .creadoEn(ANTES)
-                .actualizadoEn(ANTES)
-                .build();
-    }
-
-    private Registro unRegistro() {
-        return Registro.builder()
-                .id(REGISTRO_ID)
-                .negocioId(NEGOCIO_ID)
-                .bloqueId(BLOQUE_ID)
-                .valores(Map.of(NOMBRE_ID.toString(), "Harina", CANTIDAD_ID.toString(), 3))
-                .creadoEn(ANTES)
-                .actualizadoEn(ANTES)
-                .build();
     }
 }

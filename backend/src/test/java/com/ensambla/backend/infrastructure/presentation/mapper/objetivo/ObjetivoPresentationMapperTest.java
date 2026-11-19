@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.objetivo;
 
 import com.ensambla.backend.domain.model.objetivo.ObjetivoId;
+import com.ensambla.backend.domain.model.objetivo.TipoObjetivo;
 import com.ensambla.backend.domain.model.objetivo.TipoPasoObjetivo;
 import com.ensambla.backend.domain.useCase.objetivo.ObjetivoItem;
 import com.ensambla.backend.domain.useCase.objetivo.crearObjetivo.CrearObjetivoRequest;
@@ -25,108 +26,185 @@ import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.TEXTO;
 import static com.ensambla.backend.support.ObjetivoTestData.USUARIO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.objetivo;
+import static com.ensambla.backend.support.ObjetivoTestData.objetivoSinMeta;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ObjetivoPresentationMapperTest {
 
-    private static final PasoItem SUBIR_LA_YERBA = new PasoItem(TipoPasoObjetivo.SUBIR_PRECIO, "Yerba",
-            decimal("3600"), decimal("2700"), decimal("4"), decimal("60"),
-            new PrecioZonaItem(decimal("3500"), decimal("3900"), decimal("4300")));
-    private static final PasoItem ALFAJOR_SIN_ZONA = new PasoItem(TipoPasoObjetivo.PONER_A_LA_VISTA, "Alfajor",
-            decimal("1000"), decimal("400"), decimal("8"), decimal("10"), null);
-
     private final ObjetivoPresentationMapper mapper = new ObjetivoPresentationMapper();
+    private ListarObjetivosRequest pedidoDeListado;
+    private CrearObjetivoRequest pedidoDeAlta;
+    private EliminarObjetivoRequest pedidoDeBaja;
+    private ObtenerPasosRequest pedidoDePasos;
+    private ObjetivoResponse respuesta;
+    private List<ObjetivoResponse> respuestas;
     private List<PasoObjetivoWebResponse> pasos;
 
     @Test
     @DisplayName("Arma el pedido de listado con el usuario de la sesión")
-    void armaElPedidoDeListado() {
-        entoncesElPedidoEs(mapper.toListarRequest(USUARIO_ID), new ListarObjetivosRequest(USUARIO_ID));
+    void armaElPedidoDeListadoConElUsuarioDeLaSesion() {
+        cuandoSeArmaElPedidoDeListado();
+
+        entoncesElPedidoDeListadoTraeElUsuario();
     }
 
     @Test
     @DisplayName("Arma el pedido de alta con el usuario de la sesión y el texto y la meta del body")
-    void armaElPedidoDeAlta() {
-        entoncesElPedidoEs(mapper.toCrearRequest(USUARIO_ID, new CrearObjetivoWebRequest(TEXTO, META)),
-                new CrearObjetivoRequest(USUARIO_ID, TEXTO, META));
+    void armaElPedidoDeAltaConElUsuarioDeLaSesionYElTextoYLaMetaDelBody() {
+        cuandoSeArmaElPedidoDeAlta();
+
+        entoncesElPedidoDeAltaTraeUsuarioTextoYMeta();
     }
 
     @Test
     @DisplayName("Arma el pedido de baja con el usuario de la sesión y el id de la ruta")
-    void armaElPedidoDeBaja() {
-        entoncesElPedidoEs(mapper.toEliminarRequest(USUARIO_ID, OBJETIVO_ID), new EliminarObjetivoRequest(USUARIO_ID, OBJETIVO_ID));
-    }
+    void armaElPedidoDeBajaConElUsuarioDeLaSesionYElIdDeLaRuta() {
+        cuandoSeArmaElPedidoDeBaja();
 
-    @Test
-    @DisplayName("Arma el pedido de los pasos con el usuario autenticado")
-    void armaElPedidoDeLosPasos() {
-        entoncesElPedidoEs(mapper.toObtenerPasosRequest(USUARIO_ID), new ObtenerPasosRequest(USUARIO_ID));
+        entoncesElPedidoDeBajaTraeUsuarioEId();
     }
 
     @Test
     @DisplayName("Mapea cada campo del item a la respuesta")
-    void mapeaCadaCampoDelItem() {
-        entoncesElObjetivoSeRespondeComo(new ObjetivoResponse(OBJETIVO_ID, TEXTO, META, AHORA));
+    void mapeaCadaCampoDelItemALaRespuesta() {
+        cuandoSeMapeaUnObjetivo();
+
+        entoncesSeMapeaCadaCampoDelObjetivo();
+    }
+
+    @Test
+    @DisplayName("Un objetivo armado con Sami se responde sin meta y con su tipo")
+    void unObjetivoArmadoConSamiSeRespondeSinMetaYConSuTipo() {
+        cuandoSeMapeaUnObjetivoDeSami();
+
+        entoncesSeRespondeSinMetaYConSuTipo();
     }
 
     @Test
     @DisplayName("Mapea una lista de items conservando el orden")
-    void mapeaUnaListaConservandoElOrden() {
-        entoncesLaListaTieneLosObjetivos(List.of(ObjetivoItem.de(objetivo())), OBJETIVO_ID);
+    void mapeaUnaListaDeItemsConservandoElOrden() {
+        cuandoSeMapeaUnaLista(List.of(ObjetivoItem.de(objetivo())));
+
+        entoncesLosIdsSon(OBJETIVO_ID);
     }
 
     @Test
     @DisplayName("Una lista vacía se mapea a una lista vacía")
-    void unaListaVaciaSeMapeaVacia() {
-        entoncesLaListaTieneLosObjetivos(List.of());
+    void unaListaVaciaSeMapeaAUnaListaVacia() {
+        cuandoSeMapeaUnaLista(List.of());
+
+        entoncesNoHayRespuestas();
+    }
+
+    @Test
+    @DisplayName("Arma el pedido con el usuario autenticado")
+    void armaElPedidoConElUsuarioAutenticado() {
+        cuandoSeArmaElPedidoDePasos();
+
+        entoncesElPedidoDePasosTraeElUsuario();
     }
 
     @Test
     @DisplayName("Mapea todos los campos de los pasos y su rango de zona")
-    void mapeaTodosLosCamposDeLosPasos() {
-        cuandoSeRespondenLosPasos(SUBIR_LA_YERBA);
+    void mapeaTodosLosCamposDeLosPasosYSuRangoDeZona() {
+        cuandoSeMapeanLosPasos(pasosConZona());
 
-        entoncesElUnicoPasoEsSubirElPrecioDeLaYerba();
+        entoncesSeMapeanTodosLosCamposDelPasoYSuZona();
     }
 
     @Test
     @DisplayName("Conserva la zona vacía de un paso")
     void conservaLaZonaVaciaDeUnPaso() {
-        cuandoSeRespondenLosPasos(ALFAJOR_SIN_ZONA);
+        cuandoSeMapeanLosPasos(pasosSinZona());
 
-        entoncesElPrimerPasoNoTieneZona();
+        entoncesElPasoNoTieneZona();
     }
 
     @Test
     @DisplayName("Sin pasos devuelve una lista vacía")
     void sinPasosDevuelveUnaListaVacia() {
-        cuandoSeRespondenLosPasos();
+        cuandoSeMapeanLosPasos(sinPasos());
 
         entoncesNoHayPasos();
     }
 
-    private static BigDecimal decimal(String valor) {
-        return new BigDecimal(valor);
+    // --- act ---
+    private void cuandoSeArmaElPedidoDeListado() {
+        pedidoDeListado = mapper.toListarRequest(USUARIO_ID);
     }
 
-    private void cuandoSeRespondenLosPasos(PasoItem... items) {
-        pasos = mapper.toResponse(new ObtenerPasosResponse(List.of(items)));
+    private void cuandoSeArmaElPedidoDeAlta() {
+        pedidoDeAlta = mapper.toCrearRequest(USUARIO_ID, new CrearObjetivoWebRequest(TEXTO, META));
     }
 
-    private static void entoncesElPedidoEs(Object armado, Object esperado) {
-        assertThat(armado).isEqualTo(esperado);
+    private void cuandoSeArmaElPedidoDeBaja() {
+        pedidoDeBaja = mapper.toEliminarRequest(USUARIO_ID, OBJETIVO_ID);
     }
 
-    private void entoncesElObjetivoSeRespondeComo(ObjetivoResponse esperado) {
-        assertThat(mapper.toResponse(ObjetivoItem.de(objetivo()))).isEqualTo(esperado);
-
+    private void cuandoSeMapeaUnObjetivo() {
+        respuesta = mapper.toResponse(ObjetivoItem.de(objetivo()));
     }
 
-    private void entoncesLaListaTieneLosObjetivos(List<ObjetivoItem> objetivos, ObjetivoId... ids) {
-        assertThat(mapper.toResponse(objetivos)).extracting(ObjetivoResponse::id).containsExactly(ids);
+    private void cuandoSeMapeaUnObjetivoDeSami() {
+        respuesta = mapper.toResponse(ObjetivoItem.de(objetivoSinMeta()));
     }
 
-    private void entoncesElUnicoPasoEsSubirElPrecioDeLaYerba() {
+    private void cuandoSeMapeaUnaLista(List<ObjetivoItem> items) {
+        respuestas = mapper.toResponse(items);
+    }
+
+    private void cuandoSeArmaElPedidoDePasos() {
+        pedidoDePasos = mapper.toObtenerPasosRequest(USUARIO_ID);
+    }
+
+    private void cuandoSeMapeanLosPasos(ObtenerPasosResponse response) {
+        pasos = mapper.toResponse(response);
+    }
+
+    // --- assert ---
+    private void entoncesElPedidoDeListadoTraeElUsuario() {
+        assertThat(pedidoDeListado.usuarioId()).isEqualTo(USUARIO_ID);
+    }
+
+    private void entoncesElPedidoDeAltaTraeUsuarioTextoYMeta() {
+        assertThat(pedidoDeAlta.usuarioId()).isEqualTo(USUARIO_ID);
+        assertThat(pedidoDeAlta.texto()).isEqualTo(TEXTO);
+        assertThat(pedidoDeAlta.meta()).isEqualTo(META);
+    }
+
+    private void entoncesElPedidoDeBajaTraeUsuarioEId() {
+        assertThat(pedidoDeBaja.usuarioId()).isEqualTo(USUARIO_ID);
+        assertThat(pedidoDeBaja.objetivoId()).isEqualTo(OBJETIVO_ID);
+    }
+
+    private void entoncesSeMapeaCadaCampoDelObjetivo() {
+        assertThat(respuesta.id()).isEqualTo(OBJETIVO_ID);
+        assertThat(respuesta.texto()).isEqualTo(TEXTO);
+        assertThat(respuesta.tipo()).isEqualTo(TipoObjetivo.MONETARIO);
+        assertThat(respuesta.meta()).isEqualTo(META);
+        assertThat(respuesta.armadoConSami()).isFalse();
+        assertThat(respuesta.creadoEn()).isEqualTo(AHORA);
+    }
+
+    private void entoncesSeRespondeSinMetaYConSuTipo() {
+        assertThat(respuesta.tipo()).isEqualTo(TipoObjetivo.SIN_DATOS);
+        assertThat(respuesta.meta()).isNull();
+        assertThat(respuesta.armadoConSami()).isTrue();
+    }
+
+    private void entoncesLosIdsSon(ObjetivoId... ids) {
+        assertThat(respuestas).extracting(ObjetivoResponse::id).containsExactly(ids);
+    }
+
+    private void entoncesNoHayRespuestas() {
+        assertThat(respuestas).isEmpty();
+    }
+
+    private void entoncesElPedidoDePasosTraeElUsuario() {
+        assertThat(pedidoDePasos.usuarioId()).isEqualTo(USUARIO_ID);
+    }
+
+    private void entoncesSeMapeanTodosLosCamposDelPasoYSuZona() {
         assertThat(pasos).singleElement().satisfies(paso -> {
             assertThat(paso.tipo()).isEqualTo(TipoPasoObjetivo.SUBIR_PRECIO);
             assertThat(paso.nombre()).isEqualTo("Yerba");
@@ -140,11 +218,38 @@ class ObjetivoPresentationMapperTest {
         });
     }
 
-    private void entoncesElPrimerPasoNoTieneZona() {
+    private void entoncesElPasoNoTieneZona() {
         assertThat(pasos.getFirst().precioZona()).isNull();
     }
 
     private void entoncesNoHayPasos() {
         assertThat(pasos).isEmpty();
+    }
+
+    // --- helpers ---
+    private static PasoItem pasoConZona() {
+        return new PasoItem(TipoPasoObjetivo.SUBIR_PRECIO, "Yerba", decimal("3600"), decimal("2700"), decimal("4"),
+                decimal("60"), new PrecioZonaItem(decimal("3500"), decimal("3900"), decimal("4300")));
+    }
+
+    private static PasoItem pasoSinZona() {
+        return new PasoItem(TipoPasoObjetivo.PONER_A_LA_VISTA, "Alfajor", decimal("1000"), decimal("400"),
+                decimal("8"), decimal("10"), null);
+    }
+
+    private static BigDecimal decimal(String valor) {
+        return new BigDecimal(valor);
+    }
+
+    private static ObtenerPasosResponse pasosConZona() {
+        return new ObtenerPasosResponse(List.of(pasoConZona()));
+    }
+
+    private static ObtenerPasosResponse pasosSinZona() {
+        return new ObtenerPasosResponse(List.of(pasoSinZona()));
+    }
+
+    private static ObtenerPasosResponse sinPasos() {
+        return new ObtenerPasosResponse(List.of());
     }
 }

@@ -6,6 +6,7 @@ import com.ensambla.backend.domain.model.lote.LoteId;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.procesamiento.ConsumoDiario;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
@@ -25,19 +26,35 @@ public class ReintentarLectura {
     private final Clock clock;
 
     public void execute(UsuarioLoteRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
         OffsetDateTime ahora = OffsetDateTime.now(clock);
-        procesamientoRepository.obtenerEstado(negocioId, request.loteId());
-        controlPlanService.validarPaginasIa(negocioId, 1, ahora);
-        validarCupoDiario(negocioId, ahora);
+        exigirQueElLoteExista(negocioId, request.loteId());
+        exigirCupoDePaginasDelPlan(negocioId, ahora);
+        exigirCupoDiario(negocioId, ahora);
         reencolar(negocioId, request.loteId(), ahora);
     }
 
-    private void validarCupoDiario(NegocioId negocioId, OffsetDateTime ahora) {
-        ConsumoDiario consumo = procesamientoRepository.consumo(negocioId, ZonaNegocio.dia(ahora));
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private void exigirQueElLoteExista(NegocioId negocioId, LoteId loteId) {
+        procesamientoRepository.obtenerEstado(negocioId, loteId);
+    }
+
+    private void exigirCupoDePaginasDelPlan(NegocioId negocioId, OffsetDateTime ahora) {
+        controlPlanService.validarPaginasIa(negocioId, 1, ahora);
+    }
+
+    private void exigirCupoDiario(NegocioId negocioId, OffsetDateTime ahora) {
+        ConsumoDiario consumo = obtenerConsumoDelDia(negocioId, ahora);
         if (consumo.paginas() + consumo.reservadas() >= politicaProcesamiento.limiteDiario()) {
             throw new BusinessRuleException(PoliticaProcesamiento.LIMITE_DIARIO_AGOTADO);
         }
+    }
+
+    private ConsumoDiario obtenerConsumoDelDia(NegocioId negocioId, OffsetDateTime ahora) {
+        return procesamientoRepository.consumo(negocioId, ZonaNegocio.dia(ahora));
     }
 
     private void reencolar(NegocioId negocioId, LoteId loteId, OffsetDateTime ahora) {

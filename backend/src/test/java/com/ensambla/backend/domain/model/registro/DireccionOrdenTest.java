@@ -10,56 +10,43 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 class DireccionOrdenTest {
 
     private DireccionOrden direccion;
-
     private Throwable rechazo;
 
     @Test
     @DisplayName("Sin valor ordena de forma descendente")
-    void sinValorSeOrdenaDeFormaDescendente() {
-        cuandoSeInterpretaElValor(null);
+    void sinValorOrdenaDeFormaDescendente() {
+        cuandoSeInterpreta(null);
+        entoncesLaDireccionEs(DireccionOrden.DESC);
 
+        cuandoSeInterpreta("  ");
         entoncesLaDireccionEs(DireccionOrden.DESC);
     }
 
     @Test
-    @DisplayName("Un valor en blanco ordena de forma descendente")
-    void unValorEnBlancoSeOrdenaDeFormaDescendente() {
-        cuandoSeInterpretaElValor("  ");
-
-        entoncesLaDireccionEs(DireccionOrden.DESC);
-    }
-
-    @Test
-    @DisplayName("Interpreta asc sin distinguir mayúsculas")
-    void ascSeInterpretaSinDistinguirMayusculas() {
-        cuandoSeInterpretaElValor("ASC");
-
+    @DisplayName("Interpreta asc y desc sin distinguir mayúsculas ni espacios")
+    void interpretaAscYDescSinDistinguirMayusculasNiEspacios() {
+        cuandoSeInterpreta("ASC");
         entoncesLaDireccionEs(DireccionOrden.ASC);
-    }
 
-    @Test
-    @DisplayName("Interpreta desc sin distinguir espacios")
-    void descSeInterpretaSinDistinguirEspacios() {
-        cuandoSeInterpretaElValor(" desc ");
-
+        cuandoSeInterpreta(" desc ");
         entoncesLaDireccionEs(DireccionOrden.DESC);
     }
 
     @Test
     @DisplayName("Rechaza cualquier otro valor")
-    void unValorDesconocidoSeRechaza() {
-        cuandoSeIntentaInterpretarElValor("arriba");
+    void rechazaCualquierOtroValor() {
+        cuandoSeIntentaInterpretar("arriba");
 
-        entoncesSeRechazaPorque("La dirección del orden tiene que ser asc o desc");
+        entoncesSeRechazaPorDireccionInvalida();
     }
 
     // --- cuando ---
-    private void cuandoSeInterpretaElValor(String valor) {
+    private void cuandoSeInterpreta(String valor) {
         direccion = DireccionOrden.desde(valor);
     }
 
-    private void cuandoSeIntentaInterpretarElValor(String valor) {
-        rechazo = catchThrowable(() -> DireccionOrden.desde(valor));
+    private void cuandoSeIntentaInterpretar(String valor) {
+        rechazo = catchThrowable(() -> cuandoSeInterpreta(valor));
     }
 
     // --- entonces ---
@@ -67,7 +54,8 @@ class DireccionOrdenTest {
         assertThat(direccion).isEqualTo(esperada);
     }
 
-    private void entoncesSeRechazaPorque(String mensaje) {
-        assertThat(rechazo).isInstanceOf(BusinessRuleException.class).hasMessage(mensaje);
+    private void entoncesSeRechazaPorDireccionInvalida() {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class)
+                .hasMessage("La dirección del orden tiene que ser asc o desc");
     }
 }

@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class IDecisionObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
 
@@ -52,139 +52,173 @@ class IDecisionObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
     private UUID objetivoB;
 
     @BeforeEach
-    void setUp() {
+    void dadoDosNegociosConUnObjetivoCadaUno() {
         negocioA = givenNegocio("a@example.com").getId();
         negocioB = givenNegocio("b@example.com").getId();
-        objetivoA = givenObjetivo(negocioA);
-        objetivoB = givenObjetivo(negocioB);
+        objetivoA = unObjetivo(negocioA);
+        objetivoB = unObjetivo(negocioB);
     }
+
+    private UUID mini;
+    private UUID aviso;
+    private UUID producto;
+    private UUID decisionId;
+    private UUID vieja;
+    private UUID nueva;
+    private UUID deA;
+    private DecisionObjetivoEntity releida;
+    private List<DecisionObjetivoEntity> listadas;
+    private Throwable rechazo;
 
     @Test
     @DisplayName("Guarda y relee la decisión con todos sus datos")
-    void saveShouldRoundTripEveryField() {
-        UUID mini = givenMini(objetivoA, negocioA);
-        UUID aviso = givenAviso(negocioA, "Yerba");
-        UUID producto = UUID.randomUUID();
-        DecisionObjetivoEntity entity = decision(objetivoA, negocioA, TipoDecision.AVISO_APLICADO, AHORA);
-        entity.setMiniObjetivoId(mini);
-        entity.setAvisoId(aviso);
-        entity.setRegistroId(producto);
-        UUID id = decisiones.saveAndFlush(entity).getId();
+    void guardaYReleeLaDecisionConTodosSusDatos() {
+        dadoUnaDecisionDeAvisoConMiniObjetivoYProducto();
 
-        DecisionObjetivoEntity result = decisiones.findById(id).orElseThrow();
+        cuandoSeReleeLaDecision();
 
-        assertThat(result.getNegocioId()).isEqualTo(negocioA);
-        assertThat(result.getObjetivoId()).isEqualTo(objetivoA);
-        assertThat(result.getMiniObjetivoId()).isEqualTo(mini);
-        assertThat(result.getTipo()).isEqualTo(TipoDecision.AVISO_APLICADO);
-        assertThat(result.getAvisoId()).isEqualTo(aviso);
-        assertThat(result.getRegistroId()).isEqualTo(producto);
-        assertThat(result.getDescripcion()).isEqualTo("Bajá el precio");
-        assertThat(result.getTomadaEn()).isEqualTo(AHORA);
-        assertThat(result.getSemanaInicio()).isEqualTo(SEMANA);
+        entoncesSeConservanTodosLosDatosDeLaDecision();
     }
 
     @Test
     @DisplayName("Lista las decisiones del objetivo de la más nueva a la más vieja")
-    void findAllShouldOrderFromNewestToOldest() {
-        UUID vieja = givenDecision(objetivoA, negocioA, TipoDecision.PASO_ACEPTADO, AHORA).getId();
-        UUID nueva = givenDecision(objetivoA, negocioA, TipoDecision.PASO_IGNORADO, AHORA.plusDays(1)).getId();
+    void listaLasDecisionesDelObjetivoDeLaMasNuevaALaMasVieja() {
+        dadoUnaDecisionVieja();
+        dadoUnaDecisionNueva();
 
-        List<DecisionObjetivoEntity> result =
-                decisiones.findAllByObjetivoIdAndNegocioIdOrderByTomadaEnDescIdDesc(objetivoA, negocioA);
+        cuandoSeListanLasDecisionesDelObjetivoA();
 
-        assertThat(result).extracting(DecisionObjetivoEntity::getId).containsExactly(nueva, vieja);
+        entoncesLaNuevaVieneAntesQueLaVieja();
     }
 
     @Test
     @DisplayName("No lista decisiones de otro objetivo ni de otro negocio")
-    void findAllShouldNotListOtherObjetivosOrBusinesses() {
-        UUID deA = givenDecision(objetivoA, negocioA, TipoDecision.PASO_ACEPTADO, AHORA).getId();
-        givenDecision(objetivoB, negocioB, TipoDecision.PASO_ACEPTADO, AHORA);
+    void noListaDecisionesDeOtroObjetivoNiDeOtroNegocio() {
+        dadoUnaDecisionDelObjetivoAYOtraDelB();
 
-        assertThat(decisiones.findAllByObjetivoIdAndNegocioIdOrderByTomadaEnDescIdDesc(objetivoA, negocioA))
-                .extracting(DecisionObjetivoEntity::getId).containsExactly(deA);
-        assertThat(decisiones.findAllByObjetivoIdAndNegocioIdOrderByTomadaEnDescIdDesc(objetivoA, negocioB))
-                .isEmpty();
+        cuandoSeListanLasDecisionesDelObjetivoA();
+
+        entoncesSoloSeListaLaDecisionDelObjetivoA();
     }
 
     @Test
     @DisplayName("Un aviso se registra una sola vez por objetivo, pero puede estar en dos objetivos")
-    void saveShouldRejectTheSameAvisoTwiceInTheSameObjetivo() {
-        UUID aviso = givenAviso(negocioA, "Yerba");
-        UUID otroObjetivo = givenObjetivo(negocioA);
-        givenDecisionDeAviso(objetivoA, negocioA, aviso);
-        givenDecisionDeAviso(otroObjetivo, negocioA, aviso);
+    void unAvisoSeRegistraUnaSolaVezPorObjetivoPeroPuedeEstarEnDosObjetivos() {
+        dadoUnAvisoRegistradoEnDosObjetivos();
 
-        assertThatThrownBy(() -> givenDecisionDeAviso(objetivoA, negocioA, aviso))
-                .isInstanceOf(DataIntegrityViolationException.class);
+        cuandoSeIntentaRegistrarElMismoAvisoOtraVezEnElObjetivoA();
+
+        entoncesLaBaseRechazaPorIntegridad();
     }
 
     @Test
     @DisplayName("Las decisiones de pasos, sin aviso, pueden repetirse")
-    void saveShouldAllowRepeatedStepDecisions() {
-        givenDecision(objetivoA, negocioA, TipoDecision.PASO_ACEPTADO, AHORA);
-        givenDecision(objetivoA, negocioA, TipoDecision.PASO_ACEPTADO, AHORA.plusHours(1));
+    void lasDecisionesDePasosSinAvisoPuedenRepetirse() {
+        dadoDosDecisionesDePasoAceptado();
 
-        assertThat(decisiones.findAllByObjetivoIdAndNegocioIdOrderByTomadaEnDescIdDesc(objetivoA, negocioA))
-                .hasSize(2);
+        cuandoSeListanLasDecisionesDelObjetivoA();
+
+        entoncesSeListanDosDecisiones();
     }
 
     @Test
     @DisplayName("Al borrar el aviso la decisión queda sin aviso en lugar de borrarse")
-    void deleteAvisoShouldKeepTheDecisionWithoutAviso() {
-        UUID aviso = givenAviso(negocioA, "Yerba");
-        UUID id = givenDecisionDeAviso(objetivoA, negocioA, aviso).getId();
+    void alBorrarElAvisoLaDecisionQuedaSinAvisoEnLugarDeBorrarse() {
+        dadoUnaDecisionDeAvisoRegistrada();
 
-        avisos.deleteById(aviso);
-        avisos.flush();
+        cuandoSeBorraElAviso();
 
-        assertThat(columnaDe(id, "aviso_id")).isNull();
+        entoncesLaDecisionQuedaSinAviso();
     }
 
     @Test
     @DisplayName("Al borrar el mini-objetivo la decisión queda sin mini-objetivo")
-    void deleteMiniObjetivoShouldKeepTheDecisionWithoutMiniObjetivo() {
-        UUID mini = givenMini(objetivoA, negocioA);
-        DecisionObjetivoEntity entity = decision(objetivoA, negocioA, TipoDecision.PASO_ACEPTADO, AHORA);
-        entity.setMiniObjetivoId(mini);
-        UUID id = decisiones.saveAndFlush(entity).getId();
+    void alBorrarElMiniObjetivoLaDecisionQuedaSinMiniObjetivo() {
+        dadoUnaDecisionDeUnMiniObjetivo();
 
-        minis.deleteById(mini);
-        minis.flush();
+        cuandoSeBorraElMiniObjetivo();
 
-        assertThat(columnaDe(id, "mini_objetivo_id")).isNull();
+        entoncesLaDecisionQuedaSinMiniObjetivo();
     }
 
     @Test
     @DisplayName("Al borrar el objetivo se borran sus decisiones")
-    void deleteObjetivoShouldCascadeToItsDecisions() {
-        givenDecision(objetivoA, negocioA, TipoDecision.PASO_ACEPTADO, AHORA);
+    void alBorrarElObjetivoSeBorranSusDecisiones() {
+        dadoUnaDecisionDePasoAceptado();
 
-        objetivos.deleteById(objetivoA);
-        objetivos.flush();
+        cuandoSeBorraElObjetivo();
 
-        assertThat(decisiones.findAll()).noneMatch(decision -> objetivoA.equals(decision.getObjetivoId()));
+        entoncesNoQuedanDecisionesDelObjetivo();
     }
 
     @Test
     @DisplayName("La base rechaza una descripción en blanco")
-    void shouldRejectBlankDescription() {
-        DecisionObjetivoEntity entity = decision(objetivoA, negocioA, TipoDecision.PASO_ACEPTADO, AHORA);
-        entity.setDescripcion("   ");
+    void laBaseRechazaUnaDescripcionEnBlanco() {
+        cuandoSeIntentaGuardarUnaDecisionConDescripcionEnBlanco();
 
-        assertThatThrownBy(() -> decisiones.saveAndFlush(entity))
-                .isInstanceOf(DataIntegrityViolationException.class);
+        entoncesLaBaseRechazaPorIntegridad();
     }
 
-    // --- helpers ---
+    // --- dado ---
+    private void dadoUnaDecisionDeAvisoConMiniObjetivoYProducto() {
+        mini = unMiniObjetivo(objetivoA, negocioA);
+        aviso = unAviso(negocioA, "Yerba");
+        producto = UUID.randomUUID();
+        DecisionObjetivoEntity entity = unaDecision(objetivoA, negocioA, TipoDecision.AVISO_APLICADO, AHORA);
+        entity.setMiniObjetivoId(mini);
+        entity.setAvisoId(aviso);
+        entity.setRegistroId(producto);
+        decisionId = decisiones.saveAndFlush(entity).getId();
+    }
+
+    private void dadoUnaDecisionVieja() {
+        vieja = unaDecisionGuardada(objetivoA, negocioA, TipoDecision.PASO_ACEPTADO, AHORA).getId();
+    }
+
+    private void dadoUnaDecisionNueva() {
+        nueva = unaDecisionGuardada(objetivoA, negocioA, TipoDecision.PASO_IGNORADO, AHORA.plusDays(1)).getId();
+    }
+
+    private void dadoUnaDecisionDelObjetivoAYOtraDelB() {
+        deA = unaDecisionGuardada(objetivoA, negocioA, TipoDecision.PASO_ACEPTADO, AHORA).getId();
+        unaDecisionGuardada(objetivoB, negocioB, TipoDecision.PASO_ACEPTADO, AHORA);
+    }
+
+    private void dadoUnAvisoRegistradoEnDosObjetivos() {
+        aviso = unAviso(negocioA, "Yerba");
+        UUID otroObjetivo = unObjetivo(negocioA);
+        unaDecisionDeAviso(objetivoA, negocioA, aviso);
+        unaDecisionDeAviso(otroObjetivo, negocioA, aviso);
+    }
+
+    private void dadoDosDecisionesDePasoAceptado() {
+        unaDecisionGuardada(objetivoA, negocioA, TipoDecision.PASO_ACEPTADO, AHORA);
+        unaDecisionGuardada(objetivoA, negocioA, TipoDecision.PASO_ACEPTADO, AHORA.plusHours(1));
+    }
+
+    private void dadoUnaDecisionDeAvisoRegistrada() {
+        aviso = unAviso(negocioA, "Yerba");
+        decisionId = unaDecisionDeAviso(objetivoA, negocioA, aviso).getId();
+    }
+
+    private void dadoUnaDecisionDeUnMiniObjetivo() {
+        mini = unMiniObjetivo(objetivoA, negocioA);
+        DecisionObjetivoEntity entity = unaDecision(objetivoA, negocioA, TipoDecision.PASO_ACEPTADO, AHORA);
+        entity.setMiniObjetivoId(mini);
+        decisionId = decisiones.saveAndFlush(entity).getId();
+    }
+
+    private void dadoUnaDecisionDePasoAceptado() {
+        unaDecisionGuardada(objetivoA, negocioA, TipoDecision.PASO_ACEPTADO, AHORA);
+    }
+
     /** Lee la columna directo de la base: la entidad ya cargada no se entera de lo que hace ON DELETE SET NULL. */
-    private UUID columnaDe(UUID decisionId, String columna) {
+    private UUID columnaDe(UUID decision, String columna) {
         return jdbcTemplate.queryForObject(
-                "SELECT " + columna + " FROM decision_objetivo WHERE id = ?", UUID.class, decisionId);
+                "SELECT " + columna + " FROM decision_objetivo WHERE id = ?", UUID.class, decision);
     }
 
-    private UUID givenObjetivo(UUID negocioId) {
+    private UUID unObjetivo(UUID negocioId) {
         return objetivos.saveAndFlush(ObjetivoEntity.builder()
                 .negocioId(negocioId)
                 .texto("Ganar más")
@@ -193,7 +227,7 @@ class IDecisionObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenMini(UUID objetivoId, UUID negocioId) {
+    private UUID unMiniObjetivo(UUID objetivoId, UUID negocioId) {
         return minis.saveAndFlush(MiniObjetivoEntity.builder()
                 .id(UUID.randomUUID())
                 .objetivoId(objetivoId)
@@ -213,7 +247,7 @@ class IDecisionObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenAviso(UUID negocioId, String nombre) {
+    private UUID unAviso(UUID negocioId, String nombre) {
         return avisos.saveAndFlush(AvisoEntity.builder()
                 .negocioId(negocioId).tipo(TipoAviso.ESTANCADO).grupo(GrupoAviso.VENTAS).prioridad((short) 2)
                 .entidad("registro:" + nombre).huella("ESTANCADO:" + nombre + ":" + UUID.randomUUID())
@@ -222,18 +256,18 @@ class IDecisionObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
                 .build()).getId();
     }
 
-    private DecisionObjetivoEntity givenDecision(
+    private DecisionObjetivoEntity unaDecisionGuardada(
             UUID objetivoId, UUID negocioId, TipoDecision tipo, OffsetDateTime tomadaEn) {
-        return decisiones.saveAndFlush(decision(objetivoId, negocioId, tipo, tomadaEn));
+        return decisiones.saveAndFlush(unaDecision(objetivoId, negocioId, tipo, tomadaEn));
     }
 
-    private DecisionObjetivoEntity givenDecisionDeAviso(UUID objetivoId, UUID negocioId, UUID avisoId) {
-        DecisionObjetivoEntity entity = decision(objetivoId, negocioId, TipoDecision.AVISO_APLICADO, AHORA);
+    private DecisionObjetivoEntity unaDecisionDeAviso(UUID objetivoId, UUID negocioId, UUID avisoId) {
+        DecisionObjetivoEntity entity = unaDecision(objetivoId, negocioId, TipoDecision.AVISO_APLICADO, AHORA);
         entity.setAvisoId(avisoId);
         return decisiones.saveAndFlush(entity);
     }
 
-    private static DecisionObjetivoEntity decision(
+    private static DecisionObjetivoEntity unaDecision(
             UUID objetivoId, UUID negocioId, TipoDecision tipo, OffsetDateTime tomadaEn) {
         return DecisionObjetivoEntity.builder()
                 .id(UUID.randomUUID())
@@ -244,5 +278,82 @@ class IDecisionObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
                 .tomadaEn(tomadaEn)
                 .semanaInicio(SEMANA)
                 .build();
+    }
+
+    // --- cuando ---
+    private void cuandoSeReleeLaDecision() {
+        releida = decisiones.findById(decisionId).orElseThrow();
+    }
+
+    private void cuandoSeListanLasDecisionesDelObjetivoA() {
+        listadas = decisiones.findAllByObjetivoIdAndNegocioIdOrderByTomadaEnDescIdDesc(objetivoA, negocioA);
+    }
+
+    private void cuandoSeIntentaRegistrarElMismoAvisoOtraVezEnElObjetivoA() {
+        rechazo = catchThrowable(() -> unaDecisionDeAviso(objetivoA, negocioA, aviso));
+    }
+
+    private void cuandoSeBorraElAviso() {
+        avisos.deleteById(aviso);
+        avisos.flush();
+    }
+
+    private void cuandoSeBorraElMiniObjetivo() {
+        minis.deleteById(mini);
+        minis.flush();
+    }
+
+    private void cuandoSeBorraElObjetivo() {
+        objetivos.deleteById(objetivoA);
+        objetivos.flush();
+    }
+
+    private void cuandoSeIntentaGuardarUnaDecisionConDescripcionEnBlanco() {
+        DecisionObjetivoEntity entity = unaDecision(objetivoA, negocioA, TipoDecision.PASO_ACEPTADO, AHORA);
+        entity.setDescripcion("   ");
+        rechazo = catchThrowable(() -> decisiones.saveAndFlush(entity));
+    }
+
+    // --- entonces ---
+    private void entoncesSeConservanTodosLosDatosDeLaDecision() {
+        assertThat(releida.getNegocioId()).isEqualTo(negocioA);
+        assertThat(releida.getObjetivoId()).isEqualTo(objetivoA);
+        assertThat(releida.getMiniObjetivoId()).isEqualTo(mini);
+        assertThat(releida.getTipo()).isEqualTo(TipoDecision.AVISO_APLICADO);
+        assertThat(releida.getAvisoId()).isEqualTo(aviso);
+        assertThat(releida.getRegistroId()).isEqualTo(producto);
+        assertThat(releida.getDescripcion()).isEqualTo("Bajá el precio");
+        assertThat(releida.getTomadaEn()).isEqualTo(AHORA);
+        assertThat(releida.getSemanaInicio()).isEqualTo(SEMANA);
+    }
+
+    private void entoncesLaNuevaVieneAntesQueLaVieja() {
+        assertThat(listadas).extracting(DecisionObjetivoEntity::getId).containsExactly(nueva, vieja);
+    }
+
+    private void entoncesSoloSeListaLaDecisionDelObjetivoA() {
+        assertThat(listadas).extracting(DecisionObjetivoEntity::getId).containsExactly(deA);
+        assertThat(decisiones.findAllByObjetivoIdAndNegocioIdOrderByTomadaEnDescIdDesc(objetivoA, negocioB))
+                .isEmpty();
+    }
+
+    private void entoncesLaBaseRechazaPorIntegridad() {
+        assertThat(rechazo).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    private void entoncesSeListanDosDecisiones() {
+        assertThat(listadas).hasSize(2);
+    }
+
+    private void entoncesLaDecisionQuedaSinAviso() {
+        assertThat(columnaDe(decisionId, "aviso_id")).isNull();
+    }
+
+    private void entoncesLaDecisionQuedaSinMiniObjetivo() {
+        assertThat(columnaDe(decisionId, "mini_objetivo_id")).isNull();
+    }
+
+    private void entoncesNoQuedanDecisionesDelObjetivo() {
+        assertThat(decisiones.findAll()).noneMatch(decision -> objetivoA.equals(decision.getObjetivoId()));
     }
 }

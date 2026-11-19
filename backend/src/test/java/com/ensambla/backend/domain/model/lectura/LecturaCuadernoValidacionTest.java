@@ -11,112 +11,171 @@ import org.junit.jupiter.params.provider.CsvSource;
 import java.util.List;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class LecturaCuadernoValidacionTest {
+
+    private LecturaCuaderno lectura;
+    private Throwable rechazo;
 
     @ParameterizedTest
     @CsvSource({"NUMERO,10.25", "FECHA,2026-10-10", "SI_NO,true", "SI_NO,false", "OPCION,A", "TEXTO,algo"})
     @DisplayName("Acepta valores con el formato del tipo declarado")
-    void validarShouldAcceptTypedValues(TipoCampo tipo, String valor) {
-        LecturaCuaderno lectura = ProcesamientoTestData.lectura(tipo, valor, List.of("A"));
+    void aceptaValoresConElFormatoDelTipoDeclarado(TipoCampo tipo, String valor) {
+        dadoUnaLecturaConUnValorDeTipo(tipo, valor, List.of("A"));
 
-        assertThatCode(lectura::validar).doesNotThrowAnyException();
+        cuandoSeIntentaValidar();
+
+        entoncesSeAcepta();
     }
 
     @ParameterizedTest
     @CsvSource({"NUMERO,no", "FECHA,2026-02-30", "SI_NO,si", "OPCION,B"})
     @DisplayName("Rechaza valores incompatibles con el tipo")
-    void validarShouldRejectInvalidTypedValues(TipoCampo tipo, String valor) {
-        LecturaCuaderno lectura = ProcesamientoTestData.lectura(tipo, valor, List.of("A"));
+    void rechazaValoresIncompatiblesConElTipo(TipoCampo tipo, String valor) {
+        dadoUnaLecturaConUnValorDeTipo(tipo, valor, List.of("A"));
 
-        assertThatThrownBy(lectura::validar)
-                .isInstanceOf(LecturaCuadernoException.class).hasMessageContaining("no coincide");
+        cuandoSeIntentaValidar();
+
+        entoncesSeRechazaComoLecturaConMensajeQueContiene("no coincide");
     }
 
     @Test
     @DisplayName("Acepta el texto leído en un campo de conexión: después se resuelve a una fila")
-    void validarShouldAcceptTextInRelacionCampo() {
-        LecturaCuaderno lectura = ProcesamientoTestData.lectura(TipoCampo.RELACION, "Juan Pérez", List.of());
+    void aceptaElTextoLeidoEnUnCampoDeConexionDespuesSeResuelveAUnaFila() {
+        dadoUnaLecturaConUnValorDeTipo(TipoCampo.RELACION, "Juan Pérez", List.of());
 
-        assertThatCode(lectura::validar).doesNotThrowAnyException();
+        cuandoSeIntentaValidar();
+
+        entoncesSeAcepta();
     }
 
     @Test
     @DisplayName("Conserva un valor ilegible nulo")
-    void validarShouldAcceptNullValue() {
-        LecturaCuaderno lectura = ProcesamientoTestData.lectura(TipoCampo.NUMERO, null, List.of());
+    void conservaUnValorIlegibleNulo() {
+        dadoUnaLecturaConUnValorDeTipo(TipoCampo.NUMERO, null, List.of());
 
-        assertThatCode(lectura::validar).doesNotThrowAnyException();
+        cuandoSeIntentaValidar();
+
+        entoncesSeAcepta();
     }
 
     @Test
     @DisplayName("Rechaza dos filas con la misma página y renglón")
-    void validarShouldRejectDuplicateRows() {
-        LecturaCuaderno base = ProcesamientoTestData.lectura();
-        LecturaCuaderno lectura = givenLectura(
-                base.bloque(), List.of(base.filas().getFirst(), base.filas().getFirst()));
+    void rechazaDosFilasConLaMismaPaginaYRenglon() {
+        dadoUnaLecturaConLaMismaFilaDosVeces();
 
-        assertThatThrownBy(lectura::validar).hasMessageContaining("repetido");
+        cuandoSeIntentaValidar();
+
+        entoncesSeRechazaPorMensajeQueContiene("repetido");
     }
 
     @Test
     @DisplayName("Rechaza una confianza no finita")
-    void validarShouldRejectNonFiniteConfidence() {
-        LecturaCuaderno lectura = givenLectura(ProcesamientoTestData.lectura().bloque(),
-                List.of(new FilaLeida(1, 1, Map.of("monto", new DatoLeido("1", Double.NaN)))));
+    void rechazaUnaConfianzaNoFinita() {
+        dadoUnaLecturaConConfianzaNoFinita();
 
-        assertThatThrownBy(lectura::validar).hasMessageContaining("finito");
+        cuandoSeIntentaValidar();
+
+        entoncesSeRechazaPorMensajeQueContiene("finito");
     }
 
     @Test
     @DisplayName("Rechaza nombres mayores al límite del esquema")
-    void validarShouldRejectLongNames() {
-        BloquePropuesto bloque = new BloquePropuesto(
-                "a".repeat(121), null, ProcesamientoTestData.lectura().bloque().campos());
+    void rechazaNombresMayoresAlLimiteDelEsquema() {
+        dadoUnaLecturaConUnBloqueDeNombreLargo();
 
-        assertThatThrownBy(() -> givenLectura(bloque, List.of()).validar())
-                .hasMessageContaining("120");
+        cuandoSeIntentaValidar();
+
+        entoncesSeRechazaPorMensajeQueContiene("120");
     }
 
     @Test
     @DisplayName("Rechaza claves inválidas")
-    void validarShouldRejectInvalidKeys() {
-        BloquePropuesto bloque = new BloquePropuesto("Ventas", null,
-                List.of(new CampoPropuesto("No-valida", "Monto", TipoCampo.NUMERO, List.of())));
+    void rechazaClavesInvalidas() {
+        dadoUnaLecturaConUnaClaveInvalida();
 
-        assertThatThrownBy(() -> givenLectura(bloque, List.of()).validar())
-                .hasMessageContaining("clave");
+        cuandoSeIntentaValidar();
+
+        entoncesSeRechazaPorMensajeQueContiene("clave");
     }
 
     @Test
     @DisplayName("Rechaza opciones vacías")
-    void validarShouldRejectBlankOptions() {
-        LecturaCuaderno lectura = ProcesamientoTestData.lectura(TipoCampo.OPCION, "A", List.of("A", " "));
+    void rechazaOpcionesVacias() {
+        dadoUnaLecturaConUnValorDeTipo(TipoCampo.OPCION, "A", List.of("A", " "));
 
-        assertThatThrownBy(lectura::validar).hasMessageContaining("opciones");
+        cuandoSeIntentaValidar();
+
+        entoncesSeRechazaPorMensajeQueContiene("opciones");
     }
 
     @Test
     @DisplayName("Rechaza opciones duplicadas")
-    void validarShouldRejectDuplicateOptions() {
-        LecturaCuaderno lectura = ProcesamientoTestData.lectura(TipoCampo.OPCION, "A", List.of("A", "A"));
+    void rechazaOpcionesDuplicadas() {
+        dadoUnaLecturaConUnValorDeTipo(TipoCampo.OPCION, "A", List.of("A", "A"));
 
-        assertThatThrownBy(lectura::validar).hasMessageContaining("opciones");
-    }
+        cuandoSeIntentaValidar();
 
-    private LecturaCuaderno givenLectura(BloquePropuesto bloque, List<FilaLeida> filas) {
-        LecturaCuaderno base = ProcesamientoTestData.lectura();
-        return new LecturaCuaderno(base.tipoRegistro(), bloque, filas, List.of(), base.consumo());
+        entoncesSeRechazaPorMensajeQueContiene("opciones");
     }
 
     @Test
     @DisplayName("Rechaza un valor en un campo fórmula: la lectura de la IA no propone fórmulas")
-    void validarShouldRejectFormulaValues() {
-        LecturaCuaderno lectura = ProcesamientoTestData.lectura(TipoCampo.FORMULA, "10", List.of());
+    void rechazaUnValorEnUnCampoFormulaLaLecturaDeLaIaNoProponeFormulas() {
+        dadoUnaLecturaConUnValorDeTipo(TipoCampo.FORMULA, "10", List.of());
 
-        assertThatThrownBy(lectura::validar)
-                .isInstanceOf(LecturaCuadernoException.class).hasMessageContaining("no coincide");
+        cuandoSeIntentaValidar();
+
+        entoncesSeRechazaComoLecturaConMensajeQueContiene("no coincide");
+    }
+
+    // --- dado ---
+    private void dadoUnaLecturaConUnValorDeTipo(TipoCampo tipo, String valor, List<String> opciones) {
+        lectura = ProcesamientoTestData.lectura(tipo, valor, opciones);
+    }
+
+    private void dadoUnaLecturaConLaMismaFilaDosVeces() {
+        LecturaCuaderno base = ProcesamientoTestData.lectura();
+        lectura = unaLectura(base.bloque(), List.of(base.filas().getFirst(), base.filas().getFirst()));
+    }
+
+    private void dadoUnaLecturaConConfianzaNoFinita() {
+        lectura = unaLectura(ProcesamientoTestData.lectura().bloque(),
+                List.of(new FilaLeida(1, 1, Map.of("monto", new DatoLeido("1", Double.NaN)))));
+    }
+
+    private void dadoUnaLecturaConUnBloqueDeNombreLargo() {
+        lectura = unaLectura(new BloquePropuesto(
+                "a".repeat(121), null, ProcesamientoTestData.lectura().bloque().campos()), List.of());
+    }
+
+    private void dadoUnaLecturaConUnaClaveInvalida() {
+        lectura = unaLectura(new BloquePropuesto("Ventas", null,
+                List.of(new CampoPropuesto("No-valida", "Monto", TipoCampo.NUMERO, List.of()))), List.of());
+    }
+
+    private LecturaCuaderno unaLectura(BloquePropuesto bloque, List<FilaLeida> filas) {
+        LecturaCuaderno base = ProcesamientoTestData.lectura();
+        return new LecturaCuaderno(base.tipoRegistro(), bloque, filas, List.of(), base.consumo());
+    }
+
+    // --- cuando ---
+    private void cuandoSeIntentaValidar() {
+        rechazo = catchThrowable(lectura::validar);
+    }
+
+    // --- entonces ---
+    private void entoncesSeAcepta() {
+        assertThat(rechazo).isNull();
+    }
+
+    private void entoncesSeRechazaPorMensajeQueContiene(String texto) {
+        assertThat(rechazo).hasMessageContaining(texto);
+    }
+
+    private void entoncesSeRechazaComoLecturaConMensajeQueContiene(String texto) {
+        assertThat(rechazo).isInstanceOf(LecturaCuadernoException.class).hasMessageContaining(texto);
     }
 }

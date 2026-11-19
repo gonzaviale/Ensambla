@@ -22,25 +22,53 @@ class ZonaRepositoryImplTest {
     private final ZonaRepositoryImpl zonaRepository = new ZonaRepositoryImpl(
             zonaJpaRepository, new ZonaRepositoryMapper());
 
+    private static final UUID ZONA_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
+
+    private List<Zona> zonas;
+    private Optional<Zona> zona;
+
     @Test
     @DisplayName("Lista todas las zonas como dominio")
-    void findAllShouldMapEveryZone() {
-        UUID id = UUID.randomUUID();
-        when(zonaJpaRepository.findAll()).thenReturn(List.of(ZonaEntity.builder().id(id).nombre("San Justo").build()));
+    void listaTodasLasZonasComoDominio() {
+        dadoQueExisteLaZonaSanJusto();
 
-        List<Zona> result = zonaRepository.findAll();
+        cuandoSeListanLasZonas();
 
-        assertThat(result).extracting(Zona::getId).containsExactly(ZonaId.de(id));
+        entoncesSeListaLaZonaSanJusto();
     }
 
     @Test
     @DisplayName("Busca una zona por id")
-    void findByIdShouldMapZone() {
-        UUID id = UUID.randomUUID();
-        when(zonaJpaRepository.findById(id)).thenReturn(Optional.of(ZonaEntity.builder().id(id).nombre("San Justo").build()));
+    void buscaUnaZonaPorId() {
+        dadoQueExisteLaZonaSanJusto();
 
-        Optional<Zona> result = zonaRepository.findById(ZonaId.de(id));
+        cuandoSeBuscaLaZonaPorId();
 
-        assertThat(result).map(Zona::getNombre).contains("San Justo");
+        entoncesSeEncuentraLaZonaSanJusto();
+    }
+
+    // --- dado ---
+    private void dadoQueExisteLaZonaSanJusto() {
+        ZonaEntity entidad = ZonaEntity.builder().id(ZONA_ID).nombre("San Justo").build();
+        when(zonaJpaRepository.findAll()).thenReturn(List.of(entidad));
+        when(zonaJpaRepository.findById(ZONA_ID)).thenReturn(Optional.of(entidad));
+    }
+
+    // --- cuando ---
+    private void cuandoSeListanLasZonas() {
+        zonas = zonaRepository.findAll();
+    }
+
+    private void cuandoSeBuscaLaZonaPorId() {
+        zona = zonaRepository.findById(ZonaId.de(ZONA_ID));
+    }
+
+    // --- entonces ---
+    private void entoncesSeListaLaZonaSanJusto() {
+        assertThat(zonas).extracting(Zona::getId).containsExactly(ZonaId.de(ZONA_ID));
+    }
+
+    private void entoncesSeEncuentraLaZonaSanJusto() {
+        assertThat(zona).map(Zona::getNombre).contains("San Justo");
     }
 }

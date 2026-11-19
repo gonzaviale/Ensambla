@@ -32,41 +32,54 @@ class DecisionObjetivoRepositoryImplTest {
     private final DecisionObjetivoRepositoryImpl repository =
             new DecisionObjetivoRepositoryImpl(jpa, new DecisionObjetivoRepositoryMapper());
 
+    private DecisionObjetivo guardada;
+    private List<DecisionObjetivo> decisiones;
+
     @Test
     @DisplayName("Guarda la entidad armada desde el dominio y devuelve lo persistido")
-    void saveShouldPersistAndReturnSaved() {
-        when(jpa.save(any(DecisionObjetivoEntity.class))).thenReturn(entity(DECISION_ID.valor()));
+    void guardaLaEntidadArmadaDesdeElDominioYDevuelveLoPersistido() {
+        dadoQueGuardarDevuelveUnaDecision();
 
-        DecisionObjetivo result = repository.save(decision(TipoDecision.AVISO_APLICADO, AVISO_ID));
+        cuandoSeGuardaUnaDecisionDeAvisoAplicado();
 
-        ArgumentCaptor<DecisionObjetivoEntity> captor = ArgumentCaptor.forClass(DecisionObjetivoEntity.class);
-        verify(jpa).save(captor.capture());
-        assertThat(captor.getValue().getObjetivoId()).isEqualTo(OBJETIVO_ID.valor());
-        assertThat(captor.getValue().getAvisoId()).isEqualTo(AVISO_ID.valor());
-        assertThat(result.id()).isEqualTo(DECISION_ID);
+        entoncesSePersistioLaEntidadDelObjetivoYElAvisoYSeDevuelveLaDecision();
     }
 
     @Test
     @DisplayName("Lista las decisiones del objetivo en el orden de la consulta, con los UUID, y las mapea al dominio")
-    void findAllByObjetivoIdAndNegocioIdShouldMapInOrder() {
-        when(jpa.findAllByObjetivoIdAndNegocioIdOrderByTomadaEnDescIdDesc(OBJETIVO_ID.valor(), NEGOCIO_ID.valor()))
-                .thenReturn(List.of(entity(DECISION_ID.valor()), entity(OTRA_DECISION_ID.valor())));
+    void listaLasDecisionesDelObjetivoEnElOrdenDeLaConsultaConLosUuidYLasMapeaAlDominio() {
+        dadoQueElObjetivoTieneDosDecisiones();
 
-        List<DecisionObjetivo> result = repository.findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID);
+        cuandoSeListanLasDecisionesDelObjetivo();
 
-        assertThat(result).extracting(DecisionObjetivo::id).containsExactly(DECISION_ID, OTRA_DECISION_ID);
+        entoncesSeListanLasDosDecisionesEnOrden();
     }
 
     @Test
     @DisplayName("Devuelve una lista vacía cuando el objetivo no tiene decisiones")
-    void findAllByObjetivoIdAndNegocioIdShouldReturnEmpty() {
-        when(jpa.findAllByObjetivoIdAndNegocioIdOrderByTomadaEnDescIdDesc(OBJETIVO_ID.valor(), NEGOCIO_ID.valor()))
-                .thenReturn(List.of());
+    void devuelveUnaListaVaciaCuandoElObjetivoNoTieneDecisiones() {
+        dadoQueElObjetivoNoTieneDecisiones();
 
-        assertThat(repository.findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID)).isEmpty();
+        cuandoSeListanLasDecisionesDelObjetivo();
+
+        entoncesNoSeListaNingunaDecision();
     }
 
-    // --- helpers ---
+    // --- dado ---
+    private void dadoQueGuardarDevuelveUnaDecision() {
+        when(jpa.save(any(DecisionObjetivoEntity.class))).thenReturn(entity(DECISION_ID.valor()));
+    }
+
+    private void dadoQueElObjetivoTieneDosDecisiones() {
+        when(jpa.findAllByObjetivoIdAndNegocioIdOrderByTomadaEnDescIdDesc(OBJETIVO_ID.valor(), NEGOCIO_ID.valor()))
+                .thenReturn(List.of(entity(DECISION_ID.valor()), entity(OTRA_DECISION_ID.valor())));
+    }
+
+    private void dadoQueElObjetivoNoTieneDecisiones() {
+        when(jpa.findAllByObjetivoIdAndNegocioIdOrderByTomadaEnDescIdDesc(OBJETIVO_ID.valor(), NEGOCIO_ID.valor()))
+                .thenReturn(List.of());
+    }
+
     private static DecisionObjetivoEntity entity(UUID id) {
         return DecisionObjetivoEntity.builder()
                 .id(id)
@@ -77,5 +90,31 @@ class DecisionObjetivoRepositoryImplTest {
                 .tomadaEn(AHORA)
                 .semanaInicio(SEMANA)
                 .build();
+    }
+
+    // --- cuando ---
+    private void cuandoSeGuardaUnaDecisionDeAvisoAplicado() {
+        guardada = repository.save(decision(TipoDecision.AVISO_APLICADO, AVISO_ID));
+    }
+
+    private void cuandoSeListanLasDecisionesDelObjetivo() {
+        decisiones = repository.findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID);
+    }
+
+    // --- entonces ---
+    private void entoncesSePersistioLaEntidadDelObjetivoYElAvisoYSeDevuelveLaDecision() {
+        ArgumentCaptor<DecisionObjetivoEntity> captor = ArgumentCaptor.forClass(DecisionObjetivoEntity.class);
+        verify(jpa).save(captor.capture());
+        assertThat(captor.getValue().getObjetivoId()).isEqualTo(OBJETIVO_ID.valor());
+        assertThat(captor.getValue().getAvisoId()).isEqualTo(AVISO_ID.valor());
+        assertThat(guardada.id()).isEqualTo(DECISION_ID);
+    }
+
+    private void entoncesSeListanLasDosDecisionesEnOrden() {
+        assertThat(decisiones).extracting(DecisionObjetivo::id).containsExactly(DECISION_ID, OTRA_DECISION_ID);
+    }
+
+    private void entoncesNoSeListaNingunaDecision() {
+        assertThat(decisiones).isEmpty();
     }
 }

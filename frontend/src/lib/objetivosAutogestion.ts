@@ -2,6 +2,7 @@ import { formatoPesos } from '@/lib/objetivos';
 import type {
   DecisionesObjetivo,
   DecisionObjetivo,
+  MiniMedido,
   MiniObjetivo,
   TipoDecision,
   TipoMiniObjetivo,
@@ -49,6 +50,9 @@ export const DECISION: Record<TipoDecision, { simbolo: string; texto: string; cl
   AVISO_DESCARTADO: { simbolo: '✕', texto: 'Descartaste', clase: 'descartada' },
   PASO_ACEPTADO: { simbolo: '●', texto: 'Dijiste «lo hago»', clase: 'aceptada' },
   PASO_IGNORADO: { simbolo: '○', texto: 'Dejaste para después', clase: 'ignorada' },
+  MINI_HECHO: { simbolo: '✓', texto: 'Lo hiciste', clase: 'aplicada' },
+  MINI_EN_PARTE: { simbolo: '◐', texto: 'Lo hiciste en parte', clase: 'aceptada' },
+  MINI_NO_HECHO: { simbolo: '○', texto: 'No lo hiciste', clase: 'ignorada' },
 };
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -127,6 +131,15 @@ export function decisionDeLaSemana(
   return ultima.tipo === 'PASO_ACEPTADO' ? 'ACEPTADO' : 'IGNORADO';
 }
 
+const DIA_MS = 86_400_000;
+
+/** El lunes de unas semanas después (o antes, si son negativas), en YYYY-MM-DD. */
+export function sumarSemanas(lunes: string, semanas: number): string {
+  return new Date(new Date(`${lunes}T12:00:00Z`).getTime() + semanas * 7 * DIA_MS)
+    .toISOString()
+    .slice(0, 10);
+}
+
 /** El domingo en que cierra la semana de ese lunes. */
 export function domingoDe(lunes: string): string {
   return new Date(new Date(`${lunes}T12:00:00Z`).getTime() + 6 * 86_400_000)
@@ -146,7 +159,7 @@ export function partesDeMini(
 }
 
 /** Cuánto le falta al mini-objetivo para su meta, en su unidad; nada si ya llegó. */
-export function faltaParaLaMeta(mini: MiniObjetivo): string | null {
+export function faltaParaLaMeta(mini: MiniMedido): string | null {
   const falta =
     mini.sentido === 'BAJA' ? mini.valorActual - mini.meta : mini.meta - mini.valorActual;
   if (falta <= 0) return null;
@@ -191,7 +204,7 @@ export function estadoDeSami({
 export function cuantoCubren(minis: MiniObjetivo[], teFaltan: number): string | null {
   const suman = Math.round(
     minis
-      .filter((mini) => mini.estado === 'EN_CURSO')
+      .filter((mini): mini is MiniMedido => mini.modo === 'MEDIDO' && mini.estado === 'EN_CURSO')
       .reduce((total, mini) => total + Math.max(0, mini.aporteEstimado), 0),
   );
   if (teFaltan <= 0 || suman <= 0) return null;

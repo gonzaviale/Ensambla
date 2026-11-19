@@ -16,16 +16,35 @@ class BloqueLecturaParaElLectorTest {
     private static final BloqueId VENTAS_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
     private static final BloqueId CLIENTES_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
 
+    private BloqueLectura clientes;
+    private BloqueLectura ventas;
+    private BloqueConocido conocido;
+
     @Test
     @DisplayName("Le muestra a la IA cada columna con su tipo y el nombre de la tabla a la que apunta")
-    void paraElLectorShouldNameConnectedTables() {
-        BloqueLectura clientes = new BloqueLectura(CLIENTES_ID, "Clientes", List.of());
-        BloqueLectura ventas = new BloqueLectura(VENTAS_ID, "Ventas", List.of(
+    void leMuestraALaIaCadaColumnaConSuTipoYElNombreDeLaTablaALaQueApunta() {
+        dadoUnaTablaDeVentasConectadaAClientes();
+
+        cuandoSeDescribeLaTablaDeVentasParaElLector();
+
+        entoncesLaIaVeLasColumnasYLaTablaDeClientes();
+    }
+
+    // --- dado ---
+    private void dadoUnaTablaDeVentasConectadaAClientes() {
+        clientes = new BloqueLectura(CLIENTES_ID, "Clientes", List.of());
+        ventas = new BloqueLectura(VENTAS_ID, "Ventas", List.of(
                 new CampoConocido(CampoId.nuevo(), "Monto", TipoCampo.MONEDA, List.of()),
                 new CampoConocido(CampoId.nuevo(), "Cliente", TipoCampo.RELACION, List.of(), CLIENTES_ID)));
+    }
 
-        BloqueConocido conocido = ventas.paraElLector(List.of(ventas, clientes));
+    // --- cuando ---
+    private void cuandoSeDescribeLaTablaDeVentasParaElLector() {
+        conocido = ventas.paraElLector(List.of(ventas, clientes));
+    }
 
+    // --- entonces ---
+    private void entoncesLaIaVeLasColumnasYLaTablaDeClientes() {
         assertThat(conocido.id()).isEqualTo(VENTAS_ID);
         assertThat(conocido.nombre()).isEqualTo("Ventas");
         assertThat(conocido.campos()).extracting("nombre", "bloqueRelacionado")

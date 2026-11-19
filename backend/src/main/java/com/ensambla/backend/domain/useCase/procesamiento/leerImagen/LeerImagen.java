@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.model.procesamiento.BloqueDeImagen;
 import com.ensambla.backend.domain.model.procesamiento.LecturaImagen;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.model.procesamiento.PropuestaLectura;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
@@ -40,10 +41,14 @@ public class LeerImagen {
     public LeerImagenItem execute(LeerImagenRequest request) {
         ImagenCuaderno imagen = request.aImagenCuaderno();
         BloqueDeImagen bloque = request.aBloqueDeImagen();
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
         registrarConsumo(negocioId, OffsetDateTime.now(clock));
         LecturaImagen lectura = leer(imagen, bloque, request.destinoExistente());
         return LeerImagenItem.de(lectura, umbralConfianza);
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
     }
 
     /** Registra el intento antes de salir al proveedor; un fallo o timeout también puede tener costo. */

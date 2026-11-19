@@ -49,7 +49,7 @@ public class ReajusteMiniObjetivoEntity {
     @Column(name = "titulo_anterior", nullable = false, updatable = false, columnDefinition = "text")
     private String tituloAnterior;
 
-    @Column(name = "meta_anterior", nullable = false, updatable = false)
+    @Column(name = "meta_anterior", updatable = false)
     private BigDecimal metaAnterior;
 
     @Column(name = "titulo_nuevo", updatable = false, columnDefinition = "text")
