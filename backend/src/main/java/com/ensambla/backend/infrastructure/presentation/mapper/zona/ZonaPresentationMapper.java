@@ -14,8 +14,15 @@ import com.ensambla.backend.infrastructure.presentation.dto.zona.ZonaWebResponse
 import com.ensambla.backend.infrastructure.presentation.dto.zona.ZonaWebResponse;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+import java.util.Optional;
+
 @Component
 public class ZonaPresentationMapper {
+
+    private static final Map<String, VistaZona> VISTAS_PEDIDAS = Map.of(
+            "precios", VistaZona.PRECIOS,
+            "cerca", VistaZona.CERCA);
 
     /** La pantalla de Mi zona que pide los datos: «precios» o «qué se vende cerca». */
     public ObtenerZonaRequest toObtenerRequest(UsuarioId usuarioId, String vista) {
@@ -23,11 +30,8 @@ public class ZonaPresentationMapper {
     }
 
     private static VistaZona vistaDe(String vista) {
-        return switch (vista) {
-            case "precios" -> VistaZona.PRECIOS;
-            case "cerca" -> VistaZona.CERCA;
-            default -> throw new BusinessRuleException("La vista tiene que ser «precios» o «cerca»");
-        };
+        return Optional.ofNullable(VISTAS_PEDIDAS.get(vista))
+                .orElseThrow(() -> new BusinessRuleException("La vista tiene que ser «precios» o «cerca»"));
     }
 
     public AnalizarZonaRequest toAnalizarRequest(AnalizarZonaWebRequest request, UsuarioId usuarioId) {
