@@ -7,9 +7,7 @@ import {
   type Descartada,
   type ZonaPuntuada,
 } from '@/lib/dondeAbrir';
-
-/** Cuántos puestos subió (+) o bajó (−) una zona con el último cambio de filtros; `nueva` si antes estaba afuera. */
-export type CambioDePuesto = number | 'nueva';
+import type { CambioDePuesto } from '@/lib/dondeAbrirRecorrido';
 
 type Props = {
   ranking: ZonaPuntuada[];
