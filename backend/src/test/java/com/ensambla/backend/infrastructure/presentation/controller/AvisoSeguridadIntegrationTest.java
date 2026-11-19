@@ -39,6 +39,7 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.security.web.csrf.DefaultCsrfToken;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
@@ -95,128 +96,222 @@ class AvisoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     private UUID negocioId;
     private MockHttpSession sesion;
     private String csrfToken;
+    private UUID avisoId;
+    private UUID registroId;
+    private UUID precioId;
+    private ResultActions respuesta;
 
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        UUID usuarioId = givenUsuario();
-        negocioId = givenNegocio(usuarioId);
-        sesion = givenSesion(usuarioId);
+        UUID usuarioId = crearUsuario();
+        negocioId = crearNegocio(usuarioId);
+        sesion = crearSesion(usuarioId);
     }
 
     @Test
     @DisplayName("Listar devuelve sólo los avisos del negocio de la sesión, los pendientes primero")
-    void listarShouldReturnOnlyOwnAvisosPendingFirst() throws Exception {
-        UUID ajeno = givenNegocio(givenUsuario());
-        givenAviso(ajeno, "ajeno", EstadoAviso.PENDIENTE, List.of());
-        givenAviso(negocioId, "descartado", EstadoAviso.DESCARTADO, List.of());
-        givenAviso(negocioId, "propio", EstadoAviso.PENDIENTE, List.of());
+    void listarDevuelveSoloLosAvisosDelNegocioDeLaSesionLosPendientesPrimero() throws Exception {
+        dadoUnAvisoDeOtroNegocio();
+        dadoUnAvisoPropio("descartado", EstadoAviso.DESCARTADO);
+        dadoUnAvisoPropio("propio", EstadoAviso.PENDIENTE);
 
-        mockMvc.perform(get("/api/avisos").session(sesion))
-                .andExpect(status().isOk())
+        cuandoSeListanLosAvisos();
+
+        entoncesSeListanSoloLosAvisosPropiosConLosPendientesPrimero();
+    }
+
+    @Test
+    @DisplayName("El contador cuenta los pendientes propios y cuántos son urgentes")
+    void elContadorCuentaLosPendientesPropiosYCuantosSonUrgentes() throws Exception {
+        dadoUnAvisoDeOtroNegocio();
+        dadoUnAvisoPropio("uno", EstadoAviso.PENDIENTE);
+        dadoUnAvisoPropio("dos", EstadoAviso.DESCARTADO);
+
+        cuandoSePideElContadorDeAvisos();
+
+        entoncesSeCuentaUnPendienteUrgente();
+    }
+
+    @Test
+    @DisplayName("Aplicar cambia el precio del producto y cierra el aviso en una sola operación")
+    void aplicarCambiaElPrecioDelProductoYCierraElAvisoEnUnaSolaOperacion() throws Exception {
+        dadoUnAvisoQueCambiaElPrecioDeUnProducto();
+
+        cuandoSeAplicaElAviso();
+
+        entoncesElAvisoQuedaAplicado();
+        entoncesElProductoTieneElPrecioNuevo();
+    }
+
+    @Test
+    @DisplayName("Si la acción falla el aviso sigue pendiente")
+    void siLaAccionFallaElAvisoSigueSiendoPendiente() throws Exception {
+        dadoUnAvisoConUnaAccionRota();
+
+        cuandoSeAplicaElAviso();
+
+        entoncesSeRechazaElPedido();
+        entoncesElAvisoSigueSiendoPendiente();
+    }
+
+    @Test
+    @DisplayName("Aplicar un aviso ajeno devuelve 404 y no lo toca")
+    void aplicarUnAvisoAjenoDevuelve404YNoLoToca() throws Exception {
+        dadoUnAvisoDeOtroNegocio();
+
+        cuandoSeAplicaElAviso();
+
+        entoncesRespondeNoEncontrado();
+        entoncesElAvisoSigueSiendoPendiente();
+    }
+
+    @Test
+    @DisplayName("Descartar deja el aviso descartado con su fecha de resolución")
+    void descartarDejaElAvisoDescartadoConSuFechaDeResolucion() throws Exception {
+        dadoUnAvisoPropio("propio", EstadoAviso.PENDIENTE);
+
+        cuandoSeDescartaElAviso();
+
+        entoncesElAvisoQuedaDescartadoConSuFechaDeResolucion();
+    }
+
+    @Test
+    @DisplayName("Descartar dos veces el mismo aviso devuelve 400")
+    void descartarDosVecesElMismoAvisoDevuelve400() throws Exception {
+        dadoUnAvisoPropio("propio", EstadoAviso.DESCARTADO);
+
+        cuandoSeDescartaElAviso();
+
+        entoncesSeRechazaElPedido();
+    }
+
+    @Test
+    @DisplayName("Descartar sin CSRF devuelve 403")
+    void descartarSinCsrfDevuelve403() throws Exception {
+        dadoUnAvisoPropio("propio", EstadoAviso.PENDIENTE);
+
+        cuandoSeDescartaElAvisoSinCsrf();
+
+        entoncesSeProhibe();
+    }
+
+    @Test
+    @DisplayName("Listar avisos exige una sesión válida")
+    void listarAvisosExigeUnaSesionValida() throws Exception {
+        cuandoSeListanLosAvisosSinUsuario();
+
+        entoncesNoAutoriza();
+    }
+
+    // --- dado ---
+
+    private void dadoUnAvisoDeOtroNegocio() {
+        UUID ajeno = crearNegocio(crearUsuario());
+        avisoId = crearAviso(ajeno, "ajeno", EstadoAviso.PENDIENTE, List.of());
+    }
+
+    private void dadoUnAvisoPropio(String nombre, EstadoAviso estado) {
+        avisoId = crearAviso(negocioId, nombre, estado, List.of());
+    }
+
+    private void dadoUnAvisoQueCambiaElPrecioDeUnProducto() {
+        UUID bloqueId = crearBloque();
+        precioId = crearCampo(bloqueId, "Precio", "price");
+        registroId = crearRegistro(bloqueId, Map.of(precioId.toString(), 3500));
+        avisoId = crearAviso(negocioId, "precio", EstadoAviso.PENDIENTE, List.of(Map.of(
+                "tipo", "EDITAR_REGISTRO", "registroId", registroId.toString(), "valores", Map.of("price", 4200))));
+    }
+
+    private void dadoUnAvisoConUnaAccionRota() {
+        avisoId = crearAviso(negocioId, "roto", EstadoAviso.PENDIENTE, List.of(Map.of(
+                "tipo", "EDITAR_REGISTRO", "registroId", "no-es-un-id", "valores", Map.of("price", 1))));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeListanLosAvisos() throws Exception {
+        respuesta = mockMvc.perform(get("/api/avisos").session(sesion));
+    }
+
+    private void cuandoSeListanLosAvisosSinUsuario() throws Exception {
+        respuesta = mockMvc.perform(get("/api/avisos").session(crearSesionSinUsuario()));
+    }
+
+    private void cuandoSePideElContadorDeAvisos() throws Exception {
+        respuesta = mockMvc.perform(get("/api/avisos/contador").session(sesion));
+    }
+
+    private void cuandoSeAplicaElAviso() throws Exception {
+        respuesta = mockMvc.perform(post("/api/avisos/{id}/aplicar", avisoId)
+                .session(sesion).header("X-CSRF-TOKEN", csrfToken));
+    }
+
+    private void cuandoSeDescartaElAviso() throws Exception {
+        respuesta = mockMvc.perform(post("/api/avisos/{id}/descartar", avisoId)
+                .session(sesion).header("X-CSRF-TOKEN", csrfToken));
+    }
+
+    private void cuandoSeDescartaElAvisoSinCsrf() throws Exception {
+        respuesta = mockMvc.perform(post("/api/avisos/{id}/descartar", avisoId).session(sesion));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeListanSoloLosAvisosPropiosConLosPendientesPrimero() throws Exception {
+        respuesta.andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].huella").doesNotExist())
                 .andExpect(jsonPath("$[0].titulo").value("Aviso propio"))
                 .andExpect(jsonPath("$[1].titulo").value("Aviso descartado"));
     }
 
-    @Test
-    @DisplayName("El contador cuenta los pendientes propios y cuántos son urgentes")
-    void contarShouldCountOwnPendingAvisos() throws Exception {
-        givenAviso(givenNegocio(givenUsuario()), "ajeno", EstadoAviso.PENDIENTE, List.of());
-        givenAviso(negocioId, "uno", EstadoAviso.PENDIENTE, List.of());
-        givenAviso(negocioId, "dos", EstadoAviso.DESCARTADO, List.of());
-
-        mockMvc.perform(get("/api/avisos/contador").session(sesion))
-                .andExpect(status().isOk())
+    private void entoncesSeCuentaUnPendienteUrgente() throws Exception {
+        respuesta.andExpect(status().isOk())
                 .andExpect(jsonPath("$.pendientes").value(1))
                 .andExpect(jsonPath("$.urgentes").value(1));
     }
 
-    @Test
-    @DisplayName("Aplicar cambia el precio del producto y cierra el aviso en una sola operación")
-    void aplicarShouldEditRegistroAndCloseAviso() throws Exception {
-        UUID bloqueId = givenBloque();
-        UUID precioId = givenCampo(bloqueId, "Precio", "price");
-        UUID registroId = givenRegistro(bloqueId, Map.of(precioId.toString(), 3500));
-        UUID avisoId = givenAviso(negocioId, "precio", EstadoAviso.PENDIENTE, List.of(Map.of(
-                "tipo", "EDITAR_REGISTRO", "registroId", registroId.toString(), "valores", Map.of("price", 4200))));
-
-        mockMvc.perform(post("/api/avisos/{id}/aplicar", avisoId).session(sesion).header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.estado").value("APLICADO"));
-
+    private void entoncesElAvisoQuedaAplicado() throws Exception {
+        respuesta.andExpect(status().isOk()).andExpect(jsonPath("$.estado").value("APLICADO"));
         assertThat(avisos.findById(avisoId)).get().extracting(AvisoEntity::getEstado).isEqualTo(EstadoAviso.APLICADO);
+    }
+
+    private void entoncesElProductoTieneElPrecioNuevo() {
         assertThat(registros.findById(registroId).orElseThrow().getValores().get(precioId.toString()))
                 .isEqualTo(4200);
     }
 
-    @Test
-    @DisplayName("Si la acción falla el aviso sigue pendiente")
-    void aplicarShouldLeaveAvisoPendingWhenActionFails() throws Exception {
-        UUID avisoId = givenAviso(negocioId, "roto", EstadoAviso.PENDIENTE, List.of(Map.of(
-                "tipo", "EDITAR_REGISTRO", "registroId", "no-es-un-id", "valores", Map.of("price", 1))));
+    private void entoncesSeRechazaElPedido() throws Exception {
+        respuesta.andExpect(status().isBadRequest());
+    }
 
-        mockMvc.perform(post("/api/avisos/{id}/aplicar", avisoId).session(sesion).header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isBadRequest());
-
+    private void entoncesElAvisoSigueSiendoPendiente() {
         assertThat(avisos.findById(avisoId)).get().extracting(AvisoEntity::getEstado).isEqualTo(EstadoAviso.PENDIENTE);
     }
 
-    @Test
-    @DisplayName("Aplicar un aviso ajeno devuelve 404 y no lo toca")
-    void aplicarShouldHideForeignAviso() throws Exception {
-        UUID ajeno = givenNegocio(givenUsuario());
-        UUID avisoId = givenAviso(ajeno, "ajeno", EstadoAviso.PENDIENTE, List.of());
-
-        mockMvc.perform(post("/api/avisos/{id}/aplicar", avisoId).session(sesion).header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isNotFound());
-
-        assertThat(avisos.findById(avisoId)).get().extracting(AvisoEntity::getEstado).isEqualTo(EstadoAviso.PENDIENTE);
+    private void entoncesRespondeNoEncontrado() throws Exception {
+        respuesta.andExpect(status().isNotFound());
     }
 
-    @Test
-    @DisplayName("Descartar deja el aviso descartado con su fecha de resolución")
-    void descartarShouldDiscardOwnAviso() throws Exception {
-        UUID avisoId = givenAviso(negocioId, "propio", EstadoAviso.PENDIENTE, List.of());
-
-        mockMvc.perform(post("/api/avisos/{id}/descartar", avisoId).session(sesion)
-                        .header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isOk())
+    private void entoncesElAvisoQuedaDescartadoConSuFechaDeResolucion() throws Exception {
+        respuesta.andExpect(status().isOk())
                 .andExpect(jsonPath("$.estado").value("DESCARTADO"))
                 .andExpect(jsonPath("$.resueltoEn").exists());
-
         assertThat(avisos.findById(avisoId).orElseThrow().getResueltoEn()).isNotNull();
     }
 
-    @Test
-    @DisplayName("Descartar dos veces el mismo aviso devuelve 400")
-    void descartarShouldRejectAlreadyResolvedAviso() throws Exception {
-        UUID avisoId = givenAviso(negocioId, "propio", EstadoAviso.DESCARTADO, List.of());
-
-        mockMvc.perform(post("/api/avisos/{id}/descartar", avisoId).session(sesion)
-                        .header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isBadRequest());
+    private void entoncesSeProhibe() throws Exception {
+        respuesta.andExpect(status().isForbidden());
     }
 
-    @Test
-    @DisplayName("Descartar sin CSRF devuelve 403")
-    void descartarShouldRequireCsrf() throws Exception {
-        UUID avisoId = givenAviso(negocioId, "propio", EstadoAviso.PENDIENTE, List.of());
-
-        mockMvc.perform(post("/api/avisos/{id}/descartar", avisoId).session(sesion))
-                .andExpect(status().isForbidden());
+    private void entoncesNoAutoriza() throws Exception {
+        respuesta.andExpect(status().isUnauthorized());
     }
 
-    @Test
-    @DisplayName("Listar avisos exige una sesión válida")
-    void listarShouldRequireSession() throws Exception {
-        mockMvc.perform(get("/api/avisos").session(givenSesionSinUsuario()))
-                .andExpect(status().isUnauthorized());
-    }
+    // --- datos ---
 
-    // --- arrange ---
-    private UUID givenUsuario() {
+    private UUID crearUsuario() {
         return usuarios.saveAndFlush(UsuarioEntity.builder()
                 .nombre("Persona")
                 .email(UUID.randomUUID() + "@example.com")
@@ -226,7 +321,7 @@ class AvisoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenNegocio(UUID usuarioId) {
+    private UUID crearNegocio(UUID usuarioId) {
         UUID creado = negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(usuarioId)
@@ -237,7 +332,7 @@ class AvisoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
         return creado;
     }
 
-    private UUID givenBloque() {
+    private UUID crearBloque() {
         UUID proyectoId = proyectos.saveAndFlush(ProyectoEntity.builder()
                 .negocioId(negocioId).nombre("Inventario").creadoEn(AHORA).actualizadoEn(AHORA)
                 .build()).getId();
@@ -247,7 +342,7 @@ class AvisoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenCampo(UUID bloqueId, String nombre, String clave) {
+    private UUID crearCampo(UUID bloqueId, String nombre, String clave) {
         return campos.saveAndFlush(CampoEntity.builder()
                 .negocioId(negocioId).bloqueId(bloqueId).nombre(nombre).clave(clave).tipo(TipoCampo.MONEDA)
                 .obligatorio(false).opciones(List.of()).minimo(BigDecimal.ZERO).posicion((short) 0)
@@ -255,25 +350,26 @@ class AvisoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenRegistro(UUID bloqueId, Map<String, Object> valores) {
+    private UUID crearRegistro(UUID bloqueId, Map<String, Object> valores) {
         return registros.saveAndFlush(RegistroEntity.builder()
                 .negocioId(negocioId).bloqueId(bloqueId).valores(new LinkedHashMap<>(valores))
                 .creadoEn(AHORA).actualizadoEn(AHORA)
                 .build()).getId();
     }
 
-    private UUID givenAviso(UUID dueno, String nombre, EstadoAviso estado, List<Object> acciones) {
+    private UUID crearAviso(UUID dueno, String nombre, EstadoAviso estado, List<Object> acciones) {
+        boolean pendiente = estado == EstadoAviso.PENDIENTE;
         return avisos.saveAndFlush(AvisoEntity.builder()
                 .negocioId(dueno).tipo(TipoAviso.STOCK).grupo(GrupoAviso.STOCK).prioridad((short) 3)
                 .entidad("registro:" + nombre).huella("STOCK:registro:" + nombre + ":" + UUID.randomUUID())
                 .titulo("Aviso " + nombre).detalle("detalle").acciones(acciones).estado(estado)
-                .resueltoEn(estado == EstadoAviso.PENDIENTE ? null : AHORA)
-                .creadoEn(estado == EstadoAviso.PENDIENTE ? AHORA : AHORA.minusHours(1)).actualizadoEn(AHORA)
+                .resueltoEn(pendiente ? null : AHORA)
+                .creadoEn(pendiente ? AHORA : AHORA.minusHours(1)).actualizadoEn(AHORA)
                 .build()).getId();
     }
 
-    private MockHttpSession givenSesion(UUID usuarioId) throws Exception {
-        MockHttpSession session = givenSesionSinUsuario();
+    private MockHttpSession crearSesion(UUID usuarioId) throws Exception {
+        MockHttpSession session = crearSesionSinUsuario();
         var securityContext = SecurityContextHolder.createEmptyContext();
         securityContext.setAuthentication(
                 UsernamePasswordAuthenticationToken.authenticated(usuarioId.toString(), null, List.of()));
@@ -281,15 +377,15 @@ class AvisoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
         return session;
     }
 
-    private MockHttpSession givenSesionSinUsuario() throws Exception {
+    private MockHttpSession crearSesionSinUsuario() throws Exception {
         MockHttpSession session = new MockHttpSession();
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setSession(session);
         new HttpSessionCsrfTokenRepository().saveToken(
                 new DefaultCsrfToken("X-CSRF-TOKEN", "_csrf", "token"), request, new MockHttpServletResponse());
-        String body = mockMvc.perform(get("/api/auth/csrf").session(session))
+        String cuerpo = mockMvc.perform(get("/api/auth/csrf").session(session))
                 .andReturn().getResponse().getContentAsString();
-        csrfToken = JsonMapper.builder().build().readValue(body, CsrfResponse.class).token();
+        csrfToken = JsonMapper.builder().build().readValue(cuerpo, CsrfResponse.class).token();
         return session;
     }
 }
