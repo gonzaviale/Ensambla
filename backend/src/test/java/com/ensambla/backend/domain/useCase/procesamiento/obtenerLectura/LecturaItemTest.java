@@ -16,41 +16,68 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class LecturaItemTest {
 
+    private LecturaItem item;
+    private PropuestaItem propuesta;
+
     @Test
     @DisplayName("Una lectura sin propuesta (todavía en proceso o con error) no trae propuesta")
-    void deShouldHaveNoProposalWhenMissing() {
-        LecturaItem item = LecturaItem.de(new EstadoLectura(
-                ProcesamientoTestData.LOTE_ID, EstadoLote.ERROR, "Falló", 2, null));
+    void unaLecturaSinPropuestaNoTraePropuesta() {
+        cuandoSeArmaElItemDeUnaLecturaConError();
 
+        entoncesElItemNoTraePropuestaYConservaElMotivoDelError();
+    }
+
+    @Test
+    @DisplayName("Devuelve la propuesta con el mapeo y los campos nuevos detectados")
+    void devuelveLaPropuestaConElMapeoYLosCamposNuevosDetectados() {
+        cuandoSeArmaLaPropuestaConUnCampoNuevoDeTelefono();
+
+        entoncesLaPropuestaTraeElMapeoYElCampoNuevo();
+    }
+
+    @Test
+    @DisplayName("Sin campos nuevos devuelve la lista vacía")
+    void sinCamposNuevosDevuelveLaListaVacia() {
+        cuandoSeArmaLaPropuestaSinCamposNuevos();
+
+        entoncesNoHayCamposNuevos();
+    }
+
+    // --- cuando ---
+    private void cuandoSeArmaElItemDeUnaLecturaConError() {
+        item = LecturaItem.de(new EstadoLectura(ProcesamientoTestData.LOTE_ID, EstadoLote.ERROR, "Falló", 2, null));
+    }
+
+    private void cuandoSeArmaLaPropuestaConUnCampoNuevoDeTelefono() {
+        CampoPropuesto telefono = new CampoPropuesto("telefono", "Teléfono", TipoCampo.TEXTO, List.of());
+        PropuestaLectura lectura = new PropuestaLectura(ProcesamientoTestData.lectura(),
+                Map.of("monto", ProcesamientoTestData.CAMPO_ID), List.of(telefono));
+        propuesta = LecturaItem.de(new EstadoLectura(
+                ProcesamientoTestData.LOTE_ID, EstadoLote.LISTO, null, 1, lectura)).propuesta();
+    }
+
+    private void cuandoSeArmaLaPropuestaSinCamposNuevos() {
+        propuesta = LecturaItem.de(new EstadoLectura(ProcesamientoTestData.LOTE_ID, EstadoLote.LISTO,
+                null, 1, ProcesamientoTestData.propuesta())).propuesta();
+    }
+
+    // --- entonces ---
+    private void entoncesElItemNoTraePropuestaYConservaElMotivoDelError() {
         assertThat(item.propuesta()).isNull();
         assertThat(item.estado()).isEqualTo("ERROR");
         assertThat(item.motivoError()).isEqualTo("Falló");
     }
 
-    @Test
-    @DisplayName("Devuelve la propuesta con el mapeo y los campos nuevos detectados")
-    void deShouldIncludeMappingAndNewFields() {
-        CampoPropuesto telefono = new CampoPropuesto("telefono", "Teléfono", TipoCampo.TEXTO, List.of());
-        PropuestaLectura propuesta = new PropuestaLectura(ProcesamientoTestData.lectura(),
-                Map.of("monto", ProcesamientoTestData.CAMPO_ID), List.of(telefono));
-
-        PropuestaItem item = LecturaItem.de(new EstadoLectura(
-                ProcesamientoTestData.LOTE_ID, EstadoLote.LISTO, null, 1, propuesta)).propuesta();
-
-        assertThat(item.mapeoCampos()).containsEntry("monto", ProcesamientoTestData.CAMPO_ID);
-        assertThat(item.camposNuevos()).containsExactly(
+    private void entoncesLaPropuestaTraeElMapeoYElCampoNuevo() {
+        assertThat(propuesta.mapeoCampos()).containsEntry("monto", ProcesamientoTestData.CAMPO_ID);
+        assertThat(propuesta.camposNuevos()).containsExactly(
                 new PropuestaItem.CampoItem("telefono", "Teléfono", "TEXTO", List.of()));
-        assertThat(item.campos()).extracting(PropuestaItem.CampoItem::clave).containsExactly("monto");
-        assertThat(item.filas()).hasSize(1);
-        assertThat(item.consumo().versionPrompt()).isEqualTo("v1");
+        assertThat(propuesta.campos()).extracting(PropuestaItem.CampoItem::clave).containsExactly("monto");
+        assertThat(propuesta.filas()).hasSize(1);
+        assertThat(propuesta.consumo().versionPrompt()).isEqualTo("v1");
     }
 
-    @Test
-    @DisplayName("Sin campos nuevos devuelve la lista vacía")
-    void deShouldReturnEmptyNewFieldsWhenNone() {
-        PropuestaItem item = LecturaItem.de(new EstadoLectura(ProcesamientoTestData.LOTE_ID, EstadoLote.LISTO,
-                null, 1, ProcesamientoTestData.propuesta())).propuesta();
-
-        assertThat(item.camposNuevos()).isEmpty();
+    private void entoncesNoHayCamposNuevos() {
+        assertThat(propuesta.camposNuevos()).isEmpty();
     }
 }
