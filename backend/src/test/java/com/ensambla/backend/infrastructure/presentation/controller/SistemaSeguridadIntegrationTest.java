@@ -26,6 +26,7 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.security.web.csrf.DefaultCsrfToken;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
@@ -74,6 +75,13 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     private MockHttpSession sesion;
     private String csrfToken;
 
+    private ResultActions respuesta;
+    private ResultActions segundaRespuesta;
+    private ResultActions terceraRespuesta;
+    private String body;
+
+    private MockHttpSession ajena;
+
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
@@ -85,207 +93,133 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Un sistema recién guardado vuelve completo en la lista, con ids, columnas y filas")
     void unSistemaRecienGuardadoVuelveCompletoEnLaListaConIdsColumnasYFilas() throws Exception {
-        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json").content(dadoBody("Mi almacén")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(SISTEMA_UUID.toString()));
+        cuandoSeEjecutaUnSistemaRecienGuardadoVuelveCompletoEnLaListaConIdsColumnasYFilas();
 
-        mockMvc.perform(get("/api/sistemas").session(sesion))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value(SISTEMA_UUID.toString()))
-                .andExpect(jsonPath("$[0].name").value("Mi almacén"))
-                .andExpect(jsonPath("$[0].template").value("shop"))
-                .andExpect(jsonPath("$[0].options.movements").value(true))
-                .andExpect(jsonPath("$[0].sections[0].blocks[0].type").value("inventory"))
-                .andExpect(jsonPath("$[0].sections[0].blocks[0].fields[0].key").value("name"))
-                .andExpect(jsonPath("$[0].sections[0].blocks[0].fields[1].key").value("price"))
-                .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[0].name").value("Harina"))
-                .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[0].price").value(1200))
-                .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[1].name").value("Azúcar"));
+        entoncesSeVerificaUnSistemaRecienGuardadoVuelveCompletoEnLaListaConIdsColumnasYFilas();
     }
 
     @Test
     @DisplayName("Guardar otra vez reemplaza en vez de duplicar")
     void guardarOtraVezReemplazaEnVezDeDuplicar() throws Exception {
-        for (String nombre : List.of("Primero", "Segundo")) {
-            mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                            .contentType("application/json").content(dadoBody(nombre)))
-                    .andExpect(status().isOk());
-        }
+        cuandoSeEjecutaGuardarOtraVezReemplazaEnVezDeDuplicar();
 
-        mockMvc.perform(get("/api/sistemas").session(sesion))
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].name").value("Segundo"));
+        entoncesSeVerificaGuardarOtraVezReemplazaEnVezDeDuplicar();
     }
 
     @Test
     @DisplayName("La lista contiene sólo sistemas del negocio autenticado")
     void laListaContieneSoloSistemasDelNegocioAutenticado() throws Exception {
-        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                .contentType("application/json").content(dadoBody("Propio"))).andExpect(status().isOk());
-        MockHttpSession ajena = dadoSesion(UsuarioId.de(dadoUsuarioConNegocio()));
+        cuandoSeEjecutaLaListaContieneSoloSistemasDelNegocioAutenticado();
 
-        mockMvc.perform(get("/api/sistemas").session(ajena))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
+        entoncesSeVerificaLaListaContieneSoloSistemasDelNegocioAutenticado();
     }
 
     @Test
     @DisplayName("Guardar un sistema que es de otro negocio responde 404 y no lo modifica")
     void guardarUnSistemaQueEsDeOtroNegocioResponde404YNoLoModifica() throws Exception {
-        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                .contentType("application/json").content(dadoBody("Propio"))).andExpect(status().isOk());
-        MockHttpSession ajena = dadoSesion(UsuarioId.de(dadoUsuarioConNegocio()));
+        cuandoSeEjecutaGuardarUnSistemaQueEsDeOtroNegocioResponde404YNoLoModifica();
 
-        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(ajena).header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json").content(dadoBody("Robado")))
-                .andExpect(status().isNotFound());
-
-        assertThat(proyectos.findById(SISTEMA_UUID).orElseThrow().getNombre()).isEqualTo("Propio");
-        assertThat(proyectos.findById(SISTEMA_UUID).orElseThrow().getNegocioId()).isEqualTo(negocioId.valor());
+        entoncesSeVerificaGuardarUnSistemaQueEsDeOtroNegocioResponde404YNoLoModifica();
     }
 
     @Test
     @DisplayName("Un cuerpo inválido responde 400 y no guarda nada")
     void unCuerpoInvalidoResponde400YNoGuardaNada() throws Exception {
-        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json").content("{\"name\":\"Sin secciones\",\"sections\":[]}"))
-                .andExpect(status().isBadRequest());
+        cuandoSeEjecutaUnCuerpoInvalidoResponde400YNoGuardaNada();
 
-        assertThat(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(negocioId.valor())).isEmpty();
+        entoncesSeVerificaUnCuerpoInvalidoResponde400YNoGuardaNada();
     }
 
     @Test
     @DisplayName("Guardar sin CSRF devuelve 403 y sin sesión 401")
     void guardarSinCSRFDevuelve403YSinSesion401() throws Exception {
-        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion)
-                        .contentType("application/json").content(dadoBody("Mi almacén")))
-                .andExpect(status().isForbidden());
-        mockMvc.perform(get("/api/sistemas")).andExpect(status().isUnauthorized());
+        cuandoSeEjecutaGuardarSinCSRFDevuelve403YSinSesion401();
 
-        assertThat(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(negocioId.valor())).isEmpty();
+        entoncesSeVerificaGuardarSinCSRFDevuelve403YSinSesion401();
     }
 
     @Test
     @DisplayName("Eliminar borra el sistema y se puede repetir sin error; uno ajeno no se borra")
     void eliminarBorraElSistemaYSePuedeRepetirSinErrorUnoAjenoNoSeBorra() throws Exception {
-        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                .contentType("application/json").content(dadoBody("Propio"))).andExpect(status().isOk());
-        MockHttpSession ajena = dadoSesion(UsuarioId.de(dadoUsuarioConNegocio()));
+        dadoUnSistemaPropioGuardadoYUnaSesionAjena();
 
-        mockMvc.perform(delete("/api/sistemas/{id}", SISTEMA_ID).session(ajena).header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isNoContent());
-        assertThat(proyectos.findById(SISTEMA_UUID)).isPresent();
+        cuandoLaSesionAjenaIntentaEliminarElSistema();
 
-        for (int i = 0; i < 2; i++) {
-            mockMvc.perform(delete("/api/sistemas/{id}", SISTEMA_ID).session(sesion).header("X-CSRF-TOKEN", csrfToken))
-                    .andExpect(status().isNoContent());
-        }
-        assertThat(proyectos.findById(SISTEMA_UUID)).isEmpty();
+        entoncesElSistemaAjenoNoSeBorra();
+
+        cuandoElDuenioEliminaElSistemaDosVeces();
+
+        entoncesElSistemaSeBorraYLaRepeticionNoFalla();
     }
 
     @Test
     @DisplayName("Sin preferencias guardadas devuelve las iniciales y un PUT las conserva")
     void sinPreferenciasGuardadasDevuelveLasInicialesYUnPUTLasConserva() throws Exception {
-        mockMvc.perform(get("/api/preferencias").session(sesion))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.descartadas.length()").value(0))
-                .andExpect(jsonPath("$.bienvenidaVista").value(false))
-                .andExpect(jsonPath("$.nombre").doesNotExist());
+        cuandoSeEjecutaSinPreferenciasGuardadasDevuelveLasInicialesYUnPUTLasConserva();
 
-        mockMvc.perform(put("/api/preferencias").session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json")
-                        .content("{\"descartadas\":[\"a1\"],\"grupos\":{\"ZONA\":false},"
-                                + "\"bienvenidaVista\":true,\"nombre\":\"Gonza\"}"))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(get("/api/preferencias").session(sesion))
-                .andExpect(jsonPath("$.descartadas[0]").value("a1"))
-                .andExpect(jsonPath("$.grupos.ZONA").value(false))
-                .andExpect(jsonPath("$.bienvenidaVista").value(true))
-                .andExpect(jsonPath("$.nombre").value("Gonza"));
+        entoncesSeVerificaSinPreferenciasGuardadasDevuelveLasInicialesYUnPUTLasConserva();
     }
 
     @Test
     @DisplayName("Un negocio sin zona recibe una zona vacía en vez de un error")
     void unNegocioSinZonaRecibeUnaZonaVaciaEnVezDeUnError() throws Exception {
-        mockMvc.perform(get("/api/zona/agregados").session(sesion))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nombre").value(""))
-                .andExpect(jsonPath("$.comercios").value(0))
-                .andExpect(jsonPath("$.productos.length()").value(0));
+        cuandoSeEjecutaUnNegocioSinZonaRecibeUnaZonaVaciaEnVezDeUnError();
+
+        entoncesSeVerificaUnNegocioSinZonaRecibeUnaZonaVaciaEnVezDeUnError();
     }
 
     @Test
     @DisplayName("Analizar un lugar que no es una zona conocida ni una dirección buscable responde 400")
     void analizarUnLugarQueNoEsUnaZonaConocidaNiUnaDireccionBuscableResponde400() throws Exception {
-        mockMvc.perform(post("/api/zona/analisis").session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json").content("{\"lugar\":\"xy\"}"))
-                .andExpect(status().isBadRequest());
+        cuandoSeEjecutaAnalizarUnLugarQueNoEsUnaZonaConocidaNiUnaDireccionBuscableResponde400();
+
+        entoncesSeVerificaAnalizarUnLugarQueNoEsUnaZonaConocidaNiUnaDireccionBuscableResponde400();
     }
 
     @Test
     @DisplayName("El catálogo incluido requiere sesión y responde desde el backend")
     void elCatalogoIncluidoRequiereSesionYRespondeDesdeElBackend() throws Exception {
-        mockMvc.perform(get("/api/catalogos/sepa/7790895000997"))
-                .andExpect(status().isUnauthorized());
+        cuandoSeEjecutaElCatalogoIncluidoRequiereSesionYRespondeDesdeElBackend();
 
-        mockMvc.perform(get("/api/catalogos/sepa/7790895000997").session(sesion))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.producto.codigo").value("7790895000997"));
+        entoncesSeVerificaElCatalogoIncluidoRequiereSesionYRespondeDesdeElBackend();
     }
 
     @Test
     @DisplayName("Guarda el código como texto y recarga el producto con su stock real desde PostgreSQL")
     void guardaElCodigoComoTextoYRecargaElProductoConSuStockRealDesdePostgreSQL() throws Exception {
-        String body = dadoBodyConCodigos("07790895000997", "77903754");
+        dadoElEscenarioDeGuardaElCodigoComoTextoYRecargaElProductoConSuStockRealDesdePostgreSQL();
 
-        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion)
-                        .header("X-CSRF-TOKEN", csrfToken).contentType("application/json").content(body))
-                .andExpect(status().isOk());
+        cuandoSeEjecutaGuardaElCodigoComoTextoYRecargaElProductoConSuStockRealDesdePostgreSQL();
 
-        mockMvc.perform(get("/api/sistemas").session(sesion))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[0].barcode").value("07790895000997"))
-                .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[0].quantity").value(14))
-                .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[1].barcode").value("77903754"));
+        entoncesSeVerificaGuardaElCodigoComoTextoYRecargaElProductoConSuStockRealDesdePostgreSQL();
     }
 
     @Test
     @DisplayName("El backend rechaza códigos equivalentes duplicados sin guardar parcialmente")
     void elBackendRechazaCodigosEquivalentesDuplicadosSinGuardarParcialmente() throws Exception {
-        String body = dadoBodyConCodigos("77903754", "00000077903754");
+        dadoElEscenarioDeElBackendRechazaCodigosEquivalentesDuplicadosSinGuardarParcialmente();
 
-        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion)
-                        .header("X-CSRF-TOKEN", csrfToken).contentType("application/json").content(body))
-                .andExpect(status().isConflict());
+        cuandoSeEjecutaElBackendRechazaCodigosEquivalentesDuplicadosSinGuardarParcialmente();
 
-        mockMvc.perform(get("/api/sistemas").session(sesion))
-                .andExpect(jsonPath("$.length()").value(0));
+        entoncesSeVerificaElBackendRechazaCodigosEquivalentesDuplicadosSinGuardarParcialmente();
     }
 
     @Test
     @DisplayName("El backend rechaza un código de control inválido aunque se omita la validación del navegador")
     void elBackendRechazaUnCodigoDeControlInvalidoAunqueSeOmitaLaValidacionDelNavegador() throws Exception {
-        String body = dadoBodyConCodigos("77903755", "77905741");
+        dadoElEscenarioDeElBackendRechazaUnCodigoDeControlInvalidoAunqueSeOmitaLaValidacionDelNavegador();
 
-        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion)
-                        .header("X-CSRF-TOKEN", csrfToken).contentType("application/json").content(body))
-                .andExpect(status().isBadRequest());
+        cuandoSeEjecutaElBackendRechazaUnCodigoDeControlInvalidoAunqueSeOmitaLaValidacionDelNavegador();
 
-        mockMvc.perform(get("/api/sistemas").session(sesion))
-                .andExpect(jsonPath("$.length()").value(0));
+        entoncesSeVerificaElBackendRechazaUnCodigoDeControlInvalidoAunqueSeOmitaLaValidacionDelNavegador();
     }
 
     @Test
     @DisplayName("Un código inválido o una fuente desconocida se rechazan antes de consultar al proveedor")
     void unCodigoInvalidoOUnaFuenteDesconocidaSeRechazanAntesDeConsultarAlProveedor() throws Exception {
-        mockMvc.perform(get("/api/catalogos/sepa/77903755").session(sesion))
-                .andExpect(status().isBadRequest());
+        cuandoSeEjecutaUnCodigoInvalidoOUnaFuenteDesconocidaSeRechazanAntesDeConsultarAlProveedor();
 
-        mockMvc.perform(get("/api/catalogos/desconocida/77903754").session(sesion))
-                .andExpect(status().isBadRequest());
+        entoncesSeVerificaUnCodigoInvalidoOUnaFuenteDesconocidaSeRechazanAntesDeConsultarAlProveedor();
     }
 
     // --- dado ---
@@ -351,5 +285,262 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 UsernamePasswordAuthenticationToken.authenticated(usuarioId.toString(), null, List.of()));
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, securityContext);
         return session;
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeGuardaElCodigoComoTextoYRecargaElProductoConSuStockRealDesdePostgreSQL() throws Exception {
+        body = dadoBodyConCodigos("07790895000997", "77903754");
+    }
+
+    private void dadoElEscenarioDeElBackendRechazaCodigosEquivalentesDuplicadosSinGuardarParcialmente() throws Exception {
+        body = dadoBodyConCodigos("77903754", "00000077903754");
+    }
+
+    private void dadoElEscenarioDeElBackendRechazaUnCodigoDeControlInvalidoAunqueSeOmitaLaValidacionDelNavegador() throws Exception {
+        body = dadoBodyConCodigos("77903755", "77905741");
+    }
+
+    private void dadoUnSistemaPropioGuardadoYUnaSesionAjena() throws Exception {
+        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion).header("X-CSRF-TOKEN", csrfToken)
+                .contentType("application/json").content(dadoBody("Propio"))).andExpect(status().isOk());
+        ajena = dadoSesion(UsuarioId.de(dadoUsuarioConNegocio()));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaUnSistemaRecienGuardadoVuelveCompletoEnLaListaConIdsColumnasYFilas() throws Exception {
+        respuesta = mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion).header("X-CSRF-TOKEN", csrfToken)
+                        .contentType("application/json").content(dadoBody("Mi almacén")));
+        segundaRespuesta = mockMvc.perform(get("/api/sistemas").session(sesion));
+    }
+
+    private void cuandoSeEjecutaGuardarOtraVezReemplazaEnVezDeDuplicar() throws Exception {
+        for (String nombre : List.of("Primero", "Segundo")) {
+            mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion).header("X-CSRF-TOKEN", csrfToken)
+                            .contentType("application/json").content(dadoBody(nombre)))
+                    .andExpect(status().isOk());
+        }
+
+        mockMvc.perform(get("/api/sistemas").session(sesion))
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].name").value("Segundo"));
+    }
+
+    private void cuandoSeEjecutaLaListaContieneSoloSistemasDelNegocioAutenticado() throws Exception {
+        respuesta = mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion).header("X-CSRF-TOKEN", csrfToken)
+                .contentType("application/json").content(dadoBody("Propio")));
+        MockHttpSession ajena = dadoSesion(UsuarioId.de(dadoUsuarioConNegocio()));
+        segundaRespuesta = mockMvc.perform(get("/api/sistemas").session(ajena));
+    }
+
+    private void cuandoSeEjecutaGuardarUnSistemaQueEsDeOtroNegocioResponde404YNoLoModifica() throws Exception {
+        respuesta = mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion).header("X-CSRF-TOKEN", csrfToken)
+                .contentType("application/json").content(dadoBody("Propio")));
+        MockHttpSession ajena = dadoSesion(UsuarioId.de(dadoUsuarioConNegocio()));
+        segundaRespuesta = mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(ajena).header("X-CSRF-TOKEN", csrfToken)
+                        .contentType("application/json").content(dadoBody("Robado")));
+    }
+
+    private void cuandoSeEjecutaUnCuerpoInvalidoResponde400YNoGuardaNada() throws Exception {
+        respuesta = mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion).header("X-CSRF-TOKEN", csrfToken)
+                        .contentType("application/json").content("{\"name\":\"Sin secciones\",\"sections\":[]}"));
+    }
+
+    private void cuandoSeEjecutaGuardarSinCSRFDevuelve403YSinSesion401() throws Exception {
+        respuesta = mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion)
+                        .contentType("application/json").content(dadoBody("Mi almacén")));
+        segundaRespuesta = mockMvc.perform(get("/api/sistemas"));
+    }
+
+    private void cuandoSeEjecutaSinPreferenciasGuardadasDevuelveLasInicialesYUnPUTLasConserva() throws Exception {
+        respuesta = mockMvc.perform(get("/api/preferencias").session(sesion));
+        segundaRespuesta = mockMvc.perform(put("/api/preferencias").session(sesion).header("X-CSRF-TOKEN", csrfToken)
+                        .contentType("application/json")
+                        .content("{\"descartadas\":[\"a1\"],\"grupos\":{\"ZONA\":false},"
+                                + "\"bienvenidaVista\":true,\"nombre\":\"Gonza\"}"));
+        terceraRespuesta = mockMvc.perform(get("/api/preferencias").session(sesion));
+    }
+
+    private void cuandoSeEjecutaUnNegocioSinZonaRecibeUnaZonaVaciaEnVezDeUnError() throws Exception {
+        respuesta = mockMvc.perform(get("/api/zona/agregados").session(sesion));
+    }
+
+    private void cuandoSeEjecutaAnalizarUnLugarQueNoEsUnaZonaConocidaNiUnaDireccionBuscableResponde400() throws Exception {
+        respuesta = mockMvc.perform(post("/api/zona/analisis").session(sesion).header("X-CSRF-TOKEN", csrfToken)
+                        .contentType("application/json").content("{\"lugar\":\"xy\"}"));
+    }
+
+    private void cuandoSeEjecutaElCatalogoIncluidoRequiereSesionYRespondeDesdeElBackend() throws Exception {
+        respuesta = mockMvc.perform(get("/api/catalogos/sepa/7790895000997"));
+        segundaRespuesta = mockMvc.perform(get("/api/catalogos/sepa/7790895000997").session(sesion));
+    }
+
+    private void cuandoSeEjecutaGuardaElCodigoComoTextoYRecargaElProductoConSuStockRealDesdePostgreSQL() throws Exception {
+        respuesta = mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion)
+                        .header("X-CSRF-TOKEN", csrfToken).contentType("application/json").content(body));
+        segundaRespuesta = mockMvc.perform(get("/api/sistemas").session(sesion));
+    }
+
+    private void cuandoSeEjecutaElBackendRechazaCodigosEquivalentesDuplicadosSinGuardarParcialmente() throws Exception {
+        respuesta = mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion)
+                        .header("X-CSRF-TOKEN", csrfToken).contentType("application/json").content(body));
+        segundaRespuesta = mockMvc.perform(get("/api/sistemas").session(sesion));
+    }
+
+    private void cuandoSeEjecutaElBackendRechazaUnCodigoDeControlInvalidoAunqueSeOmitaLaValidacionDelNavegador() throws Exception {
+        respuesta = mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion)
+                        .header("X-CSRF-TOKEN", csrfToken).contentType("application/json").content(body));
+        segundaRespuesta = mockMvc.perform(get("/api/sistemas").session(sesion));
+    }
+
+    private void cuandoSeEjecutaUnCodigoInvalidoOUnaFuenteDesconocidaSeRechazanAntesDeConsultarAlProveedor() throws Exception {
+        respuesta = mockMvc.perform(get("/api/catalogos/sepa/77903755").session(sesion));
+        segundaRespuesta = mockMvc.perform(get("/api/catalogos/desconocida/77903754").session(sesion));
+    }
+
+    private void cuandoLaSesionAjenaIntentaEliminarElSistema() throws Exception {
+        respuesta = mockMvc.perform(delete("/api/sistemas/{id}", SISTEMA_ID).session(ajena)
+                .header("X-CSRF-TOKEN", csrfToken));
+    }
+
+    private void cuandoElDuenioEliminaElSistemaDosVeces() throws Exception {
+        segundaRespuesta = mockMvc.perform(delete("/api/sistemas/{id}", SISTEMA_ID).session(sesion)
+                .header("X-CSRF-TOKEN", csrfToken));
+        terceraRespuesta = mockMvc.perform(delete("/api/sistemas/{id}", SISTEMA_ID).session(sesion)
+                .header("X-CSRF-TOKEN", csrfToken));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaUnSistemaRecienGuardadoVuelveCompletoEnLaListaConIdsColumnasYFilas() throws Exception {
+        respuesta
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(SISTEMA_UUID.toString()));
+        segundaRespuesta
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(SISTEMA_UUID.toString()))
+                .andExpect(jsonPath("$[0].name").value("Mi almacén"))
+                .andExpect(jsonPath("$[0].template").value("shop"))
+                .andExpect(jsonPath("$[0].options.movements").value(true))
+                .andExpect(jsonPath("$[0].sections[0].blocks[0].type").value("inventory"))
+                .andExpect(jsonPath("$[0].sections[0].blocks[0].fields[0].key").value("name"))
+                .andExpect(jsonPath("$[0].sections[0].blocks[0].fields[1].key").value("price"))
+                .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[0].name").value("Harina"))
+                .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[0].price").value(1200))
+                .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[1].name").value("Azúcar"));
+    }
+
+    private void entoncesSeVerificaGuardarOtraVezReemplazaEnVezDeDuplicar() throws Exception {
+    }
+
+    private void entoncesSeVerificaLaListaContieneSoloSistemasDelNegocioAutenticado() throws Exception {
+        respuesta
+                .andExpect(status().isOk());
+        segundaRespuesta
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    private void entoncesSeVerificaGuardarUnSistemaQueEsDeOtroNegocioResponde404YNoLoModifica() throws Exception {
+        respuesta
+                .andExpect(status().isOk());
+        segundaRespuesta
+                .andExpect(status().isNotFound());
+        assertThat(proyectos.findById(SISTEMA_UUID).orElseThrow().getNombre()).isEqualTo("Propio");
+        assertThat(proyectos.findById(SISTEMA_UUID).orElseThrow().getNegocioId()).isEqualTo(negocioId.valor());
+    }
+
+    private void entoncesSeVerificaUnCuerpoInvalidoResponde400YNoGuardaNada() throws Exception {
+        respuesta
+                .andExpect(status().isBadRequest());
+        assertThat(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(negocioId.valor())).isEmpty();
+    }
+
+    private void entoncesSeVerificaGuardarSinCSRFDevuelve403YSinSesion401() throws Exception {
+        respuesta
+                .andExpect(status().isForbidden());
+        segundaRespuesta
+                .andExpect(status().isUnauthorized());
+        assertThat(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(negocioId.valor())).isEmpty();
+    }
+
+    private void entoncesSeVerificaSinPreferenciasGuardadasDevuelveLasInicialesYUnPUTLasConserva() throws Exception {
+        respuesta
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.descartadas.length()").value(0))
+                .andExpect(jsonPath("$.bienvenidaVista").value(false))
+                .andExpect(jsonPath("$.nombre").doesNotExist());
+        segundaRespuesta
+                .andExpect(status().isOk());
+        terceraRespuesta
+                .andExpect(jsonPath("$.descartadas[0]").value("a1"))
+                .andExpect(jsonPath("$.grupos.ZONA").value(false))
+                .andExpect(jsonPath("$.bienvenidaVista").value(true))
+                .andExpect(jsonPath("$.nombre").value("Gonza"));
+    }
+
+    private void entoncesSeVerificaUnNegocioSinZonaRecibeUnaZonaVaciaEnVezDeUnError() throws Exception {
+        respuesta
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombre").value(""))
+                .andExpect(jsonPath("$.comercios").value(0))
+                .andExpect(jsonPath("$.productos.length()").value(0));
+    }
+
+    private void entoncesSeVerificaAnalizarUnLugarQueNoEsUnaZonaConocidaNiUnaDireccionBuscableResponde400() throws Exception {
+        respuesta
+                .andExpect(status().isBadRequest());
+    }
+
+    private void entoncesSeVerificaElCatalogoIncluidoRequiereSesionYRespondeDesdeElBackend() throws Exception {
+        respuesta
+                .andExpect(status().isUnauthorized());
+        segundaRespuesta
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.producto.codigo").value("7790895000997"));
+    }
+
+    private void entoncesSeVerificaGuardaElCodigoComoTextoYRecargaElProductoConSuStockRealDesdePostgreSQL() throws Exception {
+        respuesta
+                .andExpect(status().isOk());
+        segundaRespuesta
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[0].barcode").value("07790895000997"))
+                .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[0].quantity").value(14))
+                .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[1].barcode").value("77903754"));
+    }
+
+    private void entoncesSeVerificaElBackendRechazaCodigosEquivalentesDuplicadosSinGuardarParcialmente() throws Exception {
+        respuesta
+                .andExpect(status().isConflict());
+        segundaRespuesta
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    private void entoncesSeVerificaElBackendRechazaUnCodigoDeControlInvalidoAunqueSeOmitaLaValidacionDelNavegador() throws Exception {
+        respuesta
+                .andExpect(status().isBadRequest());
+        segundaRespuesta
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    private void entoncesSeVerificaUnCodigoInvalidoOUnaFuenteDesconocidaSeRechazanAntesDeConsultarAlProveedor() throws Exception {
+        respuesta
+                .andExpect(status().isBadRequest());
+        segundaRespuesta
+                .andExpect(status().isBadRequest());
+    }
+
+    private void entoncesElSistemaAjenoNoSeBorra() throws Exception {
+        respuesta.andExpect(status().isNoContent());
+        assertThat(proyectos.findById(SISTEMA_UUID)).isPresent();
+    }
+
+    private void entoncesElSistemaSeBorraYLaRepeticionNoFalla() throws Exception {
+        segundaRespuesta.andExpect(status().isNoContent());
+        terceraRespuesta.andExpect(status().isNoContent());
+        assertThat(proyectos.findById(SISTEMA_UUID)).isEmpty();
     }
 }
