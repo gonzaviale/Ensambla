@@ -3,62 +3,124 @@ import { iniciarSesion, obtenerUsuarioActual, registrarUsuario } from '@/api/aut
 import { ApiError } from '@/api/apiError';
 import { setupServerError, setupUsuarioConSesion } from '@/test/testHelpers';
 
+const DATOS_DE_LUCIA = {
+  nombre: 'Lucía Gómez',
+  nombreNegocio: 'Velas Lumbre',
+  email: 'lucia@example.com',
+  contrasenia: 'una-contrasenia-segura',
+};
+
+type Usuario = Awaited<ReturnType<typeof obtenerUsuarioActual>>;
+
+let usuario: Usuario;
+let error: unknown;
+let consulta: Promise<Usuario>;
+
 describe('auth', () => {
   it('devuelve null cuando no hay sesión (401 es un estado, no un error)', async () => {
-    const usuario = await obtenerUsuarioActual();
+    await cuandoSePideElUsuarioActual();
 
-    expect(usuario).toBeNull();
+    entoncesNoHayUsuario();
   });
 
   it('devuelve el usuario de la sesión abierta', async () => {
-    setupUsuarioConSesion({ nombre: 'Lucía Gómez' });
+    dadoUnaSesionAbiertaDe('Lucía Gómez');
 
-    const usuario = await obtenerUsuarioActual();
+    await cuandoSePideElUsuarioActual();
 
-    expect(usuario).toMatchObject({ nombre: 'Lucía Gómez' });
+    entoncesElUsuarioEs('Lucía Gómez');
   });
 
   it('propaga los errores que no son de sesión', async () => {
-    setupServerError('get', '/auth/me', 500, 'Ocurrió un error interno en el servidor');
+    dadoQueElServidorFalla();
 
-    await expect(obtenerUsuarioActual()).rejects.toBeInstanceOf(ApiError);
+    cuandoSeIntentaPedirElUsuarioActual();
+
+    await entoncesSePropagaUnErrorDeLaApi();
   });
 
   it('registra una cuenta y después permite iniciar sesión', async () => {
-    const datos = {
-      nombre: 'Lucía Gómez',
-      nombreNegocio: 'Velas Lumbre',
-      email: 'lucia@example.com',
-      contrasenia: 'una-contrasenia-segura',
-    };
+    await cuandoSeRegistraLuciaYSeInicia();
 
-    await registrarUsuario(datos);
-    const usuario = await iniciarSesion({ email: datos.email, contrasenia: datos.contrasenia });
-
-    expect(usuario.email).toBe('lucia@example.com');
+    entoncesElUsuarioTieneElEmail('lucia@example.com');
   });
 
   it('rechaza un email ya registrado con 409', async () => {
-    setupUsuarioConSesion({ email: 'lucia@example.com' });
+    dadoUnaSesionConElEmail('lucia@example.com');
 
-    const error = await registrarUsuario({
-      nombre: 'Otra',
-      nombreNegocio: 'Otro negocio',
-      email: 'lucia@example.com',
-      contrasenia: 'una-contrasenia-segura',
-    }).catch((e: unknown) => e);
+    await cuandoSeRegistraOtraCuentaConElMismoEmail();
 
-    expect(error).toMatchObject({ status: 409 });
+    entoncesElEstadoDelErrorEs(409);
   });
 
   it('rechaza credenciales incorrectas con 401', async () => {
-    setupUsuarioConSesion({ email: 'lucia@example.com' });
+    dadoUnaSesionConElEmail('lucia@example.com');
 
-    const error = await iniciarSesion({
-      email: 'lucia@example.com',
-      contrasenia: 'incorrecta',
-    }).catch((e: unknown) => e);
+    await cuandoSeIniciaSesionConUnaContraseniaIncorrecta();
 
-    expect(error).toMatchObject({ status: 401 });
+    entoncesElEstadoDelErrorEs(401);
   });
 });
+
+function dadoUnaSesionAbiertaDe(nombre: string) {
+  setupUsuarioConSesion({ nombre });
+}
+
+function dadoUnaSesionConElEmail(email: string) {
+  setupUsuarioConSesion({ email });
+}
+
+function dadoQueElServidorFalla() {
+  setupServerError('get', '/auth/me', 500, 'Ocurrió un error interno en el servidor');
+}
+
+async function cuandoSePideElUsuarioActual() {
+  usuario = await obtenerUsuarioActual();
+}
+
+function cuandoSeIntentaPedirElUsuarioActual() {
+  consulta = obtenerUsuarioActual();
+}
+
+async function cuandoSeRegistraLuciaYSeInicia() {
+  await registrarUsuario(DATOS_DE_LUCIA);
+  usuario = await iniciarSesion({
+    email: DATOS_DE_LUCIA.email,
+    contrasenia: DATOS_DE_LUCIA.contrasenia,
+  });
+}
+
+async function cuandoSeRegistraOtraCuentaConElMismoEmail() {
+  error = await registrarUsuario({
+    nombre: 'Otra',
+    nombreNegocio: 'Otro negocio',
+    email: 'lucia@example.com',
+    contrasenia: 'una-contrasenia-segura',
+  }).catch((e: unknown) => e);
+}
+
+async function cuandoSeIniciaSesionConUnaContraseniaIncorrecta() {
+  error = await iniciarSesion({ email: 'lucia@example.com', contrasenia: 'incorrecta' }).catch(
+    (e: unknown) => e,
+  );
+}
+
+function entoncesNoHayUsuario() {
+  expect(usuario).toBeNull();
+}
+
+function entoncesElUsuarioEs(nombre: string) {
+  expect(usuario).toMatchObject({ nombre });
+}
+
+function entoncesElUsuarioTieneElEmail(email: string) {
+  expect(usuario?.email).toBe(email);
+}
+
+async function entoncesSePropagaUnErrorDeLaApi() {
+  await expect(consulta).rejects.toBeInstanceOf(ApiError);
+}
+
+function entoncesElEstadoDelErrorEs(estadoHttp: number) {
+  expect(error).toMatchObject({ status: estadoHttp });
+}
