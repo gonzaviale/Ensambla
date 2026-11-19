@@ -7,6 +7,7 @@ import {
   resultadoDeMetricaSchema,
   sugeridasSchema,
   type DefinicionDeMetrica,
+  type GraficoDeMetrica,
   type NuevaMetrica,
 } from '@/types/metricas';
 import { http } from './client';
@@ -38,6 +39,18 @@ export const eliminarMetrica = (sistemaId: string, metricaId: string) =>
 /** Cambia el nombre que se ve en el panel; lo que calcula queda igual. */
 export const renombrarMetrica = (sistemaId: string, metricaId: string, nombre: string) =>
   http.patch(`${rutaDe(sistemaId)}/${encodeURIComponent(metricaId)}`, { nombre }, z.undefined());
+
+/** Elige cómo se dibuja la métrica en su solapa; lo que calcula queda igual. */
+export const cambiarGraficoDeMetrica = (
+  sistemaId: string,
+  metricaId: string,
+  grafico: GraficoDeMetrica,
+) =>
+  http.patch(
+    `${rutaDe(sistemaId)}/${encodeURIComponent(metricaId)}/grafico`,
+    { grafico },
+    z.undefined(),
+  );
 
 /** Pone la métrica en otro lugar del panel (el primero es el 0); el servidor corre las demás. */
 export const moverMetrica = (sistemaId: string, metricaId: string, lugar: number) =>

@@ -22,6 +22,22 @@ const TIPO_DE_BLOQUE: Record<FuenteDeMetrica, string> = {
 
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
+type Fila = { etiqueta: string; valor: number };
+
+const deMayorAMenor = (una: Fila, otra: Fila) => otra.valor - una.valor;
+
+// Como el servidor: los días van de lunes a domingo; lo demás, de mayor a menor.
+const lugarEnLaSemana = (fila: Fila) => (DIAS.indexOf(fila.etiqueta) + 6) % 7;
+
+const ORDEN_DEL_REPARTO: Record<DefinicionDeMetrica['agrupar'], (una: Fila, otra: Fila) => number> =
+  {
+    NINGUNA: deMayorAMenor,
+    PRODUCTO: deMayorAMenor,
+    CLIENTE: deMayorAMenor,
+    CATEGORIA: deMayorAMenor,
+    DIA_DE_LA_SEMANA: (una, otra) => lugarEnLaSemana(una) - lugarEnLaSemana(otra),
+  };
+
 export const SUGERIDAS_DE_EJEMPLO: DefinicionDeMetrica[] = [
   {
     nombre: 'Cuánto vendí esta semana',
@@ -170,7 +186,7 @@ export function calcularMetricaDeEjemplo(
     }
   const reparto = [...grupos.entries()]
     .map(([etiqueta, grupo]) => ({ etiqueta, valor: agrupar(grupo) }))
-    .sort((a, b) => b.valor - a.valor)
+    .sort(ORDEN_DEL_REPARTO[definicion.agrupar])
     .slice(0, 10);
 
   return {

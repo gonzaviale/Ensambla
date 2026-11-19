@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
+  cambiarGraficoDeMetrica,
   crearMetrica,
   eliminarMetrica,
   interpretarPedidoDeMetrica,
@@ -7,7 +8,7 @@ import {
   previsualizarMetrica,
   renombrarMetrica,
 } from '@/api/metricas';
-import type { DefinicionDeMetrica, NuevaMetrica } from '@/types/metricas';
+import type { DefinicionDeMetrica, GraficoDeMetrica, NuevaMetrica } from '@/types/metricas';
 import { metricasKeys } from './queries';
 
 /** Guarda la métrica en el cuaderno; la lista y las sugeridas (ya no incluyen la guardada) se vuelven a pedir. */
@@ -49,6 +50,16 @@ export function useMoverMetrica(sistemaId: string, metricaId: string) {
   const volverAPedir = useVolverAPedirLasMetricas(sistemaId);
   return useMutation({
     mutationFn: (lugar: number) => moverMetrica(sistemaId, metricaId, lugar),
+    onSettled: volverAPedir,
+  });
+}
+
+/** Elige cómo se dibuja la métrica; mientras el servidor responde ya se ve con el gráfico elegido. */
+export function useCambiarGrafico(sistemaId: string, metricaId: string) {
+  const volverAPedir = useVolverAPedirLasMetricas(sistemaId);
+  return useMutation({
+    mutationFn: (grafico: GraficoDeMetrica) =>
+      cambiarGraficoDeMetrica(sistemaId, metricaId, grafico),
     onSettled: volverAPedir,
   });
 }

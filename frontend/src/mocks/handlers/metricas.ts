@@ -5,9 +5,11 @@ import {
   AGRUPACIONES_DE_METRICA,
   CALCULOS_DE_METRICA,
   FUENTES_DE_METRICA,
+  GRAFICOS_DE_METRICA,
   PERIODOS_DE_METRICA,
 } from '@/types/metricas';
 import { estado, sistemasDe, type MetricaGuardada } from '../db/estado';
+import { graficoDeSiempre, graficosPosiblesPara } from '@/lib/metricas/graficos';
 import { yaEstaALaVista, YA_LA_TENES } from '@/lib/metricas/recetas';
 import {
   calcularMetricaDeEjemplo,
@@ -53,6 +55,8 @@ export const handlersMetricas = [
         ...metrica,
         orden,
         resultado: calcularMetricaDeEjemplo(metrica.definicion, sistema, hoy()),
+        grafico: metrica.grafico ?? graficoDeSiempre(metrica.definicion.agrupar),
+        graficosPosibles: graficosPosiblesPara(metrica.definicion.agrupar),
       })),
     );
   }),
@@ -152,6 +156,32 @@ export const handlersMetricas = [
     return new HttpResponse(null, { status: 204 });
   }),
   http.patch(
+    api('/proyectos/:sistemaId/metricas/:metricaId/grafico'),
+    async ({ request, params }) => {
+      const { sistema, error } = cuaderno(request, String(params.sistemaId), true);
+      if (error) return error;
+      const pedido = graficoSchema.safeParse(await request.json());
+      if (!pedido.success) return errorDeCampos(request, pedido.error);
+      const guardadas = guardadasDe(sistema.id);
+      const elegida = guardadas.find((metrica) => metrica.id === params.metricaId);
+      if (!elegida) return errorResponse(404, 'Métrica no encontrada', pathDe(request));
+      if (!graficosPosiblesPara(elegida.definicion.agrupar).includes(pedido.data.grafico))
+        return errorResponse(
+          400,
+          'Ese gráfico no sirve para esta métrica: elegí otro',
+          pathDe(request),
+        );
+      await delay(LATENCIA_BACKEND_MS);
+      estado.metricas.set(
+        sistema.id,
+        guardadas.map((metrica) =>
+          metrica === elegida ? { ...metrica, grafico: pedido.data.grafico } : metrica,
+        ),
+      );
+      return new HttpResponse(null, { status: 204 });
+    },
+  ),
+  http.patch(
     api('/proyectos/:sistemaId/metricas/:metricaId/lugar'),
     async ({ request, params }) => {
       const { sistema, error } = cuaderno(request, String(params.sistemaId), true);
@@ -175,6 +205,7 @@ const pedidoSchema = z.object({
   pedido: z.string().trim().min(1, 'Contanos qué querés ver').max(200, 'Máximo 200 caracteres'),
 });
 const moverSchema = z.object({ lugar: z.number().int().min(0, 'El primer lugar es el 0') });
+const graficoSchema = z.object({ grafico: z.enum(GRAFICOS_DE_METRICA) });
 
 const errorDeCampos = (request: Request, error: z.ZodError) =>
   errorResponse(

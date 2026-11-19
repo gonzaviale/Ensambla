@@ -543,3 +543,181 @@
     padding: 16px 18px;
   }
 }
+
+/* Los gráficos de una métrica: barras del color de su solapa, «Otros» en celeste claro, la torta como dona y la línea
+   en petróleo con puntos naranjas. El selector de gráfico son íconos de línea; el elegido, petróleo lleno. */
+.grafico-metrica {
+  display: grid;
+  gap: 14px;
+}
+.panel-negocio-metrica .metrica-medida-reparto li {
+  grid-template-columns: minmax(110px, 1fr) 2fr auto;
+  color: var(--c-estructura);
+}
+.panel-negocio-metrica .metrica-medida-barra {
+  background: var(--c-estructura-100);
+}
+.panel-negocio-metrica .metrica-medida-barra > span {
+  background: var(--color-solapa);
+}
+.panel-negocio-metrica .metrica-medida-reparto li[data-otros='true'] .metrica-medida-barra > span {
+  background: var(--c-celeste);
+}
+.grafico-metrica-ver-todo {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--c-estructura);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.grafico-metrica-ver-todo:hover {
+  color: var(--magenta);
+}
+.selector-grafico {
+  display: inline-flex;
+  gap: 6px;
+  justify-self: start;
+  padding: 4px;
+  border: 2px solid var(--c-estructura-100);
+  border-radius: 14px;
+  background: #fff;
+}
+.selector-grafico button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--c-estructura);
+  cursor: pointer;
+}
+.selector-grafico button:hover {
+  color: var(--magenta);
+}
+.selector-grafico button[aria-checked='true'] {
+  background: var(--c-estructura);
+  color: #fff;
+}
+.selector-grafico button:focus-visible {
+  outline: 3px solid var(--c-celeste);
+  outline-offset: 2px;
+}
+.selector-grafico svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.grafico-dona {
+  display: grid;
+  grid-template-columns: minmax(140px, 200px) minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  margin: 0;
+}
+.grafico-dona svg {
+  width: 100%;
+  transform: rotate(-90deg);
+}
+.grafico-dona circle {
+  fill: none;
+  stroke-width: 16;
+}
+.grafico-dona-fondo {
+  stroke: var(--c-estructura-100);
+}
+.grafico-dona-lista {
+  display: grid;
+  gap: 8px;
+  max-width: 440px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.grafico-dona-lista li {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto 48px;
+  align-items: center;
+  gap: 10px;
+  color: var(--c-estructura);
+  font-size: 14px;
+}
+.grafico-dona-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+}
+.grafico-dona-porcentaje {
+  color: var(--c-accion-texto);
+  font-weight: 800;
+  text-align: right;
+}
+.grafico-linea {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.grafico-linea-area {
+  position: relative;
+  height: 180px;
+}
+.grafico-linea-area svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.grafico-linea polyline {
+  fill: none;
+  stroke: var(--c-estructura);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.grafico-linea-punto {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--c-accion);
+  transform: translate(-50%, -50%);
+  cursor: default;
+}
+.grafico-linea-punto:hover,
+.grafico-linea-punto:focus-visible {
+  background: var(--magenta);
+  outline: none;
+}
+.grafico-linea-dias {
+  position: relative;
+  height: 20px;
+}
+.grafico-linea-dias span {
+  position: absolute;
+  transform: translateX(-50%);
+  color: var(--c-estructura);
+  font-size: 13px;
+  font-weight: 700;
+}
+@media (max-width: 560px) {
+  .grafico-dona {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+  .grafico-dona svg {
+    max-width: 180px;
+  }
+  .grafico-dona-lista {
+    width: 100%;
+  }
+}

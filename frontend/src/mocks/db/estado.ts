@@ -2,7 +2,7 @@ import type { Sistema } from '@/lib/sistema/tipos';
 import type { AvisoDelServidor } from '@/types/avisos';
 import type { ConfiguracionNegocio } from '@/types/negocio';
 import type { ObjetivoDelServidor } from '@/types/objetivos';
-import type { DefinicionDeMetrica, AutoriaDeMetrica } from '@/types/metricas';
+import type { DefinicionDeMetrica, AutoriaDeMetrica, GraficoDeMetrica } from '@/types/metricas';
 import type { DatosAutogestion } from './objetivosAutogestionados';
 import type { PruebaPremium } from '@/types/planes';
 import type { VerificacionWhatsapp, VinculoWhatsapp } from '@/types/whatsapp';
@@ -24,6 +24,8 @@ export type MetricaGuardada = {
   id: string;
   definicion: DefinicionDeMetrica;
   autoria: AutoriaDeMetrica;
+  /** El que eligió la persona; sin elegir, el de siempre para su reparto. */
+  grafico?: GraficoDeMetrica;
 };
 
 type Estado = {

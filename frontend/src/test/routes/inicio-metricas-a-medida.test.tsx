@@ -9,6 +9,7 @@ import {
   cuandoSeAbreAgregarMetrica,
   cuandoSeAbreLaSolapa,
   cuandoSeAgregaLaSugerida,
+  cuandoSeEligeVerlaComo,
   cuandoSeEligeDelMenu,
   cuandoSeRenombra,
   dadoElInicioDelAlmacen,
@@ -17,6 +18,8 @@ import {
   entoncesLaSolapaMuestra,
   entoncesLaSolapaMuestraElTitulo,
   entoncesLasSolapasSon,
+  entoncesQuedoGuardadaComo,
+  entoncesSeVeComo,
   entoncesSeGuardoConLaFuente,
 } from '@/test/panelDeTuNegocio';
 
@@ -125,6 +128,22 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
     await cuandoSeAbreLaSolapa(usuario, 'Producto más vendido');
 
     await entoncesElMenuNoDejaMoverA('Producto más vendido', 'Mover a la derecha');
+  });
+
+  it('una métrica repartida arranca como barras', async () => {
+    const { usuario } = await dadoElInicioDelAlmacen(LO_QUE_TE_DEBEN);
+    await cuandoSeAbreLaSolapa(usuario, 'Lo que te deben');
+
+    await entoncesSeVeComo('Barras');
+  });
+
+  it('elige ver una métrica como torta y queda guardado', async () => {
+    const { usuario, almacen } = await dadoElInicioDelAlmacen(LO_QUE_TE_DEBEN);
+    await cuandoSeAbreLaSolapa(usuario, 'Lo que te deben');
+
+    await cuandoSeEligeVerlaComo(usuario, 'Torta');
+
+    await entoncesQuedoGuardadaComo(almacen.id, 'DONA');
   });
 
   it('arma una propia, la mira antes de guardar y avisa si falta el nombre', async () => {

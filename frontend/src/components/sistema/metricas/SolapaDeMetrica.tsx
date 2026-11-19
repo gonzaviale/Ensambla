@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from 'react';
+import { GraficoDeLaMetrica } from '@/components/sistema/metricas/GraficoDeLaMetrica';
 import { MenuDeLaMetrica } from '@/components/sistema/metricas/MenuDeLaMetrica';
-import { ResultadoDeLaMetrica } from '@/components/sistema/metricas/ResultadoDeLaMetrica';
+import { SelectorDeGrafico } from '@/components/sistema/metricas/SelectorDeGrafico';
 import { useRenombrarMetrica } from '@/hooks/metricas/mutations';
+import { useGraficoDeLaMetrica } from '@/hooks/metricas/useGraficoDeLaMetrica';
 import { resumenDeLaReceta, textoDeDondeSale } from '@/lib/metricas/metricasAMedida';
 import type { Metrica, ResultadoDeMetrica } from '@/types/metricas';
 
@@ -14,8 +16,9 @@ type Props = {
   onQuitada: () => void;
 };
 
-// Lo que muestra la solapa de una métrica: su nombre, qué calcula, el número que da hoy (o por qué no se pudo, nunca
-// un cero inventado) y de dónde sale. El menú permite renombrarla, cambiarla de lugar o quitarla.
+// Lo que muestra la solapa de una métrica: su nombre, qué calcula, el número que da hoy con el gráfico que eligió la
+// persona (o por qué no se pudo, nunca un cero inventado) y de dónde sale. El menú permite renombrarla, cambiarla de
+// lugar o quitarla.
 export function SolapaDeMetrica(props: Props) {
   const [renombrando, setRenombrando] = useState(false);
   const { metrica, sistemaId, color } = props;
@@ -33,9 +36,28 @@ export function SolapaDeMetrica(props: Props) {
         )}
         <MenuDeLaMetrica {...props} onRenombrar={() => setRenombrando(true)} />
       </header>
-      <ResultadoDeLaMetrica resultado={metrica.resultado} />
+      <ElGraficoDeLaMetrica metrica={metrica} sistemaId={sistemaId} />
       <DeDondeSale resultado={metrica.resultado} />
     </article>
+  );
+}
+
+function ElGraficoDeLaMetrica({ metrica, sistemaId }: { metrica: Metrica; sistemaId: string }) {
+  const { grafico, posibles, elegir, fallo } = useGraficoDeLaMetrica(metrica, sistemaId);
+  return (
+    <>
+      <SelectorDeGrafico grafico={grafico} posibles={posibles} onElegir={elegir} />
+      {fallo && (
+        <p className="metrica-medida-error" role="alert">
+          No pudimos cambiar el gráfico. Probá de nuevo.
+        </p>
+      )}
+      <GraficoDeLaMetrica
+        definicion={metrica.definicion}
+        resultado={metrica.resultado}
+        grafico={grafico}
+      />
+    </>
   );
 }
 

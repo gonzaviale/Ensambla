@@ -102,6 +102,15 @@ export async function entoncesElMenuNoDejaMoverA(metrica: string, opcion: string
   expect(screen.getByRole('menuitem', { name: opcion })).toBeDisabled();
 }
 
+export const cuandoSeEligeVerlaComo = async (usuario: UserEvent, grafico: string) =>
+  usuario.click(await screen.findByRole('radio', { name: grafico }, ESPERA));
+
+export const entoncesQuedoGuardadaComo = (almacenId: string, grafico: string) =>
+  waitFor(() => expect(estado.metricas.get(almacenId)?.[0]?.grafico).toBe(grafico), ESPERA);
+
+export const entoncesSeVeComo = (grafico: string) =>
+  waitFor(() => expect(screen.getByRole('radio', { name: grafico })).toBeChecked(), ESPERA);
+
 export const entoncesSeGuardoConLaFuente = (
   almacenId: string,
   fuente: DefinicionDeMetrica['fuente'],

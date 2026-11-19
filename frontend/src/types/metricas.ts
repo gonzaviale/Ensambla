@@ -12,11 +12,14 @@ export const AGRUPACIONES_DE_METRICA = [
   'DIA_DE_LA_SEMANA',
 ] as const;
 export const PERIODOS_DE_METRICA = ['HOY', 'SEMANA', 'MES', 'TODO'] as const;
+/** Cómo se dibuja una métrica en su solapa. */
+export const GRAFICOS_DE_METRICA = ['NUMERO', 'BARRAS', 'DONA', 'LINEA'] as const;
 
 export type FuenteDeMetrica = (typeof FUENTES_DE_METRICA)[number];
 export type CalculoDeMetrica = (typeof CALCULOS_DE_METRICA)[number];
 export type AgrupacionDeMetrica = (typeof AGRUPACIONES_DE_METRICA)[number];
 export type PeriodoDeMetrica = (typeof PERIODOS_DE_METRICA)[number];
+export type GraficoDeMetrica = (typeof GRAFICOS_DE_METRICA)[number];
 
 export const definicionDeMetricaSchema = z.object({
   nombre: z.string(),
@@ -54,6 +57,9 @@ export const metricaSchema = z.object({
   orden: z.number().int(),
   autoria: z.enum(['SUGERIDA', 'PROPIA']),
   resultado: resultadoDeMetricaSchema,
+  // Opcionales: un servidor anterior no los manda y se usa el de siempre para su reparto.
+  grafico: z.enum(GRAFICOS_DE_METRICA).optional(),
+  graficosPosibles: z.array(z.enum(GRAFICOS_DE_METRICA)).optional(),
 });
 
 export const metricasSchema = z.array(metricaSchema);
