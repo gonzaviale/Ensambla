@@ -13,6 +13,7 @@ import { useEstadoDeSolapas } from './useEstadoDeSolapas';
 import { useLocalidadDelMapa } from './useLocalidadDelMapa';
 
 export type { SeccionUbicacion };
+export type EstadoDeUbicacion = ReturnType<typeof useConfiguracionUbicacion>;
 
 const MENSAJE_SIN_GUARDAR = 'No pudimos guardar. Tus cambios siguen en pantalla.';
 
