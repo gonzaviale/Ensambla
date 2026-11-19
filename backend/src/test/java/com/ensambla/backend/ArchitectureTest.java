@@ -30,13 +30,19 @@ class ArchitectureTest {
     private static final Pattern SWITCH = Pattern.compile("\\bswitch\\s*\\(");
     private static final Pattern ELSE_IF = Pattern.compile("\\belse\\s+if\\b");
     // Paquetes del dominio ya migrados a polimorfismo: se suman acá cuando un carril del plan de calidad los termina.
-    private static final List<String> PAQUETES_SIN_SWITCH = List.of(
-            "model/campo", "model/pago", "model/plan", "model/aviso", "model/bloque",
-            "useCase/campo", "useCase/aviso", "service/pago", "service/plan");
-    // model/campo queda afuera hasta que Formula (parser) deje de usar else if.
-    private static final List<String> PAQUETES_SIN_ELSE_IF = List.of(
-            "model/pago", "model/plan", "model/aviso", "model/bloque",
-            "useCase/campo", "useCase/aviso", "service/pago", "service/plan");
+    // Faltan model/objetivo (hasta que se mergee la rama de objetivos con Sami) y useCase/whatsapp (AtenderMensajeWhatsapp).
+    private static final List<String> PAQUETES_MIGRADOS = List.of(
+            "exception", "port", "repository", "service",
+            "model/aviso", "model/bloque", "model/caja", "model/campo", "model/catalogo", "model/common",
+            "model/inventario", "model/lectura", "model/lote", "model/negocio", "model/pago", "model/plan",
+            "model/plantilla", "model/precio", "model/preferencia", "model/procesamiento", "model/proyecto",
+            "model/receta", "model/registro", "model/reporte", "model/sami", "model/seccion", "model/sistema",
+            "model/ubicacion", "model/usuario", "model/whatsapp", "model/zona",
+            "useCase/auth", "useCase/aviso", "useCase/bloque", "useCase/caja", "useCase/campo", "useCase/catalogo",
+            "useCase/inventario", "useCase/lote", "useCase/negocio", "useCase/pago", "useCase/plan",
+            "useCase/plantilla", "useCase/preferencia", "useCase/procesamiento", "useCase/proyecto",
+            "useCase/receta", "useCase/registro", "useCase/reporte", "useCase/sami", "useCase/sistema",
+            "useCase/ubicacion", "useCase/zona");
     private static final Pattern UUID_REFERENCE = Pattern.compile("\\bUUID\\b");
     // Los value objects de id, su interfaz y las dos reglas que derivan UUID de un texto.
     private static final Pattern UUID_ALLOWED = Pattern.compile(
@@ -97,7 +103,7 @@ class ArchitectureTest {
     @Test
     @DisplayName("Los paquetes ya migrados no usan switch: cada tipo se comporta en su propia clase")
     void losPaquetesMigradosNoUsanSwitch() throws IOException {
-        List<Path> fuentes = fuentesDe(PAQUETES_SIN_SWITCH);
+        List<Path> fuentes = fuentesDe(PAQUETES_MIGRADOS);
 
         entoncesNingunaFuenteContiene(SWITCH, "switch", fuentes);
     }
@@ -105,7 +111,7 @@ class ArchitectureTest {
     @Test
     @DisplayName("Los paquetes ya migrados no encadenan else if por tipo o estado")
     void losPaquetesMigradosNoUsanElseIf() throws IOException {
-        List<Path> fuentes = fuentesDe(PAQUETES_SIN_ELSE_IF);
+        List<Path> fuentes = fuentesDe(PAQUETES_MIGRADOS);
 
         entoncesNingunaFuenteContiene(ELSE_IF, "else if", fuentes);
     }
