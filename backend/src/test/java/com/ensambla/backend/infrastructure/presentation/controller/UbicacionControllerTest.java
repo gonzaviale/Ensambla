@@ -98,10 +98,9 @@ class UbicacionControllerTest {
     })
     @DisplayName("Un punto inválido no llega al caso de uso")
     void unPuntoInvalidoNoLlegaAlCasoDeUso(String body) throws Exception {
-        mockMvc.perform(post("/api/ubicacion/localidad").contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isBadRequest());
+        cuandoSeResuelveLaLocalidadDelPunto(body);
 
-        verifyNoInteractions(resolverLocalidad);
+        entoncesSeRechazaElPuntoSinLlegarAlCasoDeUso();
     }
 
     @Test
@@ -128,10 +127,9 @@ class UbicacionControllerTest {
     @ValueSource(strings = {"{}", "{\"consulta\":null}", "{\"consulta\":\"    \"}", "{\"consulta\":\"abcd\"}"})
     @DisplayName("Una dirección inválida no llega al caso de uso")
     void unaDireccionInvalidaNoLlegaAlCasoDeUso(String body) throws Exception {
-        mockMvc.perform(post("/api/ubicacion/direcciones").contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.consulta").exists());
+        cuandoSeBuscanLasDireccionesCon(body);
 
-        verifyNoInteractions(buscarDirecciones);
+        entoncesSeRechazaLaConsultaSinLlegarAlCasoDeUso();
     }
 
     @Test
@@ -203,6 +201,16 @@ class UbicacionControllerTest {
 
     // --- cuando ---
 
+    private void cuandoSeResuelveLaLocalidadDelPunto(String body) throws Exception {
+        resultado = mockMvc.perform(post("/api/ubicacion/localidad")
+                .contentType(MediaType.APPLICATION_JSON).content(body));
+    }
+
+    private void cuandoSeBuscanLasDireccionesCon(String body) throws Exception {
+        resultado = mockMvc.perform(post("/api/ubicacion/direcciones")
+                .contentType(MediaType.APPLICATION_JSON).content(body));
+    }
+
     private void cuandoSeEjecutaLaBusquedaDevuelveOpcionesCompletasYProhibeLaCacheDelNavegador() throws Exception {
         resultado = mockMvc.perform(post("/api/ubicacion/direcciones").contentType(MediaType.APPLICATION_JSON)
                                 .content("{\"consulta\":\"" + CONSULTA + "\"}"));
@@ -242,6 +250,16 @@ class UbicacionControllerTest {
     }
 
     // --- entonces ---
+
+    private void entoncesSeRechazaElPuntoSinLlegarAlCasoDeUso() throws Exception {
+        resultado.andExpect(status().isBadRequest());
+        verifyNoInteractions(resolverLocalidad);
+    }
+
+    private void entoncesSeRechazaLaConsultaSinLlegarAlCasoDeUso() throws Exception {
+        resultado.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.consulta").exists());
+        verifyNoInteractions(buscarDirecciones);
+    }
 
     private void entoncesSeVerificaLaBusquedaDevuelveOpcionesCompletasYProhibeLaCacheDelNavegador() throws Exception {
         resultado.andExpect(status().isOk())
