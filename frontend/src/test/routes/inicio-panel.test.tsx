@@ -17,194 +17,267 @@ import {
   verifyPathAsync,
 } from '@/test/testHelpers';
 
-const abrirInicio = async (sistemas: Sistema[]) => {
-  const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
-  estado.sistemas.set(usuario.email, sistemas);
-  const router = renderApp('/inicio');
-  await verifyHeadingPresentAsync(/En qué puedo/);
-  return { router, user: userEvent.setup(), sistema: sistemas[0] };
-};
+type Router = ReturnType<typeof renderApp>;
+type Usuario = ReturnType<typeof userEvent.setup>;
 
 const NOMBRE_DEL_PANEL = 'Tu flujo de caja';
-const titulo = () => screen.queryByRole('heading', { name: NOMBRE_DEL_PANEL });
-/** El título aparece mientras carga: lo que hay que esperar es el flujo de caja. */
-const cifrasAsync = () =>
-  screen.findByText(/Lo fiado no entra hasta que lo cobrás/, undefined, ESPERA);
-/** El flujo de caja arranca cerrado: se espera a que llegue y se abre como lo haría la persona. */
-const abrirFlujoAsync = async (user: ReturnType<typeof userEvent.setup>) => {
-  await user.click(await screen.findByRole('heading', { name: 'Semana a semana' }, ESPERA));
-};
+
+let router: Router;
+let user: Usuario;
 
 describe('inicio: panel del negocio', () => {
   it('con ventas muestra el flujo de caja cerrado, con lo que te va quedando', async () => {
-    const { user } = await abrirInicio([crearAlmacenCargado(hoy())]);
+    await dadoElInicioDe([crearAlmacenCargado(hoy())]);
 
-    const titulo = await screen.findByRole('heading', { name: 'Semana a semana' }, ESPERA);
-    const flujo = titulo.closest('details') as HTMLElement;
-    expect(flujo).not.toHaveAttribute('open');
-    expect(within(flujo).getByText(/^Te queda \$/)).toBeVisible();
-    expect(within(flujo).getByText(/Lo fiado no entra hasta que lo cobrás/)).not.toBeVisible();
-
-    await user.click(titulo);
-
-    const panel = screen.getByRole('region', { name: NOMBRE_DEL_PANEL });
-    expect(within(panel).getByText(/Los últimos 30 días/)).toBeVisible();
-    expect(within(panel).getByText(/Lo fiado no entra hasta que lo cobrás/)).toBeVisible();
-    expect(document.querySelector('.panel-tarjetas')).toBeNull();
+    await entoncesElFlujoDeCajaEstaCerradoYDiceLoQueTeQueda();
   });
 
-  it('el flujo de caja es una fila por semana con lo que entró, salió y el saldo, escrito', async () => {
-    const { user } = await abrirInicio([crearAlmacenCargado(hoy())]);
-    await abrirFlujoAsync(user);
+  it('al abrir el flujo de caja muestra el período y aclara lo fiado', async () => {
+    await dadoElInicioDe([crearAlmacenCargado(hoy())]);
 
-    const semanas = within(screen.getByRole('list', { name: 'Flujo de caja por semana' }));
-    const filas = semanas.getAllByRole('listitem');
+    await cuandoSeAbreElFlujoDeCaja();
 
-    expect(filas).toHaveLength(5);
-    for (const fila of filas) {
-      expect(within(fila).getByText('Cobraste')).toBeVisible();
-      expect(within(fila).getByText('Gastaste')).toBeVisible();
-      expect(within(fila).queryByText('Te quedó')).toBeNull();
-      expect(fila).toHaveTextContent(/\$\d/);
-    }
-    for (const titulo of ['Cobraste', 'Gastaste', 'Resultado']) {
-      expect(screen.getByText(titulo, { selector: '.panel-semanas-cabecera span' })).toBeVisible();
-    }
-    expect(screen.getByText('Te queda')).toBeVisible();
+    entoncesElPanelMuestraElPeriodoYLoFiado();
+  });
+
+  it('el flujo de caja es una fila por semana con lo que entró y salió', async () => {
+    await dadoElInicioDe([crearAlmacenCargado(hoy())]);
+    await cuandoSeAbreElFlujoDeCaja();
+
+    entoncesHayUnaFilaPorSemanaConLoCobradoYLoGastado();
+  });
+
+  it('el flujo de caja escribe el resultado y lo que te queda', async () => {
+    await dadoElInicioDe([crearAlmacenCargado(hoy())]);
+    await cuandoSeAbreElFlujoDeCaja();
+
+    entoncesLaCabeceraNombraLasColumnasYDiceCuantoTeQueda();
   });
 
   it('con panel el saludo sigue siendo el h1 y el título del panel es un h2', async () => {
-    await abrirInicio([crearAlmacenCargado(hoy())]);
-    await cifrasAsync();
+    await dadoElInicioDe([crearAlmacenCargado(hoy())]);
+    await esperarLasCifras();
 
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/En qué puedo/);
-    expect(screen.getByRole('heading', { level: 2, name: NOMBRE_DEL_PANEL })).toBeVisible();
+    entoncesElSaludoEsElH1YElPanelUnH2();
   });
 
   it('quien ya tiene una sección ve una bienvenida compacta con las tres formas de empezar', async () => {
-    await abrirInicio([crearAlmacenCargado(hoy())]);
-    await cifrasAsync();
+    await dadoElInicioDe([crearAlmacenCargado(hoy())]);
+    await esperarLasCifras();
 
-    const bienvenida = screen.getByRole('region', { name: 'Empezar algo nuevo' });
-    expect(within(bienvenida).getByText('Hola, Ana Pérez.')).toBeVisible();
-    expect(within(bienvenida).getByRole('button', { name: /Crear con Sami/ })).toBeVisible();
-    expect(within(bienvenida).getByRole('button', { name: /Elegir una plantilla/ })).toBeVisible();
-    expect(within(bienvenida).getByRole('button', { name: /Empezar de cero/ })).toBeVisible();
-    expect(within(bienvenida).getByRole('button', { name: /Primera vez/ })).toBeVisible();
-    expect(screen.queryByText(/Tocá una ficha para arrancar/)).toBeNull();
+    entoncesLaBienvenidaCompactaOfreceLasTresFormasDeEmpezar();
   });
 
-  it('desde la bienvenida compacta se sigue pudiendo crear: «Elegir una plantilla» lleva a Plantillas', async () => {
-    const { user, router } = await abrirInicio([crearAlmacenCargado(hoy())]);
-    await cifrasAsync();
+  it('desde la bienvenida compacta «Elegir una plantilla» lleva a Plantillas', async () => {
+    await dadoElInicioDe([crearAlmacenCargado(hoy())]);
+    await esperarLasCifras();
 
-    await user.click(
-      within(screen.getByRole('region', { name: 'Empezar algo nuevo' })).getByRole('button', {
-        name: /Elegir una plantilla/,
-      }),
-    );
+    await cuandoSeEligeEnLaFranja(/Elegir una plantilla/);
 
     await verifyPathAsync(router, '/plantillas');
   });
 
   it('«Cargar desde una foto» y «Ver mi zona» van en la franja de bienvenida, una sola vez', async () => {
-    await abrirInicio([crearAlmacenCargado(hoy())]);
-    await cifrasAsync();
+    await dadoElInicioDe([crearAlmacenCargado(hoy())]);
+    await esperarLasCifras();
 
-    const bienvenida = within(screen.getByRole('region', { name: 'Empezar algo nuevo' }));
-    expect(bienvenida.getByRole('button', { name: /Cargar desde una foto/ })).toBeVisible();
-    expect(bienvenida.getByRole('button', { name: /Ver mi zona/ })).toBeVisible();
-    expect(screen.getAllByRole('button', { name: /Cargar desde una foto/ })).toHaveLength(1);
-    expect(screen.getAllByRole('button', { name: /Ver mi zona/ })).toHaveLength(1);
-    expect(screen.getAllByRole('region', { name: 'Más para tu negocio' })).toHaveLength(1);
-    expect(document.querySelector('.inicio-atajos.compactos')).not.toBeNull();
+    entoncesLosAtajosVanEnLaFranjaUnaSolaVez();
   });
 
   it('desde la franja, «Ver mi zona» lleva a Mi zona', async () => {
-    const { user, router } = await abrirInicio([crearAlmacenCargado(hoy())]);
-    await cifrasAsync();
+    await dadoElInicioDe([crearAlmacenCargado(hoy())]);
+    await esperarLasCifras();
 
-    await user.click(
-      within(screen.getByRole('region', { name: 'Empezar algo nuevo' })).getByRole('button', {
-        name: /Ver mi zona/,
-      }),
-    );
+    await cuandoSeEligeEnLaFranja(/Ver mi zona/);
 
     await verifyPathAsync(router, '/zona');
   });
 
   it('quien recién empieza ve los atajos completos debajo de la bienvenida grande', async () => {
-    await abrirInicio([]);
+    await dadoElInicioDe([]);
 
-    const atajos = within(screen.getByRole('region', { name: 'Más para tu negocio' }));
-    expect(atajos.getByRole('button', { name: /Cargar desde una foto/ })).toBeVisible();
-    expect(atajos.getByRole('button', { name: /Ver mi zona/ })).toBeVisible();
-    expect(document.querySelector('.inicio-atajos')).not.toBeNull();
-    expect(document.querySelector('.inicio-atajos.compactos')).toBeNull();
+    entoncesLosAtajosSonCompletos();
   });
 
   it('quien recién empieza ve la bienvenida grande, sin panel', async () => {
-    await abrirInicio([]);
+    await dadoElInicioDe([]);
 
-    expect(screen.getByRole('region', { name: 'Empezar algo nuevo' })).toBeVisible();
-    expect(screen.getByText(/Tocá una ficha para arrancar/)).toBeVisible();
-    expect(titulo()).toBeNull();
+    entoncesSeVeLaBienvenidaGrandeSinPanel();
   });
 
   it('sin secciones el saludo sigue siendo el h1', async () => {
-    await abrirInicio([]);
+    await dadoElInicioDe([]);
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/En qué puedo/);
   });
 
   it('mientras llegan los números avisa que está haciendo las cuentas', async () => {
-    await abrirInicio([crearAlmacenCargado(hoy())]);
+    await dadoElInicioDe([crearAlmacenCargado(hoy())]);
 
-    const panel = screen.getByRole('region', { name: NOMBRE_DEL_PANEL });
-    expect(within(panel).getByRole('status')).toHaveTextContent('Estamos haciendo tus cuentas');
-    await cifrasAsync();
-    expect(screen.queryByText('Estamos haciendo tus cuentas…')).toBeNull();
+    entoncesAvisaQueEstaHaciendoLasCuentas();
+    await esperarLasCifras();
+    entoncesYaNoAvisaQueEstaHaciendoLasCuentas();
   });
 
   it('mira sólo el negocio activo: si no tiene ventas no muestra el panel de otro', async () => {
-    await abrirInicio([makeTemplate('shop', {}, true), crearAlmacenCargado(hoy())]);
+    await dadoElInicioDe([makeTemplate('shop', {}, true), crearAlmacenCargado(hoy())]);
 
-    expect(await screen.findByRole('region', { name: 'Empezar algo nuevo' }, ESPERA)).toBeVisible();
-    expect(titulo()).toBeNull();
+    await entoncesSeVeLaBienvenidaSinPanel();
   });
 
-  it('sin secciones no aparece: la home queda como siempre', async () => {
-    await abrirInicio([]);
+  it('sin secciones no aparece el panel: la home queda como siempre', async () => {
+    await dadoElInicioDe([]);
 
     expect(titulo()).toBeNull();
   });
 
   it('con una sección sin ventas no muestra el panel: la home se ve igual', async () => {
-    await abrirInicio([makeTemplate('shop', {}, true)]);
+    await dadoElInicioDe([makeTemplate('shop', {}, true)]);
 
-    expect(await screen.findByRole('region', { name: 'Empezar algo nuevo' }, ESPERA)).toBeVisible();
-    expect(titulo()).toBeNull();
+    await entoncesSeVeLaBienvenidaSinPanel();
     expect(screen.queryByText(/Todavía no cargaste ventas/)).toBeNull();
   });
 
-  it('si el servidor falla avisa y permite reintentar', async () => {
-    server.use(
-      http.get(
-        '*/api/negocio/panel',
-        () => HttpResponse.json({ message: 'Error' }, { status: 500 }),
-        {
-          once: true,
-        },
-      ),
-    );
-    const { user } = await abrirInicio([crearAlmacenCargado(hoy())]);
+  it('si el servidor falla avisa', async () => {
+    dadoUnServidorQueFallaUnaVez();
+
+    await dadoElInicioDe([crearAlmacenCargado(hoy())]);
 
     expect(await screen.findByRole('alert', undefined, ESPERA)).toHaveTextContent(
       /No pudimos traer tus números/,
     );
+  });
+
+  it('si el servidor falla permite reintentar', async () => {
+    dadoUnServidorQueFallaUnaVez();
+    await dadoElInicioDe([crearAlmacenCargado(hoy())]);
+    await screen.findByRole('alert', undefined, ESPERA);
+
     await clickButton(user, 'Probar de nuevo');
 
     expect(await screen.findByRole('heading', { name: 'Semana a semana' }, ESPERA)).toBeVisible();
     expect(screen.queryByRole('alert')).toBeNull();
   });
 });
+
+const titulo = () => screen.queryByRole('heading', { name: NOMBRE_DEL_PANEL });
+const franja = () => within(screen.getByRole('region', { name: 'Empezar algo nuevo' }));
+
+/** El título aparece mientras carga: lo que hay que esperar es el flujo de caja. */
+const esperarLasCifras = () =>
+  screen.findByText(/Lo fiado no entra hasta que lo cobrás/, undefined, ESPERA);
+
+async function dadoElInicioDe(sistemas: Sistema[]) {
+  const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+  estado.sistemas.set(usuario.email, sistemas);
+  router = renderApp('/inicio');
+  await verifyHeadingPresentAsync(/En qué puedo/);
+  user = userEvent.setup();
+}
+
+function dadoUnServidorQueFallaUnaVez() {
+  server.use(
+    http.get(
+      '*/api/negocio/panel',
+      () => HttpResponse.json({ message: 'Error' }, { status: 500 }),
+      {
+        once: true,
+      },
+    ),
+  );
+}
+
+/** El flujo de caja arranca cerrado: se espera a que llegue y se abre como lo haría la persona. */
+async function cuandoSeAbreElFlujoDeCaja() {
+  await user.click(await screen.findByRole('heading', { name: 'Semana a semana' }, ESPERA));
+}
+
+async function cuandoSeEligeEnLaFranja(nombre: RegExp) {
+  await user.click(franja().getByRole('button', { name: nombre }));
+}
+
+async function entoncesElFlujoDeCajaEstaCerradoYDiceLoQueTeQueda() {
+  const encabezado = await screen.findByRole('heading', { name: 'Semana a semana' }, ESPERA);
+  const flujo = encabezado.closest('details') as HTMLElement;
+  expect(flujo).not.toHaveAttribute('open');
+  expect(within(flujo).getByText(/^Te queda \$/)).toBeVisible();
+  expect(within(flujo).getByText(/Lo fiado no entra hasta que lo cobrás/)).not.toBeVisible();
+}
+
+function entoncesElPanelMuestraElPeriodoYLoFiado() {
+  const panel = screen.getByRole('region', { name: NOMBRE_DEL_PANEL });
+  expect(within(panel).getByText(/Los últimos 30 días/)).toBeVisible();
+  expect(within(panel).getByText(/Lo fiado no entra hasta que lo cobrás/)).toBeVisible();
+  expect(document.querySelector('.panel-tarjetas')).toBeNull();
+}
+
+function entoncesHayUnaFilaPorSemanaConLoCobradoYLoGastado() {
+  const semanas = within(screen.getByRole('list', { name: 'Flujo de caja por semana' }));
+  const filas = semanas.getAllByRole('listitem');
+  expect(filas).toHaveLength(5);
+  for (const fila of filas) {
+    expect(within(fila).getByText('Cobraste')).toBeVisible();
+    expect(within(fila).getByText('Gastaste')).toBeVisible();
+    expect(within(fila).queryByText('Te quedó')).toBeNull();
+    expect(fila).toHaveTextContent(/\$\d/);
+  }
+}
+
+function entoncesLaCabeceraNombraLasColumnasYDiceCuantoTeQueda() {
+  for (const columna of ['Cobraste', 'Gastaste', 'Resultado']) {
+    expect(screen.getByText(columna, { selector: '.panel-semanas-cabecera span' })).toBeVisible();
+  }
+  expect(screen.getByText('Te queda')).toBeVisible();
+}
+
+function entoncesElSaludoEsElH1YElPanelUnH2() {
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/En qué puedo/);
+  expect(screen.getByRole('heading', { level: 2, name: NOMBRE_DEL_PANEL })).toBeVisible();
+}
+
+function entoncesLaBienvenidaCompactaOfreceLasTresFormasDeEmpezar() {
+  const bienvenida = franja();
+  expect(bienvenida.getByText('Hola, Ana Pérez.')).toBeVisible();
+  expect(bienvenida.getByRole('button', { name: /Crear con Sami/ })).toBeVisible();
+  expect(bienvenida.getByRole('button', { name: /Elegir una plantilla/ })).toBeVisible();
+  expect(bienvenida.getByRole('button', { name: /Empezar de cero/ })).toBeVisible();
+  expect(bienvenida.getByRole('button', { name: /Primera vez/ })).toBeVisible();
+  expect(screen.queryByText(/Tocá una ficha para arrancar/)).toBeNull();
+}
+
+function entoncesLosAtajosVanEnLaFranjaUnaSolaVez() {
+  expect(franja().getByRole('button', { name: /Cargar desde una foto/ })).toBeVisible();
+  expect(franja().getByRole('button', { name: /Ver mi zona/ })).toBeVisible();
+  expect(screen.getAllByRole('button', { name: /Cargar desde una foto/ })).toHaveLength(1);
+  expect(screen.getAllByRole('button', { name: /Ver mi zona/ })).toHaveLength(1);
+  expect(screen.getAllByRole('region', { name: 'Más para tu negocio' })).toHaveLength(1);
+  expect(document.querySelector('.inicio-atajos.compactos')).not.toBeNull();
+}
+
+function entoncesLosAtajosSonCompletos() {
+  const atajos = within(screen.getByRole('region', { name: 'Más para tu negocio' }));
+  expect(atajos.getByRole('button', { name: /Cargar desde una foto/ })).toBeVisible();
+  expect(atajos.getByRole('button', { name: /Ver mi zona/ })).toBeVisible();
+  expect(document.querySelector('.inicio-atajos')).not.toBeNull();
+  expect(document.querySelector('.inicio-atajos.compactos')).toBeNull();
+}
+
+function entoncesSeVeLaBienvenidaGrandeSinPanel() {
+  expect(screen.getByRole('region', { name: 'Empezar algo nuevo' })).toBeVisible();
+  expect(screen.getByText(/Tocá una ficha para arrancar/)).toBeVisible();
+  expect(titulo()).toBeNull();
+}
+
+function entoncesAvisaQueEstaHaciendoLasCuentas() {
+  const panel = screen.getByRole('region', { name: NOMBRE_DEL_PANEL });
+  expect(within(panel).getByRole('status')).toHaveTextContent('Estamos haciendo tus cuentas');
+}
+
+function entoncesYaNoAvisaQueEstaHaciendoLasCuentas() {
+  expect(screen.queryByText('Estamos haciendo tus cuentas…')).toBeNull();
+}
+
+async function entoncesSeVeLaBienvenidaSinPanel() {
+  expect(await screen.findByRole('region', { name: 'Empezar algo nuevo' }, ESPERA)).toBeVisible();
+  expect(titulo()).toBeNull();
+}
