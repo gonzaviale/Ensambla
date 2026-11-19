@@ -19,7 +19,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class IMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
 
@@ -38,131 +38,142 @@ class IMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
     private UUID objetivoB;
 
     @BeforeEach
-    void setUp() {
+    void dadoDosNegociosConUnObjetivoCadaUno() {
         negocioA = givenNegocio("a@example.com").getId();
         negocioB = givenNegocio("b@example.com").getId();
-        objetivoA = givenObjetivo(negocioA);
-        objetivoB = givenObjetivo(negocioB);
+        objetivoA = unObjetivo(negocioA);
+        objetivoB = unObjetivo(negocioB);
     }
+
+    private UUID producto;
+    private UUID reemplazo;
+    private UUID idGuardado;
+    private UUID nuevo;
+    private UUID segundo;
+    private UUID primero;
+    private UUID deA;
+    private MiniObjetivoEntity releido;
+    private List<MiniObjetivoEntity> listados;
+    private Optional<MiniObjetivoEntity> otroNegocio;
+    private Optional<MiniObjetivoEntity> otroObjetivo;
+    private Throwable rechazo;
 
     @Test
     @DisplayName("Guarda y relee el mini-objetivo con todos sus datos")
-    void saveShouldRoundTripEveryField() {
-        UUID producto = UUID.randomUUID();
-        UUID reemplazo = givenMini(objetivoA, negocioA, 2, EstadoMiniObjetivo.EN_CURSO, AHORA).getId();
-        MiniObjetivoEntity entity = mini(objetivoA, negocioA, 1, EstadoMiniObjetivo.REEMPLAZADO, AHORA);
-        entity.setRegistroId(producto);
-        entity.setReferencia("Yerba 1 kg");
-        entity.setTextoConIa(true);
-        entity.setReemplazadoPor(reemplazo);
-        UUID id = minis.saveAndFlush(entity).getId();
+    void guardaYReleeElMiniObjetivoConTodosSusDatos() {
+        dadoUnMiniObjetivoReemplazadoConTodosSusDatos();
 
-        MiniObjetivoEntity result = minis.findByIdAndObjetivoIdAndNegocioId(id, objetivoA, negocioA).orElseThrow();
+        cuandoSeReleeElMiniObjetivo();
 
-        assertThat(result.getObjetivoId()).isEqualTo(objetivoA);
-        assertThat(result.getNegocioId()).isEqualTo(negocioA);
-        assertThat(result.getPosicion()).isEqualTo((short) 1);
-        assertThat(result.getTipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
-        assertThat(result.getRegistroId()).isEqualTo(producto);
-        assertThat(result.getReferencia()).isEqualTo("Yerba 1 kg");
-        assertThat(result.getMeta()).isEqualByComparingTo("14183.00");
-        assertThat(result.getValorInicial()).isEqualByComparingTo("12600.00");
-        assertThat(result.getValorActual()).isEqualByComparingTo("12600.00");
-        assertThat(result.getAporteEstimado()).isEqualByComparingTo("6786.00");
-        assertThat(result.getEstado()).isEqualTo(EstadoMiniObjetivo.REEMPLAZADO);
-        assertThat(result.getSemanaInicio()).isEqualTo(SEMANA);
-        assertThat(result.getTitulo()).isEqualTo("Subile $250");
-        assertThat(result.getJustificacion()).isEqualTo("Porque sí");
-        assertThat(result.isTextoConIa()).isTrue();
-        assertThat(result.getReemplazadoPor()).isEqualTo(reemplazo);
-        assertThat(result.getCreadoEn()).isEqualTo(AHORA);
-        assertThat(result.getActualizadoEn()).isEqualTo(AHORA);
+        entoncesSeConservanTodosLosDatosDelMiniObjetivo();
     }
 
     @Test
     @DisplayName("Lista sólo los del objetivo del negocio, del más viejo al más nuevo y, a igualdad, por posición")
-    void findAllShouldFilterAndOrder() {
-        UUID nuevo = givenMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA.plusDays(1)).getId();
-        UUID segundo = givenMini(objetivoA, negocioA, 2, EstadoMiniObjetivo.EN_CURSO, AHORA).getId();
-        UUID primero = givenMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.LOGRADO, AHORA).getId();
-        givenMini(objetivoB, negocioB, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
+    void listaSoloLosDelObjetivoDelNegocioDelMasViejoAlMasNuevoYAIgualdadPorPosicion() {
+        dadoTresMiniObjetivosDelObjetivoAYUnoDelB();
 
-        List<MiniObjetivoEntity> result =
-                minis.findAllByObjetivoIdAndNegocioIdOrderByCreadoEnAscPosicionAsc(objetivoA, negocioA);
+        cuandoSeListanLosMiniObjetivosDelObjetivoA();
 
-        assertThat(result).extracting(MiniObjetivoEntity::getId).containsExactly(primero, segundo, nuevo);
+        entoncesSeListanPrimeroSegundoYNuevoEnOrden();
     }
 
     @Test
     @DisplayName("No devuelve un mini-objetivo de otro negocio ni de otro objetivo")
-    void findByIdShouldBeScopedToObjetivoAndNegocio() {
-        UUID deA = givenMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA).getId();
+    void noDevuelveUnMiniObjetivoDeOtroNegocioNiDeOtroObjetivo() {
+        dadoUnMiniObjetivoEnCurso();
 
-        Optional<MiniObjetivoEntity> otroNegocio = minis.findByIdAndObjetivoIdAndNegocioId(deA, objetivoA, negocioB);
-        Optional<MiniObjetivoEntity> otroObjetivo = minis.findByIdAndObjetivoIdAndNegocioId(deA, objetivoB, negocioA);
+        cuandoSeBuscaConOtroNegocioYConOtroObjetivo();
 
-        assertThat(otroNegocio).isEmpty();
-        assertThat(otroObjetivo).isEmpty();
+        entoncesNoSeEncuentraEnNingunoDeLosDos();
     }
 
     @Test
     @DisplayName("Un lugar lo ocupa uno solo en curso: el segundo en la misma posición se rechaza")
-    void shouldRejectTwoInProgressInTheSamePlace() {
-        givenMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
+    void unLugarLoOcupaUnoSoloEnCursoElSegundoEnLaMismaPosicionSeRechaza() {
+        dadoUnMiniObjetivoEnCurso();
 
-        assertThatThrownBy(() -> givenMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA))
-                .isInstanceOf(DataIntegrityViolationException.class);
+        cuandoSeIntentaGuardarOtroEnCursoEnLaMismaPosicion();
+
+        entoncesLaBaseRechazaPorIntegridad();
     }
 
     @Test
     @DisplayName("Los que ya no están en curso no ocupan lugar: pueden compartir la posición con uno en curso")
-    void shouldAllowHistoryInTheSamePlaceAsOneInProgress() {
-        givenMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.REEMPLAZADO, AHORA);
-        givenMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.LOGRADO, AHORA);
-        givenMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
+    void losQueYaNoEstanEnCursoNoOcupanLugarPuedenCompartirLaPosicionConUnoEnCurso() {
+        dadoUnoReemplazadoUnoLogradoYUnoEnCursoEnLaMismaPosicion();
 
-        assertThat(minis.findAllByObjetivoIdAndNegocioIdOrderByCreadoEnAscPosicionAsc(objetivoA, negocioA))
-                .hasSize(3);
+        cuandoSeListanLosMiniObjetivosDelObjetivoA();
+
+        entoncesSeListanTres();
     }
 
     @Test
     @DisplayName("Otro objetivo puede usar la misma posición")
-    void shouldAllowTheSamePlaceInAnotherObjetivo() {
-        givenMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
+    void otroObjetivoPuedeUsarLaMismaPosicion() {
+        dadoUnMiniObjetivoEnCurso();
 
-        givenMini(objetivoB, negocioB, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
+        cuandoSeGuardaUnoEnCursoEnLaMismaPosicionDelObjetivoB();
 
-        assertThat(minis.findAll()).hasSize(2);
+        entoncesHayDosMiniObjetivosEnTotal();
     }
 
     @Test
     @DisplayName("La base rechaza una posición fuera de 1 a 3")
-    void shouldRejectAPositionOutOfRange() {
-        assertThatThrownBy(() -> givenMini(objetivoA, negocioA, 4, EstadoMiniObjetivo.EN_CURSO, AHORA))
-                .isInstanceOf(DataIntegrityViolationException.class);
+    void laBaseRechazaUnaPosicionFueraDeUnoATres() {
+        cuandoSeIntentaGuardarUnoEnLaPosicionCuatro();
+
+        entoncesLaBaseRechazaPorIntegridad();
     }
 
     @Test
     @DisplayName("La base rechaza un texto en blanco")
-    void shouldRejectABlankTitle() {
-        MiniObjetivoEntity sinTitulo = mini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
-        sinTitulo.setTitulo("  ");
+    void laBaseRechazaUnTextoEnBlanco() {
+        cuandoSeIntentaGuardarUnoConTituloEnBlanco();
 
-        assertThatThrownBy(() -> minis.saveAndFlush(sinTitulo)).isInstanceOf(DataIntegrityViolationException.class);
+        entoncesLaBaseRechazaPorIntegridad();
     }
 
     @Test
     @DisplayName("Al borrar el objetivo se borran sus mini-objetivos")
-    void deletingObjetivoShouldDeleteItsMiniObjetivos() {
-        givenMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
+    void alBorrarElObjetivoSeBorranSusMiniObjetivos() {
+        dadoUnMiniObjetivoEnCurso();
 
-        objetivos.deleteByIdAndNegocioId(objetivoA, negocioA);
+        cuandoSeBorraElObjetivoA();
 
-        assertThat(minis.findAllByObjetivoIdAndNegocioIdOrderByCreadoEnAscPosicionAsc(objetivoA, negocioA)).isEmpty();
+        entoncesNoQuedanMiniObjetivosDelObjetivoA();
     }
 
-    // --- helpers ---
-    private UUID givenObjetivo(UUID negocioId) {
+    // --- dado ---
+    private void dadoUnMiniObjetivoReemplazadoConTodosSusDatos() {
+        producto = UUID.randomUUID();
+        reemplazo = unMiniGuardado(objetivoA, negocioA, 2, EstadoMiniObjetivo.EN_CURSO, AHORA).getId();
+        MiniObjetivoEntity entity = unMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.REEMPLAZADO, AHORA);
+        entity.setRegistroId(producto);
+        entity.setReferencia("Yerba 1 kg");
+        entity.setTextoConIa(true);
+        entity.setReemplazadoPor(reemplazo);
+        idGuardado = minis.saveAndFlush(entity).getId();
+    }
+
+    private void dadoTresMiniObjetivosDelObjetivoAYUnoDelB() {
+        nuevo = unMiniGuardado(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA.plusDays(1)).getId();
+        segundo = unMiniGuardado(objetivoA, negocioA, 2, EstadoMiniObjetivo.EN_CURSO, AHORA).getId();
+        primero = unMiniGuardado(objetivoA, negocioA, 1, EstadoMiniObjetivo.LOGRADO, AHORA).getId();
+        unMiniGuardado(objetivoB, negocioB, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
+    }
+
+    private void dadoUnMiniObjetivoEnCurso() {
+        deA = unMiniGuardado(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA).getId();
+    }
+
+    private void dadoUnoReemplazadoUnoLogradoYUnoEnCursoEnLaMismaPosicion() {
+        unMiniGuardado(objetivoA, negocioA, 1, EstadoMiniObjetivo.REEMPLAZADO, AHORA);
+        unMiniGuardado(objetivoA, negocioA, 1, EstadoMiniObjetivo.LOGRADO, AHORA);
+        unMiniGuardado(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
+    }
+
+    private UUID unObjetivo(UUID negocioId) {
         return objetivos.saveAndFlush(ObjetivoEntity.builder()
                 .negocioId(negocioId)
                 .texto("Ganar más")
@@ -171,12 +182,12 @@ class IMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
                 .build()).getId();
     }
 
-    private MiniObjetivoEntity givenMini(
+    private MiniObjetivoEntity unMiniGuardado(
             UUID objetivoId, UUID negocioId, int posicion, EstadoMiniObjetivo estado, OffsetDateTime creadoEn) {
-        return minis.saveAndFlush(mini(objetivoId, negocioId, posicion, estado, creadoEn));
+        return minis.saveAndFlush(unMini(objetivoId, negocioId, posicion, estado, creadoEn));
     }
 
-    private static MiniObjetivoEntity mini(
+    private static MiniObjetivoEntity unMini(
             UUID objetivoId, UUID negocioId, int posicion, EstadoMiniObjetivo estado, OffsetDateTime creadoEn) {
         return MiniObjetivoEntity.builder()
                 .id(UUID.randomUUID())
@@ -195,5 +206,90 @@ class IMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
                 .creadoEn(creadoEn)
                 .actualizadoEn(creadoEn)
                 .build();
+    }
+
+    // --- cuando ---
+    private void cuandoSeReleeElMiniObjetivo() {
+        releido = minis.findByIdAndObjetivoIdAndNegocioId(idGuardado, objetivoA, negocioA).orElseThrow();
+    }
+
+    private void cuandoSeListanLosMiniObjetivosDelObjetivoA() {
+        listados = minis.findAllByObjetivoIdAndNegocioIdOrderByCreadoEnAscPosicionAsc(objetivoA, negocioA);
+    }
+
+    private void cuandoSeBuscaConOtroNegocioYConOtroObjetivo() {
+        otroNegocio = minis.findByIdAndObjetivoIdAndNegocioId(deA, objetivoA, negocioB);
+        otroObjetivo = minis.findByIdAndObjetivoIdAndNegocioId(deA, objetivoB, negocioA);
+    }
+
+    private void cuandoSeIntentaGuardarOtroEnCursoEnLaMismaPosicion() {
+        rechazo = catchThrowable(
+                () -> unMiniGuardado(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA));
+    }
+
+    private void cuandoSeGuardaUnoEnCursoEnLaMismaPosicionDelObjetivoB() {
+        unMiniGuardado(objetivoB, negocioB, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
+    }
+
+    private void cuandoSeIntentaGuardarUnoEnLaPosicionCuatro() {
+        rechazo = catchThrowable(
+                () -> unMiniGuardado(objetivoA, negocioA, 4, EstadoMiniObjetivo.EN_CURSO, AHORA));
+    }
+
+    private void cuandoSeIntentaGuardarUnoConTituloEnBlanco() {
+        MiniObjetivoEntity sinTitulo = unMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
+        sinTitulo.setTitulo("  ");
+        rechazo = catchThrowable(() -> minis.saveAndFlush(sinTitulo));
+    }
+
+    private void cuandoSeBorraElObjetivoA() {
+        objetivos.deleteByIdAndNegocioId(objetivoA, negocioA);
+    }
+
+    // --- entonces ---
+    private void entoncesSeConservanTodosLosDatosDelMiniObjetivo() {
+        assertThat(releido.getObjetivoId()).isEqualTo(objetivoA);
+        assertThat(releido.getNegocioId()).isEqualTo(negocioA);
+        assertThat(releido.getPosicion()).isEqualTo((short) 1);
+        assertThat(releido.getTipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
+        assertThat(releido.getRegistroId()).isEqualTo(producto);
+        assertThat(releido.getReferencia()).isEqualTo("Yerba 1 kg");
+        assertThat(releido.getMeta()).isEqualByComparingTo("14183.00");
+        assertThat(releido.getValorInicial()).isEqualByComparingTo("12600.00");
+        assertThat(releido.getValorActual()).isEqualByComparingTo("12600.00");
+        assertThat(releido.getAporteEstimado()).isEqualByComparingTo("6786.00");
+        assertThat(releido.getEstado()).isEqualTo(EstadoMiniObjetivo.REEMPLAZADO);
+        assertThat(releido.getSemanaInicio()).isEqualTo(SEMANA);
+        assertThat(releido.getTitulo()).isEqualTo("Subile $250");
+        assertThat(releido.getJustificacion()).isEqualTo("Porque sí");
+        assertThat(releido.isTextoConIa()).isTrue();
+        assertThat(releido.getReemplazadoPor()).isEqualTo(reemplazo);
+        assertThat(releido.getCreadoEn()).isEqualTo(AHORA);
+        assertThat(releido.getActualizadoEn()).isEqualTo(AHORA);
+    }
+
+    private void entoncesSeListanPrimeroSegundoYNuevoEnOrden() {
+        assertThat(listados).extracting(MiniObjetivoEntity::getId).containsExactly(primero, segundo, nuevo);
+    }
+
+    private void entoncesNoSeEncuentraEnNingunoDeLosDos() {
+        assertThat(otroNegocio).isEmpty();
+        assertThat(otroObjetivo).isEmpty();
+    }
+
+    private void entoncesLaBaseRechazaPorIntegridad() {
+        assertThat(rechazo).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    private void entoncesSeListanTres() {
+        assertThat(listados).hasSize(3);
+    }
+
+    private void entoncesHayDosMiniObjetivosEnTotal() {
+        assertThat(minis.findAll()).hasSize(2);
+    }
+
+    private void entoncesNoQuedanMiniObjetivosDelObjetivoA() {
+        assertThat(minis.findAllByObjetivoIdAndNegocioIdOrderByCreadoEnAscPosicionAsc(objetivoA, negocioA)).isEmpty();
     }
 }
