@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -25,24 +26,42 @@ public class ConciliarPagos {
     private final Clock clock;
 
     public void execute() {
-        for (RenovacionId id : renovacionPremiumRepository.listarParaSincronizar()) {
-            try {
-                renovacionPremiumService.sincronizar(id, OffsetDateTime.now(clock));
-            } catch (PasarelaPagoException exception) {
-                log.warn("Conciliación de renovación pendiente: {}", id);
-            } finally {
-                marcarConsulta(id, OffsetDateTime.now(clock));
-            }
+        for (RenovacionId id : listarParaSincronizar()) {
+            sincronizarYMarcarConsulta(id);
+        }
+    }
+
+    private void sincronizarYMarcarConsulta(RenovacionId id) {
+        try {
+            sincronizar(id);
+        } catch (PasarelaPagoException exception) {
+            log.warn("Conciliación de renovación pendiente: {}", id);
+        } finally {
+            marcarConsulta(id, OffsetDateTime.now(clock));
         }
     }
 
     /** Aunque la sincronización falle, la renovación queda consultada y no se reintenta enseguida. */
     private void marcarConsulta(RenovacionId id, OffsetDateTime ahora) {
-        transaccionPort.ejecutar(() -> {
-            renovacionPremiumService.bloquear(id);
-            RenovacionPremium renovacion = renovacionPremiumService.obtener(id);
-            renovacion.setSincronizadoEn(ahora);
-            renovacionPremiumRepository.save(renovacion);
-        });
+        transaccionPort.ejecutar(() -> bloquearYMarcarConsulta(id, ahora));
+    }
+
+    private void bloquearYMarcarConsulta(RenovacionId id, OffsetDateTime ahora) {
+        renovacionPremiumService.bloquear(id);
+        RenovacionPremium renovacion = renovacionPremiumService.obtener(id);
+        renovacion.registrarConsulta(ahora);
+        guardar(renovacion);
+    }
+
+    private List<RenovacionId> listarParaSincronizar() {
+        return renovacionPremiumRepository.listarParaSincronizar();
+    }
+
+    private void sincronizar(RenovacionId id) {
+        renovacionPremiumService.sincronizar(id, OffsetDateTime.now(clock));
+    }
+
+    private void guardar(RenovacionPremium renovacion) {
+        renovacionPremiumRepository.save(renovacion);
     }
 }

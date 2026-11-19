@@ -31,6 +31,16 @@ public class CampoSiNo extends Campo {
     }
 
     @Override
+    public boolean admiteFiltroPorValor() {
+        return true;
+    }
+
+    @Override
+    public boolean admiteFiltrarPor(String valor) {
+        return "true".equals(valor) || "false".equals(valor);
+    }
+
+    @Override
     public Optional<String> errorDeValorLeido(String valor) {
         return errorDeValorInicial(valor);
     }

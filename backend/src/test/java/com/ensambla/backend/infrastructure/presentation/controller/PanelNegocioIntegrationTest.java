@@ -97,16 +97,16 @@ class PanelNegocioIntegrationTest extends PostgresRepositoryTestSupport {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        givenPlanGratuito();
-        UsuarioId usuarioId = UsuarioId.de(givenUsuario());
-        negocioId = NegocioId.de(givenNegocio(usuarioId));
-        sesion = givenSesion(usuarioId);
+        dadoPlanGratuito();
+        UsuarioId usuarioId = UsuarioId.de(dadoUsuario());
+        negocioId = NegocioId.de(dadoNegocio(usuarioId));
+        sesion = dadoSesion(usuarioId);
     }
 
     @Test
     @DisplayName("Devuelve las métricas y el flujo de caja de un sistema cargado en la base")
-    void obtenerShouldReturnTheMetricsAndTheCashFlowOfALoadedProject() throws Exception {
-        UUID proyectoId = givenSistemaCargado(negocioId);
+    void devuelveLasMetricasYElFlujoDeCajaDeUnSistemaCargadoEnLaBase() throws Exception {
+        UUID proyectoId = dadoSistemaCargado(negocioId);
 
         mockMvc.perform(get("/api/negocio/panel").session(sesion)
                         .param("proyectoId", proyectoId.toString()).param("dias", "30"))
@@ -125,8 +125,8 @@ class PanelNegocioIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Un sistema sin ventas responde vacío, sin métricas ni semanas")
-    void obtenerShouldRespondEmptyForAProjectWithoutSales() throws Exception {
-        UUID proyectoId = givenProyecto(negocioId, "Sin ventas");
+    void unSistemaSinVentasRespondeVacioSinMetricasNiSemanas() throws Exception {
+        UUID proyectoId = dadoProyecto(negocioId, "Sin ventas");
 
         mockMvc.perform(get("/api/negocio/panel").session(sesion).param("proyectoId", proyectoId.toString()))
                 .andExpect(status().isOk())
@@ -137,9 +137,9 @@ class PanelNegocioIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Un sistema de otro negocio responde 404, aunque tenga ventas")
-    void obtenerShouldHideTheProjectOfAnotherBusiness() throws Exception {
-        NegocioId otroNegocioId = NegocioId.de(givenNegocio(UsuarioId.de(givenUsuario())));
-        UUID ajenoId = givenSistemaCargado(otroNegocioId);
+    void unSistemaDeOtroNegocioResponde404AunqueTengaVentas() throws Exception {
+        NegocioId otroNegocioId = NegocioId.de(dadoNegocio(UsuarioId.de(dadoUsuario())));
+        UUID ajenoId = dadoSistemaCargado(otroNegocioId);
 
         mockMvc.perform(get("/api/negocio/panel").session(sesion).param("proyectoId", ajenoId.toString()))
                 .andExpect(status().isNotFound());
@@ -147,8 +147,8 @@ class PanelNegocioIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Sin sesión responde 401 y con días inválidos o un id mal escrito, 400")
-    void obtenerShouldRequireASessionAndValidParameters() throws Exception {
-        UUID proyectoId = givenProyecto(negocioId, "Cualquiera");
+    void sinSesionResponde401YConDiasInvalidosOUnIdMalEscrito400() throws Exception {
+        UUID proyectoId = dadoProyecto(negocioId, "Cualquiera");
 
         mockMvc.perform(get("/api/negocio/panel").param("proyectoId", proyectoId.toString()))
                 .andExpect(status().isUnauthorized());
@@ -159,38 +159,38 @@ class PanelNegocioIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(status().isBadRequest());
     }
 
-    // --- arrange ---
+    // --- dado ---
 
     /**
      * Inventario con yerba (costo 2700) y fideos (sin costo), tres ventas dentro del período (una fiada), una vieja,
      * un gasto, un gasto de mercadería (no cuenta) y una compra de 5 yerbas en la tabla de entradas.
      */
-    private UUID givenSistemaCargado(NegocioId negocio) {
-        UUID proyecto = givenProyecto(negocio, "Almacén");
-        UUID inventario = givenBloque(negocio, proyecto, TipoBloque.INVENTARIO);
-        UUID ventas = givenBloque(negocio, proyecto, TipoBloque.VENTAS);
-        UUID gastos = givenBloque(negocio, proyecto, TipoBloque.GASTOS);
-        UUID entradas = givenBloque(negocio, proyecto, TipoBloque.ENTRADAS);
-        Map<String, UUID> inv = givenCampos(negocio, inventario,
+    private UUID dadoSistemaCargado(NegocioId negocio) {
+        UUID proyecto = dadoProyecto(negocio, "Almacén");
+        UUID inventario = dadoBloque(negocio, proyecto, TipoBloque.INVENTARIO);
+        UUID ventas = dadoBloque(negocio, proyecto, TipoBloque.VENTAS);
+        UUID gastos = dadoBloque(negocio, proyecto, TipoBloque.GASTOS);
+        UUID entradas = dadoBloque(negocio, proyecto, TipoBloque.ENTRADAS);
+        Map<String, UUID> inv = dadoCampos(negocio, inventario,
                 Map.of("name", TipoCampo.TEXTO, "price", TipoCampo.MONEDA, "cost", TipoCampo.MONEDA));
-        Map<String, UUID> ven = givenCampos(negocio, ventas, Map.of("product", TipoCampo.TEXTO,
+        Map<String, UUID> ven = dadoCampos(negocio, ventas, Map.of("product", TipoCampo.TEXTO,
                 "quantity", TipoCampo.NUMERO, "price", TipoCampo.MONEDA, "date", TipoCampo.FECHA,
                 "credit", TipoCampo.SI_NO));
-        Map<String, UUID> gas = givenCampos(negocio, gastos, Map.of("date", TipoCampo.FECHA,
+        Map<String, UUID> gas = dadoCampos(negocio, gastos, Map.of("date", TipoCampo.FECHA,
                 "total", TipoCampo.MONEDA, "category", TipoCampo.TEXTO));
-        Map<String, UUID> ent = givenCampos(negocio, entradas, Map.of("product", TipoCampo.TEXTO,
+        Map<String, UUID> ent = dadoCampos(negocio, entradas, Map.of("product", TipoCampo.TEXTO,
                 "quantity", TipoCampo.NUMERO, "date", TipoCampo.FECHA));
 
-        UUID yerba = givenRegistro(negocio, inventario, valores(inv, "name", "Yerba", "price", 3400, "cost", 2700));
-        UUID fideos = givenRegistro(negocio, inventario, valores(inv, "name", "Fideos", "price", 1700));
-        givenRegistro(negocio, ventas, venta(ven, yerba, 10, 3400, hoy.minusDays(20), false));
-        givenRegistro(negocio, ventas, venta(ven, yerba, 5, 3400, hoy.minusDays(10), true));
-        givenRegistro(negocio, ventas, venta(ven, fideos, 2, 1700, hoy.minusDays(2), false));
-        givenRegistro(negocio, ventas, venta(ven, yerba, 100, 3400, hoy.minusDays(90), false));
-        givenRegistro(negocio, gastos, valores(gas, "date", hoy.minusDays(15).toString(), "total", 5000));
-        givenRegistro(negocio, gastos,
+        UUID yerba = dadoRegistro(negocio, inventario, valores(inv, "name", "Yerba", "price", 3400, "cost", 2700));
+        UUID fideos = dadoRegistro(negocio, inventario, valores(inv, "name", "Fideos", "price", 1700));
+        dadoRegistro(negocio, ventas, venta(ven, yerba, 10, 3400, hoy.minusDays(20), false));
+        dadoRegistro(negocio, ventas, venta(ven, yerba, 5, 3400, hoy.minusDays(10), true));
+        dadoRegistro(negocio, ventas, venta(ven, fideos, 2, 1700, hoy.minusDays(2), false));
+        dadoRegistro(negocio, ventas, venta(ven, yerba, 100, 3400, hoy.minusDays(90), false));
+        dadoRegistro(negocio, gastos, valores(gas, "date", hoy.minusDays(15).toString(), "total", 5000));
+        dadoRegistro(negocio, gastos,
                 valores(gas, "date", hoy.minusDays(14).toString(), "total", 9000, "category", "Mercadería"));
-        givenRegistro(negocio, entradas,
+        dadoRegistro(negocio, entradas,
                 valores(ent, "product", yerba.toString(), "quantity", 5, "date", hoy.minusDays(18).toString()));
         return proyecto;
     }
@@ -209,7 +209,7 @@ class PanelNegocioIntegrationTest extends PostgresRepositoryTestSupport {
         return valores;
     }
 
-    private UUID givenProyecto(NegocioId negocio, String nombre) {
+    private UUID dadoProyecto(NegocioId negocio, String nombre) {
         return proyectos.saveAndFlush(ProyectoEntity.builder()
                 .negocioId(negocio.valor())
                 .nombre(nombre)
@@ -218,7 +218,7 @@ class PanelNegocioIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenBloque(NegocioId negocio, UUID proyecto, TipoBloque tipo) {
+    private UUID dadoBloque(NegocioId negocio, UUID proyecto, TipoBloque tipo) {
         return bloques.saveAndFlush(BloqueEntity.builder()
                 .negocioId(negocio.valor())
                 .proyectoId(proyecto)
@@ -230,7 +230,7 @@ class PanelNegocioIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private Map<String, UUID> givenCampos(NegocioId negocio, UUID bloque, Map<String, TipoCampo> porClave) {
+    private Map<String, UUID> dadoCampos(NegocioId negocio, UUID bloque, Map<String, TipoCampo> porClave) {
         Map<String, UUID> ids = new HashMap<>();
         short posicion = 0;
         for (Map.Entry<String, TipoCampo> campo : porClave.entrySet()) {
@@ -250,7 +250,7 @@ class PanelNegocioIntegrationTest extends PostgresRepositoryTestSupport {
         return ids;
     }
 
-    private UUID givenRegistro(NegocioId negocio, UUID bloque, Map<String, Object> valores) {
+    private UUID dadoRegistro(NegocioId negocio, UUID bloque, Map<String, Object> valores) {
         return registros.saveAndFlush(RegistroEntity.builder()
                 .negocioId(negocio.valor())
                 .bloqueId(bloque)
@@ -260,7 +260,7 @@ class PanelNegocioIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenUsuario() {
+    private UUID dadoUsuario() {
         return usuarios.saveAndFlush(UsuarioEntity.builder()
                 .nombre("Persona")
                 .email(UUID.randomUUID() + "@example.com")
@@ -270,7 +270,7 @@ class PanelNegocioIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenNegocio(UsuarioId usuarioId) {
+    private UUID dadoNegocio(UsuarioId usuarioId) {
         UUID creadoId = negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(usuarioId.valor())
@@ -281,7 +281,7 @@ class PanelNegocioIntegrationTest extends PostgresRepositoryTestSupport {
         return creadoId;
     }
 
-    private void givenPlanGratuito() {
+    private void dadoPlanGratuito() {
         if (planes.findByCodigo(CodigoPlan.GRATUITO).isEmpty()) {
             planes.saveAndFlush(PlanEntity.builder()
                     .codigo(CodigoPlan.GRATUITO).nombre("Gratuito").configurado(false)
@@ -291,7 +291,7 @@ class PanelNegocioIntegrationTest extends PostgresRepositoryTestSupport {
         }
     }
 
-    private MockHttpSession givenSesion(UsuarioId usuarioId) {
+    private MockHttpSession dadoSesion(UsuarioId usuarioId) {
         MockHttpSession session = new MockHttpSession();
         var securityContext = SecurityContextHolder.createEmptyContext();
         securityContext.setAuthentication(

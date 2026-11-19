@@ -55,58 +55,71 @@ class UsuarioActivoFilterTest {
 
     @Test
     @DisplayName("No consulta usuarios en una petición anónima")
-    void doFilterShouldContinueWhenAnonymous() throws Exception {
-        usuarioActivoFilter.doFilter(request, response, chain);
+    void noConsultaUsuariosEnUnaPeticionAnonima() throws Exception {
+        dadoUnaPeticionAnonima();
 
-        thenDoFilterShouldContinueWhenAnonymous();
+        cuandoPasaPorElFiltro();
+
+        entoncesLaPeticionContinuaSinConsultarUsuarios();
     }
 
     @Test
     @DisplayName("Verifica que la identidad autenticada siga activa antes de continuar")
-    void doFilterShouldValidateActiveUsuario() throws Exception {
-        givenDoFilterShouldValidateActiveUsuario();
-        usuarioActivoFilter.doFilter(request, response, chain);
+    void verificaQueLaIdentidadAutenticadaSigaActivaAntesDeContinuar() throws Exception {
+        dadoUnaPeticionDeUnUsuarioActivo();
 
-        thenDoFilterShouldValidateActiveUsuario();
+        cuandoPasaPorElFiltro();
+
+        entoncesSeVerificaElUsuarioYLaPeticionContinua();
     }
 
     @Test
     @DisplayName("Invalida la sesión de usuario suspendido y detiene la petición con 401")
-    void doFilterShouldInvalidateSuspendedUsuario() throws Exception {
-        givenDoFilterShouldInvalidateSuspendedUsuario();
-        usuarioActivoFilter.doFilter(request, response, chain);
+    void invalidaLaSesionDeUsuarioSuspendidoYDetieneLaPeticionCon401() throws Exception {
+        dadoUnaPeticionDeUnUsuarioSuspendido();
 
-        thenDoFilterShouldInvalidateSuspendedUsuario();
+        cuandoPasaPorElFiltro();
+
+        entoncesSeCierraLaSesionYSeResponde401SinContinuar();
     }
 
-    // --- arrange ---
-    private void givenAuthentication() {
+    // --- dado ---
+    private void dadoUnaPeticionAnonima() {
+        SecurityContextHolder.clearContext();
+    }
+
+    private void dadoUnaPeticionDeUnUsuarioActivo() {
+        dadoUnaPeticionAutenticada();
+        when(obtenerSesion.execute(USUARIO_ID)).thenReturn(UsuarioResponse.de(usuario()));
+    }
+
+    private void dadoUnaPeticionDeUnUsuarioSuspendido() {
+        dadoUnaPeticionAutenticada();
+        when(obtenerSesion.execute(USUARIO_ID)).thenThrow(new CredencialesInvalidasException());
+    }
+
+    private void dadoUnaPeticionAutenticada() {
         SecurityContextHolder.getContext().setAuthentication(
                 UsernamePasswordAuthenticationToken.unauthenticated(USUARIO_ID.toString(), null));
     }
 
-    private void givenDoFilterShouldValidateActiveUsuario() throws Exception {
-        givenAuthentication();
-        when(obtenerSesion.execute(USUARIO_ID)).thenReturn(UsuarioResponse.de(usuario()));
+    // --- cuando ---
+    private void cuandoPasaPorElFiltro() throws Exception {
+        usuarioActivoFilter.doFilter(request, response, chain);
     }
 
-    private void givenDoFilterShouldInvalidateSuspendedUsuario() throws Exception {
-        givenAuthentication();
-        when(obtenerSesion.execute(USUARIO_ID)).thenThrow(new CredencialesInvalidasException());
-    }
-
-    // --- assert ---
-    private void thenDoFilterShouldContinueWhenAnonymous() throws Exception {
+    // --- entonces ---
+    private void entoncesLaPeticionContinuaSinConsultarUsuarios() throws Exception {
         verify(chain).doFilter(request, response);
         verifyNoInteractions(obtenerSesion, sesionAdapter, securityErrorHandler);
     }
 
-    private void thenDoFilterShouldValidateActiveUsuario() throws Exception {
+    private void entoncesSeVerificaElUsuarioYLaPeticionContinua() throws Exception {
         verify(obtenerSesion).execute(USUARIO_ID);
         verify(chain).doFilter(request, response);
     }
 
-    private void thenDoFilterShouldInvalidateSuspendedUsuario() throws Exception {
+    private void entoncesSeCierraLaSesionYSeResponde401SinContinuar() throws Exception {
         verify(sesionAdapter).cerrar(request, response);
         verify(securityErrorHandler).commence(any(), any(), any());
         verifyNoInteractions(chain);

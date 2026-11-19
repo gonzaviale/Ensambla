@@ -3,10 +3,10 @@ package com.ensambla.backend.domain.useCase.plan.iniciarPrueba;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
-import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.Plan;
 import com.ensambla.backend.domain.model.plan.PruebaPremium;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
@@ -40,26 +40,33 @@ public class IniciarPrueba {
     private final Clock clock;
 
     public PruebaPremiumResponse execute(IniciarPruebaRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
         OffsetDateTime ahora = OffsetDateTime.now(clock);
-        return PruebaPremiumResponse.de(transaccionPort.ejecutar(() -> iniciar(negocioId, ahora)));
+        return PruebaPremiumResponse.de(iniciarEnUnaTransaccion(negocioId, ahora));
+    }
+
+    private PruebaPremium iniciarEnUnaTransaccion(NegocioId negocioId, OffsetDateTime ahora) {
+        return transaccionPort.ejecutar(() -> iniciar(negocioId, ahora));
     }
 
     private PruebaPremium iniciar(NegocioId negocioId, OffsetDateTime ahora) {
-        usoPlanRepository.bloquearNegocio(negocioId);
-        Suscripcion suscripcion = suscripcionRepository.obtener(negocioId);
-        validarSinPruebaNiContratacion(negocioId);
-        Plan premium = planRepository.obtener(CodigoPlan.PREMIUM);
-        premium.validarLimitesConfigurados();
-        if (suscripcion.estaVigente(ahora) && premium.getId().equals(suscripcion.getPlanId())) {
-            throw new RestriccionPlanException("PREMIUM_ACTIVO", "Tu negocio ya tiene premium activo.");
-        }
-        PruebaPremium prueba = pruebaPremiumRepository.save(PruebaPremium.nueva(negocioId, ahora));
+        bloquearNegocio(negocioId);
+        Suscripcion suscripcion = obtenerSuscripcion(negocioId);
+        exigirQueNoHayaUsadoLaPruebaNiTengaUnaContratacionEnCurso(negocioId);
+        Plan premium = obtenerPremiumConLimites();
+        exigirQueNoTengaPremiumActivo(suscripcion, premium, ahora);
+        PruebaPremium prueba = guardarPrueba(PruebaPremium.nueva(negocioId, ahora));
         pasarAPrueba(suscripcion, premium, prueba, ahora);
         return prueba;
     }
 
-    private void validarSinPruebaNiContratacion(NegocioId negocioId) {
+    private static void exigirQueNoTengaPremiumActivo(Suscripcion suscripcion, Plan premium, OffsetDateTime ahora) {
+        if (suscripcion.tienePlanVigente(premium.getId(), ahora)) {
+            throw new RestriccionPlanException("PREMIUM_ACTIVO", "Tu negocio ya tiene premium activo.");
+        }
+    }
+
+    private void exigirQueNoHayaUsadoLaPruebaNiTengaUnaContratacionEnCurso(NegocioId negocioId) {
         if (pruebaPremiumRepository.findByNegocioId(negocioId).isPresent()) {
             throw new RestriccionPlanException("PRUEBA_UTILIZADA", "Este negocio ya utilizó su prueba premium.");
         }
@@ -69,12 +76,30 @@ public class IniciarPrueba {
         }
     }
 
+    private Plan obtenerPremiumConLimites() {
+        Plan premium = planRepository.obtener(CodigoPlan.PREMIUM);
+        premium.validarLimitesConfigurados();
+        return premium;
+    }
+
     private void pasarAPrueba(Suscripcion suscripcion, Plan premium, PruebaPremium prueba, OffsetDateTime ahora) {
-        suscripcion.setPlanId(premium.getId());
-        suscripcion.setEstado(EstadoSuscripcion.PRUEBA);
-        suscripcion.setInicioEn(prueba.inicioEn());
-        suscripcion.setFinEn(prueba.finEn());
-        suscripcion.setActualizadoEn(ahora);
+        suscripcion.pasarAPrueba(premium.getId(), prueba, ahora);
         suscripcionRepository.save(suscripcion);
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private void bloquearNegocio(NegocioId negocioId) {
+        usoPlanRepository.bloquearNegocio(negocioId);
+    }
+
+    private Suscripcion obtenerSuscripcion(NegocioId negocioId) {
+        return suscripcionRepository.obtener(negocioId);
+    }
+
+    private PruebaPremium guardarPrueba(PruebaPremium prueba) {
+        return pruebaPremiumRepository.save(prueba);
     }
 }

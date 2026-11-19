@@ -1,7 +1,6 @@
 package com.ensambla.backend.domain.model.procesamiento;
 
 import com.ensambla.backend.domain.model.bloque.TipoBloque;
-import com.ensambla.backend.domain.model.campo.TipoCampo;
 
 import java.util.Optional;
 import java.util.Set;
@@ -35,6 +34,6 @@ public record TablaDisponible(BloqueLectura bloque, String proyecto, TipoBloque 
 
     /** La columna que nombra a cada fila: la primera de texto. */
     public Optional<CampoConocido> campoIdentificador() {
-        return bloque.campos().stream().filter(campo -> campo.tipo() == TipoCampo.TEXTO).findFirst();
+        return bloque.campos().stream().filter(CampoConocido::nombraLasFilas).findFirst();
     }
 }

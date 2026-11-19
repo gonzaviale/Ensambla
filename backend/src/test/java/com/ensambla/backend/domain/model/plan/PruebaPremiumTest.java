@@ -15,7 +15,7 @@ class PruebaPremiumTest {
 
     @Test
     @DisplayName("La prueba dura 168 horas exactas y comienza sin consumo")
-    void nuevaShouldCreateSevenDayPeriod() {
+    void laPruebaDura168HorasExactasYComienzaSinConsumo() {
         PruebaPremium result = PruebaPremium.nueva(NEGOCIO_ID, INSTANTE);
 
         assertThat(result.negocioId()).isEqualTo(NEGOCIO_ID);
@@ -26,7 +26,7 @@ class PruebaPremiumTest {
 
     @Test
     @DisplayName("Las páginas admitidas se acumulan hasta diez sin renovar la fecha ni el contador")
-    void consumirShouldKeepOriginalPeriodAndAccumulatePages() {
+    void lasPaginasAdmitidasSeAcumulanHastaDiezSinRenovarLaFechaNiElContador() {
         PruebaPremium prueba = new PruebaPremium(NEGOCIO_ID, INSTANTE, INSTANTE.plusDays(7), 8);
 
         PruebaPremium result = prueba.consumir(2);
@@ -39,7 +39,7 @@ class PruebaPremiumTest {
 
     @Test
     @DisplayName("Se rechaza completo el intento que supera las diez páginas")
-    void validarPaginasShouldRejectExceededTrialQuota() {
+    void seRechazaCompletoElIntentoQueSuperaLasDiezPaginas() {
         PruebaPremium prueba = new PruebaPremium(NEGOCIO_ID, INSTANTE, INSTANTE.plusDays(7), 9);
 
         assertThatThrownBy(() -> prueba.validarPaginas(2)).isInstanceOf(RestriccionPlanException.class)

@@ -7,6 +7,12 @@ export class ComportamientoDeTexto extends ComportamientoDeCampo {
   }
 }
 
+export class ComportamientoDeTextoLargo extends ComportamientoDeTexto {
+  ocupaTodoElAncho(): boolean {
+    return true;
+  }
+}
+
 export class ComportamientoDeHora extends ComportamientoDeTexto {
   private static readonly FORMATO = /^([01]\d|2[0-3]):[0-5]\d$/;
 

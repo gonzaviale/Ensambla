@@ -1,37 +1,12 @@
+import { comportamientoDe } from '@/lib/sistema/comportamiento';
 import type { Campo, Sistema, Valor } from '@/lib/sistema/tipos';
-import { controlDeCampo, propiedadesComunes, valorDelControl } from './controlesDeCampo';
-
-type ControlProps = {
-  sistema: Sistema | undefined;
-  campo: Campo;
-  valor: Valor;
-  id: string;
-  name?: string;
-  /** Con `onCambio` el control es controlado; sin él, el formulario lee los valores al enviarse. */
-  onCambio?: (valor: string | boolean) => void;
-  etiqueta?: string;
-  invalido?: boolean;
-};
+import { controlDe } from './registroDeControles';
+import type { ControlProps } from './tiposDeControl';
 
 // El control de un campo según su tipo: lo que `control()` del mockup escribía como HTML.
-export function ControlDeCampo({
-  sistema,
-  campo,
-  valor,
-  id,
-  name,
-  onCambio,
-  etiqueta,
-  invalido = false,
-}: ControlProps) {
-  return controlDeCampo({
-    sistema,
-    campo,
-    valor,
-    onCambio,
-    comunes: propiedadesComunes(campo, id, name, etiqueta, invalido),
-    valorDelControl: valorDelControl(valor, onCambio),
-  });
+export function ControlDeCampo(props: ControlProps) {
+  const Control = controlDe(props.campo.type);
+  return <Control {...props} />;
 }
 
 type CampoProps = {
@@ -46,7 +21,7 @@ type CampoProps = {
 // Un campo de formulario completo: etiqueta, control y mensaje de error.
 export function CampoDeFormulario({ sistema, campo, valor, prefijo, error }: CampoProps) {
   const id = `${prefijo}-${campo.key}`;
-  const larga = campo.type === 'textarea' || campo.type === 'checkbox';
+  const larga = comportamientoDe(campo.type).ocupaTodoElAncho();
   return (
     <div
       className={`field ${larga ? 'long' : ''} ${error ? 'invalid' : ''}`.trim()}

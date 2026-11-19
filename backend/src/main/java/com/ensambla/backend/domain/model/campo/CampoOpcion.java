@@ -31,6 +31,16 @@ public class CampoOpcion extends Campo {
     }
 
     @Override
+    public boolean admiteFiltroPorValor() {
+        return true;
+    }
+
+    @Override
+    public boolean admiteFiltrarPor(String valor) {
+        return opciones.contains(valor);
+    }
+
+    @Override
     public Optional<String> errorDeValorLeido(String valor) {
         return errorDeValorInicial(valor);
     }

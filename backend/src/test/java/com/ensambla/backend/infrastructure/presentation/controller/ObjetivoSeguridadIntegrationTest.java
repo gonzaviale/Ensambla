@@ -73,16 +73,16 @@ class ObjetivoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        UsuarioId usuarioId = UsuarioId.de(givenUsuario());
-        negocioId = givenNegocio(usuarioId);
-        sesion = givenSesion(usuarioId);
+        UsuarioId usuarioId = UsuarioId.de(dadoUsuario());
+        negocioId = dadoNegocio(usuarioId);
+        sesion = dadoSesion(usuarioId);
     }
 
     @Test
     @DisplayName("La lista HTTP contiene sólo los objetivos del negocio de la sesión")
-    void listarShouldIsolateNegocios() throws Exception {
-        givenObjetivo(negocioId, "Propio");
-        givenObjetivo(givenNegocio(UsuarioId.de(givenUsuario())), "Ajeno");
+    void laListaHTTPContieneSoloLosObjetivosDelNegocioDeLaSesion() throws Exception {
+        dadoObjetivo(negocioId, "Propio");
+        dadoObjetivo(dadoNegocio(UsuarioId.de(dadoUsuario())), "Ajeno");
 
         ResultActions result = mockMvc.perform(get("/api/objetivos").session(sesion));
 
@@ -93,7 +93,7 @@ class ObjetivoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Un objetivo creado se ve en el listado siguiente")
-    void crearShouldBeVisibleInNextListing() throws Exception {
+    void unObjetivoCreadoSeVeEnElListadoSiguiente() throws Exception {
         mockMvc.perform(post("/api/objetivos").session(sesion).header("X-CSRF-TOKEN", csrfToken)
                 .contentType("application/json")
                 .content("{\"texto\":\" Ganar más \",\"meta\":400000}"));
@@ -107,8 +107,8 @@ class ObjetivoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Crear ignora el negocio del body y persiste en el de la sesión")
-    void crearShouldUseSessionNegocio() throws Exception {
-        NegocioId ajeno = givenNegocio(UsuarioId.de(givenUsuario()));
+    void crearIgnoraElNegocioDelBodyYPersisteEnElDeLaSesion() throws Exception {
+        NegocioId ajeno = dadoNegocio(UsuarioId.de(dadoUsuario()));
 
         ResultActions result = mockMvc.perform(post("/api/objetivos").session(sesion)
                 .header("X-CSRF-TOKEN", csrfToken)
@@ -122,7 +122,7 @@ class ObjetivoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Crear sin CSRF devuelve 403 y no guarda datos")
-    void crearShouldRequireCsrf() throws Exception {
+    void crearSinCSRFDevuelve403YNoGuardaDatos() throws Exception {
         ResultActions result = mockMvc.perform(post("/api/objetivos").session(sesion)
                 .contentType("application/json")
                 .content("{\"texto\":\"Ganar más\",\"meta\":400000}"));
@@ -133,16 +133,16 @@ class ObjetivoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Listar sin sesión devuelve 401")
-    void listarShouldRequireSession() throws Exception {
-        ResultActions result = mockMvc.perform(get("/api/objetivos").session(givenSesionSinUsuario()));
+    void listarSinSesionDevuelve401() throws Exception {
+        ResultActions result = mockMvc.perform(get("/api/objetivos").session(dadoSesionSinUsuario()));
 
         result.andExpect(status().isUnauthorized());
     }
 
     @Test
     @DisplayName("Eliminar un objetivo propio devuelve 204 y lo borra")
-    void eliminarShouldDeleteOwnObjetivo() throws Exception {
-        UUID propio = givenObjetivo(negocioId, "Propio");
+    void eliminarUnObjetivoPropioDevuelve204YLoBorra() throws Exception {
+        UUID propio = dadoObjetivo(negocioId, "Propio");
 
         ResultActions result = mockMvc.perform(
                 delete("/api/objetivos/{id}", propio).session(sesion).header("X-CSRF-TOKEN", csrfToken));
@@ -153,9 +153,9 @@ class ObjetivoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Un DELETE ajeno responde 404 y conserva el objetivo")
-    void eliminarShouldNotDeleteForeignObjetivo() throws Exception {
-        NegocioId ajeno = givenNegocio(UsuarioId.de(givenUsuario()));
-        UUID ajenoId = givenObjetivo(ajeno, "Ajeno");
+    void unDELETEAjenoResponde404YConservaElObjetivo() throws Exception {
+        NegocioId ajeno = dadoNegocio(UsuarioId.de(dadoUsuario()));
+        UUID ajenoId = dadoObjetivo(ajeno, "Ajeno");
 
         ResultActions result = mockMvc.perform(
                 delete("/api/objetivos/{id}", ajenoId).session(sesion).header("X-CSRF-TOKEN", csrfToken));
@@ -164,8 +164,8 @@ class ObjetivoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
         assertThat(objetivos.findByIdAndNegocioId(ajenoId, ajeno.valor())).isPresent();
     }
 
-    // --- arrange ---
-    private UUID givenUsuario() {
+    // --- dado ---
+    private UUID dadoUsuario() {
         return usuarios.saveAndFlush(UsuarioEntity.builder()
                 .nombre("Persona")
                 .email(UUID.randomUUID() + "@example.com")
@@ -175,7 +175,7 @@ class ObjetivoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private NegocioId givenNegocio(UsuarioId usuarioId) {
+    private NegocioId dadoNegocio(UsuarioId usuarioId) {
         return NegocioId.de(negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(usuarioId.valor())
@@ -184,7 +184,7 @@ class ObjetivoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId());
     }
 
-    private UUID givenObjetivo(NegocioId negocioId, String texto) {
+    private UUID dadoObjetivo(NegocioId negocioId, String texto) {
         return objetivos.saveAndFlush(ObjetivoEntity.builder()
                 .negocioId(negocioId.valor())
                 .texto(texto)
@@ -193,8 +193,8 @@ class ObjetivoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private MockHttpSession givenSesion(UsuarioId usuarioId) throws Exception {
-        MockHttpSession session = givenSesionSinUsuario();
+    private MockHttpSession dadoSesion(UsuarioId usuarioId) throws Exception {
+        MockHttpSession session = dadoSesionSinUsuario();
         var securityContext = SecurityContextHolder.createEmptyContext();
         securityContext.setAuthentication(
                 UsernamePasswordAuthenticationToken.authenticated(usuarioId.toString(), null, List.of()));
@@ -202,7 +202,7 @@ class ObjetivoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
         return session;
     }
 
-    private MockHttpSession givenSesionSinUsuario() throws Exception {
+    private MockHttpSession dadoSesionSinUsuario() throws Exception {
         MockHttpSession session = new MockHttpSession();
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setSession(session);

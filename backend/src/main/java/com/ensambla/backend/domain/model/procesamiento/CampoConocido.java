@@ -19,6 +19,25 @@ public record CampoConocido(CampoId id, String nombre, TipoCampo tipo, List<Stri
         this(id, nombre, tipo, opciones, null);
     }
 
+    /** Si el valor lo calcula una fórmula: ahí no se puede cargar un dato. */
+    public boolean esCalculado() {
+        return tipo == TipoCampo.FORMULA;
+    }
+
+    public boolean esRelacion() {
+        return tipo == TipoCampo.RELACION;
+    }
+
+    /** Si apunta a una fila de otra tabla que se conoce. */
+    public boolean vinculaConOtraTabla() {
+        return esRelacion() && bloqueRelacionadoId != null;
+    }
+
+    /** Si es el campo que nombra cada fila de la tabla (el texto corto). */
+    public boolean nombraLasFilas() {
+        return tipo == TipoCampo.TEXTO;
+    }
+
     /** El campo del dominio de este tipo; sirve para preguntarle qué dato de un mensaje lo completa. */
     public Campo comoCampo() {
         return Campo.builder().nombre(nombre).tipo(tipo).opciones(opciones).build();

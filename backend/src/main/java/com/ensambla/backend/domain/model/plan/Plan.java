@@ -49,8 +49,16 @@ public class Plan {
 
     private OffsetDateTime actualizadoEn;
 
+    public boolean esPremium() {
+        return codigo == CodigoPlan.PREMIUM;
+    }
+
+    public boolean tieneLimitesConfigurados() {
+        return Boolean.TRUE.equals(limitesConfigurados);
+    }
+
     public void validarLimitesConfigurados() {
-        if (!Boolean.TRUE.equals(limitesConfigurados)) {
+        if (!tieneLimitesConfigurados()) {
             throw new RestriccionPlanException("PLAN_NO_CONFIGURADO", "Los límites del plan no están configurados");
         }
     }

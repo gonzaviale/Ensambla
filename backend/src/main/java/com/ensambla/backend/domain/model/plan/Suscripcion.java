@@ -47,6 +47,31 @@ public class Suscripcion {
         return planId.equals(otroPlanId);
     }
 
+    public boolean tienePlanVigente(PlanId otroPlanId, OffsetDateTime ahora) {
+        return estaVigente(ahora) && esDelPlan(otroPlanId);
+    }
+
+    public boolean estaEnPrueba() {
+        return estado == EstadoSuscripcion.PRUEBA;
+    }
+
+    /** Una prueba cuyo plazo ya pasó: es la que se vuelve al plan gratuito. */
+    public boolean tieneLaPruebaVencida(OffsetDateTime ahora) {
+        return estaEnPrueba() && !finEn.isAfter(ahora);
+    }
+
+    public void pasarAPrueba(PlanId premiumId, PruebaPremium prueba, OffsetDateTime ahora) {
+        this.planId = premiumId;
+        this.estado = EstadoSuscripcion.PRUEBA;
+        this.inicioEn = prueba.inicioEn();
+        this.finEn = prueba.finEn();
+        this.actualizadoEn = ahora;
+    }
+
+    public void volverAlPlanGratuito(PlanId gratuitoId, OffsetDateTime ahora) {
+        activarPlan(gratuitoId, ahora, null, ahora);
+    }
+
     public void activarPlan(PlanId nuevoPlanId, OffsetDateTime desde, OffsetDateTime hasta, OffsetDateTime ahora) {
         this.planId = nuevoPlanId;
         this.estado = EstadoSuscripcion.ACTIVA;

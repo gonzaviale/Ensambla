@@ -25,7 +25,9 @@ export function VisorDeFoto({
       if (evento.key === 'Escape') {
         evento.stopPropagation();
         cierre.current();
-      } else if (evento.key === 'Tab') {
+        return;
+      }
+      if (evento.key === 'Tab') {
         // El único elemento enfocable es el botón de cerrar: el foco no sale del diálogo.
         evento.preventDefault();
         cerrar.current?.focus();

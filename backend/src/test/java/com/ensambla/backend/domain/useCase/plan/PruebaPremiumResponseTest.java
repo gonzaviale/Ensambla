@@ -12,7 +12,7 @@ class PruebaPremiumResponseTest {
 
     @Test
     @DisplayName("Mapea fechas, páginas utilizadas y límite total de prueba")
-    void deShouldMapTrialDetails() {
+    void mapeaFechasPaginasUtilizadasYLimiteTotalDePrueba() {
         PruebaPremium prueba = new PruebaPremium(NEGOCIO_ID, INSTANTE, INSTANTE.plusDays(7), 3);
 
         PruebaPremiumResponse result = PruebaPremiumResponse.de(prueba);

@@ -1,4 +1,5 @@
 import { hoy } from '../formato';
+import { formatoFecha } from '../formatoDeValores';
 import type { Campo, Valor } from '../tipos';
 import { ComportamientoDeCampo } from './ComportamientoDeCampo';
 import { fechaDeCuaderno } from './fechaDeCuaderno';
@@ -8,6 +9,10 @@ export class ComportamientoDeFecha extends ComportamientoDeCampo {
 
   interpretar(_campo: Campo, crudo: unknown): Valor {
     return typeof crudo === 'string' ? fechaDeCuaderno(crudo) : undefined;
+  }
+
+  enTabla(_campo: Campo, valor: Valor): string {
+    return formatoFecha(valor);
   }
 
   protected valorPorDefecto(): Valor {

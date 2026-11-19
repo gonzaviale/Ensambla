@@ -240,7 +240,7 @@ public class ControlPlanService {
     }
 
     private boolean esPremium(NegocioId negocioId, OffsetDateTime ahora) {
-        return planVigente(negocioId, ahora).getCodigo() == CodigoPlan.PREMIUM;
+        return planVigente(negocioId, ahora).esPremium();
     }
 
     private Suscripcion suscripcionDe(NegocioId negocioId) {
