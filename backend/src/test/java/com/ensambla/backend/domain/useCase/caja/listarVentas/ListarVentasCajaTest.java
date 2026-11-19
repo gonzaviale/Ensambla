@@ -7,9 +7,9 @@ import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.support.CajaTestData;
 import com.ensambla.backend.support.CobroCajaTestData;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -17,7 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
@@ -37,6 +37,9 @@ class ListarVentasCajaTest {
     private final ListarVentasCajaRequest request = new ListarVentasCajaRequest(
             CajaTestData.USUARIO, CajaTestData.PROYECTO, CajaTestData.INVENTARIO);
 
+    private ListarVentasCajaResponse respuesta;
+    private Throwable rechazo;
+
     @BeforeEach
     void setUp() {
         listar = new ListarVentasCaja(negocios, sistemas, ventas, cobros);
@@ -44,42 +47,77 @@ class ListarVentasCajaTest {
 
     @Test
     @DisplayName("Lista ventas con su saldo actual y cobros posteriores del inventario del negocio")
-    void executeShouldReturnSalesAndCollections() {
-        givenUsuario();
-        when(ventas.listarTodas(CajaTestData.NEGOCIO, CajaTestData.PROYECTO, CajaTestData.INVENTARIO))
-                .thenReturn(List.of(CobroCajaTestData.venta()));
-        when(cobros.listarTodos(CajaTestData.NEGOCIO, CajaTestData.PROYECTO, CajaTestData.INVENTARIO))
-                .thenReturn(List.of(CobroCajaTestData.cobro()));
+    void listaVentasConSuSaldoActualYCobrosPosterioresDelInventarioDelNegocio() {
+        dadoUnaVentaConUnCobroPosterior();
 
-        ListarVentasCajaResponse respuesta = listar.execute(request);
+        cuandoSeListanLasVentas();
 
-        assertThat(respuesta.ventas().getFirst().saldo()).isEqualByComparingTo("1200");
-        assertThat(respuesta.cobros().getFirst().importe()).isEqualByComparingTo("600");
+        entoncesSeMuestraElSaldoActualYElCobro();
     }
 
     @Test
     @DisplayName("Un inventario sin movimientos devuelve listas vacías")
-    void executeShouldReturnEmptyListsWhenNoMovementsExist() {
-        givenUsuario();
+    void unInventarioSinMovimientosDevuelveListasVacias() {
+        dadoUnUsuarioDelNegocio();
 
-        ListarVentasCajaResponse respuesta = listar.execute(request);
+        cuandoSeListanLasVentas();
 
-        assertThat(respuesta.ventas()).isEmpty();
-        assertThat(respuesta.cobros()).isEmpty();
+        entoncesNoHayVentasNiCobros();
     }
 
     @Test
     @DisplayName("Un inventario ajeno no expone cuentas ni deudas")
-    void executeShouldHideForeignInventory() {
-        givenUsuario();
-        doThrow(new ResourceNotFoundException("Inventario no encontrado")).when(sistemas)
-                .obtenerInventarioCaja(any(), any(), any());
+    void unInventarioAjenoNoExponeCuentasNiDeudas() {
+        dadoUnInventarioQueNoEsDelNegocio();
 
-        assertThatThrownBy(() -> listar.execute(request)).isInstanceOf(ResourceNotFoundException.class);
+        cuandoSeIntentanListarLasVentas();
+
+        entoncesElInventarioNoExiste();
     }
 
-    // --- arrange ---
-    private void givenUsuario() {
+    // --- dado ---
+
+    private void dadoUnUsuarioDelNegocio() {
         when(negocios.obtenerIdDelUsuario(CajaTestData.USUARIO)).thenReturn(CajaTestData.NEGOCIO);
+    }
+
+    private void dadoUnaVentaConUnCobroPosterior() {
+        dadoUnUsuarioDelNegocio();
+        when(ventas.listarTodas(CajaTestData.NEGOCIO, CajaTestData.PROYECTO, CajaTestData.INVENTARIO))
+                .thenReturn(List.of(CobroCajaTestData.venta()));
+        when(cobros.listarTodos(CajaTestData.NEGOCIO, CajaTestData.PROYECTO, CajaTestData.INVENTARIO))
+                .thenReturn(List.of(CobroCajaTestData.cobro()));
+    }
+
+    private void dadoUnInventarioQueNoEsDelNegocio() {
+        dadoUnUsuarioDelNegocio();
+        doThrow(new ResourceNotFoundException("Inventario no encontrado")).when(sistemas)
+                .obtenerInventarioCaja(any(), any(), any());
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeListanLasVentas() {
+        respuesta = listar.execute(request);
+    }
+
+    private void cuandoSeIntentanListarLasVentas() {
+        rechazo = catchThrowable(() -> listar.execute(request));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeMuestraElSaldoActualYElCobro() {
+        assertThat(respuesta.ventas().getFirst().saldo()).isEqualByComparingTo("1200");
+        assertThat(respuesta.cobros().getFirst().importe()).isEqualByComparingTo("600");
+    }
+
+    private void entoncesNoHayVentasNiCobros() {
+        assertThat(respuesta.ventas()).isEmpty();
+        assertThat(respuesta.cobros()).isEmpty();
+    }
+
+    private void entoncesElInventarioNoExiste() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class);
     }
 }
