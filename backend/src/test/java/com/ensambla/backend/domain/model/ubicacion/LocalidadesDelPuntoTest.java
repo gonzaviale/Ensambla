@@ -11,39 +11,75 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class LocalidadesDelPuntoTest {
 
+    private LocalidadesDelPunto localidades;
+
     @Test
     @DisplayName("La principal es la primera que reconoce el mapa")
-    void principalShouldBeTheFirstName() {
-        assertThat(new LocalidadesDelPunto(List.of("San Justo", "La Matanza")).principal()).contains("San Justo");
+    void laPrincipalEsLaPrimeraQueReconoceElMapa() {
+        dadoQueElMapaReconoce("San Justo", "La Matanza");
+
+        entoncesLaPrincipalEs("San Justo");
     }
 
     @Test
     @DisplayName("Sin nombres reconocidos no hay localidad principal")
-    void principalShouldBeEmptyWithoutNames() {
-        assertThat(new LocalidadesDelPunto(List.of()).principal()).isEmpty();
+    void sinNombresReconocidosNoHayLocalidadPrincipal() {
+        dadoQueElMapaNoReconoceNada();
+
+        entoncesNoHayLocalidadPrincipal();
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"San Justo", "san justo", "SAN JUSTO", "  San   Justo  ", "Ramos Mejia", "ramos mejía"})
     @DisplayName("Admite el nombre sin importar mayúsculas, tildes ni espacios de más")
-    void admiteShouldIgnoreCaseAccentsAndSpaces(String localidad) {
-        LocalidadesDelPunto localidades = new LocalidadesDelPunto(List.of("San Justo", "Ramos Mejía"));
+    void admiteElNombreSinImportarMayusculasTildesNiEspaciosDeMas(String localidad) {
+        dadoQueElMapaReconoce("San Justo", "Ramos Mejía");
 
-        assertThat(localidades.admite(localidad)).isTrue();
+        entoncesAdmite(localidad);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"Ramos", "Lomas del Mirador", "San Justo Oeste", ""})
     @DisplayName("Rechaza una localidad que el mapa no reconoce en ese punto")
-    void admiteShouldRejectOtherLocalities(String localidad) {
-        LocalidadesDelPunto localidades = new LocalidadesDelPunto(List.of("San Justo", "Ramos Mejía"));
+    void rechazaUnaLocalidadQueElMapaNoReconoceEnEsePunto(String localidad) {
+        dadoQueElMapaReconoce("San Justo", "Ramos Mejía");
 
-        assertThat(localidades.admite(localidad)).isFalse();
+        entoncesNoAdmite(localidad);
     }
 
     @Test
     @DisplayName("Si el mapa no reconoce ninguna localidad no hay nada que contradecir")
-    void admiteShouldAcceptAnythingWhenMapKnowsNone() {
-        assertThat(new LocalidadesDelPunto(List.of()).admite("Cualquier lugar")).isTrue();
+    void siElMapaNoReconoceNingunaLocalidadNoHayNadaQueContradecir() {
+        dadoQueElMapaNoReconoceNada();
+
+        entoncesAdmite("Cualquier lugar");
+    }
+
+    // --- dado ---
+
+    private void dadoQueElMapaReconoce(String... nombres) {
+        localidades = new LocalidadesDelPunto(List.of(nombres));
+    }
+
+    private void dadoQueElMapaNoReconoceNada() {
+        localidades = new LocalidadesDelPunto(List.of());
+    }
+
+    // --- entonces ---
+
+    private void entoncesLaPrincipalEs(String nombre) {
+        assertThat(localidades.principal()).contains(nombre);
+    }
+
+    private void entoncesNoHayLocalidadPrincipal() {
+        assertThat(localidades.principal()).isEmpty();
+    }
+
+    private void entoncesAdmite(String localidad) {
+        assertThat(localidades.admite(localidad)).isTrue();
+    }
+
+    private void entoncesNoAdmite(String localidad) {
+        assertThat(localidades.admite(localidad)).isFalse();
     }
 }
