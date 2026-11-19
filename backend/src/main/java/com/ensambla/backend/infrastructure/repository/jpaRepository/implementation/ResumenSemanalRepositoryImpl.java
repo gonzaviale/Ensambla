@@ -46,14 +46,18 @@ public class ResumenSemanalRepositoryImpl implements ResumenSemanalRepository {
         if (resumenes.isEmpty()) {
             return List.of();
         }
-        Map<UUID, List<ReajusteMiniObjetivoEntity>> reajustes = reajusteMiniObjetivoJpaRepository
-                .findAllByResumenIdInOrderByCreadoEnAscIdAsc(resumenes.stream().map(ResumenSemanalEntity::getId)
-                        .toList()).stream()
-                .collect(Collectors.groupingBy(ReajusteMiniObjetivoEntity::getResumenId));
+        Map<UUID, List<ReajusteMiniObjetivoEntity>> reajustes = reajustesPorResumen(resumenes);
         return resumenes.stream()
                 .map(resumen -> resumenSemanalRepositoryMapper.toDomain(
                         resumen, reajustes.getOrDefault(resumen.getId(), List.of())))
                 .toList();
+    }
+
+    private Map<UUID, List<ReajusteMiniObjetivoEntity>> reajustesPorResumen(List<ResumenSemanalEntity> resumenes) {
+        return reajusteMiniObjetivoJpaRepository
+                .findAllByResumenIdInOrderByCreadoEnAscIdAsc(resumenes.stream().map(ResumenSemanalEntity::getId)
+                        .toList()).stream()
+                .collect(Collectors.groupingBy(ReajusteMiniObjetivoEntity::getResumenId));
     }
 
     /** Otra corrida que cerró la misma semana antes choca con el índice único: se informa como duplicado. */
