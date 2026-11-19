@@ -34,6 +34,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
@@ -94,6 +95,12 @@ class PanelNegocioIntegrationTest extends PostgresRepositoryTestSupport {
     private MockHttpSession sesion;
     private final LocalDate hoy = ZonaNegocio.dia(OffsetDateTime.now());
 
+    private ResultActions respuesta;
+    private ResultActions segundaRespuesta;
+    private ResultActions terceraRespuesta;
+    private UUID proyectoId;
+    private UUID ajenoId;
+
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
@@ -106,57 +113,41 @@ class PanelNegocioIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Devuelve las métricas y el flujo de caja de un sistema cargado en la base")
     void devuelveLasMetricasYElFlujoDeCajaDeUnSistemaCargadoEnLaBase() throws Exception {
-        UUID proyectoId = dadoSistemaCargado(negocioId);
+        dadoElEscenarioDeDevuelveLasMetricasYElFlujoDeCajaDeUnSistemaCargadoEnLaBase();
 
-        mockMvc.perform(get("/api/negocio/panel").session(sesion)
-                        .param("proyectoId", proyectoId.toString()).param("dias", "30"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.hayDatos").value(true))
-                .andExpect(jsonPath("$.dias").value(30))
-                .andExpect(jsonPath("$.hasta").value(hoy.toString()))
-                .andExpect(jsonPath("$.metricas.vendiste").value(54400))
-                .andExpect(jsonPath("$.metricas.teDeben").value(17000))
-                .andExpect(jsonPath("$.metricas.gastos").value(5000))
-                .andExpect(jsonPath("$.metricas.mercaderia").value(13500))
-                .andExpect(jsonPath("$.metricas.queda").value(18900))
-                .andExpect(jsonPath("$.flujoDeCaja.length()").value(5))
-                .andExpect(jsonPath("$.flujoDeCaja[4].saldoAcumulado").value(18900));
+        cuandoSeEjecutaDevuelveLasMetricasYElFlujoDeCajaDeUnSistemaCargadoEnLaBase();
+
+        entoncesSeVerificaDevuelveLasMetricasYElFlujoDeCajaDeUnSistemaCargadoEnLaBase();
     }
 
     @Test
     @DisplayName("Un sistema sin ventas responde vacío, sin métricas ni semanas")
     void unSistemaSinVentasRespondeVacioSinMetricasNiSemanas() throws Exception {
-        UUID proyectoId = dadoProyecto(negocioId, "Sin ventas");
+        dadoElEscenarioDeUnSistemaSinVentasRespondeVacioSinMetricasNiSemanas();
 
-        mockMvc.perform(get("/api/negocio/panel").session(sesion).param("proyectoId", proyectoId.toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.hayDatos").value(false))
-                .andExpect(jsonPath("$.metricas").doesNotExist())
-                .andExpect(jsonPath("$.flujoDeCaja.length()").value(0));
+        cuandoSeEjecutaUnSistemaSinVentasRespondeVacioSinMetricasNiSemanas();
+
+        entoncesSeVerificaUnSistemaSinVentasRespondeVacioSinMetricasNiSemanas();
     }
 
     @Test
     @DisplayName("Un sistema de otro negocio responde 404, aunque tenga ventas")
     void unSistemaDeOtroNegocioResponde404AunqueTengaVentas() throws Exception {
-        NegocioId otroNegocioId = NegocioId.de(dadoNegocio(UsuarioId.de(dadoUsuario())));
-        UUID ajenoId = dadoSistemaCargado(otroNegocioId);
+        dadoElEscenarioDeUnSistemaDeOtroNegocioResponde404AunqueTengaVentas();
 
-        mockMvc.perform(get("/api/negocio/panel").session(sesion).param("proyectoId", ajenoId.toString()))
-                .andExpect(status().isNotFound());
+        cuandoSeEjecutaUnSistemaDeOtroNegocioResponde404AunqueTengaVentas();
+
+        entoncesSeVerificaUnSistemaDeOtroNegocioResponde404AunqueTengaVentas();
     }
 
     @Test
     @DisplayName("Sin sesión responde 401 y con días inválidos o un id mal escrito, 400")
     void sinSesionResponde401YConDiasInvalidosOUnIdMalEscrito400() throws Exception {
-        UUID proyectoId = dadoProyecto(negocioId, "Cualquiera");
+        dadoElEscenarioDeSinSesionResponde401YConDiasInvalidosOUnIdMalEscrito400();
 
-        mockMvc.perform(get("/api/negocio/panel").param("proyectoId", proyectoId.toString()))
-                .andExpect(status().isUnauthorized());
-        mockMvc.perform(get("/api/negocio/panel").session(sesion)
-                        .param("proyectoId", proyectoId.toString()).param("dias", "0"))
-                .andExpect(status().isBadRequest());
-        mockMvc.perform(get("/api/negocio/panel").session(sesion).param("proyectoId", "no-es-un-id"))
-                .andExpect(status().isBadRequest());
+        cuandoSeEjecutaSinSesionResponde401YConDiasInvalidosOUnIdMalEscrito400();
+
+        entoncesSeVerificaSinSesionResponde401YConDiasInvalidosOUnIdMalEscrito400();
     }
 
     // --- dado ---
@@ -298,5 +289,85 @@ class PanelNegocioIntegrationTest extends PostgresRepositoryTestSupport {
                 UsernamePasswordAuthenticationToken.authenticated(usuarioId.toString(), null, List.of()));
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, securityContext);
         return session;
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeDevuelveLasMetricasYElFlujoDeCajaDeUnSistemaCargadoEnLaBase() throws Exception {
+        proyectoId = dadoSistemaCargado(negocioId);
+    }
+
+    private void dadoElEscenarioDeUnSistemaSinVentasRespondeVacioSinMetricasNiSemanas() throws Exception {
+        proyectoId = dadoProyecto(negocioId, "Sin ventas");
+    }
+
+    private void dadoElEscenarioDeUnSistemaDeOtroNegocioResponde404AunqueTengaVentas() throws Exception {
+        NegocioId otroNegocioId = NegocioId.de(dadoNegocio(UsuarioId.de(dadoUsuario())));
+        ajenoId = dadoSistemaCargado(otroNegocioId);
+    }
+
+    private void dadoElEscenarioDeSinSesionResponde401YConDiasInvalidosOUnIdMalEscrito400() throws Exception {
+        proyectoId = dadoProyecto(negocioId, "Cualquiera");
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaDevuelveLasMetricasYElFlujoDeCajaDeUnSistemaCargadoEnLaBase() throws Exception {
+        respuesta = mockMvc.perform(get("/api/negocio/panel").session(sesion)
+                        .param("proyectoId", proyectoId.toString()).param("dias", "30"));
+    }
+
+    private void cuandoSeEjecutaUnSistemaSinVentasRespondeVacioSinMetricasNiSemanas() throws Exception {
+        respuesta = mockMvc.perform(get("/api/negocio/panel").session(sesion).param("proyectoId", proyectoId.toString()));
+    }
+
+    private void cuandoSeEjecutaUnSistemaDeOtroNegocioResponde404AunqueTengaVentas() throws Exception {
+        respuesta = mockMvc.perform(get("/api/negocio/panel").session(sesion).param("proyectoId", ajenoId.toString()));
+    }
+
+    private void cuandoSeEjecutaSinSesionResponde401YConDiasInvalidosOUnIdMalEscrito400() throws Exception {
+        respuesta = mockMvc.perform(get("/api/negocio/panel").param("proyectoId", proyectoId.toString()));
+        segundaRespuesta = mockMvc.perform(get("/api/negocio/panel").session(sesion)
+                        .param("proyectoId", proyectoId.toString()).param("dias", "0"));
+        terceraRespuesta = mockMvc.perform(get("/api/negocio/panel").session(sesion).param("proyectoId", "no-es-un-id"));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaDevuelveLasMetricasYElFlujoDeCajaDeUnSistemaCargadoEnLaBase() throws Exception {
+        respuesta
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hayDatos").value(true))
+                .andExpect(jsonPath("$.dias").value(30))
+                .andExpect(jsonPath("$.hasta").value(hoy.toString()))
+                .andExpect(jsonPath("$.metricas.vendiste").value(54400))
+                .andExpect(jsonPath("$.metricas.teDeben").value(17000))
+                .andExpect(jsonPath("$.metricas.gastos").value(5000))
+                .andExpect(jsonPath("$.metricas.mercaderia").value(13500))
+                .andExpect(jsonPath("$.metricas.queda").value(18900))
+                .andExpect(jsonPath("$.flujoDeCaja.length()").value(5))
+                .andExpect(jsonPath("$.flujoDeCaja[4].saldoAcumulado").value(18900));
+    }
+
+    private void entoncesSeVerificaUnSistemaSinVentasRespondeVacioSinMetricasNiSemanas() throws Exception {
+        respuesta
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hayDatos").value(false))
+                .andExpect(jsonPath("$.metricas").doesNotExist())
+                .andExpect(jsonPath("$.flujoDeCaja.length()").value(0));
+    }
+
+    private void entoncesSeVerificaUnSistemaDeOtroNegocioResponde404AunqueTengaVentas() throws Exception {
+        respuesta
+                .andExpect(status().isNotFound());
+    }
+
+    private void entoncesSeVerificaSinSesionResponde401YConDiasInvalidosOUnIdMalEscrito400() throws Exception {
+        respuesta
+                .andExpect(status().isUnauthorized());
+        segundaRespuesta
+                .andExpect(status().isBadRequest());
+        terceraRespuesta
+                .andExpect(status().isBadRequest());
     }
 }
