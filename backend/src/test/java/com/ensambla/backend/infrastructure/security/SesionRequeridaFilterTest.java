@@ -25,7 +25,7 @@ class SesionRequeridaFilterTest {
     private final MockHttpServletRequest request = new MockHttpServletRequest();
     private final MockHttpServletResponse response = new MockHttpServletResponse();
     private final FilterChain chain = mock(FilterChain.class);
-    private final SesionRequeridaFilter filter =
+    private SesionRequeridaFilter filter =
             new SesionRequeridaFilter(ignored -> false, new SecurityErrorHandler(new ObjectMapper()));
 
     @AfterEach
@@ -36,9 +36,9 @@ class SesionRequeridaFilterTest {
     @Test
     @DisplayName("Sin identidad rechaza con 401 sin ejecutar el endpoint")
     void sinIdentidadRechazaCon401SinEjecutarElEndpoint() throws Exception {
-        filtrar();
+        cuandoSeFiltraLaPeticion();
 
-        entoncesUnauthorized();
+        entoncesSeRechazaConUnauthorized();
     }
 
     @Test
@@ -46,9 +46,9 @@ class SesionRequeridaFilterTest {
     void rechazaUnaIdentidadQueTodaviaNoFueAutenticada() throws Exception {
         dadoAuthentication(UsernamePasswordAuthenticationToken.unauthenticated("persona", "clave"));
 
-        filtrar();
+        cuandoSeFiltraLaPeticion();
 
-        entoncesUnauthorized();
+        entoncesSeRechazaConUnauthorized();
     }
 
     @Test
@@ -57,9 +57,9 @@ class SesionRequeridaFilterTest {
         dadoAuthentication(new AnonymousAuthenticationToken("key", "anonymous",
                 List.of(new SimpleGrantedAuthority("ROLE_ANONYMOUS"))));
 
-        filtrar();
+        cuandoSeFiltraLaPeticion();
 
-        entoncesUnauthorized();
+        entoncesSeRechazaConUnauthorized();
     }
 
     @Test
@@ -67,20 +67,19 @@ class SesionRequeridaFilterTest {
     void unaIdentidadAutenticadaContinuaALaProteccionCSRF() throws Exception {
         dadoAuthentication(UsernamePasswordAuthenticationToken.authenticated("persona", null, List.of()));
 
-        filtrar();
+        cuandoSeFiltraLaPeticion();
 
-        verify(chain).doFilter(request, response);
+        entoncesLaPeticionContinuaPorLaCadenaDeFiltros();
     }
 
     @Test
     @DisplayName("Las rutas públicas no requieren identidad")
     void lasRutasPublicasNoRequierenIdentidad() throws Exception {
-        SesionRequeridaFilter publicFilter =
-                new SesionRequeridaFilter(ignored -> true, new SecurityErrorHandler(new ObjectMapper()));
+        dadoUnFiltroDondeTodasLasRutasSonPublicas();
 
-        publicFilter.doFilter(request, response, chain);
+        cuandoSeFiltraLaPeticion();
 
-        verify(chain).doFilter(request, response);
+        entoncesLaPeticionContinuaPorLaCadenaDeFiltros();
     }
 
     // --- dado ---
@@ -88,15 +87,22 @@ class SesionRequeridaFilterTest {
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
+    private void dadoUnFiltroDondeTodasLasRutasSonPublicas() {
+        filter = new SesionRequeridaFilter(ignored -> true, new SecurityErrorHandler(new ObjectMapper()));
+    }
+
     // --- cuando ---
-    private void filtrar() throws Exception {
+    private void cuandoSeFiltraLaPeticion() throws Exception {
         filter.doFilter(request, response, chain);
     }
 
     // --- entonces ---
-    private void entoncesUnauthorized() {
+    private void entoncesSeRechazaConUnauthorized() {
         assertThat(response.getStatus()).isEqualTo(401);
         verifyNoInteractions(chain);
     }
-}
 
+    private void entoncesLaPeticionContinuaPorLaCadenaDeFiltros() throws Exception {
+        verify(chain).doFilter(request, response);
+    }
+}

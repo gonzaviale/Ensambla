@@ -11,13 +11,31 @@ class ContraseniaAdapterTest {
     private final ContraseniaAdapter contraseniaAdapter =
             new ContraseniaAdapter(new SecurityConfig().passwordEncoder());
 
+    private String contrasenia;
+    private String hash;
+
     @Test
     @DisplayName("BCrypt produce un hash con sal verificable que no contiene la contraseña")
     void bCryptProduceUnHashConSalVerificableQueNoContieneLaContrasena() {
-        String contrasenia = "ClaveSegura123!";
+        dadoUnaContraseniaSegura();
 
-        String hash = contraseniaAdapter.hashear(contrasenia);
+        cuandoSeHasheaLaContrasenia();
 
+        entoncesElHashEsBCryptConSalVerificableYNoContieneLaContrasenia();
+    }
+
+    // --- dado ---
+    private void dadoUnaContraseniaSegura() {
+        contrasenia = "ClaveSegura123!";
+    }
+
+    // --- cuando ---
+    private void cuandoSeHasheaLaContrasenia() {
+        hash = contraseniaAdapter.hashear(contrasenia);
+    }
+
+    // --- entonces ---
+    private void entoncesElHashEsBCryptConSalVerificableYNoContieneLaContrasenia() {
         assertThat(hash).startsWith("{bcrypt}");
         assertThat(hash).doesNotContain(contrasenia);
         assertThat(hash).isNotEqualTo(contraseniaAdapter.hashear(contrasenia));
@@ -25,4 +43,3 @@ class ContraseniaAdapterTest {
         assertThat(contraseniaAdapter.coincide("incorrecta", hash)).isFalse();
     }
 }
-

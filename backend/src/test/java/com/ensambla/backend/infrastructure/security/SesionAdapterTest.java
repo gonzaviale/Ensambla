@@ -21,6 +21,10 @@ class SesionAdapterTest {
 
     private final MockHttpServletResponse respuesta = new MockHttpServletResponse();
 
+    private MockHttpSession sesion;
+
+    private String idAnterior;
+
     @AfterEach
     void clearContext() {
         SecurityContextHolder.clearContext();
@@ -29,12 +33,11 @@ class SesionAdapterTest {
     @Test
     @DisplayName("Rota una sesión existente y persiste solo identidad y rol")
     void rotaUnaSesionExistenteYPersisteSoloIdentidadYRol() {
-        MockHttpSession sesion = dadoUnaPeticionConSesionAbierta();
-        String idAnterior = sesion.getId();
+        dadoUnaPeticionConSesionAbierta();
 
         cuandoIniciaSesionUnaPersona();
 
-        entoncesLaSesionRotaYGuardaSoloLaIdentidadYElRol(sesion, idAnterior);
+        entoncesLaSesionRotaYGuardaSoloLaIdentidadYElRol();
     }
 
     @Test
@@ -50,11 +53,11 @@ class SesionAdapterTest {
     @Test
     @DisplayName("Invalida la sesión y elimina la cookie al cerrar el acceso")
     void invalidaLaSesionYEliminaLaCookieAlCerrarElAcceso() {
-        MockHttpSession sesion = dadoUnaPeticionConSesionAbierta();
+        dadoUnaPeticionConSesionAbierta();
 
         cuandoCierraSesionLaPersona();
 
-        entoncesLaSesionQuedaInvalidaSinCookie(sesion);
+        entoncesLaSesionQuedaInvalidaSinCookie();
     }
 
     @Test
@@ -68,10 +71,10 @@ class SesionAdapterTest {
     }
 
     // --- dado ---
-    private MockHttpSession dadoUnaPeticionConSesionAbierta() {
-        MockHttpSession sesion = new MockHttpSession();
+    private void dadoUnaPeticionConSesionAbierta() {
+        sesion = new MockHttpSession();
+        idAnterior = sesion.getId();
         peticion.setSession(sesion);
-        return sesion;
     }
 
     private void dadoUnaPeticionSinSesion() {
@@ -88,7 +91,7 @@ class SesionAdapterTest {
     }
 
     // --- entonces ---
-    private void entoncesLaSesionRotaYGuardaSoloLaIdentidadYElRol(MockHttpSession sesion, String idAnterior) {
+    private void entoncesLaSesionRotaYGuardaSoloLaIdentidadYElRol() {
         assertThat(sesion.getId()).isNotEqualTo(idAnterior);
         SecurityContext contexto = (SecurityContext) sesion.getAttribute(
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
@@ -102,7 +105,7 @@ class SesionAdapterTest {
         assertThat(peticion.getSession(false)).isNotNull();
     }
 
-    private void entoncesLaSesionQuedaInvalidaSinCookie(MockHttpSession sesion) {
+    private void entoncesLaSesionQuedaInvalidaSinCookie() {
         assertThat(sesion.isInvalid()).isTrue();
         assertThat(respuesta.getCookie("ENSAMBLA_SESSION").getMaxAge()).isZero();
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
