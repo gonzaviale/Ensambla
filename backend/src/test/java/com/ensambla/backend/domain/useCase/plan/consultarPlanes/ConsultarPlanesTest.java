@@ -43,6 +43,9 @@ import static org.mockito.Mockito.when;
 
 class ConsultarPlanesTest {
 
+    private ConsultarPlanesResponse result;
+    private Suscripcion suscripcion;
+
     private static final UsuarioId USUARIO_ID = UsuarioId.de("bb000000-0000-4000-8000-000000000009");
 
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
@@ -60,166 +63,111 @@ class ConsultarPlanesTest {
     @Test
     @DisplayName("El gratuito muestra catálogo, uso del mes argentino y disponibilidad de prueba bajo el mismo bloqueo")
     void elGratuitoMuestraCatalogoUsoDelMesArgentinoYDisponibilidadDePruebaBajoElMismoBloqueo() {
-        Plan gratuito = dadoCatalogo();
-        dadoSuscripcion(gratuito, EstadoSuscripcion.ACTIVA, AHORA.plusDays(30));
-        LocalDate inicio = LocalDate.parse("2026-11-01");
-        when(usoPlanRepository.contarProyectos(NEGOCIO_ID)).thenReturn(2L);
-        when(usoPlanRepository.contarRegistros(NEGOCIO_ID)).thenReturn(1001L);
-        when(usoPlanRepository.paginasEnPeriodo(NEGOCIO_ID, inicio, inicio.plusMonths(1))).thenReturn(7L);
+        dadoElEscenarioDeElGratuitoMuestraCatalogoUsoDelMesArgentinoYDisponibilidadDePruebaBajo();
 
-        ConsultarPlanesResponse result = consultar(OffsetDateTime.parse("2026-11-01T00:05:00-03:00"));
+        cuandoSeEjecutaElGratuitoMuestraCatalogoUsoDelMesArgentinoYDisponibilidadDePruebaBajo();
 
-        assertThat(result.suscripcion().codigoPlanActual()).isEqualTo("GRATUITO");
-        assertThat(result.planes()).extracting(PlanItem::codigo).containsExactly("GRATUITO", "PREMIUM");
-        assertThat(result.suscripcion().puedeIniciarPrueba()).isTrue();
-        assertThat(result.suscripcion().pruebaActiva()).isFalse();
-        assertThat(result.prueba()).isNull();
-        assertThat(result.uso()).isEqualTo(new UsoPlanItem(2, 1001, 7, 10, "MENSUAL",
-                OffsetDateTime.parse("2026-11-01T03:00:00Z"), OffsetDateTime.parse("2026-12-01T03:00:00Z")));
-        var orden = inOrder(usoPlanRepository, suscripcionRepository);
-        orden.verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
-        orden.verify(suscripcionRepository).findByNegocioId(NEGOCIO_ID);
+        entoncesSeVerificaElGratuitoMuestraCatalogoUsoDelMesArgentinoYDisponibilidadDePruebaBajo();
     }
 
     @Test
     @DisplayName("La prueba usa sus diez páginas totales y fechas originales aunque cruce de mes")
     void laPruebaUsaSusDiezPaginasTotalesYFechasOriginalesAunqueCruceDeMes() {
-        dadoCatalogo();
-        dadoSuscripcion(premium(), EstadoSuscripcion.PRUEBA, AHORA.plusDays(4));
-        when(pruebaPremiumRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(prueba()));
+        dadoElEscenarioDeLaPruebaUsaSusDiezPaginasTotalesYFechasOriginalesAunqueCruceDeMes();
 
-        ConsultarPlanesResponse result = consultar(AHORA);
+        cuandoSeEjecutaLaPruebaUsaSusDiezPaginasTotalesYFechasOriginalesAunqueCruceDeMes();
 
-        assertThat(result.suscripcion().pruebaActiva()).isTrue();
-        assertThat(result.suscripcion().puedeIniciarPrueba()).isFalse();
-        assertThat(result.uso().paginasIa()).isEqualTo(8);
-        assertThat(result.uso().limitePaginasIa()).isEqualTo(10);
-        assertThat(result.uso().periodoIa()).isEqualTo("PRUEBA");
-        assertThat(result.uso().inicioPeriodoIa()).isEqualTo(prueba().inicioEn());
-        assertThat(result.uso().finPeriodoIa()).isEqualTo(prueba().finEn());
-        verify(usoPlanRepository, never()).paginasEnPeriodo(NEGOCIO_ID,
-                LocalDate.parse("2026-11-01"), LocalDate.parse("2026-12-01"));
+        entoncesSeVerificaLaPruebaUsaSusDiezPaginasTotalesYFechasOriginalesAunqueCruceDeMes();
     }
 
     @Test
     @DisplayName("Premium vigente sin historial no ofrece una prueba ni altera sus cien páginas mensuales")
     void premiumVigenteSinHistorialNoOfreceUnaPruebaNiAlteraSusCienPaginasMensuales() {
-        dadoCatalogo();
-        dadoSuscripcion(premium(), EstadoSuscripcion.ACTIVA, AHORA.plusDays(30));
+        dadoElEscenarioDePremiumVigenteSinHistorialNoOfreceUnaPruebaNiAlteraSusCienPaginas();
 
-        ConsultarPlanesResponse result = consultar(AHORA);
+        cuandoSeEjecutaPremiumVigenteSinHistorialNoOfreceUnaPruebaNiAlteraSusCienPaginas();
 
-        assertThat(result.suscripcion().codigoPlanActual()).isEqualTo("PREMIUM");
-        assertThat(result.suscripcion().puedeIniciarPrueba()).isFalse();
-        assertThat(result.suscripcion().pruebaActiva()).isFalse();
-        assertThat(result.uso().limitePaginasIa()).isEqualTo(100);
-        assertThat(result.uso().periodoIa()).isEqualTo("MENSUAL");
+        entoncesSeVerificaPremiumVigenteSinHistorialNoOfreceUnaPruebaNiAlteraSusCienPaginas();
     }
 
     @Test
     @DisplayName("Al vencer la prueba muestra gratuito y conserva el historial sin esperar al job")
     void alVencerLaPruebaMuestraGratuitoYConservaElHistorialSinEsperarAlJob() {
-        dadoCatalogo();
-        dadoSuscripcion(premium(), EstadoSuscripcion.PRUEBA, AHORA);
-        when(pruebaPremiumRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(prueba()));
+        dadoElEscenarioDeAlVencerLaPruebaMuestraGratuitoYConservaElHistorialSinEsperarAlJob();
 
-        ConsultarPlanesResponse result = consultar(AHORA);
+        cuandoSeEjecutaAlVencerLaPruebaMuestraGratuitoYConservaElHistorialSinEsperarAlJob();
 
-        assertThat(result.suscripcion().codigoPlanActual()).isEqualTo("GRATUITO");
-        assertThat(result.suscripcion().pruebaActiva()).isFalse();
-        assertThat(result.suscripcion().puedeIniciarPrueba()).isFalse();
-        assertThat(result.prueba()).isEqualTo(PruebaPremiumResponse.de(prueba()));
-        assertThat(result.uso().periodoIa()).isEqualTo("MENSUAL");
+        entoncesSeVerificaAlVencerLaPruebaMuestraGratuitoYConservaElHistorialSinEsperarAlJob();
     }
 
     @Test
     @DisplayName("Una suscripción futura usa el gratuito y conserva la disponibilidad de prueba no usada")
     void unaSuscripcionFuturaUsaElGratuitoYConservaLaDisponibilidadDePruebaNoUsada() {
-        dadoCatalogo();
-        Suscripcion suscripcion = dadoSuscripcion(premium(), EstadoSuscripcion.CANCELADA, AHORA.plusDays(30));
-        suscripcion.setEstado(EstadoSuscripcion.ACTIVA);
-        suscripcion.setInicioEn(AHORA.plusDays(1));
+        dadoElEscenarioDeUnaSuscripcionFuturaUsaElGratuitoYConservaLaDisponibilidadDePruebaNo();
 
-        ConsultarPlanesResponse result = consultar(AHORA);
+        cuandoSeEjecutaUnaSuscripcionFuturaUsaElGratuitoYConservaLaDisponibilidadDePruebaNo();
 
-        assertThat(result.suscripcion().codigoPlanActual()).isEqualTo("GRATUITO");
-        assertThat(result.suscripcion().puedeIniciarPrueba()).isTrue();
+        entoncesSeVerificaUnaSuscripcionFuturaUsaElGratuitoYConservaLaDisponibilidadDePruebaNo();
     }
 
     @Test
     @DisplayName("No ofrece prueba si las capacidades premium aún no están configuradas")
     void noOfrecePruebaSiLasCapacidadesPremiumAunNoEstanConfiguradas() {
-        Plan gratuito = plan();
-        Plan premium = premium();
-        premium.setLimitesConfigurados(false);
-        when(planRepository.findByCodigo(CodigoPlan.GRATUITO)).thenReturn(Optional.of(gratuito));
-        when(planRepository.findByCodigo(CodigoPlan.PREMIUM)).thenReturn(Optional.of(premium));
-        dadoSuscripcion(gratuito, EstadoSuscripcion.ACTIVA, AHORA.plusDays(30));
+        dadoElEscenarioDeNoOfrecePruebaSiLasCapacidadesPremiumAunNoEstanConfiguradas();
 
-        ConsultarPlanesResponse result = consultar(AHORA);
+        cuandoSeEjecutaNoOfrecePruebaSiLasCapacidadesPremiumAunNoEstanConfiguradas();
 
-        assertThat(result.suscripcion().puedeIniciarPrueba()).isFalse();
+        entoncesSeVerificaNoOfrecePruebaSiLasCapacidadesPremiumAunNoEstanConfiguradas();
     }
 
     @Test
     @DisplayName("Un catálogo ausente falla sin consultar datos privados")
     void unCatalogoAusenteFallaSinConsultarDatosPrivados() {
-        assertThatThrownBy(() -> consultar(AHORA))
-                .isInstanceOf(ResourceNotFoundException.class).hasMessage("Plan no encontrado");
+        cuandoSeEjecutaUnCatalogoAusenteFallaSinConsultarDatosPrivados();
 
-        verifyNoInteractions(suscripcionRepository);
+        entoncesSeVerificaUnCatalogoAusenteFallaSinConsultarDatosPrivados();
     }
 
     @Test
     @DisplayName("Responde recurso inexistente cuando el negocio no tiene suscripción")
     void respondeRecursoInexistenteCuandoElNegocioNoTieneSuscripcion() {
-        dadoCatalogo();
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.empty());
+        dadoElEscenarioDeRespondeRecursoInexistenteCuandoElNegocioNoTieneSuscripcion();
 
-        assertThatThrownBy(() -> consultar(AHORA))
-                .isInstanceOf(ResourceNotFoundException.class).hasMessage("Suscripción no encontrada");
+        cuandoSeEjecutaRespondeRecursoInexistenteCuandoElNegocioNoTieneSuscripcion();
     }
 
     @Test
     @DisplayName("Una referencia a un plan inexistente no se presenta como premium")
     void unaReferenciaAUnPlanInexistenteNoSePresentaComoPremium() {
-        dadoCatalogo();
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
+        dadoElEscenarioDeUnaReferenciaAUnPlanInexistenteNoSePresentaComoPremium();
 
-        assertThatThrownBy(() -> consultar(AHORA))
-                .isInstanceOf(ResourceNotFoundException.class).hasMessage("Plan no encontrado");
+        cuandoSeEjecutaUnaReferenciaAUnPlanInexistenteNoSePresentaComoPremium();
     }
 
     @Test
     @DisplayName("Una prueba activa sin historial no devuelve capacidades incompletas")
     void unaPruebaActivaSinHistorialNoDevuelveCapacidadesIncompletas() {
-        dadoCatalogo();
-        dadoSuscripcion(premium(), EstadoSuscripcion.PRUEBA, AHORA.plusDays(4));
+        dadoElEscenarioDeUnaPruebaActivaSinHistorialNoDevuelveCapacidadesIncompletas();
 
-        assertThatThrownBy(() -> consultar(AHORA))
-                .isInstanceOf(ResourceNotFoundException.class).hasMessage("Prueba no encontrada");
+        cuandoSeEjecutaUnaPruebaActivaSinHistorialNoDevuelveCapacidadesIncompletas();
     }
 
     @Test
     @DisplayName("Un plan efectivo sin límites configurados falla de forma cerrada")
     void unPlanEfectivoSinLimitesConfiguradosFallaDeFormaCerrada() {
-        Plan gratuito = dadoCatalogo();
-        gratuito.setLimitesConfigurados(false);
-        dadoSuscripcion(gratuito, EstadoSuscripcion.ACTIVA, AHORA.plusDays(30));
+        dadoElEscenarioDeUnPlanEfectivoSinLimitesConfiguradosFallaDeFormaCerrada();
 
-        assertThatThrownBy(() -> consultar(AHORA)).isInstanceOf(RestriccionPlanException.class);
+        cuandoSeEjecutaUnPlanEfectivoSinLimitesConfiguradosFallaDeFormaCerrada();
     }
 
     @Test
     @DisplayName("Un usuario sin negocio no consulta planes de otro usuario")
     void unUsuarioSinNegocioNoConsultaPlanesDeOtroUsuario() {
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID))
-                .thenThrow(new ResourceNotFoundException("Negocio no encontrado"));
+        dadoElEscenarioDeUnUsuarioSinNegocioNoConsultaPlanesDeOtroUsuario();
 
-        assertThatThrownBy(() -> consultar(AHORA))
-                .isInstanceOf(ResourceNotFoundException.class).hasMessage("Negocio no encontrado");
+        cuandoSeEjecutaUnUsuarioSinNegocioNoConsultaPlanesDeOtroUsuario();
 
-        verifyNoInteractions(planRepository, suscripcionRepository, usoPlanRepository);
+        entoncesSeVerificaUnUsuarioSinNegocioNoConsultaPlanesDeOtroUsuario();
     }
 
     // --- dado ---
@@ -250,5 +198,190 @@ class ConsultarPlanesTest {
                 usoPlanRepository, renovacionPremiumRepository, new TransaccionDirecta(),
                 Clock.fixed(ahora.toInstant(), ahora.getOffset()))
                 .execute(USUARIO_ID);
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeElGratuitoMuestraCatalogoUsoDelMesArgentinoYDisponibilidadDePruebaBajo() {
+        Plan gratuito = dadoCatalogo();
+        dadoSuscripcion(gratuito, EstadoSuscripcion.ACTIVA, AHORA.plusDays(30));
+        LocalDate inicio = LocalDate.parse("2026-11-01");
+        when(usoPlanRepository.contarProyectos(NEGOCIO_ID)).thenReturn(2L);
+        when(usoPlanRepository.contarRegistros(NEGOCIO_ID)).thenReturn(1001L);
+        when(usoPlanRepository.paginasEnPeriodo(NEGOCIO_ID, inicio, inicio.plusMonths(1))).thenReturn(7L);
+    }
+
+    private void dadoElEscenarioDeLaPruebaUsaSusDiezPaginasTotalesYFechasOriginalesAunqueCruceDeMes() {
+        dadoCatalogo();
+        dadoSuscripcion(premium(), EstadoSuscripcion.PRUEBA, AHORA.plusDays(4));
+        when(pruebaPremiumRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(prueba()));
+    }
+
+    private void dadoElEscenarioDePremiumVigenteSinHistorialNoOfreceUnaPruebaNiAlteraSusCienPaginas() {
+        dadoCatalogo();
+        dadoSuscripcion(premium(), EstadoSuscripcion.ACTIVA, AHORA.plusDays(30));
+    }
+
+    private void dadoElEscenarioDeAlVencerLaPruebaMuestraGratuitoYConservaElHistorialSinEsperarAlJob() {
+        dadoCatalogo();
+        dadoSuscripcion(premium(), EstadoSuscripcion.PRUEBA, AHORA);
+        when(pruebaPremiumRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(prueba()));
+    }
+
+    private void dadoElEscenarioDeUnaSuscripcionFuturaUsaElGratuitoYConservaLaDisponibilidadDePruebaNo() {
+        dadoCatalogo();
+        suscripcion = dadoSuscripcion(premium(), EstadoSuscripcion.CANCELADA, AHORA.plusDays(30));
+        suscripcion.setEstado(EstadoSuscripcion.ACTIVA);
+        suscripcion.setInicioEn(AHORA.plusDays(1));
+    }
+
+    private void dadoElEscenarioDeNoOfrecePruebaSiLasCapacidadesPremiumAunNoEstanConfiguradas() {
+        Plan gratuito = plan();
+        Plan premium = premium();
+        premium.setLimitesConfigurados(false);
+        when(planRepository.findByCodigo(CodigoPlan.GRATUITO)).thenReturn(Optional.of(gratuito));
+        when(planRepository.findByCodigo(CodigoPlan.PREMIUM)).thenReturn(Optional.of(premium));
+        dadoSuscripcion(gratuito, EstadoSuscripcion.ACTIVA, AHORA.plusDays(30));
+    }
+
+    private void dadoElEscenarioDeRespondeRecursoInexistenteCuandoElNegocioNoTieneSuscripcion() {
+        dadoCatalogo();
+        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.empty());
+    }
+
+    private void dadoElEscenarioDeUnaReferenciaAUnPlanInexistenteNoSePresentaComoPremium() {
+        dadoCatalogo();
+        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
+    }
+
+    private void dadoElEscenarioDeUnaPruebaActivaSinHistorialNoDevuelveCapacidadesIncompletas() {
+        dadoCatalogo();
+        dadoSuscripcion(premium(), EstadoSuscripcion.PRUEBA, AHORA.plusDays(4));
+    }
+
+    private void dadoElEscenarioDeUnPlanEfectivoSinLimitesConfiguradosFallaDeFormaCerrada() {
+        Plan gratuito = dadoCatalogo();
+        gratuito.setLimitesConfigurados(false);
+        dadoSuscripcion(gratuito, EstadoSuscripcion.ACTIVA, AHORA.plusDays(30));
+    }
+
+    private void dadoElEscenarioDeUnUsuarioSinNegocioNoConsultaPlanesDeOtroUsuario() {
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID))
+                        .thenThrow(new ResourceNotFoundException("Negocio no encontrado"));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaElGratuitoMuestraCatalogoUsoDelMesArgentinoYDisponibilidadDePruebaBajo() {
+        result = consultar(OffsetDateTime.parse("2026-11-01T00:05:00-03:00"));
+    }
+
+    private void cuandoSeEjecutaLaPruebaUsaSusDiezPaginasTotalesYFechasOriginalesAunqueCruceDeMes() {
+        result = consultar(AHORA);
+    }
+
+    private void cuandoSeEjecutaPremiumVigenteSinHistorialNoOfreceUnaPruebaNiAlteraSusCienPaginas() {
+        result = consultar(AHORA);
+    }
+
+    private void cuandoSeEjecutaAlVencerLaPruebaMuestraGratuitoYConservaElHistorialSinEsperarAlJob() {
+        result = consultar(AHORA);
+    }
+
+    private void cuandoSeEjecutaUnaSuscripcionFuturaUsaElGratuitoYConservaLaDisponibilidadDePruebaNo() {
+        result = consultar(AHORA);
+    }
+
+    private void cuandoSeEjecutaNoOfrecePruebaSiLasCapacidadesPremiumAunNoEstanConfiguradas() {
+        result = consultar(AHORA);
+    }
+
+    private void cuandoSeEjecutaUnCatalogoAusenteFallaSinConsultarDatosPrivados() {
+        assertThatThrownBy(() -> consultar(AHORA))
+                        .isInstanceOf(ResourceNotFoundException.class).hasMessage("Plan no encontrado");
+    }
+
+    private void cuandoSeEjecutaRespondeRecursoInexistenteCuandoElNegocioNoTieneSuscripcion() {
+        assertThatThrownBy(() -> consultar(AHORA))
+                        .isInstanceOf(ResourceNotFoundException.class).hasMessage("Suscripción no encontrada");
+    }
+
+    private void cuandoSeEjecutaUnaReferenciaAUnPlanInexistenteNoSePresentaComoPremium() {
+        assertThatThrownBy(() -> consultar(AHORA))
+                        .isInstanceOf(ResourceNotFoundException.class).hasMessage("Plan no encontrado");
+    }
+
+    private void cuandoSeEjecutaUnaPruebaActivaSinHistorialNoDevuelveCapacidadesIncompletas() {
+        assertThatThrownBy(() -> consultar(AHORA))
+                        .isInstanceOf(ResourceNotFoundException.class).hasMessage("Prueba no encontrada");
+    }
+
+    private void cuandoSeEjecutaUnPlanEfectivoSinLimitesConfiguradosFallaDeFormaCerrada() {
+        assertThatThrownBy(() -> consultar(AHORA)).isInstanceOf(RestriccionPlanException.class);
+    }
+
+    private void cuandoSeEjecutaUnUsuarioSinNegocioNoConsultaPlanesDeOtroUsuario() {
+        assertThatThrownBy(() -> consultar(AHORA))
+                        .isInstanceOf(ResourceNotFoundException.class).hasMessage("Negocio no encontrado");
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaElGratuitoMuestraCatalogoUsoDelMesArgentinoYDisponibilidadDePruebaBajo() {
+        assertThat(result.suscripcion().codigoPlanActual()).isEqualTo("GRATUITO");
+        assertThat(result.planes()).extracting(PlanItem::codigo).containsExactly("GRATUITO", "PREMIUM");
+        assertThat(result.suscripcion().puedeIniciarPrueba()).isTrue();
+        assertThat(result.suscripcion().pruebaActiva()).isFalse();
+        assertThat(result.prueba()).isNull();
+        assertThat(result.uso()).isEqualTo(new UsoPlanItem(2, 1001, 7, 10, "MENSUAL",
+                        OffsetDateTime.parse("2026-11-01T03:00:00Z"), OffsetDateTime.parse("2026-12-01T03:00:00Z")));
+        var orden = inOrder(usoPlanRepository, suscripcionRepository);
+        orden.verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
+        orden.verify(suscripcionRepository).findByNegocioId(NEGOCIO_ID);
+    }
+
+    private void entoncesSeVerificaLaPruebaUsaSusDiezPaginasTotalesYFechasOriginalesAunqueCruceDeMes() {
+        assertThat(result.suscripcion().pruebaActiva()).isTrue();
+        assertThat(result.suscripcion().puedeIniciarPrueba()).isFalse();
+        assertThat(result.uso().paginasIa()).isEqualTo(8);
+        assertThat(result.uso().limitePaginasIa()).isEqualTo(10);
+        assertThat(result.uso().periodoIa()).isEqualTo("PRUEBA");
+        assertThat(result.uso().inicioPeriodoIa()).isEqualTo(prueba().inicioEn());
+        assertThat(result.uso().finPeriodoIa()).isEqualTo(prueba().finEn());
+        verify(usoPlanRepository, never()).paginasEnPeriodo(NEGOCIO_ID,
+                        LocalDate.parse("2026-11-01"), LocalDate.parse("2026-12-01"));
+    }
+
+    private void entoncesSeVerificaPremiumVigenteSinHistorialNoOfreceUnaPruebaNiAlteraSusCienPaginas() {
+        assertThat(result.suscripcion().codigoPlanActual()).isEqualTo("PREMIUM");
+        assertThat(result.suscripcion().puedeIniciarPrueba()).isFalse();
+        assertThat(result.suscripcion().pruebaActiva()).isFalse();
+        assertThat(result.uso().limitePaginasIa()).isEqualTo(100);
+        assertThat(result.uso().periodoIa()).isEqualTo("MENSUAL");
+    }
+
+    private void entoncesSeVerificaAlVencerLaPruebaMuestraGratuitoYConservaElHistorialSinEsperarAlJob() {
+        assertThat(result.suscripcion().codigoPlanActual()).isEqualTo("GRATUITO");
+        assertThat(result.suscripcion().pruebaActiva()).isFalse();
+        assertThat(result.suscripcion().puedeIniciarPrueba()).isFalse();
+        assertThat(result.prueba()).isEqualTo(PruebaPremiumResponse.de(prueba()));
+        assertThat(result.uso().periodoIa()).isEqualTo("MENSUAL");
+    }
+
+    private void entoncesSeVerificaUnaSuscripcionFuturaUsaElGratuitoYConservaLaDisponibilidadDePruebaNo() {
+        assertThat(result.suscripcion().codigoPlanActual()).isEqualTo("GRATUITO");
+        assertThat(result.suscripcion().puedeIniciarPrueba()).isTrue();
+    }
+
+    private void entoncesSeVerificaNoOfrecePruebaSiLasCapacidadesPremiumAunNoEstanConfiguradas() {
+        assertThat(result.suscripcion().puedeIniciarPrueba()).isFalse();
+    }
+
+    private void entoncesSeVerificaUnCatalogoAusenteFallaSinConsultarDatosPrivados() {
+        verifyNoInteractions(suscripcionRepository);
+    }
+
+    private void entoncesSeVerificaUnUsuarioSinNegocioNoConsultaPlanesDeOtroUsuario() {
+        verifyNoInteractions(planRepository, suscripcionRepository, usoPlanRepository);
     }
 }
