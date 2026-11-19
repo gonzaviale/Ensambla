@@ -1,4 +1,5 @@
 import { normalize } from '../core';
+import { formatoPesos } from '../formatoDeValores';
 import type { Campo, Valor } from '../tipos';
 import { ComportamientoDeCampo } from './ComportamientoDeCampo';
 
@@ -21,11 +22,21 @@ export class ComportamientoNumerico extends ComportamientoDeCampo {
   }
 }
 
+export class ComportamientoDeMoneda extends ComportamientoNumerico {
+  enTabla(_campo: Campo, valor: Valor): string {
+    return formatoPesos(valor);
+  }
+}
+
 export class ComportamientoDeSiNo extends ComportamientoDeCampo {
   private static readonly AFIRMATIVOS = ['si', 'true', '1', 'x'];
 
   falta(valor: Valor): boolean {
     return valor !== true;
+  }
+
+  ocupaTodoElAncho(): boolean {
+    return true;
   }
 
   coercionar(valor: Valor): Valor {
