@@ -58,6 +58,11 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ReporteCasosDeUsoTest {
 
+    private GenerarReporteRequest alReves;
+    private ExportarReporteResponse archivo;
+    private GenerarReporteResponse enPantalla;
+    private GenerarReporteResponse response;
+
     private static final UsuarioId USUARIO_ID = UsuarioId.de("b9000000-0000-4000-8000-000000000001");
     private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
     private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
@@ -105,107 +110,65 @@ class ReporteCasosDeUsoTest {
     @Test
     @DisplayName("Generar devuelve las primeras 50 filas del filtro y los totales de todas")
     void generarDevuelveLasPrimeras50FilasDelFiltroYLosTotalesDeTodas() {
-        dadoReporte(60, new BigDecimal("125.5"));
+        dadoElEscenarioDeGenerarDevuelveLasPrimeras50FilasDelFiltroYLosTotalesDeTodas();
 
-        GenerarReporteResponse response = generarReporte.execute(request(null));
+        cuandoSeEjecutaGenerarDevuelveLasPrimeras50FilasDelFiltroYLosTotalesDeTodas();
 
-        ArgumentCaptor<FiltroReporte> filtro = ArgumentCaptor.forClass(FiltroReporte.class);
-        verify(registroRepository).buscarFiltrados(filtro.capture(), anyInt());
-        assertThat(filtro.getValue().negocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(filtro.getValue().texto()).isEqualTo("pan");
-        assertThat(filtro.getValue().desde()).isEqualTo(Instant.parse("2026-10-01T03:00:00Z"));
-        assertThat(response.filas()).hasSize(2);
-        assertThat(response.totales().cantidad()).isEqualTo(60);
-        assertThat(response.totales().sumas().get(CANTIDAD_ID)).isEqualByComparingTo("125.5");
-        assertThat(response.truncado()).isTrue();
-        assertThat(response.maximoFilas()).isEqualTo(50);
+        entoncesSeVerificaGenerarDevuelveLasPrimeras50FilasDelFiltroYLosTotalesDeTodas();
     }
 
     @Test
     @DisplayName("Generar rechaza un filtro inválido antes de consultar las filas")
     void generarRechazaUnFiltroInvalidoAntesDeConsultarLasFilas() {
-        GenerarReporteRequest alReves = new GenerarReporteRequest(
-                USUARIO_ID, BLOQUE_ID, null, LocalDate.parse("2026-10-02"), LocalDate.parse("2026-10-01"), null, null);
+        dadoElEscenarioDeGenerarRechazaUnFiltroInvalidoAntesDeConsultarLasFilas();
 
-        assertThatThrownBy(() -> generarReporte.execute(alReves)).isInstanceOf(BusinessRuleException.class);
+        cuandoSeEjecutaGenerarRechazaUnFiltroInvalidoAntesDeConsultarLasFilas();
     }
 
     @Test
     @DisplayName("Generar responde 'no existe' si el bloque es de otro negocio")
     void generarRespondeNoExisteSiElBloqueEsDeOtroNegocio() {
-        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenThrow(new ResourceNotFoundException("no existe"));
+        dadoElEscenarioDeGenerarRespondeNoExisteSiElBloqueEsDeOtroNegocio();
 
-        assertThatThrownBy(() -> generarReporte.execute(request(null)))
-                .isInstanceOf(ResourceNotFoundException.class);
+        cuandoSeEjecutaGenerarRespondeNoExisteSiElBloqueEsDeOtroNegocio();
     }
 
     @Test
     @DisplayName("Los totales del archivo descargado coinciden con los de la pantalla y con el filtro")
     void losTotalesDelArchivoDescargadoCoincidenConLosDeLaPantallaYConElFiltro() throws IOException {
-        dadoReporte(2, new BigDecimal("125.5"));
+        dadoElEscenarioDeLosTotalesDelArchivoDescargadoCoincidenConLosDeLaPantallaYConElFiltro();
 
-        GenerarReporteResponse enPantalla = generarReporte.execute(request(null));
-        ExportarReporteResponse archivo = exportarReporte.execute(request(null));
+        cuandoSeEjecutaLosTotalesDelArchivoDescargadoCoincidenConLosDeLaPantallaYConElFiltro();
 
-        List<Row> filas = leer(archivo.contenido());
-        Row totales = filas.get(filas.size() - 1);
-        assertThat(archivo.nombreArchivo()).isEqualTo("reporte-pedidos-20261013.xlsx");
-        assertThat(filas).hasSize(1 + enPantalla.filas().size() + 1);
-        assertThat(totales.getCellText(0)).isEqualTo("Total (" + enPantalla.totales().cantidad() + " filas)");
-        assertThat(totales.getCellAsNumber(1)).get()
-                .isEqualTo(enPantalla.totales().sumas().get(CANTIDAD_ID).stripTrailingZeros());
-        assertThat(filas.get(1).getCellText(0)).isEqualTo("Pan");
-        assertThat(filas.get(1).getCellText(2)).isEqualTo("Sí");
+        entoncesSeVerificaLosTotalesDelArchivoDescargadoCoincidenConLosDeLaPantallaYConElFiltro();
     }
 
     @Test
     @DisplayName("No descarga un archivo incompleto cuando hay más filas que el máximo")
     void noDescargaUnArchivoIncompletoCuandoHayMasFilasQueElMaximo() {
-        when(registroRepository.buscarFiltrados(any(), anyInt())).thenReturn(List.of());
-        when(registroRepository.contarFiltrados(any())).thenReturn(10_001L);
-        when(registroRepository.sumarNumericos(any(FiltroReporte.class), any())).thenReturn(Map.of());
+        dadoElEscenarioDeNoDescargaUnArchivoIncompletoCuandoHayMasFilasQueElMaximo();
 
-        assertThatThrownBy(() -> exportarReporte.execute(request(null)))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining("10000 filas");
+        cuandoSeEjecutaNoDescargaUnArchivoIncompletoCuandoHayMasFilasQueElMaximo();
     }
 
     @Test
     @DisplayName("El archivo nombra las filas conectadas pidiendo una vez cada tabla conectada")
     void elArchivoNombraLasFilasConectadasPidiendoUnaVezCadaTablaConectada() throws IOException {
-        Campo cliente = Campo.builder().id(CLIENTE_CAMPO_ID).nombre("Cliente").tipo(TipoCampo.RELACION)
-                .bloqueRelacionadoId(CLIENTES_ID).posicion((short) 3).build();
-        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID))
-                .thenReturn(List.of(dadoCampos().get(0), cliente));
-        when(registroRepository.buscarFiltrados(any(), anyInt())).thenReturn(List.of(
-                dadoFilaDe(BETO_ID.valor()), dadoFilaDe(ANA_ID.valor()),
-                Registro.builder().id(RegistroId.nuevo()).creadoEn(OffsetDateTime.parse("2026-10-12T12:00:00Z"))
-                        .valores(Map.of()).build()));
-        when(registroRepository.contarFiltrados(any())).thenReturn(3L);
-        when(registroRepository.sumarNumericos(any(FiltroReporte.class), any())).thenReturn(Map.of());
-        when(campoRepository.findByBloqueIdAndNegocioId(CLIENTES_ID, NEGOCIO_ID)).thenReturn(List.of(
-                Campo.builder().id(NOMBRE_CLIENTE_ID).tipo(TipoCampo.TEXTO).posicion((short) 0).build()));
-        when(registroRepository.findAllByIdsAndBloque(Set.of(BETO_ID, ANA_ID), CLIENTES_ID, NEGOCIO_ID))
-                .thenReturn(List.of(
-                        Registro.builder().id(BETO_ID).valores(Map.of(NOMBRE_CLIENTE_ID.toString(), "Beto")).build(),
-                        Registro.builder().id(ANA_ID).valores(Map.of(NOMBRE_CLIENTE_ID.toString(), "Ana")).build()));
+        dadoElEscenarioDeElArchivoNombraLasFilasConectadasPidiendoUnaVezCadaTablaConectada();
 
-        ExportarReporteResponse archivo = exportarReporte.execute(request(null));
+        cuandoSeEjecutaElArchivoNombraLasFilasConectadasPidiendoUnaVezCadaTablaConectada();
 
-        List<Row> filas = leer(archivo.contenido());
-        assertThat(filas.get(1).getCellText(1)).isEqualTo("Beto");
-        assertThat(filas.get(2).getCellText(1)).isEqualTo("Ana");
-        verify(registroRepository).findAllByIdsAndBloque(Set.of(BETO_ID, ANA_ID), CLIENTES_ID, NEGOCIO_ID);
+        entoncesSeVerificaElArchivoNombraLasFilasConectadasPidiendoUnaVezCadaTablaConectada();
     }
 
     @Test
     @DisplayName("Sin columnas de conexión el archivo no consulta otras tablas")
     void sinColumnasDeConexionElArchivoNoConsultaOtrasTablas() {
-        dadoReporte(2, new BigDecimal("125.5"));
+        dadoElEscenarioDeSinColumnasDeConexionElArchivoNoConsultaOtrasTablas();
 
-        exportarReporte.execute(request(null));
+        cuandoSeEjecutaSinColumnasDeConexionElArchivoNoConsultaOtrasTablas();
 
-        verify(registroRepository, never()).findAllByIdsAndBloque(any(), any(), any());
+        entoncesSeVerificaSinColumnasDeConexionElArchivoNoConsultaOtrasTablas();
     }
 
     private static Registro dadoFilaDe(UUID clienteId) {
@@ -243,5 +206,125 @@ class ReporteCasosDeUsoTest {
         try (ReadableWorkbook libro = new ReadableWorkbook(new ByteArrayInputStream(contenido))) {
             return libro.getFirstSheet().read();
         }
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeGenerarDevuelveLasPrimeras50FilasDelFiltroYLosTotalesDeTodas() {
+        dadoReporte(60, new BigDecimal("125.5"));
+    }
+
+    private void dadoElEscenarioDeGenerarRechazaUnFiltroInvalidoAntesDeConsultarLasFilas() {
+        alReves = new GenerarReporteRequest(
+                        USUARIO_ID, BLOQUE_ID, null, LocalDate.parse("2026-10-02"), LocalDate.parse("2026-10-01"), null, null);
+    }
+
+    private void dadoElEscenarioDeGenerarRespondeNoExisteSiElBloqueEsDeOtroNegocio() {
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenThrow(new ResourceNotFoundException("no existe"));
+    }
+
+    private void dadoElEscenarioDeLosTotalesDelArchivoDescargadoCoincidenConLosDeLaPantallaYConElFiltro() throws IOException {
+        dadoReporte(2, new BigDecimal("125.5"));
+        enPantalla = generarReporte.execute(request(null));
+    }
+
+    private void dadoElEscenarioDeNoDescargaUnArchivoIncompletoCuandoHayMasFilasQueElMaximo() {
+        when(registroRepository.buscarFiltrados(any(), anyInt())).thenReturn(List.of());
+        when(registroRepository.contarFiltrados(any())).thenReturn(10_001L);
+        when(registroRepository.sumarNumericos(any(FiltroReporte.class), any())).thenReturn(Map.of());
+    }
+
+    private void dadoElEscenarioDeElArchivoNombraLasFilasConectadasPidiendoUnaVezCadaTablaConectada() throws IOException {
+        Campo cliente = Campo.builder().id(CLIENTE_CAMPO_ID).nombre("Cliente").tipo(TipoCampo.RELACION)
+                        .bloqueRelacionadoId(CLIENTES_ID).posicion((short) 3).build();
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID))
+                        .thenReturn(List.of(dadoCampos().get(0), cliente));
+        when(registroRepository.buscarFiltrados(any(), anyInt())).thenReturn(List.of(
+                        dadoFilaDe(BETO_ID.valor()), dadoFilaDe(ANA_ID.valor()),
+                        Registro.builder().id(RegistroId.nuevo()).creadoEn(OffsetDateTime.parse("2026-10-12T12:00:00Z"))
+                                .valores(Map.of()).build()));
+        when(registroRepository.contarFiltrados(any())).thenReturn(3L);
+        when(registroRepository.sumarNumericos(any(FiltroReporte.class), any())).thenReturn(Map.of());
+        when(campoRepository.findByBloqueIdAndNegocioId(CLIENTES_ID, NEGOCIO_ID)).thenReturn(List.of(
+                        Campo.builder().id(NOMBRE_CLIENTE_ID).tipo(TipoCampo.TEXTO).posicion((short) 0).build()));
+        when(registroRepository.findAllByIdsAndBloque(Set.of(BETO_ID, ANA_ID), CLIENTES_ID, NEGOCIO_ID))
+                        .thenReturn(List.of(
+                                Registro.builder().id(BETO_ID).valores(Map.of(NOMBRE_CLIENTE_ID.toString(), "Beto")).build(),
+                                Registro.builder().id(ANA_ID).valores(Map.of(NOMBRE_CLIENTE_ID.toString(), "Ana")).build()));
+    }
+
+    private void dadoElEscenarioDeSinColumnasDeConexionElArchivoNoConsultaOtrasTablas() {
+        dadoReporte(2, new BigDecimal("125.5"));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaGenerarDevuelveLasPrimeras50FilasDelFiltroYLosTotalesDeTodas() {
+        response = generarReporte.execute(request(null));
+    }
+
+    private void cuandoSeEjecutaGenerarRechazaUnFiltroInvalidoAntesDeConsultarLasFilas() {
+        assertThatThrownBy(() -> generarReporte.execute(alReves)).isInstanceOf(BusinessRuleException.class);
+    }
+
+    private void cuandoSeEjecutaGenerarRespondeNoExisteSiElBloqueEsDeOtroNegocio() {
+        assertThatThrownBy(() -> generarReporte.execute(request(null)))
+                        .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    private void cuandoSeEjecutaLosTotalesDelArchivoDescargadoCoincidenConLosDeLaPantallaYConElFiltro() throws IOException {
+        archivo = exportarReporte.execute(request(null));
+    }
+
+    private void cuandoSeEjecutaNoDescargaUnArchivoIncompletoCuandoHayMasFilasQueElMaximo() {
+        assertThatThrownBy(() -> exportarReporte.execute(request(null)))
+                        .isInstanceOf(BusinessRuleException.class)
+                        .hasMessageContaining("10000 filas");
+    }
+
+    private void cuandoSeEjecutaElArchivoNombraLasFilasConectadasPidiendoUnaVezCadaTablaConectada() throws IOException {
+        archivo = exportarReporte.execute(request(null));
+    }
+
+    private void cuandoSeEjecutaSinColumnasDeConexionElArchivoNoConsultaOtrasTablas() {
+        exportarReporte.execute(request(null));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaGenerarDevuelveLasPrimeras50FilasDelFiltroYLosTotalesDeTodas() {
+        ArgumentCaptor<FiltroReporte> filtro = ArgumentCaptor.forClass(FiltroReporte.class);
+        verify(registroRepository).buscarFiltrados(filtro.capture(), anyInt());
+        assertThat(filtro.getValue().negocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(filtro.getValue().texto()).isEqualTo("pan");
+        assertThat(filtro.getValue().desde()).isEqualTo(Instant.parse("2026-10-01T03:00:00Z"));
+        assertThat(response.filas()).hasSize(2);
+        assertThat(response.totales().cantidad()).isEqualTo(60);
+        assertThat(response.totales().sumas().get(CANTIDAD_ID)).isEqualByComparingTo("125.5");
+        assertThat(response.truncado()).isTrue();
+        assertThat(response.maximoFilas()).isEqualTo(50);
+    }
+
+    private void entoncesSeVerificaLosTotalesDelArchivoDescargadoCoincidenConLosDeLaPantallaYConElFiltro() throws IOException {
+        List<Row> filas = leer(archivo.contenido());
+        Row totales = filas.get(filas.size() - 1);
+        assertThat(archivo.nombreArchivo()).isEqualTo("reporte-pedidos-20261013.xlsx");
+        assertThat(filas).hasSize(1 + enPantalla.filas().size() + 1);
+        assertThat(totales.getCellText(0)).isEqualTo("Total (" + enPantalla.totales().cantidad() + " filas)");
+        assertThat(totales.getCellAsNumber(1)).get()
+                        .isEqualTo(enPantalla.totales().sumas().get(CANTIDAD_ID).stripTrailingZeros());
+        assertThat(filas.get(1).getCellText(0)).isEqualTo("Pan");
+        assertThat(filas.get(1).getCellText(2)).isEqualTo("Sí");
+    }
+
+    private void entoncesSeVerificaElArchivoNombraLasFilasConectadasPidiendoUnaVezCadaTablaConectada() throws IOException {
+        List<Row> filas = leer(archivo.contenido());
+        assertThat(filas.get(1).getCellText(1)).isEqualTo("Beto");
+        assertThat(filas.get(2).getCellText(1)).isEqualTo("Ana");
+        verify(registroRepository).findAllByIdsAndBloque(Set.of(BETO_ID, ANA_ID), CLIENTES_ID, NEGOCIO_ID);
+    }
+
+    private void entoncesSeVerificaSinColumnasDeConexionElArchivoNoConsultaOtrasTablas() {
+        verify(registroRepository, never()).findAllByIdsAndBloque(any(), any(), any());
     }
 }
