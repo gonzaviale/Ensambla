@@ -83,6 +83,12 @@ class WhatsappSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     private MockHttpSession sesion;
     private String csrfToken;
 
+    private ResultActions respuesta;
+    private ResultActions segundaRespuesta;
+    private ResultActions terceraRespuesta;
+
+    private String codigo;
+
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
@@ -94,100 +100,75 @@ class WhatsappSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Sin sesión no se puede pedir el código ni consultar la vinculación")
     void sinSesionNoSePuedePedirElCodigoNiConsultarLaVinculacion() throws Exception {
-        mockMvc.perform(post("/api/whatsapp/vinculacion/codigo")).andExpect(status().isUnauthorized());
-        mockMvc.perform(get("/api/whatsapp/vinculacion")).andExpect(status().isUnauthorized());
-        mockMvc.perform(delete("/api/whatsapp/vinculacion")).andExpect(status().isUnauthorized());
+        cuandoSeEjecutaSinSesionNoSePuedePedirElCodigoNiConsultarLaVinculacion();
+
+        entoncesSeVerificaSinSesionNoSePuedePedirElCodigoNiConsultarLaVinculacion();
     }
 
     @Test
     @DisplayName("Vincular con el código del chat y cargar un texto lo guarda en el negocio del usuario")
     void vincularConElCodigoDelChatYCargarUnTextoLoGuardaEnElNegocioDelUsuario() throws Exception {
-        String codigo = pedirCodigo();
+        dadoElEscenarioDeVincularConElCodigoDelChatYCargarUnTextoLoGuardaEnElNegocioDelUsuario();
 
-        webhook(mensaje("ID1", "VINCULAR " + codigo)).andExpect(status().isOk());
-        mockMvc.perform(get("/api/whatsapp/vinculacion").session(sesion))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.telefono").value(TELEFONO));
-        webhook(mensaje("ID2", "gasté 5000 en harina")).andExpect(status().isOk());
+        cuandoSeEjecutaVincularConElCodigoDelChatYCargarUnTextoLoGuardaEnElNegocioDelUsuario();
 
-        assertThat(mensajes.findAll()).singleElement().satisfies(guardado -> {
-            assertThat(guardado.getNegocioId()).isEqualTo(negocioId);
-            assertThat(guardado.getTipo()).isEqualTo(TipoMensajeWhatsapp.TEXTO);
-            assertThat(guardado.getTexto()).isEqualTo("gasté 5000 en harina");
-        });
-        assertThat(respuestas()).last().extracting(MensajeriaWhatsappSimulada.Enviado::texto)
-                .asString().contains("vinculado");
+        entoncesSeVerificaVincularConElCodigoDelChatYCargarUnTextoLoGuardaEnElNegocioDelUsuario();
     }
 
     @Test
     @DisplayName("Una nota de voz de un número vinculado se guarda como audio")
     void unaNotaDeVozDeUnNumeroVinculadoSeGuardaComoAudio() throws Exception {
-        webhook(mensaje("ID1", "VINCULAR " + pedirCodigo())).andExpect(status().isOk());
+        dadoUnNumeroVinculado();
 
-        webhook("{\"event\":\"messages.upsert\",\"data\":{\"key\":{\"remoteJid\":\"" + TELEFONO
-                + "@s.whatsapp.net\",\"fromMe\":false,\"id\":\"ID2\"},\"message\":{\"audioMessage\":"
-                + "{\"mimetype\":\"audio/ogg\",\"seconds\":4}}}}").andExpect(status().isOk());
+        cuandoLlegaUnaNotaDeVoz();
 
-        assertThat(mensajes.findAll()).singleElement().satisfies(guardado -> {
-            assertThat(guardado.getTipo()).isEqualTo(TipoMensajeWhatsapp.AUDIO);
-            assertThat(guardado.getDuracionSeg()).isEqualTo(4);
-        });
+        entoncesSeGuardaComoAudioDeCuatroSegundos();
     }
 
     @Test
     @DisplayName("Un número sin vincular no carga datos en ningún negocio y recibe el aviso")
     void unNumeroSinVincularNoCargaDatosEnNingunNegocioYRecibeElAviso() throws Exception {
-        webhook(mensaje("ID1", "gasté 5000 en harina")).andExpect(status().isOk());
+        cuandoLlegaUnMensajeDeUnNumeroSinVincular();
 
-        assertThat(mensajes.findAll()).isEmpty();
-        assertThat(respuestas()).last().extracting(MensajeriaWhatsappSimulada.Enviado::texto)
-                .asString().contains("no está vinculado");
+        entoncesNoSeGuardaNadaYSeAvisaQueNoEstaVinculado();
     }
 
     @Test
     @DisplayName("El mismo mensaje entregado dos veces se guarda una sola vez")
     void elMismoMensajeEntregadoDosVecesSeGuardaUnaSolaVez() throws Exception {
-        webhook(mensaje("ID1", "VINCULAR " + pedirCodigo())).andExpect(status().isOk());
+        dadoUnNumeroVinculado();
 
-        webhook(mensaje("ID2", "vendí 3 panes")).andExpect(status().isOk());
-        webhook(mensaje("ID2", "vendí 3 panes")).andExpect(status().isOk());
+        cuandoLlegaDosVecesElMismoMensaje();
 
-        assertThat(mensajes.findAll()).hasSize(1);
+        entoncesSeGuardaUnSoloMensaje();
     }
 
     @Test
     @DisplayName("Un código usado no sirve de nuevo")
     void unCodigoUsadoNoSirveDeNuevo() throws Exception {
-        String codigo = pedirCodigo();
-        webhook(mensaje("ID1", "VINCULAR " + codigo)).andExpect(status().isOk());
-        vinculos.deleteByUsuarioId(usuarioId);
+        dadoUnCodigoYaUsadoParaVincular();
 
-        webhook(mensaje("ID2", "VINCULAR " + codigo)).andExpect(status().isOk());
+        cuandoSeVuelveAUsarElCodigo();
 
-        assertThat(vinculos.findByUsuarioId(usuarioId)).isEmpty();
+        entoncesElNumeroNoQuedaVinculado();
     }
 
     @Test
     @DisplayName("Desvincular borra el número y el siguiente mensaje se rechaza")
     void desvincularBorraElNumeroYElSiguienteMensajeSeRechaza() throws Exception {
-        webhook(mensaje("ID1", "VINCULAR " + pedirCodigo())).andExpect(status().isOk());
+        dadoUnNumeroVinculado();
 
-        mockMvc.perform(delete("/api/whatsapp/vinculacion").session(sesion).header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isNoContent());
-        webhook(mensaje("ID2", "vendí 3 panes")).andExpect(status().isOk());
+        cuandoSeDesvinculaYLlegaUnMensaje();
 
-        assertThat(mensajes.findAll()).isEmpty();
-        mockMvc.perform(get("/api/whatsapp/vinculacion").session(sesion)).andExpect(status().isNotFound());
+        entoncesElNumeroQuedaDesvinculadoYElMensajeSeRechaza();
     }
 
     @Test
     @DisplayName("El webhook rechaza con 401 un token incorrecto, aunque no haya sesión ni CSRF")
     void elWebhookRechazaCon401UnTokenIncorrectoAunqueNoHayaSesionNiCSRF() throws Exception {
-        mockMvc.perform(post("/api/whatsapp/webhook").header("X-Ensambla-Webhook-Token", "otro")
-                        .contentType(MediaType.APPLICATION_JSON).content(mensaje("ID1", "hola")))
-                .andExpect(status().isUnauthorized());
+        cuandoSeEjecutaElWebhookRechazaCon401UnTokenIncorrectoAunqueNoHayaSesionNiCSRF();
 
-        assertThat(mensajes.findAll()).isEmpty();
+        entoncesSeVerificaElWebhookRechazaCon401UnTokenIncorrectoAunqueNoHayaSesionNiCSRF();
     }
 
     private String pedirCodigo() throws Exception {
@@ -244,5 +225,129 @@ class WhatsappSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 UsernamePasswordAuthenticationToken.authenticated(usuario.toString(), null, List.of()));
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, securityContext);
         return session;
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeVincularConElCodigoDelChatYCargarUnTextoLoGuardaEnElNegocioDelUsuario() throws Exception {
+        String codigo = pedirCodigo();
+        webhook(mensaje("ID1", "VINCULAR " + codigo)).andExpect(status().isOk());
+    }
+
+    private void dadoUnNumeroVinculado() throws Exception {
+        webhook(mensaje("ID1", "VINCULAR " + pedirCodigo())).andExpect(status().isOk());
+    }
+
+    private void dadoUnCodigoYaUsadoParaVincular() throws Exception {
+        codigo = pedirCodigo();
+        webhook(mensaje("ID1", "VINCULAR " + codigo)).andExpect(status().isOk());
+        vinculos.deleteByUsuarioId(usuarioId);
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaSinSesionNoSePuedePedirElCodigoNiConsultarLaVinculacion() throws Exception {
+        respuesta = mockMvc.perform(post("/api/whatsapp/vinculacion/codigo"));
+        segundaRespuesta = mockMvc.perform(get("/api/whatsapp/vinculacion"));
+        terceraRespuesta = mockMvc.perform(delete("/api/whatsapp/vinculacion"));
+    }
+
+    private void cuandoSeEjecutaVincularConElCodigoDelChatYCargarUnTextoLoGuardaEnElNegocioDelUsuario() throws Exception {
+        respuesta = mockMvc.perform(get("/api/whatsapp/vinculacion").session(sesion));
+    }
+
+    private void cuandoSeEjecutaElWebhookRechazaCon401UnTokenIncorrectoAunqueNoHayaSesionNiCSRF() throws Exception {
+        respuesta = mockMvc.perform(post("/api/whatsapp/webhook").header("X-Ensambla-Webhook-Token", "otro")
+                        .contentType(MediaType.APPLICATION_JSON).content(mensaje("ID1", "hola")));
+    }
+
+    private void cuandoLlegaUnaNotaDeVoz() throws Exception {
+        respuesta = webhook("{\"event\":\"messages.upsert\",\"data\":{\"key\":{\"remoteJid\":\"" + TELEFONO
+                + "@s.whatsapp.net\",\"fromMe\":false,\"id\":\"ID2\"},\"message\":{\"audioMessage\":"
+                + "{\"mimetype\":\"audio/ogg\",\"seconds\":4}}}}");
+    }
+
+    private void cuandoLlegaUnMensajeDeUnNumeroSinVincular() throws Exception {
+        respuesta = webhook(mensaje("ID1", "gasté 5000 en harina"));
+    }
+
+    private void cuandoLlegaDosVecesElMismoMensaje() throws Exception {
+        respuesta = webhook(mensaje("ID2", "vendí 3 panes"));
+        segundaRespuesta = webhook(mensaje("ID2", "vendí 3 panes"));
+    }
+
+    private void cuandoSeVuelveAUsarElCodigo() throws Exception {
+        respuesta = webhook(mensaje("ID2", "VINCULAR " + codigo));
+    }
+
+    private void cuandoSeDesvinculaYLlegaUnMensaje() throws Exception {
+        respuesta = mockMvc.perform(delete("/api/whatsapp/vinculacion").session(sesion)
+                .header("X-CSRF-TOKEN", csrfToken));
+        segundaRespuesta = webhook(mensaje("ID2", "vendí 3 panes"));
+        terceraRespuesta = mockMvc.perform(get("/api/whatsapp/vinculacion").session(sesion));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaSinSesionNoSePuedePedirElCodigoNiConsultarLaVinculacion() throws Exception {
+        respuesta
+                .andExpect(status().isUnauthorized());
+        segundaRespuesta
+                .andExpect(status().isUnauthorized());
+        terceraRespuesta
+                .andExpect(status().isUnauthorized());
+    }
+
+    private void entoncesSeVerificaVincularConElCodigoDelChatYCargarUnTextoLoGuardaEnElNegocioDelUsuario() throws Exception {
+        respuesta
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.telefono").value(TELEFONO));
+        webhook(mensaje("ID2", "gasté 5000 en harina")).andExpect(status().isOk());
+        assertThat(mensajes.findAll()).singleElement().satisfies(guardado -> {
+            assertThat(guardado.getNegocioId()).isEqualTo(negocioId);
+            assertThat(guardado.getTipo()).isEqualTo(TipoMensajeWhatsapp.TEXTO);
+            assertThat(guardado.getTexto()).isEqualTo("gasté 5000 en harina");
+        });
+        assertThat(respuestas()).last().extracting(MensajeriaWhatsappSimulada.Enviado::texto)
+                .asString().contains("vinculado");
+    }
+
+    private void entoncesSeVerificaElWebhookRechazaCon401UnTokenIncorrectoAunqueNoHayaSesionNiCSRF() throws Exception {
+        respuesta
+                .andExpect(status().isUnauthorized());
+        assertThat(mensajes.findAll()).isEmpty();
+    }
+
+    private void entoncesSeGuardaComoAudioDeCuatroSegundos() throws Exception {
+        respuesta.andExpect(status().isOk());
+        assertThat(mensajes.findAll()).singleElement().satisfies(guardado -> {
+            assertThat(guardado.getTipo()).isEqualTo(TipoMensajeWhatsapp.AUDIO);
+            assertThat(guardado.getDuracionSeg()).isEqualTo(4);
+        });
+    }
+
+    private void entoncesNoSeGuardaNadaYSeAvisaQueNoEstaVinculado() throws Exception {
+        respuesta.andExpect(status().isOk());
+        assertThat(mensajes.findAll()).isEmpty();
+        assertThat(respuestas()).last().extracting(MensajeriaWhatsappSimulada.Enviado::texto)
+                .asString().contains("no está vinculado");
+    }
+
+    private void entoncesSeGuardaUnSoloMensaje() throws Exception {
+        respuesta.andExpect(status().isOk());
+        segundaRespuesta.andExpect(status().isOk());
+        assertThat(mensajes.findAll()).hasSize(1);
+    }
+
+    private void entoncesElNumeroNoQuedaVinculado() throws Exception {
+        respuesta.andExpect(status().isOk());
+        assertThat(vinculos.findByUsuarioId(usuarioId)).isEmpty();
+    }
+
+    private void entoncesElNumeroQuedaDesvinculadoYElMensajeSeRechaza() throws Exception {
+        respuesta.andExpect(status().isNoContent());
+        segundaRespuesta.andExpect(status().isOk());
+        assertThat(mensajes.findAll()).isEmpty();
+        terceraRespuesta.andExpect(status().isNotFound());
     }
 }
