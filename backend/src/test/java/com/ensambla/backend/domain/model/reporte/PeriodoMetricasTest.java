@@ -11,30 +11,50 @@ class PeriodoMetricasTest {
 
     private static final LocalDate HOY = LocalDate.of(2026, 10, 19);
 
+    private PeriodoResumen periodo;
+
     @Test
     @DisplayName("Hoy es sólo el día de hoy")
     void hoyEsSoloElDiaDeHoy() {
-        PeriodoResumen periodo = PeriodoMetricas.HOY.hasta(HOY);
+        cuandoSePideElPeriodoQueTerminaHoy(PeriodoMetricas.HOY);
 
-        assertThat(periodo.desde()).isEqualTo(HOY);
-        assertThat(periodo.hasta()).isEqualTo(HOY);
+        entoncesElPeriodoVaDesdeHasta(HOY, HOY);
     }
 
     @Test
     @DisplayName("La semana son los últimos 7 días contando hoy")
     void laSemanaSonLosUltimos7DiasContandoHoy() {
-        PeriodoResumen periodo = PeriodoMetricas.SEMANA.hasta(HOY);
+        cuandoSePideElPeriodoQueTerminaHoy(PeriodoMetricas.SEMANA);
 
-        assertThat(periodo.desde()).isEqualTo(LocalDate.of(2026, 10, 13));
-        assertThat(periodo.dias()).isEqualTo(7);
+        entoncesElPeriodoEmpiezaEnYDuraDias(LocalDate.of(2026, 10, 13), 7);
     }
 
     @Test
     @DisplayName("El mes son los últimos 30 días contando hoy")
     void elMesSonLosUltimos30DiasContandoHoy() {
-        PeriodoResumen periodo = PeriodoMetricas.MES.hasta(HOY);
+        cuandoSePideElPeriodoQueTerminaHoy(PeriodoMetricas.MES);
 
-        assertThat(periodo.desde()).isEqualTo(LocalDate.of(2026, 9, 20));
+        entoncesElPeriodoDelMesEmpiezaEnYDura30Dias(LocalDate.of(2026, 9, 20));
+    }
+
+    // --- cuando ---
+    private void cuandoSePideElPeriodoQueTerminaHoy(PeriodoMetricas metricas) {
+        periodo = metricas.hasta(HOY);
+    }
+
+    // --- entonces ---
+    private void entoncesElPeriodoVaDesdeHasta(LocalDate desde, LocalDate hasta) {
+        assertThat(periodo.desde()).isEqualTo(desde);
+        assertThat(periodo.hasta()).isEqualTo(hasta);
+    }
+
+    private void entoncesElPeriodoEmpiezaEnYDuraDias(LocalDate desde, int dias) {
+        assertThat(periodo.desde()).isEqualTo(desde);
+        assertThat(periodo.dias()).isEqualTo(dias);
+    }
+
+    private void entoncesElPeriodoDelMesEmpiezaEnYDura30Dias(LocalDate desde) {
+        assertThat(periodo.desde()).isEqualTo(desde);
         assertThat(PeriodoMetricas.MES.dias()).isEqualTo(30);
     }
 }

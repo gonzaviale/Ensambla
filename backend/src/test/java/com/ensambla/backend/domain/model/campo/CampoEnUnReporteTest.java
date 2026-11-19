@@ -14,87 +14,113 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class CampoEnUnReporteTest {
 
+    private Campo campo;
+
     @Test
     @DisplayName("Un reporte se puede filtrar por una columna de opción")
     void unReporteSePuedeFiltrarPorUnaColumnaDeOpcion() {
-        Campo estado = unCampoDeOpcion("Estado", List.of("Pagado", "Pendiente"));
+        dadoUnaColumnaDeOpcionConLosEstadosPagadoYPendiente();
 
-        entoncesAdmiteFiltrarPorValor(estado);
+        entoncesAdmiteFiltrarPorValor();
     }
 
     @Test
     @DisplayName("Una columna de opción sólo admite filtrar por una de sus opciones")
     void unaColumnaDeOpcionSoloAdmiteFiltrarPorUnaDeSusOpciones() {
-        Campo estado = unCampoDeOpcion("Estado", List.of("Pagado", "Pendiente"));
+        dadoUnaColumnaDeOpcionConLosEstadosPagadoYPendiente();
 
-        entoncesAdmiteElValor(estado, "Pagado");
-        entoncesNoAdmiteElValor(estado, "Cancelado");
+        entoncesAdmiteElValor("Pagado");
+        entoncesNoAdmiteElValor("Cancelado");
     }
 
     @Test
     @DisplayName("Un reporte se puede filtrar por una columna de sí o no")
     void unReporteSePuedeFiltrarPorUnaColumnaDeSiONo() {
-        Campo entregado = unCampoDeTipo(TipoCampo.SI_NO);
+        dadoUnaColumnaDeSiONo();
 
-        entoncesAdmiteFiltrarPorValor(entregado);
+        entoncesAdmiteFiltrarPorValor();
     }
 
     @Test
     @DisplayName("Una columna de sí o no sólo admite filtrar por verdadero o falso")
     void unaColumnaDeSiONoSoloAdmiteFiltrarPorVerdaderoOFalso() {
-        Campo entregado = unCampoDeTipo(TipoCampo.SI_NO);
+        dadoUnaColumnaDeSiONo();
 
-        entoncesAdmiteElValor(entregado, "true");
-        entoncesAdmiteElValor(entregado, "false");
-        entoncesNoAdmiteElValor(entregado, "tal vez");
+        entoncesAdmiteElValor("true");
+        entoncesAdmiteElValor("false");
+        entoncesNoAdmiteElValor("tal vez");
     }
 
     @Test
     @DisplayName("Un reporte no se filtra por el valor de una columna de texto")
     void unReporteNoSeFiltraPorElValorDeUnaColumnaDeTexto() {
-        Campo nombre = unCampoDeTexto("Nombre");
+        dadoUnaColumnaDeTexto();
 
-        entoncesNoAdmiteFiltrarPorValor(nombre);
-        entoncesNoAdmiteElValor(nombre, "Marta");
+        entoncesNoAdmiteFiltrarPorValor();
+        entoncesNoAdmiteElValor("Marta");
     }
 
     @Test
     @DisplayName("La fila de totales del reporte suma las columnas de número")
     void laFilaDeTotalesDelReporteSumaLasColumnasDeNumero() {
-        Campo cantidad = unCampoNumerico("Cantidad");
+        dadoUnaColumnaNumerica();
 
-        entoncesSeSumaEnElReporte(cantidad);
+        entoncesSeSumaEnElReporte();
     }
 
     @Test
     @DisplayName("La fila de totales del reporte no suma las columnas de moneda ni de texto")
     void laFilaDeTotalesDelReporteNoSumaLasColumnasDeMonedaNiDeTexto() {
-        entoncesNoSeSumaEnElReporte(unCampoDeMoneda("Precio"));
-        entoncesNoSeSumaEnElReporte(unCampoDeTexto("Nombre"));
+        dadoUnaColumnaDeMoneda();
+        entoncesNoSeSumaEnElReporte();
+
+        dadoUnaColumnaDeTexto();
+        entoncesNoSeSumaEnElReporte();
+    }
+
+    // --- dado ---
+    private void dadoUnaColumnaDeOpcionConLosEstadosPagadoYPendiente() {
+        campo = unCampoDeOpcion("Estado", List.of("Pagado", "Pendiente"));
+    }
+
+    private void dadoUnaColumnaDeSiONo() {
+        campo = unCampoDeTipo(TipoCampo.SI_NO);
+    }
+
+    private void dadoUnaColumnaDeTexto() {
+        campo = unCampoDeTexto("Nombre");
+    }
+
+    private void dadoUnaColumnaNumerica() {
+        campo = unCampoNumerico("Cantidad");
+    }
+
+    private void dadoUnaColumnaDeMoneda() {
+        campo = unCampoDeMoneda("Precio");
     }
 
     // --- entonces ---
-    private void entoncesAdmiteFiltrarPorValor(Campo campo) {
+    private void entoncesAdmiteFiltrarPorValor() {
         assertThat(campo.admiteFiltroPorValor()).isTrue();
     }
 
-    private void entoncesNoAdmiteFiltrarPorValor(Campo campo) {
+    private void entoncesNoAdmiteFiltrarPorValor() {
         assertThat(campo.admiteFiltroPorValor()).isFalse();
     }
 
-    private void entoncesAdmiteElValor(Campo campo, String valor) {
+    private void entoncesAdmiteElValor(String valor) {
         assertThat(campo.admiteFiltrarPor(valor)).isTrue();
     }
 
-    private void entoncesNoAdmiteElValor(Campo campo, String valor) {
+    private void entoncesNoAdmiteElValor(String valor) {
         assertThat(campo.admiteFiltrarPor(valor)).isFalse();
     }
 
-    private void entoncesSeSumaEnElReporte(Campo campo) {
+    private void entoncesSeSumaEnElReporte() {
         assertThat(campo.sumaEnElReporte()).isTrue();
     }
 
-    private void entoncesNoSeSumaEnElReporte(Campo campo) {
+    private void entoncesNoSeSumaEnElReporte() {
         assertThat(campo.sumaEnElReporte()).isFalse();
     }
 }

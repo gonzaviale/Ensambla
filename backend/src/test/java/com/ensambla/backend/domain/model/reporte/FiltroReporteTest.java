@@ -14,7 +14,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class FiltroReporteTest {
 
@@ -24,92 +24,162 @@ class FiltroReporteTest {
     private static final CampoId PAGADO_ID = CampoId.de("c0000000-0000-4000-8000-000000000002");
     private static final CampoId NOMBRE_ID = CampoId.de("c0000000-0000-4000-8000-000000000003");
 
+    private FiltroReporte filtro;
+    private FiltroReporte otroFiltro;
+    private FiltroReporte tercerFiltro;
+    private List<Throwable> rechazos;
+
     @Test
     @DisplayName("Sin filtros no acota nada")
     void sinFiltrosNoAcotaNada() {
-        FiltroReporte result = armar(null, null, null, null, null);
+        cuandoSeArma(null, null, null, null, null);
 
-        assertThat(result.negocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(result.bloqueId()).isEqualTo(BLOQUE_ID);
-        assertThat(result.texto()).isNull();
-        assertThat(result.desde()).isNull();
-        assertThat(result.hasta()).isNull();
-        assertThat(result.valor()).isNull();
-        assertThat(result.filtraPorColumna()).isFalse();
+        entoncesNoAcotaNada();
     }
 
     @Test
     @DisplayName("Las fechas incluyen los dos días enteros en la zona de Argentina")
     void lasFechasIncluyenLosDosDiasEnterosEnLaZonaDeArgentina() {
-        FiltroReporte result = armar(" pan ", LocalDate.parse("2026-10-01"), LocalDate.parse("2026-10-31"), null, null);
+        cuandoSeArma(" pan ", LocalDate.parse("2026-10-01"), LocalDate.parse("2026-10-31"), null, null);
 
-        assertThat(result.texto()).isEqualTo("pan");
-        assertThat(result.desde()).isEqualTo(Instant.parse("2026-10-01T03:00:00Z"));
-        assertThat(result.hasta()).isEqualTo(Instant.parse("2026-11-01T03:00:00Z"));
+        entoncesElRangoCubreLosDosDiasEnterosEnHoraArgentina();
     }
 
     @Test
     @DisplayName("Un texto en blanco no filtra")
     void unTextoEnBlancoNoFiltra() {
-        assertThat(armar("   ", null, null, null, null).texto()).isNull();
+        cuandoSeArma("   ", null, null, null, null);
+
+        entoncesElTextoQuedaSinFiltrar();
     }
 
     @Test
     @DisplayName("Acepta un solo extremo del rango y el mismo día en los dos")
     void aceptaUnSoloExtremoDelRangoYElMismoDiaEnLosDos() {
-        LocalDate dia = LocalDate.parse("2026-10-13");
+        cuandoSeArmanFiltrosConUnSoloExtremoYConElMismoDia(LocalDate.parse("2026-10-13"));
 
-        assertThat(armar(null, dia, null, null, null).hasta()).isNull();
-        assertThat(armar(null, null, dia, null, null).desde()).isNull();
-        FiltroReporte mismoDia = armar(null, dia, dia, null, null);
-        assertThat(mismoDia.hasta()).isEqualTo(Instant.parse("2026-10-14T03:00:00Z"));
+        entoncesAceptaUnSoloExtremoYElMismoDiaEnLosDos();
     }
 
     @Test
     @DisplayName("Rechaza una fecha desde posterior a la fecha hasta")
     void rechazaUnaFechaDesdePosteriorALaFechaHasta() {
-        assertThatThrownBy(() -> armar(null, LocalDate.parse("2026-10-02"), LocalDate.parse("2026-10-01"), null, null))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("La fecha desde no puede ser posterior a la fecha hasta");
+        cuandoSeIntentaArmar(LocalDate.parse("2026-10-02"), LocalDate.parse("2026-10-01"));
+
+        entoncesSeRechazaPorFechasAlReves();
     }
 
     @Test
     @DisplayName("Filtra por un valor de una columna de opción o de sí/no")
     void filtraPorUnValorDeUnaColumnaDeOpcionODeSiNo() {
-        FiltroReporte opcion = armar(null, null, null, ESTADO_ID, "Entregado");
-        FiltroReporte siNo = armar(null, null, null, PAGADO_ID, "true");
+        cuandoSeFiltraPorUnaOpcionYPorSiNo();
 
-        assertThat(opcion.filtraPorColumna()).isTrue();
-        assertThat(opcion.campoId()).isEqualTo(ESTADO_ID);
-        assertThat(opcion.valor()).isEqualTo("Entregado");
-        assertThat(siNo.valor()).isEqualTo("true");
-        assertThat(armar(null, null, null, PAGADO_ID, "false").valor()).isEqualTo("false");
+        entoncesFiltraPorLaColumnaConSuValor();
     }
 
     @Test
     @DisplayName("Rechaza filtrar por una columna que no es de opción ni de sí/no, o que no existe")
     void rechazaFiltrarPorUnaColumnaQueNoEsDeOpcionNiDeSiNoOQueNoExiste() {
-        assertThatThrownBy(() -> armar(null, null, null, NOMBRE_ID, "x"))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("No se puede filtrar por ese campo");
-        assertThatThrownBy(() -> armar(null, null, null, CampoId.nuevo(), "x"))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("No se puede filtrar por ese campo");
+        cuandoSeIntentaFiltrarPorUnaColumnaDeTextoYPorUnaInexistente();
+
+        entoncesSeRechazanPorNoPoderFiltrarPorEsosCampos();
     }
 
     @Test
     @DisplayName("Pide el valor y rechaza uno que la columna no admite")
     void pideElValorYRechazaUnoQueLaColumnaNoAdmite() {
-        assertThatThrownBy(() -> armar(null, null, null, ESTADO_ID, null))
-                .isInstanceOf(BusinessRuleException.class)
+        cuandoSeIntentaFiltrarSinValorConValorEnBlancoYConValoresQueNoAdmite();
+
+        entoncesSePideElValorYSeRechazanLosQueLaColumnaNoAdmite();
+    }
+
+    // --- cuando ---
+    private void cuandoSeArma(String texto, LocalDate desde, LocalDate hasta, CampoId campoId, String valor) {
+        filtro = armar(texto, desde, hasta, campoId, valor);
+    }
+
+    private void cuandoSeArmanFiltrosConUnSoloExtremoYConElMismoDia(LocalDate dia) {
+        filtro = armar(null, dia, null, null, null);
+        otroFiltro = armar(null, null, dia, null, null);
+        tercerFiltro = armar(null, dia, dia, null, null);
+    }
+
+    private void cuandoSeIntentaArmar(LocalDate desde, LocalDate hasta) {
+        rechazos = List.of(catchThrowable(() -> armar(null, desde, hasta, null, null)));
+    }
+
+    private void cuandoSeFiltraPorUnaOpcionYPorSiNo() {
+        filtro = armar(null, null, null, ESTADO_ID, "Entregado");
+        otroFiltro = armar(null, null, null, PAGADO_ID, "true");
+        tercerFiltro = armar(null, null, null, PAGADO_ID, "false");
+    }
+
+    private void cuandoSeIntentaFiltrarPorUnaColumnaDeTextoYPorUnaInexistente() {
+        rechazos = List.of(
+                catchThrowable(() -> armar(null, null, null, NOMBRE_ID, "x")),
+                catchThrowable(() -> armar(null, null, null, CampoId.nuevo(), "x")));
+    }
+
+    private void cuandoSeIntentaFiltrarSinValorConValorEnBlancoYConValoresQueNoAdmite() {
+        rechazos = List.of(
+                catchThrowable(() -> armar(null, null, null, ESTADO_ID, null)),
+                catchThrowable(() -> armar(null, null, null, ESTADO_ID, " ")),
+                catchThrowable(() -> armar(null, null, null, ESTADO_ID, "Perdido")),
+                catchThrowable(() -> armar(null, null, null, PAGADO_ID, "quizás")));
+    }
+
+    // --- entonces ---
+    private void entoncesNoAcotaNada() {
+        assertThat(filtro.negocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(filtro.bloqueId()).isEqualTo(BLOQUE_ID);
+        assertThat(filtro.texto()).isNull();
+        assertThat(filtro.desde()).isNull();
+        assertThat(filtro.hasta()).isNull();
+        assertThat(filtro.valor()).isNull();
+        assertThat(filtro.filtraPorColumna()).isFalse();
+    }
+
+    private void entoncesElRangoCubreLosDosDiasEnterosEnHoraArgentina() {
+        assertThat(filtro.texto()).isEqualTo("pan");
+        assertThat(filtro.desde()).isEqualTo(Instant.parse("2026-10-01T03:00:00Z"));
+        assertThat(filtro.hasta()).isEqualTo(Instant.parse("2026-11-01T03:00:00Z"));
+    }
+
+    private void entoncesElTextoQuedaSinFiltrar() {
+        assertThat(filtro.texto()).isNull();
+    }
+
+    private void entoncesAceptaUnSoloExtremoYElMismoDiaEnLosDos() {
+        assertThat(filtro.hasta()).isNull();
+        assertThat(otroFiltro.desde()).isNull();
+        assertThat(tercerFiltro.hasta()).isEqualTo(Instant.parse("2026-10-14T03:00:00Z"));
+    }
+
+    private void entoncesSeRechazaPorFechasAlReves() {
+        assertThat(rechazos.getFirst()).isInstanceOf(BusinessRuleException.class)
+                .hasMessage("La fecha desde no puede ser posterior a la fecha hasta");
+    }
+
+    private void entoncesFiltraPorLaColumnaConSuValor() {
+        assertThat(filtro.filtraPorColumna()).isTrue();
+        assertThat(filtro.campoId()).isEqualTo(ESTADO_ID);
+        assertThat(filtro.valor()).isEqualTo("Entregado");
+        assertThat(otroFiltro.valor()).isEqualTo("true");
+        assertThat(tercerFiltro.valor()).isEqualTo("false");
+    }
+
+    private void entoncesSeRechazanPorNoPoderFiltrarPorEsosCampos() {
+        assertThat(rechazos).allSatisfy(rechazo -> assertThat(rechazo)
+                .isInstanceOf(BusinessRuleException.class).hasMessage("No se puede filtrar por ese campo"));
+    }
+
+    private void entoncesSePideElValorYSeRechazanLosQueLaColumnaNoAdmite() {
+        assertThat(rechazos.get(0)).isInstanceOf(BusinessRuleException.class)
                 .hasMessage("Elegí el valor por el que filtrar");
-        assertThatThrownBy(() -> armar(null, null, null, ESTADO_ID, " "))
-                .isInstanceOf(BusinessRuleException.class);
-        assertThatThrownBy(() -> armar(null, null, null, ESTADO_ID, "Perdido"))
-                .isInstanceOf(BusinessRuleException.class)
+        assertThat(rechazos.get(1)).isInstanceOf(BusinessRuleException.class);
+        assertThat(rechazos.get(2)).isInstanceOf(BusinessRuleException.class)
                 .hasMessage("Elegí un valor de la columna «Estado»");
-        assertThatThrownBy(() -> armar(null, null, null, PAGADO_ID, "quizás"))
-                .isInstanceOf(BusinessRuleException.class);
+        assertThat(rechazos.get(3)).isInstanceOf(BusinessRuleException.class);
     }
 
     private static FiltroReporte armar(String texto, LocalDate desde, LocalDate hasta, CampoId campoId, String valor) {

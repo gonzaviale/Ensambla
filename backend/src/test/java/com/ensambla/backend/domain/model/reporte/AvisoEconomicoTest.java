@@ -16,29 +16,226 @@ class AvisoEconomicoTest {
 
     private static final LocalDate HOY = LocalDate.of(2026, 10, 19);
 
+    private ResumenNegocio actual;
+    private ResumenNegocio anterior;
+    private AvisoEconomico aviso;
+
     @Test
     @DisplayName("No avisa nada si la semana anterior no tuvo ventas")
     void noAvisaNadaSiLaSemanaAnteriorNoTuvoVentas() {
-        AvisoEconomico aviso = cuandoComparar(
-                resumen("1000", "300", List.of(producto("Yerba", "1000", "300"))),
-                resumen("0", null, List.of()));
+        dadoUnaSemanaConVentasYUnaAnteriorSinVentas();
 
-        assertThat(aviso).isNull();
+        cuandoSeComparanLasSemanas();
+
+        entoncesNoHayAviso();
     }
 
     @Test
     @DisplayName("Avisa con prioridad alta cuando vendió más pero ganó menos, con los productos que más bajaron")
     void avisaConPrioridadAltaCuandoVendioMasPeroGanoMenosConLosProductosQueMasBajaron() {
-        AvisoEconomico aviso = cuandoComparar(
-                resumen("12000", "2700", List.of(
-                        producto("Yerba", "6000", "1000"),
-                        producto("Aceite", "4000", "1200"),
-                        producto("Leche", "2000", "500"))),
-                resumen("10000", "3000", List.of(
-                        producto("Yerba", "5000", "1500"),
-                        producto("Aceite", "3000", "1000"),
-                        producto("Leche", "2000", "500"))));
+        dadoUnaSemanaConMasVentasYMenosGananciaQueLaAnterior();
 
+        cuandoSeComparanLasSemanas();
+
+        entoncesAvisaConPrioridadAltaQueLaGananciaEmpeoraYSenalaALaYerba();
+    }
+
+    @Test
+    @DisplayName("Avisa con prioridad media cuando vendió menos y ganó menos")
+    void avisaConPrioridadMediaCuandoVendioMenosYGanoMenos() {
+        dadoUnaSemanaConMenosVentasYMenosGananciaQueLaAnterior();
+
+        cuandoSeComparanLasSemanas();
+
+        entoncesAvisaConPrioridadMediaQueVendioMenosYGanoMenos();
+    }
+
+    @Test
+    @DisplayName("Avisa que está mejorando cuando vendió más y ganó más, con los productos que más subieron")
+    void avisaQueEstaMejorandoCuandoVendioMasYGanoMasConLosProductosQueMasSubieron() {
+        dadoUnaSemanaConMasVentasYMasGananciaQueLaAnterior();
+
+        cuandoSeComparanLasSemanas();
+
+        entoncesAvisaQueMejoraConLaYerbaComoProductoQueMasSubio();
+    }
+
+    @Test
+    @DisplayName("Avisa que está mejorando cuando vendió menos pero ganó más")
+    void avisaQueEstaMejorandoCuandoVendioMenosPeroGanoMas() {
+        dadoUnaSemanaConMenosVentasPeroMasGananciaQueLaAnterior();
+
+        cuandoSeComparanLasSemanas();
+
+        entoncesAvisaQueMejoraAunqueVendioMenos();
+    }
+
+    @Test
+    @DisplayName("Sin costos compara sólo las ventas, pide cargar los costos y ordena los productos por lo vendido")
+    void sinCostosComparaSoloLasVentasPideCargarLosCostosYOrdenaLosProductosPorLoVendido() {
+        dadoDosSemanasSinCostosYConMasVentasEnLaActual();
+
+        cuandoSeComparanLasSemanas();
+
+        entoncesComparaSoloLasVentasYPideCargarLosCostos();
+    }
+
+    @Test
+    @DisplayName("Sin costos y con menos ventas avisa con prioridad media")
+    void sinCostosYConMenosVentasAvisaConPrioridadMedia() {
+        dadoUnaSemanaSinVentasYUnaAnteriorSinCostosConVentas();
+
+        cuandoSeComparanLasSemanas();
+
+        entoncesAvisaConPrioridadMediaQueLasVentasBajaron100Porciento();
+    }
+
+    @Test
+    @DisplayName("No calcula la ganancia si la semana anterior no tiene costos")
+    void noCalculaLaGananciaSiLaSemanaAnteriorNoTieneCostos() {
+        dadoUnaSemanaConGananciaYUnaAnteriorSinCostos();
+
+        cuandoSeComparanLasSemanas();
+
+        entoncesNoSeCalculaLaVariacionDeLaGanancia();
+    }
+
+    @Test
+    @DisplayName("No calcula la ganancia si la semana anterior no dejó ganancia")
+    void noCalculaLaGananciaSiLaSemanaAnteriorNoDejoGanancia() {
+        dadoUnaSemanaConGananciaYUnaAnteriorConGananciaCero();
+
+        cuandoSeComparanLasSemanas();
+
+        entoncesNoSeCalculaLaVariacionDeLaGanancia();
+    }
+
+    @Test
+    @DisplayName("La confianza es media si sólo una parte de lo vendido tiene costo")
+    void laConfianzaEsMediaSiSoloUnaParteDeLoVendidoTieneCosto() {
+        dadoUnaSemanaDondeSoloDosDeTresProductosTienenCosto();
+
+        cuandoSeComparanLasSemanas();
+
+        entoncesLaConfianzaEs(Nivel.MEDIA);
+    }
+
+    @Test
+    @DisplayName("La confianza es baja si casi nada de lo vendido tiene costo")
+    void laConfianzaEsBajaSiCasiNadaDeLoVendidoTieneCosto() {
+        dadoUnaSemanaDondeSoloUnProductoDeTresTieneCosto();
+
+        cuandoSeComparanLasSemanas();
+
+        entoncesLaConfianzaEs(Nivel.BAJA);
+    }
+
+    @Test
+    @DisplayName("Muestra hasta tres productos, primero los que más cambiaron y a igual cambio por nombre")
+    void muestraHastaTresProductosPrimeroLosQueMasCambiaronYAIgualCambioPorNombre() {
+        dadoUnaSemanaConCuatroProductosQueCambiaron();
+
+        cuandoSeComparanLasSemanas();
+
+        entoncesMuestraLosTresQueMasCambiaronOrdenadosPorCambioYNombre();
+    }
+
+    // --- dado ---
+    private void dadoUnaSemanaConVentasYUnaAnteriorSinVentas() {
+        actual = resumen("1000", "300", List.of(producto("Yerba", "1000", "300")));
+        anterior = resumen("0", null, List.of());
+    }
+
+    private void dadoUnaSemanaConMasVentasYMenosGananciaQueLaAnterior() {
+        actual = resumen("12000", "2700", List.of(
+                producto("Yerba", "6000", "1000"),
+                producto("Aceite", "4000", "1200"),
+                producto("Leche", "2000", "500")));
+        anterior = resumen("10000", "3000", List.of(
+                producto("Yerba", "5000", "1500"),
+                producto("Aceite", "3000", "1000"),
+                producto("Leche", "2000", "500")));
+    }
+
+    private void dadoUnaSemanaConMenosVentasYMenosGananciaQueLaAnterior() {
+        actual = resumen("8000", "2000", List.of(producto("Yerba", "8000", "2000")));
+        anterior = resumen("10000", "3000", List.of(producto("Yerba", "10000", "3000")));
+    }
+
+    private void dadoUnaSemanaConMasVentasYMasGananciaQueLaAnterior() {
+        actual = resumen("11000", "3300", List.of(
+                producto("Yerba", "6000", "1800"),
+                producto("Fideos", "5000", "1500")));
+        anterior = resumen("10000", "3000", List.of(
+                producto("Yerba", "5000", "1500"),
+                producto("Fideos", "5000", "1500")));
+    }
+
+    private void dadoUnaSemanaConMenosVentasPeroMasGananciaQueLaAnterior() {
+        actual = resumen("9000", "3600", List.of(producto("Yerba", "9000", "3600")));
+        anterior = resumen("10000", "3000", List.of(producto("Yerba", "10000", "3000")));
+    }
+
+    private void dadoDosSemanasSinCostosYConMasVentasEnLaActual() {
+        actual = resumen("12000", null, List.of(
+                producto("Yerba", "7000", null),
+                producto("Fideos", "5000", null)));
+        anterior = resumen("10000", null, List.of(
+                producto("Yerba", "5000", null),
+                producto("Fideos", "5000", null)));
+    }
+
+    private void dadoUnaSemanaSinVentasYUnaAnteriorSinCostosConVentas() {
+        actual = resumen("0", null, List.of());
+        anterior = resumen("10000", null, List.of(producto("Yerba", "10000", null)));
+    }
+
+    private void dadoUnaSemanaConGananciaYUnaAnteriorSinCostos() {
+        actual = resumen("12000", "3000", List.of(producto("Yerba", "12000", "3000")));
+        anterior = resumen("10000", null, List.of(producto("Yerba", "10000", null)));
+    }
+
+    private void dadoUnaSemanaConGananciaYUnaAnteriorConGananciaCero() {
+        actual = resumen("12000", "3000", List.of(producto("Yerba", "12000", "3000")));
+        anterior = resumen("10000", "0", List.of(producto("Yerba", "10000", "0")));
+    }
+
+    private void dadoUnaSemanaDondeSoloDosDeTresProductosTienenCosto() {
+        actual = resumen("12000", "3000", List.of(
+                producto("Yerba", "4000", "1000"),
+                producto("Aceite", "4000", "2000"),
+                producto("Fideos", "4000", null)));
+        anterior = resumen("10000", "2500", List.of(producto("Yerba", "10000", "2500")));
+    }
+
+    private void dadoUnaSemanaDondeSoloUnProductoDeTresTieneCosto() {
+        actual = resumen("12000", "3000", List.of(
+                producto("Yerba", "4000", "3000"),
+                producto("Aceite", "4000", null),
+                producto("Fideos", "4000", null)));
+        anterior = resumen("10000", "2500", List.of(producto("Yerba", "10000", "2500")));
+    }
+
+    private void dadoUnaSemanaConCuatroProductosQueCambiaron() {
+        actual = resumen("20000", "6000", List.of(
+                producto("Yerba", "5000", "2000"),
+                producto("Aceite", "5000", "1500"),
+                producto("Leche", "5000", "1500"),
+                producto("Fideos", "5000", "1000")));
+        anterior = resumen("10000", "2000", List.of());
+    }
+
+    // --- cuando ---
+    private void cuandoSeComparanLasSemanas() {
+        aviso = AvisoEconomico.comparar(actual, anterior);
+    }
+
+    // --- entonces ---
+    private void entoncesNoHayAviso() {
+        assertThat(aviso).isNull();
+    }
+
+    private void entoncesAvisaConPrioridadAltaQueLaGananciaEmpeoraYSenalaALaYerba() {
         assertThat(aviso.prioridad()).isEqualTo(Nivel.ALTA);
         assertThat(aviso.tendencia()).isEqualTo(Tendencia.EMPEORA);
         assertThat(aviso.categoria()).isEqualTo("Rentabilidad");
@@ -53,30 +250,14 @@ class AvisoEconomicoTest {
         assertThat(aviso.confianza()).isEqualTo(Nivel.ALTA);
     }
 
-    @Test
-    @DisplayName("Avisa con prioridad media cuando vendió menos y ganó menos")
-    void avisaConPrioridadMediaCuandoVendioMenosYGanoMenos() {
-        AvisoEconomico aviso = cuandoComparar(
-                resumen("8000", "2000", List.of(producto("Yerba", "8000", "2000"))),
-                resumen("10000", "3000", List.of(producto("Yerba", "10000", "3000"))));
-
+    private void entoncesAvisaConPrioridadMediaQueVendioMenosYGanoMenos() {
         assertThat(aviso.prioridad()).isEqualTo(Nivel.MEDIA);
         assertThat(aviso.tendencia()).isEqualTo(Tendencia.EMPEORA);
         assertThat(aviso.titulo()).isEqualTo("Las ventas bajaron 20 % y la ganancia bajó 33 %");
         assertThat(aviso.explicacion()).startsWith("Esta semana vendiste menos y te quedó menos ganancia");
     }
 
-    @Test
-    @DisplayName("Avisa que está mejorando cuando vendió más y ganó más, con los productos que más subieron")
-    void avisaQueEstaMejorandoCuandoVendioMasYGanoMasConLosProductosQueMasSubieron() {
-        AvisoEconomico aviso = cuandoComparar(
-                resumen("11000", "3300", List.of(
-                        producto("Yerba", "6000", "1800"),
-                        producto("Fideos", "5000", "1500"))),
-                resumen("10000", "3000", List.of(
-                        producto("Yerba", "5000", "1500"),
-                        producto("Fideos", "5000", "1500"))));
-
+    private void entoncesAvisaQueMejoraConLaYerbaComoProductoQueMasSubio() {
         assertThat(aviso.prioridad()).isEqualTo(Nivel.BAJA);
         assertThat(aviso.tendencia()).isEqualTo(Tendencia.MEJORA);
         assertThat(aviso.titulo()).isEqualTo("Las ventas subieron 10 % y la ganancia subió 10 %");
@@ -84,30 +265,14 @@ class AvisoEconomicoTest {
         assertThat(aviso.productos()).containsExactly("Yerba");
     }
 
-    @Test
-    @DisplayName("Avisa que está mejorando cuando vendió menos pero ganó más")
-    void avisaQueEstaMejorandoCuandoVendioMenosPeroGanoMas() {
-        AvisoEconomico aviso = cuandoComparar(
-                resumen("9000", "3600", List.of(producto("Yerba", "9000", "3600"))),
-                resumen("10000", "3000", List.of(producto("Yerba", "10000", "3000"))));
-
+    private void entoncesAvisaQueMejoraAunqueVendioMenos() {
         assertThat(aviso.prioridad()).isEqualTo(Nivel.BAJA);
         assertThat(aviso.tendencia()).isEqualTo(Tendencia.MEJORA);
         assertThat(aviso.titulo()).isEqualTo("Las ventas bajaron 10 %, pero la ganancia subió 20 %");
         assertThat(aviso.explicacion()).startsWith("Vendiste menos, pero te quedó más ganancia");
     }
 
-    @Test
-    @DisplayName("Sin costos compara sólo las ventas, pide cargar los costos y ordena los productos por lo vendido")
-    void sinCostosComparaSoloLasVentasPideCargarLosCostosYOrdenaLosProductosPorLoVendido() {
-        AvisoEconomico aviso = cuandoComparar(
-                resumen("12000", null, List.of(
-                        producto("Yerba", "7000", null),
-                        producto("Fideos", "5000", null))),
-                resumen("10000", null, List.of(
-                        producto("Yerba", "5000", null),
-                        producto("Fideos", "5000", null))));
-
+    private void entoncesComparaSoloLasVentasYPideCargarLosCostos() {
         assertThat(aviso.prioridad()).isEqualTo(Nivel.BAJA);
         assertThat(aviso.tendencia()).isEqualTo(Tendencia.MEJORA);
         assertThat(aviso.categoria()).isEqualTo("Ventas");
@@ -120,13 +285,7 @@ class AvisoEconomicoTest {
         assertThat(aviso.confianza()).isEqualTo(Nivel.BAJA);
     }
 
-    @Test
-    @DisplayName("Sin costos y con menos ventas avisa con prioridad media")
-    void sinCostosYConMenosVentasAvisaConPrioridadMedia() {
-        AvisoEconomico aviso = cuandoComparar(
-                resumen("0", null, List.of()),
-                resumen("10000", null, List.of(producto("Yerba", "10000", null))));
-
+    private void entoncesAvisaConPrioridadMediaQueLasVentasBajaron100Porciento() {
         assertThat(aviso.prioridad()).isEqualTo(Nivel.MEDIA);
         assertThat(aviso.tendencia()).isEqualTo(Tendencia.EMPEORA);
         assertThat(aviso.titulo()).isEqualTo("Las ventas bajaron 100 % frente a la semana pasada");
@@ -135,69 +294,16 @@ class AvisoEconomicoTest {
         assertThat(aviso.confianza()).isEqualTo(Nivel.BAJA);
     }
 
-    @Test
-    @DisplayName("No calcula la ganancia si la semana anterior no tiene costos")
-    void noCalculaLaGananciaSiLaSemanaAnteriorNoTieneCostos() {
-        AvisoEconomico aviso = cuandoComparar(
-                resumen("12000", "3000", List.of(producto("Yerba", "12000", "3000"))),
-                resumen("10000", null, List.of(producto("Yerba", "10000", null))));
-
+    private void entoncesNoSeCalculaLaVariacionDeLaGanancia() {
         assertThat(aviso.variacionResultadoBruto()).isNull();
     }
 
-    @Test
-    @DisplayName("No calcula la ganancia si la semana anterior no dejó ganancia")
-    void noCalculaLaGananciaSiLaSemanaAnteriorNoDejoGanancia() {
-        AvisoEconomico aviso = cuandoComparar(
-                resumen("12000", "3000", List.of(producto("Yerba", "12000", "3000"))),
-                resumen("10000", "0", List.of(producto("Yerba", "10000", "0"))));
-
-        assertThat(aviso.variacionResultadoBruto()).isNull();
+    private void entoncesLaConfianzaEs(Nivel nivel) {
+        assertThat(aviso.confianza()).isEqualTo(nivel);
     }
 
-    @Test
-    @DisplayName("La confianza es media si sólo una parte de lo vendido tiene costo")
-    void laConfianzaEsMediaSiSoloUnaParteDeLoVendidoTieneCosto() {
-        AvisoEconomico aviso = cuandoComparar(
-                resumen("12000", "3000", List.of(
-                        producto("Yerba", "4000", "1000"),
-                        producto("Aceite", "4000", "2000"),
-                        producto("Fideos", "4000", null))),
-                resumen("10000", "2500", List.of(producto("Yerba", "10000", "2500"))));
-
-        assertThat(aviso.confianza()).isEqualTo(Nivel.MEDIA);
-    }
-
-    @Test
-    @DisplayName("La confianza es baja si casi nada de lo vendido tiene costo")
-    void laConfianzaEsBajaSiCasiNadaDeLoVendidoTieneCosto() {
-        AvisoEconomico aviso = cuandoComparar(
-                resumen("12000", "3000", List.of(
-                        producto("Yerba", "4000", "3000"),
-                        producto("Aceite", "4000", null),
-                        producto("Fideos", "4000", null))),
-                resumen("10000", "2500", List.of(producto("Yerba", "10000", "2500"))));
-
-        assertThat(aviso.confianza()).isEqualTo(Nivel.BAJA);
-    }
-
-    @Test
-    @DisplayName("Muestra hasta tres productos, primero los que más cambiaron y a igual cambio por nombre")
-    void muestraHastaTresProductosPrimeroLosQueMasCambiaronYAIgualCambioPorNombre() {
-        AvisoEconomico aviso = cuandoComparar(
-                resumen("20000", "6000", List.of(
-                        producto("Yerba", "5000", "2000"),
-                        producto("Aceite", "5000", "1500"),
-                        producto("Leche", "5000", "1500"),
-                        producto("Fideos", "5000", "1000"))),
-                resumen("10000", "2000", List.of()));
-
+    private void entoncesMuestraLosTresQueMasCambiaronOrdenadosPorCambioYNombre() {
         assertThat(aviso.productos()).containsExactly("Yerba", "Aceite", "Leche");
-    }
-
-    // --- cuando ---
-    private static AvisoEconomico cuandoComparar(ResumenNegocio actual, ResumenNegocio anterior) {
-        return AvisoEconomico.comparar(actual, anterior);
     }
 
     // --- helpers ---

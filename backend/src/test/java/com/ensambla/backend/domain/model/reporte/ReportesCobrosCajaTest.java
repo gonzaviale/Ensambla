@@ -32,110 +32,124 @@ class ReportesCobrosCajaTest {
     private static final LocalDate HOY = ZonaNegocio.dia(CajaTestData.AHORA).plusDays(1);
     private static final PeriodoResumen PERIODO = new PeriodoResumen(HOY.minusDays(1), HOY);
 
+    private DatosDeProyecto datos;
+    private PanelNegocio panel;
+    private ResumenNegocio resumen;
+
     @Test
     @DisplayName("El pago parcial cuenta como dinero recibido y sólo el saldo aparece en Te deben")
     void elPagoParcialCuentaComoDineroRecibidoYSoloElSaldoApareceEnTeDeben() {
-        DatosDeProyecto datos = dadoDatos(CobroCajaTestData.venta(), List.of());
+        dadoDatosDeUnaVentaConEntregaYSinCobros();
 
-        PanelNegocio panel = PanelNegocio.armar(datos, PERIODO, HOY);
-        ResumenNegocio resumen = resumen(datos);
+        cuandoSeArmanElPanelYElResumen();
 
-        assertThat(panel.metricas().vendiste()).isEqualByComparingTo("2000");
-        assertThat(panel.metricas().queda()).isEqualByComparingTo("800");
-        assertThat(panel.metricas().teDeben()).isEqualByComparingTo("1200");
-        assertThat(resumen.clientes().fiado()).isEqualByComparingTo("1200");
-        assertThat(resumen.clientes().ventasFiadas()).isOne();
+        entoncesElDineroRecibidoEsLaEntregaYElSaldoApareceEnTeDeben();
     }
 
     @Test
     @DisplayName("Un cobro posterior reduce el saldo sin duplicar artículos ni la entrega inicial")
     void unCobroPosteriorReduceElSaldoSinDuplicarArticulosNiLaEntregaInicial() {
-        CobroCaja cobro = CobroCajaTestData.cobro();
-        VentaCaja venta = CobroCajaTestData.venta().conCobro(cobro.aplicaciones().getFirst().pagos());
-        DatosDeProyecto datos = dadoDatos(venta, List.of(cobro));
+        dadoDatosDeUnaVentaConUnCobroPosterior();
 
-        PanelNegocio panel = PanelNegocio.armar(datos, PERIODO, HOY);
+        cuandoSeArmanElPanelYElResumen();
 
-        assertThat(panel.metricas().vendiste()).isEqualByComparingTo("2000");
-        assertThat(panel.metricas().queda()).isEqualByComparingTo("1400");
-        assertThat(panel.metricas().teDeben()).isEqualByComparingTo("600");
-        assertThat(resumen(datos).ventas().cantidad()).isEqualTo(2);
+        entoncesElSaldoBajaSinDuplicarArticulosNiLaEntregaInicial();
     }
 
     @Test
     @DisplayName("Completar una deuda elimina el saldo aunque las filas originales sigan marcadas a fiado")
     void completarUnaDeudaEliminaElSaldoAunqueLasFilasOriginalesSiganMarcadasAFiado() {
-        VentaCaja venta = CobroCajaTestData.venta().conCobro(List.of(
-                new PagoCaja(MedioPagoCaja.TRANSFERENCIA, new BigDecimal("1200"))));
+        dadoDatosDeUnaDeudaCompletada();
 
-        ResumenNegocio resumen = resumen(dadoDatos(venta, List.of()));
+        cuandoSeArmaElResumen();
 
-        assertThat(resumen.clientes().fiado()).isEqualByComparingTo("0");
-        assertThat(resumen.clientes().ventasFiadas()).isZero();
+        entoncesNoQuedaSaldoNiVentasFiadas();
     }
 
     @Test
     @DisplayName("Un fiado sin entrega no genera entrada de dinero")
     void unFiadoSinEntregaNoGeneraEntradaDeDinero() {
-        DatosDeProyecto datos = dadoDatos(CobroCajaTestData.venta(CajaTestData.OPERACION, "0"), List.of());
+        dadoDatosDeUnFiadoSinEntrega();
 
-        PanelNegocio panel = PanelNegocio.armar(datos, PERIODO, HOY);
+        cuandoSeArmaElPanelDelPeriodo(PERIODO);
 
-        assertThat(panel.metricas().queda()).isEqualByComparingTo("0");
-        assertThat(panel.metricas().teDeben()).isEqualByComparingTo("2000");
+        entoncesNoEntraDineroYTodoSeDebe();
     }
 
     @Test
     @DisplayName("Una semana sólo con cobros de ventas anteriores tiene flujo aunque no haya ventas nuevas")
     void unaSemanaSoloConCobrosDeVentasAnterioresTieneFlujoAunqueNoHayaVentasNuevas() {
-        DatosDeProyecto datos = dadoDatos(CobroCajaTestData.venta(), List.of(CobroCajaTestData.cobro()));
+        dadoDatosDeUnaVentaConUnCobroPosterior();
 
-        PanelNegocio panel = PanelNegocio.armar(datos, new PeriodoResumen(HOY, HOY), HOY);
+        cuandoSeArmaElPanelDelPeriodo(new PeriodoResumen(HOY, HOY));
 
-        assertThat(panel.vacio()).isFalse();
-        assertThat(panel.metricas().vendiste()).isEqualByComparingTo("0");
-        assertThat(panel.metricas().queda()).isEqualByComparingTo("600");
-        assertThat(panel.flujoDeCaja().getFirst().entradas()).isEqualByComparingTo("600");
+        entoncesElPanelTieneFlujoPorElCobroSinVentasNuevas();
     }
 
     @Test
     @DisplayName("Un período sin ventas ni cobros reales conserva el panel vacío")
     void unPeriodoSinVentasNiCobrosRealesConservaElPanelVacio() {
-        DatosDeProyecto datos = dadoDatos(CobroCajaTestData.venta(), List.of(CobroCajaTestData.cobro()));
+        dadoDatosDeUnaVentaConUnCobroPosterior();
 
-        PanelNegocio panel = PanelNegocio.armar(datos, new PeriodoResumen(HOY.plusDays(1), HOY.plusDays(1)), HOY);
+        cuandoSeArmaElPanelDelPeriodo(new PeriodoResumen(HOY.plusDays(1), HOY.plusDays(1)));
 
-        assertThat(panel.vacio()).isTrue();
+        entoncesElPanelEstaVacio();
     }
 
     @Test
     @DisplayName("Las anotaciones manuales a fiado siguen sumando su importe junto al saldo de Caja")
     void lasAnotacionesManualesAFiadoSiguenSumandoSuImporteJuntoAlSaldoDeCaja() {
-        DatosDeProyecto originales = dadoDatos(CobroCajaTestData.venta(), List.of());
-        BloqueVentas ventas = originales.ventas().getFirst();
-        Registro manual = ventas.registros().getFirst();
-        manual.setOrigen("Carga manual");
+        dadoUnaVentaDeCajaYUnaAnotacionManualAFiado();
 
-        ResumenNegocio resumen = resumen(originales);
+        cuandoSeArmaElResumen();
 
-        assertThat(resumen.clientes().fiado()).isEqualByComparingTo("2200");
-        assertThat(resumen.clientes().ventasFiadas()).isEqualTo(2);
+        entoncesElFiadoSumaLaAnotacionManualJuntoAlSaldoDeCaja();
     }
 
     @Test
     @DisplayName("Una venta pagada de Caja no vuelve a sumar el importe desde sus filas de artículos")
     void unaVentaPagadaDeCajaNoVuelveASumarElImporteDesdeSusFilasDeArticulos() {
-        DatosDeProyecto datos = dadoDatos(CobroCajaTestData.venta(CajaTestData.OPERACION, "2000"), List.of());
-        BloqueVentas ventas = datos.ventas().getFirst();
-        ventas.registros().forEach(fila -> CajaTestData.poner(ventas.bloque(), fila, "credit", false));
+        dadoUnaVentaPagadaDeCajaConSusArticulosSinFiado();
 
-        PanelNegocio panel = PanelNegocio.armar(datos, PERIODO, HOY);
+        cuandoSeArmaElPanelDelPeriodo(PERIODO);
 
-        assertThat(panel.metricas().queda()).isEqualByComparingTo("2000");
-        assertThat(panel.metricas().teDeben()).isEqualByComparingTo("0");
+        entoncesElDineroEntraUnaSolaVezYNadaSeDebe();
     }
 
     // --- dado ---
+    private void dadoDatosDeUnaVentaConEntregaYSinCobros() {
+        datos = dadoDatos(CobroCajaTestData.venta(), List.of());
+    }
+
+    private void dadoDatosDeUnaVentaConUnCobroPosterior() {
+        CobroCaja cobro = CobroCajaTestData.cobro();
+        VentaCaja venta = CobroCajaTestData.venta().conCobro(cobro.aplicaciones().getFirst().pagos());
+        datos = dadoDatos(venta, List.of(cobro));
+    }
+
+    private void dadoDatosDeUnaDeudaCompletada() {
+        VentaCaja venta = CobroCajaTestData.venta().conCobro(List.of(
+                new PagoCaja(MedioPagoCaja.TRANSFERENCIA, new BigDecimal("1200"))));
+        datos = dadoDatos(venta, List.of());
+    }
+
+    private void dadoDatosDeUnFiadoSinEntrega() {
+        datos = dadoDatos(CobroCajaTestData.venta(CajaTestData.OPERACION, "0"), List.of());
+    }
+
+    private void dadoUnaVentaDeCajaYUnaAnotacionManualAFiado() {
+        datos = dadoDatos(CobroCajaTestData.venta(), List.of());
+        BloqueVentas ventas = datos.ventas().getFirst();
+        Registro manual = ventas.registros().getFirst();
+        manual.setOrigen("Carga manual");
+    }
+
+    private void dadoUnaVentaPagadaDeCajaConSusArticulosSinFiado() {
+        datos = dadoDatos(CobroCajaTestData.venta(CajaTestData.OPERACION, "2000"), List.of());
+        BloqueVentas ventas = datos.ventas().getFirst();
+        ventas.registros().forEach(fila -> CajaTestData.poner(ventas.bloque(), fila, "credit", false));
+    }
+
     private DatosDeProyecto dadoDatos(VentaCaja venta, List<CobroCaja> cobros) {
         Bloque bloque = CajaTestData.sistema().proyecto().getBloques().get(1);
         List<Campo> campos = new ArrayList<>(bloque.getCampos());
@@ -160,7 +174,64 @@ class ReportesCobrosCajaTest {
         return fila;
     }
 
-    private ResumenNegocio resumen(DatosDeProyecto datos) {
-        return ResumenNegocio.armar("Negocio", datos, AnalisisZona.sinZona(), List.of(), PERIODO, HOY);
+    // --- cuando ---
+    private void cuandoSeArmanElPanelYElResumen() {
+        cuandoSeArmaElPanelDelPeriodo(PERIODO);
+        cuandoSeArmaElResumen();
+    }
+
+    private void cuandoSeArmaElPanelDelPeriodo(PeriodoResumen periodo) {
+        panel = PanelNegocio.armar(datos, periodo, HOY);
+    }
+
+    private void cuandoSeArmaElResumen() {
+        resumen = ResumenNegocio.armar("Negocio", datos, AnalisisZona.sinZona(), List.of(), PERIODO, HOY);
+    }
+
+    // --- entonces ---
+    private void entoncesElDineroRecibidoEsLaEntregaYElSaldoApareceEnTeDeben() {
+        assertThat(panel.metricas().vendiste()).isEqualByComparingTo("2000");
+        assertThat(panel.metricas().queda()).isEqualByComparingTo("800");
+        assertThat(panel.metricas().teDeben()).isEqualByComparingTo("1200");
+        assertThat(resumen.clientes().fiado()).isEqualByComparingTo("1200");
+        assertThat(resumen.clientes().ventasFiadas()).isOne();
+    }
+
+    private void entoncesElSaldoBajaSinDuplicarArticulosNiLaEntregaInicial() {
+        assertThat(panel.metricas().vendiste()).isEqualByComparingTo("2000");
+        assertThat(panel.metricas().queda()).isEqualByComparingTo("1400");
+        assertThat(panel.metricas().teDeben()).isEqualByComparingTo("600");
+        assertThat(resumen.ventas().cantidad()).isEqualTo(2);
+    }
+
+    private void entoncesNoQuedaSaldoNiVentasFiadas() {
+        assertThat(resumen.clientes().fiado()).isEqualByComparingTo("0");
+        assertThat(resumen.clientes().ventasFiadas()).isZero();
+    }
+
+    private void entoncesNoEntraDineroYTodoSeDebe() {
+        assertThat(panel.metricas().queda()).isEqualByComparingTo("0");
+        assertThat(panel.metricas().teDeben()).isEqualByComparingTo("2000");
+    }
+
+    private void entoncesElPanelTieneFlujoPorElCobroSinVentasNuevas() {
+        assertThat(panel.vacio()).isFalse();
+        assertThat(panel.metricas().vendiste()).isEqualByComparingTo("0");
+        assertThat(panel.metricas().queda()).isEqualByComparingTo("600");
+        assertThat(panel.flujoDeCaja().getFirst().entradas()).isEqualByComparingTo("600");
+    }
+
+    private void entoncesElPanelEstaVacio() {
+        assertThat(panel.vacio()).isTrue();
+    }
+
+    private void entoncesElFiadoSumaLaAnotacionManualJuntoAlSaldoDeCaja() {
+        assertThat(resumen.clientes().fiado()).isEqualByComparingTo("2200");
+        assertThat(resumen.clientes().ventasFiadas()).isEqualTo(2);
+    }
+
+    private void entoncesElDineroEntraUnaSolaVezYNadaSeDebe() {
+        assertThat(panel.metricas().queda()).isEqualByComparingTo("2000");
+        assertThat(panel.metricas().teDeben()).isEqualByComparingTo("0");
     }
 }
