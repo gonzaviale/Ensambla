@@ -1,12 +1,8 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
-import com.ensambla.backend.domain.model.metrica.AgrupacionMetrica;
 import com.ensambla.backend.domain.model.metrica.AutoriaMetrica;
-import com.ensambla.backend.domain.model.metrica.CalculoMetrica;
-import com.ensambla.backend.domain.model.metrica.DefinicionMetrica;
-import com.ensambla.backend.domain.model.metrica.FuenteMetrica;
 import com.ensambla.backend.domain.model.metrica.Metrica;
-import com.ensambla.backend.domain.model.metrica.PeriodoMetrica;
+import com.ensambla.backend.domain.model.metrica.MetricaId;
 import com.ensambla.backend.infrastructure.repository.entity.MetricaEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IMetricaJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.MetricaRepositoryMapper;
@@ -22,6 +18,8 @@ import static com.ensambla.backend.support.MetricaTestData.AHORA;
 import static com.ensambla.backend.support.MetricaTestData.METRICA_ID;
 import static com.ensambla.backend.support.MetricaTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.MetricaTestData.PROYECTO_ID;
+import static com.ensambla.backend.support.MetricaTestData.laFilaDeLasVentasDelMes;
+import static com.ensambla.backend.support.MetricasDePrueba.lasVentasDelMesLlamadas;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -35,93 +33,127 @@ class MetricaRepositoryImplTest {
     private final IMetricaJpaRepository jpa = mock(IMetricaJpaRepository.class);
     private final MetricaRepositoryImpl repository = new MetricaRepositoryImpl(jpa, new MetricaRepositoryMapper());
 
+    private List<Metrica> metricas;
+
+    private Optional<Metrica> encontrada;
+
+    private Metrica guardada;
+
     @Test
-    @DisplayName("Lista las métricas del cuaderno en el orden de la consulta y las mapea al dominio")
-    void findAllShouldMapInOrder() {
-        when(jpa.findAllByProyectoIdAndNegocioIdOrderByOrdenAscIdAsc(PROYECTO_ID.valor(), NEGOCIO_ID.valor()))
-                .thenReturn(List.of(entity(METRICA_ID.valor(), 0), entity(OTRA_ID, 1)));
+    @DisplayName("Lista las métricas del cuaderno en el orden de la consulta y las lee al dominio")
+    void listaLasMetricasEnElOrdenDeLaConsulta() {
+        dadoUnCuadernoConFilas(laFilaDeLasVentasDelMes(METRICA_ID.valor(), 0), laFilaDeLasVentasDelMes(OTRA_ID, 1));
 
-        List<Metrica> result = repository.findAllByProyectoIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID);
+        cuandoSeListanLasDelCuaderno();
 
-        assertThat(result).extracting(metrica -> metrica.getId().valor()).containsExactly(METRICA_ID.valor(), OTRA_ID);
-        assertThat(result.get(1).getOrden()).isEqualTo(1);
+        entoncesSeListanEnEsteOrden(METRICA_ID, MetricaId.de(OTRA_ID));
     }
 
     @Test
     @DisplayName("Devuelve una lista vacía cuando el cuaderno no tiene métricas")
-    void findAllShouldReturnEmpty() {
-        when(jpa.findAllByProyectoIdAndNegocioIdOrderByOrdenAscIdAsc(PROYECTO_ID.valor(), NEGOCIO_ID.valor()))
-                .thenReturn(List.of());
+    void devuelveUnaListaVaciaSinMetricas() {
+        dadoUnCuadernoConFilas();
 
-        assertThat(repository.findAllByProyectoIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID)).isEmpty();
+        cuandoSeListanLasDelCuaderno();
+
+        entoncesSeListanEnEsteOrden();
     }
 
     @Test
-    @DisplayName("Busca por id, cuaderno y negocio con los UUID y mapea el resultado")
-    void findByIdShouldMapPresent() {
-        when(jpa.findByIdAndProyectoIdAndNegocioId(METRICA_ID.valor(), PROYECTO_ID.valor(), NEGOCIO_ID.valor()))
-                .thenReturn(Optional.of(entity(METRICA_ID.valor(), 0)));
+    @DisplayName("Busca por id, cuaderno y negocio con los UUID y lee el resultado")
+    void buscaPorIdCuadernoYNegocio() {
+        dadaLaFilaDelCuaderno(Optional.of(laFilaDeLasVentasDelMes(METRICA_ID.valor(), 0)));
 
-        Optional<Metrica> result = repository.findByIdAndProyectoIdAndNegocioId(METRICA_ID, PROYECTO_ID, NEGOCIO_ID);
+        cuandoSeBusca();
 
-        assertThat(result).map(Metrica::getId).contains(METRICA_ID);
+        entoncesSeEncuentra(METRICA_ID);
     }
 
     @Test
     @DisplayName("Devuelve vacío cuando la métrica no es del cuaderno")
-    void findByIdShouldReturnEmptyWhenAbsent() {
-        when(jpa.findByIdAndProyectoIdAndNegocioId(METRICA_ID.valor(), PROYECTO_ID.valor(), NEGOCIO_ID.valor()))
-                .thenReturn(Optional.empty());
+    void devuelveVacioCuandoLaMetricaNoEsDelCuaderno() {
+        dadaLaFilaDelCuaderno(Optional.empty());
 
-        assertThat(repository.findByIdAndProyectoIdAndNegocioId(METRICA_ID, PROYECTO_ID, NEGOCIO_ID)).isEmpty();
+        cuandoSeBusca();
+
+        entoncesNoSeEncuentra();
     }
 
     @Test
-    @DisplayName("Guarda la entidad armada desde el dominio y devuelve lo persistido")
-    void saveShouldPersistAndReturnSaved() {
-        when(jpa.save(any(MetricaEntity.class))).thenReturn(entity(METRICA_ID.valor(), 2));
-        Metrica nueva = Metrica.builder()
-                .negocioId(NEGOCIO_ID)
-                .proyectoId(PROYECTO_ID)
-                .definicion(new DefinicionMetrica("Ventas", FuenteMetrica.VENTAS, CalculoMetrica.SUMA,
-                        AgrupacionMetrica.NINGUNA, PeriodoMetrica.MES, false))
-                .orden(2)
-                .autoria(AutoriaMetrica.PROPIA)
-                .creadoEn(AHORA)
-                .build();
+    @DisplayName("Guarda la fila armada desde el dominio y devuelve lo persistido")
+    void guardaLaFilaArmadaDesdeElDominio() {
+        dadoQueLaBaseLeDaElIdYElLugar(METRICA_ID, 2);
 
-        Metrica result = repository.save(nueva);
+        cuandoSeGuarda(Metrica.nueva(NEGOCIO_ID, PROYECTO_ID, lasVentasDelMesLlamadas("Ventas"), 2,
+                AutoriaMetrica.PROPIA, AHORA));
 
-        ArgumentCaptor<MetricaEntity> captor = ArgumentCaptor.forClass(MetricaEntity.class);
-        verify(jpa).save(captor.capture());
-        assertThat(captor.getValue().getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
-        assertThat(captor.getValue().getProyectoId()).isEqualTo(PROYECTO_ID.valor());
-        assertThat(captor.getValue().getNombre()).isEqualTo("Ventas");
-        assertThat(result.getId()).isEqualTo(METRICA_ID);
+        entoncesSeGuardoLaFilaDelNegocioLlamada("Ventas");
+        entoncesSeDevuelveLaGuardadaCon(METRICA_ID);
     }
 
     @Test
     @DisplayName("Borra pasando al JPA los UUID de la métrica y del negocio")
-    void deleteShouldPassUuids() {
-        repository.deleteByIdAndNegocioId(METRICA_ID, NEGOCIO_ID);
+    void borraPasandoLosUuid() {
+        cuandoSeBorra();
 
-        verify(jpa).deleteByIdAndNegocioId(METRICA_ID.valor(), NEGOCIO_ID.valor());
+        entoncesSeBorroConLosUuid();
     }
 
-    // --- helpers ---
-    private static MetricaEntity entity(UUID id, int orden) {
-        return MetricaEntity.builder()
-                .id(id)
-                .negocioId(NEGOCIO_ID.valor())
-                .proyectoId(PROYECTO_ID.valor())
-                .nombre("Ventas")
-                .fuente(FuenteMetrica.VENTAS)
-                .calculo(CalculoMetrica.SUMA)
-                .agrupar(AgrupacionMetrica.NINGUNA)
-                .periodo(PeriodoMetrica.MES)
-                .orden(orden)
-                .autoria(AutoriaMetrica.PROPIA)
-                .creadoEn(AHORA)
-                .build();
+    private void dadoUnCuadernoConFilas(MetricaEntity... filas) {
+        when(jpa.findAllByProyectoIdAndNegocioIdOrderByOrdenAscIdAsc(PROYECTO_ID.valor(), NEGOCIO_ID.valor()))
+                .thenReturn(List.of(filas));
+    }
+
+    private void dadaLaFilaDelCuaderno(Optional<MetricaEntity> fila) {
+        when(jpa.findByIdAndProyectoIdAndNegocioId(METRICA_ID.valor(), PROYECTO_ID.valor(), NEGOCIO_ID.valor()))
+                .thenReturn(fila);
+    }
+
+    private void dadoQueLaBaseLeDaElIdYElLugar(MetricaId id, int orden) {
+        when(jpa.save(any(MetricaEntity.class))).thenReturn(laFilaDeLasVentasDelMes(id.valor(), orden));
+    }
+
+    private void cuandoSeListanLasDelCuaderno() {
+        metricas = repository.findAllByProyectoIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID);
+    }
+
+    private void cuandoSeBusca() {
+        encontrada = repository.findByIdAndProyectoIdAndNegocioId(METRICA_ID, PROYECTO_ID, NEGOCIO_ID);
+    }
+
+    private void cuandoSeGuarda(Metrica nueva) {
+        guardada = repository.save(nueva);
+    }
+
+    private void cuandoSeBorra() {
+        repository.deleteByIdAndNegocioId(METRICA_ID, NEGOCIO_ID);
+    }
+
+    private void entoncesSeListanEnEsteOrden(MetricaId... ids) {
+        assertThat(metricas).extracting(Metrica::getId).containsExactly(ids);
+    }
+
+    private void entoncesSeEncuentra(MetricaId id) {
+        assertThat(encontrada).map(Metrica::getId).contains(id);
+    }
+
+    private void entoncesNoSeEncuentra() {
+        assertThat(encontrada).isEmpty();
+    }
+
+    private void entoncesSeGuardoLaFilaDelNegocioLlamada(String nombre) {
+        ArgumentCaptor<MetricaEntity> captor = ArgumentCaptor.forClass(MetricaEntity.class);
+        verify(jpa).save(captor.capture());
+        assertThat(captor.getValue().getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
+        assertThat(captor.getValue().getProyectoId()).isEqualTo(PROYECTO_ID.valor());
+        assertThat(captor.getValue().getNombre()).isEqualTo(nombre);
+    }
+
+    private void entoncesSeDevuelveLaGuardadaCon(MetricaId id) {
+        assertThat(guardada.getId()).isEqualTo(id);
+    }
+
+    private void entoncesSeBorroConLosUuid() {
+        verify(jpa).deleteByIdAndNegocioId(METRICA_ID.valor(), NEGOCIO_ID.valor());
     }
 }

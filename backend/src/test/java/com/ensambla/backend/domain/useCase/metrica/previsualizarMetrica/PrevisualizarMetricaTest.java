@@ -17,21 +17,18 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
-import java.util.List;
 
 import static com.ensambla.backend.support.MetricaTestData.AHORA;
 import static com.ensambla.backend.support.MetricaTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.MetricaTestData.PAN_ID;
 import static com.ensambla.backend.support.MetricaTestData.PROYECTO_ID;
 import static com.ensambla.backend.support.MetricaTestData.USUARIO_ID;
-import static com.ensambla.backend.support.MetricaTestData.datos;
-import static com.ensambla.backend.support.MetricaTestData.inventario;
 import static com.ensambla.backend.support.MetricaTestData.negocio;
 import static com.ensambla.backend.support.MetricaTestData.proyecto;
+import static com.ensambla.backend.support.MetricaTestData.unAlmacenQueVendio;
 import static com.ensambla.backend.support.MetricaTestData.venta;
-import static com.ensambla.backend.support.MetricaTestData.ventas;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -49,39 +46,64 @@ class PrevisualizarMetricaTest {
             new MotorMetricas(),
             Clock.fixed(AHORA.toInstant(), AHORA.getOffset()));
 
+    private ResultadoItem resultado;
+
+    private Throwable rechazo;
+
     @Test
     @DisplayName("Calcula la receta con los datos del cuaderno sin guardar nada")
-    void executeShouldCalculateTheRecipe() {
-        givenCuaderno();
+    void calculaLaRecetaConLosDatosDelCuaderno() {
+        dadoUnAlmacenQueHoyVendioPorTrescientos();
 
-        ResultadoItem result = previsualizarMetrica.execute(request(CalculoMetrica.SUMA));
+        cuandoSePrevisualiza(lasVentasDeHoyPedidas());
 
-        assertThat(result.valor()).isEqualByComparingTo("300");
-        assertThat(result.deDondeSale().filasUsadas()).isEqualTo(1);
+        entoncesDaConFilasUsadas("300", 1);
     }
 
     @Test
     @DisplayName("Rechaza una receta que no se puede calcular antes de leer el cuaderno")
-    void executeShouldRejectInvalidRecipe() {
-        assertThatThrownBy(() -> previsualizarMetrica.execute(new PrevisualizarMetricaRequest(
-                USUARIO_ID, PROYECTO_ID, "Mal", FuenteMetrica.GASTOS, CalculoMetrica.UNIDADES, null, null, false)))
-                .isInstanceOf(BusinessRuleException.class);
-        verifyNoInteractions(negocioRepository, proyectoRepository, datosDeProyectoService);
+    void rechazaUnaRecetaInvalidaAntesDeLeerElCuaderno() {
+        cuandoSeIntentaPrevisualizar(lasUnidadesDeLosGastosPedidas());
+
+        entoncesSeRechaza();
+        entoncesNoSeLeyoElCuaderno();
     }
 
-    // --- arrange ---
-    private void givenCuaderno() {
+    private static PrevisualizarMetricaRequest lasVentasDeHoyPedidas() {
+        return new PrevisualizarMetricaRequest(USUARIO_ID, PROYECTO_ID, "Ventas de hoy", FuenteMetrica.VENTAS,
+                CalculoMetrica.SUMA, AgrupacionMetrica.NINGUNA, PeriodoMetrica.HOY, false);
+    }
+
+    private static PrevisualizarMetricaRequest lasUnidadesDeLosGastosPedidas() {
+        return new PrevisualizarMetricaRequest(USUARIO_ID, PROYECTO_ID, "Mal", FuenteMetrica.GASTOS,
+                CalculoMetrica.UNIDADES, null, null, false);
+    }
+
+    private void dadoUnAlmacenQueHoyVendioPorTrescientos() {
         when(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID)).thenReturn(negocio(RubroNegocio.ALMACEN));
         when(proyectoRepository.obtener(NEGOCIO_ID, PROYECTO_ID)).thenReturn(proyecto);
-        when(datosDeProyectoService.cargar(proyecto, NEGOCIO_ID)).thenReturn(datos(
-                List.of(inventario()),
-                List.of(ventas(venta(PAN_ID, 2, 150, "2026-11-11", "Ana", false))),
-                List.of()));
+        when(datosDeProyectoService.cargar(proyecto, NEGOCIO_ID))
+                .thenReturn(unAlmacenQueVendio(venta(PAN_ID, 2, 150, "2026-11-11", "Ana", false)));
     }
 
-    // --- helpers ---
-    private static PrevisualizarMetricaRequest request(CalculoMetrica calculo) {
-        return new PrevisualizarMetricaRequest(USUARIO_ID, PROYECTO_ID, "Ventas de hoy", FuenteMetrica.VENTAS,
-                calculo, AgrupacionMetrica.NINGUNA, PeriodoMetrica.HOY, false);
+    private void cuandoSePrevisualiza(PrevisualizarMetricaRequest pedido) {
+        resultado = previsualizarMetrica.execute(pedido);
+    }
+
+    private void cuandoSeIntentaPrevisualizar(PrevisualizarMetricaRequest pedido) {
+        rechazo = catchThrowable(() -> cuandoSePrevisualiza(pedido));
+    }
+
+    private void entoncesDaConFilasUsadas(String valor, long filasUsadas) {
+        assertThat(resultado.valor()).isEqualByComparingTo(valor);
+        assertThat(resultado.deDondeSale().filasUsadas()).isEqualTo(filasUsadas);
+    }
+
+    private void entoncesSeRechaza() {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class);
+    }
+
+    private void entoncesNoSeLeyoElCuaderno() {
+        verifyNoInteractions(negocioRepository, proyectoRepository, datosDeProyectoService);
     }
 }

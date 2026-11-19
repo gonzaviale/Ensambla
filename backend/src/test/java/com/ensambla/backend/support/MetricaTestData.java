@@ -25,6 +25,7 @@ import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.reporte.BloqueGastos;
 import com.ensambla.backend.domain.model.reporte.DatosDeProyecto;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.infrastructure.repository.entity.MetricaEntity;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -34,6 +35,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.IntStream;
 
 /** Un cuaderno de almacén para probar las métricas: inventario, ventas (con fiado) y gastos. */
 public final class MetricaTestData {
@@ -76,6 +78,15 @@ public final class MetricaTestData {
                 .build();
     }
 
+    /** Un panel con el máximo de métricas por cuaderno, todas contando las ventas de hoy. */
+    public static Metrica[] unPanelLleno() {
+        DefinicionMetrica cuantasVentasHoy = definicion(FuenteMetrica.VENTAS, CalculoMetrica.CONTEO,
+                AgrupacionMetrica.NINGUNA, PeriodoMetrica.HOY);
+        return IntStream.range(0, Metrica.MAXIMO_POR_CUADERNO)
+                .mapToObj(lugar -> metrica(cuantasVentasHoy, lugar))
+                .toArray(Metrica[]::new);
+    }
+
     public static DefinicionMetrica definicion(
             FuenteMetrica fuente, CalculoMetrica calculo, AgrupacionMetrica agrupar, PeriodoMetrica periodo,
             boolean soloFiado) {
@@ -85,6 +96,73 @@ public final class MetricaTestData {
     public static DefinicionMetrica definicion(
             FuenteMetrica fuente, CalculoMetrica calculo, AgrupacionMetrica agrupar, PeriodoMetrica periodo) {
         return definicion(fuente, calculo, agrupar, periodo, false);
+    }
+
+    /** La fila guardada de "Lo que te deben" (ventas fiadas por cliente, todo lo cargado), en el lugar 3. */
+    public static MetricaEntity laFilaDeLoQueTeDeben() {
+        MetricaEntity fila = laFilaDeLoQueTeDebenEn(NEGOCIO_ID.valor(), PROYECTO_ID.valor());
+        fila.setId(METRICA_ID.valor());
+        return fila;
+    }
+
+    /** La fila de "Lo que te deben", todavía sin id, en el cuaderno y el negocio dados. */
+    public static MetricaEntity laFilaDeLoQueTeDebenEn(UUID negocioId, UUID proyectoId) {
+        return MetricaEntity.builder()
+                .negocioId(negocioId)
+                .proyectoId(proyectoId)
+                .nombre("Lo que te deben")
+                .fuente(FuenteMetrica.VENTAS)
+                .calculo(CalculoMetrica.SUMA)
+                .agrupar(AgrupacionMetrica.CLIENTE)
+                .periodo(PeriodoMetrica.TODO)
+                .soloFiado(true)
+                .orden(3)
+                .autoria(AutoriaMetrica.PROPIA)
+                .creadoEn(AHORA)
+                .build();
+    }
+
+    /** La fila guardada de las ventas del mes, con este id y en este lugar del panel. */
+    public static MetricaEntity laFilaDeLasVentasDelMes(UUID id, int orden) {
+        return MetricaEntity.builder()
+                .id(id)
+                .negocioId(NEGOCIO_ID.valor())
+                .proyectoId(PROYECTO_ID.valor())
+                .nombre("Ventas")
+                .fuente(FuenteMetrica.VENTAS)
+                .calculo(CalculoMetrica.SUMA)
+                .agrupar(AgrupacionMetrica.NINGUNA)
+                .periodo(PeriodoMetrica.MES)
+                .orden(orden)
+                .autoria(AutoriaMetrica.PROPIA)
+                .creadoEn(AHORA)
+                .build();
+    }
+
+    /** Una fila sugerida de las ventas del mes, todavía sin id, con este nombre y en este lugar del panel. */
+    public static MetricaEntity unaFilaSugeridaEn(UUID negocioId, UUID proyectoId, String nombre, int orden) {
+        return MetricaEntity.builder()
+                .negocioId(negocioId)
+                .proyectoId(proyectoId)
+                .nombre(nombre)
+                .fuente(FuenteMetrica.VENTAS)
+                .calculo(CalculoMetrica.SUMA)
+                .agrupar(AgrupacionMetrica.NINGUNA)
+                .periodo(PeriodoMetrica.MES)
+                .orden(orden)
+                .autoria(AutoriaMetrica.SUGERIDA)
+                .creadoEn(AHORA)
+                .build();
+    }
+
+    /** Una fila de gastos del mes que todavía no tiene ids. */
+    public static MetricaEntity unaFilaSinIds() {
+        return MetricaEntity.builder()
+                .fuente(FuenteMetrica.GASTOS)
+                .calculo(CalculoMetrica.SUMA)
+                .agrupar(AgrupacionMetrica.NINGUNA)
+                .periodo(PeriodoMetrica.MES)
+                .build();
     }
 
     /** Pan (10 u. a $100), Leche (5 u. a $200) y Sal (4 u. sin costo). */
@@ -153,6 +231,65 @@ public final class MetricaTestData {
     public static DatosDeProyecto datos(
             List<BloqueInventario> inventarios, List<BloqueVentas> ventas, List<BloqueGastos> gastos) {
         return datos(inventarios, ventas, gastos, Map.of());
+    }
+
+    /**
+     * Un almacén con todo: ventas de Pan $300 hoy (fiado, Ana), Leche $250 ayer (Beto), Pan $450 el 4/11 (sin
+     * cliente), Sal sin precio hoy, una venta ilegible y Pan $150 de septiembre (fiado, Ana); gastos con importes y
+     * fechas dudosas; y el inventario de {@link #inventario()}.
+     */
+    public static DatosDeProyecto unAlmacenConVentasYGastos() {
+        BloqueVentas ventas = ventas(
+                venta(PAN_ID, 2, 150, "2026-11-11", "Ana", true),
+                venta(LECHE_ID, 1, 250, "2026-11-10", "Beto", false),
+                venta(PAN_ID, 3, 150, "2026-11-04", null, false),
+                venta(SAL_ID, 1, null, "2026-11-11", "Ana", null),
+                venta(null, 1, 100, "2026-11-11", "Ana", false),
+                venta(PAN_ID, 1, 150, "2026-09-01", "Ana", true));
+        BloqueGastos gastos = gastos(
+                gasto(1000, "2026-11-10", "Alquiler"),
+                gasto(200, "2026-11-11", " "),
+                gasto(null, "2026-11-09", "Luz"),
+                gasto("abc", "2026-11-08", "Luz"),
+                gasto(50, "mal", "Luz"),
+                gasto(25, 7, "Luz"));
+        return datos(List.of(inventario()), List.of(ventas), List.of(gastos));
+    }
+
+    /** Un cuaderno sin ninguna tabla. */
+    public static DatosDeProyecto unCuadernoVacio() {
+        return datos(List.of(), List.of(), List.of());
+    }
+
+    /** Un cuaderno con el inventario de {@link #inventario()} y estas ventas. */
+    public static DatosDeProyecto unAlmacenQueVendio(Registro... ventas) {
+        return datos(List.of(inventario()), List.of(ventas(ventas)), List.of());
+    }
+
+    /** Doce ventas de Pan del 10/11, cada una a un cliente distinto: "cliente 1" paga $10 y "cliente 12", $120. */
+    public static DatosDeProyecto unAlmacenConDoceClientes() {
+        Registro[] ventas = IntStream.rangeClosed(1, 12)
+                .mapToObj(numero -> venta(PAN_ID, 1, numero * 10, "2026-11-10", "cliente " + numero, false))
+                .toArray(Registro[]::new);
+        return unAlmacenQueVendio(ventas);
+    }
+
+    /** Un cuaderno con estas tablas de gastos y nada más. */
+    public static DatosDeProyecto unCuadernoConGastos(BloqueGastos... gastos) {
+        return datos(List.of(), List.of(), List.of(gastos));
+    }
+
+    /** Un inventario con un solo producto, la Sal, que no tiene costo. */
+    public static DatosDeProyecto unInventarioSinCostos() {
+        BloqueInventario completo = inventario();
+        BloqueInventario soloLaSal = new BloqueInventario(completo.bloque(), null, completo.camposPorClave(),
+                completo.registros().subList(2, 3));
+        return datos(List.of(soloLaSal), List.of(), List.of());
+    }
+
+    /** Un inventario cuyos productos no tienen la cantidad cargada. */
+    public static DatosDeProyecto unInventarioSinCantidades() {
+        return datos(List.of(inventarioSinCantidad()), List.of(), List.of());
     }
 
     private static Bloque bloqueDeVentas() {

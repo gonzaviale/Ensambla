@@ -7,41 +7,50 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 
+import static com.ensambla.backend.support.MetricasDePrueba.lasVentasDelMesLlamadas;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CatalogoMetricasTest {
 
-    private static final DefinicionMetrica BASE = definicion("Base");
-    private static final DefinicionMetrica DEL_KIOSCO = definicion("Del kiosco");
+    private static final DefinicionMetrica PARA_TODOS = lasVentasDelMesLlamadas("Para todos");
+
+    private static final DefinicionMetrica DEL_KIOSCO = lasVentasDelMesLlamadas("Del kiosco");
+
+    private CatalogoMetricas catalogo;
 
     @Test
     @DisplayName("Para un rubro ofrece primero las de todos y después las propias")
-    void paraRubroShouldListBaseThenOwn() {
-        CatalogoMetricas catalogo = catalogo();
+    void paraUnRubroOfreceLasDeTodosYDespuesLasPropias() {
+        dadoUnCatalogoConMetricasParaElKiosco();
 
-        assertThat(catalogo.paraRubro(RubroNegocio.KIOSCO)).containsExactly(BASE, DEL_KIOSCO);
+        entoncesAlRubroLeOfrece(RubroNegocio.KIOSCO, PARA_TODOS, DEL_KIOSCO);
     }
 
     @Test
     @DisplayName("Un rubro sin métricas propias sólo recibe las de todos")
-    void paraRubroShouldFallBackToBase() {
-        CatalogoMetricas catalogo = catalogo();
+    void unRubroSinMetricasPropiasSoloRecibeLasDeTodos() {
+        dadoUnCatalogoConMetricasParaElKiosco();
 
-        assertThat(catalogo.paraRubro(RubroNegocio.OTRO)).containsExactly(BASE);
+        entoncesAlRubroLeOfrece(RubroNegocio.OTRO, PARA_TODOS);
     }
 
     @Test
     @DisplayName("Un catálogo vacío no ofrece nada")
-    void constructorShouldDefaultToEmpty() {
-        assertThat(new CatalogoMetricas(null, null).paraRubro(RubroNegocio.ALMACEN)).isEmpty();
+    void unCatalogoVacioNoOfreceNada() {
+        dadoUnCatalogoVacio();
+
+        entoncesAlRubroLeOfrece(RubroNegocio.ALMACEN);
     }
 
-    private static CatalogoMetricas catalogo() {
-        return new CatalogoMetricas(List.of(BASE), Map.of(RubroNegocio.KIOSCO, List.of(DEL_KIOSCO)));
+    private void dadoUnCatalogoConMetricasParaElKiosco() {
+        catalogo = new CatalogoMetricas(List.of(PARA_TODOS), Map.of(RubroNegocio.KIOSCO, List.of(DEL_KIOSCO)));
     }
 
-    private static DefinicionMetrica definicion(String nombre) {
-        return new DefinicionMetrica(nombre, FuenteMetrica.VENTAS, CalculoMetrica.SUMA, AgrupacionMetrica.NINGUNA,
-                PeriodoMetrica.MES, false);
+    private void dadoUnCatalogoVacio() {
+        catalogo = new CatalogoMetricas(null, null);
+    }
+
+    private void entoncesAlRubroLeOfrece(RubroNegocio rubro, DefinicionMetrica... sugeridas) {
+        assertThat(catalogo.paraRubro(rubro)).containsExactly(sugeridas);
     }
 }

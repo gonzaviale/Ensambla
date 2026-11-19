@@ -8,20 +8,57 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CalculoMetricaTest {
 
     @Test
-    @DisplayName("Sumar y promediar dan pesos y usan el importe; contar y las unidades dan cantidades")
-    void formatoShouldTellMoneyFromCounts() {
-        assertThat(CalculoMetrica.SUMA.formato()).isEqualTo(FormatoMetrica.MONEDA);
-        assertThat(CalculoMetrica.PROMEDIO.usaImporte()).isTrue();
-        assertThat(CalculoMetrica.CONTEO.formato()).isEqualTo(FormatoMetrica.NUMERO);
-        assertThat(CalculoMetrica.UNIDADES.usaImporte()).isFalse();
+    @DisplayName("Sumar da pesos y usa el importe de cada fila")
+    void sumarDaPesosYUsaElImporte() {
+        entoncesElCalculo(CalculoMetrica.SUMA, FormatoMetrica.MONEDA, true);
     }
 
     @Test
-    @DisplayName("Sólo los gastos no tienen unidades")
-    void sirveParaShouldExcludeUnitsOfExpenses() {
-        assertThat(CalculoMetrica.UNIDADES.sirvePara(FuenteMetrica.VENTAS)).isTrue();
-        assertThat(CalculoMetrica.UNIDADES.sirvePara(FuenteMetrica.INVENTARIO)).isTrue();
-        assertThat(CalculoMetrica.UNIDADES.sirvePara(FuenteMetrica.GASTOS)).isFalse();
-        assertThat(CalculoMetrica.SUMA.sirvePara(FuenteMetrica.GASTOS)).isTrue();
+    @DisplayName("Promediar da pesos y usa el importe de cada fila")
+    void promediarDaPesosYUsaElImporte() {
+        entoncesElCalculo(CalculoMetrica.PROMEDIO, FormatoMetrica.MONEDA, true);
+    }
+
+    @Test
+    @DisplayName("Contar da una cantidad y no necesita el importe")
+    void contarDaUnaCantidadSinImporte() {
+        entoncesElCalculo(CalculoMetrica.CONTEO, FormatoMetrica.NUMERO, false);
+    }
+
+    @Test
+    @DisplayName("Las unidades dan una cantidad y no necesitan el importe")
+    void lasUnidadesDanUnaCantidadSinImporte() {
+        entoncesElCalculo(CalculoMetrica.UNIDADES, FormatoMetrica.NUMERO, false);
+    }
+
+    @Test
+    @DisplayName("Las unidades sirven para las ventas y el inventario")
+    void lasUnidadesSirvenParaVentasEInventario() {
+        entoncesSirvePara(CalculoMetrica.UNIDADES, FuenteMetrica.VENTAS, FuenteMetrica.INVENTARIO);
+    }
+
+    @Test
+    @DisplayName("Las unidades no sirven para los gastos")
+    void lasUnidadesNoSirvenParaLosGastos() {
+        entoncesNoSirvePara(CalculoMetrica.UNIDADES, FuenteMetrica.GASTOS);
+    }
+
+    @Test
+    @DisplayName("Sumar sirve para cualquier tabla")
+    void sumarSirveParaCualquierTabla() {
+        entoncesSirvePara(CalculoMetrica.SUMA, FuenteMetrica.values());
+    }
+
+    private static void entoncesElCalculo(CalculoMetrica calculo, FormatoMetrica formato, boolean usaImporte) {
+        assertThat(calculo.formato()).isEqualTo(formato);
+        assertThat(calculo.usaImporte()).isEqualTo(usaImporte);
+    }
+
+    private static void entoncesSirvePara(CalculoMetrica calculo, FuenteMetrica... fuentes) {
+        assertThat(fuentes).allMatch(calculo::sirvePara);
+    }
+
+    private static void entoncesNoSirvePara(CalculoMetrica calculo, FuenteMetrica fuente) {
+        assertThat(calculo.sirvePara(fuente)).isFalse();
     }
 }

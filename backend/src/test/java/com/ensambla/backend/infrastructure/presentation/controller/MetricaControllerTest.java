@@ -29,11 +29,11 @@ import com.ensambla.backend.domain.useCase.metrica.previsualizarMetrica.Previsua
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.metrica.MetricaPresentationMapper;
 import com.ensambla.backend.support.MockMvcDePrueba;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.math.BigDecimal;
@@ -44,6 +44,7 @@ import static com.ensambla.backend.support.MetricaTestData.METRICA_ID;
 import static com.ensambla.backend.support.MetricaTestData.PROYECTO_ID;
 import static com.ensambla.backend.support.MetricaTestData.USUARIO_ID;
 import static com.ensambla.backend.support.MetricaTestData.metrica;
+import static com.ensambla.backend.support.MetricasDePrueba.unaReceta;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -60,8 +61,33 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class MetricaControllerTest {
 
     private static final String RUTA = "/api/proyectos/{proyectoId}/metricas";
-    private static final String CUERPO = "{\"nombre\":\"Ventas del mes\",\"fuente\":\"VENTAS\",\"calculo\":\"SUMA\","
+
+    private static final String LA_RECETA = "\"nombre\":\"Ventas del mes\",\"fuente\":\"VENTAS\",\"calculo\":\"SUMA\","
             + "\"agrupar\":\"PRODUCTO\",\"periodo\":\"MES\",\"soloFiado\":true";
+
+    private static final String LA_RECETA_EN_JSON = "{" + LA_RECETA + "}";
+
+    private static final String LA_RECETA_SIN_FIADO = "{\"nombre\":\"Ventas del mes\",\"fuente\":\"VENTAS\","
+            + "\"calculo\":\"SUMA\",\"agrupar\":\"PRODUCTO\",\"periodo\":\"MES\"}";
+
+    private static final String SIN_NADA_OBLIGATORIO = "{\"soloFiado\":false}";
+
+    private static final String UN_NOMBRE_DEMASIADO_LARGO = "{\"nombre\":\"" + "a".repeat(81)
+            + "\",\"fuente\":\"VENTAS\",\"calculo\":\"SUMA\",\"autoria\":\"PROPIA\"}";
+
+    private static final DefinicionMetrica LAS_VENTAS_FIADAS_POR_PRODUCTO = unaReceta("Ventas del mes",
+            FuenteMetrica.VENTAS, CalculoMetrica.SUMA, AgrupacionMetrica.PRODUCTO, PeriodoMetrica.MES, true);
+
+    private static final ResultadoMetrica SETECIENTOS_CINCUENTA_DEL_PAN = ResultadoMetrica.conValor(
+            FormatoMetrica.MONEDA, new BigDecimal("750"), List.of(new Fila("Pan", new BigDecimal("750"))),
+            new DeDondeSale(FuenteMetrica.VENTAS, 3, 1, LocalDate.of(2026, 11, 5), LocalDate.of(2026, 11, 11)));
+
+    private static final ResultadoMetrica SIN_VENTAS_EN_EL_PERIODO = ResultadoMetrica.sinValor(
+            FormatoMetrica.NUMERO, "No hay ventas en este período.",
+            new DeDondeSale(FuenteMetrica.VENTAS, 0, 0, null, null));
+
+    private static final MetricaItem LA_GUARDADA = MetricaItem.de(
+            metrica(LAS_VENTAS_FIADAS_POR_PRODUCTO, 2), SETECIENTOS_CINCUENTA_DEL_PAN);
 
     private final ListarMetricas listarMetricas = mock(ListarMetricas.class);
     private final ListarSugeridas listarSugeridas = mock(ListarSugeridas.class);
@@ -70,30 +96,211 @@ class MetricaControllerTest {
     private final EliminarMetrica eliminarMetrica = mock(EliminarMetrica.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
-    private MockMvc mockMvc;
+    private final MockMvc mockMvc = MockMvcDePrueba.standalone(new MetricaController(
+                    listarMetricas, listarSugeridas, previsualizarMetrica, crearMetrica, eliminarMetrica,
+                    new MetricaPresentationMapper()))
+            .setControllerAdvice(new GlobalExceptionHandler())
+            .build();
 
-    @BeforeEach
-    void setUp() {
-        MetricaController controller = new MetricaController(
-                listarMetricas,
-                listarSugeridas,
-                previsualizarMetrica,
-                crearMetrica,
-                eliminarMetrica,
-                new MetricaPresentationMapper());
-        mockMvc = MockMvcDePrueba.standalone(controller)
-                .setControllerAdvice(new GlobalExceptionHandler())
-                .build();
-    }
+    private ResultActions respuesta;
 
     @Test
     @DisplayName("GET lista las métricas del cuaderno con su receta, su número y de dónde sale")
-    void listarShouldReturnMappedMetrics() throws Exception {
-        when(listarMetricas.execute(any())).thenReturn(List.of(givenItem()));
+    void listaLasMetricasConSuRecetaSuNumeroYDeDondeSale() throws Exception {
+        dadoUnPanelConLasVentasFiadasPorProducto();
 
-        ResultActions result = mockMvc.perform(get(RUTA, PROYECTO_ID).principal(principal));
+        cuandoSePide(get(RUTA, PROYECTO_ID));
 
-        result.andExpect(status().isOk())
+        entoncesRespondeLasVentasFiadasPorProducto();
+    }
+
+    @Test
+    @DisplayName("GET delega en el caso de uso con el usuario de la sesión y el cuaderno de la ruta")
+    void listarDelegaConElUsuarioDeLaSesionYElCuaderno() throws Exception {
+        dadoUnPanelVacio();
+
+        cuandoSePide(get(RUTA, PROYECTO_ID));
+
+        entoncesRespondeUnaListaVacia();
+        entoncesSeListoElCuadernoDeLaSesion();
+    }
+
+    @Test
+    @DisplayName("GET de un cuaderno ajeno devuelve el 404 estándar")
+    void listarUnCuadernoAjenoDevuelveNoEncontrado() throws Exception {
+        dadoQueListarNoEncuentraElCuaderno();
+
+        cuandoSePide(get(RUTA, PROYECTO_ID));
+
+        entoncesRespondeNoEncontrado();
+    }
+
+    @Test
+    @DisplayName("GET con un id de cuaderno que no es UUID devuelve 400 sin llegar al caso de uso")
+    void listarConUnIdQueNoEsUuidDevuelveError() throws Exception {
+        cuandoSePide(get("/api/proyectos/invalido/metricas"));
+
+        entoncesRespondeUnPedidoInvalido();
+        entoncesNoSeListo();
+    }
+
+    @Test
+    @DisplayName("GET sugeridas devuelve las del rubro con lo que darían hoy")
+    void sugeridasDevuelveLasDelRubroConLoQueDarianHoy() throws Exception {
+        dadaUnaSugeridaQueNoSePuedeCalcular();
+
+        cuandoSePide(get(RUTA + "/sugeridas", PROYECTO_ID));
+
+        entoncesRespondeLaSugeridaConSuMotivo("No hay ventas en este período.");
+        entoncesSeListaronLasSugeridasDelCuadernoDeLaSesion();
+    }
+
+    @Test
+    @DisplayName("POST previsualizar calcula la receta sin guardarla")
+    void previsualizarCalculaLaRecetaSinGuardarla() throws Exception {
+        dadaUnaPrevisualizacionDeSetecientosCincuenta();
+
+        cuandoSeEnvia(post(RUTA + "/previsualizar", PROYECTO_ID), LA_RECETA_EN_JSON);
+
+        entoncesRespondeElValor(750.0);
+        entoncesSePrevisualizo(true);
+    }
+
+    @Test
+    @DisplayName("POST previsualizar sin decir si es fiada mira todas las ventas")
+    void previsualizarSinDecirSiEsFiadaMiraTodasLasVentas() throws Exception {
+        dadaUnaPrevisualizacionDeSetecientosCincuenta();
+
+        cuandoSeEnvia(post(RUTA + "/previsualizar", PROYECTO_ID), LA_RECETA_SIN_FIADO);
+
+        entoncesSePrevisualizo(false);
+    }
+
+    @Test
+    @DisplayName("POST previsualizar rechaza una receta que no se puede calcular con el 400 estándar")
+    void previsualizarRechazaUnaRecetaInvalida() throws Exception {
+        dadoQueLaPrevisualizacionRechazaLaReceta();
+
+        cuandoSeEnvia(post(RUTA + "/previsualizar", PROYECTO_ID), LA_RECETA_EN_JSON);
+
+        entoncesRespondeUnPedidoInvalido();
+    }
+
+    @Test
+    @DisplayName("POST crea la métrica y devuelve 201 con su ubicación")
+    void crearDevuelveCreadaConSuUbicacion() throws Exception {
+        dadoQueSeCreaLaGuardada();
+
+        cuandoSeEnvia(post(RUTA, PROYECTO_ID), conAutoria("SUGERIDA"));
+
+        entoncesRespondeCreadaEnSuUbicacion();
+    }
+
+    @Test
+    @DisplayName("POST pasa la receta, la autoría y el usuario de la sesión al caso de uso")
+    void crearPasaLaRecetaLaAutoriaYElUsuario() throws Exception {
+        dadoQueSeCreaLaGuardada();
+
+        cuandoSeEnvia(post(RUTA, PROYECTO_ID), conAutoria("PROPIA"));
+
+        entoncesSeCreo(AutoriaMetrica.PROPIA);
+    }
+
+    @Test
+    @DisplayName("POST rechaza un body sin nombre, sin fuente, sin cálculo o sin autoría")
+    void crearRechazaUnBodySinLosDatosObligatorios() throws Exception {
+        cuandoSeEnvia(post(RUTA, PROYECTO_ID), SIN_NADA_OBLIGATORIO);
+
+        entoncesRespondeErroresEn("nombre", "fuente", "calculo", "autoria");
+        entoncesNoSeCreo();
+    }
+
+    @Test
+    @DisplayName("POST rechaza un nombre de más de 80 caracteres")
+    void crearRechazaUnNombreDemasiadoLargo() throws Exception {
+        cuandoSeEnvia(post(RUTA, PROYECTO_ID), UN_NOMBRE_DEMASIADO_LARGO);
+
+        entoncesRespondeErroresEn("nombre");
+        entoncesNoSeCreo();
+    }
+
+    @Test
+    @DisplayName("DELETE devuelve 204 y delega con el usuario de la sesión, el cuaderno y la métrica de la ruta")
+    void eliminarDevuelveSinContenidoYDelega() throws Exception {
+        cuandoSePide(delete(RUTA + "/{id}", PROYECTO_ID, METRICA_ID));
+
+        entoncesRespondeSinContenido();
+        entoncesSeEliminoLaMetricaDelCuadernoDeLaSesion();
+    }
+
+    @Test
+    @DisplayName("DELETE de una métrica ajena o inexistente devuelve el 404 estándar")
+    void eliminarUnaMetricaAjenaDevuelveNoEncontrada() throws Exception {
+        dadoQueEliminarNoEncuentraLaMetrica();
+
+        cuandoSePide(delete(RUTA + "/{id}", PROYECTO_ID, METRICA_ID));
+
+        entoncesRespondeNoEncontrado();
+    }
+
+    @Test
+    @DisplayName("DELETE con un id que no es UUID devuelve 400 sin llegar al caso de uso")
+    void eliminarConUnIdQueNoEsUuidDevuelveError() throws Exception {
+        cuandoSePide(delete(RUTA + "/invalido", PROYECTO_ID));
+
+        entoncesRespondeUnPedidoInvalido();
+        entoncesNoSeElimino();
+    }
+
+    private static String conAutoria(String autoria) {
+        return "{" + LA_RECETA + ",\"autoria\":\"" + autoria + "\"}";
+    }
+
+    private void dadoUnPanelConLasVentasFiadasPorProducto() {
+        when(listarMetricas.execute(any())).thenReturn(List.of(LA_GUARDADA));
+    }
+
+    private void dadoUnPanelVacio() {
+        when(listarMetricas.execute(any())).thenReturn(List.of());
+    }
+
+    private void dadoQueListarNoEncuentraElCuaderno() {
+        when(listarMetricas.execute(any())).thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
+    }
+
+    private void dadaUnaSugeridaQueNoSePuedeCalcular() {
+        when(listarSugeridas.execute(any())).thenReturn(List.of(new SugeridaItem(
+                DefinicionItem.de(LAS_VENTAS_FIADAS_POR_PRODUCTO), ResultadoItem.de(SIN_VENTAS_EN_EL_PERIODO))));
+    }
+
+    private void dadaUnaPrevisualizacionDeSetecientosCincuenta() {
+        when(previsualizarMetrica.execute(any())).thenReturn(ResultadoItem.de(SETECIENTOS_CINCUENTA_DEL_PAN));
+    }
+
+    private void dadoQueLaPrevisualizacionRechazaLaReceta() {
+        when(previsualizarMetrica.execute(any())).thenThrow(new BusinessRuleException("Los gastos no tienen unidades"));
+    }
+
+    private void dadoQueSeCreaLaGuardada() {
+        when(crearMetrica.execute(any())).thenReturn(LA_GUARDADA);
+    }
+
+    private void dadoQueEliminarNoEncuentraLaMetrica() {
+        doThrow(new ResourceNotFoundException("Métrica no encontrada")).when(eliminarMetrica).execute(any());
+    }
+
+    private void cuandoSePide(MockHttpServletRequestBuilder pedido)
+            throws Exception {
+        respuesta = mockMvc.perform(pedido.principal(principal));
+    }
+
+    private void cuandoSeEnvia(MockHttpServletRequestBuilder pedido,
+                               String cuerpo) throws Exception {
+        cuandoSePide(pedido.contentType("application/json").content(cuerpo));
+    }
+
+    private void entoncesRespondeLasVentasFiadasPorProducto() throws Exception {
+        respuesta.andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(METRICA_ID.toString()))
                 .andExpect(jsonPath("$[0].orden").value(2))
                 .andExpect(jsonPath("$[0].autoria").value("SUGERIDA"))
@@ -107,177 +314,79 @@ class MetricaControllerTest {
                 .andExpect(jsonPath("$[0].resultado.deDondeSale.desde").value("2026-11-05"));
     }
 
-    @Test
-    @DisplayName("GET delega en el caso de uso con el usuario de la sesión y el cuaderno de la ruta")
-    void listarShouldPassSessionUserAndProject() throws Exception {
-        when(listarMetricas.execute(any())).thenReturn(List.of());
-
-        ResultActions result = mockMvc.perform(get(RUTA, PROYECTO_ID).principal(principal));
-
-        result.andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
-        verify(listarMetricas).execute(new ListarMetricasRequest(USUARIO_ID, PROYECTO_ID));
+    private void entoncesRespondeUnaListaVacia() throws Exception {
+        respuesta.andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
     }
 
-    @Test
-    @DisplayName("GET de un cuaderno ajeno devuelve el 404 estándar")
-    void listarShouldReturn404ForForeignProject() throws Exception {
-        when(listarMetricas.execute(any())).thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
-
-        ResultActions result = mockMvc.perform(get(RUTA, PROYECTO_ID).principal(principal));
-
-        result.andExpect(status().isNotFound()).andExpect(jsonPath("$.status").value(404));
-    }
-
-    @Test
-    @DisplayName("GET con un id de cuaderno que no es UUID devuelve 400 sin llegar al caso de uso")
-    void listarShouldReturn400WhenProjectIdIsNotUuid() throws Exception {
-        ResultActions result = mockMvc.perform(get("/api/proyectos/invalido/metricas").principal(principal));
-
-        result.andExpect(status().isBadRequest());
-        verifyNoInteractions(listarMetricas);
-    }
-
-    @Test
-    @DisplayName("GET sugeridas devuelve las del rubro con lo que darían hoy")
-    void sugeridasShouldReturnMappedSuggestions() throws Exception {
-        ResultadoItem sinNumero = ResultadoItem.de(ResultadoMetrica.sinValor(
-                FormatoMetrica.NUMERO, "No hay ventas en este período.",
-                new DeDondeSale(FuenteMetrica.VENTAS, 0, 0, null, null)));
-        when(listarSugeridas.execute(any())).thenReturn(List.of(new SugeridaItem(
-                DefinicionItem.de(definicion()), sinNumero)));
-
-        ResultActions result = mockMvc.perform(get(RUTA + "/sugeridas", PROYECTO_ID).principal(principal));
-
-        result.andExpect(status().isOk())
+    private void entoncesRespondeLaSugeridaConSuMotivo(String motivo) throws Exception {
+        respuesta.andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].definicion.nombre").value("Ventas del mes"))
                 .andExpect(jsonPath("$[0].resultado.valor").doesNotExist())
-                .andExpect(jsonPath("$[0].resultado.motivo").value("No hay ventas en este período."));
-        verify(listarSugeridas).execute(new ListarSugeridasRequest(USUARIO_ID, PROYECTO_ID));
+                .andExpect(jsonPath("$[0].resultado.motivo").value(motivo));
     }
 
-    @Test
-    @DisplayName("POST previsualizar calcula la receta sin guardarla")
-    void previsualizarShouldReturnTheResult() throws Exception {
-        when(previsualizarMetrica.execute(any())).thenReturn(ResultadoItem.de(resultado()));
-
-        ResultActions result = mockMvc.perform(post(RUTA + "/previsualizar", PROYECTO_ID).principal(principal)
-                .contentType("application/json")
-                .content(CUERPO + "}"));
-
-        result.andExpect(status().isOk()).andExpect(jsonPath("$.valor").value(750.0));
-        verify(previsualizarMetrica).execute(new PrevisualizarMetricaRequest(USUARIO_ID, PROYECTO_ID,
-                "Ventas del mes", FuenteMetrica.VENTAS, CalculoMetrica.SUMA, AgrupacionMetrica.PRODUCTO,
-                PeriodoMetrica.MES, true));
+    private void entoncesRespondeElValor(double valor) throws Exception {
+        respuesta.andExpect(status().isOk()).andExpect(jsonPath("$.valor").value(valor));
     }
 
-    @Test
-    @DisplayName("POST previsualizar rechaza una receta que no se puede calcular con el 400 estándar")
-    void previsualizarShouldReturn400ForInvalidRecipe() throws Exception {
-        when(previsualizarMetrica.execute(any())).thenThrow(new BusinessRuleException("Los gastos no tienen unidades"));
-
-        ResultActions result = mockMvc.perform(post(RUTA + "/previsualizar", PROYECTO_ID).principal(principal)
-                .contentType("application/json")
-                .content(CUERPO + "}"));
-
-        result.andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("POST crea la métrica y devuelve 201 con su ubicación")
-    void crearShouldReturn201WithLocation() throws Exception {
-        when(crearMetrica.execute(any())).thenReturn(givenItem());
-
-        ResultActions result = whenPostCrear(CUERPO + ",\"autoria\":\"SUGERIDA\"}");
-
-        result.andExpect(status().isCreated())
+    private void entoncesRespondeCreadaEnSuUbicacion() throws Exception {
+        respuesta.andExpect(status().isCreated())
                 .andExpect(header().string("Location", "/api/proyectos/" + PROYECTO_ID + "/metricas/" + METRICA_ID))
                 .andExpect(jsonPath("$.id").value(METRICA_ID.toString()));
     }
 
-    @Test
-    @DisplayName("POST pasa la receta, la autoría y el usuario de la sesión al caso de uso")
-    void crearShouldPassRequestToUseCase() throws Exception {
-        when(crearMetrica.execute(any())).thenReturn(givenItem());
+    private void entoncesRespondeErroresEn(String... campos) throws Exception {
+        respuesta.andExpect(status().isBadRequest());
+        for (String campo : campos) {
+            respuesta.andExpect(jsonPath("$.errors." + campo).exists());
+        }
+    }
 
-        whenPostCrear(CUERPO + ",\"autoria\":\"PROPIA\"}");
+    private void entoncesRespondeNoEncontrado() throws Exception {
+        respuesta.andExpect(status().isNotFound()).andExpect(jsonPath("$.status").value(404));
+    }
 
+    private void entoncesRespondeUnPedidoInvalido() throws Exception {
+        respuesta.andExpect(status().isBadRequest());
+    }
+
+    private void entoncesRespondeSinContenido() throws Exception {
+        respuesta.andExpect(status().isNoContent());
+    }
+
+    private void entoncesSeListoElCuadernoDeLaSesion() {
+        verify(listarMetricas).execute(new ListarMetricasRequest(USUARIO_ID, PROYECTO_ID));
+    }
+
+    private void entoncesNoSeListo() {
+        verifyNoInteractions(listarMetricas);
+    }
+
+    private void entoncesSeListaronLasSugeridasDelCuadernoDeLaSesion() {
+        verify(listarSugeridas).execute(new ListarSugeridasRequest(USUARIO_ID, PROYECTO_ID));
+    }
+
+    private void entoncesSePrevisualizo(boolean soloFiado) {
+        verify(previsualizarMetrica).execute(new PrevisualizarMetricaRequest(USUARIO_ID, PROYECTO_ID,
+                "Ventas del mes", FuenteMetrica.VENTAS, CalculoMetrica.SUMA, AgrupacionMetrica.PRODUCTO,
+                PeriodoMetrica.MES, soloFiado));
+    }
+
+    private void entoncesSeCreo(AutoriaMetrica autoria) {
         verify(crearMetrica).execute(new CrearMetricaRequest(USUARIO_ID, PROYECTO_ID, "Ventas del mes",
                 FuenteMetrica.VENTAS, CalculoMetrica.SUMA, AgrupacionMetrica.PRODUCTO, PeriodoMetrica.MES, true,
-                AutoriaMetrica.PROPIA));
+                autoria));
     }
 
-    @Test
-    @DisplayName("POST rechaza un body sin nombre, sin fuente, sin cálculo o sin autoría")
-    void crearShouldRejectMissingRequiredFields() throws Exception {
-        ResultActions result = whenPostCrear("{\"soloFiado\":false}");
-
-        result.andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors.nombre").exists())
-                .andExpect(jsonPath("$.errors.fuente").exists())
-                .andExpect(jsonPath("$.errors.calculo").exists())
-                .andExpect(jsonPath("$.errors.autoria").exists());
+    private void entoncesNoSeCreo() {
         verifyNoInteractions(crearMetrica);
     }
 
-    @Test
-    @DisplayName("POST rechaza un nombre de más de 80 caracteres")
-    void crearShouldRejectTooLongName() throws Exception {
-        ResultActions result = whenPostCrear("{\"nombre\":\"" + "a".repeat(81)
-                + "\",\"fuente\":\"VENTAS\",\"calculo\":\"SUMA\",\"autoria\":\"PROPIA\"}");
-
-        result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.nombre").exists());
-        verifyNoInteractions(crearMetrica);
-    }
-
-    @Test
-    @DisplayName("DELETE devuelve 204 y delega con el usuario de la sesión, el cuaderno y la métrica de la ruta")
-    void eliminarShouldReturn204() throws Exception {
-        ResultActions result = mockMvc.perform(delete(RUTA + "/{id}", PROYECTO_ID, METRICA_ID).principal(principal));
-
-        result.andExpect(status().isNoContent());
+    private void entoncesSeEliminoLaMetricaDelCuadernoDeLaSesion() {
         verify(eliminarMetrica).execute(new EliminarMetricaRequest(USUARIO_ID, PROYECTO_ID, METRICA_ID));
     }
 
-    @Test
-    @DisplayName("DELETE de una métrica ajena o inexistente devuelve el 404 estándar")
-    void eliminarShouldReturn404WhenNotOwned() throws Exception {
-        doThrow(new ResourceNotFoundException("Métrica no encontrada")).when(eliminarMetrica).execute(any());
-
-        ResultActions result = mockMvc.perform(delete(RUTA + "/{id}", PROYECTO_ID, METRICA_ID).principal(principal));
-
-        result.andExpect(status().isNotFound()).andExpect(jsonPath("$.status").value(404));
-    }
-
-    @Test
-    @DisplayName("DELETE con un id que no es UUID devuelve 400 sin llegar al caso de uso")
-    void eliminarShouldReturn400WhenIdIsNotUuid() throws Exception {
-        ResultActions result = mockMvc.perform(delete(RUTA + "/invalido", PROYECTO_ID).principal(principal));
-
-        result.andExpect(status().isBadRequest());
+    private void entoncesNoSeElimino() {
         verifyNoInteractions(eliminarMetrica);
-    }
-
-    // --- arrange ---
-    private MetricaItem givenItem() {
-        return MetricaItem.de(metrica(definicion(), 2), resultado());
-    }
-
-    // --- act ---
-    private ResultActions whenPostCrear(String body) throws Exception {
-        return mockMvc.perform(post(RUTA, PROYECTO_ID).principal(principal)
-                .contentType("application/json")
-                .content(body));
-    }
-
-    // --- helpers ---
-    private static DefinicionMetrica definicion() {
-        return new DefinicionMetrica("Ventas del mes", FuenteMetrica.VENTAS, CalculoMetrica.SUMA,
-                AgrupacionMetrica.PRODUCTO, PeriodoMetrica.MES, true);
-    }
-
-    private static ResultadoMetrica resultado() {
-        return ResultadoMetrica.conValor(FormatoMetrica.MONEDA, new BigDecimal("750"),
-                List.of(new Fila("Pan", new BigDecimal("750"))),
-                new DeDondeSale(FuenteMetrica.VENTAS, 3, 1, LocalDate.of(2026, 11, 5), LocalDate.of(2026, 11, 11)));
     }
 }

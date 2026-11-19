@@ -1,17 +1,11 @@
 package com.ensambla.backend.domain.model.metrica;
 
-import com.ensambla.backend.domain.model.aviso.BloqueInventario;
-import com.ensambla.backend.domain.model.aviso.BloqueVentas;
 import com.ensambla.backend.domain.model.metrica.ResultadoMetrica.Fila;
-import com.ensambla.backend.domain.model.registro.Registro;
-import com.ensambla.backend.domain.model.reporte.BloqueGastos;
 import com.ensambla.backend.domain.model.reporte.DatosDeProyecto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -31,7 +25,6 @@ import static com.ensambla.backend.domain.model.metrica.PeriodoMetrica.MES;
 import static com.ensambla.backend.domain.model.metrica.PeriodoMetrica.SEMANA;
 import static com.ensambla.backend.domain.model.metrica.PeriodoMetrica.TODO;
 import static com.ensambla.backend.support.MetricaTestData.HOY;
-import static com.ensambla.backend.support.MetricaTestData.LECHE_ID;
 import static com.ensambla.backend.support.MetricaTestData.PAN_ID;
 import static com.ensambla.backend.support.MetricaTestData.SAL_ID;
 import static com.ensambla.backend.support.MetricaTestData.datos;
@@ -40,7 +33,13 @@ import static com.ensambla.backend.support.MetricaTestData.gasto;
 import static com.ensambla.backend.support.MetricaTestData.gastos;
 import static com.ensambla.backend.support.MetricaTestData.gastosSinImporte;
 import static com.ensambla.backend.support.MetricaTestData.inventario;
-import static com.ensambla.backend.support.MetricaTestData.inventarioSinCantidad;
+import static com.ensambla.backend.support.MetricaTestData.unAlmacenConDoceClientes;
+import static com.ensambla.backend.support.MetricaTestData.unAlmacenConVentasYGastos;
+import static com.ensambla.backend.support.MetricaTestData.unAlmacenQueVendio;
+import static com.ensambla.backend.support.MetricaTestData.unCuadernoConGastos;
+import static com.ensambla.backend.support.MetricaTestData.unCuadernoVacio;
+import static com.ensambla.backend.support.MetricaTestData.unInventarioSinCantidades;
+import static com.ensambla.backend.support.MetricaTestData.unInventarioSinCostos;
 import static com.ensambla.backend.support.MetricaTestData.venta;
 import static com.ensambla.backend.support.MetricaTestData.ventas;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,343 +48,436 @@ class MotorMetricasTest {
 
     private final MotorMetricas motor = new MotorMetricas();
 
-    @Test
-    @DisplayName("Suma lo vendido del mes y cuenta aparte las ventas sin precio")
-    void calcularShouldSumSalesOfTheMonthAndCountSalesWithoutPrice() {
-        ResultadoMetrica resultado = calcular(definicion(VENTAS, SUMA, NINGUNA, MES), cuaderno());
+    private DatosDeProyecto cuaderno;
 
-        assertThat(resultado.calculable()).isTrue();
-        assertThat(resultado.formato()).isEqualTo(FormatoMetrica.MONEDA);
-        assertThat(resultado.valor()).isEqualByComparingTo("1000");
-        assertThat(resultado.filas()).isEmpty();
-        assertThat(resultado.deDondeSale().filasUsadas()).isEqualTo(3);
-        assertThat(resultado.deDondeSale().filasSinDato()).isEqualTo(1);
+    private ResultadoMetrica resultado;
+
+    @Test
+    @DisplayName("Suma lo vendido del mes en pesos y cuenta aparte las ventas sin precio")
+    void sumaLoVendidoDelMesYCuentaAparteLasVentasSinPrecio() {
+        dadoUnAlmacenConVentasYGastos();
+
+        cuandoSeCalcula(definicion(VENTAS, SUMA, NINGUNA, MES));
+
+        entoncesDaEnPesos("1000");
+        entoncesNoSeReparte();
+        entoncesSaleDe(3, 1);
     }
 
     @Test
     @DisplayName("Mira sólo los últimos 7 días en una semana y dice desde y hasta cuándo")
-    void calcularShouldLookAtTheLastSevenDays() {
-        ResultadoMetrica resultado = calcular(definicion(VENTAS, SUMA, NINGUNA, SEMANA), cuaderno());
+    void miraSoloLosUltimosSieteDiasEnUnaSemana() {
+        dadoUnAlmacenConVentasYGastos();
 
-        assertThat(resultado.valor()).isEqualByComparingTo("550");
-        assertThat(resultado.deDondeSale().desde()).isEqualTo(LocalDate.of(2026, 11, 5));
-        assertThat(resultado.deDondeSale().hasta()).isEqualTo(HOY);
+        cuandoSeCalcula(definicion(VENTAS, SUMA, NINGUNA, SEMANA));
+
+        entoncesDa("550");
+        entoncesMiraDesdeHasta(LocalDate.of(2026, 11, 5), HOY);
     }
 
     @Test
     @DisplayName("Mira sólo lo de hoy cuando el período es hoy")
-    void calcularShouldLookOnlyAtToday() {
-        ResultadoMetrica resultado = calcular(definicion(VENTAS, SUMA, NINGUNA, PeriodoMetrica.HOY), cuaderno());
+    void miraSoloLoDeHoyCuandoElPeriodoEsHoy() {
+        dadoUnAlmacenConVentasYGastos();
 
-        assertThat(resultado.valor()).isEqualByComparingTo("300");
+        cuandoSeCalcula(definicion(VENTAS, SUMA, NINGUNA, PeriodoMetrica.HOY));
+
+        entoncesDa("300");
     }
 
     @Test
     @DisplayName("Mira todo lo cargado sin fechas cuando el período es todo")
-    void calcularShouldLookAtEverythingWhenPeriodIsAll() {
-        ResultadoMetrica resultado = calcular(definicion(VENTAS, SUMA, NINGUNA, TODO), cuaderno());
+    void miraTodoLoCargadoCuandoElPeriodoEsTodo() {
+        dadoUnAlmacenConVentasYGastos();
 
-        assertThat(resultado.valor()).isEqualByComparingTo("1150");
-        assertThat(resultado.deDondeSale().desde()).isNull();
-        assertThat(resultado.deDondeSale().hasta()).isNull();
+        cuandoSeCalcula(definicion(VENTAS, SUMA, NINGUNA, TODO));
+
+        entoncesDa("1150");
+        entoncesMiraDesdeHasta(null, null);
     }
 
     @Test
     @DisplayName("Promedia el importe de las ventas que tienen precio")
-    void calcularShouldAverageSalesWithPrice() {
-        ResultadoMetrica resultado = calcular(definicion(VENTAS, PROMEDIO, NINGUNA, MES), cuaderno());
+    void promediaElImporteDeLasVentasConPrecio() {
+        dadoUnAlmacenConVentasYGastos();
 
-        assertThat(resultado.valor()).isEqualByComparingTo("333.33");
+        cuandoSeCalcula(definicion(VENTAS, PROMEDIO, NINGUNA, MES));
+
+        entoncesDa("333.33");
     }
 
     @Test
     @DisplayName("Cuenta todas las ventas, también las que no tienen precio")
-    void calcularShouldCountAllSales() {
-        ResultadoMetrica resultado = calcular(definicion(VENTAS, CONTEO, NINGUNA, MES), cuaderno());
+    void cuentaTodasLasVentasTambienLasSinPrecio() {
+        dadoUnAlmacenConVentasYGastos();
 
-        assertThat(resultado.formato()).isEqualTo(FormatoMetrica.NUMERO);
-        assertThat(resultado.valor()).isEqualByComparingTo("4");
-        assertThat(resultado.deDondeSale().filasSinDato()).isZero();
+        cuandoSeCalcula(definicion(VENTAS, CONTEO, NINGUNA, MES));
+
+        entoncesDaEnCantidad("4");
+        entoncesSaleDe(4, 0);
     }
 
     @Test
     @DisplayName("Suma las unidades vendidas")
-    void calcularShouldSumUnits() {
-        ResultadoMetrica resultado = calcular(definicion(VENTAS, UNIDADES, NINGUNA, MES), cuaderno());
+    void sumaLasUnidadesVendidas() {
+        dadoUnAlmacenConVentasYGastos();
 
-        assertThat(resultado.valor()).isEqualByComparingTo("7");
+        cuandoSeCalcula(definicion(VENTAS, UNIDADES, NINGUNA, MES));
+
+        entoncesDa("7");
     }
 
     @Test
     @DisplayName("Reparte por producto de mayor a menor con el nombre del inventario")
-    void calcularShouldSplitByProductWithInventoryNames() {
-        ResultadoMetrica resultado = calcular(definicion(VENTAS, SUMA, PRODUCTO, MES), cuaderno());
+    void repartePorProductoDeMayorAMenor() {
+        dadoUnAlmacenConVentasYGastos();
 
-        assertThat(resultado.filas()).extracting(Fila::etiqueta).containsExactly("Pan", "Leche");
-        assertThat(resultado.filas().get(0).valor()).isEqualByComparingTo("750");
-        assertThat(resultado.filas().get(1).valor()).isEqualByComparingTo("250");
+        cuandoSeCalcula(definicion(VENTAS, SUMA, PRODUCTO, MES));
+
+        entoncesSeReparteEn(Map.of("Pan", "750", "Leche", "250"), "Pan", "Leche");
     }
 
     @Test
     @DisplayName("Reparte por cliente y pone 'Sin cliente' a las ventas sin cliente")
-    void calcularShouldSplitByCustomer() {
-        ResultadoMetrica resultado = calcular(definicion(VENTAS, SUMA, CLIENTE, MES), cuaderno());
+    void repartePorClienteYNombraALasVentasSinCliente() {
+        dadoUnAlmacenConVentasYGastos();
 
-        assertThat(resultado.filas()).extracting(Fila::etiqueta).containsExactly("Sin cliente", "Ana", "Beto");
+        cuandoSeCalcula(definicion(VENTAS, SUMA, CLIENTE, MES));
+
+        entoncesLasPartesSon("Sin cliente", "Ana", "Beto");
     }
 
     @Test
     @DisplayName("Muestra el nombre del cliente cuando la venta guarda la conexión a la tabla de clientes")
-    void calcularShouldShowCustomerNameFromClientsTable() {
-        DatosDeProyecto datos = datos(List.of(inventario()), List.of(ventas(
-                venta(PAN_ID, 1, 100, "2026-11-10", "id-ana", false))), List.of(), Map.of("id-ana", "Ana García"));
+    void muestraElNombreDelClienteDeLaTablaDeClientes() {
+        dadoUnaVentaAlClienteConectado("id-ana", "Ana García");
 
-        ResultadoMetrica resultado = calcular(definicion(VENTAS, SUMA, CLIENTE, MES), datos);
+        cuandoSeCalcula(definicion(VENTAS, SUMA, CLIENTE, MES));
 
-        assertThat(resultado.filas()).extracting(Fila::etiqueta).containsExactly("Ana García");
+        entoncesLasPartesSon("Ana García");
     }
 
     @Test
     @DisplayName("Reparte por día de la semana en orden de lunes a domingo")
-    void calcularShouldSplitByWeekdayInOrder() {
-        ResultadoMetrica resultado = calcular(definicion(VENTAS, SUMA, DIA_DE_LA_SEMANA, MES), cuaderno());
+    void repartePorDiaDeLaSemanaDeLunesADomingo() {
+        dadoUnAlmacenConVentasYGastos();
 
-        assertThat(resultado.filas()).extracting(Fila::etiqueta).containsExactly("Martes", "Miércoles");
-        assertThat(resultado.filas().get(1).valor()).isEqualByComparingTo("750");
+        cuandoSeCalcula(definicion(VENTAS, SUMA, DIA_DE_LA_SEMANA, MES));
+
+        entoncesSeReparteEn(Map.of("Martes", "250", "Miércoles", "750"), "Martes", "Miércoles");
     }
 
     @Test
     @DisplayName("Con 'lo que te deben' suma sólo las ventas fiadas")
-    void calcularShouldSumOnlyCreditSales() {
-        ResultadoMetrica resultado = calcular(definicion(VENTAS, SUMA, CLIENTE, TODO, true), cuaderno());
+    void conLoQueTeDebenSumaSoloLasVentasFiadas() {
+        dadoUnAlmacenConVentasYGastos();
 
-        assertThat(resultado.valor()).isEqualByComparingTo("450");
-        assertThat(resultado.filas()).singleElement().satisfies(fila -> {
-            assertThat(fila.etiqueta()).isEqualTo("Ana");
-            assertThat(fila.valor()).isEqualByComparingTo("450");
-        });
+        cuandoSeCalcula(definicion(VENTAS, SUMA, CLIENTE, TODO, true));
+
+        entoncesDa("450");
+        entoncesSeReparteEn(Map.of("Ana", "450"), "Ana");
     }
 
     @Test
-    @DisplayName("Muestra como mucho 10 partes del reparto")
-    void calcularShouldLimitTheSplit() {
-        List<Registro> filas = new ArrayList<>();
-        for (int numero = 1; numero <= 12; numero++) {
-            filas.add(venta(PAN_ID, 1, numero * 10, "2026-11-10", "cliente " + numero, false));
-        }
-        DatosDeProyecto datos = datos(
-                List.of(inventario()), List.of(ventas(filas.toArray(Registro[]::new))), List.of());
+    @DisplayName("Muestra como mucho 10 partes del reparto, las más grandes primero")
+    void muestraComoMuchoDiezPartesDelReparto() {
+        dadoUnAlmacenConDoceClientes();
 
-        ResultadoMetrica resultado = calcular(definicion(VENTAS, SUMA, CLIENTE, MES), datos);
+        cuandoSeCalcula(definicion(VENTAS, SUMA, CLIENTE, MES));
 
-        assertThat(resultado.filas()).hasSize(MotorMetricas.MAXIMO_DE_FILAS);
-        assertThat(resultado.filas().get(0).etiqueta()).isEqualTo("cliente 12");
+        entoncesSeMuestranPartes(MotorMetricas.MAXIMO_DE_FILAS);
+        entoncesLaParteMasGrandeEs("cliente 12");
     }
 
     @Test
     @DisplayName("Ignora las ventas que no se pueden leer")
-    void calcularShouldIgnoreUnreadableSalesAndNameMissingProducts() {
-        DatosDeProyecto datos = datos(List.of(inventario()), List.of(ventas(
-                venta(null, 1, 100, "2026-11-10", null, false),
-                venta(SAL_ID, 1, 100, "2026-11-10", null, null))), List.of());
+    void ignoraLasVentasQueNoSePuedenLeer() {
+        dadoUnaVentaIlegibleYUnaDeSal();
 
-        ResultadoMetrica resultado = calcular(definicion(VENTAS, CONTEO, PRODUCTO, MES), datos);
+        cuandoSeCalcula(definicion(VENTAS, CONTEO, PRODUCTO, MES));
 
-        assertThat(resultado.valor()).isEqualByComparingTo("1");
-        assertThat(resultado.filas()).extracting(Fila::etiqueta).containsExactly("Sal");
+        entoncesDa("1");
+        entoncesLasPartesSon("Sal");
     }
 
     @Test
-    @DisplayName("Suma los gastos del mes, ignora el que no tiene importe y lo cuenta aparte")
-    void calcularShouldSumExpensesOfTheMonth() {
-        ResultadoMetrica resultado = calcular(definicion(GASTOS, SUMA, NINGUNA, MES), cuaderno());
+    @DisplayName("Suma los gastos del mes, ignora los que no tienen importe y los cuenta aparte")
+    void sumaLosGastosDelMesYCuentaAparteLosSinImporte() {
+        dadoUnAlmacenConVentasYGastos();
 
-        assertThat(resultado.valor()).isEqualByComparingTo("1200");
-        assertThat(resultado.deDondeSale().filasUsadas()).isEqualTo(2);
-        assertThat(resultado.deDondeSale().filasSinDato()).isEqualTo(2);
+        cuandoSeCalcula(definicion(GASTOS, SUMA, NINGUNA, MES));
+
+        entoncesDa("1200");
+        entoncesSaleDe(2, 2);
     }
 
     @Test
     @DisplayName("Reparte los gastos por categoría y pone 'Sin categoría' al que no la tiene")
-    void calcularShouldSplitExpensesByCategory() {
-        ResultadoMetrica resultado = calcular(definicion(GASTOS, SUMA, CATEGORIA, TODO), cuaderno());
+    void reparteLosGastosPorCategoria() {
+        dadoUnAlmacenConVentasYGastos();
 
-        assertThat(resultado.filas()).extracting(Fila::etiqueta)
-                .containsExactly("Alquiler", "Sin categoría", "Luz");
-        assertThat(resultado.filas().get(2).valor()).isEqualByComparingTo("75");
+        cuandoSeCalcula(definicion(GASTOS, SUMA, CATEGORIA, TODO));
+
+        entoncesSeReparteEn(Map.of("Alquiler", "1000", "Sin categoría", "200", "Luz", "75"),
+                "Alquiler", "Sin categoría", "Luz");
     }
 
     @Test
     @DisplayName("Reparte los gastos por día y deja al final los que no tienen fecha")
-    void calcularShouldSplitExpensesByWeekdayAndPutUndatedLast() {
-        ResultadoMetrica resultado = calcular(definicion(GASTOS, SUMA, DIA_DE_LA_SEMANA, TODO), cuaderno());
+    void reparteLosGastosPorDiaYDejaAlFinalLosSinFecha() {
+        dadoUnAlmacenConVentasYGastos();
 
-        assertThat(resultado.filas()).extracting(Fila::etiqueta)
-                .containsExactly("Martes", "Miércoles", "Sin fecha");
+        cuandoSeCalcula(definicion(GASTOS, SUMA, DIA_DE_LA_SEMANA, TODO));
+
+        entoncesLasPartesSon("Martes", "Miércoles", "Sin fecha");
     }
 
     @Test
     @DisplayName("Si hay una tabla de gastos sin importe y otra con importe usa sólo la que tiene importe")
-    void calcularShouldIgnoreExpensesTableWithoutAmount() {
-        DatosDeProyecto datos = datos(List.of(), List.of(), List.of(
-                gastosSinImporte(), gastos(gasto(300, "2026-11-10", "Luz"))));
+    void usaSoloLaTablaDeGastosConImporte() {
+        dadoUnaTablaDeGastosSinImporteYOtraConUnGastoDeLuz();
 
-        ResultadoMetrica resultado = calcular(definicion(GASTOS, SUMA, NINGUNA, MES), datos);
+        cuandoSeCalcula(definicion(GASTOS, SUMA, NINGUNA, MES));
 
-        assertThat(resultado.valor()).isEqualByComparingTo("300");
+        entoncesDa("300");
     }
 
     @Test
     @DisplayName("Suma lo que vale el stock y deja afuera el producto sin costo")
-    void calcularShouldSumStockValue() {
-        ResultadoMetrica resultado = calcular(definicion(INVENTARIO, SUMA, NINGUNA, TODO), cuaderno());
+    void sumaLoQueValeElStockSinElProductoSinCosto() {
+        dadoUnAlmacenConVentasYGastos();
 
-        assertThat(resultado.valor()).isEqualByComparingTo("2000");
-        assertThat(resultado.deDondeSale().filasSinDato()).isEqualTo(1);
+        cuandoSeCalcula(definicion(INVENTARIO, SUMA, NINGUNA, TODO));
+
+        entoncesDa("2000");
+        entoncesSaleDe(2, 1);
     }
 
     @Test
     @DisplayName("Suma las unidades en stock repartidas por producto")
-    void calcularShouldSplitStockUnitsByProduct() {
-        ResultadoMetrica resultado = calcular(definicion(INVENTARIO, UNIDADES, PRODUCTO, TODO), cuaderno());
+    void sumaLasUnidadesEnStockPorProducto() {
+        dadoUnAlmacenConVentasYGastos();
 
-        assertThat(resultado.valor()).isEqualByComparingTo("19");
-        assertThat(resultado.filas()).extracting(Fila::etiqueta).containsExactly("Pan", "Leche", "Sal");
+        cuandoSeCalcula(definicion(INVENTARIO, UNIDADES, PRODUCTO, TODO));
+
+        entoncesDa("19");
+        entoncesLasPartesSon("Pan", "Leche", "Sal");
     }
 
     @Test
     @DisplayName("Si el cuaderno no tiene tabla de ventas lo dice y no inventa un cero")
-    void calcularShouldExplainWhenThereIsNoSalesTable() {
-        DatosDeProyecto sinTablas = datos(List.of(), List.of(), List.of());
+    void sinTablaDeVentasLoDiceYNoInventaUnCero() {
+        dadoUnCuadernoVacio();
 
-        ResultadoMetrica resultado = calcular(definicion(VENTAS, SUMA, NINGUNA, MES), sinTablas);
+        cuandoSeCalcula(definicion(VENTAS, SUMA, NINGUNA, MES));
 
-        assertThat(resultado.calculable()).isFalse();
-        assertThat(resultado.valor()).isNull();
-        assertThat(resultado.motivo()).isEqualTo("No encontramos la tabla de ventas en este cuaderno.");
+        entoncesNoSePuedeCalcularPorque("No encontramos la tabla de ventas en este cuaderno.");
     }
 
     @Test
     @DisplayName("Si la tabla de gastos no tiene importe es como si no hubiera tabla")
-    void calcularShouldExplainWhenExpensesHaveNoAmountColumn() {
-        DatosDeProyecto datos = datos(List.of(), List.of(), List.of(gastosSinImporte()));
+    void unaTablaDeGastosSinImporteEsComoSiNoHubieraTabla() {
+        dadoUnaTablaDeGastosSinImporte();
 
-        ResultadoMetrica resultado = calcular(definicion(GASTOS, SUMA, NINGUNA, MES), datos);
+        cuandoSeCalcula(definicion(GASTOS, SUMA, NINGUNA, MES));
 
-        assertThat(resultado.motivo()).isEqualTo("No encontramos la tabla de gastos en este cuaderno.");
+        entoncesNoSePuedeCalcularPorque("No encontramos la tabla de gastos en este cuaderno.");
     }
 
     @Test
     @DisplayName("Si no hay inventario lo dice")
-    void calcularShouldExplainWhenThereIsNoInventory() {
-        ResultadoMetrica resultado = calcular(
-                definicion(INVENTARIO, SUMA, NINGUNA, TODO), datos(List.of(), List.of(), List.of()));
+    void sinInventarioLoDice() {
+        dadoUnCuadernoVacio();
 
-        assertThat(resultado.motivo()).isEqualTo("No encontramos la tabla de inventario en este cuaderno.");
+        cuandoSeCalcula(definicion(INVENTARIO, SUMA, NINGUNA, TODO));
+
+        entoncesNoSePuedeCalcularPorque("No encontramos la tabla de inventario en este cuaderno.");
     }
 
     @Test
     @DisplayName("Si no hay filas en el período lo dice")
-    void calcularShouldExplainWhenThereAreNoRowsInThePeriod() {
-        DatosDeProyecto datos = datos(List.of(inventario()), List.of(ventas(
-                venta(PAN_ID, 1, 100, "2026-09-01", null, false))), List.of());
+    void sinFilasEnElPeriodoLoDice() {
+        dadaUnaVentaDeSeptiembre();
 
-        ResultadoMetrica resultado = calcular(definicion(VENTAS, SUMA, NINGUNA, SEMANA), datos);
+        cuandoSeCalcula(definicion(VENTAS, SUMA, NINGUNA, SEMANA));
 
-        assertThat(resultado.motivo()).isEqualTo("No hay ventas en este período.");
-        assertThat(resultado.deDondeSale().filasUsadas()).isZero();
+        entoncesNoSePuedeCalcularPorque("No hay ventas en este período.");
+        entoncesSaleDe(0, 0);
     }
 
     @Test
     @DisplayName("Si no hay ventas fiadas lo dice")
-    void calcularShouldExplainWhenThereAreNoCreditSales() {
-        DatosDeProyecto datos = datos(List.of(inventario()), List.of(ventas(
-                venta(PAN_ID, 1, 100, "2026-11-10", null, false))), List.of());
+    void sinVentasFiadasLoDice() {
+        dadaUnaVentaAlContado();
 
-        ResultadoMetrica resultado = calcular(definicion(VENTAS, SUMA, CLIENTE, MES, true), datos);
+        cuandoSeCalcula(definicion(VENTAS, SUMA, CLIENTE, MES, true));
 
-        assertThat(resultado.motivo()).isEqualTo("No hay ventas fiadas en este período.");
+        entoncesNoSePuedeCalcularPorque("No hay ventas fiadas en este período.");
     }
 
     @Test
     @DisplayName("Si la métrica mira todo y no hay filas dice que todavía no cargó nada")
-    void calcularShouldExplainWhenThereIsNothingLoadedYet() {
-        DatosDeProyecto datos = datos(List.of(inventario()), List.of(ventas()), List.of());
+    void siMiraTodoYNoHayFilasDiceQueNoCargoNada() {
+        dadoUnAlmacenSinVentas();
 
-        ResultadoMetrica resultado = calcular(definicion(VENTAS, SUMA, NINGUNA, TODO), datos);
+        cuandoSeCalcula(definicion(VENTAS, SUMA, NINGUNA, TODO));
 
-        assertThat(resultado.motivo()).isEqualTo("Todavía no cargaste ventas.");
+        entoncesNoSePuedeCalcularPorque("Todavía no cargaste ventas.");
     }
 
     @Test
     @DisplayName("Si ninguna venta tiene precio pide cargarlo")
-    void calcularShouldAskForPricesWhenNoSaleHasOne() {
-        DatosDeProyecto datos = datos(List.of(inventario()), List.of(ventas(
-                venta(PAN_ID, 1, null, "2026-11-10", null, false))), List.of());
+    void siNingunaVentaTienePrecioPideCargarlo() {
+        dadaUnaVentaSinPrecio();
 
-        ResultadoMetrica resultado = calcular(definicion(VENTAS, SUMA, NINGUNA, MES), datos);
+        cuandoSeCalcula(definicion(VENTAS, SUMA, NINGUNA, MES));
 
-        assertThat(resultado.motivo()).isEqualTo("Cargá el precio de tus ventas para poder calcularlo.");
-        assertThat(resultado.deDondeSale().filasSinDato()).isEqualTo(1);
+        entoncesNoSePuedeCalcularPorque("Cargá el precio de tus ventas para poder calcularlo.");
+        entoncesSaleDe(0, 1);
     }
 
     @Test
     @DisplayName("Si ningún gasto tiene importe pide cargarlo")
-    void calcularShouldAskForAmountsWhenNoExpenseHasOne() {
-        DatosDeProyecto datos = datos(List.of(), List.of(), List.of(gastos(gasto(null, "2026-11-10", "Luz"))));
+    void siNingunGastoTieneImportePideCargarlo() {
+        dadoUnGastoSinImporte();
 
-        ResultadoMetrica resultado = calcular(definicion(GASTOS, SUMA, NINGUNA, MES), datos);
+        cuandoSeCalcula(definicion(GASTOS, SUMA, NINGUNA, MES));
 
-        assertThat(resultado.motivo()).isEqualTo("Cargá el importe de tus gastos para poder calcularlo.");
+        entoncesNoSePuedeCalcularPorque("Cargá el importe de tus gastos para poder calcularlo.");
     }
 
     @Test
     @DisplayName("Si ningún producto tiene costo pide cargarlo")
-    void calcularShouldAskForCostsWhenNoProductHasOne() {
-        BloqueInventario sinCosto = inventario();
-        DatosDeProyecto datos = datos(List.of(new BloqueInventario(sinCosto.bloque(), null,
-                sinCosto.camposPorClave(), sinCosto.registros().subList(2, 3))), List.of(), List.of());
+    void siNingunProductoTieneCostoPideCargarlo() {
+        dadoUnInventarioSinCostos();
 
-        ResultadoMetrica resultado = calcular(definicion(INVENTARIO, SUMA, NINGUNA, TODO), datos);
+        cuandoSeCalcula(definicion(INVENTARIO, SUMA, NINGUNA, TODO));
 
-        assertThat(resultado.motivo()).isEqualTo("Cargá el costo de tus productos para poder calcularlo.");
+        entoncesNoSePuedeCalcularPorque("Cargá el costo de tus productos para poder calcularlo.");
     }
 
     @Test
     @DisplayName("Si ningún producto tiene cantidad pide cargarla")
-    void calcularShouldAskForQuantitiesWhenNoProductHasOne() {
-        DatosDeProyecto datos = datos(List.of(inventarioSinCantidad()), List.of(), List.of());
+    void siNingunProductoTieneCantidadPideCargarla() {
+        dadoUnInventarioSinCantidades();
 
-        ResultadoMetrica resultado = calcular(definicion(INVENTARIO, UNIDADES, NINGUNA, TODO), datos);
+        cuandoSeCalcula(definicion(INVENTARIO, UNIDADES, NINGUNA, TODO));
 
-        assertThat(resultado.motivo()).isEqualTo("Cargá la cantidad de tus productos para poder calcularlo.");
+        entoncesNoSePuedeCalcularPorque("Cargá la cantidad de tus productos para poder calcularlo.");
     }
 
-    // --- act ---
-    private ResultadoMetrica calcular(DefinicionMetrica definicion, DatosDeProyecto datos) {
-        return motor.calcular(definicion, datos, HOY);
+    private void dadoUnAlmacenConVentasYGastos() {
+        cuaderno = unAlmacenConVentasYGastos();
     }
 
-    // --- helpers ---
-    /**
-     * Ventas: Pan $300 hoy (fiado, Ana), Leche $250 ayer (Beto), Pan $450 el 4/11 (sin cliente), Sal sin precio hoy,
-     * una venta ilegible y Pan $150 de septiembre (fiado, Ana). Gastos con importes y fechas dudosas.
-     */
-    private static DatosDeProyecto cuaderno() {
-        BloqueVentas ventas = ventas(
-                venta(PAN_ID, 2, 150, "2026-11-11", "Ana", true),
-                venta(LECHE_ID, 1, 250, "2026-11-10", "Beto", false),
-                venta(PAN_ID, 3, 150, "2026-11-04", null, false),
-                venta(SAL_ID, 1, null, "2026-11-11", "Ana", null),
-                venta(null, 1, 100, "2026-11-11", "Ana", false),
-                venta(PAN_ID, 1, 150, "2026-09-01", "Ana", true));
-        BloqueGastos gastos = gastos(
-                gasto(1000, "2026-11-10", "Alquiler"),
-                gasto(200, "2026-11-11", " "),
-                gasto(null, "2026-11-09", "Luz"),
-                gasto("abc", "2026-11-08", "Luz"),
-                gasto(50, "mal", "Luz"),
-                gasto(25, 7, "Luz"));
-        return datos(List.of(inventario()), List.of(ventas), List.of(gastos));
+    private void dadoUnAlmacenConDoceClientes() {
+        cuaderno = unAlmacenConDoceClientes();
+    }
+
+    private void dadoUnCuadernoVacio() {
+        cuaderno = unCuadernoVacio();
+    }
+
+    private void dadoUnAlmacenSinVentas() {
+        cuaderno = unAlmacenQueVendio();
+    }
+
+    private void dadoUnaVentaAlClienteConectado(String clienteId, String nombre) {
+        cuaderno = datos(List.of(inventario()), List.of(ventas(venta(PAN_ID, 1, 100, "2026-11-10", clienteId, false))),
+                List.of(), Map.of(clienteId, nombre));
+    }
+
+    private void dadoUnaVentaIlegibleYUnaDeSal() {
+        cuaderno = unAlmacenQueVendio(venta(null, 1, 100, "2026-11-10", null, false),
+                venta(SAL_ID, 1, 100, "2026-11-10", null, null));
+    }
+
+    private void dadaUnaVentaDeSeptiembre() {
+        cuaderno = unAlmacenQueVendio(venta(PAN_ID, 1, 100, "2026-09-01", null, false));
+    }
+
+    private void dadaUnaVentaAlContado() {
+        cuaderno = unAlmacenQueVendio(venta(PAN_ID, 1, 100, "2026-11-10", null, false));
+    }
+
+    private void dadaUnaVentaSinPrecio() {
+        cuaderno = unAlmacenQueVendio(venta(PAN_ID, 1, null, "2026-11-10", null, false));
+    }
+
+    private void dadoUnaTablaDeGastosSinImporte() {
+        cuaderno = unCuadernoConGastos(gastosSinImporte());
+    }
+
+    private void dadoUnaTablaDeGastosSinImporteYOtraConUnGastoDeLuz() {
+        cuaderno = unCuadernoConGastos(gastosSinImporte(), gastos(gasto(300, "2026-11-10", "Luz")));
+    }
+
+    private void dadoUnGastoSinImporte() {
+        cuaderno = unCuadernoConGastos(gastos(gasto(null, "2026-11-10", "Luz")));
+    }
+
+    private void dadoUnInventarioSinCostos() {
+        cuaderno = unInventarioSinCostos();
+    }
+
+    private void dadoUnInventarioSinCantidades() {
+        cuaderno = unInventarioSinCantidades();
+    }
+
+    private void cuandoSeCalcula(DefinicionMetrica definicion) {
+        resultado = motor.calcular(definicion, cuaderno, HOY);
+    }
+
+    private void entoncesDa(String valor) {
+        assertThat(resultado.calculable()).isTrue();
+        assertThat(resultado.valor()).isEqualByComparingTo(valor);
+    }
+
+    private void entoncesDaEnPesos(String valor) {
+        entoncesDa(valor);
+        assertThat(resultado.formato()).isEqualTo(FormatoMetrica.MONEDA);
+    }
+
+    private void entoncesDaEnCantidad(String valor) {
+        entoncesDa(valor);
+        assertThat(resultado.formato()).isEqualTo(FormatoMetrica.NUMERO);
+    }
+
+    private void entoncesNoSePuedeCalcularPorque(String motivo) {
+        assertThat(resultado.calculable()).isFalse();
+        assertThat(resultado.valor()).isNull();
+        assertThat(resultado.motivo()).isEqualTo(motivo);
+    }
+
+    private void entoncesNoSeReparte() {
+        assertThat(resultado.filas()).isEmpty();
+    }
+
+    private void entoncesLasPartesSon(String... etiquetas) {
+        assertThat(resultado.filas()).extracting(Fila::etiqueta).containsExactly(etiquetas);
+    }
+
+    private void entoncesSeReparteEn(Map<String, String> valores, String... enEsteOrden) {
+        entoncesLasPartesSon(enEsteOrden);
+        assertThat(resultado.filas()).allSatisfy(
+                fila -> assertThat(fila.valor()).isEqualByComparingTo(valores.get(fila.etiqueta())));
+    }
+
+    private void entoncesSeMuestranPartes(int cantidad) {
+        assertThat(resultado.filas()).hasSize(cantidad);
+    }
+
+    private void entoncesLaParteMasGrandeEs(String etiqueta) {
+        assertThat(resultado.filas().getFirst().etiqueta()).isEqualTo(etiqueta);
+    }
+
+    private void entoncesSaleDe(long filasUsadas, long filasSinDato) {
+        assertThat(resultado.deDondeSale().filasUsadas()).isEqualTo(filasUsadas);
+        assertThat(resultado.deDondeSale().filasSinDato()).isEqualTo(filasSinDato);
+    }
+
+    private void entoncesMiraDesdeHasta(LocalDate desde, LocalDate hasta) {
+        assertThat(resultado.deDondeSale().desde()).isEqualTo(desde);
+        assertThat(resultado.deDondeSale().hasta()).isEqualTo(hasta);
     }
 }

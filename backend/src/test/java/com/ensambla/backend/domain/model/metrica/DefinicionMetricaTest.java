@@ -4,172 +4,245 @@ import com.ensambla.backend.domain.exception.BusinessRuleException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import static com.ensambla.backend.support.MetricasDePrueba.cuantasVentasHuboEnElMes;
+import static com.ensambla.backend.support.MetricasDePrueba.elInventarioDeLaSemana;
+import static com.ensambla.backend.support.MetricasDePrueba.elStockPorProducto;
+import static com.ensambla.backend.support.MetricasDePrueba.lasUnidadesDeLosGastos;
+import static com.ensambla.backend.support.MetricasDePrueba.lasVentasDeLaSemana;
+import static com.ensambla.backend.support.MetricasDePrueba.lasVentasDelMes;
+import static com.ensambla.backend.support.MetricasDePrueba.lasVentasDelMesLlamadas;
+import static com.ensambla.backend.support.MetricasDePrueba.lasVentasFiadasDelMes;
+import static com.ensambla.backend.support.MetricasDePrueba.lasVentasPorCategoria;
+import static com.ensambla.backend.support.MetricasDePrueba.lasVentasPorCliente;
+import static com.ensambla.backend.support.MetricasDePrueba.losGastosDelMes;
+import static com.ensambla.backend.support.MetricasDePrueba.losGastosFiados;
+import static com.ensambla.backend.support.MetricasDePrueba.losGastosPorCategoria;
+import static com.ensambla.backend.support.MetricasDePrueba.loQueTeDebenPorCliente;
+import static com.ensambla.backend.support.MetricasDePrueba.unaReceta;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class DefinicionMetricaTest {
 
+    private static final String NOMBRE_DEMASIADO_LARGO = "a".repeat(DefinicionMetrica.LARGO_MAXIMO_DEL_NOMBRE + 1);
+
+    private DefinicionMetrica receta;
+
+    private Throwable rechazo;
+
     @Test
     @DisplayName("Acepta una receta válida")
-    void validarShouldAcceptValidDefinition() {
-        DefinicionMetrica definicion = definicion(
-                "Lo que te deben", FuenteMetrica.VENTAS, CalculoMetrica.SUMA, AgrupacionMetrica.CLIENTE, true);
+    void aceptaUnaRecetaValida() {
+        dadaLaReceta(loQueTeDebenPorCliente());
 
-        assertThatCode(definicion::validar).doesNotThrowAnyException();
-    }
+        cuandoSeValida();
 
-    @Test
-    @DisplayName("Sin reparto ni período elige no repartir y mirar el mes")
-    void constructorShouldDefaultGroupingAndPeriod() {
-        DefinicionMetrica definicion = new DefinicionMetrica(
-                "  Ventas ", FuenteMetrica.VENTAS, CalculoMetrica.SUMA, null, null, false);
-
-        assertThat(definicion.nombre()).isEqualTo("Ventas");
-        assertThat(definicion.agrupar()).isEqualTo(AgrupacionMetrica.NINGUNA);
-        assertThat(definicion.periodo()).isEqualTo(PeriodoMetrica.MES);
-    }
-
-    @Test
-    @DisplayName("Sin nombre la receta no es válida")
-    void validarShouldRejectBlankName() {
-        DefinicionMetrica definicion = definicion(null, FuenteMetrica.VENTAS, CalculoMetrica.SUMA,
-                AgrupacionMetrica.NINGUNA, false);
-
-        assertThatThrownBy(definicion::validar).isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining("nombre");
-    }
-
-    @Test
-    @DisplayName("Un nombre muy largo no es válido")
-    void validarShouldRejectLongName() {
-        DefinicionMetrica definicion = definicion("a".repeat(DefinicionMetrica.LARGO_MAXIMO_DEL_NOMBRE + 1),
-                FuenteMetrica.VENTAS, CalculoMetrica.SUMA, AgrupacionMetrica.NINGUNA, false);
-
-        assertThatThrownBy(definicion::validar).isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining("nombre");
-    }
-
-    @Test
-    @DisplayName("Sin tabla la receta no es válida")
-    void validarShouldRejectMissingSource() {
-        DefinicionMetrica definicion = definicion("Algo", null, CalculoMetrica.SUMA, AgrupacionMetrica.NINGUNA, false);
-
-        assertThatThrownBy(definicion::validar).isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining("de qué tabla");
-    }
-
-    @Test
-    @DisplayName("Sin cálculo la receta no es válida")
-    void validarShouldRejectMissingCalculation() {
-        DefinicionMetrica definicion = definicion("Algo", FuenteMetrica.VENTAS, null, AgrupacionMetrica.NINGUNA, false);
-
-        assertThatThrownBy(definicion::validar).isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining("de qué tabla");
-    }
-
-    @Test
-    @DisplayName("Los gastos no tienen unidades")
-    void validarShouldRejectUnitsOfExpenses() {
-        DefinicionMetrica definicion = definicion(
-                "Algo", FuenteMetrica.GASTOS, CalculoMetrica.UNIDADES, AgrupacionMetrica.NINGUNA, false);
-
-        assertThatThrownBy(definicion::validar).isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining("unidades");
-    }
-
-    @Test
-    @DisplayName("No se puede repartir las ventas por categoría")
-    void validarShouldRejectGroupingThatDoesNotApply() {
-        DefinicionMetrica definicion = definicion(
-                "Algo", FuenteMetrica.VENTAS, CalculoMetrica.SUMA, AgrupacionMetrica.CATEGORIA, false);
-
-        assertThatThrownBy(definicion::validar).isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining("repartir ventas");
-    }
-
-    @Test
-    @DisplayName("Sólo las ventas pueden ser fiadas")
-    void validarShouldRejectCreditOutsideSales() {
-        DefinicionMetrica definicion = definicion(
-                "Algo", FuenteMetrica.GASTOS, CalculoMetrica.SUMA, AgrupacionMetrica.NINGUNA, true);
-
-        assertThatThrownBy(definicion::validar).isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining("fiadas");
-    }
-
-    @Test
-    @DisplayName("El inventario no tiene períodos")
-    void validarShouldRejectPeriodsOfInventory() {
-        DefinicionMetrica definicion = new DefinicionMetrica(
-                "Algo", FuenteMetrica.INVENTARIO, CalculoMetrica.SUMA, AgrupacionMetrica.NINGUNA,
-                PeriodoMetrica.SEMANA, false);
-
-        assertThatThrownBy(definicion::validar).isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining("períodos");
+        entoncesEsValida();
     }
 
     @Test
     @DisplayName("Acepta el inventario de todo lo cargado repartido por producto")
-    void validarShouldAcceptInventoryByProduct() {
-        DefinicionMetrica definicion = new DefinicionMetrica(
-                "Stock", FuenteMetrica.INVENTARIO, CalculoMetrica.UNIDADES, AgrupacionMetrica.PRODUCTO,
-                PeriodoMetrica.TODO, false);
+    void aceptaElInventarioDeTodoLoCargadoPorProducto() {
+        dadaLaReceta(elStockPorProducto());
 
-        assertThatCode(definicion::validar).doesNotThrowAnyException();
+        cuandoSeValida();
+
+        entoncesEsValida();
     }
 
     @Test
     @DisplayName("Acepta los gastos repartidos por categoría")
-    void validarShouldAcceptExpensesByCategory() {
-        DefinicionMetrica definicion = definicion(
-                "Gastos", FuenteMetrica.GASTOS, CalculoMetrica.SUMA, AgrupacionMetrica.CATEGORIA, false);
+    void aceptaLosGastosPorCategoria() {
+        dadaLaReceta(losGastosPorCategoria());
 
-        assertThatCode(definicion::validar).doesNotThrowAnyException();
+        cuandoSeValida();
+
+        entoncesEsValida();
     }
 
     @Test
-    @DisplayName("El formato sale del cálculo: pesos o cantidad")
-    void formatoShouldComeFromTheCalculation() {
-        assertThat(definicion("A", FuenteMetrica.VENTAS, CalculoMetrica.SUMA, AgrupacionMetrica.NINGUNA, false)
-                .formato()).isEqualTo(FormatoMetrica.MONEDA);
-        assertThat(definicion("A", FuenteMetrica.VENTAS, CalculoMetrica.CONTEO, AgrupacionMetrica.NINGUNA, false)
-                .formato()).isEqualTo(FormatoMetrica.NUMERO);
+    @DisplayName("Sin reparto ni período elige no repartir y mirar el mes, y recorta el nombre")
+    void sinRepartoNiPeriodoNoReparteYMiraElMes() {
+        dadaLaReceta(unaReceta("  Ventas ", FuenteMetrica.VENTAS, CalculoMetrica.SUMA, null, null, false));
+
+        entoncesLaRecetaQuedaComo(lasVentasDelMesLlamadas("Ventas"));
+    }
+
+    @Test
+    @DisplayName("Sin nombre la receta no es válida")
+    void sinNombreLaRecetaNoEsValida() {
+        dadaLaReceta(lasVentasDelMesLlamadas(null));
+
+        cuandoSeValida();
+
+        entoncesSeRechazaPorque("nombre");
+    }
+
+    @Test
+    @DisplayName("Un nombre muy largo no es válido")
+    void unNombreMuyLargoNoEsValido() {
+        dadaLaReceta(lasVentasDelMesLlamadas(NOMBRE_DEMASIADO_LARGO));
+
+        cuandoSeValida();
+
+        entoncesSeRechazaPorque("nombre");
+    }
+
+    @Test
+    @DisplayName("Sin tabla la receta no es válida")
+    void sinTablaLaRecetaNoEsValida() {
+        dadaLaReceta(unaReceta("Algo", null, CalculoMetrica.SUMA, AgrupacionMetrica.NINGUNA, PeriodoMetrica.MES,
+                false));
+
+        cuandoSeValida();
+
+        entoncesSeRechazaPorque("de qué tabla");
+    }
+
+    @Test
+    @DisplayName("Sin cálculo la receta no es válida")
+    void sinCalculoLaRecetaNoEsValida() {
+        dadaLaReceta(unaReceta("Algo", FuenteMetrica.VENTAS, null, AgrupacionMetrica.NINGUNA, PeriodoMetrica.MES,
+                false));
+
+        cuandoSeValida();
+
+        entoncesSeRechazaPorque("de qué tabla");
+    }
+
+    @Test
+    @DisplayName("Los gastos no tienen unidades")
+    void losGastosNoTienenUnidades() {
+        dadaLaReceta(lasUnidadesDeLosGastos());
+
+        cuandoSeValida();
+
+        entoncesSeRechazaPorque("unidades");
+    }
+
+    @Test
+    @DisplayName("No se pueden repartir las ventas por categoría")
+    void noSePuedenRepartirLasVentasPorCategoria() {
+        dadaLaReceta(lasVentasPorCategoria());
+
+        cuandoSeValida();
+
+        entoncesSeRechazaPorque("repartir ventas");
+    }
+
+    @Test
+    @DisplayName("Sólo las ventas pueden ser fiadas")
+    void soloLasVentasPuedenSerFiadas() {
+        dadaLaReceta(losGastosFiados());
+
+        cuandoSeValida();
+
+        entoncesSeRechazaPorque("fiadas");
+    }
+
+    @Test
+    @DisplayName("El inventario no tiene períodos")
+    void elInventarioNoTienePeriodos() {
+        dadaLaReceta(elInventarioDeLaSemana());
+
+        cuandoSeValida();
+
+        entoncesSeRechazaPorque("períodos");
+    }
+
+    @Test
+    @DisplayName("Sumar da pesos")
+    void sumarDaPesos() {
+        dadaLaReceta(lasVentasDelMes());
+
+        entoncesSeMuestraEn(FormatoMetrica.MONEDA);
+    }
+
+    @Test
+    @DisplayName("Contar da una cantidad")
+    void contarDaUnaCantidad() {
+        dadaLaReceta(cuantasVentasHuboEnElMes());
+
+        entoncesSeMuestraEn(FormatoMetrica.NUMERO);
     }
 
     @Test
     @DisplayName("Dos recetas son la misma aunque se llamen distinto")
-    void esIgualAShouldIgnoreTheName() {
-        DefinicionMetrica una = definicion("Una", FuenteMetrica.VENTAS, CalculoMetrica.SUMA,
-                AgrupacionMetrica.NINGUNA, false);
-        DefinicionMetrica otra = definicion("Otra", FuenteMetrica.VENTAS, CalculoMetrica.SUMA,
-                AgrupacionMetrica.NINGUNA, false);
+    void dosRecetasSonLaMismaAunqueSeLlamenDistinto() {
+        dadaLaReceta(lasVentasDelMesLlamadas("Una"));
 
-        assertThat(una.esIgualA(otra)).isTrue();
+        entoncesPideLoMismoQue(lasVentasDelMesLlamadas("Otra"));
     }
 
     @Test
-    @DisplayName("Dos recetas se distinguen por cada cosa que piden")
-    void esIgualAShouldDetectEachDifference() {
-        DefinicionMetrica base = definicion("A", FuenteMetrica.VENTAS, CalculoMetrica.SUMA,
-                AgrupacionMetrica.NINGUNA, false);
+    @DisplayName("Dos recetas de tablas distintas no son la misma")
+    void dosRecetasDeTablasDistintasNoSonLaMisma() {
+        dadaLaReceta(lasVentasDelMes());
 
-        assertThat(base.esIgualA(definicion("A", FuenteMetrica.GASTOS, CalculoMetrica.SUMA,
-                AgrupacionMetrica.NINGUNA, false))).isFalse();
-        assertThat(base.esIgualA(definicion("A", FuenteMetrica.VENTAS, CalculoMetrica.CONTEO,
-                AgrupacionMetrica.NINGUNA, false))).isFalse();
-        assertThat(base.esIgualA(definicion("A", FuenteMetrica.VENTAS, CalculoMetrica.SUMA,
-                AgrupacionMetrica.CLIENTE, false))).isFalse();
-        assertThat(base.esIgualA(new DefinicionMetrica("A", FuenteMetrica.VENTAS, CalculoMetrica.SUMA,
-                AgrupacionMetrica.NINGUNA, PeriodoMetrica.SEMANA, false))).isFalse();
-        assertThat(base.esIgualA(definicion("A", FuenteMetrica.VENTAS, CalculoMetrica.SUMA,
-                AgrupacionMetrica.NINGUNA, true))).isFalse();
+        entoncesNoPideLoMismoQue(losGastosDelMes());
     }
 
-    // --- helpers ---
-    private static DefinicionMetrica definicion(
-            String nombre, FuenteMetrica fuente, CalculoMetrica calculo, AgrupacionMetrica agrupar,
-            boolean soloFiado) {
-        return new DefinicionMetrica(nombre, fuente, calculo, agrupar, PeriodoMetrica.MES, soloFiado);
+    @Test
+    @DisplayName("Dos recetas con cálculos distintos no son la misma")
+    void dosRecetasConCalculosDistintosNoSonLaMisma() {
+        dadaLaReceta(lasVentasDelMes());
+
+        entoncesNoPideLoMismoQue(cuantasVentasHuboEnElMes());
+    }
+
+    @Test
+    @DisplayName("Dos recetas con repartos distintos no son la misma")
+    void dosRecetasConRepartosDistintosNoSonLaMisma() {
+        dadaLaReceta(lasVentasDelMes());
+
+        entoncesNoPideLoMismoQue(lasVentasPorCliente());
+    }
+
+    @Test
+    @DisplayName("Dos recetas de períodos distintos no son la misma")
+    void dosRecetasDePeriodosDistintosNoSonLaMisma() {
+        dadaLaReceta(lasVentasDelMes());
+
+        entoncesNoPideLoMismoQue(lasVentasDeLaSemana());
+    }
+
+    @Test
+    @DisplayName("Las ventas fiadas no son la misma receta que todas las ventas")
+    void lasVentasFiadasNoSonLaMismaRecetaQueTodasLasVentas() {
+        dadaLaReceta(lasVentasDelMes());
+
+        entoncesNoPideLoMismoQue(lasVentasFiadasDelMes());
+    }
+
+    private void dadaLaReceta(DefinicionMetrica definicion) {
+        receta = definicion;
+    }
+
+    private void cuandoSeValida() {
+        rechazo = catchThrowable(receta::validar);
+    }
+
+    private void entoncesEsValida() {
+        assertThat(rechazo).isNull();
+    }
+
+    private void entoncesSeRechazaPorque(String motivo) {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class).hasMessageContaining(motivo);
+    }
+
+    private void entoncesLaRecetaQuedaComo(DefinicionMetrica esperada) {
+        assertThat(receta).isEqualTo(esperada);
+    }
+
+    private void entoncesSeMuestraEn(FormatoMetrica formato) {
+        assertThat(receta.formato()).isEqualTo(formato);
+    }
+
+    private void entoncesPideLoMismoQue(DefinicionMetrica otra) {
+        assertThat(receta.esIgualA(otra)).isTrue();
+    }
+
+    private void entoncesNoPideLoMismoQue(DefinicionMetrica otra) {
+        assertThat(receta.esIgualA(otra)).isFalse();
     }
 }

@@ -15,7 +15,6 @@ import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
 import com.ensambla.backend.domain.useCase.metrica.MetricaItem;
 import com.ensambla.backend.infrastructure.config.useCase.MetricaUseCaseConfig;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -23,25 +22,30 @@ import java.time.Clock;
 import java.util.List;
 
 import static com.ensambla.backend.support.MetricaTestData.AHORA;
+import static com.ensambla.backend.support.MetricaTestData.METRICA_ID;
 import static com.ensambla.backend.support.MetricaTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.MetricaTestData.PAN_ID;
 import static com.ensambla.backend.support.MetricaTestData.PROYECTO_ID;
 import static com.ensambla.backend.support.MetricaTestData.USUARIO_ID;
-import static com.ensambla.backend.support.MetricaTestData.datos;
 import static com.ensambla.backend.support.MetricaTestData.definicion;
-import static com.ensambla.backend.support.MetricaTestData.inventario;
 import static com.ensambla.backend.support.MetricaTestData.metrica;
 import static com.ensambla.backend.support.MetricaTestData.negocio;
 import static com.ensambla.backend.support.MetricaTestData.proyecto;
+import static com.ensambla.backend.support.MetricaTestData.unAlmacenQueVendio;
 import static com.ensambla.backend.support.MetricaTestData.venta;
-import static com.ensambla.backend.support.MetricaTestData.ventas;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class ListarMetricasTest {
+
+    private static final Metrica VENTAS_DE_HOY = metrica(
+            definicion(FuenteMetrica.VENTAS, CalculoMetrica.SUMA, AgrupacionMetrica.NINGUNA, PeriodoMetrica.HOY), 0);
+
+    private static final Metrica GASTOS_DEL_MES = metrica(
+            definicion(FuenteMetrica.GASTOS, CalculoMetrica.SUMA, AgrupacionMetrica.NINGUNA, PeriodoMetrica.MES), 1);
 
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
@@ -56,70 +60,91 @@ class ListarMetricasTest {
             new MotorMetricas(),
             Clock.fixed(AHORA.toInstant(), AHORA.getOffset()));
 
-    @BeforeEach
-    void setUp() {
-        when(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID)).thenReturn(negocio(RubroNegocio.ALMACEN));
-        when(proyectoRepository.obtener(NEGOCIO_ID, PROYECTO_ID)).thenReturn(proyecto);
-    }
+    private List<MetricaItem> metricas;
+
+    private Throwable rechazo;
 
     @Test
     @DisplayName("Lista las métricas del cuaderno en su orden, cada una con lo que da hoy")
-    void executeShouldListMetricsWithTheirResults() {
-        Metrica ventasDeHoy = metrica(
-                definicion(FuenteMetrica.VENTAS, CalculoMetrica.SUMA, AgrupacionMetrica.NINGUNA, PeriodoMetrica.HOY),
-                0);
-        Metrica gastos = metrica(
-                definicion(FuenteMetrica.GASTOS, CalculoMetrica.SUMA, AgrupacionMetrica.NINGUNA, PeriodoMetrica.MES),
-                1);
-        givenMetricas(ventasDeHoy, gastos);
-        givenDatos();
+    void listaLasMetricasEnSuOrdenConLoQueDaHoy() {
+        dadoUnAlmacenQueHoyVendioPorTrescientosYNoTieneGastos();
+        dadoUnPanelCon(VENTAS_DE_HOY, GASTOS_DEL_MES);
 
-        List<MetricaItem> result = whenListar();
+        cuandoSeListan();
 
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).id()).isEqualTo(ventasDeHoy.getId());
-        assertThat(result.get(0).orden()).isZero();
-        assertThat(result.get(0).resultado().valor()).isEqualByComparingTo("300");
-        assertThat(result.get(1).resultado().valor()).isNull();
-        assertThat(result.get(1).resultado().motivo()).contains("tabla de gastos");
+        entoncesLaPrimeraEsLaDeVentasYDa("300");
+        entoncesLaSegundaNoSePuedeCalcularPorque("tabla de gastos");
     }
 
     @Test
     @DisplayName("Un cuaderno sin métricas recibe una lista vacía")
-    void executeShouldReturnEmptyListWhenThereAreNoMetrics() {
-        givenMetricas();
-        givenDatos();
+    void unCuadernoSinMetricasRecibeUnaListaVacia() {
+        dadoUnAlmacenQueHoyVendioPorTrescientosYNoTieneGastos();
+        dadoUnPanelCon();
 
-        List<MetricaItem> result = whenListar();
+        cuandoSeListan();
 
-        assertThat(result).isEmpty();
+        entoncesNoHayMetricas();
     }
 
     @Test
     @DisplayName("Un cuaderno ajeno o inexistente responde 404 y no se lee nada más")
-    void executeShouldPropagateNotFoundForForeignProject() {
+    void unCuadernoAjenoRespondeNoEncontradoYNoSeLeeNadaMas() {
+        dadoUnCuadernoAjeno();
+
+        cuandoSeIntentanListar();
+
+        entoncesNoSeEncuentraElCuaderno();
+        entoncesNoSeLeyeronNiLasMetricasNiLosDatos();
+    }
+
+    private void dadoUnAlmacenQueHoyVendioPorTrescientosYNoTieneGastos() {
+        when(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID)).thenReturn(negocio(RubroNegocio.ALMACEN));
+        when(proyectoRepository.obtener(NEGOCIO_ID, PROYECTO_ID)).thenReturn(proyecto);
+        when(datosDeProyectoService.cargar(proyecto, NEGOCIO_ID))
+                .thenReturn(unAlmacenQueVendio(venta(PAN_ID, 2, 150, "2026-11-11", "Ana", false)));
+    }
+
+    private void dadoUnCuadernoAjeno() {
+        when(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID)).thenReturn(negocio(RubroNegocio.ALMACEN));
         when(proyectoRepository.obtener(NEGOCIO_ID, PROYECTO_ID))
                 .thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
-
-        assertThatThrownBy(this::whenListar).isInstanceOf(ResourceNotFoundException.class);
-        verifyNoInteractions(metricaRepository, datosDeProyectoService);
     }
 
-    // --- arrange ---
-    private void givenMetricas(Metrica... metricas) {
+    private void dadoUnPanelCon(Metrica... guardadas) {
         when(metricaRepository.findAllByProyectoIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID))
-                .thenReturn(List.of(metricas));
+                .thenReturn(List.of(guardadas));
     }
 
-    private void givenDatos() {
-        when(datosDeProyectoService.cargar(proyecto, NEGOCIO_ID)).thenReturn(datos(
-                List.of(inventario()),
-                List.of(ventas(venta(PAN_ID, 2, 150, "2026-11-11", "Ana", false))),
-                List.of()));
+    private void cuandoSeListan() {
+        metricas = listarMetricas.execute(new ListarMetricasRequest(USUARIO_ID, PROYECTO_ID));
     }
 
-    // --- act ---
-    private List<MetricaItem> whenListar() {
-        return listarMetricas.execute(new ListarMetricasRequest(USUARIO_ID, PROYECTO_ID));
+    private void cuandoSeIntentanListar() {
+        rechazo = catchThrowable(this::cuandoSeListan);
+    }
+
+    private void entoncesLaPrimeraEsLaDeVentasYDa(String valor) {
+        assertThat(metricas).hasSize(2);
+        assertThat(metricas.getFirst().id()).isEqualTo(METRICA_ID);
+        assertThat(metricas.getFirst().orden()).isZero();
+        assertThat(metricas.getFirst().resultado().valor()).isEqualByComparingTo(valor);
+    }
+
+    private void entoncesLaSegundaNoSePuedeCalcularPorque(String motivo) {
+        assertThat(metricas.get(1).resultado().valor()).isNull();
+        assertThat(metricas.get(1).resultado().motivo()).contains(motivo);
+    }
+
+    private void entoncesNoHayMetricas() {
+        assertThat(metricas).isEmpty();
+    }
+
+    private void entoncesNoSeEncuentraElCuaderno() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    private void entoncesNoSeLeyeronNiLasMetricasNiLosDatos() {
+        verifyNoInteractions(metricaRepository, datosDeProyectoService);
     }
 }

@@ -15,96 +15,102 @@ import static com.ensambla.backend.support.MetricaTestData.AHORA;
 import static com.ensambla.backend.support.MetricaTestData.METRICA_ID;
 import static com.ensambla.backend.support.MetricaTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.MetricaTestData.PROYECTO_ID;
+import static com.ensambla.backend.support.MetricaTestData.laFilaDeLoQueTeDeben;
 import static com.ensambla.backend.support.MetricaTestData.metrica;
+import static com.ensambla.backend.support.MetricaTestData.unaFilaSinIds;
+import static com.ensambla.backend.support.MetricasDePrueba.unaReceta;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class MetricaRepositoryMapperTest {
 
+    private static final DefinicionMetrica CUANTOS_GASTOS_POR_CATEGORIA = unaReceta("Gastos", FuenteMetrica.GASTOS,
+            CalculoMetrica.CONTEO, AgrupacionMetrica.CATEGORIA, PeriodoMetrica.SEMANA, false);
+
+    private static final DefinicionMetrica LAS_VENTAS_SIN_REPARTO_NI_PERIODO = unaReceta("Ventas",
+            FuenteMetrica.VENTAS, CalculoMetrica.SUMA, null, null, false);
+
     private final MetricaRepositoryMapper mapper = new MetricaRepositoryMapper();
 
+    private Metrica metrica;
+
+    private MetricaEntity fila;
+
     @Test
-    @DisplayName("Mapea la entidad al dominio con todos sus campos")
-    void toDomainShouldMapEveryField() {
-        MetricaEntity entity = MetricaEntity.builder()
-                .id(METRICA_ID.valor())
-                .negocioId(NEGOCIO_ID.valor())
-                .proyectoId(PROYECTO_ID.valor())
-                .nombre("Lo que te deben")
-                .fuente(FuenteMetrica.VENTAS)
-                .calculo(CalculoMetrica.SUMA)
-                .agrupar(AgrupacionMetrica.CLIENTE)
-                .periodo(PeriodoMetrica.TODO)
-                .soloFiado(true)
-                .orden(3)
-                .autoria(AutoriaMetrica.PROPIA)
-                .creadoEn(AHORA)
-                .build();
+    @DisplayName("Lee la fila guardada con todos sus datos")
+    void leeLaFilaGuardadaConTodosSusDatos() {
+        cuandoSeLee(laFilaDeLoQueTeDeben());
 
-        Metrica result = mapper.toDomain(entity);
-
-        assertThat(result.getId()).isEqualTo(METRICA_ID);
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(result.getProyectoId()).isEqualTo(PROYECTO_ID);
-        assertThat(result.getDefinicion().nombre()).isEqualTo("Lo que te deben");
-        assertThat(result.getDefinicion().fuente()).isEqualTo(FuenteMetrica.VENTAS);
-        assertThat(result.getDefinicion().calculo()).isEqualTo(CalculoMetrica.SUMA);
-        assertThat(result.getDefinicion().agrupar()).isEqualTo(AgrupacionMetrica.CLIENTE);
-        assertThat(result.getDefinicion().periodo()).isEqualTo(PeriodoMetrica.TODO);
-        assertThat(result.getDefinicion().soloFiado()).isTrue();
-        assertThat(result.getOrden()).isEqualTo(3);
-        assertThat(result.getAutoria()).isEqualTo(AutoriaMetrica.PROPIA);
-        assertThat(result.getCreadoEn()).isEqualTo(AHORA);
+        entoncesLaMetricaEsLoQueTeDeben();
     }
 
     @Test
-    @DisplayName("Una entidad sin ids se mapea con ids nulos")
-    void toDomainShouldKeepMissingIdsNull() {
-        Metrica result = mapper.toDomain(MetricaEntity.builder()
-                .fuente(FuenteMetrica.GASTOS)
-                .calculo(CalculoMetrica.SUMA)
-                .agrupar(AgrupacionMetrica.NINGUNA)
-                .periodo(PeriodoMetrica.MES)
-                .build());
+    @DisplayName("Una fila sin ids se lee con ids nulos")
+    void unaFilaSinIdsSeLeeConIdsNulos() {
+        cuandoSeLee(unaFilaSinIds());
 
-        assertThat(result.getId()).isNull();
-        assertThat(result.getNegocioId()).isNull();
-        assertThat(result.getProyectoId()).isNull();
+        entoncesLaMetricaNoTieneIds();
     }
 
     @Test
-    @DisplayName("Mapea el dominio a la entidad con todos sus campos")
-    void toEntityShouldMapEveryField() {
-        Metrica metrica = metrica(new DefinicionMetrica(
-                "Gastos", FuenteMetrica.GASTOS, CalculoMetrica.CONTEO, AgrupacionMetrica.CATEGORIA,
-                PeriodoMetrica.SEMANA, false), 5);
+    @DisplayName("Guarda la métrica en una fila con todos sus datos")
+    void guardaLaMetricaEnUnaFilaConTodosSusDatos() {
+        cuandoSeGuarda(metrica(CUANTOS_GASTOS_POR_CATEGORIA, 5));
 
-        MetricaEntity result = mapper.toEntity(metrica);
-
-        assertThat(result.getId()).isEqualTo(METRICA_ID.valor());
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
-        assertThat(result.getProyectoId()).isEqualTo(PROYECTO_ID.valor());
-        assertThat(result.getNombre()).isEqualTo("Gastos");
-        assertThat(result.getFuente()).isEqualTo(FuenteMetrica.GASTOS);
-        assertThat(result.getCalculo()).isEqualTo(CalculoMetrica.CONTEO);
-        assertThat(result.getAgrupar()).isEqualTo(AgrupacionMetrica.CATEGORIA);
-        assertThat(result.getPeriodo()).isEqualTo(PeriodoMetrica.SEMANA);
-        assertThat(result.isSoloFiado()).isFalse();
-        assertThat(result.getOrden()).isEqualTo(5);
-        assertThat(result.getAutoria()).isEqualTo(AutoriaMetrica.SUGERIDA);
-        assertThat(result.getCreadoEn()).isEqualTo(AHORA);
+        entoncesLaFilaEsLaDeCuantosGastosPorCategoria();
     }
 
     @Test
-    @DisplayName("Una métrica nueva, sin id, se mapea con id nulo")
-    void toEntityShouldKeepMissingIdNull() {
-        DefinicionMetrica definicion = new DefinicionMetrica(
-                "Ventas", FuenteMetrica.VENTAS, CalculoMetrica.SUMA, null, null, false);
-        Metrica nueva = Metrica.nueva(NEGOCIO_ID, PROYECTO_ID, definicion, 0, AutoriaMetrica.PROPIA, AHORA);
+    @DisplayName("Una métrica nueva, sin id, se guarda sin id y con el reparto y el período por defecto")
+    void unaMetricaNuevaSeGuardaSinIdYConLosValoresPorDefecto() {
+        cuandoSeGuarda(Metrica.nueva(NEGOCIO_ID, PROYECTO_ID, LAS_VENTAS_SIN_REPARTO_NI_PERIODO, 0,
+                AutoriaMetrica.PROPIA, AHORA));
 
-        MetricaEntity result = mapper.toEntity(nueva);
+        entoncesLaFilaEsNuevaSinRepartoYDelMes();
+    }
 
-        assertThat(result.getId()).isNull();
-        assertThat(result.getAgrupar()).isEqualTo(AgrupacionMetrica.NINGUNA);
-        assertThat(result.getPeriodo()).isEqualTo(PeriodoMetrica.MES);
+    private void cuandoSeLee(MetricaEntity guardada) {
+        metrica = mapper.toDomain(guardada);
+    }
+
+    private void cuandoSeGuarda(Metrica aGuardar) {
+        fila = mapper.toEntity(aGuardar);
+    }
+
+    private void entoncesLaMetricaEsLoQueTeDeben() {
+        assertThat(metrica.getId()).isEqualTo(METRICA_ID);
+        assertThat(metrica.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(metrica.getProyectoId()).isEqualTo(PROYECTO_ID);
+        assertThat(metrica.getDefinicion()).isEqualTo(unaReceta("Lo que te deben", FuenteMetrica.VENTAS,
+                CalculoMetrica.SUMA, AgrupacionMetrica.CLIENTE, PeriodoMetrica.TODO, true));
+        assertThat(metrica.getOrden()).isEqualTo(3);
+        assertThat(metrica.getAutoria()).isEqualTo(AutoriaMetrica.PROPIA);
+        assertThat(metrica.getCreadoEn()).isEqualTo(AHORA);
+    }
+
+    private void entoncesLaMetricaNoTieneIds() {
+        assertThat(metrica.getId()).isNull();
+        assertThat(metrica.getNegocioId()).isNull();
+        assertThat(metrica.getProyectoId()).isNull();
+    }
+
+    private void entoncesLaFilaEsLaDeCuantosGastosPorCategoria() {
+        assertThat(fila.getId()).isEqualTo(METRICA_ID.valor());
+        assertThat(fila.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
+        assertThat(fila.getProyectoId()).isEqualTo(PROYECTO_ID.valor());
+        assertThat(fila.getNombre()).isEqualTo("Gastos");
+        assertThat(fila.getFuente()).isEqualTo(FuenteMetrica.GASTOS);
+        assertThat(fila.getCalculo()).isEqualTo(CalculoMetrica.CONTEO);
+        assertThat(fila.getAgrupar()).isEqualTo(AgrupacionMetrica.CATEGORIA);
+        assertThat(fila.getPeriodo()).isEqualTo(PeriodoMetrica.SEMANA);
+        assertThat(fila.isSoloFiado()).isFalse();
+        assertThat(fila.getOrden()).isEqualTo(5);
+        assertThat(fila.getAutoria()).isEqualTo(AutoriaMetrica.SUGERIDA);
+        assertThat(fila.getCreadoEn()).isEqualTo(AHORA);
+    }
+
+    private void entoncesLaFilaEsNuevaSinRepartoYDelMes() {
+        assertThat(fila.getId()).isNull();
+        assertThat(fila.getAgrupar()).isEqualTo(AgrupacionMetrica.NINGUNA);
+        assertThat(fila.getPeriodo()).isEqualTo(PeriodoMetrica.MES);
     }
 }
