@@ -88,11 +88,72 @@
   justify-content: space-between;
   gap: 8px;
 }
-.metrica-medida-quitar {
-  padding: 4px;
+.metrica-medida-acciones {
+  display: flex;
+  gap: 4px;
+}
+.metrica-medida-icono {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 6px;
   border: 0;
+  border-radius: 99px;
   background: transparent;
   color: var(--petrol);
+}
+.metrica-medida-icono:hover {
+  color: var(--magenta, var(--coral));
+}
+.metrica-medida-renombrar {
+  display: grid;
+  gap: 6px;
+}
+.metrica-medida-renombrar label {
+  color: var(--petrol);
+  font-weight: 700;
+}
+.metrica-medida-renombrar input {
+  padding: 10px 12px;
+  border: 2px solid var(--petrol);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+.metrica-medida-renombrar-botones,
+.metrica-medida-lugar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.metrica-medida-guardar,
+.metrica-medida-cancelar,
+.metrica-medida-lugar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 6px 14px;
+  border: 2px solid var(--petrol);
+  border-radius: 99px;
+  background: #fff;
+  color: var(--petrol);
+  font-weight: 700;
+}
+.metrica-medida-guardar {
+  background: var(--petrol);
+  color: #fff;
+}
+.metrica-medida-guardar:hover,
+.metrica-medida-cancelar:hover,
+.metrica-medida-lugar button:hover:not(:disabled) {
+  border-color: var(--magenta, var(--coral));
+  background: var(--magenta, var(--coral));
+  color: #fff;
+}
+.metrica-medida-guardar:disabled,
+.metrica-medida-lugar button:disabled {
+  opacity: 0.5;
 }
 .metrica-medida-receta {
   margin: 0;

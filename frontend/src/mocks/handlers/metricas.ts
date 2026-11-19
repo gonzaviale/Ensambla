@@ -7,12 +7,8 @@ import {
   FUENTES_DE_METRICA,
   PERIODOS_DE_METRICA,
 } from '@/types/metricas';
-import { estado, sistemasDe } from '../db/estado';
-import {
-  calcularMetricaDeEjemplo,
-  MAXIMO_DE_METRICAS,
-  sugeridasDe,
-} from '../db/metricas';
+import { estado, sistemasDe, type MetricaGuardada } from '../db/estado';
+import { calcularMetricaDeEjemplo, MAXIMO_DE_METRICAS, sugeridasDe } from '../db/metricas';
 import { errorResponse } from '../errores';
 import { api, cuenta, LATENCIA_BACKEND_MS, pathDe } from './comun';
 
@@ -26,8 +22,11 @@ const definicionSchema = z.object({
 });
 const nuevaSchema = definicionSchema.extend({ autoria: z.enum(['SUGERIDA', 'PROPIA']) });
 
+// Igual que el servidor: dos recetas son la misma si piden lo mismo, aunque se llamen distinto.
+const LO_QUE_PIDE_UNA_RECETA = ['fuente', 'calculo', 'agrupar', 'periodo', 'soloFiado'] as const;
+
 const mismaReceta = (a: z.infer<typeof definicionSchema>, b: z.infer<typeof definicionSchema>) =>
-  JSON.stringify({ ...a, nombre: '' }) === JSON.stringify({ ...b, nombre: '' });
+  LO_QUE_PIDE_UNA_RECETA.every((dato) => a[dato] === b[dato]);
 
 // Igual que el backend: cada cuaderno es de una cuenta, y uno ajeno responde igual que uno que no existe.
 function cuaderno(request: Request, sistemaId: string, escritura = false) {
@@ -119,4 +118,61 @@ export const handlersMetricas = [
     );
     return new HttpResponse(null, { status: 204 });
   }),
+  http.patch(api('/proyectos/:sistemaId/metricas/:metricaId'), async ({ request, params }) => {
+    const { sistema, error } = cuaderno(request, String(params.sistemaId), true);
+    if (error) return error;
+    const pedido = renombrarSchema.safeParse(await request.json());
+    if (!pedido.success) return errorDeCampos(request, pedido.error);
+    const guardadas = guardadasDe(sistema.id);
+    if (!guardadas.some((metrica) => metrica.id === params.metricaId))
+      return errorResponse(404, 'Métrica no encontrada', pathDe(request));
+    await delay(LATENCIA_BACKEND_MS);
+    estado.metricas.set(
+      sistema.id,
+      guardadas.map(renombrandoSiEs(String(params.metricaId), pedido.data.nombre)),
+    );
+    return new HttpResponse(null, { status: 204 });
+  }),
+  http.patch(
+    api('/proyectos/:sistemaId/metricas/:metricaId/lugar'),
+    async ({ request, params }) => {
+      const { sistema, error } = cuaderno(request, String(params.sistemaId), true);
+      if (error) return error;
+      const pedido = moverSchema.safeParse(await request.json());
+      if (!pedido.success) return errorDeCampos(request, pedido.error);
+      const guardadas = guardadasDe(sistema.id);
+      const movida = guardadas.find((metrica) => metrica.id === params.metricaId);
+      if (!movida) return errorResponse(404, 'Métrica no encontrada', pathDe(request));
+      if (pedido.data.lugar >= guardadas.length)
+        return errorResponse(400, 'Ese lugar no está en el panel', pathDe(request));
+      await delay(LATENCIA_BACKEND_MS);
+      estado.metricas.set(sistema.id, conLaMetricaEnElLugar(guardadas, movida, pedido.data.lugar));
+      return new HttpResponse(null, { status: 204 });
+    },
+  ),
 ];
+
+const renombrarSchema = definicionSchema.pick({ nombre: true });
+const moverSchema = z.object({ lugar: z.number().int().min(0, 'El primer lugar es el 0') });
+
+const errorDeCampos = (request: Request, error: z.ZodError) =>
+  errorResponse(
+    400,
+    'Revisá la métrica.',
+    pathDe(request),
+    Object.fromEntries(error.issues.map((item) => [String(item.path[0]), item.message])),
+  );
+
+const renombrandoSiEs = (metricaId: string, nombre: string) => (metrica: MetricaGuardada) =>
+  metrica.id === metricaId
+    ? { ...metrica, definicion: { ...metrica.definicion, nombre } }
+    : metrica;
+
+function conLaMetricaEnElLugar(
+  guardadas: MetricaGuardada[],
+  movida: MetricaGuardada,
+  lugar: number,
+) {
+  const sinLaMovida = guardadas.filter((metrica) => metrica !== movida);
+  return [...sinLaMovida.slice(0, lugar), movida, ...sinLaMovida.slice(lugar)];
+}

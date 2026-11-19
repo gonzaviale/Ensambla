@@ -1,5 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { crearMetrica, eliminarMetrica, previsualizarMetrica } from '@/api/metricas';
+import {
+  crearMetrica,
+  eliminarMetrica,
+  moverMetrica,
+  previsualizarMetrica,
+  renombrarMetrica,
+} from '@/api/metricas';
 import type { DefinicionDeMetrica, NuevaMetrica } from '@/types/metricas';
 import { metricasKeys } from './queries';
 
@@ -26,4 +32,27 @@ export function useVerComoQueda(sistemaId: string) {
   return useMutation({
     mutationFn: (definicion: DefinicionDeMetrica) => previsualizarMetrica(sistemaId, definicion),
   });
+}
+
+/** Le cambia el nombre a una métrica del panel y vuelve a pedir la lista para mostrar el nombre guardado. */
+export function useRenombrarMetrica(sistemaId: string, metricaId: string) {
+  const volverAPedir = useVolverAPedirLasMetricas(sistemaId);
+  return useMutation({
+    mutationFn: (nombre: string) => renombrarMetrica(sistemaId, metricaId, nombre),
+    onSuccess: volverAPedir,
+  });
+}
+
+/** Sube o baja una métrica en el panel; la lista se vuelve a pedir con el orden que guardó el servidor. */
+export function useMoverMetrica(sistemaId: string, metricaId: string) {
+  const volverAPedir = useVolverAPedirLasMetricas(sistemaId);
+  return useMutation({
+    mutationFn: (lugar: number) => moverMetrica(sistemaId, metricaId, lugar),
+    onSettled: volverAPedir,
+  });
+}
+
+function useVolverAPedirLasMetricas(sistemaId: string) {
+  const queryClient = useQueryClient();
+  return () => queryClient.invalidateQueries({ queryKey: metricasKeys.cuaderno(sistemaId) });
 }

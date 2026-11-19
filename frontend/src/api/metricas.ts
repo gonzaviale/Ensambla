@@ -28,3 +28,15 @@ export const crearMetrica = (sistemaId: string, metrica: NuevaMetrica) =>
 
 export const eliminarMetrica = (sistemaId: string, metricaId: string) =>
   http.delete(`${rutaDe(sistemaId)}/${encodeURIComponent(metricaId)}`, z.undefined());
+
+/** Cambia el nombre que se ve en el panel; lo que calcula queda igual. */
+export const renombrarMetrica = (sistemaId: string, metricaId: string, nombre: string) =>
+  http.patch(`${rutaDe(sistemaId)}/${encodeURIComponent(metricaId)}`, { nombre }, z.undefined());
+
+/** Pone la métrica en otro lugar del panel (el primero es el 0); el servidor corre las demás. */
+export const moverMetrica = (sistemaId: string, metricaId: string, lugar: number) =>
+  http.patch(
+    `${rutaDe(sistemaId)}/${encodeURIComponent(metricaId)}/lugar`,
+    { lugar },
+    z.undefined(),
+  );
