@@ -13,11 +13,15 @@ import com.ensambla.backend.domain.useCase.metrica.crearMetrica.CrearMetricaRequ
 import com.ensambla.backend.domain.useCase.metrica.eliminarMetrica.EliminarMetricaRequest;
 import com.ensambla.backend.domain.useCase.metrica.listarMetricas.ListarMetricasRequest;
 import com.ensambla.backend.domain.useCase.metrica.listarSugeridas.ListarSugeridasRequest;
+import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetricaRequest;
 import com.ensambla.backend.domain.useCase.metrica.previsualizarMetrica.PrevisualizarMetricaRequest;
+import com.ensambla.backend.domain.useCase.metrica.renombrarMetrica.RenombrarMetricaRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.CrearMetricaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.DefinicionResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MetricaResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MetricaWebRequest;
+import com.ensambla.backend.infrastructure.presentation.dto.metrica.MoverMetricaWebRequest;
+import com.ensambla.backend.infrastructure.presentation.dto.metrica.RenombrarMetricaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.ResultadoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.ResultadoResponse.DeDondeSaleResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.ResultadoResponse.FilaResponse;
@@ -53,6 +57,16 @@ public class MetricaPresentationMapper {
 
     public EliminarMetricaRequest toEliminarRequest(UsuarioId usuarioId, ProyectoId proyectoId, MetricaId metricaId) {
         return new EliminarMetricaRequest(usuarioId, proyectoId, metricaId);
+    }
+
+    public RenombrarMetricaRequest toRenombrarRequest(
+            UsuarioId usuarioId, ProyectoId proyectoId, MetricaId metricaId, RenombrarMetricaWebRequest request) {
+        return new RenombrarMetricaRequest(usuarioId, proyectoId, metricaId, request.nombre());
+    }
+
+    public MoverMetricaRequest toMoverRequest(
+            UsuarioId usuarioId, ProyectoId proyectoId, MetricaId metricaId, MoverMetricaWebRequest request) {
+        return new MoverMetricaRequest(usuarioId, proyectoId, metricaId, request.lugar());
     }
 
     public List<MetricaResponse> toResponse(List<MetricaItem> metricas) {

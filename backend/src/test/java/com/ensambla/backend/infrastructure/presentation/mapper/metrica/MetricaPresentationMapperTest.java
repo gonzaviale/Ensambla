@@ -18,11 +18,15 @@ import com.ensambla.backend.domain.useCase.metrica.crearMetrica.CrearMetricaRequ
 import com.ensambla.backend.domain.useCase.metrica.eliminarMetrica.EliminarMetricaRequest;
 import com.ensambla.backend.domain.useCase.metrica.listarMetricas.ListarMetricasRequest;
 import com.ensambla.backend.domain.useCase.metrica.listarSugeridas.ListarSugeridasRequest;
+import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetricaRequest;
 import com.ensambla.backend.domain.useCase.metrica.previsualizarMetrica.PrevisualizarMetricaRequest;
+import com.ensambla.backend.domain.useCase.metrica.renombrarMetrica.RenombrarMetricaRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.CrearMetricaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.DefinicionResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MetricaResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MetricaWebRequest;
+import com.ensambla.backend.infrastructure.presentation.dto.metrica.MoverMetricaWebRequest;
+import com.ensambla.backend.infrastructure.presentation.dto.metrica.RenombrarMetricaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.ResultadoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.ResultadoResponse.DeDondeSaleResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.ResultadoResponse.FilaResponse;
@@ -148,6 +152,20 @@ class MetricaPresentationMapperTest {
         entoncesRespondeLasSugeridas(List.of());
     }
 
+    @Test
+    @DisplayName("Arma el pedido de renombrar con el usuario, el cuaderno, la métrica y el nombre nuevo")
+    void armaElPedidoDeRenombrar() {
+        entoncesPideRenombrar(new RenombrarMetricaWebRequest("Lo que vendí"),
+                new RenombrarMetricaRequest(USUARIO_ID, PROYECTO_ID, METRICA_ID, "Lo que vendí"));
+    }
+
+    @Test
+    @DisplayName("Arma el pedido de mover con el usuario, el cuaderno, la métrica y el lugar nuevo")
+    void armaElPedidoDeMover() {
+        entoncesPideMover(new MoverMetricaWebRequest(2),
+                new MoverMetricaRequest(USUARIO_ID, PROYECTO_ID, METRICA_ID, 2));
+    }
+
     private static void entoncesPideListar(Object pedido, Object esperado) {
         assertThat(pedido).isEqualTo(esperado);
     }
@@ -179,5 +197,13 @@ class MetricaPresentationMapperTest {
 
     private void entoncesRespondeLasSugeridas(List<SugeridaItem> sugeridas, SugeridaResponse... esperadas) {
         assertThat(mapper.toSugeridasResponse(sugeridas)).containsExactly(esperadas);
+    }
+
+    private void entoncesPideRenombrar(RenombrarMetricaWebRequest web, RenombrarMetricaRequest esperado) {
+        assertThat(mapper.toRenombrarRequest(USUARIO_ID, PROYECTO_ID, METRICA_ID, web)).isEqualTo(esperado);
+    }
+
+    private void entoncesPideMover(MoverMetricaWebRequest web, MoverMetricaRequest esperado) {
+        assertThat(mapper.toMoverRequest(USUARIO_ID, PROYECTO_ID, METRICA_ID, web)).isEqualTo(esperado);
     }
 }

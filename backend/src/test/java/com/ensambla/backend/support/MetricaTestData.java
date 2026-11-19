@@ -67,8 +67,12 @@ public final class MetricaTestData {
 
     /** Una métrica ya guardada, sin id nuevo: es la {@link #METRICA_ID}. */
     public static Metrica metrica(DefinicionMetrica definicion, int orden) {
+        return metrica(METRICA_ID, definicion, orden);
+    }
+
+    public static Metrica metrica(MetricaId id, DefinicionMetrica definicion, int orden) {
         return Metrica.builder()
-                .id(METRICA_ID)
+                .id(id)
                 .negocioId(NEGOCIO_ID)
                 .proyectoId(PROYECTO_ID)
                 .definicion(definicion)
@@ -76,6 +80,21 @@ public final class MetricaTestData {
                 .autoria(AutoriaMetrica.SUGERIDA)
                 .creadoEn(AHORA)
                 .build();
+    }
+
+    public static final MetricaId METRICA_VENTAS_ID = MetricaId.de("e0000000-0000-4000-8000-000000000011");
+    public static final MetricaId METRICA_GASTOS_ID = MetricaId.de("e0000000-0000-4000-8000-000000000012");
+    public static final MetricaId METRICA_STOCK_ID = MetricaId.de("e0000000-0000-4000-8000-000000000013");
+
+    /** Un panel de tres, en este orden: las ventas del mes, los gastos del mes y el stock. */
+    public static List<Metrica> unPanelDeVentasGastosYStock() {
+        return List.of(
+                metrica(METRICA_VENTAS_ID, definicion(FuenteMetrica.VENTAS, CalculoMetrica.SUMA,
+                        AgrupacionMetrica.NINGUNA, PeriodoMetrica.MES), 0),
+                metrica(METRICA_GASTOS_ID, definicion(FuenteMetrica.GASTOS, CalculoMetrica.SUMA,
+                        AgrupacionMetrica.NINGUNA, PeriodoMetrica.MES), 1),
+                metrica(METRICA_STOCK_ID, definicion(FuenteMetrica.INVENTARIO, CalculoMetrica.UNIDADES,
+                        AgrupacionMetrica.PRODUCTO, PeriodoMetrica.TODO), 2));
     }
 
     /** Un panel con el máximo de métricas por cuaderno, todas contando las ventas de hoy. */

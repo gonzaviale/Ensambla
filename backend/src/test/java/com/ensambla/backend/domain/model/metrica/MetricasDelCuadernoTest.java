@@ -1,12 +1,18 @@
 package com.ensambla.backend.domain.model.metrica;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static com.ensambla.backend.support.MetricaTestData.METRICA_GASTOS_ID;
+import static com.ensambla.backend.support.MetricaTestData.METRICA_ID;
+import static com.ensambla.backend.support.MetricaTestData.METRICA_STOCK_ID;
+import static com.ensambla.backend.support.MetricaTestData.METRICA_VENTAS_ID;
 import static com.ensambla.backend.support.MetricaTestData.metrica;
+import static com.ensambla.backend.support.MetricaTestData.unPanelDeVentasGastosYStock;
 import static com.ensambla.backend.support.MetricaTestData.unPanelLleno;
 import static com.ensambla.backend.support.MetricasDePrueba.cuantasVentasHuboEnElMes;
 import static com.ensambla.backend.support.MetricasDePrueba.lasVentasDelMes;
@@ -20,6 +26,8 @@ class MetricasDelCuadernoTest {
     private MetricasDelCuaderno guardadas;
 
     private Throwable rechazo;
+
+    private List<Metrica> reordenado;
 
     @Test
     @DisplayName("Un panel vacío arranca en el lugar cero")
@@ -73,6 +81,87 @@ class MetricasDelCuadernoTest {
         dadoUnPanelSinMetricas();
 
         entoncesNoIncluye(lasVentasDelMes());
+    }
+
+    @Test
+    @DisplayName("Subir la última al primer lugar corre las demás un lugar para abajo")
+    void subirLaUltimaAlPrimerLugarCorreLasDemas() {
+        dadoUnPanelDeVentasGastosYStock();
+
+        cuandoSeMueve(METRICA_STOCK_ID, 0);
+
+        entoncesElPanelQuedaEnEsteOrden(METRICA_STOCK_ID, METRICA_VENTAS_ID, METRICA_GASTOS_ID);
+    }
+
+    @Test
+    @DisplayName("Bajar la primera un lugar la cambia con la que estaba abajo")
+    void bajarLaPrimeraUnLugarLaCambiaConLaDeAbajo() {
+        dadoUnPanelDeVentasGastosYStock();
+
+        cuandoSeMueve(METRICA_VENTAS_ID, 1);
+
+        entoncesElPanelQuedaEnEsteOrden(METRICA_GASTOS_ID, METRICA_VENTAS_ID, METRICA_STOCK_ID);
+    }
+
+    @Test
+    @DisplayName("Dejarla en su lugar no cambia el panel")
+    void dejarlaEnSuLugarNoCambiaElPanel() {
+        dadoUnPanelDeVentasGastosYStock();
+
+        cuandoSeMueve(METRICA_GASTOS_ID, 1);
+
+        entoncesElPanelQuedaEnEsteOrden(METRICA_VENTAS_ID, METRICA_GASTOS_ID, METRICA_STOCK_ID);
+    }
+
+    @Test
+    @DisplayName("No se puede mover a un lugar después del último")
+    void noSePuedeMoverDespuesDelUltimo() {
+        dadoUnPanelDeVentasGastosYStock();
+
+        cuandoSeIntentaMover(METRICA_VENTAS_ID, 3);
+
+        entoncesSeRechazaPorque("Ese lugar no está en el panel");
+    }
+
+    @Test
+    @DisplayName("No se puede mover a un lugar negativo")
+    void noSePuedeMoverAUnLugarNegativo() {
+        dadoUnPanelDeVentasGastosYStock();
+
+        cuandoSeIntentaMover(METRICA_VENTAS_ID, -1);
+
+        entoncesSeRechazaPorque("Ese lugar no está en el panel");
+    }
+
+    @Test
+    @DisplayName("No se puede mover una métrica que no está en el panel")
+    void noSePuedeMoverUnaMetricaQueNoEstaEnElPanel() {
+        dadoUnPanelDeVentasGastosYStock();
+
+        cuandoSeIntentaMover(METRICA_ID, 0);
+
+        entoncesNoSeEncuentraLaMetrica();
+    }
+
+    private void dadoUnPanelDeVentasGastosYStock() {
+        guardadas = new MetricasDelCuaderno(unPanelDeVentasGastosYStock());
+    }
+
+    private void cuandoSeMueve(MetricaId metricaId, int lugar) {
+        reordenado = guardadas.conLaMetricaEnElLugar(metricaId, lugar);
+    }
+
+    private void cuandoSeIntentaMover(MetricaId metricaId, int lugar) {
+        rechazo = catchThrowable(() -> cuandoSeMueve(metricaId, lugar));
+    }
+
+    private void entoncesElPanelQuedaEnEsteOrden(MetricaId... ids) {
+        assertThat(reordenado).extracting(Metrica::getId).containsExactly(ids);
+        assertThat(reordenado).extracting(Metrica::getOrden).containsExactly(0, 1, 2);
+    }
+
+    private void entoncesNoSeEncuentraLaMetrica() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class);
     }
 
     private void dadoUnPanelCon(Metrica... metricas) {

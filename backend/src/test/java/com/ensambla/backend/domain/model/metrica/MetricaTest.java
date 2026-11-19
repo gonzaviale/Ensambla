@@ -34,6 +34,43 @@ class MetricaTest {
         entoncesSeRechaza();
     }
 
+    @Test
+    @DisplayName("Renombrarla cambia sólo el nombre, no lo que calcula")
+    void renombrarlaCambiaSoloElNombre() {
+        dadaUnaMetricaDeLasVentasDelMes();
+
+        cuandoSeRenombra("  Lo vendido ");
+
+        entoncesSeLlamaYCalculaLoMismo("Lo vendido");
+    }
+
+    @Test
+    @DisplayName("No se puede dejar sin nombre y conserva el anterior")
+    void noSePuedeDejarSinNombre() {
+        dadaUnaMetricaDeLasVentasDelMes();
+
+        cuandoSeIntentaRenombrar(" ");
+
+        entoncesSeRechaza();
+        entoncesSeLlamaYCalculaLoMismo("Ventas del mes");
+    }
+
+    private void dadaUnaMetricaDeLasVentasDelMes() {
+        cuandoSeCreaEnElLugar(lasVentasDelMes(), 0);
+    }
+
+    private void cuandoSeRenombra(String nombre) {
+        metrica.renombrar(nombre);
+    }
+
+    private void cuandoSeIntentaRenombrar(String nombre) {
+        rechazo = catchThrowable(() -> cuandoSeRenombra(nombre));
+    }
+
+    private void entoncesSeLlamaYCalculaLoMismo(String nombre) {
+        assertThat(metrica.getDefinicion()).isEqualTo(lasVentasDelMesLlamadas(nombre));
+    }
+
     private void cuandoSeCreaEnElLugar(DefinicionMetrica definicion, int orden) {
         metrica = Metrica.nueva(NEGOCIO_ID, PROYECTO_ID, definicion, orden, AutoriaMetrica.SUGERIDA, AHORA);
     }

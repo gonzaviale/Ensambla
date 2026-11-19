@@ -11,7 +11,9 @@ import com.ensambla.backend.domain.useCase.metrica.crearMetrica.CrearMetrica;
 import com.ensambla.backend.domain.useCase.metrica.eliminarMetrica.EliminarMetrica;
 import com.ensambla.backend.domain.useCase.metrica.listarMetricas.ListarMetricas;
 import com.ensambla.backend.domain.useCase.metrica.listarSugeridas.ListarSugeridas;
+import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetrica;
 import com.ensambla.backend.domain.useCase.metrica.previsualizarMetrica.PrevisualizarMetrica;
+import com.ensambla.backend.domain.useCase.metrica.renombrarMetrica.RenombrarMetrica;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -96,5 +98,21 @@ public class MetricaUseCaseConfig {
             MetricaRepository metricaRepository,
             TransaccionPort transaccionPort) {
         return new EliminarMetrica(negocioRepository, metricaRepository, transaccionPort);
+    }
+
+    @Bean
+    public RenombrarMetrica renombrarMetrica(
+            NegocioRepository negocioRepository,
+            MetricaRepository metricaRepository,
+            TransaccionPort transaccionPort) {
+        return new RenombrarMetrica(negocioRepository, metricaRepository, transaccionPort);
+    }
+
+    @Bean
+    public MoverMetrica moverMetrica(
+            NegocioRepository negocioRepository,
+            MetricaRepository metricaRepository,
+            TransaccionPort transaccionPort) {
+        return new MoverMetrica(negocioRepository, metricaRepository, transaccionPort);
     }
 }

@@ -37,6 +37,11 @@ public record DefinicionMetrica(
         rechazarSi(!fuente.tieneFecha() && !periodo.miraTodo(), "El inventario es lo que hay hoy: no tiene períodos");
     }
 
+    /** La misma receta con otro nombre: renombrar no cambia lo que se calcula. */
+    public DefinicionMetrica conNombre(String otroNombre) {
+        return new DefinicionMetrica(otroNombre, fuente, calculo, agrupar, periodo, soloFiado);
+    }
+
     public FormatoMetrica formato() {
         return calculo.formato();
     }

@@ -24,8 +24,12 @@ import com.ensambla.backend.domain.useCase.metrica.listarMetricas.ListarMetricas
 import com.ensambla.backend.domain.useCase.metrica.listarMetricas.ListarMetricasRequest;
 import com.ensambla.backend.domain.useCase.metrica.listarSugeridas.ListarSugeridas;
 import com.ensambla.backend.domain.useCase.metrica.listarSugeridas.ListarSugeridasRequest;
+import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetrica;
+import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetricaRequest;
 import com.ensambla.backend.domain.useCase.metrica.previsualizarMetrica.PrevisualizarMetrica;
 import com.ensambla.backend.domain.useCase.metrica.previsualizarMetrica.PrevisualizarMetricaRequest;
+import com.ensambla.backend.domain.useCase.metrica.renombrarMetrica.RenombrarMetrica;
+import com.ensambla.backend.domain.useCase.metrica.renombrarMetrica.RenombrarMetricaRequest;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.metrica.MetricaPresentationMapper;
 import com.ensambla.backend.support.MockMvcDePrueba;
@@ -53,6 +57,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -69,6 +74,10 @@ class MetricaControllerTest {
 
     private static final String LA_RECETA_SIN_FIADO = "{\"nombre\":\"Ventas del mes\",\"fuente\":\"VENTAS\","
             + "\"calculo\":\"SUMA\",\"agrupar\":\"PRODUCTO\",\"periodo\":\"MES\"}";
+
+    private static final String UN_NOMBRE_NUEVO = "{\"nombre\":\"Lo que vendí\"}";
+
+    private static final String UN_NOMBRE_EN_BLANCO = "{\"nombre\":\" \"}";
 
     private static final String SIN_NADA_OBLIGATORIO = "{\"soloFiado\":false}";
 
@@ -94,11 +103,13 @@ class MetricaControllerTest {
     private final PrevisualizarMetrica previsualizarMetrica = mock(PrevisualizarMetrica.class);
     private final CrearMetrica crearMetrica = mock(CrearMetrica.class);
     private final EliminarMetrica eliminarMetrica = mock(EliminarMetrica.class);
+    private final RenombrarMetrica renombrarMetrica = mock(RenombrarMetrica.class);
+    private final MoverMetrica moverMetrica = mock(MoverMetrica.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
     private final MockMvc mockMvc = MockMvcDePrueba.standalone(new MetricaController(
                     listarMetricas, listarSugeridas, previsualizarMetrica, crearMetrica, eliminarMetrica,
-                    new MetricaPresentationMapper()))
+                    renombrarMetrica, moverMetrica, new MetricaPresentationMapper()))
             .setControllerAdvice(new GlobalExceptionHandler())
             .build();
 
@@ -252,6 +263,66 @@ class MetricaControllerTest {
         entoncesNoSeElimino();
     }
 
+    @Test
+    @DisplayName("PATCH con un nombre nuevo devuelve 204 y delega con el usuario, el cuaderno y la métrica")
+    void renombrarDevuelveSinContenidoYDelega() throws Exception {
+        cuandoSeEnvia(patch(RUTA + "/{id}", PROYECTO_ID, METRICA_ID), UN_NOMBRE_NUEVO);
+
+        entoncesRespondeSinContenido();
+        entoncesSeRenombroA("Lo que vendí");
+    }
+
+    @Test
+    @DisplayName("PATCH con el nombre en blanco devuelve 400 sin llegar al caso de uso")
+    void renombrarConElNombreEnBlancoDevuelveError() throws Exception {
+        cuandoSeEnvia(patch(RUTA + "/{id}", PROYECTO_ID, METRICA_ID), UN_NOMBRE_EN_BLANCO);
+
+        entoncesRespondeErroresEn("nombre");
+        entoncesNoSeRenombro();
+    }
+
+    @Test
+    @DisplayName("PATCH de una métrica ajena devuelve el 404 estándar")
+    void renombrarUnaMetricaAjenaDevuelveNoEncontrada() throws Exception {
+        dadoQueRenombrarNoEncuentraLaMetrica();
+
+        cuandoSeEnvia(patch(RUTA + "/{id}", PROYECTO_ID, METRICA_ID), UN_NOMBRE_NUEVO);
+
+        entoncesRespondeNoEncontrado();
+    }
+
+    @Test
+    @DisplayName("PATCH del lugar devuelve 204 y delega con el lugar pedido")
+    void moverDevuelveSinContenidoYDelega() throws Exception {
+        cuandoSeEnvia(patch(RUTA + "/{id}/lugar", PROYECTO_ID, METRICA_ID), elLugar(2));
+
+        entoncesRespondeSinContenido();
+        entoncesSeMovioAlLugar(2);
+    }
+
+    @Test
+    @DisplayName("PATCH del lugar con un lugar negativo devuelve 400 sin llegar al caso de uso")
+    void moverAUnLugarNegativoDevuelveError() throws Exception {
+        cuandoSeEnvia(patch(RUTA + "/{id}/lugar", PROYECTO_ID, METRICA_ID), elLugar(-1));
+
+        entoncesRespondeErroresEn("lugar");
+        entoncesNoSeMovio();
+    }
+
+    @Test
+    @DisplayName("PATCH del lugar fuera del panel devuelve el 400 estándar")
+    void moverFueraDelPanelDevuelveError() throws Exception {
+        dadoQueMoverRechazaElLugar();
+
+        cuandoSeEnvia(patch(RUTA + "/{id}/lugar", PROYECTO_ID, METRICA_ID), elLugar(9));
+
+        entoncesRespondeUnPedidoInvalido();
+    }
+
+    private static String elLugar(int lugar) {
+        return "{\"lugar\":" + lugar + "}";
+    }
+
     private static String conAutoria(String autoria) {
         return "{" + LA_RECETA + ",\"autoria\":\"" + autoria + "\"}";
     }
@@ -388,5 +459,29 @@ class MetricaControllerTest {
 
     private void entoncesNoSeElimino() {
         verifyNoInteractions(eliminarMetrica);
+    }
+
+    private void dadoQueRenombrarNoEncuentraLaMetrica() {
+        doThrow(new ResourceNotFoundException("Métrica no encontrada")).when(renombrarMetrica).execute(any());
+    }
+
+    private void dadoQueMoverRechazaElLugar() {
+        doThrow(new BusinessRuleException("Ese lugar no está en el panel")).when(moverMetrica).execute(any());
+    }
+
+    private void entoncesSeRenombroA(String nombre) {
+        verify(renombrarMetrica).execute(new RenombrarMetricaRequest(USUARIO_ID, PROYECTO_ID, METRICA_ID, nombre));
+    }
+
+    private void entoncesNoSeRenombro() {
+        verifyNoInteractions(renombrarMetrica);
+    }
+
+    private void entoncesSeMovioAlLugar(int lugar) {
+        verify(moverMetrica).execute(new MoverMetricaRequest(USUARIO_ID, PROYECTO_ID, METRICA_ID, lugar));
+    }
+
+    private void entoncesNoSeMovio() {
+        verifyNoInteractions(moverMetrica);
     }
 }

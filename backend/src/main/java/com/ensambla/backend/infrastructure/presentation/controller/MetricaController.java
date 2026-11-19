@@ -7,10 +7,14 @@ import com.ensambla.backend.domain.useCase.metrica.crearMetrica.CrearMetrica;
 import com.ensambla.backend.domain.useCase.metrica.eliminarMetrica.EliminarMetrica;
 import com.ensambla.backend.domain.useCase.metrica.listarMetricas.ListarMetricas;
 import com.ensambla.backend.domain.useCase.metrica.listarSugeridas.ListarSugeridas;
+import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetrica;
 import com.ensambla.backend.domain.useCase.metrica.previsualizarMetrica.PrevisualizarMetrica;
+import com.ensambla.backend.domain.useCase.metrica.renombrarMetrica.RenombrarMetrica;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.CrearMetricaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MetricaResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MetricaWebRequest;
+import com.ensambla.backend.infrastructure.presentation.dto.metrica.MoverMetricaWebRequest;
+import com.ensambla.backend.infrastructure.presentation.dto.metrica.RenombrarMetricaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.ResultadoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.SugeridaResponse;
 import com.ensambla.backend.infrastructure.presentation.mapper.metrica.MetricaPresentationMapper;
@@ -22,6 +26,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -46,6 +51,10 @@ public class MetricaController {
     private final CrearMetrica crearMetrica;
 
     private final EliminarMetrica eliminarMetrica;
+
+    private final RenombrarMetrica renombrarMetrica;
+
+    private final MoverMetrica moverMetrica;
 
     private final MetricaPresentationMapper metricaPresentationMapper;
 
@@ -94,6 +103,26 @@ public class MetricaController {
             Authentication authentication, @PathVariable ProyectoId proyectoId, @PathVariable MetricaId metricaId) {
         eliminarMetrica.execute(metricaPresentationMapper.toEliminarRequest(
                 UsuarioId.de(authentication.getName()), proyectoId, metricaId));
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{metricaId}")
+    @Operation(summary = "Cambiarle el nombre a una métrica del panel")
+    public ResponseEntity<Void> renombrar(
+            Authentication authentication, @PathVariable ProyectoId proyectoId, @PathVariable MetricaId metricaId,
+            @Valid @RequestBody RenombrarMetricaWebRequest request) {
+        renombrarMetrica.execute(metricaPresentationMapper.toRenombrarRequest(
+                UsuarioId.de(authentication.getName()), proyectoId, metricaId, request));
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{metricaId}/lugar")
+    @Operation(summary = "Cambiar de lugar una métrica del panel; las demás se corren")
+    public ResponseEntity<Void> mover(
+            Authentication authentication, @PathVariable ProyectoId proyectoId, @PathVariable MetricaId metricaId,
+            @Valid @RequestBody MoverMetricaWebRequest request) {
+        moverMetrica.execute(metricaPresentationMapper.toMoverRequest(
+                UsuarioId.de(authentication.getName()), proyectoId, metricaId, request));
         return ResponseEntity.noContent().build();
     }
 }

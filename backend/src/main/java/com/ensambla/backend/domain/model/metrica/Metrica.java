@@ -48,4 +48,11 @@ public class Metrica {
                 .creadoEn(ahora)
                 .build();
     }
+
+    /** Le cambia el nombre que se ve en el panel; rechaza el nombre vacío o demasiado largo. */
+    public void renombrar(String nombre) {
+        DefinicionMetrica renombrada = definicion.conNombre(nombre);
+        renombrada.validar();
+        definicion = renombrada;
+    }
 }
