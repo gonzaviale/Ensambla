@@ -41,6 +41,10 @@ class ObjetivoDemoMigracionTest {
 
     private static JdbcTemplate jdbc;
 
+    private List<Map<String, Object>> objetivos;
+    private List<BigDecimal> unidades;
+    private Integer cantidad;
+
     @BeforeAll
     static void migrar() {
         POSTGRES.start();
@@ -54,29 +58,56 @@ class ObjetivoDemoMigracionTest {
 
     @Test
     @DisplayName("La cuenta demo trae un objetivo creado hace 8 semanas con una meta redonda")
-    void migracionShouldGiveTheDemoAnObjetivoFromEightWeeksAgo() {
-        List<Map<String, Object>> objetivos = objetivosDe(DEMO);
+    void laCuentaDemoTraeUnObjetivoCreadoHace8SemanasConUnaMetaRedonda() {
+        cuandoSeConsultanLosObjetivosDeLaCuentaDemo();
 
-        assertThat(objetivos).hasSize(1);
-        assertThat((Integer) objetivos.getFirst().get("dias")).isEqualTo(56);
-        assertThat((BigDecimal) objetivos.getFirst().get("meta"))
-                .isGreaterThanOrEqualTo(new BigDecimal("100000"))
-                .satisfies(meta -> assertThat(meta.remainder(new BigDecimal("10000"))).isZero());
+        entoncesHayUnObjetivoDeHace8SemanasConMetaRedonda();
     }
 
     @Test
     @DisplayName("Las ventas que suma al demo cubren las últimas 12 semanas y la última vende más que la primera")
-    void migracionShouldLeaveTwelveWeeksOfImprovingSales() {
-        List<BigDecimal> unidades = ventasPorSemana();
+    void lasVentasQueSumaAlDemoCubrenLasUltimas12SemanasYLaUltimaVendeMasQueLaPrimera() {
+        cuandoSeConsultanLasVentasDelDemoPorSemana();
 
-        assertThat(unidades).hasSize(12);
-        assertThat(unidades.getFirst()).isGreaterThan(unidades.getLast());
+        entoncesSeCubren12SemanasConVentasEnAumento();
     }
 
     @Test
     @DisplayName("El azúcar del demo sigue sin ventas en el último mes")
-    void migracionShouldNotSellTheDemoSugar() {
-        Integer ventasDeAzucar = jdbc.queryForObject("""
+    void elAzucarDelDemoSigueSinVentasEnElUltimoMes() {
+        cuandoSeCuentanLasVentasDeAzucarDelUltimoMes();
+
+        entoncesElAzucarNoTieneVentas();
+    }
+
+    @Test
+    @DisplayName("Sin la cuenta demo la migración no hace nada")
+    void sinLaCuentaDemoLaMigracionNoHaceNada() {
+        cuandoSeMigraUnaBaseSinCuentaDemo();
+
+        entoncesNoSeCreaNingunObjetivo();
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeConsultanLosObjetivosDeLaCuentaDemo() {
+        objetivos = jdbc.queryForList("""
+                SELECT o.meta, (current_date - o.creado_en::date) AS dias
+                FROM objetivo o
+                JOIN negocio n ON n.id = o.negocio_id
+                JOIN usuario u ON u.id = n.duenio_id
+                WHERE u.email = ?
+                """, DEMO);
+    }
+
+    private void cuandoSeConsultanLasVentasDelDemoPorSemana() {
+        unidades = jdbc.queryForList(VENTAS_DEL_DEMO_POR_SEMANA, DEMO).stream()
+                .map(fila -> (BigDecimal) fila.get("unidades"))
+                .toList();
+    }
+
+    private void cuandoSeCuentanLasVentasDeAzucarDelUltimoMes() {
+        cantidad = jdbc.queryForObject("""
                 SELECT count(*)
                 FROM registro r
                 JOIN bloque b ON b.id = r.bloque_id AND b.tipo = 'VENTAS'
@@ -87,23 +118,40 @@ class ObjetivoDemoMigracionTest {
                 JOIN usuario u ON u.id = n.duenio_id AND u.email = ?
                 WHERE p.valores::text ILIKE '%azúcar%' AND (r.valores ->> cf.id::text)::date > current_date - 30
                 """, Integer.class, DEMO);
-
-        assertThat(ventasDeAzucar).isZero();
     }
 
-    @Test
-    @DisplayName("Sin la cuenta demo la migración no hace nada")
-    void migracionShouldDoNothingWithoutTheDemoAccount() {
-        JdbcTemplate sinDemo = givenBaseSinCuentaDemo();
-
-        Integer objetivos = sinDemo.queryForObject("SELECT count(*) FROM objetivo", Integer.class);
-
-        assertThat(objetivos).isZero();
+    private void cuandoSeMigraUnaBaseSinCuentaDemo() {
+        JdbcTemplate sinDemo = baseSinCuentaDemo();
+        cantidad = sinDemo.queryForObject("SELECT count(*) FROM objetivo", Integer.class);
     }
 
-    // --- arrange ---
+    // --- entonces ---
+
+    private void entoncesHayUnObjetivoDeHace8SemanasConMetaRedonda() {
+        assertThat(objetivos).hasSize(1);
+        assertThat((Integer) objetivos.getFirst().get("dias")).isEqualTo(56);
+        assertThat((BigDecimal) objetivos.getFirst().get("meta"))
+                .isGreaterThanOrEqualTo(new BigDecimal("100000"))
+                .satisfies(meta -> assertThat(meta.remainder(new BigDecimal("10000"))).isZero());
+    }
+
+    private void entoncesSeCubren12SemanasConVentasEnAumento() {
+        assertThat(unidades).hasSize(12);
+        assertThat(unidades.getFirst()).isGreaterThan(unidades.getLast());
+    }
+
+    private void entoncesElAzucarNoTieneVentas() {
+        assertThat(cantidad).isZero();
+    }
+
+    private void entoncesNoSeCreaNingunObjetivo() {
+        assertThat(cantidad).isZero();
+    }
+
+    // --- datos ---
+
     /** Otra base del mismo contenedor migrada hasta V32; la cuenta demo cambia de email y recién después corre V33. */
-    private static JdbcTemplate givenBaseSinCuentaDemo() {
+    private static JdbcTemplate baseSinCuentaDemo() {
         jdbc.execute("CREATE DATABASE sin_demo");
         String url = POSTGRES.getJdbcUrl().replace("/" + POSTGRES.getDatabaseName(), "/sin_demo");
         DriverManagerDataSource dataSource = new DriverManagerDataSource(
@@ -114,25 +162,6 @@ class ObjetivoDemoMigracionTest {
         return migrarBase(url);
     }
 
-    // --- assert ---
-    private static List<Map<String, Object>> objetivosDe(String email) {
-        return jdbc.queryForList("""
-                SELECT o.meta, (current_date - o.creado_en::date) AS dias
-                FROM objetivo o
-                JOIN negocio n ON n.id = o.negocio_id
-                JOIN usuario u ON u.id = n.duenio_id
-                WHERE u.email = ?
-                """, email);
-    }
-
-    /** Las unidades vendidas por semana, de la más nueva (0 semanas atrás) a la más vieja. */
-    private static List<BigDecimal> ventasPorSemana() {
-        return jdbc.queryForList(VENTAS_DEL_DEMO_POR_SEMANA, DEMO).stream()
-                .map(fila -> (BigDecimal) fila.get("unidades"))
-                .toList();
-    }
-
-    // --- helpers ---
     private static JdbcTemplate migrarBase(String url) {
         DriverManagerDataSource dataSource = new DriverManagerDataSource(
                 url, POSTGRES.getUsername(), POSTGRES.getPassword());
