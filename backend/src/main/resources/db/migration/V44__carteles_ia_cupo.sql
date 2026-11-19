@@ -1,4 +1,4 @@
--- V35: cupo mensual de carteles redactados con IA (ENS-364 / T-265), aparte del de análisis de fotos y del de
+-- V44: cupo mensual de carteles redactados con IA (ENS-364 / T-265), aparte del de análisis de fotos y del de
 -- objetivos. Cifras provisorias: 10 por mes en Gratuito y 40 en Premium. Un límite nulo no limita.
 
 ALTER TABLE plan ADD COLUMN limite_carteles_ia_mensuales integer CHECK (limite_carteles_ia_mensuales >= 0);

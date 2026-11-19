@@ -1,4 +1,4 @@
--- V34: el kit de marca del negocio (ENS-362 / T-263): logo, dos colores, tipografía y tono. Un kit por negocio; de él
+-- V43: el kit de marca del negocio (ENS-362 / T-263): logo, dos colores, tipografía y tono. Un kit por negocio; de él
 -- salen los carteles y promociones (H-62). El logo se guarda en la base (hasta 2 MB, PNG o JPG).
 
 CREATE TABLE kit_marca (
