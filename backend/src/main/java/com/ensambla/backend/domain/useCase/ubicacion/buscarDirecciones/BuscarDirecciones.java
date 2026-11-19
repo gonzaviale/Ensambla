@@ -15,8 +15,10 @@ public class BuscarDirecciones {
     private final Clock clock;
 
     public BuscarDireccionesResponse execute(BuscarDireccionesRequest request) {
-        List<DireccionEncontrada> direcciones = geocodificadorPort
-                .buscar(ConsultaDireccion.de(request.consulta()).texto(), clock.instant());
-        return BuscarDireccionesResponse.de(direcciones);
+        return BuscarDireccionesResponse.de(buscarDirecciones(ConsultaDireccion.de(request.consulta())));
+    }
+
+    private List<DireccionEncontrada> buscarDirecciones(ConsultaDireccion consulta) {
+        return geocodificadorPort.buscar(consulta.texto(), clock.instant());
     }
 }
