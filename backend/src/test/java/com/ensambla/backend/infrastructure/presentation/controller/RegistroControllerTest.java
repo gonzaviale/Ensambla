@@ -85,6 +85,10 @@ class RegistroControllerTest {
     private ObtenerFotoOrigen obtenerFotoOrigen;
     private MockMvc mockMvc;
 
+    private ResultActions respuesta;
+    private ResultActions result;
+    private byte[] bytes;
+
     @BeforeEach
     void setUp() {
         crearRegistro = mock(CrearRegistro.class);
@@ -110,12 +114,355 @@ class RegistroControllerTest {
     @Test
     @DisplayName("POST crea el registro con el usuario de la sesión y responde 201")
     void pOSTCreaElRegistroConElUsuarioDeLaSesionYResponde201() throws Exception {
+        dadoElEscenarioDePOSTCreaElRegistroConElUsuarioDeLaSesionYResponde201();
+
+        cuandoSeEjecutaPOSTCreaElRegistroConElUsuarioDeLaSesionYResponde201();
+
+        entoncesSeVerificaPOSTCreaElRegistroConElUsuarioDeLaSesionYResponde201();
+    }
+
+    @Test
+    @DisplayName("GET de la foto de origen devuelve sus bytes y pasa el usuario de la sesión")
+    void gETDeLaFotoDeOrigenDevuelveSusBytesYPasaElUsuarioDeLaSesion() throws Exception {
+        dadoElEscenarioDeGETDeLaFotoDeOrigenDevuelveSusBytesYPasaElUsuarioDeLaSesion();
+
+        cuandoSeEjecutaGETDeLaFotoDeOrigenDevuelveSusBytesYPasaElUsuarioDeLaSesion();
+
+        entoncesSeVerificaGETDeLaFotoDeOrigenDevuelveSusBytesYPasaElUsuarioDeLaSesion();
+    }
+
+    @Test
+    @DisplayName("GET de la foto de origen devuelve 404 cuando el registro no tiene foto")
+    void gETDeLaFotoDeOrigenDevuelve404CuandoElRegistroNoTieneFoto() throws Exception {
+        dadoElEscenarioDeGETDeLaFotoDeOrigenDevuelve404CuandoElRegistroNoTieneFoto();
+
+        cuandoSeEjecutaGETDeLaFotoDeOrigenDevuelve404CuandoElRegistroNoTieneFoto();
+
+        entoncesSeVerificaGETDeLaFotoDeOrigenDevuelve404CuandoElRegistroNoTieneFoto();
+    }
+
+    @Test
+    @DisplayName("POST responde 400 con el error de cada campo cuando los valores no son válidos")
+    void pOSTResponde400ConElErrorDeCadaCampoCuandoLosValoresNoSonValidos() throws Exception {
+        dadoElEscenarioDePOSTResponde400ConElErrorDeCadaCampoCuandoLosValoresNoSonValidos();
+
+        cuandoSeEjecutaPOSTResponde400ConElErrorDeCadaCampoCuandoLosValoresNoSonValidos();
+
+        entoncesSeVerificaPOSTResponde400ConElErrorDeCadaCampoCuandoLosValoresNoSonValidos();
+    }
+
+    @Test
+    @DisplayName("POST responde 400 cuando falta el objeto de valores")
+    void pOSTResponde400CuandoFaltaElObjetoDeValores() throws Exception {
+        cuandoSeEjecutaPOSTResponde400CuandoFaltaElObjetoDeValores();
+
+        entoncesSeVerificaPOSTResponde400CuandoFaltaElObjetoDeValores();
+    }
+
+    @Test
+    @DisplayName("POST responde 400 cuando el id del bloque no es un UUID")
+    void pOSTResponde400CuandoElIdDelBloqueNoEsUnUUID() throws Exception {
+        cuandoSeEjecutaPOSTResponde400CuandoElIdDelBloqueNoEsUnUUID();
+
+        entoncesSeVerificaPOSTResponde400CuandoElIdDelBloqueNoEsUnUUID();
+    }
+
+    @Test
+    @DisplayName("GET lista la página con las claves que espera el frontend")
+    void gETListaLaPaginaConLasClavesQueEsperaElFrontend() throws Exception {
+        dadoElEscenarioDeGETListaLaPaginaConLasClavesQueEsperaElFrontend();
+
+        cuandoSeEjecutaGETListaLaPaginaConLasClavesQueEsperaElFrontend();
+
+        entoncesSeVerificaGETListaLaPaginaConLasClavesQueEsperaElFrontend();
+    }
+
+    @Test
+    @DisplayName("GET pasa la búsqueda, el orden y la página al caso de uso")
+    void gETPasaLaBusquedaElOrdenYLaPaginaAlCasoDeUso() throws Exception {
+        dadoElEscenarioDeGETPasaLaBusquedaElOrdenYLaPaginaAlCasoDeUso();
+
+        cuandoSeEjecutaGETPasaLaBusquedaElOrdenYLaPaginaAlCasoDeUso();
+
+        entoncesSeVerificaGETPasaLaBusquedaElOrdenYLaPaginaAlCasoDeUso();
+    }
+
+    @Test
+    @DisplayName("GET responde 404 cuando el bloque no es del negocio")
+    void gETResponde404CuandoElBloqueNoEsDelNegocio() throws Exception {
+        dadoElEscenarioDeGETResponde404CuandoElBloqueNoEsDelNegocio();
+
+        cuandoSeEjecutaGETResponde404CuandoElBloqueNoEsDelNegocio();
+
+        entoncesSeVerificaGETResponde404CuandoElBloqueNoEsDelNegocio();
+    }
+
+    @Test
+    @DisplayName("GET de referencias devuelve id y etiqueta de cada fila y pasa el texto buscado")
+    void gETDeReferenciasDevuelveIdYEtiquetaDeCadaFilaYPasaElTextoBuscado() throws Exception {
+        dadoElEscenarioDeGETDeReferenciasDevuelveIdYEtiquetaDeCadaFilaYPasaElTextoBuscado();
+
+        cuandoSeEjecutaGETDeReferenciasDevuelveIdYEtiquetaDeCadaFilaYPasaElTextoBuscado();
+
+        entoncesSeVerificaGETDeReferenciasDevuelveIdYEtiquetaDeCadaFilaYPasaElTextoBuscado();
+    }
+
+    @Test
+    @DisplayName("GET de referencias pasa los ids separados por coma")
+    void gETDeReferenciasPasaLosIdsSeparadosPorComa() throws Exception {
+        dadoElEscenarioDeGETDeReferenciasPasaLosIdsSeparadosPorComa();
+
+        cuandoSeEjecutaGETDeReferenciasPasaLosIdsSeparadosPorComa();
+
+        entoncesSeVerificaGETDeReferenciasPasaLosIdsSeparadosPorComa();
+    }
+
+    @Test
+    @DisplayName("GET de referencias devuelve 404 cuando el bloque no es del negocio")
+    void gETDeReferenciasDevuelve404CuandoElBloqueNoEsDelNegocio() throws Exception {
+        dadoElEscenarioDeGETDeReferenciasDevuelve404CuandoElBloqueNoEsDelNegocio();
+
+        cuandoSeEjecutaGETDeReferenciasDevuelve404CuandoElBloqueNoEsDelNegocio();
+
+        entoncesSeVerificaGETDeReferenciasDevuelve404CuandoElBloqueNoEsDelNegocio();
+    }
+
+    @Test
+    @DisplayName("GET de referencias devuelve 400 cuando un id no es un UUID")
+    void gETDeReferenciasDevuelve400CuandoUnIdNoEsUnUUID() throws Exception {
+        cuandoSeEjecutaGETDeReferenciasDevuelve400CuandoUnIdNoEsUnUUID();
+
+        entoncesSeVerificaGETDeReferenciasDevuelve400CuandoUnIdNoEsUnUUID();
+    }
+
+    @Test
+    @DisplayName("GET devuelve el registro")
+    void gETDevuelveElRegistro() throws Exception {
+        dadoElEscenarioDeGETDevuelveElRegistro();
+
+        cuandoSeEjecutaGETDevuelveElRegistro();
+
+        entoncesSeVerificaGETDevuelveElRegistro();
+    }
+
+    @Test
+    @DisplayName("GET responde 404 cuando el registro no es del negocio")
+    void gETResponde404CuandoElRegistroNoEsDelNegocio() throws Exception {
+        dadoElEscenarioDeGETResponde404CuandoElRegistroNoEsDelNegocio();
+
+        cuandoSeEjecutaGETResponde404CuandoElRegistroNoEsDelNegocio();
+
+        entoncesSeVerificaGETResponde404CuandoElRegistroNoEsDelNegocio();
+    }
+
+    @Test
+    @DisplayName("PATCH edita el registro con el usuario de la sesión")
+    void pATCHEditaElRegistroConElUsuarioDeLaSesion() throws Exception {
+        dadoElEscenarioDePATCHEditaElRegistroConElUsuarioDeLaSesion();
+
+        cuandoSeEjecutaPATCHEditaElRegistroConElUsuarioDeLaSesion();
+
+        entoncesSeVerificaPATCHEditaElRegistroConElUsuarioDeLaSesion();
+    }
+
+    @Test
+    @DisplayName("PATCH responde 400 con el error por campo cuando los datos no son válidos")
+    void pATCHResponde400ConElErrorPorCampoCuandoLosDatosNoSonValidos() throws Exception {
+        dadoElEscenarioDePATCHResponde400ConElErrorPorCampoCuandoLosDatosNoSonValidos();
+
+        cuandoSeEjecutaPATCHResponde400ConElErrorPorCampoCuandoLosDatosNoSonValidos();
+
+        entoncesSeVerificaPATCHResponde400ConElErrorPorCampoCuandoLosDatosNoSonValidos();
+    }
+
+    @Test
+    @DisplayName("DELETE elimina el registro y responde 204 sin cuerpo")
+    void dELETEEliminaElRegistroYResponde204SinCuerpo() throws Exception {
+        cuandoSeEjecutaDELETEEliminaElRegistroYResponde204SinCuerpo();
+
+        entoncesSeVerificaDELETEEliminaElRegistroYResponde204SinCuerpo();
+    }
+
+    @Test
+    @DisplayName("DELETE responde 404 cuando el registro no es del negocio")
+    void dELETEResponde404CuandoElRegistroNoEsDelNegocio() throws Exception {
+        dadoElEscenarioDeDELETEResponde404CuandoElRegistroNoEsDelNegocio();
+
+        cuandoSeEjecutaDELETEResponde404CuandoElRegistroNoEsDelNegocio();
+
+        entoncesSeVerificaDELETEResponde404CuandoElRegistroNoEsDelNegocio();
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDePOSTCreaElRegistroConElUsuarioDeLaSesionYResponde201() throws Exception {
         when(crearRegistro.execute(any(CrearRegistroRequest.class)))
                 .thenReturn(new CrearRegistroResponse(ITEM));
+    }
 
-        ResultActions result = mockMvc.perform(post("/api/bloques/{id}/registros", BLOQUE_ID)
+    private void dadoElEscenarioDeGETDeLaFotoDeOrigenDevuelveSusBytesYPasaElUsuarioDeLaSesion() throws Exception {
+        bytes = new byte[] {1, 2, 3};
+        when(obtenerFotoOrigen.execute(any(ObtenerFotoOrigenRequest.class)))
+                .thenReturn(new FotoArchivoResponse(bytes, "image/png"));
+    }
+
+    private void dadoElEscenarioDeGETDeLaFotoDeOrigenDevuelve404CuandoElRegistroNoTieneFoto() throws Exception {
+        when(obtenerFotoOrigen.execute(any(ObtenerFotoOrigenRequest.class)))
+                .thenThrow(new ResourceNotFoundException("El registro no tiene foto de origen"));
+    }
+
+    private void dadoElEscenarioDePOSTResponde400ConElErrorDeCadaCampoCuandoLosValoresNoSonValidos() throws Exception {
+        when(crearRegistro.execute(any(CrearRegistroRequest.class)))
+                .thenThrow(new RegistroInvalidoException(Map.of("campo-1", "Este dato es obligatorio")));
+    }
+
+    private void dadoElEscenarioDeGETListaLaPaginaConLasClavesQueEsperaElFrontend() throws Exception {
+        when(listarRegistros.execute(any(ListarRegistrosRequest.class)))
+                .thenReturn(new ListarRegistrosResponse(List.of(ITEM), 0, 20, 1, 1,
+                        new TotalesItem(1, Map.of(CAMPO_ID, new BigDecimal("1500.5")))));
+    }
+
+    private void dadoElEscenarioDeGETPasaLaBusquedaElOrdenYLaPaginaAlCasoDeUso() throws Exception {
+        when(listarRegistros.execute(any(ListarRegistrosRequest.class)))
+                .thenReturn(new ListarRegistrosResponse(List.of(), 1, 5, 0, 1, new TotalesItem(0, Map.of())));
+    }
+
+    private void dadoElEscenarioDeGETResponde404CuandoElBloqueNoEsDelNegocio() throws Exception {
+        when(listarRegistros.execute(any(ListarRegistrosRequest.class)))
+                .thenThrow(new ResourceNotFoundException("El bloque no existe"));
+    }
+
+    private void dadoElEscenarioDeGETDeReferenciasDevuelveIdYEtiquetaDeCadaFilaYPasaElTextoBuscado() throws Exception {
+        when(listarReferencias.execute(any(ListarReferenciasRequest.class)))
+                .thenReturn(List.of(new ReferenciaItem(REGISTRO_ID, "Ana")));
+    }
+
+    private void dadoElEscenarioDeGETDeReferenciasPasaLosIdsSeparadosPorComa() throws Exception {
+        when(listarReferencias.execute(any(ListarReferenciasRequest.class))).thenReturn(List.of());
+    }
+
+    private void dadoElEscenarioDeGETDeReferenciasDevuelve404CuandoElBloqueNoEsDelNegocio() throws Exception {
+        when(listarReferencias.execute(any(ListarReferenciasRequest.class)))
+                .thenThrow(new ResourceNotFoundException("El bloque no existe"));
+    }
+
+    private void dadoElEscenarioDeGETDevuelveElRegistro() throws Exception {
+        when(obtenerRegistro.execute(any(ObtenerRegistroRequest.class)))
+                .thenReturn(new ObtenerRegistroResponse(ITEM));
+    }
+
+    private void dadoElEscenarioDeGETResponde404CuandoElRegistroNoEsDelNegocio() throws Exception {
+        when(obtenerRegistro.execute(any(ObtenerRegistroRequest.class)))
+                .thenThrow(new ResourceNotFoundException("El registro no existe"));
+    }
+
+    private void dadoElEscenarioDePATCHEditaElRegistroConElUsuarioDeLaSesion() throws Exception {
+        when(editarRegistro.execute(any(EditarRegistroRequest.class)))
+                .thenReturn(new EditarRegistroResponse(ITEM));
+    }
+
+    private void dadoElEscenarioDePATCHResponde400ConElErrorPorCampoCuandoLosDatosNoSonValidos() throws Exception {
+        when(editarRegistro.execute(any(EditarRegistroRequest.class)))
+                .thenThrow(new RegistroInvalidoException(Map.of("campo-1", "Tiene que ser un número")));
+    }
+
+    private void dadoElEscenarioDeDELETEResponde404CuandoElRegistroNoEsDelNegocio() throws Exception {
+        doThrow(new ResourceNotFoundException("El registro no existe"))
+                .when(eliminarRegistro).execute(any(EliminarRegistroRequest.class));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaPOSTCreaElRegistroConElUsuarioDeLaSesionYResponde201() throws Exception {
+        result = mockMvc.perform(post("/api/bloques/{id}/registros", BLOQUE_ID)
                 .principal(sesion).contentType(MediaType.APPLICATION_JSON).content(CUERPO));
+    }
 
+    private void cuandoSeEjecutaGETDeLaFotoDeOrigenDevuelveSusBytesYPasaElUsuarioDeLaSesion() throws Exception {
+        result = mockMvc.perform(get("/api/registros/{id}/foto-origen", REGISTRO_ID).principal(sesion));
+    }
+
+    private void cuandoSeEjecutaGETDeLaFotoDeOrigenDevuelve404CuandoElRegistroNoTieneFoto() throws Exception {
+        result = mockMvc.perform(get("/api/registros/{id}/foto-origen", REGISTRO_ID).principal(sesion));
+    }
+
+    private void cuandoSeEjecutaPOSTResponde400ConElErrorDeCadaCampoCuandoLosValoresNoSonValidos() throws Exception {
+        result = mockMvc.perform(post("/api/bloques/{id}/registros", BLOQUE_ID)
+                .principal(sesion).contentType(MediaType.APPLICATION_JSON).content(CUERPO));
+    }
+
+    private void cuandoSeEjecutaPOSTResponde400CuandoFaltaElObjetoDeValores() throws Exception {
+        result = mockMvc.perform(post("/api/bloques/{id}/registros", BLOQUE_ID)
+                .principal(sesion).contentType(MediaType.APPLICATION_JSON).content("{}"));
+    }
+
+    private void cuandoSeEjecutaPOSTResponde400CuandoElIdDelBloqueNoEsUnUUID() throws Exception {
+        result = mockMvc.perform(post("/api/bloques/no-es-uuid/registros")
+                .principal(sesion).contentType(MediaType.APPLICATION_JSON).content(CUERPO));
+    }
+
+    private void cuandoSeEjecutaGETListaLaPaginaConLasClavesQueEsperaElFrontend() throws Exception {
+        result = mockMvc.perform(get("/api/bloques/{id}/registros", BLOQUE_ID).principal(sesion));
+    }
+
+    private void cuandoSeEjecutaGETPasaLaBusquedaElOrdenYLaPaginaAlCasoDeUso() throws Exception {
+        respuesta = mockMvc.perform(get("/api/bloques/{id}/registros", BLOQUE_ID).principal(sesion)
+                .param("q", "harina").param("orden", "creadoEn").param("direccion", "asc")
+                .param("pagina", "1").param("tamanio", "5"));
+    }
+
+    private void cuandoSeEjecutaGETResponde404CuandoElBloqueNoEsDelNegocio() throws Exception {
+        result = mockMvc.perform(get("/api/bloques/{id}/registros", BLOQUE_ID).principal(sesion));
+    }
+
+    private void cuandoSeEjecutaGETDeReferenciasDevuelveIdYEtiquetaDeCadaFilaYPasaElTextoBuscado() throws Exception {
+        result = mockMvc.perform(get("/api/bloques/{id}/referencias", BLOQUE_ID)
+                .principal(sesion).param("q", "an"));
+    }
+
+    private void cuandoSeEjecutaGETDeReferenciasPasaLosIdsSeparadosPorComa() throws Exception {
+        result = mockMvc.perform(get("/api/bloques/{id}/referencias", BLOQUE_ID)
+                .principal(sesion).param("ids", REGISTRO_ID + "," + OTRO_REGISTRO_ID));
+    }
+
+    private void cuandoSeEjecutaGETDeReferenciasDevuelve404CuandoElBloqueNoEsDelNegocio() throws Exception {
+        result = mockMvc.perform(get("/api/bloques/{id}/referencias", BLOQUE_ID).principal(sesion));
+    }
+
+    private void cuandoSeEjecutaGETDeReferenciasDevuelve400CuandoUnIdNoEsUnUUID() throws Exception {
+        result = mockMvc.perform(get("/api/bloques/{id}/referencias", BLOQUE_ID)
+                .principal(sesion).param("ids", "no-es-uuid"));
+    }
+
+    private void cuandoSeEjecutaGETDevuelveElRegistro() throws Exception {
+        result = mockMvc.perform(get("/api/registros/{id}", REGISTRO_ID).principal(sesion));
+    }
+
+    private void cuandoSeEjecutaGETResponde404CuandoElRegistroNoEsDelNegocio() throws Exception {
+        result = mockMvc.perform(get("/api/registros/{id}", REGISTRO_ID).principal(sesion));
+    }
+
+    private void cuandoSeEjecutaPATCHEditaElRegistroConElUsuarioDeLaSesion() throws Exception {
+        result = mockMvc.perform(patch("/api/registros/{id}", REGISTRO_ID)
+                .principal(sesion).contentType(MediaType.APPLICATION_JSON).content(CUERPO));
+    }
+
+    private void cuandoSeEjecutaPATCHResponde400ConElErrorPorCampoCuandoLosDatosNoSonValidos() throws Exception {
+        result = mockMvc.perform(patch("/api/registros/{id}", REGISTRO_ID)
+                .principal(sesion).contentType(MediaType.APPLICATION_JSON).content(CUERPO));
+    }
+
+    private void cuandoSeEjecutaDELETEEliminaElRegistroYResponde204SinCuerpo() throws Exception {
+        result = mockMvc.perform(delete("/api/registros/{id}", REGISTRO_ID).principal(sesion));
+    }
+
+    private void cuandoSeEjecutaDELETEResponde404CuandoElRegistroNoEsDelNegocio() throws Exception {
+        result = mockMvc.perform(delete("/api/registros/{id}", REGISTRO_ID).principal(sesion));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaPOSTCreaElRegistroConElUsuarioDeLaSesionYResponde201() throws Exception {
         result.andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(REGISTRO_ID.toString()))
                 .andExpect(jsonPath("$.bloqueId").value(BLOQUE_ID.toString()))
@@ -127,76 +474,35 @@ class RegistroControllerTest {
         assertThat(request.getValue().valores()).containsEntry("campo", "dato");
     }
 
-    @Test
-    @DisplayName("GET de la foto de origen devuelve sus bytes y pasa el usuario de la sesión")
-    void gETDeLaFotoDeOrigenDevuelveSusBytesYPasaElUsuarioDeLaSesion() throws Exception {
-        byte[] bytes = {1, 2, 3};
-        when(obtenerFotoOrigen.execute(any(ObtenerFotoOrigenRequest.class)))
-                .thenReturn(new FotoArchivoResponse(bytes, "image/png"));
-
-        ResultActions result = mockMvc.perform(get("/api/registros/{id}/foto-origen", REGISTRO_ID).principal(sesion));
-
+    private void entoncesSeVerificaGETDeLaFotoDeOrigenDevuelveSusBytesYPasaElUsuarioDeLaSesion() throws Exception {
         result.andExpect(status().isOk())
                 .andExpect(content().contentType("image/png"))
                 .andExpect(content().bytes(bytes));
         verify(obtenerFotoOrigen).execute(new ObtenerFotoOrigenRequest(USUARIO_ID, REGISTRO_ID));
     }
 
-    @Test
-    @DisplayName("GET de la foto de origen devuelve 404 cuando el registro no tiene foto")
-    void gETDeLaFotoDeOrigenDevuelve404CuandoElRegistroNoTieneFoto() throws Exception {
-        when(obtenerFotoOrigen.execute(any(ObtenerFotoOrigenRequest.class)))
-                .thenThrow(new ResourceNotFoundException("El registro no tiene foto de origen"));
-
-        ResultActions result = mockMvc.perform(get("/api/registros/{id}/foto-origen", REGISTRO_ID).principal(sesion));
-
+    private void entoncesSeVerificaGETDeLaFotoDeOrigenDevuelve404CuandoElRegistroNoTieneFoto() throws Exception {
         result.andExpect(status().isNotFound());
     }
 
-    @Test
-    @DisplayName("POST responde 400 con el error de cada campo cuando los valores no son válidos")
-    void pOSTResponde400ConElErrorDeCadaCampoCuandoLosValoresNoSonValidos() throws Exception {
-        when(crearRegistro.execute(any(CrearRegistroRequest.class)))
-                .thenThrow(new RegistroInvalidoException(Map.of("campo-1", "Este dato es obligatorio")));
-
-        ResultActions result = mockMvc.perform(post("/api/bloques/{id}/registros", BLOQUE_ID)
-                .principal(sesion).contentType(MediaType.APPLICATION_JSON).content(CUERPO));
-
+    private void entoncesSeVerificaPOSTResponde400ConElErrorDeCadaCampoCuandoLosValoresNoSonValidos() throws Exception {
         result.andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Revisá los datos marcados"))
                 .andExpect(jsonPath("$.errors.campo-1").value("Este dato es obligatorio"));
     }
 
-    @Test
-    @DisplayName("POST responde 400 cuando falta el objeto de valores")
-    void pOSTResponde400CuandoFaltaElObjetoDeValores() throws Exception {
-        ResultActions result = mockMvc.perform(post("/api/bloques/{id}/registros", BLOQUE_ID)
-                .principal(sesion).contentType(MediaType.APPLICATION_JSON).content("{}"));
-
+    private void entoncesSeVerificaPOSTResponde400CuandoFaltaElObjetoDeValores() throws Exception {
         result.andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.valores").value("Los valores son obligatorios"));
         verifyNoInteractions(crearRegistro);
     }
 
-    @Test
-    @DisplayName("POST responde 400 cuando el id del bloque no es un UUID")
-    void pOSTResponde400CuandoElIdDelBloqueNoEsUnUUID() throws Exception {
-        ResultActions result = mockMvc.perform(post("/api/bloques/no-es-uuid/registros")
-                .principal(sesion).contentType(MediaType.APPLICATION_JSON).content(CUERPO));
-
+    private void entoncesSeVerificaPOSTResponde400CuandoElIdDelBloqueNoEsUnUUID() throws Exception {
         result.andExpect(status().isBadRequest());
         verifyNoInteractions(crearRegistro);
     }
 
-    @Test
-    @DisplayName("GET lista la página con las claves que espera el frontend")
-    void gETListaLaPaginaConLasClavesQueEsperaElFrontend() throws Exception {
-        when(listarRegistros.execute(any(ListarRegistrosRequest.class)))
-                .thenReturn(new ListarRegistrosResponse(List.of(ITEM), 0, 20, 1, 1,
-                        new TotalesItem(1, Map.of(CAMPO_ID, new BigDecimal("1500.5")))));
-
-        ResultActions result = mockMvc.perform(get("/api/bloques/{id}/registros", BLOQUE_ID).principal(sesion));
-
+    private void entoncesSeVerificaGETListaLaPaginaConLasClavesQueEsperaElFrontend() throws Exception {
         result.andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].id").value(REGISTRO_ID.toString()))
                 .andExpect(jsonPath("$.pageNumber").value(0))
@@ -209,16 +515,7 @@ class RegistroControllerTest {
                 .andExpect(jsonPath("$.totales.sumas['" + CAMPO_ID + "']").value(1500.5));
     }
 
-    @Test
-    @DisplayName("GET pasa la búsqueda, el orden y la página al caso de uso")
-    void gETPasaLaBusquedaElOrdenYLaPaginaAlCasoDeUso() throws Exception {
-        when(listarRegistros.execute(any(ListarRegistrosRequest.class)))
-                .thenReturn(new ListarRegistrosResponse(List.of(), 1, 5, 0, 1, new TotalesItem(0, Map.of())));
-
-        mockMvc.perform(get("/api/bloques/{id}/registros", BLOQUE_ID).principal(sesion)
-                .param("q", "harina").param("orden", "creadoEn").param("direccion", "asc")
-                .param("pagina", "1").param("tamanio", "5"));
-
+    private void entoncesSeVerificaGETPasaLaBusquedaElOrdenYLaPaginaAlCasoDeUso() throws Exception {
         ArgumentCaptor<ListarRegistrosRequest> request = ArgumentCaptor.forClass(ListarRegistrosRequest.class);
         verify(listarRegistros).execute(request.capture());
         assertThat(request.getValue().usuarioId()).isEqualTo(USUARIO_ID);
@@ -230,74 +527,33 @@ class RegistroControllerTest {
         assertThat(request.getValue().tamanio()).isEqualTo(5);
     }
 
-    @Test
-    @DisplayName("GET responde 404 cuando el bloque no es del negocio")
-    void gETResponde404CuandoElBloqueNoEsDelNegocio() throws Exception {
-        when(listarRegistros.execute(any(ListarRegistrosRequest.class)))
-                .thenThrow(new ResourceNotFoundException("El bloque no existe"));
-
-        ResultActions result = mockMvc.perform(get("/api/bloques/{id}/registros", BLOQUE_ID).principal(sesion));
-
+    private void entoncesSeVerificaGETResponde404CuandoElBloqueNoEsDelNegocio() throws Exception {
         result.andExpect(status().isNotFound()).andExpect(jsonPath("$.message").value("El bloque no existe"));
     }
 
-    @Test
-    @DisplayName("GET de referencias devuelve id y etiqueta de cada fila y pasa el texto buscado")
-    void gETDeReferenciasDevuelveIdYEtiquetaDeCadaFilaYPasaElTextoBuscado() throws Exception {
-        when(listarReferencias.execute(any(ListarReferenciasRequest.class)))
-                .thenReturn(List.of(new ReferenciaItem(REGISTRO_ID, "Ana")));
-
-        ResultActions result = mockMvc.perform(get("/api/bloques/{id}/referencias", BLOQUE_ID)
-                .principal(sesion).param("q", "an"));
-
+    private void entoncesSeVerificaGETDeReferenciasDevuelveIdYEtiquetaDeCadaFilaYPasaElTextoBuscado() throws Exception {
         result.andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(REGISTRO_ID.toString()))
                 .andExpect(jsonPath("$[0].etiqueta").value("Ana"));
         verify(listarReferencias).execute(new ListarReferenciasRequest(USUARIO_ID, BLOQUE_ID, "an", List.of()));
     }
 
-    @Test
-    @DisplayName("GET de referencias pasa los ids separados por coma")
-    void gETDeReferenciasPasaLosIdsSeparadosPorComa() throws Exception {
-        when(listarReferencias.execute(any(ListarReferenciasRequest.class))).thenReturn(List.of());
-
-        ResultActions result = mockMvc.perform(get("/api/bloques/{id}/referencias", BLOQUE_ID)
-                .principal(sesion).param("ids", REGISTRO_ID + "," + OTRO_REGISTRO_ID));
-
+    private void entoncesSeVerificaGETDeReferenciasPasaLosIdsSeparadosPorComa() throws Exception {
         result.andExpect(status().isOk()).andExpect(content().json("[]"));
         verify(listarReferencias).execute(new ListarReferenciasRequest(
                 USUARIO_ID, BLOQUE_ID, null, List.of(REGISTRO_ID, OTRO_REGISTRO_ID)));
     }
 
-    @Test
-    @DisplayName("GET de referencias devuelve 404 cuando el bloque no es del negocio")
-    void gETDeReferenciasDevuelve404CuandoElBloqueNoEsDelNegocio() throws Exception {
-        when(listarReferencias.execute(any(ListarReferenciasRequest.class)))
-                .thenThrow(new ResourceNotFoundException("El bloque no existe"));
-
-        ResultActions result = mockMvc.perform(get("/api/bloques/{id}/referencias", BLOQUE_ID).principal(sesion));
-
+    private void entoncesSeVerificaGETDeReferenciasDevuelve404CuandoElBloqueNoEsDelNegocio() throws Exception {
         result.andExpect(status().isNotFound());
     }
 
-    @Test
-    @DisplayName("GET de referencias devuelve 400 cuando un id no es un UUID")
-    void gETDeReferenciasDevuelve400CuandoUnIdNoEsUnUUID() throws Exception {
-        ResultActions result = mockMvc.perform(get("/api/bloques/{id}/referencias", BLOQUE_ID)
-                .principal(sesion).param("ids", "no-es-uuid"));
-
+    private void entoncesSeVerificaGETDeReferenciasDevuelve400CuandoUnIdNoEsUnUUID() throws Exception {
         result.andExpect(status().isBadRequest());
         verifyNoInteractions(listarReferencias);
     }
 
-    @Test
-    @DisplayName("GET devuelve el registro")
-    void gETDevuelveElRegistro() throws Exception {
-        when(obtenerRegistro.execute(any(ObtenerRegistroRequest.class)))
-                .thenReturn(new ObtenerRegistroResponse(ITEM));
-
-        ResultActions result = mockMvc.perform(get("/api/registros/{id}", REGISTRO_ID).principal(sesion));
-
+    private void entoncesSeVerificaGETDevuelveElRegistro() throws Exception {
         result.andExpect(status().isOk()).andExpect(jsonPath("$.id").value(REGISTRO_ID.toString()));
         ArgumentCaptor<ObtenerRegistroRequest> request = ArgumentCaptor.forClass(ObtenerRegistroRequest.class);
         verify(obtenerRegistro).execute(request.capture());
@@ -305,26 +561,11 @@ class RegistroControllerTest {
         assertThat(request.getValue().registroId()).isEqualTo(REGISTRO_ID);
     }
 
-    @Test
-    @DisplayName("GET responde 404 cuando el registro no es del negocio")
-    void gETResponde404CuandoElRegistroNoEsDelNegocio() throws Exception {
-        when(obtenerRegistro.execute(any(ObtenerRegistroRequest.class)))
-                .thenThrow(new ResourceNotFoundException("El registro no existe"));
-
-        ResultActions result = mockMvc.perform(get("/api/registros/{id}", REGISTRO_ID).principal(sesion));
-
+    private void entoncesSeVerificaGETResponde404CuandoElRegistroNoEsDelNegocio() throws Exception {
         result.andExpect(status().isNotFound());
     }
 
-    @Test
-    @DisplayName("PATCH edita el registro con el usuario de la sesión")
-    void pATCHEditaElRegistroConElUsuarioDeLaSesion() throws Exception {
-        when(editarRegistro.execute(any(EditarRegistroRequest.class)))
-                .thenReturn(new EditarRegistroResponse(ITEM));
-
-        ResultActions result = mockMvc.perform(patch("/api/registros/{id}", REGISTRO_ID)
-                .principal(sesion).contentType(MediaType.APPLICATION_JSON).content(CUERPO));
-
+    private void entoncesSeVerificaPATCHEditaElRegistroConElUsuarioDeLaSesion() throws Exception {
         result.andExpect(status().isOk()).andExpect(jsonPath("$.valores.campo").value("dato"));
         ArgumentCaptor<EditarRegistroRequest> request = ArgumentCaptor.forClass(EditarRegistroRequest.class);
         verify(editarRegistro).execute(request.capture());
@@ -333,24 +574,12 @@ class RegistroControllerTest {
         assertThat(request.getValue().valores()).containsEntry("campo", "dato");
     }
 
-    @Test
-    @DisplayName("PATCH responde 400 con el error por campo cuando los datos no son válidos")
-    void pATCHResponde400ConElErrorPorCampoCuandoLosDatosNoSonValidos() throws Exception {
-        when(editarRegistro.execute(any(EditarRegistroRequest.class)))
-                .thenThrow(new RegistroInvalidoException(Map.of("campo-1", "Tiene que ser un número")));
-
-        ResultActions result = mockMvc.perform(patch("/api/registros/{id}", REGISTRO_ID)
-                .principal(sesion).contentType(MediaType.APPLICATION_JSON).content(CUERPO));
-
+    private void entoncesSeVerificaPATCHResponde400ConElErrorPorCampoCuandoLosDatosNoSonValidos() throws Exception {
         result.andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.campo-1").value("Tiene que ser un número"));
     }
 
-    @Test
-    @DisplayName("DELETE elimina el registro y responde 204 sin cuerpo")
-    void dELETEEliminaElRegistroYResponde204SinCuerpo() throws Exception {
-        ResultActions result = mockMvc.perform(delete("/api/registros/{id}", REGISTRO_ID).principal(sesion));
-
+    private void entoncesSeVerificaDELETEEliminaElRegistroYResponde204SinCuerpo() throws Exception {
         result.andExpect(status().isNoContent());
         ArgumentCaptor<EliminarRegistroRequest> request = ArgumentCaptor.forClass(EliminarRegistroRequest.class);
         verify(eliminarRegistro).execute(request.capture());
@@ -358,14 +587,7 @@ class RegistroControllerTest {
         assertThat(request.getValue().registroId()).isEqualTo(REGISTRO_ID);
     }
 
-    @Test
-    @DisplayName("DELETE responde 404 cuando el registro no es del negocio")
-    void dELETEResponde404CuandoElRegistroNoEsDelNegocio() throws Exception {
-        doThrow(new ResourceNotFoundException("El registro no existe"))
-                .when(eliminarRegistro).execute(any(EliminarRegistroRequest.class));
-
-        ResultActions result = mockMvc.perform(delete("/api/registros/{id}", REGISTRO_ID).principal(sesion));
-
+    private void entoncesSeVerificaDELETEResponde404CuandoElRegistroNoEsDelNegocio() throws Exception {
         result.andExpect(status().isNotFound());
     }
 }
