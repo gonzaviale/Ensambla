@@ -11,110 +11,256 @@ import { makeTemplate } from '@/lib/sistema/core';
 import { estado } from '@/mocks/db/estado';
 import { setupUsuarioConSesion, setupUsuarioSinSesion } from '@/test/testHelpers';
 
+type Sistema = ReturnType<typeof makeTemplate>;
+type Preferencias = Awaited<ReturnType<typeof obtenerPreferencias>>;
+
+const SIN_PREFERENCIAS = { descartadas: [], grupos: {}, bienvenidaVista: false };
+const PREFERENCIAS_ELEGIDAS = {
+  descartadas: ['stock:1'],
+  grupos: { zona: false },
+  bienvenidaVista: true,
+};
+
+let email = '';
+let sistema: Sistema;
+let segundo: Sistema;
+let lista: Sistema[];
+let error: unknown;
+let rechazo: Promise<unknown>;
+let preferencias: Preferencias;
+
 describe('API de sistemas', () => {
-  it('guarda un sistema nuevo, lo lista y lo reemplaza sin duplicarlo', async () => {
-    setupUsuarioConSesion();
-    const sistema = makeTemplate('shop', {}, true);
+  it('guarda un sistema nuevo y lo reemplaza sin duplicarlo', async () => {
+    dadoUnUsuarioConSesion();
 
-    await guardarSistema(sistema);
-    await guardarSistema({ ...sistema, name: 'Mi kiosco' });
+    await cuandoSeGuardaUnKioscoYSeLoRenombra();
 
-    const lista = await listarSistemas();
-    expect(lista).toHaveLength(1);
-    expect(lista[0]?.name).toBe('Mi kiosco');
-    expect(lista[0]?.sections[0]?.blocks).toHaveLength(3);
+    entoncesHayUnSoloSistemaLlamado('Mi kiosco');
+  });
+
+  it('conserva las secciones del sistema guardado', async () => {
+    dadoUnUsuarioConSesion();
+
+    await cuandoSeGuardaUnKioscoYSeLoRenombra();
+
+    entoncesLaPrimeraSeccionTieneTresBloques();
   });
 
   it('cada cuenta ve solo sus sistemas', async () => {
-    const lucia = setupUsuarioConSesion({ email: 'lucia@example.com' });
-    await guardarSistema(makeTemplate('shop', {}, false));
-    estado.sesionUsuarioId = null;
-    setupUsuarioConSesion({ email: 'otra@example.com' });
+    await dadoUnSistemaGuardadoPorLuciaYOtraSesionDistinta();
 
-    expect(await listarSistemas()).toEqual([]);
-    expect(estado.sistemas.get(lucia.email)).toHaveLength(1);
+    await cuandoSeListanLosSistemas();
+
+    entoncesLaOtraCuentaNoVeNingunSistema();
+    entoncesLuciaConservaElSuyo();
   });
 
-  it('Gratuito rechaza el segundo sistema y conserva el primero', async () => {
-    setupUsuarioConSesion();
-    const primero = makeTemplate('shop', {}, false);
-    await guardarSistema(primero);
+  it('Gratuito rechaza el segundo sistema', async () => {
+    await dadoUnPrimerSistemaGuardado();
 
-    await expect(guardarSistema(makeTemplate('warehouse', {}, false))).rejects.toMatchObject({
-      status: 403,
-      codigo: 'LIMITE_PLAN',
-    });
+    cuandoSeIntentaGuardarUnSegundoSistema();
 
-    expect((await listarSistemas()).map((sistema) => sistema.id)).toEqual([primero.id]);
+    await entoncesSeRechazaPorElLimiteDelPlan();
+  });
+
+  it('Gratuito conserva el primer sistema al rechazar el segundo', async () => {
+    await dadoUnPrimerSistemaGuardado();
+    cuandoSeIntentaGuardarUnSegundoSistema();
+    await entoncesSeRechazaPorElLimiteDelPlan();
+
+    await cuandoSeListanLosSistemas();
+
+    entoncesLosSistemasSon(sistema.id);
   });
 
   it('devuelve los sistemas en el orden en que se crearon', async () => {
-    const usuario = setupUsuarioConSesion();
-    estado.pruebasPremium.set(usuario.email, {
-      inicioEn: new Date(Date.now() - 1000).toISOString(),
-      finEn: new Date(Date.now() + 7 * 86400000).toISOString(),
-      paginasIaUtilizadas: 0,
-      limitePaginasIa: 10,
-    });
-    const primero = { ...makeTemplate('shop', {}, false), createdAt: '2026-10-01T10:00:00.000Z' };
-    const segundo = {
-      ...makeTemplate('warehouse', {}, false),
-      createdAt: '2026-10-02T10:00:00.000Z',
-    };
-    await guardarSistema(segundo);
-    await guardarSistema(primero);
+    await dadoDosSistemasGuardadosAlReves();
 
-    expect((await listarSistemas()).map((sistema) => sistema.id)).toEqual([primero.id, segundo.id]);
+    await cuandoSeListanLosSistemas();
+
+    entoncesLosSistemasSon(sistema.id, segundo.id);
   });
 
   it('rechaza un sistema inválido con el campo que falla', async () => {
-    setupUsuarioConSesion();
-    const sistema = makeTemplate('shop', {}, false);
+    dadoUnUsuarioConSesion();
 
-    const error = await guardarSistema({ ...sistema, name: '   ' }).catch((e: unknown) => e);
+    await cuandoSeIntentaGuardarUnSistemaSinNombre();
 
-    expect(error).toBeInstanceOf(ApiError);
-    expect((error as ApiError).status).toBe(400);
-    expect(await listarSistemas()).toEqual([]);
+    entoncesElErrorEsUnApiErrorDeEstado(400);
   });
 
-  it('elimina un sistema y avisa si ya no existe', async () => {
-    setupUsuarioConSesion();
-    const sistema = makeTemplate('shop', {}, false);
-    await guardarSistema(sistema);
+  it('no guarda un sistema inválido', async () => {
+    dadoUnUsuarioConSesion();
+    await cuandoSeIntentaGuardarUnSistemaSinNombre();
 
-    await eliminarSistema(sistema.id);
+    await cuandoSeListanLosSistemas();
 
-    expect(await listarSistemas()).toEqual([]);
-    await expect(eliminarSistema(sistema.id)).rejects.toMatchObject({ status: 404 });
+    entoncesNoHaySistemas();
+  });
+
+  it('elimina un sistema', async () => {
+    await dadoUnPrimerSistemaGuardado();
+
+    await cuandoSeEliminaElSistema();
+    await cuandoSeListanLosSistemas();
+
+    entoncesNoHaySistemas();
+  });
+
+  it('avisa si el sistema eliminado ya no existe', async () => {
+    await dadoUnPrimerSistemaGuardado();
+    await cuandoSeEliminaElSistema();
+
+    cuandoSeIntentaEliminarDeNuevoElSistema();
+
+    await entoncesSeRechazaConEstado(404);
   });
 
   it('pide sesión', async () => {
-    setupUsuarioSinSesion();
+    dadoUnUsuarioSinSesion();
 
-    await expect(listarSistemas()).rejects.toMatchObject({ status: 401 });
+    cuandoSeIntentanListarLosSistemas();
+
+    await entoncesSeRechazaConEstado(401);
   });
 });
 
 describe('API de preferencias', () => {
-  it('arranca con todo prendido y guarda lo que la persona decide', async () => {
-    setupUsuarioConSesion({}, { bienvenidaVista: false });
+  it('arranca con todo prendido', async () => {
+    dadoUnUsuarioSinPreferencias();
 
-    expect(await obtenerPreferencias()).toEqual({
-      descartadas: [],
-      grupos: {},
-      bienvenidaVista: false,
-    });
-    await guardarPreferencias({
-      descartadas: ['stock:1'],
-      grupos: { zona: false },
-      bienvenidaVista: true,
-    });
+    await cuandoSePidenLasPreferencias();
 
-    expect(await obtenerPreferencias()).toEqual({
-      descartadas: ['stock:1'],
-      grupos: { zona: false },
-      bienvenidaVista: true,
-    });
+    entoncesLasPreferenciasSon(SIN_PREFERENCIAS);
+  });
+
+  it('guarda lo que la persona decide', async () => {
+    dadoUnUsuarioSinPreferencias();
+
+    await cuandoSeGuardanLasPreferenciasElegidas();
+
+    entoncesLasPreferenciasSon(PREFERENCIAS_ELEGIDAS);
   });
 });
+
+function dadoUnUsuarioConSesion() {
+  email = setupUsuarioConSesion().email;
+}
+
+function dadoUnUsuarioSinSesion() {
+  setupUsuarioSinSesion();
+}
+
+function dadoUnUsuarioSinPreferencias() {
+  setupUsuarioConSesion({}, { bienvenidaVista: false });
+}
+
+async function dadoUnPrimerSistemaGuardado() {
+  dadoUnUsuarioConSesion();
+  sistema = makeTemplate('shop', {}, false);
+  await guardarSistema(sistema);
+}
+
+async function dadoUnSistemaGuardadoPorLuciaYOtraSesionDistinta() {
+  email = setupUsuarioConSesion({ email: 'lucia@example.com' }).email;
+  await guardarSistema(makeTemplate('shop', {}, false));
+  estado.sesionUsuarioId = null;
+  setupUsuarioConSesion({ email: 'otra@example.com' });
+}
+
+async function dadoDosSistemasGuardadosAlReves() {
+  dadoUnUsuarioConSesion();
+  estado.pruebasPremium.set(email, {
+    inicioEn: new Date(Date.now() - 1000).toISOString(),
+    finEn: new Date(Date.now() + 7 * 86400000).toISOString(),
+    paginasIaUtilizadas: 0,
+    limitePaginasIa: 10,
+  });
+  sistema = { ...makeTemplate('shop', {}, false), createdAt: '2026-10-01T10:00:00.000Z' };
+  segundo = { ...makeTemplate('warehouse', {}, false), createdAt: '2026-10-02T10:00:00.000Z' };
+  await guardarSistema(segundo);
+  await guardarSistema(sistema);
+}
+
+async function cuandoSeGuardaUnKioscoYSeLoRenombra() {
+  sistema = makeTemplate('shop', {}, true);
+  await guardarSistema(sistema);
+  await guardarSistema({ ...sistema, name: 'Mi kiosco' });
+  lista = await listarSistemas();
+}
+
+function cuandoSeIntentaGuardarUnSegundoSistema() {
+  rechazo = guardarSistema(makeTemplate('warehouse', {}, false));
+}
+
+async function cuandoSeIntentaGuardarUnSistemaSinNombre() {
+  const invalido = { ...makeTemplate('shop', {}, false), name: '   ' };
+  error = await guardarSistema(invalido).catch((e: unknown) => e);
+}
+
+async function cuandoSeListanLosSistemas() {
+  lista = await listarSistemas();
+}
+
+function cuandoSeIntentanListarLosSistemas() {
+  rechazo = listarSistemas();
+}
+
+async function cuandoSeEliminaElSistema() {
+  await eliminarSistema(sistema.id);
+}
+
+function cuandoSeIntentaEliminarDeNuevoElSistema() {
+  rechazo = eliminarSistema(sistema.id);
+}
+
+async function cuandoSePidenLasPreferencias() {
+  preferencias = await obtenerPreferencias();
+}
+
+async function cuandoSeGuardanLasPreferenciasElegidas() {
+  await guardarPreferencias(PREFERENCIAS_ELEGIDAS);
+  preferencias = await obtenerPreferencias();
+}
+
+function entoncesHayUnSoloSistemaLlamado(nombre: string) {
+  expect(lista).toHaveLength(1);
+  expect(lista[0]?.name).toBe(nombre);
+}
+
+function entoncesLaPrimeraSeccionTieneTresBloques() {
+  expect(lista[0]?.sections[0]?.blocks).toHaveLength(3);
+}
+
+function entoncesLaOtraCuentaNoVeNingunSistema() {
+  expect(lista).toEqual([]);
+}
+
+function entoncesLuciaConservaElSuyo() {
+  expect(estado.sistemas.get('lucia@example.com')).toHaveLength(1);
+}
+
+function entoncesNoHaySistemas() {
+  expect(lista).toEqual([]);
+}
+
+function entoncesLosSistemasSon(...ids: string[]) {
+  expect(lista.map((item) => item.id)).toEqual(ids);
+}
+
+function entoncesElErrorEsUnApiErrorDeEstado(estadoHttp: number) {
+  expect(error).toBeInstanceOf(ApiError);
+  expect((error as ApiError).status).toBe(estadoHttp);
+}
+
+async function entoncesSeRechazaPorElLimiteDelPlan() {
+  await expect(rechazo).rejects.toMatchObject({ status: 403, codigo: 'LIMITE_PLAN' });
+}
+
+async function entoncesSeRechazaConEstado(estadoHttp: number) {
+  await expect(rechazo).rejects.toMatchObject({ status: estadoHttp });
+}
+
+function entoncesLasPreferenciasSon(esperadas: unknown) {
+  expect(preferencias).toEqual(esperadas);
+}
