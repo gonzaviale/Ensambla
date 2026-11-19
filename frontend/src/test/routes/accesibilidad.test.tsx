@@ -18,66 +18,118 @@ const OPCIONES = {
   },
 };
 
-const sinViolaciones = async () => {
-  const resultado = await axe(document.body, OPCIONES);
-  expect(resultado.violations.map((v) => `${v.id}: ${v.nodes[0]?.html}`)).toEqual([]);
-};
+let almacenId = '';
 
 describe('accesibilidad de las pantallas', () => {
   it('inicio', async () => {
-    setupUsuarioConSesion();
-    renderApp('/inicio');
-    await screen.findByRole('heading', { name: /En qué puedo/ }, ESPERA);
-    await sinViolaciones();
+    dadoUnUsuarioConSesion();
+
+    await cuandoSeAbreLaPantalla('/inicio', { name: /En qué puedo/ });
+
+    await entoncesNoHayViolaciones();
   });
 
   it('plantillas', async () => {
-    setupUsuarioConSesion();
-    renderApp('/plantillas');
-    await screen.findByRole('heading', { name: /Elegí una base/ }, ESPERA);
-    await sinViolaciones();
+    dadoUnUsuarioConSesion();
+
+    await cuandoSeAbreLaPantalla('/plantillas', { name: /Elegí una base/ });
+
+    await entoncesNoHayViolaciones();
   });
 
   it('taller de Sami', async () => {
-    setupUsuarioConSesion();
-    renderApp('/taller');
-    await screen.findByRole('heading', { name: 'Construyamos juntos' }, ESPERA);
-    await sinViolaciones();
+    dadoUnUsuarioConSesion();
+
+    await cuandoSeAbreLaPantalla('/taller', { name: 'Construyamos juntos' });
+
+    await entoncesNoHayViolaciones();
   });
 
   it('Mi zona', async () => {
-    setupUsuarioConSesion();
-    renderApp('/zona');
-    await screen.findByRole('heading', { level: 1, name: /Mirá cuánto se cobra/ }, ESPERA);
-    await sinViolaciones();
+    dadoUnUsuarioConSesion();
+
+    await cuandoSeAbreLaPantalla('/zona', { level: 1, name: /Mirá cuánto se cobra/ });
+
+    await entoncesNoHayViolaciones();
   });
 
   it.each(['construir', 'usar'])('editor en modo %s', async (modo) => {
-    const usuario = setupUsuarioConSesion();
-    const sistema = crearAlmacenDeEjemplo(hoy());
-    estado.sistemas.set(usuario.email, [sistema]);
-    renderApp(`/sistemas/${sistema.id}?modo=${modo}`);
-    await screen.findByRole('heading', { level: 1, name: /Almacén de ejemplo/ }, ESPERA);
-    await sinViolaciones();
+    dadoUnAlmacenDeEjemplo();
+
+    await cuandoSeAbreLaPantalla(`/sistemas/${almacenId}?modo=${modo}`, {
+      level: 1,
+      name: /Almacén de ejemplo/,
+    });
+
+    await entoncesNoHayViolaciones();
   });
 
-  it('el panel de avisos y un modal', async () => {
-    const usuario = setupUsuarioConSesion();
-    const sistema = crearAlmacenDeEjemplo(hoy());
-    estado.sistemas.set(usuario.email, [sistema]);
-    renderApp(`/sistemas/${sistema.id}?modo=usar`);
-    const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: /Avisos de Sami/ }, ESPERA));
-    await sinViolaciones();
-    await user.click(screen.getByRole('button', { name: /Ver todos los avisos/ }));
-    await screen.findByRole('region', { name: /Lo que encontré/ }, ESPERA);
-    await sinViolaciones();
+  it('el panel de avisos', async () => {
+    dadoUnAlmacenDeEjemplo();
+    renderApp(`/sistemas/${almacenId}?modo=usar`);
+
+    await cuandoSeAbreElPanelDeAvisos();
+
+    await entoncesNoHayViolaciones();
+  });
+
+  it('el modal con todos los avisos', async () => {
+    dadoUnAlmacenDeEjemplo();
+    renderApp(`/sistemas/${almacenId}?modo=usar`);
+    await cuandoSeAbreElPanelDeAvisos();
+
+    await cuandoSeVenTodosLosAvisos();
+
+    await entoncesNoHayViolaciones();
   });
 
   it('la bienvenida', async () => {
-    setupUsuarioConSesion({}, { bienvenidaVista: false });
-    renderApp('/inicio');
-    await screen.findByRole('dialog', { name: /Bienvenido a Ensambla/ }, ESPERA);
-    await sinViolaciones();
+    dadoUnUsuarioQueNoVioLaBienvenida();
+
+    await cuandoSeAbreLaBienvenida();
+
+    await entoncesNoHayViolaciones();
   });
 });
+
+function dadoUnUsuarioConSesion() {
+  setupUsuarioConSesion();
+}
+
+function dadoUnAlmacenDeEjemplo() {
+  const usuario = setupUsuarioConSesion();
+  const sistema = crearAlmacenDeEjemplo(hoy());
+  estado.sistemas.set(usuario.email, [sistema]);
+  almacenId = sistema.id;
+}
+
+function dadoUnUsuarioQueNoVioLaBienvenida() {
+  setupUsuarioConSesion({}, { bienvenidaVista: false });
+}
+
+async function cuandoSeAbreLaPantalla(
+  ruta: string,
+  titulo: { level?: number; name: string | RegExp },
+) {
+  renderApp(ruta);
+  await screen.findByRole('heading', titulo, ESPERA);
+}
+
+async function cuandoSeAbreElPanelDeAvisos() {
+  await userEvent.click(await screen.findByRole('button', { name: /Avisos de Sami/ }, ESPERA));
+}
+
+async function cuandoSeVenTodosLosAvisos() {
+  await userEvent.click(screen.getByRole('button', { name: /Ver todos los avisos/ }));
+  await screen.findByRole('region', { name: /Lo que encontré/ }, ESPERA);
+}
+
+async function cuandoSeAbreLaBienvenida() {
+  renderApp('/inicio');
+  await screen.findByRole('dialog', { name: /Bienvenido a Ensambla/ }, ESPERA);
+}
+
+async function entoncesNoHayViolaciones() {
+  const resultado = await axe(document.body, OPCIONES);
+  expect(resultado.violations.map((v) => `${v.id}: ${v.nodes[0]?.html}`)).toEqual([]);
+}
