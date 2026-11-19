@@ -147,3 +147,24 @@ export const frasePorComercios = (cantidad: number) =>
   FRASE_POR_COMERCIOS[cantidad] ?? `Hay ${cantidad} comercios en esta zona.`;
 
 export const sinSuficientesComercios = (zona: Zona) => zona.comercios < MINIMO_DE_COMERCIOS;
+
+/** Cuántos de tus productos están más baratos, en línea o más caros que el promedio de la zona. */
+export function contarPosiciones(
+  productos: ProductoDeZona[],
+  propios: ProductoPropio[],
+): Record<PosicionDelPrecio, number> {
+  const cuenta = { bajo: 0, justo: 0, alto: 0 };
+  productos.forEach((producto) => {
+    const propio = propioDe(producto, propios);
+    if (propio) cuenta[posicionDelPrecio(propio.precio, producto.precio.promedio)]++;
+  });
+  return cuenta;
+}
+
+const FRASE_POR_COMPARADOS: Record<number, string> = {
+  0: 'Todavía no hay productos para comparar',
+  1: '1 producto comparado',
+};
+
+export const fraseDeComparados = (cantidad: number) =>
+  FRASE_POR_COMPARADOS[cantidad] ?? `${cantidad} productos comparados`;
