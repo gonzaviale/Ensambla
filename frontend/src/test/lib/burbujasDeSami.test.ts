@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { burbujasDeSami } from '@/lib/burbujasDeSami';
+import { cuandoSeCalcula, entoncesElResultadoEs } from '@/test/calculo';
 
 const RESPUESTA_LARGA =
   'Entiendo lo que me contás: vendés velas aromáticas, las hacés vos misma y además atendés pedidos por encargo de tus clientas habituales. ' +
@@ -8,19 +9,25 @@ const RESPUESTA_LARGA =
   'Si te parece bien arranco con eso y después lo vamos ajustando juntas. ' +
   '¿Querés que empiece por el stock o por los pedidos?';
 
+const TEXTO_SIN_DONDE_CORTAR = 'palabra '.repeat(30).trim();
+
+let burbujas: string[] = [];
+
 describe('burbujasDeSami', () => {
   it('deja en una sola burbuja un texto corto de una oración', () => {
-    expect(burbujasDeSami('¿Qué es lo principal que querés anotar?')).toEqual([
-      '¿Qué es lo principal que querés anotar?',
-    ]);
+    cuandoSeCalcula(() => burbujasDeSami('¿Qué es lo principal que querés anotar?'));
+
+    entoncesElResultadoEs(['¿Qué es lo principal que querés anotar?']);
   });
 
   it('parte en una burbuja por oración', () => {
-    expect(
+    cuandoSeCalcula(() =>
       burbujasDeSami(
         'Hola, Facu. Contame qué hacés. Yo pienso una base y vos me decís si te sirve.',
       ),
-    ).toEqual([
+    );
+
+    entoncesElResultadoEs([
       'Hola, Facu.',
       'Contame qué hacés.',
       'Yo pienso una base y vos me decís si te sirve.',
@@ -28,45 +35,75 @@ describe('burbujasDeSami', () => {
   });
 
   it('une las oraciones más cortas cuando hay más burbujas que las permitidas', () => {
-    expect(burbujasDeSami('Uno. Dos. Tres. Cuatro. Cinco. Seis. Siete.')).toEqual([
-      'Uno. Dos.',
-      'Tres.',
-      'Cuatro.',
-      'Cinco.',
-      'Seis.',
-      'Siete.',
-    ]);
+    cuandoSeCalcula(() => burbujasDeSami('Uno. Dos. Tres. Cuatro. Cinco. Seis. Siete.'));
+
+    entoncesElResultadoEs(['Uno. Dos.', 'Tres.', 'Cuatro.', 'Cinco.', 'Seis.', 'Siete.']);
   });
 
   it('corta una oración larga por la coma más cercana a la mitad', () => {
-    expect(
+    cuandoSeCalcula(() =>
       burbujasDeSami(
         'Armé tus velas con su aroma, las clientas y los pedidos, y conecté cada pedido con la vela que lleva.',
       ),
-    ).toEqual([
+    );
+
+    entoncesElResultadoEs([
       'Armé tus velas con su aroma, las clientas y los pedidos',
       'y conecté cada pedido con la vela que lleva.',
     ]);
   });
 
   it('no corta dentro de una oración corta ni dentro de «comillas»', () => {
-    expect(
+    cuandoSeCalcula(() =>
       burbujasDeSami(
         'Te propongo empezar con «Ventas» y sumarle la columna Zona. Mirá cómo queda.',
       ),
-    ).toEqual(['Te propongo empezar con «Ventas» y sumarle la columna Zona.', 'Mirá cómo queda.']);
+    );
+
+    entoncesElResultadoEs([
+      'Te propongo empezar con «Ventas» y sumarle la columna Zona.',
+      'Mirá cómo queda.',
+    ]);
   });
 
   it('deja en una burbuja un texto largo sin puntos ni comas donde cortar', () => {
-    const texto = 'palabra '.repeat(30).trim();
-    expect(burbujasDeSami(texto)).toEqual([texto]);
+    cuandoSeCalcula(() => burbujasDeSami(TEXTO_SIN_DONDE_CORTAR));
+
+    entoncesElResultadoEs([TEXTO_SIN_DONDE_CORTAR]);
   });
 
-  it('reparte una respuesta larga en pocas burbujas más cortas que el texto entero', () => {
-    const burbujas = burbujasDeSami(RESPUESTA_LARGA);
-    expect(burbujas.length).toBeGreaterThan(1);
-    expect(burbujas.length).toBeLessThanOrEqual(6);
-    expect(Math.max(...burbujas.map((burbuja) => burbuja.length))).toBeLessThanOrEqual(125);
-    expect(burbujas.join(' ').replace(/\s+/g, ' ')).toContain('¿Querés que empiece por el stock');
+  it('reparte una respuesta larga en varias burbujas, pero pocas', () => {
+    cuandoSeReparteLaRespuestaLarga();
+
+    entoncesSonEntreDosYSeisBurbujas();
+  });
+
+  it('las burbujas de una respuesta larga son más cortas que el texto entero', () => {
+    cuandoSeReparteLaRespuestaLarga();
+
+    entoncesNingunaBurbujaPasaLos125Caracteres();
+  });
+
+  it('no pierde texto al repartir una respuesta larga', () => {
+    cuandoSeReparteLaRespuestaLarga();
+
+    entoncesSeConservaLaUltimaPregunta();
   });
 });
+
+function cuandoSeReparteLaRespuestaLarga() {
+  burbujas = burbujasDeSami(RESPUESTA_LARGA);
+}
+
+function entoncesSonEntreDosYSeisBurbujas() {
+  expect(burbujas.length).toBeGreaterThan(1);
+  expect(burbujas.length).toBeLessThanOrEqual(6);
+}
+
+function entoncesNingunaBurbujaPasaLos125Caracteres() {
+  expect(Math.max(...burbujas.map((burbuja) => burbuja.length))).toBeLessThanOrEqual(125);
+}
+
+function entoncesSeConservaLaUltimaPregunta() {
+  expect(burbujas.join(' ').replace(/\s+/g, ' ')).toContain('¿Querés que empiece por el stock');
+}
