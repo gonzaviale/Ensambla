@@ -25,17 +25,53 @@ class AgregadoZonaRepositoryImplTest {
     private final AgregadoZonaRepositoryImpl repository =
             new AgregadoZonaRepositoryImpl(agregadoJpa, negocioJpa, new AgregadoZonaRepositoryMapper());
 
+    private List<AgregadoZonaProducto> productos;
+    private long comercios;
+
     @Test
     @DisplayName("Lista los productos agregados de la zona mapeados al dominio")
-    void findByZonaIdShouldMapEveryField() {
+    void listaLosProductosAgregadosDeLaZonaMapeadosAlDominio() {
+        dadoQueLaZonaTieneUnAgregadoDeYerba();
+
+        cuandoSeListanLosProductosDeLaZona();
+
+        entoncesSeMapeaElAgregadoDeYerbaConTodosSusCampos();
+    }
+
+    @Test
+    @DisplayName("Cuenta solo los comercios de la zona que comparten sus datos")
+    void cuentaSoloLosComerciosDeLaZonaQueComparten() {
+        dadoQueDiezComerciosDeLaZonaComparten();
+
+        cuandoSeCuentanLosComerciosQueComparten();
+
+        entoncesSeCuentanDiez();
+    }
+
+    // --- dado ---
+    private void dadoQueLaZonaTieneUnAgregadoDeYerba() {
         when(agregadoJpa.findAllByZonaIdOrderByNombreAscIdAsc(ZONA_ID.valor())).thenReturn(List.of(
                 AgregadoZonaProductoEntity.builder().nombre("Yerba 1kg").comercios(8).comerciosVenden(6)
                         .precioMinimo(new BigDecimal("2800.00")).precioPromedio(new BigDecimal("3100.00"))
                         .precioMaximo(new BigDecimal("3400.00")).unidadesSemana(new BigDecimal("12.50")).build()));
+    }
 
-        List<AgregadoZonaProducto> result = repository.findByZonaId(ZONA_ID);
+    private void dadoQueDiezComerciosDeLaZonaComparten() {
+        when(negocioJpa.countByZonaIdAndComparteDatosZonaTrue(ZONA_ID.valor())).thenReturn(10L);
+    }
 
-        assertThat(result).singleElement().satisfies(producto -> {
+    // --- cuando ---
+    private void cuandoSeListanLosProductosDeLaZona() {
+        productos = repository.findByZonaId(ZONA_ID);
+    }
+
+    private void cuandoSeCuentanLosComerciosQueComparten() {
+        comercios = repository.contarComerciosQueComparten(ZONA_ID);
+    }
+
+    // --- entonces ---
+    private void entoncesSeMapeaElAgregadoDeYerbaConTodosSusCampos() {
+        assertThat(productos).singleElement().satisfies(producto -> {
             assertThat(producto.nombre()).isEqualTo("Yerba 1kg");
             assertThat(producto.comercios()).isEqualTo(8);
             assertThat(producto.comerciosVenden()).isEqualTo(6);
@@ -46,11 +82,7 @@ class AgregadoZonaRepositoryImplTest {
         });
     }
 
-    @Test
-    @DisplayName("Cuenta solo los comercios de la zona que comparten sus datos")
-    void contarComerciosQueComparten() {
-        when(negocioJpa.countByZonaIdAndComparteDatosZonaTrue(ZONA_ID.valor())).thenReturn(10L);
-
-        assertThat(repository.contarComerciosQueComparten(ZONA_ID)).isEqualTo(10L);
+    private void entoncesSeCuentanDiez() {
+        assertThat(comercios).isEqualTo(10L);
     }
 }
