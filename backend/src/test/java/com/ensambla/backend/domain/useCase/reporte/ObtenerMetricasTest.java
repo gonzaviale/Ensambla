@@ -53,7 +53,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -94,6 +94,8 @@ class ObtenerMetricasTest {
             Clock.fixed(INSTANTE, ZoneOffset.UTC));
 
     private Proyecto proyecto;
+
+    private Throwable excepcion;
 
     @BeforeEach
     void setUp() {
@@ -198,12 +200,11 @@ class ObtenerMetricasTest {
     @Test
     @DisplayName("Un sistema de otro negocio responde como inexistente")
     void unSistemaDeOtroNegocioRespondeComoInexistente() {
-        when(proyectoRepository.obtener(NEGOCIO_ID, OTRO_PROYECTO_ID))
-                .thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
+        dadoUnSistemaDeOtroNegocio();
 
-        assertThatThrownBy(() -> obtenerMetricas.execute(
-                new ObtenerMetricasRequest(USUARIO_ID, OTRO_PROYECTO_ID, PeriodoMetricas.SEMANA)))
-                .isInstanceOf(ResourceNotFoundException.class);
+        cuandoSeIntentanObtenerLasMetricasDelSistemaAjeno();
+
+        entoncesSeRechazaPorqueElSistemaNoExiste();
     }
 
     // --- dado ---
@@ -356,6 +357,10 @@ class ObtenerMetricasTest {
     private void dadoElEscenarioDeSinVentasAnotadasAvisaQueNoHayVentas() {
         dadoDatos(List.of(), List.of());
     }
+    private void dadoUnSistemaDeOtroNegocio() {
+        when(proyectoRepository.obtener(NEGOCIO_ID, OTRO_PROYECTO_ID))
+                .thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
+    }
 
     // --- cuando ---
 
@@ -393,6 +398,10 @@ class ObtenerMetricasTest {
 
     private void cuandoSeEjecutaSinVentasAnotadasAvisaQueNoHayVentas() {
         response = cuandoObtener(PeriodoMetricas.SEMANA);
+    }
+    private void cuandoSeIntentanObtenerLasMetricasDelSistemaAjeno() {
+        excepcion = catchThrowable(() -> obtenerMetricas.execute(
+                new ObtenerMetricasRequest(USUARIO_ID, OTRO_PROYECTO_ID, PeriodoMetricas.SEMANA)));
     }
 
     // --- entonces ---
@@ -494,5 +503,9 @@ class ObtenerMetricasTest {
     private void entoncesSeVerificaSinVentasAnotadasAvisaQueNoHayVentas() {
         assertThat(response.hayVentas()).isFalse();
         assertThat(response.masVendidos()).isEmpty();
+    }
+
+    private void entoncesSeRechazaPorqueElSistemaNoExiste() {
+        assertThat(excepcion).isInstanceOf(ResourceNotFoundException.class);
     }
 }

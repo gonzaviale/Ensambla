@@ -36,7 +36,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -66,6 +66,8 @@ class ObtenerResumenInicioTest {
             negocioRepository, proyectoRepository, datosDeProyectoService, Clock.fixed(INSTANTE, ZoneOffset.UTC));
 
     private Proyecto proyecto;
+
+    private Throwable excepcion;
 
     @BeforeEach
     void setUp() {
@@ -158,12 +160,11 @@ class ObtenerResumenInicioTest {
     @Test
     @DisplayName("Un sistema de otro negocio responde como inexistente")
     void unSistemaDeOtroNegocioRespondeComoInexistente() {
-        when(proyectoRepository.obtener(NEGOCIO_ID, OTRO_PROYECTO_ID))
-                .thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
+        dadoUnSistemaDeOtroNegocio();
 
-        assertThatThrownBy(() -> obtenerResumenInicio.execute(
-                new ObtenerResumenInicioRequest(USUARIO_ID, OTRO_PROYECTO_ID)))
-                .isInstanceOf(ResourceNotFoundException.class);
+        cuandoSeIntentaObtenerElResumenDeInicioDelSistemaAjeno();
+
+        entoncesSeRechazaPorqueElSistemaNoExiste();
     }
 
     // --- dado ---
@@ -311,6 +312,10 @@ class ObtenerResumenInicioTest {
                         producto(YERBA, "Yerba", 40, 3400, 2700, null),
                         producto(ARROZ, "Arroz", 50, 900, 600, null));
     }
+    private void dadoUnSistemaDeOtroNegocio() {
+        when(proyectoRepository.obtener(NEGOCIO_ID, OTRO_PROYECTO_ID))
+                .thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
+    }
 
     // --- cuando ---
 
@@ -344,6 +349,10 @@ class ObtenerResumenInicioTest {
 
     private void cuandoSeEjecutaNoDiceQueUnProductoEstaParadoSiElSistemaTodaviaNoTieneDosSemanasDe() {
         response = cuandoObtener();
+    }
+    private void cuandoSeIntentaObtenerElResumenDeInicioDelSistemaAjeno() {
+        excepcion = catchThrowable(() -> obtenerResumenInicio.execute(
+                new ObtenerResumenInicioRequest(USUARIO_ID, OTRO_PROYECTO_ID)));
     }
 
     // --- entonces ---
@@ -421,5 +430,9 @@ class ObtenerResumenInicioTest {
 
     private void entoncesSeVerificaNoDiceQueUnProductoEstaParadoSiElSistemaTodaviaNoTieneDosSemanasDe() {
         assertThat(response.parados()).isEmpty();
+    }
+
+    private void entoncesSeRechazaPorqueElSistemaNoExiste() {
+        assertThat(excepcion).isInstanceOf(ResourceNotFoundException.class);
     }
 }

@@ -45,6 +45,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -79,6 +80,8 @@ class ExportarResumenNegocioTest {
             negocioRepository, controlPlanService, proyectoRepository, datosDeProyectoService,
             new ContextoDeResumenService(negocioRepository, zonaRepository, agregadoZonaRepository, avisoRepository),
             generador, Clock.fixed(INSTANTE, ZoneOffset.UTC));
+
+    private Throwable excepcion;
 
     @BeforeEach
     void setUp() {
@@ -122,13 +125,11 @@ class ExportarResumenNegocioTest {
     @Test
     @DisplayName("Un sistema de otro negocio responde como inexistente")
     void unSistemaDeOtroNegocioRespondeComoInexistente() {
-        when(proyectoRepository.obtener(NEGOCIO_ID, OTRO_PROYECTO_ID))
-                .thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
+        dadoUnSistemaDeOtroNegocio();
 
-        assertThatThrownBy(() -> exportarResumenNegocio.execute(
-                new ExportarResumenRequest(USUARIO_ID, OTRO_PROYECTO_ID, null, null)))
-                .isInstanceOf(ResourceNotFoundException.class);
-        verify(generador, never()).generar(any());
+        cuandoSeIntentaExportarElResumenDelSistemaAjeno();
+
+        entoncesSeRechazaPorqueElSistemaNoExiste();
     }
 
     @Test
@@ -201,6 +202,10 @@ class ExportarResumenNegocioTest {
         when(avisoRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(List.of(
                         aviso(PROYECTO_ID), aviso(OTRO_PROYECTO_ID), aviso(null)));
     }
+    private void dadoUnSistemaDeOtroNegocio() {
+        when(proyectoRepository.obtener(NEGOCIO_ID, OTRO_PROYECTO_ID))
+                .thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
+    }
 
     // --- cuando ---
 
@@ -227,6 +232,10 @@ class ExportarResumenNegocioTest {
 
     private void cuandoSeEjecutaSoloCuentaLosAvisosDelSistemaPedido() {
         cuandoExportar(null, null);
+    }
+    private void cuandoSeIntentaExportarElResumenDelSistemaAjeno() {
+        excepcion = catchThrowable(() -> exportarResumenNegocio.execute(
+                new ExportarResumenRequest(USUARIO_ID, OTRO_PROYECTO_ID, null, null)));
     }
 
     // --- entonces ---
@@ -262,5 +271,10 @@ class ExportarResumenNegocioTest {
 
     private void entoncesSeVerificaSoloCuentaLosAvisosDelSistemaPedido() {
         assertThat(resumenGenerado().avisos().totalPendientes()).isEqualTo(1);
+    }
+
+    private void entoncesSeRechazaPorqueElSistemaNoExiste() {
+        assertThat(excepcion).isInstanceOf(ResourceNotFoundException.class);
+        verify(generador, never()).generar(any());
     }
 }
