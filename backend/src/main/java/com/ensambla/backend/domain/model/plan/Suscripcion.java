@@ -55,10 +55,6 @@ public class Suscripcion {
         return estado == EstadoSuscripcion.PRUEBA;
     }
 
-    public boolean estaEnPruebaVigente(OffsetDateTime ahora) {
-        return estaVigente(ahora) && estaEnPrueba();
-    }
-
     /** Una prueba cuyo plazo ya pasó: es la que se vuelve al plan gratuito. */
     public boolean tieneLaPruebaVencida(OffsetDateTime ahora) {
         return estaEnPrueba() && !finEn.isAfter(ahora);

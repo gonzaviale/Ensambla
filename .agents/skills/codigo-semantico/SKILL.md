@@ -358,7 +358,6 @@ La regla apunta a *quién decide el comportamiento por tipo*, no a toda comproba
 No es permiso para copiarlos: es la lista de lo que hay que convertir. Si tocás uno, lo dejás semántico (regla de oro).
 
 - `ConversarEnTaller`
-- `AtenderMensajeWhatsapp`
 
 Cuando los resuelvas, borralos de esta lista en la fuente (`.claude/skills/codigo-semantico/SKILL.md`) y en la copia
 para Codex.

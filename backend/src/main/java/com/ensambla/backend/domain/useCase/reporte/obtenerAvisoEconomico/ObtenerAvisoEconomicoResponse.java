@@ -30,16 +30,9 @@ public record ObtenerAvisoEconomicoResponse(Aviso aviso) {
             String confianza) {
 
         static Aviso de(AvisoEconomico aviso) {
-            return new Aviso(
-                    aviso.prioridad().name(),
-                    aviso.tendencia().name(),
-                    aviso.categoria(),
-                    aviso.titulo(),
-                    aviso.explicacion(),
-                    aviso.variacionVentas(),
-                    aviso.variacionResultadoBruto(),
-                    aviso.productos(),
-                    aviso.cambios(),
+            return new Aviso(aviso.prioridad().name(), aviso.tendencia().name(), aviso.categoria(),
+                    aviso.titulo(), aviso.explicacion(), aviso.variacionVentas(),
+                    aviso.variacionResultadoBruto(), aviso.productos(), aviso.cambios(),
                     aviso.confianza().name());
         }
     }
