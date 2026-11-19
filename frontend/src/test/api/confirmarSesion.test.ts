@@ -3,24 +3,65 @@ import { sesionExpiradaConfirmada } from '@/api/auth';
 import { estado } from '@/mocks/db/estado';
 import { setupServerError, setupUsuarioConSesion } from '@/test/testHelpers';
 
+let vencida: boolean;
+let rechazo: Promise<boolean>;
+
 describe('confirmación del vencimiento de sesión', () => {
   it('una respuesta 401 atrasada no expulsa a quien todavía tiene sesión', async () => {
-    setupUsuarioConSesion();
+    dadoUnUsuarioConSesion();
 
-    expect(await sesionExpiradaConfirmada()).toBe(false);
+    await cuandoSeConfirmaElVencimiento();
+
+    entoncesLaSesionNoSeDaPorVencida();
   });
 
   it('confirma el cierre cuando el servidor ya no reconoce la sesión', async () => {
-    setupUsuarioConSesion();
-    estado.sesionUsuarioId = null;
+    dadoUnUsuarioConSesion();
+    dadoQueElServidorYaNoReconoceLaSesion();
 
-    expect(await sesionExpiradaConfirmada()).toBe(true);
+    await cuandoSeConfirmaElVencimiento();
+
+    entoncesLaSesionSeDaPorVencida();
   });
 
   it('un error temporal del servidor no se transforma en una sesión vencida', async () => {
-    setupUsuarioConSesion();
-    setupServerError('get', '/auth/me', 503, 'Temporalmente no disponible');
+    dadoUnUsuarioConSesion();
+    dadoQueElServidorFallaTemporalmente();
 
-    await expect(sesionExpiradaConfirmada()).rejects.toMatchObject({ status: 503 });
+    cuandoSeIntentaConfirmarElVencimiento();
+
+    await entoncesSePropagaElError503();
   });
 });
+
+function dadoUnUsuarioConSesion() {
+  setupUsuarioConSesion();
+}
+
+function dadoQueElServidorYaNoReconoceLaSesion() {
+  estado.sesionUsuarioId = null;
+}
+
+function dadoQueElServidorFallaTemporalmente() {
+  setupServerError('get', '/auth/me', 503, 'Temporalmente no disponible');
+}
+
+async function cuandoSeConfirmaElVencimiento() {
+  vencida = await sesionExpiradaConfirmada();
+}
+
+function cuandoSeIntentaConfirmarElVencimiento() {
+  rechazo = sesionExpiradaConfirmada();
+}
+
+function entoncesLaSesionNoSeDaPorVencida() {
+  expect(vencida).toBe(false);
+}
+
+function entoncesLaSesionSeDaPorVencida() {
+  expect(vencida).toBe(true);
+}
+
+async function entoncesSePropagaElError503() {
+  await expect(rechazo).rejects.toMatchObject({ status: 503 });
+}
