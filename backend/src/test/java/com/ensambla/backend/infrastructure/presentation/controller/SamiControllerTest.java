@@ -60,6 +60,12 @@ class SamiControllerTest {
 
     private MockMvc mockMvc;
 
+    private ResultActions resultadoDeLaLlamada;
+    private ResultActions segundaResultadoDeLaLlamada;
+    private ResultActions terceraResultadoDeLaLlamada;
+    private ResultActions result;
+    private String datos;
+
     @BeforeEach
     void setUp() {
         conversarConSami = mock(ConversarConSami.class);
@@ -78,177 +84,111 @@ class SamiControllerTest {
     @Test
     @DisplayName("Un turno del taller devuelve la respuesta, las acciones y la botonera, con el usuario de la sesión")
     void unTurnoDelTallerDevuelveLaRespuestaLasAccionesYLaBotoneraConElUsuarioDeLaSesion() throws Exception {
-        when(conversarEnTaller.execute(any())).thenReturn(new ConversarEnTallerResponse(
-                "Listo, sumé gastos.",
-                List.of(new ConversarEnTallerResponse.AccionTallerItem("agregar_pieza", Map.of("tipo", "expenses"))),
-                List.of(new ConversarEnTallerResponse.OpcionesTallerItem(null, "¿Seguimos?", List.of("Sí", "No")))));
+        dadoElEscenarioDeUnTurnoDelTallerDevuelveLaRespuestaLasAccionesYLaBotoneraConElUsuarioDeLaSesion();
 
-        ResultActions result = cuandoPosting("/api/sami/taller", """
-                {"mensaje":"  sumá gastos ","usuarioId":"otro",
-                 "estado":{"nombre":"Mi almacén","distribucion":"mosaic","piezas":[
-                   {"id":"e1","tipo":"inventory","nombre":"Inventario","seccion":"General",
-                    "campos":[{"etiqueta":"Producto","tipo":"text"}]}]},
-                 "historial":[{"quien":"sami","texto":"Hola"},{"quien":"you","texto":"hola"}]}
-                """);
+        cuandoSeEjecutaUnTurnoDelTallerDevuelveLaRespuestaLasAccionesYLaBotoneraConElUsuarioDeLaSesion();
 
-        result.andExpect(status().isOk())
-                .andExpect(jsonPath("$.respuesta").value("Listo, sumé gastos."))
-                .andExpect(jsonPath("$.acciones[0].herramienta").value("agregar_pieza"))
-                .andExpect(jsonPath("$.acciones[0].argumentos.tipo").value("expenses"))
-                .andExpect(jsonPath("$.preguntas[0].pregunta").value("¿Seguimos?"))
-                .andExpect(jsonPath("$.preguntas[0].opciones[1]").value("No"));
-        ArgumentCaptor<ConversarEnTallerRequest> captor = ArgumentCaptor.forClass(ConversarEnTallerRequest.class);
-        verify(conversarEnTaller).execute(captor.capture());
-        assertThat(captor.getValue().usuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(captor.getValue().mensaje()).isEqualTo("sumá gastos");
-        assertThat(captor.getValue().estado().piezas().getFirst().campos()).hasSize(1);
-        assertThat(captor.getValue().historial()).hasSize(2);
+        entoncesSeVerificaUnTurnoDelTallerDevuelveLaRespuestaLasAccionesYLaBotoneraConElUsuarioDeLaSesion();
     }
 
     @Test
     @DisplayName("Sin historial ni opciones el turno igual responde")
     void sinHistorialNiOpcionesElTurnoIgualResponde() throws Exception {
-        when(conversarEnTaller.execute(any()))
-                .thenReturn(new ConversarEnTallerResponse("Hola", List.of(), List.of()));
+        dadoElEscenarioDeSinHistorialNiOpcionesElTurnoIgualResponde();
 
-        ResultActions result = cuandoPosting("/api/sami/taller", """
-                {"mensaje":"hola","estado":{"nombre":"","distribucion":"mosaic","piezas":[]}}
-                """);
+        cuandoSeEjecutaSinHistorialNiOpcionesElTurnoIgualResponde();
 
-        result.andExpect(status().isOk()).andExpect(jsonPath("$.preguntas").isEmpty());
-        ArgumentCaptor<ConversarEnTallerRequest> captor = ArgumentCaptor.forClass(ConversarEnTallerRequest.class);
-        verify(conversarEnTaller).execute(captor.capture());
-        assertThat(captor.getValue().historial()).isEmpty();
+        entoncesSeVerificaSinHistorialNiOpcionesElTurnoIgualResponde();
     }
 
     @Test
     @DisplayName("Rechaza con 400 un mensaje vacío, un pedido sin estado o un historial con un autor inválido")
     void rechazaCon400UnMensajeVacioUnPedidoSinEstadoOUnHistorialConUnAutorInvalido() throws Exception {
-        cuandoPosting("/api/sami/taller", "{\"mensaje\":\"  \",\"estado\":{\"distribucion\":\"mosaic\",\"piezas\":[]}}")
-                .andExpect(status().isBadRequest());
-        cuandoPosting("/api/sami/taller", "{\"mensaje\":\"hola\"}").andExpect(status().isBadRequest());
-        cuandoPosting("/api/sami/taller", """
-                {"mensaje":"hola","estado":{"distribucion":"mosaic","piezas":[]},
-                 "historial":[{"quien":"robot","texto":"x"}]}
-                """).andExpect(status().isBadRequest());
-        verify(conversarEnTaller, never()).execute(any());
+        cuandoSeEjecutaRechazaCon400UnMensajeVacioUnPedidoSinEstadoOUnHistorialConUnAutorInvalido();
+
+        entoncesSeVerificaRechazaCon400UnMensajeVacioUnPedidoSinEstadoOUnHistorialConUnAutorInvalido();
     }
 
     @Test
     @DisplayName("Un turno con foto le pasa al use case la imagen decodificada y su tipo")
     void unTurnoConFotoLePasaAlUseCaseLaImagenDecodificadaYSuTipo() throws Exception {
-        when(conversarEnTaller.execute(any())).thenReturn(new ConversarEnTallerResponse("Leí 3", List.of(), List.of()));
+        dadoElEscenarioDeUnTurnoConFotoLePasaAlUseCaseLaImagenDecodificadaYSuTipo();
 
-        ResultActions result = cuandoPosting("/api/sami/taller", conImagen("image/jpeg", "AQID"));
+        cuandoSeEjecutaUnTurnoConFotoLePasaAlUseCaseLaImagenDecodificadaYSuTipo();
 
-        result.andExpect(status().isOk()).andExpect(jsonPath("$.respuesta").value("Leí 3"));
-        ArgumentCaptor<ConversarEnTallerRequest> captor = ArgumentCaptor.forClass(ConversarEnTallerRequest.class);
-        verify(conversarEnTaller).execute(captor.capture());
-        assertThat(captor.getValue().imagen().tipo()).isEqualTo("image/jpeg");
-        assertThat(captor.getValue().imagen().datos()).containsExactly(1, 2, 3);
+        entoncesSeVerificaUnTurnoConFotoLePasaAlUseCaseLaImagenDecodificadaYSuTipo();
     }
 
     @Test
     @DisplayName("Rechaza con 400 y un mensaje para la persona una foto de un tipo que no va")
     void rechazaCon400YUnMensajeParaLaPersonaUnaFotoDeUnTipoQueNoVa() throws Exception {
-        ResultActions result = cuandoPosting("/api/sami/taller", conImagen("application/pdf", "AQID"));
+        cuandoSeEjecutaRechazaCon400YUnMensajeParaLaPersonaUnaFotoDeUnTipoQueNoVa();
 
-        result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.message").value(ImagenTaller.TIPO_INVALIDO));
-        verifyNoInteractions(conversarEnTaller);
+        entoncesSeVerificaRechazaCon400YUnMensajeParaLaPersonaUnaFotoDeUnTipoQueNoVa();
     }
 
     @Test
     @DisplayName("Rechaza con 400 y un mensaje para la persona una foto de más de 5 MB")
     void rechazaCon400YUnMensajeParaLaPersonaUnaFotoDeMasDe5MB() throws Exception {
-        String datos = Base64.getEncoder().encodeToString(new byte[ImagenTaller.MAX_BYTES + 1]);
+        dadoElEscenarioDeRechazaCon400YUnMensajeParaLaPersonaUnaFotoDeMasDe5MB();
 
-        ResultActions result = cuandoPosting("/api/sami/taller", conImagen("image/png", datos));
+        cuandoSeEjecutaRechazaCon400YUnMensajeParaLaPersonaUnaFotoDeMasDe5MB();
 
-        result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.message").value(ImagenTaller.MUY_GRANDE));
-        verifyNoInteractions(conversarEnTaller);
+        entoncesSeVerificaRechazaCon400YUnMensajeParaLaPersonaUnaFotoDeMasDe5MB();
     }
 
     @Test
     @DisplayName("Si el límite diario se agotó responde 400 con el mensaje para la persona")
     void siElLimiteDiarioSeAgotoResponde400ConElMensajeParaLaPersona() throws Exception {
-        when(conversarEnTaller.execute(any()))
-                .thenThrow(new BusinessRuleException("Hoy ya usaste todas las consultas con IA."));
+        dadoElEscenarioDeSiElLimiteDiarioSeAgotoResponde400ConElMensajeParaLaPersona();
 
-        ResultActions result = cuandoPosting("/api/sami/taller", """
-                {"mensaje":"hola","estado":{"distribucion":"mosaic","piezas":[]}}
-                """);
+        cuandoSeEjecutaSiElLimiteDiarioSeAgotoResponde400ConElMensajeParaLaPersona();
 
-        result.andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Hoy ya usaste todas las consultas con IA."));
+        entoncesSeVerificaSiElLimiteDiarioSeAgotoResponde400ConElMensajeParaLaPersona();
     }
 
     @Test
     @DisplayName("Devuelve la pregunta de Sami y le pasa el usuario de la sesión, nunca uno del body")
     void devuelveLaPreguntaDeSamiYLePasaElUsuarioDeLaSesionNuncaUnoDelBody() throws Exception {
-        when(conversarConSami.execute(any())).thenReturn(new ConversarConSamiResponse("PREGUNTA",
-                new PreguntaSamiItem("principal", "¿Qué querés anotar?", List.of(new OpcionSamiItem("ventas", "Vender"))),
-                null, 0));
+        dadoElEscenarioDeDevuelveLaPreguntaDeSamiYLePasaElUsuarioDeLaSesionNuncaUnoDelBody();
 
-        ResultActions result = cuandoPosting("/api/sami/conversacion",
-                "{\"texto\":\"quiero ordenar mi negocio\",\"usuarioId\":\"otro\"}");
+        cuandoSeEjecutaDevuelveLaPreguntaDeSamiYLePasaElUsuarioDeLaSesionNuncaUnoDelBody();
 
-        result.andExpect(status().isOk())
-                .andExpect(jsonPath("$.tipo").value("PREGUNTA"))
-                .andExpect(jsonPath("$.pregunta.opciones[0].id").value("ventas"))
-                .andExpect(jsonPath("$.propuesta").doesNotExist());
-        ArgumentCaptor<ConversarConSamiRequest> captor = ArgumentCaptor.forClass(ConversarConSamiRequest.class);
-        verify(conversarConSami).execute(captor.capture());
-        assertThat(captor.getValue().usuarioId()).isEqualTo(USUARIO_ID);
+        entoncesSeVerificaDevuelveLaPreguntaDeSamiYLePasaElUsuarioDeLaSesionNuncaUnoDelBody();
     }
 
     @Test
     @DisplayName("Rechaza con 400 un texto vacío")
     void rechazaCon400UnTextoVacio() throws Exception {
-        ResultActions result = cuandoPosting("/api/sami/conversacion", "{\"texto\":\"   \"}");
+        cuandoSeEjecutaRechazaCon400UnTextoVacio();
 
-        result.andExpect(status().isBadRequest());
-        verify(conversarConSami, never()).execute(any());
+        entoncesSeVerificaRechazaCon400UnTextoVacio();
     }
 
     @Test
     @DisplayName("Rechaza con 400 una respuesta sin opción")
     void rechazaCon400UnaRespuestaSinOpcion() throws Exception {
-        ResultActions result = cuandoPosting("/api/sami/conversacion",
-                "{\"texto\":\"hola\",\"respuestas\":[{\"preguntaId\":\"principal\"}]}");
+        cuandoSeEjecutaRechazaCon400UnaRespuestaSinOpcion();
 
-        result.andExpect(status().isBadRequest());
+        entoncesSeVerificaRechazaCon400UnaRespuestaSinOpcion();
     }
 
     @Test
     @DisplayName("Crea el proyecto con las columnas confirmadas, responde 201 con su ubicación y usa la sesión")
     void creaElProyectoConLasColumnasConfirmadasResponde201ConSuUbicacionYUsaLaSesion() throws Exception {
-        when(crearProyectoDesdeSami.execute(any())).thenReturn(proyecto());
+        dadoElEscenarioDeCreaElProyectoConLasColumnasConfirmadasResponde201ConSuUbicacionYUsaLaSesion();
 
-        ResultActions result = cuandoPosting("/api/sami/proyectos", """
-                {"plantillaId":"%s","nombre":"Velas","columnas":[
-                  {"nombre":"Saldo pendiente","tipo":"NUMERO"}]}
-                """.formatted(PLANTILLA_ID));
+        cuandoSeEjecutaCreaElProyectoConLasColumnasConfirmadasResponde201ConSuUbicacionYUsaLaSesion();
 
-        result.andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/proyectos/" + PROYECTO_ID))
-                .andExpect(jsonPath("$.id").value(PROYECTO_ID.toString()))
-                .andExpect(jsonPath("$.nombre").value("Velas"));
-        ArgumentCaptor<CrearProyectoDesdeSamiRequest> captor =
-                ArgumentCaptor.forClass(CrearProyectoDesdeSamiRequest.class);
-        verify(crearProyectoDesdeSami).execute(captor.capture());
-        assertThat(captor.getValue().usuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(captor.getValue().plantillaId()).isEqualTo(PLANTILLA_ID);
-        assertThat(captor.getValue().columnas()).extracting("nombre", "tipo")
-                .containsExactly(org.assertj.core.groups.Tuple.tuple("Saldo pendiente", "NUMERO"));
+        entoncesSeVerificaCreaElProyectoConLasColumnasConfirmadasResponde201ConSuUbicacionYUsaLaSesion();
     }
 
     @Test
     @DisplayName("Rechaza con 400 un pedido sin plantilla o sin lista de columnas")
     void rechazaCon400UnPedidoSinPlantillaOSinListaDeColumnas() throws Exception {
-        cuandoPosting("/api/sami/proyectos", "{\"columnas\":[]}").andExpect(status().isBadRequest());
-        cuandoPosting("/api/sami/proyectos", "{\"plantillaId\":\"%s\"}".formatted(PLANTILLA_ID))
-                .andExpect(status().isBadRequest());
-        verify(crearProyectoDesdeSami, never()).execute(any());
+        cuandoSeEjecutaRechazaCon400UnPedidoSinPlantillaOSinListaDeColumnas();
+
+        entoncesSeVerificaRechazaCon400UnPedidoSinPlantillaOSinListaDeColumnas();
     }
 
     @Test
@@ -265,15 +205,11 @@ class SamiControllerTest {
     @Test
     @DisplayName("Si una columna no es válida responde 400 con el error ubicado en la columna")
     void siUnaColumnaNoEsValidaResponde400ConElErrorUbicadoEnLaColumna() throws Exception {
-        when(crearProyectoDesdeSami.execute(any())).thenThrow(
-                new CampoInvalidoException(Map.of("columnas[0].nombre", "Escribí un nombre")));
+        dadoElEscenarioDeSiUnaColumnaNoEsValidaResponde400ConElErrorUbicadoEnLaColumna();
 
-        ResultActions result = cuandoPosting("/api/sami/proyectos", """
-                {"plantillaId":"%s","columnas":[{"nombre":"x","tipo":"TEXTO"}]}
-                """.formatted(PLANTILLA_ID));
+        cuandoSeEjecutaSiUnaColumnaNoEsValidaResponde400ConElErrorUbicadoEnLaColumna();
 
-        result.andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors['columnas[0].nombre']").value("Escribí un nombre"));
+        entoncesSeVerificaSiUnaColumnaNoEsValidaResponde400ConElErrorUbicadoEnLaColumna();
     }
 
     private ProyectoItem proyecto() {
@@ -294,5 +230,227 @@ class SamiControllerTest {
                 {"mensaje":"te paso la foto","estado":{"distribucion":"mosaic","piezas":[]},
                  "imagen":{"tipo":"%s","datos":"%s"}}
                 """.formatted(tipo, datos);
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeUnTurnoDelTallerDevuelveLaRespuestaLasAccionesYLaBotoneraConElUsuarioDeLaSesion() throws Exception {
+        when(conversarEnTaller.execute(any())).thenReturn(new ConversarEnTallerResponse(
+                "Listo, sumé gastos.",
+                List.of(new ConversarEnTallerResponse.AccionTallerItem("agregar_pieza", Map.of("tipo", "expenses"))),
+                List.of(new ConversarEnTallerResponse.OpcionesTallerItem(null, "¿Seguimos?", List.of("Sí", "No")))));
+    }
+
+    private void dadoElEscenarioDeSinHistorialNiOpcionesElTurnoIgualResponde() throws Exception {
+        when(conversarEnTaller.execute(any()))
+                .thenReturn(new ConversarEnTallerResponse("Hola", List.of(), List.of()));
+    }
+
+    private void dadoElEscenarioDeUnTurnoConFotoLePasaAlUseCaseLaImagenDecodificadaYSuTipo() throws Exception {
+        when(conversarEnTaller.execute(any())).thenReturn(new ConversarEnTallerResponse("Leí 3", List.of(), List.of()));
+    }
+
+    private void dadoElEscenarioDeRechazaCon400YUnMensajeParaLaPersonaUnaFotoDeMasDe5MB() throws Exception {
+        datos = Base64.getEncoder().encodeToString(new byte[ImagenTaller.MAX_BYTES + 1]);
+    }
+
+    private void dadoElEscenarioDeSiElLimiteDiarioSeAgotoResponde400ConElMensajeParaLaPersona() throws Exception {
+        when(conversarEnTaller.execute(any()))
+                .thenThrow(new BusinessRuleException("Hoy ya usaste todas las consultas con IA."));
+    }
+
+    private void dadoElEscenarioDeDevuelveLaPreguntaDeSamiYLePasaElUsuarioDeLaSesionNuncaUnoDelBody() throws Exception {
+        when(conversarConSami.execute(any())).thenReturn(new ConversarConSamiResponse("PREGUNTA",
+                new PreguntaSamiItem("principal", "¿Qué querés anotar?", List.of(new OpcionSamiItem("ventas", "Vender"))),
+                null, 0));
+    }
+
+    private void dadoElEscenarioDeCreaElProyectoConLasColumnasConfirmadasResponde201ConSuUbicacionYUsaLaSesion() throws Exception {
+        when(crearProyectoDesdeSami.execute(any())).thenReturn(proyecto());
+    }
+
+    private void dadoElEscenarioDeSiUnaColumnaNoEsValidaResponde400ConElErrorUbicadoEnLaColumna() throws Exception {
+        when(crearProyectoDesdeSami.execute(any())).thenThrow(
+                new CampoInvalidoException(Map.of("columnas[0].nombre", "Escribí un nombre")));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaUnTurnoDelTallerDevuelveLaRespuestaLasAccionesYLaBotoneraConElUsuarioDeLaSesion() throws Exception {
+        result = cuandoPosting("/api/sami/taller", """
+                {"mensaje":"  sumá gastos ","usuarioId":"otro",
+                 "estado":{"nombre":"Mi almacén","distribucion":"mosaic","piezas":[
+                   {"id":"e1","tipo":"inventory","nombre":"Inventario","seccion":"General",
+                    "campos":[{"etiqueta":"Producto","tipo":"text"}]}]},
+                 "historial":[{"quien":"sami","texto":"Hola"},{"quien":"you","texto":"hola"}]}
+                """);
+    }
+
+    private void cuandoSeEjecutaSinHistorialNiOpcionesElTurnoIgualResponde() throws Exception {
+        result = cuandoPosting("/api/sami/taller", """
+                {"mensaje":"hola","estado":{"nombre":"","distribucion":"mosaic","piezas":[]}}
+                """);
+    }
+
+    private void cuandoSeEjecutaRechazaCon400UnMensajeVacioUnPedidoSinEstadoOUnHistorialConUnAutorInvalido() throws Exception {
+        resultadoDeLaLlamada = cuandoPosting("/api/sami/taller", "{\"mensaje\":\"  \",\"estado\":{\"distribucion\":\"mosaic\",\"piezas\":[]}}");
+        segundaResultadoDeLaLlamada = cuandoPosting("/api/sami/taller", "{\"mensaje\":\"hola\"}");
+        terceraResultadoDeLaLlamada = cuandoPosting("/api/sami/taller", """
+                {"mensaje":"hola","estado":{"distribucion":"mosaic","piezas":[]},
+                 "historial":[{"quien":"robot","texto":"x"}]}
+                """);
+    }
+
+    private void cuandoSeEjecutaUnTurnoConFotoLePasaAlUseCaseLaImagenDecodificadaYSuTipo() throws Exception {
+        result = cuandoPosting("/api/sami/taller", conImagen("image/jpeg", "AQID"));
+    }
+
+    private void cuandoSeEjecutaRechazaCon400YUnMensajeParaLaPersonaUnaFotoDeUnTipoQueNoVa() throws Exception {
+        result = cuandoPosting("/api/sami/taller", conImagen("application/pdf", "AQID"));
+    }
+
+    private void cuandoSeEjecutaRechazaCon400YUnMensajeParaLaPersonaUnaFotoDeMasDe5MB() throws Exception {
+        result = cuandoPosting("/api/sami/taller", conImagen("image/png", datos));
+    }
+
+    private void cuandoSeEjecutaSiElLimiteDiarioSeAgotoResponde400ConElMensajeParaLaPersona() throws Exception {
+        result = cuandoPosting("/api/sami/taller", """
+                {"mensaje":"hola","estado":{"distribucion":"mosaic","piezas":[]}}
+                """);
+    }
+
+    private void cuandoSeEjecutaDevuelveLaPreguntaDeSamiYLePasaElUsuarioDeLaSesionNuncaUnoDelBody() throws Exception {
+        result = cuandoPosting("/api/sami/conversacion",
+                "{\"texto\":\"quiero ordenar mi negocio\",\"usuarioId\":\"otro\"}");
+    }
+
+    private void cuandoSeEjecutaRechazaCon400UnTextoVacio() throws Exception {
+        result = cuandoPosting("/api/sami/conversacion", "{\"texto\":\"   \"}");
+    }
+
+    private void cuandoSeEjecutaRechazaCon400UnaRespuestaSinOpcion() throws Exception {
+        result = cuandoPosting("/api/sami/conversacion",
+                "{\"texto\":\"hola\",\"respuestas\":[{\"preguntaId\":\"principal\"}]}");
+    }
+
+    private void cuandoSeEjecutaCreaElProyectoConLasColumnasConfirmadasResponde201ConSuUbicacionYUsaLaSesion() throws Exception {
+        result = cuandoPosting("/api/sami/proyectos", """
+                {"plantillaId":"%s","nombre":"Velas","columnas":[
+                  {"nombre":"Saldo pendiente","tipo":"NUMERO"}]}
+                """.formatted(PLANTILLA_ID));
+    }
+
+    private void cuandoSeEjecutaRechazaCon400UnPedidoSinPlantillaOSinListaDeColumnas() throws Exception {
+        resultadoDeLaLlamada = cuandoPosting("/api/sami/proyectos", "{\"columnas\":[]}");
+        segundaResultadoDeLaLlamada = cuandoPosting("/api/sami/proyectos", "{\"plantillaId\":\"%s\"}".formatted(PLANTILLA_ID));
+    }
+
+    private void cuandoSeEjecutaSiUnaColumnaNoEsValidaResponde400ConElErrorUbicadoEnLaColumna() throws Exception {
+        result = cuandoPosting("/api/sami/proyectos", """
+                {"plantillaId":"%s","columnas":[{"nombre":"x","tipo":"TEXTO"}]}
+                """.formatted(PLANTILLA_ID));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaUnTurnoDelTallerDevuelveLaRespuestaLasAccionesYLaBotoneraConElUsuarioDeLaSesion() throws Exception {
+        result.andExpect(status().isOk())
+                .andExpect(jsonPath("$.respuesta").value("Listo, sumé gastos."))
+                .andExpect(jsonPath("$.acciones[0].herramienta").value("agregar_pieza"))
+                .andExpect(jsonPath("$.acciones[0].argumentos.tipo").value("expenses"))
+                .andExpect(jsonPath("$.preguntas[0].pregunta").value("¿Seguimos?"))
+                .andExpect(jsonPath("$.preguntas[0].opciones[1]").value("No"));
+        ArgumentCaptor<ConversarEnTallerRequest> captor = ArgumentCaptor.forClass(ConversarEnTallerRequest.class);
+        verify(conversarEnTaller).execute(captor.capture());
+        assertThat(captor.getValue().usuarioId()).isEqualTo(USUARIO_ID);
+        assertThat(captor.getValue().mensaje()).isEqualTo("sumá gastos");
+        assertThat(captor.getValue().estado().piezas().getFirst().campos()).hasSize(1);
+        assertThat(captor.getValue().historial()).hasSize(2);
+    }
+
+    private void entoncesSeVerificaSinHistorialNiOpcionesElTurnoIgualResponde() throws Exception {
+        result.andExpect(status().isOk()).andExpect(jsonPath("$.preguntas").isEmpty());
+        ArgumentCaptor<ConversarEnTallerRequest> captor = ArgumentCaptor.forClass(ConversarEnTallerRequest.class);
+        verify(conversarEnTaller).execute(captor.capture());
+        assertThat(captor.getValue().historial()).isEmpty();
+    }
+
+    private void entoncesSeVerificaRechazaCon400UnMensajeVacioUnPedidoSinEstadoOUnHistorialConUnAutorInvalido() throws Exception {
+        resultadoDeLaLlamada
+                .andExpect(status().isBadRequest());
+        segundaResultadoDeLaLlamada
+                .andExpect(status().isBadRequest());
+        terceraResultadoDeLaLlamada
+                .andExpect(status().isBadRequest());
+        verify(conversarEnTaller, never()).execute(any());
+    }
+
+    private void entoncesSeVerificaUnTurnoConFotoLePasaAlUseCaseLaImagenDecodificadaYSuTipo() throws Exception {
+        result.andExpect(status().isOk()).andExpect(jsonPath("$.respuesta").value("Leí 3"));
+        ArgumentCaptor<ConversarEnTallerRequest> captor = ArgumentCaptor.forClass(ConversarEnTallerRequest.class);
+        verify(conversarEnTaller).execute(captor.capture());
+        assertThat(captor.getValue().imagen().tipo()).isEqualTo("image/jpeg");
+        assertThat(captor.getValue().imagen().datos()).containsExactly(1, 2, 3);
+    }
+
+    private void entoncesSeVerificaRechazaCon400YUnMensajeParaLaPersonaUnaFotoDeUnTipoQueNoVa() throws Exception {
+        result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.message").value(ImagenTaller.TIPO_INVALIDO));
+        verifyNoInteractions(conversarEnTaller);
+    }
+
+    private void entoncesSeVerificaRechazaCon400YUnMensajeParaLaPersonaUnaFotoDeMasDe5MB() throws Exception {
+        result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.message").value(ImagenTaller.MUY_GRANDE));
+        verifyNoInteractions(conversarEnTaller);
+    }
+
+    private void entoncesSeVerificaSiElLimiteDiarioSeAgotoResponde400ConElMensajeParaLaPersona() throws Exception {
+        result.andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Hoy ya usaste todas las consultas con IA."));
+    }
+
+    private void entoncesSeVerificaDevuelveLaPreguntaDeSamiYLePasaElUsuarioDeLaSesionNuncaUnoDelBody() throws Exception {
+        result.andExpect(status().isOk())
+                .andExpect(jsonPath("$.tipo").value("PREGUNTA"))
+                .andExpect(jsonPath("$.pregunta.opciones[0].id").value("ventas"))
+                .andExpect(jsonPath("$.propuesta").doesNotExist());
+        ArgumentCaptor<ConversarConSamiRequest> captor = ArgumentCaptor.forClass(ConversarConSamiRequest.class);
+        verify(conversarConSami).execute(captor.capture());
+        assertThat(captor.getValue().usuarioId()).isEqualTo(USUARIO_ID);
+    }
+
+    private void entoncesSeVerificaRechazaCon400UnTextoVacio() throws Exception {
+        result.andExpect(status().isBadRequest());
+        verify(conversarConSami, never()).execute(any());
+    }
+
+    private void entoncesSeVerificaRechazaCon400UnaRespuestaSinOpcion() throws Exception {
+        result.andExpect(status().isBadRequest());
+    }
+
+    private void entoncesSeVerificaCreaElProyectoConLasColumnasConfirmadasResponde201ConSuUbicacionYUsaLaSesion() throws Exception {
+        result.andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/api/proyectos/" + PROYECTO_ID))
+                .andExpect(jsonPath("$.id").value(PROYECTO_ID.toString()))
+                .andExpect(jsonPath("$.nombre").value("Velas"));
+        ArgumentCaptor<CrearProyectoDesdeSamiRequest> captor =
+                ArgumentCaptor.forClass(CrearProyectoDesdeSamiRequest.class);
+        verify(crearProyectoDesdeSami).execute(captor.capture());
+        assertThat(captor.getValue().usuarioId()).isEqualTo(USUARIO_ID);
+        assertThat(captor.getValue().plantillaId()).isEqualTo(PLANTILLA_ID);
+        assertThat(captor.getValue().columnas()).extracting("nombre", "tipo")
+                .containsExactly(org.assertj.core.groups.Tuple.tuple("Saldo pendiente", "NUMERO"));
+    }
+
+    private void entoncesSeVerificaRechazaCon400UnPedidoSinPlantillaOSinListaDeColumnas() throws Exception {
+        resultadoDeLaLlamada
+                .andExpect(status().isBadRequest());
+        segundaResultadoDeLaLlamada
+                .andExpect(status().isBadRequest());
+        verify(crearProyectoDesdeSami, never()).execute(any());
+    }
+
+    private void entoncesSeVerificaSiUnaColumnaNoEsValidaResponde400ConElErrorUbicadoEnLaColumna() throws Exception {
+        result.andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors['columnas[0].nombre']").value("Escribí un nombre"));
     }
 }
