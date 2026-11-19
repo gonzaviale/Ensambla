@@ -94,19 +94,24 @@ public class GeneradorResumenPdfAdapter implements GeneradorResumenPdfPort {
             escritor.setPageEvent(new Pie(resumen.sistema(), fuentes));
             Hoja hoja = new Hoja(documento, escritor);
             documento.open();
-            encabezado(documento, resumen);
-            tarjetas(documento, resumen);
-            productos(hoja, resumen);
-            stock(hoja, resumen.stock());
-            clientes(hoja, resumen.clientes());
-            gastos(hoja, resumen.gastos());
-            zona(hoja, resumen.zona());
-            avisos(hoja, resumen.avisos());
+            escribirResumen(documento, hoja, resumen);
             documento.close();
         } catch (DocumentException e) {
             throw new IllegalStateException("No se pudo armar el PDF del resumen", e);
         }
         return salida.toByteArray();
+    }
+
+    private void escribirResumen(Document documento, Hoja hoja, ResumenNegocio resumen) throws DocumentException {
+        encabezado(documento, resumen);
+        tarjetas(documento, resumen);
+        masVendidos(hoja, resumen);
+        parados(hoja, resumen);
+        stock(hoja, resumen.stock());
+        clientes(hoja, resumen.clientes());
+        gastos(hoja, resumen.gastos());
+        zona(hoja, resumen.zona());
+        avisos(hoja, resumen.avisos());
     }
 
     // --- encabezado y tarjetas ---
@@ -214,11 +219,7 @@ public class GeneradorResumenPdfAdapter implements GeneradorResumenPdfPort {
 
     /** Fondo crema con el borde izquierdo naranja; la tarjeta destacada va en petróleo, como en el sistema. */
     private PdfPCell tarjeta(EstiloDeTarjeta estilo, String etiqueta, String valor, String detalle) {
-        Phrase contenido = new Phrase();
-        contenido.add(new Chunk(etiqueta + "\n", estilo.etiqueta()));
-        contenido.add(new Chunk(valor + "\n", estilo.valor()));
-        contenido.add(new Chunk(detalle, estilo.etiqueta()));
-        PdfPCell celda = new PdfPCell(contenido);
+        PdfPCell celda = new PdfPCell(contenidoDeTarjeta(estilo, etiqueta, valor, detalle));
         celda.setBackgroundColor(estilo.fondo());
         celda.setBorderColor(Color.WHITE);
         celda.setBorderWidth(3);
@@ -228,25 +229,38 @@ public class GeneradorResumenPdfAdapter implements GeneradorResumenPdfPort {
         return celda;
     }
 
+    private static Phrase contenidoDeTarjeta(EstiloDeTarjeta estilo, String etiqueta, String valor, String detalle) {
+        Phrase contenido = new Phrase();
+        contenido.add(new Chunk(etiqueta + "\n", estilo.etiqueta()));
+        contenido.add(new Chunk(valor + "\n", estilo.valor()));
+        contenido.add(new Chunk(detalle, estilo.etiqueta()));
+        return contenido;
+    }
+
     // --- secciones ---
 
-    private void productos(Hoja hoja, ResumenNegocio resumen) throws DocumentException {
-        if (!resumen.masVendidos().isEmpty()) {
-            PdfPTable tabla = seccion("Lo que más se vendió",
-                    "Por unidades en el período. La ganancia usa el costo actual de cada producto.",
-                    new float[] {4, 1.4f, 2, 2}, "Producto", "Unidades", "Ingresos", "Ganancia");
-            resumen.masVendidos().forEach(producto -> fila(tabla, producto.nombre(), numero(producto.unidades()),
-                    pesos(producto.ingresos()), opcional(producto.ganancia())));
-            agregar(hoja, tabla);
+    private void masVendidos(Hoja hoja, ResumenNegocio resumen) throws DocumentException {
+        if (resumen.masVendidos().isEmpty()) {
+            return;
         }
-        if (!resumen.sinMovimiento().isEmpty()) {
-            PdfPTable tabla = seccion("Productos parados",
-                    "Tenés stock y no se vendieron en el período: es plata que está quieta.",
-                    new float[] {4, 1.6f, 2.4f}, "Producto", "En stock", "Plata parada (a costo)");
-            resumen.sinMovimiento().forEach(producto -> fila(tabla, producto.nombre(), numero(producto.cantidad()),
-                    opcional(producto.capital())));
-            agregar(hoja, tabla);
+        PdfPTable tabla = seccion("Lo que más se vendió",
+                "Por unidades en el período. La ganancia usa el costo actual de cada producto.",
+                new float[] {4, 1.4f, 2, 2}, "Producto", "Unidades", "Ingresos", "Ganancia");
+        resumen.masVendidos().forEach(producto -> fila(tabla, producto.nombre(), numero(producto.unidades()),
+                pesos(producto.ingresos()), opcional(producto.ganancia())));
+        agregar(hoja, tabla);
+    }
+
+    private void parados(Hoja hoja, ResumenNegocio resumen) throws DocumentException {
+        if (resumen.sinMovimiento().isEmpty()) {
+            return;
         }
+        PdfPTable tabla = seccion("Productos parados",
+                "Tenés stock y no se vendieron en el período: es plata que está quieta.",
+                new float[] {4, 1.6f, 2.4f}, "Producto", "En stock", "Plata parada (a costo)");
+        resumen.sinMovimiento().forEach(producto -> fila(tabla, producto.nombre(), numero(producto.cantidad()),
+                opcional(producto.capital())));
+        agregar(hoja, tabla);
     }
 
     private void stock(Hoja hoja, Stock stock) throws DocumentException {
@@ -256,14 +270,25 @@ public class GeneradorResumenPdfAdapter implements GeneradorResumenPdfPort {
                 new float[] {4, 1.4f, 1.4f, 2}, columnas(!stock.faltantes().isEmpty(), "Producto", "Quedan", "Mínimo",
                         "Para llegar al doble"));
         stock.faltantes().forEach(faltante -> fila(tabla, faltante.nombre(), numero(faltante.cantidad()),
-                faltante.minimo() == null ? SIN_DATO : numero(faltante.minimo()),
-                faltante.pedir() == null ? SIN_DATO : numero(faltante.pedir())));
+                numeroOSinDato(faltante.minimo()), numeroOSinDato(faltante.pedir())));
+        notaDeFaltantes(tabla, stock);
+        agregar(hoja, tabla);
+    }
+
+    /** Sin faltantes lo dice; si hay más de los que entran en la tabla, cuenta cuántos quedaron afuera. */
+    private void notaDeFaltantes(PdfPTable tabla, Stock stock) {
         if (stock.faltantes().isEmpty()) {
             nota(tabla, "Ningún producto está agotado ni por debajo de su mínimo.");
-        } else if (stock.totalFaltantes() > stock.faltantes().size()) {
-            nota(tabla, "Y " + (stock.totalFaltantes() - stock.faltantes().size()) + " más.");
+            return;
         }
-        agregar(hoja, tabla);
+        long quedaronAfuera = stock.totalFaltantes() - stock.faltantes().size();
+        if (quedaronAfuera > 0) {
+            nota(tabla, "Y " + quedaronAfuera + " más.");
+        }
+    }
+
+    private static String numeroOSinDato(BigDecimal valor) {
+        return valor == null ? SIN_DATO : numero(valor);
     }
 
     private void clientes(Hoja hoja, Clientes clientes) throws DocumentException {
@@ -318,6 +343,11 @@ public class GeneradorResumenPdfAdapter implements GeneradorResumenPdfPort {
         NOMBRE_DE_AVISO.keySet().stream().sorted()
                 .filter(avisos.pendientes()::containsKey)
                 .forEach(tipo -> fila(tabla, NOMBRE_DE_AVISO.get(tipo), String.valueOf(avisos.pendientes().get(tipo))));
+        notasDeAvisos(tabla, avisos);
+        agregar(hoja, tabla);
+    }
+
+    private void notasDeAvisos(PdfPTable tabla, AvisosResumen avisos) {
         if (avisos.pendientes().isEmpty()) {
             nota(tabla, "No tenés avisos pendientes.");
         }
@@ -326,7 +356,6 @@ public class GeneradorResumenPdfAdapter implements GeneradorResumenPdfPort {
                     + pesos(avisos.ingresoSemanalDelta()) + " entre antes y después. Es una comparación, no prueba "
                     + "que el aviso sea la causa: también influyen la época del año, los feriados o el faltante.");
         }
-        agregar(hoja, tabla);
     }
 
     private Phrase tituloConSami(String titulo) {
@@ -401,14 +430,18 @@ public class GeneradorResumenPdfAdapter implements GeneradorResumenPdfPort {
     private void agregar(Hoja hoja, PdfPTable tabla) throws DocumentException {
         tabla.setTotalWidth(hoja.documento().right() - hoja.documento().left());
         tabla.calculateHeights(true);
+        if (altoDelComienzo(tabla) > hoja.escritor().getVerticalPosition(true) - hoja.documento().bottom()) {
+            hoja.documento().newPage();
+        }
+        hoja.documento().add(tabla);
+    }
+
+    private static float altoDelComienzo(PdfPTable tabla) {
         float comienzo = tabla.spacingBefore();
         for (int fila = 0; fila < Math.min(COMIENZO_DE_SECCION, tabla.size()); fila++) {
             comienzo += tabla.getRowHeight(fila);
         }
-        if (comienzo > hoja.escritor().getVerticalPosition(true) - hoja.documento().bottom()) {
-            hoja.documento().newPage();
-        }
-        hoja.documento().add(tabla);
+        return comienzo;
     }
 
     /** Los encabezados de las columnas, sólo si la tabla va a tener filas: sobre una nota sola no tienen sentido. */
@@ -432,17 +465,22 @@ public class GeneradorResumenPdfAdapter implements GeneradorResumenPdfPort {
     private void fila(PdfPTable tabla, String... valores) {
         boolean conRaya = (tabla.getRows().size() % 2) == 0;
         for (int columna = 0; columna < valores.length; columna++) {
-            Font fuente = columna == 0 ? fuentes.negrita() : fuentes.texto();
-            PdfPCell celda = new PdfPCell(new Phrase(valores[columna], fuente));
-            celda.setBorder(Rectangle.BOTTOM);
-            celda.setBorderColor(LINEA);
-            celda.setPadding(5);
-            celda.setHorizontalAlignment(columna == 0 ? Element.ALIGN_LEFT : Element.ALIGN_RIGHT);
-            if (conRaya) {
-                celda.setBackgroundColor(CREMA);
-            }
-            tabla.addCell(celda);
+            tabla.addCell(celdaDeFila(valores[columna], columna, conRaya));
         }
+    }
+
+    /** La primera columna va en negrita y a la izquierda; las filas pares llevan fondo crema. */
+    private PdfPCell celdaDeFila(String valor, int columna, boolean conRaya) {
+        Font fuente = columna == 0 ? fuentes.negrita() : fuentes.texto();
+        PdfPCell celda = new PdfPCell(new Phrase(valor, fuente));
+        celda.setBorder(Rectangle.BOTTOM);
+        celda.setBorderColor(LINEA);
+        celda.setPadding(5);
+        celda.setHorizontalAlignment(columna == 0 ? Element.ALIGN_LEFT : Element.ALIGN_RIGHT);
+        if (conRaya) {
+            celda.setBackgroundColor(CREMA);
+        }
+        return celda;
     }
 
     // --- formatos ---

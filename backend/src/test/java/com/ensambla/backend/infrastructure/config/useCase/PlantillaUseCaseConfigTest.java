@@ -15,15 +15,28 @@ import static org.mockito.Mockito.when;
 class PlantillaUseCaseConfigTest {
 
     private final PlantillaUseCaseConfig config = new PlantillaUseCaseConfig();
+    private final PlantillaRepository repository = mock(PlantillaRepository.class);
+    private ListarPlantillasResponse plantillas;
 
     @Test
     @DisplayName("El wiring del listado conecta el repositorio")
-    void listarPlantillasUseCaseShouldWireRepository() {
-        PlantillaRepository repository = mock(PlantillaRepository.class);
-        when(repository.findAllActivas()).thenReturn(List.of(Plantilla.builder().nombre("Clientes").build()));
+    void elWiringDelListadoConectaElRepositorio() {
+        dadaLaPlantillaActiva("Clientes");
 
-        ListarPlantillasResponse response = config.listarPlantillas(repository).execute();
+        cuandoSeListanLasPlantillas();
 
-        assertThat(response.content()).extracting("nombre").containsExactly("Clientes");
+        entoncesSeListan("Clientes");
+    }
+
+    private void dadaLaPlantillaActiva(String nombre) {
+        when(repository.findAllActivas()).thenReturn(List.of(Plantilla.builder().nombre(nombre).build()));
+    }
+
+    private void cuandoSeListanLasPlantillas() {
+        plantillas = config.listarPlantillas(repository).execute();
+    }
+
+    private void entoncesSeListan(String... nombres) {
+        assertThat(plantillas.content()).extracting("nombre").containsExactly((Object[]) nombres);
     }
 }

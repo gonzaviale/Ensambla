@@ -12,8 +12,11 @@ public class ObtenerSesion {
     private final UsuarioRepository usuarioRepository;
 
     public UsuarioResponse execute(UsuarioId usuarioId) {
-        Usuario usuario = usuarioRepository.obtenerActivo(usuarioId);
-        return UsuarioResponse.de(usuario);
+        return UsuarioResponse.de(obtenerUsuarioActivo(usuarioId));
+    }
+
+    private Usuario obtenerUsuarioActivo(UsuarioId usuarioId) {
+        return usuarioRepository.obtenerActivo(usuarioId);
     }
 }
 

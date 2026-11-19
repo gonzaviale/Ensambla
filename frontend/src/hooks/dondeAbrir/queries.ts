@@ -38,27 +38,35 @@ const PUBLICO_API = {
 
 export type PuntoElegido = { latitud: number; longitud: number };
 
+const importanciaParaLaApi = (importancia: Filtros['importancia']) =>
+  Object.fromEntries(
+    Object.entries(importancia).map(([factor, valor]) => [
+      FACTOR_API[factor as FactorClave],
+      valor,
+    ]),
+  );
+
+/** Solo se mandan los límites que la persona movió: «sin límite» no se pide. */
+const limitesParaLaApi = ({
+  distanciaMaxKm,
+  competenciaMax,
+  escuelasMin,
+  parquesMin,
+  transporteMin,
+}: Filtros['limites']) => ({
+  ...(distanciaMaxKm < SIN_LIMITE_KM && { distanciaMaxKm }),
+  ...(competenciaMax < SIN_LIMITE_COMPETENCIA && { competenciaMax }),
+  escuelasMin,
+  parquesMin,
+  transporteMin,
+});
+
 export function pedidoDondeAbrir(filtros: Filtros, punto?: PuntoElegido | null): PedidoDondeAbrir {
   return {
     rubro: RUBRO_API[filtros.rubro],
     publico: PUBLICO_API[filtros.publico],
-    importancia: Object.fromEntries(
-      Object.entries(filtros.importancia).map(([factor, valor]) => [
-        FACTOR_API[factor as FactorClave],
-        valor,
-      ]),
-    ),
-    limites: {
-      ...(filtros.limites.distanciaMaxKm < SIN_LIMITE_KM && {
-        distanciaMaxKm: filtros.limites.distanciaMaxKm,
-      }),
-      ...(filtros.limites.competenciaMax < SIN_LIMITE_COMPETENCIA && {
-        competenciaMax: filtros.limites.competenciaMax,
-      }),
-      escuelasMin: filtros.limites.escuelasMin,
-      parquesMin: filtros.limites.parquesMin,
-      transporteMin: filtros.limites.transporteMin,
-    },
+    importancia: importanciaParaLaApi(filtros.importancia),
+    limites: limitesParaLaApi(filtros.limites),
     alquileres: [],
     ...(punto && { punto }),
   };

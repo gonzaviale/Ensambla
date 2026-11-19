@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.useCase.sami.conversarConSami;
 
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
@@ -107,16 +108,24 @@ public class ConversarConSami {
     }
 
     public ConversarConSamiResponse execute(ConversarConSamiRequest request) {
-        List<PlantillaProyecto> disponibles = plantillaRepository.findAllParaProyectoActivas();
+        List<PlantillaProyecto> disponibles = plantillasDisponibles();
         List<RespuestaSami> respuestas = request.respuestasSami();
         PasoConversacionSami paso = siguientePaso(request.texto(), respuestas, disponibles);
         if (paso.tipo() != TipoPaso.RESPALDO_IA) {
             return ConversarConSamiResponse.de(paso);
         }
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
         InterpretacionSami propuesta = proponerConIa(
                 negocioId, request.texto(), respuestas, disponibles, OffsetDateTime.now(clock));
         return ConversarConSamiResponse.de(propuesta, PropuestaSamiItem.ORIGEN_IA, paso.preguntasHechas());
+    }
+
+    private List<PlantillaProyecto> plantillasDisponibles() {
+        return plantillaRepository.findAllParaProyectoActivas();
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
     }
 
     // --- segunda etapa: preguntas ---
@@ -127,15 +136,26 @@ public class ConversarConSami {
         if (interpretacion.alcanza(umbralConfianza)) {
             return new PasoConversacionSami(TipoPaso.PROPUESTA, null, interpretacion, respuestas.size());
         }
-        boolean puedePreguntar = respuestas.size() < maxPreguntas && !respondioNingunaDeEstas(respuestas);
-        Optional<PreguntaDiccionario> pregunta = puedePreguntar
-                ? elegirPregunta(interpretacion, respuestas, disponibles)
-                : Optional.empty();
-        return pregunta
+        return preguntarOPasarALaIa(interpretacion, respuestas, disponibles);
+    }
+
+    /** Si quedan preguntas por hacer, la que más aclara; si no, el paso de respaldo con la IA. */
+    private PasoConversacionSami preguntarOPasarALaIa(InterpretacionSami interpretacion, List<RespuestaSami> respuestas,
+                                                      List<PlantillaProyecto> disponibles) {
+        return siguientePregunta(interpretacion, respuestas, disponibles)
                 .map(elegida -> new PasoConversacionSami(
                         TipoPaso.PREGUNTA, aPregunta(elegida), interpretacion, respuestas.size()))
                 .orElseGet(() -> new PasoConversacionSami(
                         TipoPaso.RESPALDO_IA, null, interpretacion, respuestas.size()));
+    }
+
+    private Optional<PreguntaDiccionario> siguientePregunta(InterpretacionSami interpretacion,
+                                                            List<RespuestaSami> respuestas,
+                                                            List<PlantillaProyecto> disponibles) {
+        if (respuestas.size() >= maxPreguntas || respondioNingunaDeEstas(respuestas)) {
+            return Optional.empty();
+        }
+        return elegirPregunta(interpretacion, respuestas, disponibles);
     }
 
     /**
@@ -329,14 +349,17 @@ public class ConversarConSami {
                                              List<PlantillaProyecto> disponibles, OffsetDateTime ahora) {
         controlPlanService.exigirIa(negocioId);
         LocalDate fecha = ZonaNegocio.dia(ahora);
+        reservarUnaConsulta(negocioId, fecha, ahora);
+        PropuestaIaSami propuesta = consultarIa(new ConsultaIaSami(texto, aclaraciones(respuestas), disponibles));
+        consumoSamiRepository.registrar(negocioId, fecha, propuesta.consumo(), ahora);
+        return propuesta.aInterpretacion(disponibles)
+                .orElseThrow(() -> new BusinessRuleException(RESPUESTA_INVALIDA));
+    }
+
+    private void reservarUnaConsulta(NegocioId negocioId, LocalDate fecha, OffsetDateTime ahora) {
         if (!consumoSamiRepository.reservar(negocioId, fecha, limiteDiarioIa, ahora)) {
             throw new BusinessRuleException(LIMITE_ALCANZADO);
         }
-        PropuestaIaSami propuesta = consultarIa(new ConsultaIaSami(texto, aclaraciones(respuestas), disponibles));
-        ConsumoIaSami consumo = propuesta.consumo();
-        consumoSamiRepository.registrar(negocioId, fecha, consumo, ahora);
-        return propuesta.aInterpretacion(disponibles)
-                .orElseThrow(() -> new BusinessRuleException(RESPUESTA_INVALIDA));
     }
 
     private PropuestaIaSami consultarIa(ConsultaIaSami consulta) {

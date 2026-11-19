@@ -2,11 +2,13 @@ package com.ensambla.backend.domain.model.whatsapp;
 
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.CampoNumerico;
+import com.ensambla.backend.domain.model.common.ValorDeRegistro;
 
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -85,21 +87,20 @@ public record FilaPropuesta(Map<String, String> valores, Set<String> dudosos, St
     public Map<String, Object> cambiosTipados(List<Campo> campos, Map<String, Object> actuales) {
         Map<String, Object> cambios = tipados(campos);
         cambios.remove(campoNombre);
-        for (Campo campo : campos) {
-            String clave = campo.getId().toString();
-            String valor = valores.get(clave);
-            if (campo.esNumerico() && esRelativo(valor)) {
-                cambios.put(clave, sumado(actuales.get(clave), cambio(valor)));
-            }
-        }
+        campos.stream()
+                .filter(this::seSumaOResta)
+                .map(campo -> campo.getId().toString())
+                .forEach(clave -> cambios.put(clave, sumado(actuales.get(clave), cambio(valores.get(clave)))));
         return cambios;
+    }
+
+    private boolean seSumaOResta(Campo campo) {
+        return campo.esNumerico() && esRelativo(valores.get(campo.getId().toString()));
     }
 
     /** Lo que había (0 si no era un número) más el cambio, sin bajar de 0. */
     public static BigDecimal sumado(Object habia, BigDecimal cambio) {
-        BigDecimal base = habia != null && numero(habia.toString()) instanceof BigDecimal numero
-                ? numero : BigDecimal.ZERO;
-        return base.add(cambio).max(BigDecimal.ZERO);
+        return numeroDe(habia).add(cambio).max(BigDecimal.ZERO);
     }
 
     /** «+10» o «-3»: un cambio sobre lo que ya hay, no el valor nuevo. */
@@ -125,6 +126,13 @@ public record FilaPropuesta(Map<String, String> valores, Set<String> dudosos, St
             }
         }
         return tipados;
+    }
+
+    /** Lo que había en la fila como número; 0 si no había nada o no era un número. */
+    private static BigDecimal numeroDe(Object habia) {
+        return Optional.ofNullable(habia)
+                .map(valor -> ValorDeRegistro.de(numero(valor.toString())).comoNumero())
+                .orElse(BigDecimal.ZERO);
     }
 
     private static Object numero(String valor) {

@@ -7,17 +7,12 @@ import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.registro.RegistroItem;
 import com.ensambla.backend.domain.useCase.registro.TotalesItem;
-import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistroRequest;
 import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistroResponse;
-import com.ensambla.backend.domain.useCase.registro.editarRegistro.EditarRegistroRequest;
 import com.ensambla.backend.domain.useCase.registro.editarRegistro.EditarRegistroResponse;
-import com.ensambla.backend.domain.useCase.registro.eliminarRegistro.EliminarRegistroRequest;
 import com.ensambla.backend.domain.useCase.registro.listarReferencias.ListarReferenciasRequest;
 import com.ensambla.backend.domain.useCase.registro.listarReferencias.ReferenciaItem;
 import com.ensambla.backend.domain.useCase.registro.listarRegistros.ListarRegistrosRequest;
 import com.ensambla.backend.domain.useCase.registro.listarRegistros.ListarRegistrosResponse;
-import com.ensambla.backend.domain.useCase.registro.obtenerFotoOrigen.ObtenerFotoOrigenRequest;
-import com.ensambla.backend.domain.useCase.registro.obtenerRegistro.ObtenerRegistroRequest;
 import com.ensambla.backend.domain.useCase.registro.obtenerRegistro.ObtenerRegistroResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.PaginaRegistrosResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.ReferenciaResponse;
@@ -45,156 +40,185 @@ class RegistroPresentationMapperTest {
     private static final Map<String, Object> VALORES = Map.of("campo", "dato");
     private static final OffsetDateTime CREADO = OffsetDateTime.parse("2026-10-09T12:00:00Z");
     private static final OffsetDateTime ACTUALIZADO = OffsetDateTime.parse("2026-10-10T12:00:00Z");
+    private static final RegistroItem REGISTRO = new RegistroItem(REGISTRO_ID, BLOQUE_ID, VALORES, FOTO_ID, CREADO, ACTUALIZADO);
+    private static final RegistroResponse REGISTRO_WEB =
+            new RegistroResponse(REGISTRO_ID, BLOQUE_ID, VALORES, FOTO_ID, CREADO, ACTUALIZADO);
 
     private final RegistroPresentationMapper mapper = new RegistroPresentationMapper();
+    private PaginaRegistrosResponse pagina;
 
     @Test
     @DisplayName("Arma el pedido de referencias con el texto y los ids pedidos")
-    void toReferenciasRequestShouldCarryTextoAndIds() {
-        ListarReferenciasRequest result =
-                mapper.toReferenciasRequest(USUARIO_ID, BLOQUE_ID, "ana", List.of(REGISTRO_ID));
-
-        assertThat(result).isEqualTo(new ListarReferenciasRequest(USUARIO_ID, BLOQUE_ID, "ana", List.of(REGISTRO_ID)));
+    void armaElPedidoDeReferenciasConElTextoYLosIds() {
+        entoncesElPedidoEs(mapper.toReferenciasRequest(USUARIO_ID, BLOQUE_ID, "ana", List.of(REGISTRO_ID)),
+                new ListarReferenciasRequest(USUARIO_ID, BLOQUE_ID, "ana", List.of(REGISTRO_ID)));
     }
 
     @Test
     @DisplayName("Sin el parámetro ids el pedido de referencias lleva una lista vacía")
-    void toReferenciasRequestShouldUseEmptyListWhenIdsAreMissing() {
-        ListarReferenciasRequest result = mapper.toReferenciasRequest(USUARIO_ID, BLOQUE_ID, null, null);
-
-        assertThat(result.ids()).isEmpty();
+    void sinIdsElPedidoDeReferenciasLlevaUnaListaVacia() {
+        entoncesElPedidoNoPideIds(mapper.toReferenciasRequest(USUARIO_ID, BLOQUE_ID, null, null));
     }
 
     @Test
     @DisplayName("Pasa el id y la etiqueta de cada referencia, en orden")
-    void toResponseShouldMapReferencias() {
-        List<ReferenciaResponse> result = mapper.toResponse(
-                List.of(new ReferenciaItem(REGISTRO_ID, "Ana"), new ReferenciaItem(OTRO_REGISTRO_ID, "Beto")));
-
-        assertThat(result).containsExactly(
+    void pasaElIdYLaEtiquetaDeCadaReferencia() {
+        entoncesLasReferenciasSon(mapper.toResponse(
+                        List.of(new ReferenciaItem(REGISTRO_ID, "Ana"), new ReferenciaItem(OTRO_REGISTRO_ID, "Beto"))),
                 new ReferenciaResponse(REGISTRO_ID, "Ana"), new ReferenciaResponse(OTRO_REGISTRO_ID, "Beto"));
     }
 
     @Test
     @DisplayName("Arma el pedido de crear con el usuario de la sesión, el bloque y los valores")
-    void toCrearRequestShouldCarryUsuarioBloqueAndValores() {
-        CrearRegistroRequest result = mapper.toCrearRequest(USUARIO_ID, BLOQUE_ID, new RegistroRequest(VALORES));
+    void armaElPedidoDeCrear() {
+        var pedido = mapper.toCrearRequest(USUARIO_ID, BLOQUE_ID, new RegistroRequest(VALORES));
 
-        assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(result.bloqueId()).isEqualTo(BLOQUE_ID);
-        assertThat(result.valores()).isEqualTo(VALORES);
+        entoncesElPedidoLleva(pedido.usuarioId(), pedido.bloqueId(), pedido.valores(), BLOQUE_ID);
     }
 
     @Test
     @DisplayName("Arma el pedido de listar con todos los parámetros de la consulta")
-    void toListarRequestShouldCarryEveryParameter() {
-        ListarRegistrosRequest result = mapper.toListarRequest(
-                USUARIO_ID, BLOQUE_ID, "harina", "creadoEn", "asc", 2, 10);
-
-        assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(result.bloqueId()).isEqualTo(BLOQUE_ID);
-        assertThat(result.texto()).isEqualTo("harina");
-        assertThat(result.orden()).isEqualTo("creadoEn");
-        assertThat(result.direccion()).isEqualTo("asc");
-        assertThat(result.pagina()).isEqualTo(2);
-        assertThat(result.tamanio()).isEqualTo(10);
+    void armaElPedidoDeListarConTodosLosParametros() {
+        entoncesElListadoPide(mapper.toListarRequest(USUARIO_ID, BLOQUE_ID, "harina", "creadoEn", "asc", 2, 10));
     }
 
     @Test
     @DisplayName("Arma el pedido de obtener con el usuario y el registro")
-    void toObtenerRequestShouldCarryUsuarioAndRegistro() {
-        ObtenerRegistroRequest result = mapper.toObtenerRequest(USUARIO_ID, REGISTRO_ID);
+    void armaElPedidoDeObtener() {
+        var pedido = mapper.toObtenerRequest(USUARIO_ID, REGISTRO_ID);
 
-        assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(result.registroId()).isEqualTo(REGISTRO_ID);
+        entoncesEsDelUsuarioYElRegistro(pedido.usuarioId(), pedido.registroId());
     }
 
     @Test
     @DisplayName("Arma el pedido de editar con el usuario, el registro y los cambios")
-    void toEditarRequestShouldCarryUsuarioRegistroAndValores() {
-        EditarRegistroRequest result = mapper.toEditarRequest(USUARIO_ID, REGISTRO_ID, new RegistroRequest(VALORES));
+    void armaElPedidoDeEditar() {
+        var pedido = mapper.toEditarRequest(USUARIO_ID, REGISTRO_ID, new RegistroRequest(VALORES));
 
-        assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(result.registroId()).isEqualTo(REGISTRO_ID);
-        assertThat(result.valores()).isEqualTo(VALORES);
+        entoncesElPedidoLleva(pedido.usuarioId(), pedido.registroId(), pedido.valores(), REGISTRO_ID);
     }
 
     @Test
     @DisplayName("Arma el pedido de la foto de origen con el usuario y el registro")
-    void toFotoOrigenRequestShouldCarryUsuarioAndRegistro() {
-        ObtenerFotoOrigenRequest result = mapper.toFotoOrigenRequest(USUARIO_ID, REGISTRO_ID);
+    void armaElPedidoDeLaFotoDeOrigen() {
+        var pedido = mapper.toFotoOrigenRequest(USUARIO_ID, REGISTRO_ID);
 
-        assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(result.registroId()).isEqualTo(REGISTRO_ID);
+        entoncesEsDelUsuarioYElRegistro(pedido.usuarioId(), pedido.registroId());
     }
 
     @Test
     @DisplayName("Arma el pedido de eliminar con el usuario y el registro")
-    void toEliminarRequestShouldCarryUsuarioAndRegistro() {
-        EliminarRegistroRequest result = mapper.toEliminarRequest(USUARIO_ID, REGISTRO_ID);
+    void armaElPedidoDeEliminar() {
+        var pedido = mapper.toEliminarRequest(USUARIO_ID, REGISTRO_ID);
 
-        assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(result.registroId()).isEqualTo(REGISTRO_ID);
+        entoncesEsDelUsuarioYElRegistro(pedido.usuarioId(), pedido.registroId());
     }
 
     @Test
-    @DisplayName("Convierte la respuesta de crear, obtener y editar en el mismo registro web")
-    void toResponseShouldMapSingleRegistroResponses() {
-        RegistroItem item = new RegistroItem(REGISTRO_ID, BLOQUE_ID, VALORES, FOTO_ID, CREADO, ACTUALIZADO);
+    @DisplayName("Convierte la respuesta de crear en el registro web")
+    void convierteLaRespuestaDeCrear() {
+        entoncesElRegistroWebEs(mapper.toResponse(new CrearRegistroResponse(REGISTRO)));
+    }
 
-        RegistroResponse creado = mapper.toResponse(new CrearRegistroResponse(item));
-        RegistroResponse obtenido = mapper.toResponse(new ObtenerRegistroResponse(item));
-        RegistroResponse editado = mapper.toResponse(new EditarRegistroResponse(item));
+    @Test
+    @DisplayName("Convierte la respuesta de obtener en el mismo registro web")
+    void convierteLaRespuestaDeObtener() {
+        entoncesElRegistroWebEs(mapper.toResponse(new ObtenerRegistroResponse(REGISTRO)));
+    }
 
-        assertThat(creado).isEqualTo(obtenido).isEqualTo(editado);
-        assertThat(creado.id()).isEqualTo(REGISTRO_ID);
-        assertThat(creado.bloqueId()).isEqualTo(BLOQUE_ID);
-        assertThat(creado.valores()).isEqualTo(VALORES);
-        assertThat(creado.fotoOrigenId()).isEqualTo(FOTO_ID);
-        assertThat(creado.creadoEn()).isEqualTo(CREADO);
-        assertThat(creado.actualizadoEn()).isEqualTo(ACTUALIZADO);
+    @Test
+    @DisplayName("Convierte la respuesta de editar en el mismo registro web")
+    void convierteLaRespuestaDeEditar() {
+        entoncesElRegistroWebEs(mapper.toResponse(new EditarRegistroResponse(REGISTRO)));
     }
 
     @Test
     @DisplayName("Marca la primera página y no la última cuando hay más páginas")
-    void toResponseShouldFlagFirstPageWhenThereAreMore() {
-        PaginaRegistrosResponse result = mapper.toResponse(pagina(0, 3));
+    void marcaLaPrimeraPaginaCuandoHayMas() {
+        cuandoSeRespondeLaPagina(0, 3);
 
-        assertThat(result.pageNumber()).isZero();
-        assertThat(result.pageSize()).isEqualTo(20);
-        assertThat(result.totalElements()).isEqualTo(45);
-        assertThat(result.totalPages()).isEqualTo(3);
-        assertThat(result.first()).isTrue();
-        assertThat(result.last()).isFalse();
-        assertThat(result.content()).hasSize(1);
+        entoncesLaPaginaEs(0, 20, 45, 3);
+        entoncesEsPrimeraYUltima(true, false);
+        entoncesLaPaginaTieneRegistros(1);
     }
 
     @Test
     @DisplayName("Marca la última página y no la primera")
-    void toResponseShouldFlagLastPage() {
-        PaginaRegistrosResponse result = mapper.toResponse(pagina(2, 3));
+    void marcaLaUltimaPagina() {
+        cuandoSeRespondeLaPagina(2, 3);
 
-        assertThat(result.first()).isFalse();
-        assertThat(result.last()).isTrue();
+        entoncesEsPrimeraYUltima(false, true);
     }
 
     @Test
     @DisplayName("Pasa los totales de la búsqueda a la respuesta web")
-    void toResponseShouldCarryTotals() {
-        PaginaRegistrosResponse result = mapper.toResponse(pagina(0, 3));
+    void pasaLosTotalesDeLaBusqueda() {
+        cuandoSeRespondeLaPagina(0, 3);
 
-        assertThat(result.totales().cantidad()).isEqualTo(45);
-        assertThat(result.totales().sumas()).containsOnly(entry(CAMPO_ID, new BigDecimal("1500.50")));
+        entoncesLosTotalesSon(45, CAMPO_ID, new BigDecimal("1500.50"));
     }
 
-    // --- helpers ---
-    private ListarRegistrosResponse pagina(int numero, int totalPaginas) {
-        return new ListarRegistrosResponse(
-                List.of(new RegistroItem(REGISTRO_ID, BLOQUE_ID, VALORES, FOTO_ID, CREADO, ACTUALIZADO)),
-                numero,
-                20,
-                45,
-                totalPaginas,
-                new TotalesItem(45, Map.of(CAMPO_ID, new BigDecimal("1500.50"))));
+    private void cuandoSeRespondeLaPagina(int numero, int totalPaginas) {
+        pagina = mapper.toResponse(new ListarRegistrosResponse(List.of(REGISTRO), numero, 20, 45, totalPaginas,
+                new TotalesItem(45, Map.of(CAMPO_ID, new BigDecimal("1500.50")))));
+    }
+
+    private static void entoncesElPedidoEs(Object armado, Object esperado) {
+        assertThat(armado).isEqualTo(esperado);
+    }
+
+    private static void entoncesElPedidoNoPideIds(ListarReferenciasRequest pedido) {
+        assertThat(pedido.ids()).isEmpty();
+    }
+
+    private static void entoncesLasReferenciasSon(List<ReferenciaResponse> referencias, ReferenciaResponse... esperadas) {
+        assertThat(referencias).containsExactly(esperadas);
+    }
+
+    private static void entoncesElPedidoLleva(UsuarioId usuario, Object destino, Map<String, Object> valores,
+                                              Object destinoEsperado) {
+        assertThat(usuario).isEqualTo(USUARIO_ID);
+        assertThat(destino).isEqualTo(destinoEsperado);
+        assertThat(valores).isEqualTo(VALORES);
+    }
+
+    private static void entoncesElListadoPide(ListarRegistrosRequest pedido) {
+        assertThat(pedido.usuarioId()).isEqualTo(USUARIO_ID);
+        assertThat(pedido.bloqueId()).isEqualTo(BLOQUE_ID);
+        assertThat(pedido.texto()).isEqualTo("harina");
+        assertThat(pedido.orden()).isEqualTo("creadoEn");
+        assertThat(pedido.direccion()).isEqualTo("asc");
+        assertThat(pedido.pagina()).isEqualTo(2);
+        assertThat(pedido.tamanio()).isEqualTo(10);
+    }
+
+    private static void entoncesEsDelUsuarioYElRegistro(UsuarioId usuario, RegistroId registro) {
+        assertThat(usuario).isEqualTo(USUARIO_ID);
+        assertThat(registro).isEqualTo(REGISTRO_ID);
+    }
+
+    private static void entoncesElRegistroWebEs(RegistroResponse registro) {
+        assertThat(registro).isEqualTo(REGISTRO_WEB);
+    }
+
+    private void entoncesLaPaginaEs(int numero, int tamanio, long total, int paginas) {
+        assertThat(pagina.pageNumber()).isEqualTo(numero);
+        assertThat(pagina.pageSize()).isEqualTo(tamanio);
+        assertThat(pagina.totalElements()).isEqualTo(total);
+        assertThat(pagina.totalPages()).isEqualTo(paginas);
+    }
+
+    private void entoncesEsPrimeraYUltima(boolean primera, boolean ultima) {
+        assertThat(pagina.first()).isEqualTo(primera);
+        assertThat(pagina.last()).isEqualTo(ultima);
+    }
+
+    private void entoncesLaPaginaTieneRegistros(int cantidad) {
+        assertThat(pagina.content()).hasSize(cantidad);
+    }
+
+    private void entoncesLosTotalesSon(long cantidad, CampoId campo, BigDecimal suma) {
+        assertThat(pagina.totales().cantidad()).isEqualTo(cantidad);
+        assertThat(pagina.totales().sumas()).containsOnly(entry(campo, suma));
     }
 }

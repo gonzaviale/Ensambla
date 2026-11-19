@@ -15,7 +15,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -35,36 +36,65 @@ class EliminarRegistroTest {
     private RegistroRepository registroRepository;
 
     private EliminarRegistro eliminarRegistro;
+    private Throwable rechazo;
 
     @BeforeEach
-    void setUp() {
-        eliminarRegistro = new EliminarRegistro(
-                negocioRepository, registroRepository, new TransaccionDirecta());
+    void dadoUnNegocioDelUsuario() {
+        eliminarRegistro = new EliminarRegistro(negocioRepository, registroRepository, new TransaccionDirecta());
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @Test
     @DisplayName("Elimina el registro del negocio de la sesión")
-    void executeShouldDeleteRegistroOfTheSessionNegocio() {
-        Registro registro = Registro.builder().id(REGISTRO_ID).build();
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(registro);
+    void eliminaElRegistroDelNegocioDeLaSesion() {
+        dadoUnRegistroDelNegocio();
 
-        eliminarRegistro.execute(new EliminarRegistroRequest(USUARIO_ID, REGISTRO_ID));
+        cuandoSeEliminaElRegistro();
 
-        verify(registroRepository).deleteById(REGISTRO_ID);
+        entoncesSeBorraElRegistro();
     }
 
     @Test
     @DisplayName("No elimina nada cuando el registro es de otro negocio")
-    void executeShouldNotDeleteWhenRegistroIsNotOfTheNegocio() {
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+    void noEliminaNadaCuandoElRegistroEsDeOtroNegocio() {
+        dadoQueElRegistroEsDeOtroNegocio();
+
+        cuandoSeIntentaEliminarElRegistro();
+
+        entoncesSeRechazaPorRegistroInexistente();
+        entoncesNoSeBorraNada();
+    }
+
+    // --- dado ---
+    private void dadoUnRegistroDelNegocio() {
+        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID))
+                .thenReturn(Registro.builder().id(REGISTRO_ID).build());
+    }
+
+    private void dadoQueElRegistroEsDeOtroNegocio() {
         when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID))
                 .thenThrow(new ResourceNotFoundException("El registro no existe"));
+    }
 
-        assertThatThrownBy(() -> eliminarRegistro.execute(
-                new EliminarRegistroRequest(USUARIO_ID, REGISTRO_ID)))
-                .isInstanceOf(ResourceNotFoundException.class);
+    // --- cuando ---
+    private void cuandoSeEliminaElRegistro() {
+        eliminarRegistro.execute(new EliminarRegistroRequest(USUARIO_ID, REGISTRO_ID));
+    }
 
+    private void cuandoSeIntentaEliminarElRegistro() {
+        rechazo = catchThrowable(this::cuandoSeEliminaElRegistro);
+    }
+
+    // --- entonces ---
+    private void entoncesSeBorraElRegistro() {
+        verify(registroRepository).deleteById(REGISTRO_ID);
+    }
+
+    private void entoncesSeRechazaPorRegistroInexistente() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    private void entoncesNoSeBorraNada() {
         verify(registroRepository, never()).deleteById(any());
     }
 }

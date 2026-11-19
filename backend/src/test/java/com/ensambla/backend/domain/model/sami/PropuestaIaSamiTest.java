@@ -1,18 +1,20 @@
 package com.ensambla.backend.domain.model.sami;
 
 import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.BloquePlantilla;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.CampoPlantilla;
-import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla;
 import com.ensambla.backend.domain.model.plantilla.PlantillaId;
 import com.ensambla.backend.domain.model.plantilla.PlantillaProyecto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -26,117 +28,173 @@ class PropuestaIaSamiTest {
                     new CampoPlantilla("Monto", TipoCampo.NUMERO, false, null, null))))));
     private static final PlantillaProyecto GASTOS = new PlantillaProyecto(PlantillaId.nuevo(), "Gastos", "",
             new EstructuraPlantilla(List.of()));
+    private static final String SIN_PLANTILLA = null;
+
+    private PropuestaIaSami propuesta;
+    private Optional<InterpretacionSami> interpretacion;
 
     @Test
     @DisplayName("Resuelve la plantilla elegida sin importar mayúsculas ni espacios y conserva la confianza")
-    void aInterpretacionShouldMatchTemplateIgnoringCaseAndSpaces() {
-        PropuestaIaSami propuesta = propuesta(" ventas ", 0.8);
+    void resuelveLaPlantillaSinImportarMayusculasNiEspacios() {
+        dadoQueLaIaEligio(" ventas ", 0.8);
 
-        Optional<InterpretacionSami> result = propuesta.aInterpretacion(List.of(GASTOS, VENTAS));
+        cuandoSeInterpretaEntre(GASTOS, VENTAS);
 
-        assertThat(result).isPresent();
-        assertThat(result.get().plantillaId()).isEqualTo(VENTAS_ID);
-        assertThat(result.get().plantilla()).isEqualTo("Ventas");
-        assertThat(result.get().confianza()).isEqualTo(0.8);
-        assertThat(result.get().puntajes()).isEmpty();
+        entoncesSeInterpretoComoVentasCon(0.8);
     }
 
     @Test
     @DisplayName("Si la IA inventó una plantilla no hay interpretación")
-    void aInterpretacionShouldBeEmptyForUnknownTemplate() {
-        assertThat(propuesta("Peluquería", 0.9).aInterpretacion(List.of(VENTAS, GASTOS))).isEmpty();
+    void siLaIaInventoUnaPlantillaNoHayInterpretacion() {
+        dadoQueLaIaEligio("Peluquería", 0.9);
+
+        cuandoSeInterpretaEntre(VENTAS, GASTOS);
+
+        entoncesNoHayInterpretacion();
     }
 
     @Test
     @DisplayName("Si la IA no eligió plantilla no hay interpretación")
-    void aInterpretacionShouldBeEmptyWithoutTemplate() {
-        assertThat(propuesta(null, 0.9).aInterpretacion(List.of(VENTAS))).isEmpty();
+    void siLaIaNoEligioPlantillaNoHayInterpretacion() {
+        dadoQueLaIaEligio(SIN_PLANTILLA, 0.9);
+
+        cuandoSeInterpretaEntre(VENTAS);
+
+        entoncesNoHayInterpretacion();
     }
 
-    @Test
+    @ParameterizedTest
+    @CsvSource({"7.0,1.0", "-3.0,0.0"})
     @DisplayName("La confianza queda entre 0 y 1")
-    void aInterpretacionShouldClampConfidence() {
-        assertThat(propuesta("Ventas", 7.0).aInterpretacion(List.of(VENTAS)).get().confianza()).isEqualTo(1.0);
-        assertThat(propuesta("Ventas", -3.0).aInterpretacion(List.of(VENTAS)).get().confianza()).isZero();
+    void laConfianzaQuedaEntreCeroYUno(double propuesta, double queda) {
+        dadoQueLaIaEligio("Ventas", propuesta);
+
+        cuandoSeInterpretaEntre(VENTAS);
+
+        entoncesLaConfianzaEs(queda);
     }
 
     @Test
     @DisplayName("Conserva las columnas válidas con el nombre sin espacios sobrantes")
-    void aInterpretacionShouldKeepValidColumns() {
-        PropuestaIaSami propuesta = new PropuestaIaSami("Ventas", List.of(
+    void conservaLasColumnasValidas() {
+        dadoQueLaIaPropusoLasColumnas(
                 new ColumnaSugerida("  Saldo pendiente ", TipoCampo.NUMERO, List.of("ignorada")),
                 new ColumnaSugerida("Entregado", TipoCampo.SI_NO, null),
                 new ColumnaSugerida("Notas", TipoCampo.TEXTO, List.of()),
-                new ColumnaSugerida("Vence", TipoCampo.FECHA, List.of())), 0.9, CONSUMO);
+                new ColumnaSugerida("Vence", TipoCampo.FECHA, List.of()));
 
-        List<ColumnaSugerida> columnas = propuesta.aInterpretacion(List.of(VENTAS)).get().columnasExtra();
+        cuandoSeInterpretaEntre(VENTAS);
 
-        assertThat(columnas).extracting(ColumnaSugerida::nombre)
-                .containsExactly("Saldo pendiente", "Entregado", "Notas", "Vence");
-        assertThat(columnas.getFirst().opciones()).isEmpty();
+        entoncesLasColumnasSon("Saldo pendiente", "Entregado", "Notas", "Vence");
+        entoncesLaPrimeraColumnaNoTieneOpciones();
     }
 
     @Test
     @DisplayName("Descarta las columnas sin nombre, con nombre largo o de un tipo que la IA no puede proponer")
-    void aInterpretacionShouldDropInvalidColumns() {
-        PropuestaIaSami propuesta = new PropuestaIaSami("Ventas", List.of(
+    void descartaLasColumnasInvalidas() {
+        dadoQueLaIaPropusoLasColumnas(
                 new ColumnaSugerida(null, TipoCampo.TEXTO, null),
                 new ColumnaSugerida("   ", TipoCampo.TEXTO, null),
                 new ColumnaSugerida("x".repeat(PropuestaIaSami.MAX_LARGO_NOMBRE + 1), TipoCampo.TEXTO, null),
                 new ColumnaSugerida("Cliente", TipoCampo.RELACION, null),
                 new ColumnaSugerida("Total", TipoCampo.FORMULA, null),
                 new ColumnaSugerida("Sin tipo", null, null),
-                new ColumnaSugerida("Justo", TipoCampo.TEXTO, null)), 0.9, CONSUMO);
+                new ColumnaSugerida("Justo", TipoCampo.TEXTO, null));
 
-        List<ColumnaSugerida> columnas = propuesta.aInterpretacion(List.of(VENTAS)).get().columnasExtra();
+        cuandoSeInterpretaEntre(VENTAS);
 
-        assertThat(columnas).extracting(ColumnaSugerida::nombre).containsExactly("Justo");
+        entoncesLasColumnasSon("Justo");
     }
 
     @Test
     @DisplayName("Una columna de opciones necesita al menos dos distintas; limpia espacios, vacías y repetidas")
-    void aInterpretacionShouldCleanOptionColumns() {
-        List<String> sucias = new ArrayList<>(Arrays.asList(" Efectivo ", "Tarjeta", null, "  ", "Efectivo"));
-        PropuestaIaSami propuesta = new PropuestaIaSami("Ventas", List.of(
-                new ColumnaSugerida("Forma de pago", TipoCampo.OPCION, sucias),
+    void unaColumnaDeOpcionesNecesitaDosDistintas() {
+        dadoQueLaIaPropusoLasColumnas(
+                new ColumnaSugerida("Forma de pago", TipoCampo.OPCION,
+                        Arrays.asList(" Efectivo ", "Tarjeta", null, "  ", "Efectivo")),
                 new ColumnaSugerida("Una sola", TipoCampo.OPCION, List.of("Sí")),
-                new ColumnaSugerida("Sin opciones", TipoCampo.OPCION, null)), 0.9, CONSUMO);
+                new ColumnaSugerida("Sin opciones", TipoCampo.OPCION, null));
 
-        List<ColumnaSugerida> columnas = propuesta.aInterpretacion(List.of(VENTAS)).get().columnasExtra();
+        cuandoSeInterpretaEntre(VENTAS);
 
-        assertThat(columnas).hasSize(1);
-        assertThat(columnas.getFirst().nombre()).isEqualTo("Forma de pago");
-        assertThat(columnas.getFirst().opciones()).containsExactly("Efectivo", "Tarjeta");
+        entoncesLasColumnasSon("Forma de pago");
+        entoncesLaPrimeraColumnaTieneLasOpciones("Efectivo", "Tarjeta");
     }
 
     @Test
     @DisplayName("Descarta las columnas repetidas y las que la plantilla ya trae")
-    void aInterpretacionShouldDropDuplicatesAndExistingColumns() {
-        PropuestaIaSami propuesta = new PropuestaIaSami("Ventas", List.of(
+    void descartaLasRepetidasYLasQueLaPlantillaYaTrae() {
+        dadoQueLaIaPropusoLasColumnas(
                 new ColumnaSugerida("monto", TipoCampo.NUMERO, null),
                 new ColumnaSugerida("Saldo", TipoCampo.NUMERO, null),
-                new ColumnaSugerida("SALDO ", TipoCampo.TEXTO, null)), 0.9, CONSUMO);
+                new ColumnaSugerida("SALDO ", TipoCampo.TEXTO, null));
 
-        List<ColumnaSugerida> columnas = propuesta.aInterpretacion(List.of(VENTAS)).get().columnasExtra();
+        cuandoSeInterpretaEntre(VENTAS);
 
-        assertThat(columnas).extracting(ColumnaSugerida::nombre).containsExactly("Saldo");
+        entoncesLasColumnasSon("Saldo");
     }
 
     @Test
     @DisplayName("Conserva como máximo seis columnas")
-    void aInterpretacionShouldKeepAtMostSixColumns() {
-        List<ColumnaSugerida> muchas = new ArrayList<>();
-        for (int i = 1; i <= PropuestaIaSami.MAX_COLUMNAS + 3; i++) {
-            muchas.add(new ColumnaSugerida("Columna " + i, TipoCampo.TEXTO, null));
-        }
+    void conservaComoMaximoSeisColumnas() {
+        dadoQueLaIaPropusoColumnasDeMas(3);
 
-        List<ColumnaSugerida> columnas = new PropuestaIaSami("Ventas", muchas, 0.9, CONSUMO)
-                .aInterpretacion(List.of(VENTAS)).get().columnasExtra();
+        cuandoSeInterpretaEntre(VENTAS);
 
-        assertThat(columnas).hasSize(PropuestaIaSami.MAX_COLUMNAS);
+        entoncesHayColumnas(PropuestaIaSami.MAX_COLUMNAS);
     }
 
-    private PropuestaIaSami propuesta(String plantilla, double confianza) {
-        return new PropuestaIaSami(plantilla, List.of(), confianza, CONSUMO);
+    private void dadoQueLaIaEligio(String plantilla, double confianza) {
+        propuesta = new PropuestaIaSami(plantilla, List.of(), confianza, CONSUMO);
+    }
+
+    private void dadoQueLaIaPropusoLasColumnas(ColumnaSugerida... columnas) {
+        propuesta = new PropuestaIaSami("Ventas", List.of(columnas), 0.9, CONSUMO);
+    }
+
+    private void dadoQueLaIaPropusoColumnasDeMas(int deMas) {
+        dadoQueLaIaPropusoLasColumnas(IntStream.rangeClosed(1, PropuestaIaSami.MAX_COLUMNAS + deMas)
+                .mapToObj(i -> new ColumnaSugerida("Columna " + i, TipoCampo.TEXTO, null))
+                .toArray(ColumnaSugerida[]::new));
+    }
+
+    private void cuandoSeInterpretaEntre(PlantillaProyecto... plantillas) {
+        interpretacion = propuesta.aInterpretacion(List.of(plantillas));
+    }
+
+    private List<ColumnaSugerida> columnasExtra() {
+        return interpretacion.orElseThrow().columnasExtra();
+    }
+
+    private void entoncesSeInterpretoComoVentasCon(double confianza) {
+        InterpretacionSami resuelta = interpretacion.orElseThrow();
+        assertThat(resuelta.plantillaId()).isEqualTo(VENTAS_ID);
+        assertThat(resuelta.plantilla()).isEqualTo("Ventas");
+        assertThat(resuelta.confianza()).isEqualTo(confianza);
+        assertThat(resuelta.puntajes()).isEmpty();
+    }
+
+    private void entoncesNoHayInterpretacion() {
+        assertThat(interpretacion).isEmpty();
+    }
+
+    private void entoncesLaConfianzaEs(double confianza) {
+        assertThat(interpretacion.orElseThrow().confianza()).isEqualTo(confianza);
+    }
+
+    private void entoncesLasColumnasSon(String... nombres) {
+        assertThat(columnasExtra()).extracting(ColumnaSugerida::nombre).containsExactly(nombres);
+    }
+
+    private void entoncesHayColumnas(int cantidad) {
+        assertThat(columnasExtra()).hasSize(cantidad);
+    }
+
+    private void entoncesLaPrimeraColumnaNoTieneOpciones() {
+        assertThat(columnasExtra().getFirst().opciones()).isEmpty();
+    }
+
+    private void entoncesLaPrimeraColumnaTieneLasOpciones(String... opciones) {
+        assertThat(columnasExtra().getFirst().opciones()).containsExactly(opciones);
     }
 }

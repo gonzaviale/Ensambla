@@ -7,9 +7,10 @@ import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.model.aviso.ImpactoAviso;
 import com.ensambla.backend.domain.model.aviso.TipoAviso;
 import com.ensambla.backend.domain.model.aviso.VentaProducto;
-import com.ensambla.backend.domain.model.common.TextoNormalizado;
-import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.caja.VentaCaja;
+import com.ensambla.backend.domain.model.common.TextoNormalizado;
+import com.ensambla.backend.domain.model.common.ValorDeRegistro;
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.zona.AgregadoZonaProducto;
@@ -18,20 +19,17 @@ import com.ensambla.backend.domain.model.zona.AnalisisZona;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 /**
  * Todo lo que le sirve al comerciante de un período de su negocio: cuánto vendió y cuánto ganó, qué se vendió más y qué
  * está parado, el stock que falta, quiénes le compran y cuánto le deben, cuánto gastó, cómo están sus precios frente
@@ -62,8 +60,6 @@ public record ResumenNegocio(
     static final int MAXIMO_DESALINEADOS = 5;
 
     private static final BigDecimal CIEN = BigDecimal.valueOf(100);
-    private static final BigDecimal DOS = BigDecimal.valueOf(2);
-    private static final String SIN_NOMBRE = "Producto sin nombre";
     private static final String ELIMINADO = "Producto eliminado";
     private static final String SIN_CATEGORIA = "Sin categoría";
     private static final String CLIENTE_SIN_NOMBRE = "Cliente sin nombre";
@@ -151,14 +147,16 @@ public record ResumenNegocio(
         }
     }
 
-    private record Producto(String nombre, BigDecimal cantidad, BigDecimal precio, BigDecimal costo, BigDecimal minimo) {
+    /** Un producto del inventario comparado con el rango de precios de la zona. */
+    private record Comparado(ProductoDelResumen producto, AgregadoZonaProducto rango, PosicionEnLaZona posicion) {
+
+        Optional<ProductoDesalineado> desalineado() {
+            return posicion.desalineado(producto, rango);
+        }
     }
 
-    private record Venta(VentaProducto venta, boolean fiado) {
-
-        BigDecimal ingreso() {
-            return venta.precio() == null ? BigDecimal.ZERO : venta.precio().multiply(venta.cantidad());
-        }
+    /** Un gasto cargado dentro del período, con la categoría como se la muestra. */
+    private record GastoDelPeriodo(String categoria, BigDecimal importe) {
     }
 
     /**
@@ -168,15 +166,11 @@ public record ResumenNegocio(
      */
     public static ResumenNegocio armar(String negocio, DatosDeProyecto datos, AnalisisZona zona, List<Aviso> avisos,
                                        PeriodoResumen periodo, LocalDate hoy) {
-        Map<RegistroId, Producto> productos = productosDe(datos.inventarios());
-        List<Venta> todas = ventasRegistradas(datos);
-        List<Venta> delPeriodo = todas.stream().filter(venta -> periodo.incluye(venta.venta().fecha())).toList();
-        BigDecimal ingresos = suma(delPeriodo.stream().map(Venta::ingreso));
-        return new ResumenNegocio(
-                negocio,
-                datos.nombre(),
-                periodo,
-                hoy,
+        Map<RegistroId, ProductoDelResumen> productos = productosDe(datos.inventarios());
+        List<VentaDelResumen> todas = ventasRegistradas(datos);
+        List<VentaDelResumen> delPeriodo = ventasEn(todas, periodo);
+        BigDecimal ingresos = ingresosDe(delPeriodo);
+        return new ResumenNegocio(negocio, datos.nombre(), periodo, hoy,
                 ventasDelPeriodo(todas, delPeriodo, productos, periodo, ingresos),
                 masVendidos(delPeriodo, productos),
                 sinMovimiento(delPeriodo, productos),
@@ -189,70 +183,68 @@ public record ResumenNegocio(
 
     // --- ventas ---
 
-    private static Ventas ventasDelPeriodo(List<Venta> todas, List<Venta> delPeriodo, Map<RegistroId, Producto> productos,
-                                           PeriodoResumen periodo, BigDecimal ingresos) {
-        PeriodoResumen anterior = periodo.anterior();
-        BigDecimal ingresosAnteriores = suma(todas.stream()
-                .filter(venta -> anterior.incluye(venta.venta().fecha()))
-                .map(Venta::ingreso));
-        BigDecimal variacion = ingresosAnteriores.signum() > 0
-                ? ingresos.subtract(ingresosAnteriores).multiply(CIEN).divide(ingresosAnteriores, 0, RoundingMode.HALF_UP)
-                : null;
+    private static Ventas ventasDelPeriodo(List<VentaDelResumen> todas, List<VentaDelResumen> delPeriodo,
+                                           Map<RegistroId, ProductoDelResumen> productos, PeriodoResumen periodo,
+                                           BigDecimal ingresos) {
+        BigDecimal ingresosAnteriores = ingresosDe(ventasEn(todas, periodo.anterior()));
         return new Ventas(
                 ingresos,
-                suma(delPeriodo.stream().map(venta -> venta.venta().cantidad())),
+                unidadesDe(delPeriodo),
                 delPeriodo.size(),
                 ingresos.divide(BigDecimal.valueOf(periodo.dias()), 2, RoundingMode.HALF_UP),
                 ingresosAnteriores,
-                variacion,
+                variacion(ingresos, ingresosAnteriores),
                 ganancia(delPeriodo, productos));
     }
 
+    /** Cuánto cambiaron los ingresos en porcentaje; {@code null} si antes no hubo ingresos contra qué comparar. */
+    private static BigDecimal variacion(BigDecimal ingresos, BigDecimal anteriores) {
+        if (anteriores.signum() <= 0) {
+            return null;
+        }
+        return ingresos.subtract(anteriores).multiply(CIEN).divide(anteriores, 0, RoundingMode.HALF_UP);
+    }
+
     /** Lo vendido con precio menos el costo actual de cada producto; sólo cuentan los productos que tienen costo. */
-    private static BigDecimal ganancia(List<Venta> ventas, Map<RegistroId, Producto> productos) {
+    private static BigDecimal ganancia(List<VentaDelResumen> ventas, Map<RegistroId, ProductoDelResumen> productos) {
         List<BigDecimal> ganancias = ventas.stream()
-                .filter(venta -> venta.venta().productoId() != null)
-                .filter(venta -> venta.venta().precio() != null)
-                .map(venta -> {
-                    Producto producto = productos.get(venta.venta().productoId());
-                    return producto == null || producto.costo() == null
-                            ? null
-                            : venta.venta().precio().subtract(producto.costo()).multiply(venta.venta().cantidad());
-                })
+                .map(venta -> venta.ganancia(productos))
                 .filter(Objects::nonNull)
                 .toList();
         return ganancias.isEmpty() ? null : suma(ganancias.stream());
     }
 
-    private static List<ProductoVendido> masVendidos(List<Venta> delPeriodo, Map<RegistroId, Producto> productos) {
-        return delPeriodo.stream()
-                .filter(venta -> venta.venta().productoId() != null)
-                .collect(Collectors.groupingBy(venta -> venta.venta().productoId(), LinkedHashMap::new,
-                        Collectors.toList()))
-                .entrySet().stream()
-                .map(entrada -> {
-                    Producto producto = productos.get(entrada.getKey());
-                    return new ProductoVendido(
-                            producto == null ? ELIMINADO : producto.nombre(),
-                            suma(entrada.getValue().stream().map(venta -> venta.venta().cantidad())),
-                            suma(entrada.getValue().stream().map(Venta::ingreso)),
-                            ganancia(entrada.getValue(), productos));
-                })
+    private static List<ProductoVendido> masVendidos(List<VentaDelResumen> delPeriodo,
+                                                     Map<RegistroId, ProductoDelResumen> productos) {
+        return porProducto(delPeriodo).entrySet().stream()
+                .map(entrada -> productoVendido(entrada.getKey(), entrada.getValue(), productos))
                 .sorted(Comparator.comparing(ProductoVendido::unidades).reversed()
                         .thenComparing(ProductoVendido::ingresos, Comparator.reverseOrder()))
                 .limit(MAXIMO_PRODUCTOS)
                 .toList();
     }
 
-    private static List<ProductoParado> sinMovimiento(List<Venta> delPeriodo, Map<RegistroId, Producto> productos) {
-        Set<RegistroId> vendidos = delPeriodo.stream().map(venta -> venta.venta().productoId())
-                .collect(Collectors.toCollection(HashSet::new));
+    private static Map<RegistroId, List<VentaDelResumen>> porProducto(List<VentaDelResumen> ventas) {
+        return ventas.stream()
+                .filter(VentaDelResumen::esDeUnProducto)
+                .collect(Collectors.groupingBy(VentaDelResumen::productoId, LinkedHashMap::new, Collectors.toList()));
+    }
+
+    private static ProductoVendido productoVendido(RegistroId productoId, List<VentaDelResumen> ventas,
+                                                   Map<RegistroId, ProductoDelResumen> productos) {
+        ProductoDelResumen producto = productos.get(productoId);
+        String nombre = producto == null ? ELIMINADO : producto.nombre();
+        return new ProductoVendido(nombre, unidadesDe(ventas), ingresosDe(ventas), ganancia(ventas, productos));
+    }
+
+    private static List<ProductoParado> sinMovimiento(List<VentaDelResumen> delPeriodo,
+                                                      Map<RegistroId, ProductoDelResumen> productos) {
+        Set<RegistroId> vendidos = delPeriodo.stream().map(VentaDelResumen::productoId).collect(Collectors.toSet());
         return productos.entrySet().stream()
                 .filter(entrada -> !vendidos.contains(entrada.getKey()))
                 .map(Map.Entry::getValue)
-                .filter(producto -> producto.cantidad() != null && producto.cantidad().signum() > 0)
-                .map(producto -> new ProductoParado(producto.nombre(), producto.cantidad(),
-                        producto.costo() == null ? null : producto.cantidad().multiply(producto.costo())))
+                .filter(ProductoDelResumen::hayStock)
+                .map(ProductoDelResumen::parado)
                 .sorted(Comparator.comparing(ProductoParado::capital, Comparator.nullsLast(Comparator.reverseOrder())))
                 .limit(MAXIMO_PRODUCTOS)
                 .toList();
@@ -260,67 +252,49 @@ public record ResumenNegocio(
 
     // --- stock ---
 
-    private static Stock stock(Map<RegistroId, Producto> productos) {
+    private static Stock stock(Map<RegistroId, ProductoDelResumen> productos) {
         List<Faltante> faltantes = productos.values().stream()
-                .filter(ResumenNegocio::estaEnFalta)
-                .map(ResumenNegocio::faltante)
+                .filter(ProductoDelResumen::estaEnFalta)
+                .map(ProductoDelResumen::faltante)
                 .sorted(Comparator.comparing(Faltante::cantidad))
                 .toList();
-        return new Stock(
-                productos.size(),
-                faltantes.size(),
-                faltantes.stream().limit(MAXIMO_FALTANTES).toList(),
-                suma(productos.values().stream()
-                        .filter(producto -> hayStock(producto) && producto.costo() != null)
-                        .map(producto -> producto.cantidad().multiply(producto.costo()))),
-                suma(productos.values().stream()
-                        .filter(producto -> hayStock(producto) && producto.precio() != null)
-                        .map(producto -> producto.cantidad().multiply(producto.precio()))));
-    }
-
-    private static boolean hayStock(Producto producto) {
-        return producto.cantidad() != null && producto.cantidad().signum() > 0;
-    }
-
-    /** Agotado, o en su mínimo o por debajo cuando definió uno. */
-    private static boolean estaEnFalta(Producto producto) {
-        if (producto.cantidad() == null) {
-            return false;
-        }
-        boolean conMinimo = producto.minimo() != null && producto.minimo().signum() > 0;
-        return producto.cantidad().signum() <= 0 || (conMinimo && producto.cantidad().compareTo(producto.minimo()) <= 0);
-    }
-
-    private static Faltante faltante(Producto producto) {
-        boolean conMinimo = producto.minimo() != null && producto.minimo().signum() > 0;
-        BigDecimal pedir = conMinimo
-                ? producto.minimo().multiply(DOS).subtract(producto.cantidad()).max(BigDecimal.ONE)
-                : null;
-        return new Faltante(producto.nombre(), producto.cantidad(), producto.minimo(), pedir);
+        return new Stock(productos.size(), faltantes.size(), faltantes.stream().limit(MAXIMO_FALTANTES).toList(),
+                suma(productos.values().stream().map(ProductoDelResumen::valorACosto)),
+                suma(productos.values().stream().map(ProductoDelResumen::valorAPrecio)));
     }
 
     // --- clientes y fiado ---
 
-    private static Clientes clientes(List<Venta> delPeriodo, DatosDeProyecto datos, PeriodoResumen periodo) {
-        Map<String, String> nombresDeClientes = datos.nombresDeClientes();
-        List<ClienteTop> top = delPeriodo.stream()
-                .filter(venta -> venta.venta().cliente() != null)
-                .collect(Collectors.groupingBy(
-                        venta -> TextoNormalizado.de(nombreDelCliente(venta.venta().cliente(), nombresDeClientes)),
+    private static Clientes clientes(List<VentaDelResumen> delPeriodo, DatosDeProyecto datos, PeriodoResumen periodo) {
+        List<VentaDelResumen> fiadas = delPeriodo.stream().filter(VentaDelResumen::fiado).toList();
+        List<VentaCaja> pendientesDeCaja = ventasDeCajaConSaldo(datos.ventasCaja(), periodo);
+        BigDecimal fiado = ingresosDe(fiadas).add(suma(pendientesDeCaja.stream().map(VentaCaja::saldo)));
+        return new Clientes(mejoresClientes(delPeriodo, datos.nombresDeClientes()), fiado,
+                fiadas.size() + pendientesDeCaja.size());
+    }
+
+    private static List<ClienteTop> mejoresClientes(List<VentaDelResumen> delPeriodo, Map<String, String> nombres) {
+        return delPeriodo.stream()
+                .filter(VentaDelResumen::tieneCliente)
+                .collect(Collectors.groupingBy(venta -> TextoNormalizado.de(nombreDelCliente(venta.cliente(), nombres)),
                         LinkedHashMap::new, Collectors.toList()))
                 .values().stream()
-                .map(compras -> new ClienteTop(
-                        nombreDelCliente(compras.getFirst().venta().cliente(), nombresDeClientes), compras.size(),
-                        suma(compras.stream().map(Venta::ingreso))))
+                .map(compras -> clienteTop(compras, nombres))
                 .sorted(Comparator.comparing(ClienteTop::ingresos).reversed())
                 .limit(MAXIMO_CLIENTES)
                 .toList();
-        List<Venta> fiadas = delPeriodo.stream().filter(Venta::fiado).toList();
-        List<VentaCaja> pendientesCaja = datos.ventasCaja().stream()
+    }
+
+    private static ClienteTop clienteTop(List<VentaDelResumen> compras, Map<String, String> nombres) {
+        return new ClienteTop(nombreDelCliente(compras.getFirst().cliente(), nombres), compras.size(),
+                ingresosDe(compras));
+    }
+
+    private static List<VentaCaja> ventasDeCajaConSaldo(List<VentaCaja> ventasCaja, PeriodoResumen periodo) {
+        return ventasCaja.stream()
                 .filter(venta -> periodo.incluye(ZonaNegocio.dia(venta.creadoEn())))
-                .filter(venta -> venta.saldo().signum() > 0).toList();
-        return new Clientes(top, suma(fiadas.stream().map(Venta::ingreso))
-                .add(suma(pendientesCaja.stream().map(VentaCaja::saldo))), fiadas.size() + pendientesCaja.size());
+                .filter(venta -> venta.saldo().signum() > 0)
+                .toList();
     }
 
     /**
@@ -342,85 +316,92 @@ public record ResumenNegocio(
         if (conImporte.isEmpty()) {
             return null;
         }
-        Map<String, BigDecimal> porCategoria = new LinkedHashMap<>();
-        long cantidad = 0;
-        for (BloqueGastos bloque : conImporte) {
-            for (Registro registro : bloque.registros()) {
-                BigDecimal importe = numero(bloque.valorDe(registro, "total"));
-                if (importe != null && periodo.incluye(fecha(bloque.valorDe(registro, "date")))) {
-                    porCategoria.merge(categoria(bloque.valorDe(registro, "category")), importe, BigDecimal::add);
-                    cantidad++;
-                }
-            }
+        List<GastoDelPeriodo> gastos = gastosDelPeriodo(conImporte, periodo);
+        BigDecimal total = suma(gastos.stream().map(GastoDelPeriodo::importe));
+        return new Gastos(total, gastos.size(), porCategoria(gastos), ingresos.subtract(total));
+    }
+
+    private static List<GastoDelPeriodo> gastosDelPeriodo(List<BloqueGastos> bloques, PeriodoResumen periodo) {
+        return bloques.stream()
+                .flatMap(bloque -> bloque.registros().stream()
+                        .flatMap(registro -> gastoDelPeriodo(bloque, registro, periodo).stream()))
+                .toList();
+    }
+
+    /** El gasto del registro si tiene importe y una fecha dentro del período. */
+    private static Optional<GastoDelPeriodo> gastoDelPeriodo(BloqueGastos bloque, Registro registro,
+                                                             PeriodoResumen periodo) {
+        BigDecimal importe = ValorDeRegistro.de(bloque.valorDe(registro, "total")).comoNumero();
+        LocalDate fecha = ValorDeRegistro.de(bloque.valorDe(registro, "date")).comoFecha();
+        if (importe == null || !periodo.incluye(fecha)) {
+            return Optional.empty();
         }
-        BigDecimal total = suma(porCategoria.values().stream());
-        List<GastoPorCategoria> ordenadas = porCategoria.entrySet().stream()
+        String categoria = ValorDeRegistro.de(bloque.valorDe(registro, "category")).comoTextoO(SIN_CATEGORIA);
+        return Optional.of(new GastoDelPeriodo(categoria, importe));
+    }
+
+    private static List<GastoPorCategoria> porCategoria(List<GastoDelPeriodo> gastos) {
+        return gastos.stream()
+                .collect(Collectors.groupingBy(GastoDelPeriodo::categoria, LinkedHashMap::new,
+                        Collectors.reducing(BigDecimal.ZERO, GastoDelPeriodo::importe, BigDecimal::add)))
+                .entrySet().stream()
                 .map(entrada -> new GastoPorCategoria(entrada.getKey(), entrada.getValue()))
                 .sorted(Comparator.comparing(GastoPorCategoria::total).reversed())
                 .toList();
-        return new Gastos(total, cantidad, ordenadas, ingresos.subtract(total));
-    }
-
-    private static String categoria(Object valor) {
-        return valor instanceof String texto && !texto.isBlank() ? texto.trim() : SIN_CATEGORIA;
     }
 
     // --- zona ---
 
-    private static ZonaResumen zona(AnalisisZona zona, Map<RegistroId, Producto> productos) {
-        long debajo = 0;
-        long dentro = 0;
-        long encima = 0;
-        List<ProductoDesalineado> desalineados = new ArrayList<>();
-        for (Producto producto : productos.values()) {
-            AgregadoZonaProducto rango = producto.precio() == null
-                    ? null
-                    : zona.productoConRango(producto.nombre()).orElse(null);
-            if (rango == null) {
-                continue;
-            }
-            if (producto.precio().compareTo(rango.precioMinimo()) < 0) {
-                debajo++;
-                desalineados.add(desalineado(producto, rango, producto.precio().subtract(rango.precioMinimo()),
-                        rango.precioMinimo()));
-            } else if (producto.precio().compareTo(rango.precioMaximo()) > 0) {
-                encima++;
-                desalineados.add(desalineado(producto, rango, producto.precio().subtract(rango.precioMaximo()),
-                        rango.precioMaximo()));
-            } else {
-                dentro++;
-            }
-        }
-        if (debajo + dentro + encima == 0) {
+    private static ZonaResumen zona(AnalisisZona zona, Map<RegistroId, ProductoDelResumen> productos) {
+        List<Comparado> comparados = comparadosConLaZona(zona, productos);
+        if (comparados.isEmpty()) {
             return null;
         }
-        List<ProductoDesalineado> masAlejados = desalineados.stream()
+        return new ZonaResumen(zona.nombre(), zona.comercios(),
+                cuantosQuedan(comparados, PosicionEnLaZona.DEBAJO),
+                cuantosQuedan(comparados, PosicionEnLaZona.DENTRO),
+                cuantosQuedan(comparados, PosicionEnLaZona.ENCIMA),
+                masAlejados(comparados));
+    }
+
+    private static List<Comparado> comparadosConLaZona(AnalisisZona zona, Map<RegistroId, ProductoDelResumen> productos) {
+        return productos.values().stream()
+                .filter(producto -> producto.precio() != null)
+                .flatMap(producto -> zona.productoConRango(producto.nombre()).stream()
+                        .map(rango -> new Comparado(producto, rango, PosicionEnLaZona.de(producto.precio(), rango))))
+                .toList();
+    }
+
+    private static long cuantosQuedan(List<Comparado> comparados, PosicionEnLaZona posicion) {
+        return comparados.stream().filter(comparado -> comparado.posicion() == posicion).count();
+    }
+
+    private static List<ProductoDesalineado> masAlejados(List<Comparado> comparados) {
+        return comparados.stream()
+                .flatMap(comparado -> comparado.desalineado().stream())
                 .sorted(Comparator.comparing((ProductoDesalineado producto) -> producto.porcentaje().abs()).reversed())
                 .limit(MAXIMO_DESALINEADOS)
                 .toList();
-        return new ZonaResumen(zona.nombre(), zona.comercios(), debajo, dentro, encima, masAlejados);
-    }
-
-    private static ProductoDesalineado desalineado(Producto producto, AgregadoZonaProducto rango, BigDecimal diferencia,
-                                                   BigDecimal referencia) {
-        return new ProductoDesalineado(producto.nombre(), producto.precio(), rango.precioMinimo(), rango.precioMaximo(),
-                diferencia.multiply(CIEN).divide(referencia, 0, RoundingMode.HALF_UP));
     }
 
     // --- avisos ---
 
     private static AvisosResumen avisos(List<Aviso> avisos, PeriodoResumen periodo) {
-        Map<TipoAviso, Long> pendientes = new EnumMap<>(TipoAviso.class);
-        avisos.stream().filter(Aviso::estaPendiente)
-                .forEach(aviso -> pendientes.merge(aviso.getTipo(), 1L, Long::sum));
         List<Aviso> aplicados = resueltosEn(avisos, EstadoAviso.APLICADO, periodo);
         List<ImpactoAviso> medidos = aplicados.stream().flatMap(aviso -> aviso.impacto().stream()).toList();
         return new AvisosResumen(
-                pendientes,
+                pendientesPorTipo(avisos),
                 aplicados.size(),
                 resueltosEn(avisos, EstadoAviso.DESCARTADO, periodo).size(),
                 medidos.size(),
                 suma(medidos.stream().map(ImpactoAviso::deltaIngresoSemanal)));
+    }
+
+    private static Map<TipoAviso, Long> pendientesPorTipo(List<Aviso> avisos) {
+        Map<TipoAviso, Long> pendientes = new EnumMap<>(TipoAviso.class);
+        avisos.stream().filter(Aviso::estaPendiente)
+                .forEach(aviso -> pendientes.merge(aviso.getTipo(), 1L, Long::sum));
+        return pendientes;
     }
 
     private static List<Aviso> resueltosEn(List<Aviso> avisos, EstadoAviso estado, PeriodoResumen periodo) {
@@ -432,60 +413,41 @@ public record ResumenNegocio(
 
     // --- lectura de las tablas ---
 
-    private static Map<RegistroId, Producto> productosDe(List<BloqueInventario> inventarios) {
-        Map<RegistroId, Producto> productos = new LinkedHashMap<>();
-        for (BloqueInventario inventario : inventarios) {
-            for (Registro registro : inventario.registros()) {
-                productos.put(registro.getId(), new Producto(
-                        nombre(inventario.valorDe(registro, "name")),
-                        numero(inventario.valorDe(registro, "quantity")),
-                        positivo(inventario.valorDe(registro, "price")),
-                        positivo(inventario.valorDe(registro, "cost")),
-                        numero(inventario.valorDe(registro, "minimum"))));
-            }
-        }
+    private static Map<RegistroId, ProductoDelResumen> productosDe(List<BloqueInventario> inventarios) {
+        Map<RegistroId, ProductoDelResumen> productos = new LinkedHashMap<>();
+        inventarios.forEach(inventario -> inventario.registros().forEach(registro ->
+                productos.put(registro.getId(), ProductoDelResumen.de(inventario, registro))));
         return productos;
     }
 
-    private static List<Venta> ventasRegistradas(DatosDeProyecto datos) {
-        List<Venta> articulos = ventasDe(datos.ventas(), datos.origenesVentasCaja());
-        List<Venta> importes = datos.importesLibres().stream().map(venta -> new Venta(venta, false)).toList();
-        List<Venta> todas = new ArrayList<>(articulos);
-        todas.addAll(importes);
-        return todas;
+    private static List<VentaDelResumen> ventasRegistradas(DatosDeProyecto datos) {
+        Stream<VentaDelResumen> articulos = ventasDe(datos.ventas(), datos.origenesVentasCaja());
+        Stream<VentaDelResumen> importes = datos.importesLibres().stream().map(venta -> new VentaDelResumen(venta, false));
+        return Stream.concat(articulos, importes).toList();
     }
 
-    private static List<Venta> ventasDe(List<BloqueVentas> bloques, Set<String> origenesCaja) {
+    private static Stream<VentaDelResumen> ventasDe(List<BloqueVentas> bloques, Set<String> origenesCaja) {
         return bloques.stream()
                 .flatMap(bloque -> bloque.registros().stream()
                         .flatMap(registro -> VentaProducto.desde(bloque, registro).stream()
-                                .map(venta -> new Venta(venta, Boolean.TRUE.equals(bloque.valorDe(registro, "credit"))
-                                        && !origenesCaja.contains(registro.getOrigen())))))
-                .toList();
+                                .map(venta -> new VentaDelResumen(venta, quedoAFiado(bloque, registro, origenesCaja)))));
     }
 
-    private static String nombre(Object valor) {
-        return valor instanceof String texto && !texto.isBlank() ? texto.trim() : SIN_NOMBRE;
+    /** Las ventas que vienen de Caja no cuentan como fiado acá: su saldo se suma desde el comprobante. */
+    private static boolean quedoAFiado(BloqueVentas bloque, Registro registro, Set<String> origenesCaja) {
+        return Boolean.TRUE.equals(bloque.valorDe(registro, "credit")) && !origenesCaja.contains(registro.getOrigen());
     }
 
-    private static BigDecimal numero(Object valor) {
-        return valor instanceof Number numero ? new BigDecimal(numero.toString()) : null;
+    private static List<VentaDelResumen> ventasEn(List<VentaDelResumen> ventas, PeriodoResumen periodo) {
+        return ventas.stream().filter(venta -> venta.estaEn(periodo)).toList();
     }
 
-    private static BigDecimal positivo(Object valor) {
-        BigDecimal numero = numero(valor);
-        return numero != null && numero.signum() > 0 ? numero : null;
+    private static BigDecimal ingresosDe(List<VentaDelResumen> ventas) {
+        return suma(ventas.stream().map(VentaDelResumen::ingreso));
     }
 
-    private static LocalDate fecha(Object valor) {
-        if (!(valor instanceof String texto)) {
-            return null;
-        }
-        try {
-            return LocalDate.parse(texto.trim());
-        } catch (DateTimeParseException e) {
-            return null;
-        }
+    private static BigDecimal unidadesDe(List<VentaDelResumen> ventas) {
+        return suma(ventas.stream().map(VentaDelResumen::unidades));
     }
 
     private static BigDecimal suma(Stream<BigDecimal> valores) {

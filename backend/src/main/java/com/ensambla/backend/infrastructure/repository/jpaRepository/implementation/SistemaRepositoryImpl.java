@@ -67,28 +67,40 @@ public class SistemaRepositoryImpl implements SistemaRepository {
 
     @Override
     public List<Sistema> findAllByNegocioId(NegocioId negocioId) {
-        Map<ProyectoId, List<Seccion>> secciones = seccionJpaRepository
-                .findAllByNegocioIdOrderByPosicionAscIdAsc(negocioId.valor()).stream()
-                .map(seccionRepositoryMapper::toDomain)
-                .collect(Collectors.groupingBy(Seccion::getProyectoId));
-        Map<BloqueId, List<Campo>> campos = campoJpaRepository
-                .findAllByNegocioIdOrderByPosicionAscIdAsc(negocioId.valor()).stream()
-                .map(proyectoRepositoryMapper::toDomain)
-                .collect(Collectors.groupingBy(Campo::getBloqueId));
-        Map<ProyectoId, List<Bloque>> bloques = bloqueJpaRepository
-                .findAllByNegocioIdOrderByPosicionAscIdAsc(negocioId.valor()).stream()
-                .map(proyectoRepositoryMapper::toDomain)
-                .peek(bloque -> bloque.setCampos(campos.getOrDefault(bloque.getId(), List.of())))
-                .collect(Collectors.groupingBy(Bloque::getProyectoId));
-        Map<BloqueId, List<Registro>> registros = registroJpaRepository
-                .findAllByNegocioIdOrderByOrdenAscCreadoEnAscIdAsc(negocioId.valor()).stream()
-                .map(registroRepositoryMapper::toDomain)
-                .collect(Collectors.groupingBy(Registro::getBloqueId, LinkedHashMap::new,
-                        Collectors.toList()));
+        Map<ProyectoId, List<Seccion>> secciones = seccionesPorProyecto(negocioId);
+        Map<BloqueId, List<Campo>> campos = camposPorBloque(negocioId);
+        Map<ProyectoId, List<Bloque>> bloques = bloquesPorProyecto(negocioId, campos);
+        Map<BloqueId, List<Registro>> registros = registrosPorBloque(negocioId);
         return proyectoJpaRepository.findAllByNegocioIdOrderByCreadoEnDescIdAsc(negocioId.valor()).stream()
                 .map(proyectoRepositoryMapper::toDomain)
                 .map(proyecto -> sistema(proyecto, secciones, bloques, registros))
                 .toList();
+    }
+
+    private Map<ProyectoId, List<Seccion>> seccionesPorProyecto(NegocioId negocioId) {
+        return seccionJpaRepository.findAllByNegocioIdOrderByPosicionAscIdAsc(negocioId.valor()).stream()
+                .map(seccionRepositoryMapper::toDomain)
+                .collect(Collectors.groupingBy(Seccion::getProyectoId));
+    }
+
+    private Map<BloqueId, List<Campo>> camposPorBloque(NegocioId negocioId) {
+        return campoJpaRepository.findAllByNegocioIdOrderByPosicionAscIdAsc(negocioId.valor()).stream()
+                .map(proyectoRepositoryMapper::toDomain)
+                .collect(Collectors.groupingBy(Campo::getBloqueId));
+    }
+
+    private Map<ProyectoId, List<Bloque>> bloquesPorProyecto(NegocioId negocioId,
+                                                             Map<BloqueId, List<Campo>> campos) {
+        return bloqueJpaRepository.findAllByNegocioIdOrderByPosicionAscIdAsc(negocioId.valor()).stream()
+                .map(proyectoRepositoryMapper::toDomain)
+                .peek(bloque -> bloque.setCampos(campos.getOrDefault(bloque.getId(), List.of())))
+                .collect(Collectors.groupingBy(Bloque::getProyectoId));
+    }
+
+    private Map<BloqueId, List<Registro>> registrosPorBloque(NegocioId negocioId) {
+        return registroJpaRepository.findAllByNegocioIdOrderByOrdenAscCreadoEnAscIdAsc(negocioId.valor()).stream()
+                .map(registroRepositoryMapper::toDomain)
+                .collect(Collectors.groupingBy(Registro::getBloqueId, LinkedHashMap::new, Collectors.toList()));
     }
 
     private Sistema sistema(Proyecto proyecto, Map<ProyectoId, List<Seccion>> secciones,
@@ -108,23 +120,32 @@ public class SistemaRepositoryImpl implements SistemaRepository {
 
     @Override
     public void guardar(Sistema sistema, OffsetDateTime leidoEn) {
-        NegocioId negocioId = sistema.proyecto().getNegocioId();
-        ProyectoId proyectoId = sistema.id();
-        Map<UUID, SeccionEntity> seccionesActuales = porId(
-                seccionJpaRepository.findAllByProyectoIdAndNegocioId(proyectoId.valor(), negocioId.valor()),
-                        SeccionEntity::getId);
-        Map<UUID, BloqueEntity> bloquesActuales = porId(
-                bloqueJpaRepository.findAllByProyectoIdAndNegocioIdOrderByPosicionAscIdAsc(proyectoId.valor(),
-                        negocioId.valor()),
-                BloqueEntity::getId);
-        Set<UUID> bloqueIds = bloquesActuales.keySet();
-        Map<UUID, CampoEntity> camposActuales = porId(
-                campoJpaRepository.findAllByBloqueIdInAndNegocioIdOrderByPosicionAscIdAsc(
-                        List.copyOf(bloqueIds), negocioId.valor()), CampoEntity::getId);
-        Map<UUID, RegistroEntity> registrosActuales = porId(
-                registroJpaRepository.findAllByBloqueIdInAndNegocioId(bloqueIds, negocioId.valor()),
-                        RegistroEntity::getId);
+        Actuales actuales = leerLoGuardado(sistema.proyecto());
+        Nuevos nuevos = aEntidades(sistema);
+        quitarLoQueYaNoEsta(actuales, nuevos, leidoEn);
+        guardarLoQueEsta(sistema.proyecto(), actuales, nuevos);
+        quitarLaEstructuraQueYaNoEsta(actuales, nuevos);
+    }
 
+    /** Lo que hoy hay guardado del proyecto, por id, para decidir qué se crea, qué se actualiza y qué se quita. */
+    private Actuales leerLoGuardado(Proyecto proyecto) {
+        UUID negocioId = proyecto.getNegocioId().valor();
+        UUID proyectoId = proyecto.getId().valor();
+        Map<UUID, SeccionEntity> secciones = porId(
+                seccionJpaRepository.findAllByProyectoIdAndNegocioId(proyectoId, negocioId), SeccionEntity::getId);
+        Map<UUID, BloqueEntity> bloques = porId(
+                bloqueJpaRepository.findAllByProyectoIdAndNegocioIdOrderByPosicionAscIdAsc(proyectoId, negocioId),
+                BloqueEntity::getId);
+        Set<UUID> bloqueIds = bloques.keySet();
+        Map<UUID, CampoEntity> campos = porId(
+                campoJpaRepository.findAllByBloqueIdInAndNegocioIdOrderByPosicionAscIdAsc(
+                        List.copyOf(bloqueIds), negocioId), CampoEntity::getId);
+        Map<UUID, RegistroEntity> registros = porId(
+                registroJpaRepository.findAllByBloqueIdInAndNegocioId(bloqueIds, negocioId), RegistroEntity::getId);
+        return new Actuales(secciones, bloques, campos, registros);
+    }
+
+    private Nuevos aEntidades(Sistema sistema) {
         List<SeccionEntity> secciones = sistema.secciones().stream().map(seccionRepositoryMapper::toEntity).toList();
         List<BloqueEntity> bloques = sistema.proyecto().getBloques().stream()
                 .map(proyectoRepositoryMapper::toEntity).toList();
@@ -134,24 +155,33 @@ public class SistemaRepositoryImpl implements SistemaRepository {
         List<RegistroEntity> registros = sistema.registrosPorBloque().values().stream()
                 .flatMap(Collection::stream)
                 .map(registroRepositoryMapper::toEntity).toList();
+        return new Nuevos(secciones, bloques, campos, registros);
+    }
 
-        // Primero salen las filas y columnas que ya no están: una columna nueva puede reusar la clave de una vieja.
-        quitarRegistros(registrosActuales, registros, leidoEn);
-        quitar(camposActuales, campos, CampoEntity::getId);
+    /** Primero salen las filas y columnas que ya no están: una columna nueva puede reusar la clave de una vieja. */
+    private void quitarLoQueYaNoEsta(Actuales actuales, Nuevos nuevos, OffsetDateTime leidoEn) {
+        quitarRegistros(actuales.registros(), nuevos.registros(), leidoEn);
+        quitar(actuales.campos(), nuevos.campos(), CampoEntity::getId);
         entityManager.flush();
+    }
 
-        guardarProyecto(sistema.proyecto());
-        guardarTodos(secciones, seccionesActuales, SeccionEntity::getId, (nueva, actual) -> { });
-        guardarTodos(bloques, bloquesActuales, BloqueEntity::getId, (nueva, actual) -> { });
-        guardarTodos(campos, camposActuales, CampoEntity::getId,
+    private void guardarLoQueEsta(Proyecto proyecto, Actuales actuales, Nuevos nuevos) {
+        guardarProyecto(proyecto);
+        guardarTodos(nuevos.secciones(), actuales.secciones(), SeccionEntity::getId,
+                (nueva, actual) -> { });
+        guardarTodos(nuevos.bloques(), actuales.bloques(), BloqueEntity::getId,
+                (nueva, actual) -> { });
+        guardarTodos(nuevos.campos(), actuales.campos(), CampoEntity::getId,
                 (nueva, actual) -> nueva.setValorInicial(actual.getValorInicial()));
-        guardarTodos(registros, registrosActuales, RegistroEntity::getId,
+        guardarTodos(nuevos.registros(), actuales.registros(), RegistroEntity::getId,
                 (nueva, actual) -> nueva.setFotoOrigenId(actual.getFotoOrigenId()));
         entityManager.flush();
+    }
 
-        // Los bloques y secciones se eliminan al final: las columnas que apuntaban a ellos ya se corrigieron.
-        quitar(bloquesActuales, bloques, BloqueEntity::getId);
-        quitar(seccionesActuales, secciones, SeccionEntity::getId);
+    /** Los bloques y secciones se eliminan al final: las columnas que apuntaban a ellos ya se corrigieron. */
+    private void quitarLaEstructuraQueYaNoEsta(Actuales actuales, Nuevos nuevos) {
+        quitar(actuales.bloques(), nuevos.bloques(), BloqueEntity::getId);
+        quitar(actuales.secciones(), nuevos.secciones(), SeccionEntity::getId);
         entityManager.flush();
     }
 
@@ -208,5 +238,15 @@ public class SistemaRepositoryImpl implements SistemaRepository {
 
     private static <T> Map<UUID, T> porId(List<T> entidades, Function<T, UUID> id) {
         return entidades.stream().collect(Collectors.toMap(id, entidad -> entidad));
+    }
+
+    /** Lo que ya está guardado del proyecto, por id. */
+    private record Actuales(Map<UUID, SeccionEntity> secciones, Map<UUID, BloqueEntity> bloques,
+                            Map<UUID, CampoEntity> campos, Map<UUID, RegistroEntity> registros) {
+    }
+
+    /** Lo que se quiere dejar guardado, en el orden en que llegó. */
+    private record Nuevos(List<SeccionEntity> secciones, List<BloqueEntity> bloques, List<CampoEntity> campos,
+                          List<RegistroEntity> registros) {
     }
 }

@@ -2,10 +2,11 @@ package com.ensambla.backend.domain.model.whatsapp;
 
 import com.ensambla.backend.domain.model.common.TextoNormalizado;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.IntStream;
 
 /**
  * Encuentra, entre las filas que una tabla ya tiene, la que la persona quiso nombrar aunque no la haya escrito tal
@@ -35,18 +36,19 @@ public final class CoincidenciaDeFilas {
      */
     public static Optional<Integer> buscar(String buscado, List<String> candidatos) {
         List<String> palabrasBuscadas = palabras(buscado);
-        double mejor = 0;
-        List<Integer> mejores = new ArrayList<>();
-        for (int i = 0; i < candidatos.size(); i++) {
-            double puntaje = puntaje(palabrasBuscadas, palabras(candidatos.get(i)));
-            if (puntaje > mejor) {
-                mejor = puntaje;
-                mejores.clear();
-            }
-            if (puntaje > 0 && puntaje == mejor) {
-                mejores.add(i);
-            }
-        }
+        double[] puntajes = candidatos.stream()
+                .mapToDouble(candidato -> puntaje(palabrasBuscadas, palabras(candidato)))
+                .toArray();
+        return elUnicoMejor(puntajes);
+    }
+
+    /** La posición del puntaje más alto si es positivo y nadie más lo empata. */
+    private static Optional<Integer> elUnicoMejor(double[] puntajes) {
+        double mejor = Arrays.stream(puntajes).max().orElse(0);
+        List<Integer> mejores = IntStream.range(0, puntajes.length)
+                .filter(posicion -> puntajes[posicion] > 0 && puntajes[posicion] == mejor)
+                .boxed()
+                .toList();
         return mejores.size() == 1 ? Optional.of(mejores.getFirst()) : Optional.empty();
     }
 
@@ -64,7 +66,7 @@ public final class CoincidenciaDeFilas {
         List<String> sobranBuscadas = sobrantes(buscadas, delCandidato);
         List<String> sobranDelCandidato = sobrantes(delCandidato, buscadas);
         long coinciden = buscadas.size() - sobranBuscadas.size();
-        if (coinciden == 0 || (algunaSignificativa(sobranBuscadas) && algunaSignificativa(sobranDelCandidato))) {
+        if (coinciden == 0 || nombranCosasDistintas(sobranBuscadas, sobranDelCandidato)) {
             return 0;
         }
         double jaccard = (double) coinciden / (buscadas.size() + delCandidato.size() - coinciden);
@@ -74,6 +76,10 @@ public final class CoincidenciaDeFilas {
     /** Las palabras de {@code unas} que no se parecen a ninguna de {@code otras}. */
     private static List<String> sobrantes(List<String> unas, List<String> otras) {
         return unas.stream().filter(palabra -> otras.stream().noneMatch(otra -> parecidas(palabra, otra))).toList();
+    }
+
+    private static boolean nombranCosasDistintas(List<String> sobranBuscadas, List<String> sobranDelCandidato) {
+        return algunaSignificativa(sobranBuscadas) && algunaSignificativa(sobranDelCandidato);
     }
 
     /** Una palabra larga o un número: si cada lado tiene una distinta, nombran cosas distintas. */
@@ -103,19 +109,21 @@ public final class CoincidenciaDeFilas {
 
     /** Distancia de edición entre dos palabras cortas. */
     private static int distancia(String una, String otra) {
-        int[] anterior = new int[otra.length() + 1];
-        for (int j = 0; j <= otra.length(); j++) {
-            anterior[j] = j;
-        }
+        int[] anterior = IntStream.rangeClosed(0, otra.length()).toArray();
         for (int i = 1; i <= una.length(); i++) {
-            int[] actual = new int[otra.length() + 1];
-            actual[0] = i;
-            for (int j = 1; j <= otra.length(); j++) {
-                int costo = una.charAt(i - 1) == otra.charAt(j - 1) ? 0 : 1;
-                actual[j] = Math.min(Math.min(actual[j - 1] + 1, anterior[j] + 1), anterior[j - 1] + costo);
-            }
-            anterior = actual;
+            anterior = siguienteFila(anterior, una.charAt(i - 1), otra, i);
         }
         return anterior[otra.length()];
+    }
+
+    /** Una fila de la tabla de distancias: cuánto cuesta llevar las primeras {@code i} letras a cada prefijo. */
+    private static int[] siguienteFila(int[] anterior, char letra, String otra, int i) {
+        int[] actual = new int[otra.length() + 1];
+        actual[0] = i;
+        for (int j = 1; j <= otra.length(); j++) {
+            int costo = letra == otra.charAt(j - 1) ? 0 : 1;
+            actual[j] = Math.min(Math.min(actual[j - 1] + 1, anterior[j] + 1), anterior[j - 1] + costo);
+        }
+        return actual;
     }
 }

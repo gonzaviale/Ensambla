@@ -85,20 +85,7 @@ public class ProcesarLote {
 
     private ResultadoIntento leer(LoteTrabajo lote, OffsetDateTime ahora) {
         try {
-            List<FotoLectura> fotos = procesamientoRepository.fotos(lote);
-            validarPaginas(fotos);
-            List<PaginaCuaderno> paginas = paginas(lote, fotos);
-            List<BloqueLectura> bloques = procesamientoRepository.bloques(lote.negocioId());
-            if (!reservar(lote, paginas.size(), ahora)) {
-                return new ResultadoIntento(null, PoliticaProcesamiento.LIMITE_DIARIO_AGOTADO, false);
-            }
-            List<BloqueConocido> contexto = bloques.stream()
-                    .filter(bloque -> lote.bloqueDestinoId() == null || bloque.id().equals(lote.bloqueDestinoId()))
-                    .map(bloque -> bloque.paraElLector(bloques))
-                    .toList();
-            LecturaCuaderno lectura = lectorCuadernoPort.leer(paginas, contexto, lote.bloqueDestinoId());
-            PropuestaLectura propuesta = PropuestaLectura.proponer(lectura, bloques, lote.bloqueDestinoId());
-            return new ResultadoIntento(resolverConexiones(lote.negocioId(), propuesta, bloques), null, false);
+            return intentarLeer(lote, ahora);
         } catch (BusinessRuleException e) {
             return new ResultadoIntento(null, e.getMessage(), false);
         } catch (LecturaCuadernoException e) {
@@ -108,6 +95,39 @@ public class ProcesarLote {
         }
     }
 
+    private ResultadoIntento intentarLeer(LoteTrabajo lote, OffsetDateTime ahora) {
+        List<FotoLectura> fotos = fotosDe(lote);
+        validarPaginas(fotos);
+        List<PaginaCuaderno> paginas = paginas(lote, fotos);
+        List<BloqueLectura> bloques = bloquesDelNegocio(lote);
+        if (!reservar(lote, paginas.size(), ahora)) {
+            return new ResultadoIntento(null, PoliticaProcesamiento.LIMITE_DIARIO_AGOTADO, false);
+        }
+        LecturaCuaderno lectura = leerConElProveedor(lote, paginas, bloques);
+        PropuestaLectura propuesta = PropuestaLectura.proponer(lectura, bloques, lote.bloqueDestinoId());
+        return new ResultadoIntento(resolverConexiones(lote.negocioId(), propuesta, bloques), null, false);
+    }
+
+    private List<FotoLectura> fotosDe(LoteTrabajo lote) {
+        return procesamientoRepository.fotos(lote);
+    }
+
+    private List<BloqueLectura> bloquesDelNegocio(LoteTrabajo lote) {
+        return procesamientoRepository.bloques(lote.negocioId());
+    }
+
+    private LecturaCuaderno leerConElProveedor(LoteTrabajo lote, List<PaginaCuaderno> paginas,
+                                               List<BloqueLectura> bloques) {
+        return lectorCuadernoPort.leer(paginas, contextoParaElLector(lote, bloques), lote.bloqueDestinoId());
+    }
+
+    private static List<BloqueConocido> contextoParaElLector(LoteTrabajo lote, List<BloqueLectura> bloques) {
+        return bloques.stream()
+                .filter(bloque -> lote.bloqueDestinoId() == null || bloque.id().equals(lote.bloqueDestinoId()))
+                .map(bloque -> bloque.paraElLector(bloques))
+                .toList();
+    }
+
     /** Las cuotas mensual/de prueba y la reserva diaria comparten transacción y bloqueo por negocio. */
     private boolean reservar(LoteTrabajo lote, int paginas, OffsetDateTime ahora) {
         return controlPlanService.reservarPaginasIa(lote.negocioId(), paginas, ahora, () ->
@@ -115,15 +135,22 @@ public class ProcesarLote {
     }
 
     private void finalizar(LoteTrabajo lote, ResultadoIntento resultado, OffsetDateTime ahora) {
-        OffsetDateTime reintentarEn = null;
+        procesamientoRepository.finalizar(
+                lote, resultado, costoDe(resultado), ahora, reintentarEn(lote, resultado, ahora));
+    }
+
+    private OffsetDateTime reintentarEn(LoteTrabajo lote, ResultadoIntento resultado, OffsetDateTime ahora) {
         if (resultado.recuperable() && lote.intentos() < politicaProcesamiento.maxIntentos()) {
-            reintentarEn = ahora.plus(politicaProcesamiento.demoraReintento());
+            return ahora.plus(politicaProcesamiento.demoraReintento());
         }
-        BigDecimal costo = null;
-        if (resultado.propuesta() != null) {
-            costo = politicaProcesamiento.costo(resultado.propuesta().lectura().consumo());
+        return null;
+    }
+
+    private BigDecimal costoDe(ResultadoIntento resultado) {
+        if (resultado.propuesta() == null) {
+            return null;
         }
-        procesamientoRepository.finalizar(lote, resultado, costo, ahora, reintentarEn);
+        return politicaProcesamiento.costo(resultado.propuesta().lectura().consumo());
     }
 
     private void validarPaginas(List<FotoLectura> fotos) {
@@ -152,9 +179,14 @@ public class ProcesarLote {
         List<FilaLeida> filas = propuesta.lectura().filas().stream()
                 .map(fila -> resolverFila(fila, conectadas, resolucion))
                 .toList();
-        List<String> advertencias = new ArrayList<>(propuesta.lectura().advertencias());
-        advertencias.addAll(resolucion.advertencias);
+        return conLasFilasResueltas(propuesta, filas, resolucion);
+    }
+
+    private static PropuestaLectura conLasFilasResueltas(PropuestaLectura propuesta, List<FilaLeida> filas,
+                                                         Resolucion resolucion) {
         LecturaCuaderno lectura = propuesta.lectura();
+        List<String> advertencias = new ArrayList<>(lectura.advertencias());
+        advertencias.addAll(resolucion.advertencias);
         return new PropuestaLectura(new LecturaCuaderno(lectura.tipoRegistro(), lectura.bloque(), filas, advertencias,
                 lectura.consumo()), propuesta.mapeoCampos(), propuesta.camposNuevos());
     }
@@ -162,19 +194,24 @@ public class ProcesarLote {
     /** Clave de cada columna de conexión del bloque destino → tabla con la que se conecta. */
     private Map<String, BloqueLectura> tablasConectadas(PropuestaLectura propuesta, List<BloqueLectura> bloques) {
         BloquePropuesto propuesto = propuesta.lectura().bloque();
-        Optional<BloqueLectura> destino = propuesto.bloqueExistente()
-                .flatMap(id -> bloques.stream().filter(bloque -> bloque.id().equals(id)).findFirst());
+        Optional<BloqueLectura> destino = propuesto.bloqueExistente().flatMap(id -> bloquePorId(bloques, id));
         Map<String, BloqueLectura> conectadas = new LinkedHashMap<>();
-        for (CampoPropuesto campo : propuesto.campos()) {
-            if (campo.tipo() != TipoCampo.RELACION) {
-                continue;
-            }
-            destino.flatMap(bloque -> conocido(bloque, propuesta.mapeoCampos().get(campo.clave())))
-                    .map(CampoConocido::bloqueRelacionadoId)
-                    .flatMap(id -> bloques.stream().filter(bloque -> bloque.id().equals(id)).findFirst())
-                    .ifPresent(tabla -> conectadas.put(campo.clave(), tabla));
-        }
+        propuesto.campos().stream()
+                .filter(campo -> campo.tipo() == TipoCampo.RELACION)
+                .forEach(campo -> tablaConectada(destino, campo, propuesta, bloques)
+                        .ifPresent(tabla -> conectadas.put(campo.clave(), tabla)));
         return conectadas;
+    }
+
+    private Optional<BloqueLectura> tablaConectada(Optional<BloqueLectura> destino, CampoPropuesto campo,
+                                                   PropuestaLectura propuesta, List<BloqueLectura> bloques) {
+        return destino.flatMap(bloque -> conocido(bloque, propuesta.mapeoCampos().get(campo.clave())))
+                .map(CampoConocido::bloqueRelacionadoId)
+                .flatMap(id -> bloquePorId(bloques, id));
+    }
+
+    private static Optional<BloqueLectura> bloquePorId(List<BloqueLectura> bloques, BloqueId id) {
+        return bloques.stream().filter(bloque -> bloque.id().equals(id)).findFirst();
     }
 
     private Optional<CampoConocido> conocido(BloqueLectura bloque, CampoId campoId) {

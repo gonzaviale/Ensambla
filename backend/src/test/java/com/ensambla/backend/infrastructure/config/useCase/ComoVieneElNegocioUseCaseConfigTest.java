@@ -23,19 +23,31 @@ class ComoVieneElNegocioUseCaseConfigTest {
     private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
 
     private final ComoVieneElNegocioUseCaseConfig config = new ComoVieneElNegocioUseCaseConfig();
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
+    private final SistemaRepository sistemaRepository = mock(SistemaRepository.class);
+    private ObtenerComoVieneElNegocioResponse comoViene;
 
     @Test
     @DisplayName("El wiring conecta el negocio, sus cuadernos, el servicio de datos y el reloj")
-    void obtenerComoVieneElNegocioShouldWireCollaborators() {
-        NegocioRepository negocioRepository = mock(NegocioRepository.class);
-        SistemaRepository sistemaRepository = mock(SistemaRepository.class);
+    void elWiringConectaElNegocioYSusCuadernos() {
+        dadoUnNegocioSinCuadernos();
+
+        cuandoSeConsultaComoVieneElNegocio();
+
+        entoncesNoHayVentas();
+    }
+
+    private void dadoUnNegocioSinCuadernos() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
+    }
 
-        ObtenerComoVieneElNegocioResponse response = config.obtenerComoVieneElNegocio(
-                        negocioRepository, sistemaRepository, mock(DatosDeProyectoService.class), Clock.systemUTC())
-                .execute(new ObtenerComoVieneElNegocioRequest(USUARIO_ID));
+    private void cuandoSeConsultaComoVieneElNegocio() {
+        comoViene = config.obtenerComoVieneElNegocio(negocioRepository, sistemaRepository,
+                mock(DatosDeProyectoService.class), Clock.systemUTC()).execute(new ObtenerComoVieneElNegocioRequest(USUARIO_ID));
+    }
 
-        assertThat(response.hayVentas()).isFalse();
+    private void entoncesNoHayVentas() {
+        assertThat(comoViene.hayVentas()).isFalse();
     }
 }

@@ -24,41 +24,73 @@ class IAvisoJpaRepositoryTest extends PostgresDatosTestSupport {
     private UUID negocioB;
 
     @BeforeEach
-    void setUp() {
+    void dadoDosNegocios() {
         negocioA = givenNegocio("a@example.com").getId();
         negocioB = givenNegocio("b@example.com").getId();
     }
 
+    private UUID uno;
+    private UUID dos;
+    private UUID propio;
+    private UUID ajeno;
+    private List<AvisoEntity> traidos;
+
     @Test
     @DisplayName("Trae de una vez los avisos pedidos del negocio y deja afuera los que no pidió")
-    void findByIdInAndNegocioIdShouldReturnOnlyTheRequestedOnes() {
-        UUID uno = givenAviso(negocioA, "uno");
-        UUID dos = givenAviso(negocioA, "dos");
-        givenAviso(negocioA, "tres");
+    void traeDeUnaVezLosAvisosPedidosDelNegocioYDejaAfueraLosQueNoPidio() {
+        dadoTresAvisosDelNegocioDeLosQueSePidenDos();
 
-        List<AvisoEntity> result = avisos.findByIdInAndNegocioId(List.of(uno, dos), negocioA);
+        cuandoSePidenLosAvisosUnoYDos();
 
-        assertThat(result).extracting(AvisoEntity::getId).containsExactlyInAnyOrder(uno, dos);
+        entoncesSoloSeTraenUnoYDos();
     }
 
     @Test
     @DisplayName("No trae un aviso de otro negocio aunque se pida por su id")
-    void findByIdInAndNegocioIdShouldNotReturnAvisosOfAnotherBusiness() {
-        UUID propio = givenAviso(negocioA, "propio");
-        UUID ajeno = givenAviso(negocioB, "ajeno");
+    void noTraeUnAvisoDeOtroNegocioAunqueSePidaPorSuId() {
+        dadoUnAvisoPropioYUnoAjeno();
 
-        List<AvisoEntity> result = avisos.findByIdInAndNegocioId(List.of(propio, ajeno), negocioA);
+        cuandoSePidenElAvisoPropioYElAjeno();
 
-        assertThat(result).extracting(AvisoEntity::getId).containsExactly(propio);
+        entoncesSoloSeTraeElAvisoPropio();
     }
 
-    // --- helpers ---
-    private UUID givenAviso(UUID negocioId, String nombre) {
+    // --- dado ---
+    private void dadoTresAvisosDelNegocioDeLosQueSePidenDos() {
+        uno = unAviso(negocioA, "uno");
+        dos = unAviso(negocioA, "dos");
+        unAviso(negocioA, "tres");
+    }
+
+    private void dadoUnAvisoPropioYUnoAjeno() {
+        propio = unAviso(negocioA, "propio");
+        ajeno = unAviso(negocioB, "ajeno");
+    }
+
+    private UUID unAviso(UUID negocioId, String nombre) {
         return avisos.saveAndFlush(AvisoEntity.builder()
                 .negocioId(negocioId).tipo(TipoAviso.STOCK).grupo(GrupoAviso.STOCK).prioridad((short) 2)
                 .entidad("registro:" + nombre).huella("STOCK:" + nombre + ":" + UUID.randomUUID())
                 .titulo("Aviso " + nombre).detalle("detalle").acciones(List.of()).estado(EstadoAviso.PENDIENTE)
                 .creadoEn(AHORA).actualizadoEn(AHORA)
                 .build()).getId();
+    }
+
+    // --- cuando ---
+    private void cuandoSePidenLosAvisosUnoYDos() {
+        traidos = avisos.findByIdInAndNegocioId(List.of(uno, dos), negocioA);
+    }
+
+    private void cuandoSePidenElAvisoPropioYElAjeno() {
+        traidos = avisos.findByIdInAndNegocioId(List.of(propio, ajeno), negocioA);
+    }
+
+    // --- entonces ---
+    private void entoncesSoloSeTraenUnoYDos() {
+        assertThat(traidos).extracting(AvisoEntity::getId).containsExactlyInAnyOrder(uno, dos);
+    }
+
+    private void entoncesSoloSeTraeElAvisoPropio() {
+        assertThat(traidos).extracting(AvisoEntity::getId).containsExactly(propio);
     }
 }

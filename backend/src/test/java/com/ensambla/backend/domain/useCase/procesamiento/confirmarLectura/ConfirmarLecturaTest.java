@@ -52,7 +52,7 @@ import static com.ensambla.backend.support.LoteTestData.LOTE_ID;
 import static com.ensambla.backend.support.LoteTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.LoteTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -71,6 +71,7 @@ class ConfirmarLecturaTest {
     private static final UUID MONTO_ID = UUID.fromString("00000000-0000-4000-8000-000000000023");
     private static final UUID FECHA_ID = UUID.fromString("00000000-0000-4000-8000-000000000024");
     private static final UUID EXTRA_ID = UUID.fromString("00000000-0000-4000-8000-000000000025");
+    private static final UUID FILA_AJENA_ID = UUID.fromString("00000000-0000-4000-8000-000000000099");
     private static final String NOMBRE_PROYECTO = "Ventas";
     private static final String NOMBRE_BLOQUE = "Hoja 1";
 
@@ -99,310 +100,315 @@ class ConfirmarLecturaTest {
     private LoteSubidaRepository loteSubidaRepository;
 
     private ConfirmarLectura confirmarLectura;
+    private LoteSubida lote;
+    private Bloque bloqueNuevo;
+    private ConfirmacionLectura confirmacion;
+    private ConfirmarLecturaResponse respuesta;
+    private Throwable rechazo;
 
     @BeforeEach
-    void setUp() {
+    void dadoUnCasoDeUsoDeConfirmarLecturas() {
         confirmarLectura = new ConfirmarLectura(negocioRepository, proyectoRepository, bloqueRepository,
                 campoRepository,
                 registroDatosService, controlPlanService, registroRepository, loteSubidaRepository,
                 new TransaccionDirecta(), Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
+        lote = loteListo();
     }
 
     @Test
     @DisplayName("Crea proyecto, tabla, columnas y registros con su foto y confirma el lote al final")
-    void executeShouldCreateEverythingAndConfirmLote() {
-        givenLoteConfirmable();
-        Bloque bloque = givenProyectoYBloqueNuevos();
-        givenCampoNuevoDe("Monto", campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false));
-        givenCampoNuevoDe("Fecha", campo(FECHA_ID, "Fecha", TipoCampo.FECHA, false));
-        givenCamposDelBloque(List.of(), List.of(
-                campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false), campo(FECHA_ID, "Fecha", TipoCampo.FECHA, false)),
-                        2);
-        LoteSubida lote = loteListo();
+    void creaProyectoTablaColumnasYRegistrosConSuFotoYConfirmaElLoteAlFinal() {
+        dadoUnLoteConfirmable();
+        dadoUnProyectoYUnaTablaNuevosConMontoYFecha();
+        dadoUnaConfirmacionNuevaConLasFilas(filaConPagina(1, 850, "2026-10-03"), filaSinPagina(100));
 
-        ConfirmarLecturaResponse result = confirmar(lote, confirmacionNueva(
-                filaConPagina(1, 850, "2026-10-03"), filaSinPagina(100)));
+        cuandoSeConfirma();
 
-        assertThat(result).isEqualTo(new ConfirmarLecturaResponse(PROYECTO_ID, BLOQUE_ID, 2));
-        verify(controlPlanService).validarAltaRegistros(NEGOCIO_ID, 2, AHORA);
-        List<Registro> guardados = thenRegistrosGuardados();
-        assertThat(guardados).hasSize(2);
-        assertThat(guardados.get(0).getNegocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(guardados.get(0).getBloqueId()).isEqualTo(BLOQUE_ID);
-        assertThat(guardados.get(0).getFotoOrigenId()).isEqualTo(FOTO_ID);
-        assertThat(guardados.get(0).getValores())
-                .containsEntry(MONTO_ID.toString(), 850)
-                .containsEntry(FECHA_ID.toString(), "2026-10-03");
-        assertThat(guardados.get(1).getFotoOrigenId()).isNull();
-        assertThat(guardados.get(1).getValores()).containsOnly(Map.entry(MONTO_ID.toString(), 100));
-        thenLoteConfirmedAfterSavingRegistros(lote, bloque);
+        entoncesSeGuardanDosRegistrosUnoConFotoYOtroSin();
+        entoncesElLoteSeConfirmaDespuesDeGuardarLosRegistros();
     }
 
     @Test
     @DisplayName("Crea la tabla dentro de un proyecto existente sin crear otro proyecto")
-    void executeShouldCreateBloqueInExistingProyecto() {
-        givenLoteConfirmable();
-        Proyecto proyecto = Proyecto.builder().id(PROYECTO_ID).negocioId(NEGOCIO_ID).build();
-        when(proyectoRepository.obtener(NEGOCIO_ID, PROYECTO_ID)).thenReturn(proyecto);
-        when(bloqueRepository.save(any(Bloque.class))).thenReturn(bloque());
-        givenCampoNuevoDe("Monto", campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false));
-        givenCamposDelBloque(List.of(), List.of(campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false)), 1);
+    void creaLaTablaDentroDeUnProyectoExistenteSinCrearOtroProyecto() {
+        dadoUnLoteConfirmable();
+        dadoUnProyectoExistenteYUnaTablaNueva();
+        dadoUnaConfirmacion(PROYECTO_ID, null, null, List.of(columnaNueva("monto", "Monto", "NUMERO")),
+                List.of(filaSinPagina(5)));
 
-        ConfirmarLecturaResponse result = confirmar(loteListo(), confirmacion(
-                PROYECTO_ID, null, null, List.of(columnaNueva("monto", "Monto", "NUMERO")), List.of(filaSinPagina(5))));
+        cuandoSeConfirma();
 
-        assertThat(result.proyectoId()).isEqualTo(PROYECTO_ID);
-        verify(proyectoRepository, never()).save(any());
+        entoncesLaRespuestaEsDelProyectoExistenteSinCrearOtro();
     }
 
     @Test
     @DisplayName("Suma las filas a un bloque existente, reutiliza sus campos y agrega los nuevos")
-    void executeShouldAddRowsToExistingBloque() {
-        givenLoteConfirmable();
-        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
-        Campo monto = campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false);
-        Campo nota = campo(FECHA_ID, "Nota", TipoCampo.TEXTO, false);
-        givenCampoNuevoDe("Nota", nota);
-        givenCamposDelBloque(List.of(monto), List.of(monto, nota), 1);
-        List<CampoConfirmado> columnas = List.of(
-                new CampoConfirmado("monto", CampoId.de(MONTO_ID), "Monto", "NUMERO", List.of()),
-                columnaNueva("nota", "Nota", "TEXTO"));
-        Map<String, Object> valores = Map.of("monto", 20, "nota", "  fiado ");
+    void sumaLasFilasAUnBloqueExistenteReutilizaSusCamposYAgregaLosNuevos() {
+        dadoUnLoteConfirmable();
+        dadoUnBloqueExistenteConUnMontoAlQueSeLeAgregaUnaNota();
+        dadoUnaConfirmacion(null, null, BLOQUE_ID,
+                List.of(new CampoConfirmado("monto", CampoId.de(MONTO_ID), "Monto", "NUMERO", List.of()),
+                        columnaNueva("nota", "Nota", "TEXTO")),
+                List.of(new FilaConfirmada(1, Map.of("monto", 20, "nota", "  fiado "))));
 
-        ConfirmarLecturaResponse result = confirmar(loteListo(), confirmacion(
-                null, null, BLOQUE_ID, columnas, List.of(new FilaConfirmada(1, valores))));
+        cuandoSeConfirma();
 
-        assertThat(result.bloqueId()).isEqualTo(BLOQUE_ID);
-        assertThat(thenRegistrosGuardados().get(0).getValores())
-                .containsEntry(MONTO_ID.toString(), 20)
-                .containsEntry(FECHA_ID.toString(), "fiado");
-        verifyNoInteractions(proyectoRepository);
-        verify(bloqueRepository, never()).save(any());
+        entoncesSeGuardaLaFilaConElMontoYLaNotaSinCrearProyectoNiTabla();
     }
 
     @Test
     @DisplayName("Rechaza una columna que apunta a un campo que no es del bloque")
-    void executeShouldThrowWhenCampoDoesNotBelongToBloque() {
-        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
-        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
-        ConfirmacionLectura confirmacion = confirmacion(null, null, BLOQUE_ID,
-                List.of(new CampoConfirmado("monto", CampoId.de(MONTO_ID), "Monto", "NUMERO", List.of())), List.of());
-        LoteSubida lote = loteListo();
+    void rechazaUnaColumnaQueApuntaAUnCampoQueNoEsDelBloque() {
+        dadoUnBloqueExistenteSinCampos();
+        dadoUnaConfirmacion(null, null, BLOQUE_ID,
+                List.of(new CampoConfirmado("monto", CampoId.de(MONTO_ID), "Monto", "NUMERO", List.of())),
+                List.of());
 
-        assertThatThrownBy(() -> confirmar(lote, confirmacion))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("El campo no existe");
-        verifyNoInteractions(registroDatosService);
+        cuandoSeIntentaConfirmar();
+
+        entoncesSeRechazaPorCampoInexistenteSinValidarRegistros();
     }
 
     @Test
     @DisplayName("Ubica el error de una columna nueva por su posición")
-    void executeShouldLocateInvalidColumnError() {
-        givenProyectoYBloqueNuevos();
-        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
-        ConfirmacionLectura confirmacion = confirmacion(null, NOMBRE_PROYECTO, null,
-                List.of(columnaNueva("monto", "  ", "NUMERO")), List.of(filaSinPagina(1)));
-        LoteSubida lote = loteListo();
+    void ubicaElErrorDeUnaColumnaNuevaPorSuPosicion() {
+        dadoUnProyectoYUnaTablaNuevosSinCampos();
+        dadoUnaConfirmacion(null, NOMBRE_PROYECTO, null, List.of(columnaNueva("monto", "  ", "NUMERO")),
+                List.of(filaSinPagina(1)));
 
-        assertThatThrownBy(() -> confirmar(lote, confirmacion))
-                .isInstanceOfSatisfying(CampoInvalidoException.class,
-                        e -> assertThat(e.getErrores()).containsOnly(Map.entry("campos[0].nombre", "Escribí un nombre")));
-        verifyNoInteractions(registroDatosService);
+        cuandoSeIntentaConfirmar();
+
+        entoncesSeRechazaElCampoPorErrores(Map.of("campos[0].nombre", "Escribí un nombre"));
+        entoncesNoSeValidaNingunRegistro();
     }
 
     @Test
     @DisplayName("Ubica en su columna el nombre repetido de un campo nuevo y no guarda registros")
-    void executeShouldLocateDuplicatedFieldName() {
-        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
-        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of(
-                campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false)));
-        ConfirmacionLectura confirmacion = confirmacion(null, null, BLOQUE_ID,
+    void ubicaEnSuColumnaElNombreRepetidoDeUnCampoNuevoYNoGuardaRegistros() {
+        dadoUnBloqueExistenteConUnMonto();
+        dadoUnaConfirmacion(null, null, BLOQUE_ID,
                 List.of(new CampoConfirmado("monto", CampoId.de(MONTO_ID), "Monto", "NUMERO", List.of()),
                         new CampoConfirmado("importe", null, "Monto", "NUMERO", List.of())),
                 List.of(new FilaConfirmada(1, Map.of("monto", 1, "importe", 2))));
-        LoteSubida lote = loteListo();
 
-        assertThatThrownBy(() -> confirmar(lote, confirmacion))
-                .isInstanceOfSatisfying(CampoInvalidoException.class, e -> assertThat(e.getErrores()).containsOnly(
-                        Map.entry("campos[1].nombre", "Ya hay un campo llamado \"Monto\" en este bloque")));
-        verifyNoInteractions(registroDatosService, registroRepository);
-        verify(loteSubidaRepository, never()).confirmar(any(), any(), any(), any());
+        cuandoSeIntentaConfirmar();
+
+        entoncesSeRechazaElCampoPorErrores(
+                Map.of("campos[1].nombre", "Ya hay un campo llamado \"Monto\" en este bloque"));
+        entoncesNoSeGuardaNadaNiSeConfirmaElLote();
     }
 
     @Test
     @DisplayName("Ubica el valor inválido de una fila por su posición y su columna y no guarda nada")
-    void executeShouldLocateInvalidValueAndSaveNothing() {
-        givenProyectoYBloqueNuevos();
-        givenCampoNuevoDe("Monto", campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false));
-        givenCampoNuevoDe("Fecha", campo(FECHA_ID, "Fecha", TipoCampo.FECHA, false));
-        givenCamposDelBloque(List.of(), List.of(
-                campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false), campo(FECHA_ID, "Fecha", TipoCampo.FECHA, false)),
-                        2);
-        ConfirmacionLectura confirmacion = confirmacionNueva(filaConPagina(1, 850, "2026-10-03"), filaSinPagina("abc"));
-        LoteSubida lote = loteListo();
+    void ubicaElValorInvalidoDeUnaFilaPorSuPosicionYSuColumnaYNoGuardaNada() {
+        dadoUnProyectoYUnaTablaNuevosConMontoYFecha();
+        dadoUnaConfirmacionNuevaConLasFilas(filaConPagina(1, 850, "2026-10-03"), filaSinPagina("abc"));
 
-        assertThatThrownBy(() -> confirmar(lote, confirmacion))
-                .isInstanceOfSatisfying(RegistroInvalidoException.class,
-                        e -> assertThat(e.getErrores()).containsOnly(Map.entry("filas[1].monto", "Tiene que ser un número")));
-        verifyNoInteractions(registroRepository);
-        verify(loteSubidaRepository, never()).confirmar(any(), any(), any(), any());
+        cuandoSeIntentaConfirmar();
+
+        entoncesSeRechazaElRegistroPorErrores(Map.of("filas[1].monto", "Tiene que ser un número"));
+        entoncesNoSeGuardaNingunRegistroNiSeConfirmaElLote();
     }
 
     @Test
     @DisplayName("Marca una página que el lote no tiene")
-    void executeShouldRejectRowFromMissingPage() {
-        givenProyectoYBloqueNuevos();
-        givenCampoNuevoDe("Monto", campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false));
-        givenCampoNuevoDe("Fecha", campo(FECHA_ID, "Fecha", TipoCampo.FECHA, false));
-        givenCamposDelBloque(List.of(), List.of(
-                campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false), campo(FECHA_ID, "Fecha", TipoCampo.FECHA, false)),
-                        2);
-        ConfirmacionLectura confirmacion = confirmacionNueva(filaConPagina(4, 850, "2026-10-03"));
-        LoteSubida lote = loteListo();
+    void marcaUnaPaginaQueElLoteNoTiene() {
+        dadoUnProyectoYUnaTablaNuevosConMontoYFecha();
+        dadoUnaConfirmacionNuevaConLasFilas(filaConPagina(4, 850, "2026-10-03"));
 
-        assertThatThrownBy(() -> confirmar(lote, confirmacion))
-                .isInstanceOfSatisfying(RegistroInvalidoException.class,
-                        e -> assertThat(e.getErrores())
-                                .containsOnly(Map.entry("filas[0].pagina", "Esta página no está en el cuaderno")));
-        verifyNoInteractions(registroRepository);
+        cuandoSeIntentaConfirmar();
+
+        entoncesSeRechazaElRegistroPorErrores(Map.of("filas[0].pagina", "Esta página no está en el cuaderno"));
+        entoncesNoSeGuardaNingunRegistro();
     }
 
     @Test
     @DisplayName("Ubica por id el error de un campo obligatorio del bloque que la revisión no incluyó")
-    void executeShouldReportMissingRequiredCampoOfExistingBloque() {
-        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
-        Campo monto = campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false);
-        Campo extra = campo(EXTRA_ID, "Extra", TipoCampo.TEXTO, true);
-        givenCamposDelBloque(List.of(monto, extra), List.of(monto, extra));
-        List<CampoConfirmado> columnas = List
-                .of(new CampoConfirmado("monto", CampoId.de(MONTO_ID), "Monto", "NUMERO", List.of()));
-        ConfirmacionLectura confirmacion = confirmacion(
-                null, null, BLOQUE_ID, columnas, List.of(new FilaConfirmada(1, Map.of("monto", 3))));
-        LoteSubida lote = loteListo();
+    void ubicaPorIdElErrorDeUnCampoObligatorioDelBloqueQueLaRevisionNoIncluyo() {
+        dadoUnBloqueExistenteConUnMontoYUnExtraObligatorio();
+        dadoUnaConfirmacion(null, null, BLOQUE_ID,
+                List.of(new CampoConfirmado("monto", CampoId.de(MONTO_ID), "Monto", "NUMERO", List.of())),
+                List.of(new FilaConfirmada(1, Map.of("monto", 3))));
 
-        assertThatThrownBy(() -> confirmar(lote, confirmacion))
-                .isInstanceOfSatisfying(RegistroInvalidoException.class,
-                        e -> assertThat(e.getErrores())
-                                .containsOnly(Map.entry("filas[0]." + EXTRA_ID, "Este dato es obligatorio")));
+        cuandoSeIntentaConfirmar();
+
+        entoncesSeRechazaElRegistroPorErrores(Map.of("filas[0]." + EXTRA_ID, "Este dato es obligatorio"));
     }
 
     @Test
     @DisplayName("Ubica por columna el error de una conexión que apunta a una fila que no existe")
-    void executeShouldLocateMissingConexionRow() {
-        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
-        Campo cliente = campo(EXTRA_ID, "Cliente", TipoCampo.RELACION, false);
-        givenCamposDelBloque(List.of(cliente), List.of(cliente));
-        UUID fila = UUID.fromString("00000000-0000-4000-8000-000000000099");
-        doThrow(new RegistroInvalidoException(Map.of(EXTRA_ID.toString(), "Esa fila ya no existe")))
-                .when(registroDatosService).validarConexiones(eq(NEGOCIO_ID), any(), any());
-        List<CampoConfirmado> columnas = List
-                .of(new CampoConfirmado("cliente", CampoId.de(EXTRA_ID), "Cliente", "RELACION", List.of()));
-        ConfirmacionLectura confirmacion = confirmacion(null, null, BLOQUE_ID, columnas,
-                List.of(new FilaConfirmada(1, Map.of("cliente", fila.toString()))));
-        LoteSubida lote = loteListo();
+    void ubicaPorColumnaElErrorDeUnaConexionQueApuntaAUnaFilaQueNoExiste() {
+        dadoUnBloqueExistenteConUnaConexionACliente();
+        dadoQueLaFilaConectadaYaNoExiste();
+        dadoUnaConfirmacion(null, null, BLOQUE_ID, List.of(columnaDeConexion()),
+                List.of(new FilaConfirmada(1, Map.of("cliente", FILA_AJENA_ID.toString()))));
 
-        assertThatThrownBy(() -> confirmar(lote, confirmacion))
-                .isInstanceOfSatisfying(RegistroInvalidoException.class,
-                        e -> assertThat(e.getErrores())
-                                .containsOnly(Map.entry("filas[0].cliente", "Esa fila ya no existe")));
-        verifyNoInteractions(registroRepository);
+        cuandoSeIntentaConfirmar();
+
+        entoncesSeRechazaElRegistroPorErrores(Map.of("filas[0].cliente", "Esa fila ya no existe"));
+        entoncesNoSeGuardaNingunRegistro();
     }
 
     @Test
     @DisplayName("Guarda las filas con la conexión elegida cuando la fila existe")
-    void executeShouldSaveRowsWithValidConexion() {
-        givenLoteConfirmable();
-        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
-        Campo cliente = campo(EXTRA_ID, "Cliente", TipoCampo.RELACION, false);
-        givenCamposDelBloque(List.of(cliente), List.of(cliente));
-        UUID fila = UUID.fromString("00000000-0000-4000-8000-000000000099");
-        List<CampoConfirmado> columnas = List
-                .of(new CampoConfirmado("cliente", CampoId.de(EXTRA_ID), "Cliente", "RELACION", List.of()));
+    void guardaLasFilasConLaConexionElegidaCuandoLaFilaExiste() {
+        dadoUnLoteConfirmable();
+        dadoUnBloqueExistenteConUnaConexionACliente();
+        dadoUnaConfirmacion(null, null, BLOQUE_ID, List.of(columnaDeConexion()),
+                List.of(new FilaConfirmada(1, Map.of("cliente", FILA_AJENA_ID.toString()))));
 
-        confirmar(loteListo(), confirmacion(null, null, BLOQUE_ID, columnas,
-                List.of(new FilaConfirmada(1, Map.of("cliente", fila.toString())))));
+        cuandoSeConfirma();
 
-        assertThat(thenRegistrosGuardados().getFirst().getValores())
-                .containsEntry(EXTRA_ID.toString(), fila.toString());
-        verify(registroDatosService).validarConexiones(eq(NEGOCIO_ID), any(), any());
+        entoncesSeGuardaLaFilaConLaConexionElegida();
     }
 
     @Test
     @DisplayName("No toca nada cuando el lote no se puede confirmar")
-    void executeShouldNotTouchAnythingWhenLoteIsNotConfirmable() {
-        LoteSubida lote = loteListo();
-        lote.setEstado(EstadoLote.CONFIRMADO);
-        ConfirmacionLectura confirmacion = confirmacionNueva(filaSinPagina(1));
+    void noTocaNadaCuandoElLoteNoSePuedeConfirmar() {
+        dadoUnLoteYaConfirmado();
+        dadoUnaConfirmacionNuevaConLasFilas(filaSinPagina(1));
 
-        assertThatThrownBy(() -> confirmar(lote, confirmacion))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("Este cuaderno ya se guardó");
-        verifyNoInteractions(proyectoRepository, bloqueRepository, campoRepository, registroDatosService,
-                registroRepository);
-        verify(loteSubidaRepository, never()).confirmar(any(), any(), any(), any());
+        cuandoSeIntentaConfirmar();
+
+        entoncesSeRechazaPorQueElCuadernoYaSeGuardo();
+        entoncesNoSeTocaNingunRepositorioNiSeConfirmaElLote();
     }
 
     @Test
     @DisplayName("No toca nada cuando la confirmación no tiene columnas")
-    void executeShouldNotTouchAnythingWhenConfirmacionIsInvalid() {
-        ConfirmacionLectura confirmacion = confirmacion(null, NOMBRE_PROYECTO, null, List.of(), List.of());
-        LoteSubida lote = loteListo();
+    void noTocaNadaCuandoLaConfirmacionNoTieneColumnas() {
+        dadoUnaConfirmacion(null, NOMBRE_PROYECTO, null, List.of(), List.of());
 
-        assertThatThrownBy(() -> confirmar(lote, confirmacion))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("Dejá al menos una columna");
-        verifyNoInteractions(proyectoRepository, bloqueRepository, campoRepository, registroDatosService,
-                registroRepository);
-        verify(loteSubidaRepository, never()).confirmar(any(), any(), any(), any());
+        cuandoSeIntentaConfirmar();
+
+        entoncesSeRechazaPorFaltaDeColumnas();
+        entoncesNoSeTocaNingunRepositorioNiSeConfirmaElLote();
     }
 
     @Test
     @DisplayName("Si otra confirmación se adelantó no deja nada guardado")
-    void executeShouldThrowWhenLoteWasAlreadyConfirmed() {
-        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
-        Campo monto = campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false);
-        givenCamposDelBloque(List.of(monto), List.of(monto));
-        when(loteSubidaRepository.confirmar(LOTE_ID, NEGOCIO_ID, BLOQUE_ID, AHORA)).thenReturn(false);
-        ConfirmacionLectura confirmacion = confirmacion(null, null, BLOQUE_ID,
+    void siOtraConfirmacionSeAdelantoNoDejaNadaGuardado() {
+        dadoUnBloqueExistenteConUnMonto();
+        dadoQueOtraConfirmacionSeAdelanto();
+        dadoUnaConfirmacion(null, null, BLOQUE_ID,
                 List.of(new CampoConfirmado("monto", CampoId.de(MONTO_ID), "Monto", "NUMERO", List.of())),
                 List.of(new FilaConfirmada(1, Map.of("monto", 3))));
-        LoteSubida lote = loteListo();
 
-        assertThatThrownBy(() -> confirmar(lote, confirmacion))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("Este cuaderno ya se guardó");
+        cuandoSeIntentaConfirmar();
+
+        entoncesSeRechazaPorQueElCuadernoYaSeGuardo();
     }
 
     @Test
     @DisplayName("No busca el lote cuando el usuario no tiene negocio")
-    void executeShouldStopWhenUsuarioHasNoNegocio() {
+    void noBuscaElLoteCuandoElUsuarioNoTieneNegocio() {
+        dadoUnUsuarioSinNegocio();
+        dadoUnaConfirmacionNuevaConLasFilas(filaSinPagina(1));
+
+        cuandoSeIntentaConfirmarSinNegocio();
+
+        entoncesSeRechazaPorReglaDeNegocioSinBuscarNada();
+    }
+
+    // --- dado ---
+    private void dadoUnLoteConfirmable() {
+        when(loteSubidaRepository.confirmar(LOTE_ID, NEGOCIO_ID, BLOQUE_ID, AHORA)).thenReturn(true);
+    }
+
+    private void dadoQueOtraConfirmacionSeAdelanto() {
+        when(loteSubidaRepository.confirmar(LOTE_ID, NEGOCIO_ID, BLOQUE_ID, AHORA)).thenReturn(false);
+    }
+
+    private void dadoUnLoteYaConfirmado() {
+        lote = loteListo();
+        lote.setEstado(EstadoLote.CONFIRMADO);
+    }
+
+    private void dadoUnUsuarioSinNegocio() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenThrow(new BusinessRuleException("Sin negocio"));
-        ConfirmarLecturaRequest request = request(confirmacionNueva(filaSinPagina(1)));
-
-        assertThatThrownBy(() -> confirmarLectura.execute(request)).isInstanceOf(BusinessRuleException.class);
-        verifyNoInteractions(loteSubidaRepository, proyectoRepository, bloqueRepository, registroRepository);
     }
 
-    // --- arrange ---
-    private Bloque givenProyectoYBloqueNuevos() {
+    private void dadoUnProyectoYUnaTablaNuevosConMontoYFecha() {
+        dadoUnProyectoYUnaTablaNuevos();
+        dadoQueSeCreaElCampoNuevo("Monto", unCampo(MONTO_ID, "Monto", TipoCampo.NUMERO, false));
+        dadoQueSeCreaElCampoNuevo("Fecha", unCampo(FECHA_ID, "Fecha", TipoCampo.FECHA, false));
+        dadoLosCamposDelBloque(List.of(), List.of(
+                unCampo(MONTO_ID, "Monto", TipoCampo.NUMERO, false),
+                unCampo(FECHA_ID, "Fecha", TipoCampo.FECHA, false)), 2);
+    }
+
+    private void dadoUnProyectoYUnaTablaNuevosSinCampos() {
+        dadoUnProyectoYUnaTablaNuevos();
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
+    }
+
+    private void dadoUnProyectoYUnaTablaNuevos() {
         Proyecto proyecto = Proyecto.builder().id(PROYECTO_ID).negocioId(NEGOCIO_ID).build();
-        Bloque bloque = bloque();
+        bloqueNuevo = unBloque();
         when(proyectoRepository.save(any(Proyecto.class))).thenReturn(proyecto);
-        when(bloqueRepository.save(any(Bloque.class))).thenReturn(bloque);
-        return bloque;
+        when(bloqueRepository.save(any(Bloque.class))).thenReturn(bloqueNuevo);
     }
 
-    private void givenCampoNuevoDe(String nombre, Campo campo) {
+    private void dadoUnProyectoExistenteYUnaTablaNueva() {
+        Proyecto proyecto = Proyecto.builder().id(PROYECTO_ID).negocioId(NEGOCIO_ID).build();
+        when(proyectoRepository.obtener(NEGOCIO_ID, PROYECTO_ID)).thenReturn(proyecto);
+        when(bloqueRepository.save(any(Bloque.class))).thenReturn(unBloque());
+        dadoQueSeCreaElCampoNuevo("Monto", unCampo(MONTO_ID, "Monto", TipoCampo.NUMERO, false));
+        dadoLosCamposDelBloque(List.of(), List.of(unCampo(MONTO_ID, "Monto", TipoCampo.NUMERO, false)), 1);
+    }
+
+    private void dadoUnBloqueExistente() {
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(unBloque());
+    }
+
+    private void dadoUnBloqueExistenteSinCampos() {
+        dadoUnBloqueExistente();
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
+    }
+
+    private void dadoUnBloqueExistenteConUnMonto() {
+        dadoUnBloqueExistente();
+        Campo monto = unCampo(MONTO_ID, "Monto", TipoCampo.NUMERO, false);
+        dadoLosCamposDelBloque(List.of(monto), List.of(monto));
+    }
+
+    private void dadoUnBloqueExistenteConUnMontoAlQueSeLeAgregaUnaNota() {
+        dadoUnBloqueExistente();
+        Campo monto = unCampo(MONTO_ID, "Monto", TipoCampo.NUMERO, false);
+        Campo nota = unCampo(FECHA_ID, "Nota", TipoCampo.TEXTO, false);
+        dadoQueSeCreaElCampoNuevo("Nota", nota);
+        dadoLosCamposDelBloque(List.of(monto), List.of(monto, nota), 1);
+    }
+
+    private void dadoUnBloqueExistenteConUnMontoYUnExtraObligatorio() {
+        dadoUnBloqueExistente();
+        Campo monto = unCampo(MONTO_ID, "Monto", TipoCampo.NUMERO, false);
+        Campo extra = unCampo(EXTRA_ID, "Extra", TipoCampo.TEXTO, true);
+        dadoLosCamposDelBloque(List.of(monto, extra), List.of(monto, extra));
+    }
+
+    private void dadoUnBloqueExistenteConUnaConexionACliente() {
+        dadoUnBloqueExistente();
+        Campo cliente = unCampo(EXTRA_ID, "Cliente", TipoCampo.RELACION, false);
+        dadoLosCamposDelBloque(List.of(cliente), List.of(cliente));
+    }
+
+    private void dadoQueLaFilaConectadaYaNoExiste() {
+        doThrow(new RegistroInvalidoException(Map.of(EXTRA_ID.toString(), "Esa fila ya no existe")))
+                .when(registroDatosService).validarConexiones(eq(NEGOCIO_ID), any(), any());
+    }
+
+    private void dadoQueSeCreaElCampoNuevo(String nombre, Campo campo) {
         when(campoRepository.save(argThat(nuevo -> nuevo != null && nombre.equals(nuevo.getNombre()))))
                 .thenReturn(campo);
     }
 
-    private void givenCamposDelBloque(List<Campo> antes, List<Campo> despues) {
-        givenCamposDelBloque(antes, despues, 0);
+    private void dadoLosCamposDelBloque(List<Campo> antes, List<Campo> despues) {
+        dadoLosCamposDelBloque(antes, despues, 0);
     }
 
     /** Se leen los campos del bloque al empezar, antes de crear cada columna nueva y al armar los registros. */
-    private void givenCamposDelBloque(List<Campo> antes, List<Campo> despues, int columnasNuevas) {
+    private void dadoLosCamposDelBloque(List<Campo> antes, List<Campo> despues, int columnasNuevas) {
         OngoingStubbing<List<Campo>> lecturas =
                 when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(antes);
         for (int i = 0; i < columnasNuevas; i++) {
@@ -411,54 +417,28 @@ class ConfirmarLecturaTest {
         lecturas.thenReturn(despues);
     }
 
-    private void givenLoteConfirmable() {
-        when(loteSubidaRepository.confirmar(LOTE_ID, NEGOCIO_ID, BLOQUE_ID, AHORA)).thenReturn(true);
+    private void dadoUnaConfirmacionNuevaConLasFilas(FilaConfirmada... filas) {
+        dadoUnaConfirmacion(null, NOMBRE_PROYECTO, null, List.of(
+                columnaNueva("monto", "Monto", "NUMERO"), columnaNueva("fecha", "Fecha", "FECHA")), List.of(filas));
     }
 
-    // --- act ---
-    private ConfirmarLecturaResponse confirmar(LoteSubida lote, ConfirmacionLectura confirmacion) {
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(loteSubidaRepository.obtener(NEGOCIO_ID, LOTE_ID)).thenReturn(lote);
-        return confirmarLectura.execute(request(confirmacion));
-    }
-
-    // --- assert ---
-    private List<Registro> thenRegistrosGuardados() {
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<Registro>> registros = ArgumentCaptor.forClass(List.class);
-        verify(registroRepository).saveAll(registros.capture());
-        return registros.getValue();
-    }
-
-    private void thenLoteConfirmedAfterSavingRegistros(LoteSubida lote, Bloque bloque) {
-        InOrder orden = inOrder(registroRepository, loteSubidaRepository);
-        orden.verify(registroRepository).saveAll(any());
-        orden.verify(loteSubidaRepository).confirmar(lote.getId(), lote.getNegocioId(), bloque.getId(), AHORA);
-    }
-
-    // --- helpers ---
-    private static ConfirmarLecturaRequest request(ConfirmacionLectura confirmacion) {
-        return new ConfirmarLecturaRequest(USUARIO_ID, LOTE_ID, confirmacion.proyectoId(), confirmacion.nombreProyecto(),
-                confirmacion.bloqueId(), confirmacion.nombreBloque(),
-                confirmacion.campos().stream()
-                        .map(campo -> new CampoItem(campo.clave(), campo.campoId(), campo.nombre(), campo.tipo(),
-                                campo.opciones()))
-                        .toList(),
-                confirmacion.filas().stream().map(fila -> new FilaItem(fila.pagina(), fila.valores())).toList());
+    private void dadoUnaConfirmacion(ProyectoId proyectoId, String nombreProyecto, BloqueId bloqueId,
+                                     List<CampoConfirmado> campos, List<FilaConfirmada> filas) {
+        confirmacion = new ConfirmacionLectura(proyectoId, nombreProyecto, bloqueId, NOMBRE_BLOQUE, campos, filas);
     }
 
     private LoteSubida loteListo() {
-        LoteSubida lote = LoteTestData.lote(List.of(LoteTestData.foto()));
-        lote.setId(LOTE_ID);
-        lote.setEstado(EstadoLote.LISTO);
-        return lote;
+        LoteSubida listo = LoteTestData.lote(List.of(LoteTestData.foto()));
+        listo.setId(LOTE_ID);
+        listo.setEstado(EstadoLote.LISTO);
+        return listo;
     }
 
-    private Bloque bloque() {
+    private Bloque unBloque() {
         return Bloque.builder().id(BLOQUE_ID).negocioId(NEGOCIO_ID).proyectoId(PROYECTO_ID).build();
     }
 
-    private Campo campo(UUID id, String nombre, TipoCampo tipo, boolean obligatorio) {
+    private Campo unCampo(UUID id, String nombre, TipoCampo tipo, boolean obligatorio) {
         return Campo.builder().id(CampoId.de(id)).nombre(nombre).tipo(tipo).obligatorio(obligatorio)
                 .posicion((short) 0).build();
     }
@@ -467,14 +447,8 @@ class ConfirmarLecturaTest {
         return new CampoConfirmado(clave, null, nombre, tipo, List.of());
     }
 
-    private ConfirmacionLectura confirmacionNueva(FilaConfirmada... filas) {
-        return confirmacion(null, NOMBRE_PROYECTO, null, List.of(
-                columnaNueva("monto", "Monto", "NUMERO"), columnaNueva("fecha", "Fecha", "FECHA")), List.of(filas));
-    }
-
-    private ConfirmacionLectura confirmacion(ProyectoId proyectoId, String nombreProyecto, BloqueId bloqueId,
-                                             List<CampoConfirmado> campos, List<FilaConfirmada> filas) {
-        return new ConfirmacionLectura(proyectoId, nombreProyecto, bloqueId, NOMBRE_BLOQUE, campos, filas);
+    private CampoConfirmado columnaDeConexion() {
+        return new CampoConfirmado("cliente", CampoId.de(EXTRA_ID), "Cliente", "RELACION", List.of());
     }
 
     private FilaConfirmada filaConPagina(int pagina, Object monto, String fecha) {
@@ -486,5 +460,131 @@ class ConfirmarLecturaTest {
 
     private FilaConfirmada filaSinPagina(Object monto) {
         return new FilaConfirmada(null, Map.of("monto", monto));
+    }
+
+    private ConfirmarLecturaRequest unPedidoDeConfirmacion() {
+        return new ConfirmarLecturaRequest(USUARIO_ID, LOTE_ID, confirmacion.proyectoId(),
+                confirmacion.nombreProyecto(), confirmacion.bloqueId(), confirmacion.nombreBloque(),
+                confirmacion.campos().stream()
+                        .map(campo -> new CampoItem(campo.clave(), campo.campoId(), campo.nombre(), campo.tipo(),
+                                campo.opciones()))
+                        .toList(),
+                confirmacion.filas().stream().map(fila -> new FilaItem(fila.pagina(), fila.valores())).toList());
+    }
+
+    // --- cuando ---
+    private void cuandoSeConfirma() {
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(loteSubidaRepository.obtener(NEGOCIO_ID, LOTE_ID)).thenReturn(lote);
+        respuesta = confirmarLectura.execute(unPedidoDeConfirmacion());
+    }
+
+    private void cuandoSeIntentaConfirmar() {
+        rechazo = catchThrowable(this::cuandoSeConfirma);
+    }
+
+    private void cuandoSeIntentaConfirmarSinNegocio() {
+        rechazo = catchThrowable(() -> confirmarLectura.execute(unPedidoDeConfirmacion()));
+    }
+
+    // --- entonces ---
+    private List<Registro> registrosGuardados() {
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<Registro>> registros = ArgumentCaptor.forClass(List.class);
+        verify(registroRepository).saveAll(registros.capture());
+        return registros.getValue();
+    }
+
+    private void entoncesSeGuardanDosRegistrosUnoConFotoYOtroSin() {
+        assertThat(respuesta).isEqualTo(new ConfirmarLecturaResponse(PROYECTO_ID, BLOQUE_ID, 2));
+        verify(controlPlanService).validarAltaRegistros(NEGOCIO_ID, 2, AHORA);
+        List<Registro> guardados = registrosGuardados();
+        assertThat(guardados).hasSize(2);
+        assertThat(guardados.get(0).getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(guardados.get(0).getBloqueId()).isEqualTo(BLOQUE_ID);
+        assertThat(guardados.get(0).getFotoOrigenId()).isEqualTo(FOTO_ID);
+        assertThat(guardados.get(0).getValores())
+                .containsEntry(MONTO_ID.toString(), 850)
+                .containsEntry(FECHA_ID.toString(), "2026-10-03");
+        assertThat(guardados.get(1).getFotoOrigenId()).isNull();
+        assertThat(guardados.get(1).getValores()).containsOnly(Map.entry(MONTO_ID.toString(), 100));
+    }
+
+    private void entoncesElLoteSeConfirmaDespuesDeGuardarLosRegistros() {
+        InOrder orden = inOrder(registroRepository, loteSubidaRepository);
+        orden.verify(registroRepository).saveAll(any());
+        orden.verify(loteSubidaRepository).confirmar(lote.getId(), lote.getNegocioId(), bloqueNuevo.getId(), AHORA);
+    }
+
+    private void entoncesLaRespuestaEsDelProyectoExistenteSinCrearOtro() {
+        assertThat(respuesta.proyectoId()).isEqualTo(PROYECTO_ID);
+        verify(proyectoRepository, never()).save(any());
+    }
+
+    private void entoncesSeGuardaLaFilaConElMontoYLaNotaSinCrearProyectoNiTabla() {
+        assertThat(respuesta.bloqueId()).isEqualTo(BLOQUE_ID);
+        assertThat(registrosGuardados().get(0).getValores())
+                .containsEntry(MONTO_ID.toString(), 20)
+                .containsEntry(FECHA_ID.toString(), "fiado");
+        verifyNoInteractions(proyectoRepository);
+        verify(bloqueRepository, never()).save(any());
+    }
+
+    private void entoncesSeGuardaLaFilaConLaConexionElegida() {
+        assertThat(registrosGuardados().getFirst().getValores())
+                .containsEntry(EXTRA_ID.toString(), FILA_AJENA_ID.toString());
+        verify(registroDatosService).validarConexiones(eq(NEGOCIO_ID), any(), any());
+    }
+
+    private void entoncesSeRechazaPorCampoInexistenteSinValidarRegistros() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class).hasMessage("El campo no existe");
+        verifyNoInteractions(registroDatosService);
+    }
+
+    private void entoncesSeRechazaElCampoPorErrores(Map<String, String> errores) {
+        assertThat(rechazo).isInstanceOfSatisfying(CampoInvalidoException.class,
+                e -> assertThat(e.getErrores()).containsExactlyInAnyOrderEntriesOf(errores));
+    }
+
+    private void entoncesSeRechazaElRegistroPorErrores(Map<String, String> errores) {
+        assertThat(rechazo).isInstanceOfSatisfying(RegistroInvalidoException.class,
+                e -> assertThat(e.getErrores()).containsExactlyInAnyOrderEntriesOf(errores));
+    }
+
+    private void entoncesNoSeValidaNingunRegistro() {
+        verifyNoInteractions(registroDatosService);
+    }
+
+    private void entoncesNoSeGuardaNingunRegistro() {
+        verifyNoInteractions(registroRepository);
+    }
+
+    private void entoncesNoSeGuardaNadaNiSeConfirmaElLote() {
+        verifyNoInteractions(registroDatosService, registroRepository);
+        verify(loteSubidaRepository, never()).confirmar(any(), any(), any(), any());
+    }
+
+    private void entoncesNoSeGuardaNingunRegistroNiSeConfirmaElLote() {
+        verifyNoInteractions(registroRepository);
+        verify(loteSubidaRepository, never()).confirmar(any(), any(), any(), any());
+    }
+
+    private void entoncesSeRechazaPorQueElCuadernoYaSeGuardo() {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class).hasMessage("Este cuaderno ya se guardó");
+    }
+
+    private void entoncesSeRechazaPorFaltaDeColumnas() {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class).hasMessage("Dejá al menos una columna");
+    }
+
+    private void entoncesNoSeTocaNingunRepositorioNiSeConfirmaElLote() {
+        verifyNoInteractions(proyectoRepository, bloqueRepository, campoRepository, registroDatosService,
+                registroRepository);
+        verify(loteSubidaRepository, never()).confirmar(any(), any(), any(), any());
+    }
+
+    private void entoncesSeRechazaPorReglaDeNegocioSinBuscarNada() {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class);
+        verifyNoInteractions(loteSubidaRepository, proyectoRepository, bloqueRepository, registroRepository);
     }
 }
