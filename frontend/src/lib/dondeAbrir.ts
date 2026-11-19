@@ -500,35 +500,43 @@ const PESOS_BASE: Record<Rubro, Pesos> = {
 
 const MULTIPLICADOR_DE_IMPORTANCIA: Record<Importancia, number> = { 0: 0, 1: 1, 2: 2.2 };
 
+const AJUSTE_POR_PUBLICO: Record<Publico, Partial<Pesos>> = {
+  vecinos: { vecinos: 1.6 },
+  estudiantes: { escuelas: 1.8, parques: 1.2 },
+  oficinas: { oficinas: 1.8, transporte: 1.2 },
+};
+
+const pesosDeFactores = (calcular: (clave: FactorClave) => number): Pesos =>
+  Object.fromEntries(CLAVES_DE_FACTOR.map((clave) => [clave, calcular(clave)])) as Pesos;
+
+const sumaDePesos = (pesos: Pesos) =>
+  CLAVES_DE_FACTOR.reduce((suma, clave) => suma + pesos[clave], 0);
+
+const ajustadosPorPublico = (pesos: Pesos, publico: Publico): Pesos =>
+  pesosDeFactores((clave) => pesos[clave] * (AJUSTE_POR_PUBLICO[publico][clave] ?? 1));
+
+const ajustadosPorImportancia = (pesos: Pesos, importancia: Filtros['importancia']): Pesos =>
+  pesosDeFactores((clave) => {
+    const elegida = importancia[clave] ?? IMPORTANCIA_NORMAL[clave];
+    return pesos[clave] * MULTIPLICADOR_DE_IMPORTANCIA[elegida];
+  });
+
+// Si la persona dijo que nada le importa, se mira todo por igual en vez de dividir por cero.
+const pesosParejos = (): Pesos =>
+  pesosDeFactores((clave) =>
+    CLAVES_RESPALDADAS.includes(clave) ? 1 / CLAVES_RESPALDADAS.length : 0,
+  );
+
+const vueltosASumarUno = (pesos: Pesos): Pesos => {
+  const total = sumaDePesos(pesos);
+  return total === 0 ? pesosParejos() : pesosDeFactores((clave) => pesos[clave] / total);
+};
+
 /** Los pesos finales: los del rubro, ajustados por el público y por la importancia elegida, y vueltos a sumar 1. */
 export function pesosPara(filtros: Filtros): Pesos {
-  const pesos = { ...PESOS_BASE[filtros.rubro] };
-  if (filtros.publico === 'vecinos') pesos.vecinos *= 1.6;
-  if (filtros.publico === 'estudiantes') {
-    pesos.escuelas *= 1.8;
-    pesos.parques *= 1.2;
-  }
-  if (filtros.publico === 'oficinas') {
-    pesos.oficinas *= 1.8;
-    pesos.transporte *= 1.2;
-  }
-  for (const clave of CLAVES_DE_FACTOR) {
-    const importancia = filtros.importancia[clave] ?? IMPORTANCIA_NORMAL[clave];
-    pesos[clave] *= MULTIPLICADOR_DE_IMPORTANCIA[importancia];
-  }
-  const total = CLAVES_DE_FACTOR.reduce((suma, clave) => suma + pesos[clave], 0);
-  // Si la persona dijo que nada le importa, se mira todo por igual en vez de dividir por cero.
-  if (total === 0) {
-    return Object.fromEntries(
-      CLAVES_DE_FACTOR.map((clave) => [
-        clave,
-        CLAVES_RESPALDADAS.includes(clave) ? 1 / CLAVES_RESPALDADAS.length : 0,
-      ]),
-    ) as Pesos;
-  }
-  return Object.fromEntries(
-    CLAVES_DE_FACTOR.map((clave) => [clave, pesos[clave] / total]),
-  ) as Pesos;
+  const delRubro = PESOS_BASE[filtros.rubro];
+  const conPublico = ajustadosPorPublico(delRubro, filtros.publico);
+  return vueltosASumarUno(ajustadosPorImportancia(conPublico, filtros.importancia));
 }
 
 const RADIO_TERRESTRE_KM = 6371;
@@ -546,18 +554,25 @@ export function distanciaEnKm(
   return 2 * RADIO_TERRESTRE_KM * Math.asin(Math.sqrt(h));
 }
 
-const valorCrudo = (zona: DatosDeZona, clave: FactorClave, rubro: Rubro): number => {
-  switch (clave) {
-    case 'competencia':
-      return zona.competencia[rubro];
-    case 'vecinos':
-      return zona.densidad;
-    case 'demanda':
-      return zona.demanda ?? 0;
-    default:
-      return zona[clave];
-  }
+type LectorDeValor = (zona: DatosDeZona, rubro: Rubro) => number;
+
+const VALOR_CRUDO: Record<FactorClave, LectorDeValor> = {
+  competencia: (zona, rubro) => zona.competencia[rubro],
+  movimiento: (zona) => zona.movimiento,
+  vecinos: (zona) => zona.densidad,
+  escuelas: (zona) => zona.escuelas,
+  oficinas: (zona) => zona.oficinas,
+  transporte: (zona) => zona.transporte,
+  parques: (zona) => zona.parques,
+  salud: (zona) => zona.salud,
+  complementarios: (zona) => zona.complementarios,
+  demanda: (zona) => zona.demanda ?? 0,
+  poder: (zona) => zona.poder,
+  alquiler: (zona) => zona.alquiler,
 };
+
+const valorCrudo = (zona: DatosDeZona, clave: FactorClave, rubro: Rubro): number =>
+  VALOR_CRUDO[clave](zona, rubro);
 
 // En estos dos, menos es mejor.
 const MENOS_ES_MEJOR: FactorClave[] = ['competencia', 'alquiler'];
@@ -620,63 +635,49 @@ export const formatoPuntaje = (valor: number) =>
     valor,
   );
 
-function frasePositiva(zona: DatosDeZona, clave: FactorClave, rubro: Rubro): string {
-  switch (clave) {
-    case 'competencia':
-      return `Solo ${zona.competencia[rubro]} ${PLURAL_DE_RUBRO[rubro]} a menos de 500 m`;
-    case 'movimiento':
-      return `Mucha gente pasando por la calle (${zona.movimiento} de 100)`;
-    case 'vecinos':
-      return `Zona con muchos vecinos (${numero.format(zona.densidad)} personas por km²)`;
-    case 'escuelas':
-      return `${zona.escuelas} escuelas a menos de 500 m`;
-    case 'oficinas':
-      return `${zona.oficinas} oficinas y bancos a menos de 500 m`;
-    case 'transporte':
-      return `${zona.transporte} paradas y estaciones a menos de 500 m`;
-    case 'parques':
-      return `${zona.parques} ${zona.parques === 1 ? 'parque o plaza' : 'parques y plazas'} a menos de 500 m`;
-    case 'salud':
-      return `${zona.salud} hospitales o centros de salud cerca`;
-    case 'complementarios':
-      return `${zona.complementarios} comercios que atraen gente (farmacias, bancos, supermercados)`;
-    case 'demanda':
-      return 'Ensambla observa buena demanda agregada en esta zona';
-    case 'poder':
-      return 'Vecinos con buen poder de compra';
-    case 'alquiler':
-      return 'Alquiler más bajo que en la mayoría de las zonas';
-  }
-}
+type RedactorDeFrase = (zona: DatosDeZona, rubro: Rubro) => string;
 
-function fraseDeRiesgo(zona: DatosDeZona, clave: FactorClave, rubro: Rubro): string {
-  switch (clave) {
-    case 'competencia':
-      return `Hay ${zona.competencia[rubro]} ${PLURAL_DE_RUBRO[rubro]} a menos de 500 m: la competencia es fuerte`;
-    case 'movimiento':
-      return 'Pasa poca gente por la calle';
-    case 'vecinos':
-      return 'Hay pocos vecinos viviendo cerca';
-    case 'escuelas':
-      return 'Casi no hay escuelas cerca';
-    case 'oficinas':
-      return 'Casi no hay oficinas ni bancos cerca';
-    case 'transporte':
-      return 'Hay pocas paradas y estaciones cerca';
-    case 'parques':
-      return 'Casi no hay parques ni plazas cerca';
-    case 'salud':
-      return 'Hay pocos centros de salud cerca';
-    case 'complementarios':
-      return 'Hay pocos comercios que atraigan gente';
-    case 'demanda':
-      return 'Ensambla observa menos demanda que en otras zonas con datos suficientes';
-    case 'poder':
-      return 'El poder de compra de la zona es más bajo que en otras';
-    case 'alquiler':
-      return 'El alquiler es más alto que en la mayoría de las zonas';
-  }
-}
+const cantidadDeParques = (zona: DatosDeZona) =>
+  `${zona.parques} ${zona.parques === 1 ? 'parque o plaza' : 'parques y plazas'}`;
+
+const FRASE_POSITIVA: Record<FactorClave, RedactorDeFrase> = {
+  competencia: (zona, rubro) =>
+    `Solo ${zona.competencia[rubro]} ${PLURAL_DE_RUBRO[rubro]} a menos de 500 m`,
+  movimiento: (zona) => `Mucha gente pasando por la calle (${zona.movimiento} de 100)`,
+  vecinos: (zona) => `Zona con muchos vecinos (${numero.format(zona.densidad)} personas por km²)`,
+  escuelas: (zona) => `${zona.escuelas} escuelas a menos de 500 m`,
+  oficinas: (zona) => `${zona.oficinas} oficinas y bancos a menos de 500 m`,
+  transporte: (zona) => `${zona.transporte} paradas y estaciones a menos de 500 m`,
+  parques: (zona) => `${cantidadDeParques(zona)} a menos de 500 m`,
+  salud: (zona) => `${zona.salud} hospitales o centros de salud cerca`,
+  complementarios: (zona) =>
+    `${zona.complementarios} comercios que atraen gente (farmacias, bancos, supermercados)`,
+  demanda: () => 'Ensambla observa buena demanda agregada en esta zona',
+  poder: () => 'Vecinos con buen poder de compra',
+  alquiler: () => 'Alquiler más bajo que en la mayoría de las zonas',
+};
+
+const FRASE_DE_RIESGO: Record<FactorClave, RedactorDeFrase> = {
+  competencia: (zona, rubro) =>
+    `Hay ${zona.competencia[rubro]} ${PLURAL_DE_RUBRO[rubro]} a menos de 500 m: la competencia es fuerte`,
+  movimiento: () => 'Pasa poca gente por la calle',
+  vecinos: () => 'Hay pocos vecinos viviendo cerca',
+  escuelas: () => 'Casi no hay escuelas cerca',
+  oficinas: () => 'Casi no hay oficinas ni bancos cerca',
+  transporte: () => 'Hay pocas paradas y estaciones cerca',
+  parques: () => 'Casi no hay parques ni plazas cerca',
+  salud: () => 'Hay pocos centros de salud cerca',
+  complementarios: () => 'Hay pocos comercios que atraigan gente',
+  demanda: () => 'Ensambla observa menos demanda que en otras zonas con datos suficientes',
+  poder: () => 'El poder de compra de la zona es más bajo que en otras',
+  alquiler: () => 'El alquiler es más alto que en la mayoría de las zonas',
+};
+
+const frasePositiva = (zona: DatosDeZona, clave: FactorClave, rubro: Rubro): string =>
+  FRASE_POSITIVA[clave](zona, rubro);
+
+const fraseDeRiesgo = (zona: DatosDeZona, clave: FactorClave, rubro: Rubro): string =>
+  FRASE_DE_RIESGO[clave](zona, rubro);
 
 function coincidenciaDe(puntaje: number): Coincidencia {
   if (puntaje >= UMBRAL_BUENA) return 'buena';
@@ -684,31 +685,53 @@ function coincidenciaDe(puntaje: number): Coincidencia {
   return 'mala';
 }
 
-export function puntuar(zona: DatosDeZona, filtros: Filtros): ZonaPuntuada {
+const PENALIZACION_POR_CERCANIA = 1.2;
+
+const aportesDeLaZona = (zona: DatosDeZona, filtros: Filtros): Aporte[] => {
   const pesos = pesosPara(filtros);
-  const distanciaKm = distanciaEnKm(LOCAL_ACTUAL, zona);
-  const aportes: Aporte[] = FACTORES.map(({ clave, etiqueta }) => {
+  return FACTORES.map(({ clave, etiqueta }) => {
     const puntaje = subpuntaje(zona, clave, filtros.rubro);
     return { clave, etiqueta, peso: pesos[clave], puntaje, aporte: pesos[clave] * puntaje };
   });
-  const cercaDelActual = distanciaKm < DISTANCIA_MINIMA_KM;
-  const bruto = aportes.reduce((suma, item) => suma + item.aporte, 0);
-  const puntaje = redondear(Math.min(10, Math.max(0, bruto - (cercaDelActual ? 1.2 : 0))));
+};
 
-  // Solo se habla de lo que a la persona le importa.
-  const importantes = aportes.filter((item) => filtros.importancia[item.clave] > 0);
-  const porAporte = [...aportes].sort((a, b) => b.aporte - a.aporte);
-  const porQue = porAporte
-    .filter((item) => filtros.importancia[item.clave] > 0 && item.puntaje >= 6)
+const puntajeFinal = (aportes: Aporte[], cercaDelActual: boolean): number => {
+  const bruto = aportes.reduce((suma, item) => suma + item.aporte, 0);
+  const penalizacion = cercaDelActual ? PENALIZACION_POR_CERCANIA : 0;
+  return redondear(Math.min(10, Math.max(0, bruto - penalizacion)));
+};
+
+const leImporta = (filtros: Filtros) => (item: Aporte) => filtros.importancia[item.clave] > 0;
+
+const motivosParaElegirla = (
+  porAporte: Aporte[],
+  zona: DatosDeZona,
+  filtros: Filtros,
+): string[] => {
+  const motivos = porAporte
+    .filter(leImporta(filtros))
+    .filter((item) => item.puntaje >= 6)
     .slice(0, 3)
     .map((item) => frasePositiva(zona, item.clave, filtros.rubro));
+  return motivos.length > 0 ? motivos : ['Ningún factor se destaca: es una zona pareja'];
+};
 
-  const riesgos = importantes
+const riesgosDeLosFactores = (aportes: Aporte[], zona: DatosDeZona, filtros: Filtros) =>
+  aportes
+    .filter(leImporta(filtros))
     .filter((item) => item.puntaje < 4.5 && item.peso >= 0.04)
     .sort((a, b) => b.peso * (10 - b.puntaje) - a.peso * (10 - a.puntaje))
     .slice(0, 2)
     .map((item) => fraseDeRiesgo(zona, item.clave, filtros.rubro));
-  if (cercaDelActual) {
+
+const riesgosDeLaZona = (
+  aportes: Aporte[],
+  zona: DatosDeZona,
+  filtros: Filtros,
+  distanciaKm: number,
+): string[] => {
+  const riesgos = riesgosDeLosFactores(aportes, zona, filtros);
+  if (distanciaKm < DISTANCIA_MINIMA_KM) {
     riesgos.unshift(
       `Queda a ${formatoKm(distanciaKm)} de tu local actual: podrían quitarse clientes entre sí`,
     );
@@ -716,15 +739,22 @@ export function puntuar(zona: DatosDeZona, filtros: Filtros): ZonaPuntuada {
   if (riesgos.length === 0) {
     riesgos.push('Son datos estimados: confirmalos caminando la zona antes de decidir');
   }
+  return riesgos;
+};
 
+export function puntuar(zona: DatosDeZona, filtros: Filtros): ZonaPuntuada {
+  const distanciaKm = distanciaEnKm(LOCAL_ACTUAL, zona);
+  const aportes = aportesDeLaZona(zona, filtros);
+  const porAporte = [...aportes].sort((a, b) => b.aporte - a.aporte);
+  const puntaje = puntajeFinal(aportes, distanciaKm < DISTANCIA_MINIMA_KM);
   return {
     zona,
     distanciaKm,
     puntaje,
     coincidencia: coincidenciaDe(puntaje),
     aportes: porAporte,
-    porQue: porQue.length > 0 ? porQue : ['Ningún factor se destaca: es una zona pareja'],
-    riesgos,
+    porQue: motivosParaElegirla(porAporte, zona, filtros),
+    riesgos: riesgosDeLaZona(aportes, zona, filtros, distanciaKm),
   };
 }
 
@@ -732,36 +762,58 @@ export function puntuar(zona: DatosDeZona, filtros: Filtros): ZonaPuntuada {
 
 export type Descartada = { zona: DatosDeZona; distanciaKm: number; motivos: string[] };
 
-export function motivosDeDescarte(zona: DatosDeZona, filtros: Filtros): string[] {
-  const { limites } = filtros;
-  const motivos: string[] = [];
+/** Cada regla devuelve el motivo por el que la zona queda afuera, o null si la cumple. */
+type ReglaDeDescarte = (zona: DatosDeZona, filtros: Filtros) => string | null;
+
+const muyLejos: ReglaDeDescarte = (zona, { limites }) => {
   const distancia = distanciaEnKm(LOCAL_ACTUAL, zona);
-  if (limites.distanciaMaxKm < SIN_LIMITE_KM && distancia > limites.distanciaMaxKm) {
-    motivos.push(
-      `Está a ${formatoKm(distancia)}: pediste hasta ${formatoKm(limites.distanciaMaxKm)}`,
-    );
+  if (limites.distanciaMaxKm >= SIN_LIMITE_KM || distancia <= limites.distanciaMaxKm) return null;
+  return `Está a ${formatoKm(distancia)}: pediste hasta ${formatoKm(limites.distanciaMaxKm)}`;
+};
+
+const demasiadaCompetencia: ReglaDeDescarte = (zona, { limites, rubro }) => {
+  const competencia = zona.competencia[rubro];
+  if (limites.competenciaMax >= SIN_LIMITE_COMPETENCIA || competencia <= limites.competenciaMax) {
+    return null;
   }
-  const competencia = zona.competencia[filtros.rubro];
-  if (limites.competenciaMax < SIN_LIMITE_COMPETENCIA && competencia > limites.competenciaMax) {
-    motivos.push(
-      `Tiene ${competencia} ${PLURAL_DE_RUBRO[filtros.rubro]}: pediste hasta ${limites.competenciaMax}`,
-    );
+  return `Tiene ${competencia} ${PLURAL_DE_RUBRO[rubro]}: pediste hasta ${limites.competenciaMax}`;
+};
+
+const pocasEscuelas: ReglaDeDescarte = (zona, { limites }) =>
+  zona.escuelas < limites.escuelasMin
+    ? `Tiene ${zona.escuelas} escuelas: pediste al menos ${limites.escuelasMin}`
+    : null;
+
+const pocosParques: ReglaDeDescarte = (zona, { limites }) =>
+  zona.parques < limites.parquesMin
+    ? `Tiene ${zona.parques} parques: pediste al menos ${limites.parquesMin}`
+    : null;
+
+const pocoTransporte: ReglaDeDescarte = (zona, { limites }) =>
+  zona.transporte < limites.transporteMin
+    ? `Tiene ${zona.transporte} paradas y estaciones: pediste al menos ${limites.transporteMin}`
+    : null;
+
+const alquilerCaro: ReglaDeDescarte = (zona, { limites }) => {
+  if (limites.alquilerMax >= SIN_LIMITE_ALQUILER || zona.alquiler <= limites.alquilerMax) {
+    return null;
   }
-  if (zona.escuelas < limites.escuelasMin) {
-    motivos.push(`Tiene ${zona.escuelas} escuelas: pediste al menos ${limites.escuelasMin}`);
-  }
-  if (zona.parques < limites.parquesMin) {
-    motivos.push(`Tiene ${zona.parques} parques: pediste al menos ${limites.parquesMin}`);
-  }
-  if (zona.transporte < limites.transporteMin) {
-    motivos.push(
-      `Tiene ${zona.transporte} paradas y estaciones: pediste al menos ${limites.transporteMin}`,
-    );
-  }
-  if (limites.alquilerMax < SIN_LIMITE_ALQUILER && zona.alquiler > limites.alquilerMax) {
-    motivos.push(`Su alquiler es de nivel ${zona.alquiler}: pediste hasta ${limites.alquilerMax}`);
-  }
-  return motivos;
+  return `Su alquiler es de nivel ${zona.alquiler}: pediste hasta ${limites.alquilerMax}`;
+};
+
+const REGLAS_DE_DESCARTE: ReglaDeDescarte[] = [
+  muyLejos,
+  demasiadaCompetencia,
+  pocasEscuelas,
+  pocosParques,
+  pocoTransporte,
+  alquilerCaro,
+];
+
+export function motivosDeDescarte(zona: DatosDeZona, filtros: Filtros): string[] {
+  return REGLAS_DE_DESCARTE.map((regla) => regla(zona, filtros)).filter(
+    (motivo): motivo is string => motivo !== null,
+  );
 }
 
 export type Exploracion = {
@@ -772,19 +824,25 @@ export type Exploracion = {
   evaluadas: number;
 };
 
+const descartadaPor = (zona: DatosDeZona, motivos: string[]): Descartada => ({
+  zona,
+  distanciaKm: distanciaEnKm(LOCAL_ACTUAL, zona),
+  motivos,
+});
+
+const mayorPuntajeYMasCerca = (a: ZonaPuntuada, b: ZonaPuntuada) =>
+  b.puntaje - a.puntaje || a.distanciaKm - b.distanciaKm;
+
 export function explorar(filtros: Filtros): Exploracion {
-  const ranking: ZonaPuntuada[] = [];
-  const descartadas: Descartada[] = [];
-  for (const zona of ZONAS) {
-    const motivos = motivosDeDescarte(zona, filtros);
-    if (motivos.length > 0) {
-      descartadas.push({ zona, distanciaKm: distanciaEnKm(LOCAL_ACTUAL, zona), motivos });
-    } else {
-      ranking.push(puntuar(zona, filtros));
-    }
-  }
-  ranking.sort((a, b) => b.puntaje - a.puntaje || a.distanciaKm - b.distanciaKm);
-  descartadas.sort((a, b) => a.distanciaKm - b.distanciaKm);
+  const conMotivos = ZONAS.map((zona) => ({ zona, motivos: motivosDeDescarte(zona, filtros) }));
+  const ranking = conMotivos
+    .filter(({ motivos }) => motivos.length === 0)
+    .map(({ zona }) => puntuar(zona, filtros))
+    .sort(mayorPuntajeYMasCerca);
+  const descartadas = conMotivos
+    .filter(({ motivos }) => motivos.length > 0)
+    .map(({ zona, motivos }) => descartadaPor(zona, motivos))
+    .sort((a, b) => a.distanciaKm - b.distanciaKm);
   return { ranking, descartadas, evaluadas: ZONAS.length };
 }
 
@@ -792,47 +850,42 @@ export function explorar(filtros: Filtros): Exploracion {
 
 export type FiltroActivo = { id: string; texto: string };
 
+const textoDeDistancia = (km: number) =>
+  km >= SIN_LIMITE_KM ? 'Sin límite de distancia' : `Hasta ${formatoKm(km)} de tu local`;
+
+/** Cómo se muestra cada límite que se movió de su valor de siempre. */
+type LimiteMostrable = Exclude<keyof Limites, 'alquilerMax'>;
+
+const TEXTO_DE_LIMITE: Record<LimiteMostrable, (filtros: Filtros) => string> = {
+  distanciaMaxKm: ({ limites }) => textoDeDistancia(limites.distanciaMaxKm),
+  competenciaMax: ({ limites, rubro }) =>
+    `Hasta ${limites.competenciaMax} ${PLURAL_DE_RUBRO[rubro]} cerca`,
+  escuelasMin: ({ limites }) => `Al menos ${limites.escuelasMin} escuelas`,
+  parquesMin: ({ limites }) => `Al menos ${limites.parquesMin} parques`,
+  transporteMin: ({ limites }) => `Al menos ${limites.transporteMin} paradas o estaciones`,
+};
+
+const PREFIJO_DE_IMPORTANCIA: Partial<Record<Importancia, string>> = {
+  0: 'Sin mirar',
+  2: 'Mucho',
+};
+
+const limitesMovidos = (filtros: Filtros): FiltroActivo[] =>
+  (Object.keys(TEXTO_DE_LIMITE) as LimiteMostrable[])
+    .filter((limite) => filtros.limites[limite] !== FILTROS_INICIALES.limites[limite])
+    .map((limite) => ({ id: limite, texto: TEXTO_DE_LIMITE[limite](filtros) }));
+
+const importanciasMovidas = (filtros: Filtros): FiltroActivo[] =>
+  FACTORES.filter(
+    ({ clave }) => PREFIJO_DE_IMPORTANCIA[filtros.importancia[clave]] !== undefined,
+  ).map(({ clave, etiqueta }) => ({
+    id: `importancia:${clave}`,
+    texto: `${PREFIJO_DE_IMPORTANCIA[filtros.importancia[clave]]}: ${etiqueta.toLowerCase()}`,
+  }));
+
+/** Solo cuenta lo que se apartó de lo de siempre: si no se tocó nada, no hay filtros activos. */
 export function filtrosActivos(filtros: Filtros): FiltroActivo[] {
-  const { limites } = filtros;
-  const base = FILTROS_INICIALES.limites;
-  const activos: FiltroActivo[] = [];
-  // Solo cuenta lo que se apartó de lo de siempre: si no se tocó nada, no hay filtros activos.
-  if (limites.distanciaMaxKm !== base.distanciaMaxKm) {
-    activos.push({
-      id: 'distanciaMaxKm',
-      texto:
-        limites.distanciaMaxKm >= SIN_LIMITE_KM
-          ? 'Sin límite de distancia'
-          : `Hasta ${formatoKm(limites.distanciaMaxKm)} de tu local`,
-    });
-  }
-  if (limites.competenciaMax !== base.competenciaMax) {
-    activos.push({
-      id: 'competenciaMax',
-      texto: `Hasta ${limites.competenciaMax} ${PLURAL_DE_RUBRO[filtros.rubro]} cerca`,
-    });
-  }
-  if (limites.escuelasMin !== base.escuelasMin) {
-    activos.push({ id: 'escuelasMin', texto: `Al menos ${limites.escuelasMin} escuelas` });
-  }
-  if (limites.parquesMin !== base.parquesMin) {
-    activos.push({ id: 'parquesMin', texto: `Al menos ${limites.parquesMin} parques` });
-  }
-  if (limites.transporteMin !== base.transporteMin) {
-    activos.push({
-      id: 'transporteMin',
-      texto: `Al menos ${limites.transporteMin} paradas o estaciones`,
-    });
-  }
-  for (const { clave, etiqueta } of FACTORES) {
-    if (filtros.importancia[clave] === 0) {
-      activos.push({ id: `importancia:${clave}`, texto: `Sin mirar: ${etiqueta.toLowerCase()}` });
-    }
-    if (filtros.importancia[clave] === 2) {
-      activos.push({ id: `importancia:${clave}`, texto: `Mucho: ${etiqueta.toLowerCase()}` });
-    }
-  }
-  return activos;
+  return [...limitesMovidos(filtros), ...importanciasMovidas(filtros)];
 }
 
 /** Quita un filtro activo y vuelve al valor de siempre. */
