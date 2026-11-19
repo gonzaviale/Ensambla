@@ -10,6 +10,8 @@ import { renderApp } from '@/test/renderApp';
 import { ESPERA, setupUsuarioConSesion } from '@/test/testHelpers';
 import type { ConsultaCaja, SolicitudCierreCaja, SolicitudCobro, VentaCaja } from '@/types/caja';
 
+type Usuario = ReturnType<typeof userEvent.setup>;
+
 const venta: VentaCaja = {
   id: crypto.randomUUID(),
   lineas: [
@@ -63,10 +65,106 @@ const cierre = {
   cerradoEn: '2026-11-13T01:00:00Z',
 };
 
-async function abrir() {
+let user: Usuario;
+let solicitudDeCobro: SolicitudCobro | undefined;
+let solicitudDeCierre: SolicitudCierreCaja | undefined;
+let solicitudesDeCierre: SolicitudCierreCaja[] = [];
+let revisionActual = 'revision-1';
+
+describe('cierres y pagos mixtos de caja', () => {
+  it('divide una venta y calcula vuelto solamente sobre la parte en efectivo', async () => {
+    dadoUnServidorQueGuardaLaVenta();
+    await dadaLaCajaConUnaCoca();
+
+    await cuandoSeCobraUnaCocaEnDosMedios();
+
+    entoncesSeVeLaTransferenciaYElVueltoSoloDelEfectivo();
+  });
+
+  it('el cobro mixto se envía con el efectivo y la transferencia', async () => {
+    dadoUnServidorQueGuardaLaVenta();
+    await dadaLaCajaConUnaCoca();
+    await cuandoSeCobraUnaCocaEnDosMedios();
+
+    await cuandoSeConfirmaElCobro();
+
+    entoncesSeEnvioElCobroMixto();
+  });
+
+  it('un importe mixto que supera el total deshabilita la confirmación', async () => {
+    await dadaLaCajaConUnaCoca();
+
+    await cuandoSePideDividirElPagoConUnImporteMayorAlTotal();
+
+    expect(screen.getByRole('button', { name: 'Confirmar cobro' })).toBeDisabled();
+  });
+
+  it('conserva el período abierto de ayer', async () => {
+    dadoUnServidorConElPeriodoAbiertoDeAyer();
+    await dadaLaCajaConUnaCoca();
+
+    await cuandoSeAbreLaCajaAbierta();
+
+    expect(await screen.findByText(/Abierta desde 12\/11\/26/)).toBeVisible();
+  });
+
+  it('guarda el cierre con el recuento contado', async () => {
+    dadoUnServidorConElPeriodoAbiertoDeAyer();
+    await dadaLaCajaConUnaCoca();
+    await cuandoSeAbreLaCajaAbierta();
+
+    await cuandoSeCierraLaCajaContando('1000');
+
+    entoncesSeEnvioElCierreConLaRevisionYElContado();
+  });
+
+  it('el cierre guardado se puede recuperar desde el historial', async () => {
+    dadoUnServidorConElPeriodoAbiertoDeAyer();
+    await dadaLaCajaConUnaCoca();
+    await cuandoSeAbreLaCajaAbierta();
+    await cuandoSeCierraLaCajaContando('1000');
+
+    await cuandoSeAbreElCierreDesdeElHistorial();
+
+    entoncesElCierreSeVeSinRecuento();
+  });
+
+  it('un cierre incierto se vuelve a consultar con el mismo identificador', async () => {
+    dadoUnServidorQueFallaElPrimerCierre();
+    await dadaLaCajaConUnaCoca();
+    await cuandoSeAbreLaCajaAbierta();
+
+    await cuandoSeCierraLaCajaYSeVerificaElMismoCierre();
+
+    entoncesSeReenvioElMismoCierre();
+  });
+
+  it('una venta nueva exige revisar el resumen actualizado antes de volver a cerrar', async () => {
+    dadoUnServidorQueRechazaElCierreCon409();
+    await dadaLaCajaConUnaCoca();
+    await cuandoSeAbreLaCajaAbierta();
+
+    await cuandoSeIntentaCerrarLaCaja();
+
+    await entoncesSePideRevisarElResumenActualizado();
+  });
+
+  it('después de revisar el resumen actualizado se cierra el diálogo', async () => {
+    dadoUnServidorQueRechazaElCierreCon409();
+    await dadaLaCajaConUnaCoca();
+    await cuandoSeAbreLaCajaAbierta();
+    await cuandoSeIntentaCerrarLaCaja();
+
+    await cuandoSeRevisaElResumenActualizado();
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+});
+
+async function dadaLaCajaConUnaCoca() {
   const usuario = setupUsuarioConSesion();
-  const sistema = makeTemplate('shop', {}, false),
-    inventario = allBlocks(sistema).find((b) => b.type === 'inventory');
+  const sistema = makeTemplate('shop', {}, false);
+  const inventario = allBlocks(sistema).find((b) => b.type === 'inventory');
   if (!inventario) throw new Error('Falta la sección de stock');
   inventario.rows = [
     { id: crypto.randomUUID(), name: 'Coca-Cola', quantity: 10, price: 2700, favorite: true },
@@ -75,174 +173,200 @@ async function abrir() {
   estado.sistemas.set(usuario.email, [sistema]);
   renderApp('/caja');
   await screen.findByRole('heading', { name: 'Caja', level: 1 }, ESPERA);
-  const user = userEvent.setup();
+  user = userEvent.setup();
   await user.click(screen.getByRole('tab', { name: 'Favoritos' }));
-  return user;
 }
 
-describe('cierres y pagos mixtos de caja', () => {
-  it('divide una venta y calcula vuelto solamente sobre la parte en efectivo', async () => {
-    let solicitud: SolicitudCobro | undefined;
-    server.use(
-      http.post('/api/caja/ventas', async ({ request }) => {
-        solicitud = (await request.json()) as SolicitudCobro;
-        return HttpResponse.json({
-          ...venta,
-          id: solicitud.id,
-          total: 2700,
-          pagos: solicitud.pagos,
-          vuelto: 500,
-        });
-      }),
-    );
-    const user = await abrir();
-    await user.click(screen.getByRole('button', { name: /Coca-Cola.*2.700/ }));
-    await user.click(screen.getByRole('button', { name: /Cobrar.*2.700/ }));
-    await user.click(screen.getByRole('button', { name: 'Dividir pago' }));
-    await user.type(screen.getByLabelText('Importe en efectivo ($)'), '1000');
-    await user.type(screen.getByLabelText('Efectivo recibido ($)'), '1500');
-    expect(screen.getByText(/Transferencia:.*1.700/)).toBeVisible();
-    expect(screen.getByText(/Vuelto:.*500/)).toBeVisible();
-    await user.click(screen.getByRole('button', { name: 'Confirmar cobro' }));
-    await screen.findByRole('heading', { name: 'Venta guardada' }, ESPERA);
-    expect(solicitud).toMatchObject({
-      medio: 'MIXTO',
-      recibido: 1500,
-      pagos: [
-        { medio: 'EFECTIVO', importe: 1000 },
-        { medio: 'TRANSFERENCIA', importe: 1700 },
-      ],
-    });
-  });
+function dadoUnServidorQueGuardaLaVenta() {
+  server.use(
+    http.post('/api/caja/ventas', async ({ request }) => {
+      solicitudDeCobro = (await request.json()) as SolicitudCobro;
+      return HttpResponse.json({
+        ...venta,
+        id: solicitudDeCobro.id,
+        total: 2700,
+        pagos: solicitudDeCobro.pagos,
+        vuelto: 500,
+      });
+    }),
+  );
+}
 
-  it('un importe mixto que supera el total deshabilita la confirmación', async () => {
-    const user = await abrir();
-    await user.click(screen.getByRole('button', { name: /Coca-Cola.*2.700/ }));
-    await user.click(screen.getByRole('button', { name: /Cobrar.*2.700/ }));
-    await user.click(screen.getByRole('button', { name: 'Dividir pago' }));
-    await user.type(screen.getByLabelText('Importe en efectivo ($)'), '3000');
-    expect(screen.getByRole('button', { name: 'Confirmar cobro' })).toBeDisabled();
-  });
-
-  it('conserva el período abierto de ayer y guarda un cierre recuperable desde el historial', async () => {
-    let datos: ConsultaCaja = {
-      fecha: '2026-11-13',
-      dia: vacio,
-      abierta: resumen,
-      cierres: [],
-      pagina: 0,
-      hayMas: false,
-    };
-    let request: SolicitudCierreCaja | undefined;
-    server.use(
-      http.get('/api/caja/resumen', () => HttpResponse.json(datos)),
-      http.post('/api/caja/cierres', async ({ request: peticion }) => {
-        request = (await peticion.json()) as SolicitudCierreCaja;
-        datos = {
-          ...datos,
-          abierta: vacio,
-          cierres: [
-            {
-              id: cierre.id,
-              desde: venta.creadoEn,
-              cerradoEn: cierre.cerradoEn,
-              total: 2000,
-              cantidadVentas: 1,
-              diferencia: null,
-            },
-          ],
-        };
-        return HttpResponse.json(cierre);
-      }),
-      http.get('/api/caja/cierres/:id', () => HttpResponse.json(cierre)),
-    );
-    const user = await abrir();
-    await user.click(screen.getByRole('button', { name: 'Actividad' }));
-    await user.click(screen.getByRole('button', { name: 'Caja abierta' }));
-    expect(await screen.findByText(/Abierta desde 12\/11\/26/)).toBeVisible();
-    await user.click(screen.getByRole('button', { name: 'Cerrar caja' }));
-    await user.type(screen.getByLabelText('Efectivo contado al cerrar ($)'), '1000');
-    await user.click(screen.getByRole('button', { name: 'Guardar cierre' }));
-    await screen.findByRole('heading', { name: 'Cierre guardado' }, ESPERA);
-    expect(request).toMatchObject({
-      revision: 'revision-1',
-      fondoInicial: 0,
-      entradas: 0,
-      retiros: 0,
-      contado: 1000,
-    });
-    await user.click(screen.getByRole('button', { name: 'Listo' }));
-    await user.click(screen.getByRole('button', { name: 'Cierres guardados' }));
-    await user.click(await screen.findByRole('button', { name: /1 ventas.*Desde/ }, ESPERA));
-    expect(await screen.findByRole('heading', { name: 'Cierre guardado' })).toBeVisible();
-    expect(within(screen.getByRole('dialog')).getByText('Sin recuento')).toBeVisible();
-  });
-
-  it('un cierre incierto se vuelve a consultar con el mismo identificador', async () => {
-    const solicitudes: SolicitudCierreCaja[] = [];
-    server.use(
-      http.get('/api/caja/resumen', () =>
-        HttpResponse.json({
-          fecha: '2026-11-13',
-          dia: resumen,
-          abierta: resumen,
-          cierres: [],
-          pagina: 0,
-          hayMas: false,
-        }),
-      ),
-      http.post('/api/caja/cierres', async ({ request }) => {
-        solicitudes.push((await request.json()) as SolicitudCierreCaja);
-        return solicitudes.length === 1 ? HttpResponse.error() : HttpResponse.json(cierre);
-      }),
-    );
-    const user = await abrir();
-    await user.click(screen.getByRole('button', { name: 'Actividad' }));
-    await user.click(screen.getByRole('button', { name: 'Caja abierta' }));
-    await user.click(await screen.findByRole('button', { name: 'Cerrar caja' }));
-    await user.type(screen.getByLabelText('Efectivo contado al cerrar ($)'), '1000');
-    await user.click(screen.getByRole('button', { name: 'Guardar cierre' }));
-    await user.click(await screen.findByRole('button', { name: 'Verificar mismo cierre' }, ESPERA));
-    await screen.findByRole('heading', { name: 'Cierre guardado' }, ESPERA);
-    expect(solicitudes).toHaveLength(2);
-    expect(solicitudes[0]?.id).toBe(solicitudes[1]?.id);
-  });
-
-  it('una venta nueva exige revisar el resumen actualizado antes de volver a cerrar', async () => {
-    let revision = 'revision-1';
-    server.use(
-      http.get('/api/caja/resumen', () =>
-        HttpResponse.json({
-          fecha: '2026-11-13',
-          dia: resumen,
-          abierta: { ...resumen, revision },
-          cierres: [],
-          pagina: 0,
-          hayMas: false,
-        }),
-      ),
-      http.post('/api/caja/cierres', () => {
-        revision = 'revision-2';
-        return HttpResponse.json(
+function dadoUnServidorConElPeriodoAbiertoDeAyer() {
+  let datos: ConsultaCaja = {
+    fecha: '2026-11-13',
+    dia: vacio,
+    abierta: resumen,
+    cierres: [],
+    pagina: 0,
+    hayMas: false,
+  };
+  server.use(
+    http.get('/api/caja/resumen', () => HttpResponse.json(datos)),
+    http.post('/api/caja/cierres', async ({ request }) => {
+      solicitudDeCierre = (await request.json()) as SolicitudCierreCaja;
+      datos = {
+        ...datos,
+        abierta: vacio,
+        cierres: [
           {
-            status: 409,
-            message: 'Entraron nuevas ventas. Revisá el resumen actualizado antes de cerrar',
+            id: cierre.id,
+            desde: venta.creadoEn,
+            cerradoEn: cierre.cerradoEn,
+            total: 2000,
+            cantidadVentas: 1,
+            diferencia: null,
           },
-          { status: 409 },
-        );
+        ],
+      };
+      return HttpResponse.json(cierre);
+    }),
+    http.get('/api/caja/cierres/:id', () => HttpResponse.json(cierre)),
+  );
+}
+
+function dadoUnServidorQueFallaElPrimerCierre() {
+  solicitudesDeCierre = [];
+  server.use(
+    http.get('/api/caja/resumen', () =>
+      HttpResponse.json({
+        fecha: '2026-11-13',
+        dia: resumen,
+        abierta: resumen,
+        cierres: [],
+        pagina: 0,
+        hayMas: false,
       }),
-    );
-    const user = await abrir();
-    await user.click(screen.getByRole('button', { name: 'Actividad' }));
-    await user.click(screen.getByRole('button', { name: 'Caja abierta' }));
-    await user.click(await screen.findByRole('button', { name: 'Cerrar caja' }));
-    await user.type(screen.getByLabelText('Efectivo contado al cerrar ($)'), '1000');
-    await user.click(screen.getByRole('button', { name: 'Guardar cierre' }));
-    expect(
-      await screen.findByRole('button', { name: 'Revisar resumen actualizado' }, ESPERA),
-    ).toBeVisible();
-    expect(screen.queryByRole('button', { name: 'Guardar cierre' })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Revisar resumen actualizado' }));
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    ),
+    http.post('/api/caja/cierres', async ({ request }) => {
+      solicitudesDeCierre.push((await request.json()) as SolicitudCierreCaja);
+      return solicitudesDeCierre.length === 1 ? HttpResponse.error() : HttpResponse.json(cierre);
+    }),
+  );
+}
+
+function dadoUnServidorQueRechazaElCierreCon409() {
+  revisionActual = 'revision-1';
+  server.use(
+    http.get('/api/caja/resumen', () =>
+      HttpResponse.json({
+        fecha: '2026-11-13',
+        dia: resumen,
+        abierta: { ...resumen, revision: revisionActual },
+        cierres: [],
+        pagina: 0,
+        hayMas: false,
+      }),
+    ),
+    http.post('/api/caja/cierres', () => {
+      revisionActual = 'revision-2';
+      return HttpResponse.json(
+        {
+          status: 409,
+          message: 'Entraron nuevas ventas. Revisá el resumen actualizado antes de cerrar',
+        },
+        { status: 409 },
+      );
+    }),
+  );
+}
+
+async function cuandoSeCobraUnaCocaEnDosMedios() {
+  await user.click(screen.getByRole('button', { name: /Coca-Cola.*2.700/ }));
+  await user.click(screen.getByRole('button', { name: /Cobrar.*2.700/ }));
+  await user.click(screen.getByRole('button', { name: 'Dividir pago' }));
+  await user.type(screen.getByLabelText('Importe en efectivo ($)'), '1000');
+  await user.type(screen.getByLabelText('Efectivo recibido ($)'), '1500');
+}
+
+async function cuandoSeConfirmaElCobro() {
+  await user.click(screen.getByRole('button', { name: 'Confirmar cobro' }));
+  await screen.findByRole('heading', { name: 'Venta guardada' }, ESPERA);
+}
+
+async function cuandoSePideDividirElPagoConUnImporteMayorAlTotal() {
+  await user.click(screen.getByRole('button', { name: /Coca-Cola.*2.700/ }));
+  await user.click(screen.getByRole('button', { name: /Cobrar.*2.700/ }));
+  await user.click(screen.getByRole('button', { name: 'Dividir pago' }));
+  await user.type(screen.getByLabelText('Importe en efectivo ($)'), '3000');
+}
+
+async function cuandoSeAbreLaCajaAbierta() {
+  await user.click(screen.getByRole('button', { name: 'Actividad' }));
+  await user.click(screen.getByRole('button', { name: 'Caja abierta' }));
+}
+
+async function cuandoSeIntentaCerrarLaCaja() {
+  await user.click(await screen.findByRole('button', { name: 'Cerrar caja' }));
+  await user.type(screen.getByLabelText('Efectivo contado al cerrar ($)'), '1000');
+  await user.click(screen.getByRole('button', { name: 'Guardar cierre' }));
+}
+
+async function cuandoSeCierraLaCajaContando(contado: string) {
+  await user.click(screen.getByRole('button', { name: 'Cerrar caja' }));
+  await user.type(screen.getByLabelText('Efectivo contado al cerrar ($)'), contado);
+  await user.click(screen.getByRole('button', { name: 'Guardar cierre' }));
+  await screen.findByRole('heading', { name: 'Cierre guardado' }, ESPERA);
+  await user.click(screen.getByRole('button', { name: 'Listo' }));
+}
+
+async function cuandoSeAbreElCierreDesdeElHistorial() {
+  await user.click(screen.getByRole('button', { name: 'Cierres guardados' }));
+  await user.click(await screen.findByRole('button', { name: /1 ventas.*Desde/ }, ESPERA));
+}
+
+async function cuandoSeCierraLaCajaYSeVerificaElMismoCierre() {
+  await cuandoSeIntentaCerrarLaCaja();
+  await user.click(await screen.findByRole('button', { name: 'Verificar mismo cierre' }, ESPERA));
+  await screen.findByRole('heading', { name: 'Cierre guardado' }, ESPERA);
+}
+
+async function cuandoSeRevisaElResumenActualizado() {
+  await user.click(screen.getByRole('button', { name: 'Revisar resumen actualizado' }));
+}
+
+function entoncesSeVeLaTransferenciaYElVueltoSoloDelEfectivo() {
+  expect(screen.getByText(/Transferencia:.*1.700/)).toBeVisible();
+  expect(screen.getByText(/Vuelto:.*500/)).toBeVisible();
+}
+
+function entoncesSeEnvioElCobroMixto() {
+  expect(solicitudDeCobro).toMatchObject({
+    medio: 'MIXTO',
+    recibido: 1500,
+    pagos: [
+      { medio: 'EFECTIVO', importe: 1000 },
+      { medio: 'TRANSFERENCIA', importe: 1700 },
+    ],
   });
-});
+}
+
+function entoncesSeEnvioElCierreConLaRevisionYElContado() {
+  expect(solicitudDeCierre).toMatchObject({
+    revision: 'revision-1',
+    fondoInicial: 0,
+    entradas: 0,
+    retiros: 0,
+    contado: 1000,
+  });
+}
+
+async function entoncesElCierreSeVeSinRecuento() {
+  expect(await screen.findByRole('heading', { name: 'Cierre guardado' })).toBeVisible();
+  expect(within(screen.getByRole('dialog')).getByText('Sin recuento')).toBeVisible();
+}
+
+function entoncesSeReenvioElMismoCierre() {
+  expect(solicitudesDeCierre).toHaveLength(2);
+  expect(solicitudesDeCierre[0]?.id).toBe(solicitudesDeCierre[1]?.id);
+}
+
+async function entoncesSePideRevisarElResumenActualizado() {
+  const revisar = await screen.findByRole(
+    'button',
+    { name: 'Revisar resumen actualizado' },
+    ESPERA,
+  );
+  expect(revisar).toBeVisible();
+  expect(screen.queryByRole('button', { name: 'Guardar cierre' })).not.toBeInTheDocument();
+}
