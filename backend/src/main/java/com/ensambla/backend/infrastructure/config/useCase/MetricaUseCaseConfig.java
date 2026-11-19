@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.model.metrica.CatalogoMetricas;
+import com.ensambla.backend.domain.model.metrica.InterpreteDePedidos;
 import com.ensambla.backend.domain.model.metrica.MotorMetricas;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.metrica.MetricaRepository;
@@ -11,6 +12,7 @@ import com.ensambla.backend.domain.useCase.metrica.crearMetrica.CrearMetrica;
 import com.ensambla.backend.domain.useCase.metrica.eliminarMetrica.EliminarMetrica;
 import com.ensambla.backend.domain.useCase.metrica.listarMetricas.ListarMetricas;
 import com.ensambla.backend.domain.useCase.metrica.listarSugeridas.ListarSugeridas;
+import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.InterpretarPedido;
 import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetrica;
 import com.ensambla.backend.domain.useCase.metrica.previsualizarMetrica.PrevisualizarMetrica;
 import com.ensambla.backend.domain.useCase.metrica.renombrarMetrica.RenombrarMetrica;
@@ -114,5 +116,22 @@ public class MetricaUseCaseConfig {
             MetricaRepository metricaRepository,
             TransaccionPort transaccionPort) {
         return new MoverMetrica(negocioRepository, metricaRepository, transaccionPort);
+    }
+
+    @Bean
+    public InterpretarPedido interpretarPedido(
+            NegocioRepository negocioRepository,
+            ProyectoRepository proyectoRepository,
+            DatosDeProyectoService datosDeProyectoService,
+            MotorMetricas motorMetricas,
+            InterpreteDePedidos interpreteDePedidos,
+            Clock clock) {
+        return new InterpretarPedido(
+                negocioRepository,
+                proyectoRepository,
+                datosDeProyectoService,
+                motorMetricas,
+                interpreteDePedidos,
+                clock);
     }
 }

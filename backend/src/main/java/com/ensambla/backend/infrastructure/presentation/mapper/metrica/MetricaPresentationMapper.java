@@ -11,6 +11,7 @@ import com.ensambla.backend.domain.useCase.metrica.ResultadoItem.FilaItem;
 import com.ensambla.backend.domain.useCase.metrica.SugeridaItem;
 import com.ensambla.backend.domain.useCase.metrica.crearMetrica.CrearMetricaRequest;
 import com.ensambla.backend.domain.useCase.metrica.eliminarMetrica.EliminarMetricaRequest;
+import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.InterpretarPedidoRequest;
 import com.ensambla.backend.domain.useCase.metrica.listarMetricas.ListarMetricasRequest;
 import com.ensambla.backend.domain.useCase.metrica.listarSugeridas.ListarSugeridasRequest;
 import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetricaRequest;
@@ -18,6 +19,7 @@ import com.ensambla.backend.domain.useCase.metrica.previsualizarMetrica.Previsua
 import com.ensambla.backend.domain.useCase.metrica.renombrarMetrica.RenombrarMetricaRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.CrearMetricaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.DefinicionResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.metrica.InterpretarPedidoWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MetricaResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MetricaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MoverMetricaWebRequest;
@@ -59,6 +61,11 @@ public class MetricaPresentationMapper {
         return new EliminarMetricaRequest(usuarioId, proyectoId, metricaId);
     }
 
+    public InterpretarPedidoRequest toInterpretarRequest(
+            UsuarioId usuarioId, ProyectoId proyectoId, InterpretarPedidoWebRequest request) {
+        return new InterpretarPedidoRequest(usuarioId, proyectoId, request.pedido());
+    }
+
     public RenombrarMetricaRequest toRenombrarRequest(
             UsuarioId usuarioId, ProyectoId proyectoId, MetricaId metricaId, RenombrarMetricaWebRequest request) {
         return new RenombrarMetricaRequest(usuarioId, proyectoId, metricaId, request.nombre());
@@ -80,7 +87,7 @@ public class MetricaPresentationMapper {
     }
 
     public List<SugeridaResponse> toSugeridasResponse(List<SugeridaItem> sugeridas) {
-        return sugeridas.stream().map(this::toResponse).toList();
+        return sugeridas.stream().map(this::toSugeridaResponse).toList();
     }
 
     public ResultadoResponse toResponse(ResultadoItem resultado) {
@@ -88,7 +95,7 @@ public class MetricaPresentationMapper {
                 resultado.motivo(), toResponse(resultado.deDondeSale()));
     }
 
-    private SugeridaResponse toResponse(SugeridaItem sugerida) {
+    public SugeridaResponse toSugeridaResponse(SugeridaItem sugerida) {
         return new SugeridaResponse(toResponse(sugerida.definicion()), toResponse(sugerida.resultado()));
     }
 

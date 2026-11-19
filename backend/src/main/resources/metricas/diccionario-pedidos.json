@@ -1,0 +1,39 @@
+{
+  "fuentes": {
+    "VENTAS": [
+      "vendo", "vendí", "vendimos", "vendemos", "vender", "vendido", "vendida", "venta", "ventas",
+      "cobré", "cobro", "cobramos", "facturé", "facturo", "facturación", "ingresos", "ingresó",
+      "fiado", "fiados", "me deben", "me debe", "deuda", "deudas", "debe"
+    ],
+    "GASTOS": [
+      "gasto", "gastos", "gasté", "gastamos", "gastar", "gastado", "pagué", "pagamos", "egresos"
+    ],
+    "INVENTARIO": [
+      "stock", "inventario", "mercadería", "me queda", "me quedan", "quedan", "depósito", "tengo en el local"
+    ]
+  },
+  "calculos": {
+    "PROMEDIO": ["promedio", "en promedio", "ticket"],
+    "CONTEO": [
+      "cuántas ventas", "cantidad de ventas", "cantidad de gastos", "cuántas veces",
+      "cuántos productos", "cantidad de productos"
+    ],
+    "UNIDADES": [
+      "unidades", "más vendido", "más vendidos", "producto vendo más", "productos vendo más",
+      "producto se vende más", "cuánto stock", "me queda", "me quedan", "quedan"
+    ]
+  },
+  "agrupaciones": {
+    "PRODUCTO": ["por producto", "cada producto", "qué producto", "qué productos", "más vendido", "más vendidos"],
+    "CLIENTE": ["por cliente", "cada cliente", "qué cliente", "qué clientes", "quién", "quiénes"],
+    "CATEGORIA": ["por categoría", "cada categoría", "en qué gasté", "en qué gasto", "tipo de gasto", "por rubro"],
+    "DIA_DE_LA_SEMANA": ["por día", "qué día", "día de la semana", "cada día"]
+  },
+  "periodos": {
+    "HOY": ["hoy"],
+    "SEMANA": ["esta semana", "en la semana", "semanal", "última semana", "por semana"],
+    "MES": ["este mes", "mes", "mensual", "último mes"],
+    "TODO": ["en total", "siempre", "desde siempre", "todo lo", "histórico"]
+  },
+  "fiado": ["fiado", "fiados", "fiadas", "me deben", "me debe", "deuda", "deudas"]
+}

@@ -24,6 +24,8 @@ import com.ensambla.backend.domain.useCase.metrica.listarMetricas.ListarMetricas
 import com.ensambla.backend.domain.useCase.metrica.listarMetricas.ListarMetricasRequest;
 import com.ensambla.backend.domain.useCase.metrica.listarSugeridas.ListarSugeridas;
 import com.ensambla.backend.domain.useCase.metrica.listarSugeridas.ListarSugeridasRequest;
+import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.InterpretarPedido;
+import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.InterpretarPedidoRequest;
 import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetrica;
 import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetricaRequest;
 import com.ensambla.backend.domain.useCase.metrica.previsualizarMetrica.PrevisualizarMetrica;
@@ -79,6 +81,10 @@ class MetricaControllerTest {
 
     private static final String UN_NOMBRE_EN_BLANCO = "{\"nombre\":\" \"}";
 
+    private static final String UN_PEDIDO = "{\"pedido\":\"¿Cuánto vendí este mes?\"}";
+
+    private static final String UN_PEDIDO_EN_BLANCO = "{\"pedido\":\" \"}";
+
     private static final String SIN_NADA_OBLIGATORIO = "{\"soloFiado\":false}";
 
     private static final String UN_NOMBRE_DEMASIADO_LARGO = "{\"nombre\":\"" + "a".repeat(81)
@@ -105,11 +111,12 @@ class MetricaControllerTest {
     private final EliminarMetrica eliminarMetrica = mock(EliminarMetrica.class);
     private final RenombrarMetrica renombrarMetrica = mock(RenombrarMetrica.class);
     private final MoverMetrica moverMetrica = mock(MoverMetrica.class);
+    private final InterpretarPedido interpretarPedido = mock(InterpretarPedido.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
     private final MockMvc mockMvc = MockMvcDePrueba.standalone(new MetricaController(
                     listarMetricas, listarSugeridas, previsualizarMetrica, crearMetrica, eliminarMetrica,
-                    renombrarMetrica, moverMetrica, new MetricaPresentationMapper()))
+                    renombrarMetrica, moverMetrica, interpretarPedido, new MetricaPresentationMapper()))
             .setControllerAdvice(new GlobalExceptionHandler())
             .build();
 
@@ -319,6 +326,36 @@ class MetricaControllerTest {
         entoncesRespondeUnPedidoInvalido();
     }
 
+    @Test
+    @DisplayName("POST interpretar devuelve la métrica que arma el pedido con lo que daría hoy")
+    void interpretarDevuelveLaMetricaQueArmaElPedido() throws Exception {
+        dadoQueElPedidoSeEntiende();
+
+        cuandoSeEnvia(post(RUTA + "/interpretar", PROYECTO_ID), UN_PEDIDO);
+
+        entoncesRespondeLaPropuesta();
+        entoncesSeInterpreto("¿Cuánto vendí este mes?");
+    }
+
+    @Test
+    @DisplayName("POST interpretar con el pedido en blanco devuelve 400 sin llegar al caso de uso")
+    void interpretarUnPedidoEnBlancoDevuelveError() throws Exception {
+        cuandoSeEnvia(post(RUTA + "/interpretar", PROYECTO_ID), UN_PEDIDO_EN_BLANCO);
+
+        entoncesRespondeErroresEn("pedido");
+        entoncesNoSeInterpreto();
+    }
+
+    @Test
+    @DisplayName("POST interpretar de un pedido que no se entiende devuelve el 400 estándar con el motivo")
+    void interpretarUnPedidoQueNoSeEntiendeDevuelveElMotivo() throws Exception {
+        dadoQueElPedidoNoSeEntiende("Decime si es de tus ventas, tus gastos o tu stock");
+
+        cuandoSeEnvia(post(RUTA + "/interpretar", PROYECTO_ID), UN_PEDIDO);
+
+        entoncesRespondeUnPedidoInvalido();
+    }
+
     private static String elLugar(int lugar) {
         return "{\"lugar\":" + lugar + "}";
     }
@@ -483,5 +520,28 @@ class MetricaControllerTest {
 
     private void entoncesNoSeMovio() {
         verifyNoInteractions(moverMetrica);
+    }
+
+    private void dadoQueElPedidoSeEntiende() {
+        when(interpretarPedido.execute(any())).thenReturn(new SugeridaItem(
+                DefinicionItem.de(LAS_VENTAS_FIADAS_POR_PRODUCTO), ResultadoItem.de(SETECIENTOS_CINCUENTA_DEL_PAN)));
+    }
+
+    private void dadoQueElPedidoNoSeEntiende(String motivo) {
+        when(interpretarPedido.execute(any())).thenThrow(new BusinessRuleException(motivo));
+    }
+
+    private void entoncesRespondeLaPropuesta() throws Exception {
+        respuesta.andExpect(status().isOk())
+                .andExpect(jsonPath("$.definicion.nombre").value("Ventas del mes"))
+                .andExpect(jsonPath("$.resultado.valor").value(750.0));
+    }
+
+    private void entoncesSeInterpreto(String pedido) {
+        verify(interpretarPedido).execute(new InterpretarPedidoRequest(USUARIO_ID, PROYECTO_ID, pedido));
+    }
+
+    private void entoncesNoSeInterpreto() {
+        verifyNoInteractions(interpretarPedido);
     }
 }

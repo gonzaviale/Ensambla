@@ -16,6 +16,7 @@ import com.ensambla.backend.domain.useCase.metrica.ResultadoItem;
 import com.ensambla.backend.domain.useCase.metrica.SugeridaItem;
 import com.ensambla.backend.domain.useCase.metrica.crearMetrica.CrearMetricaRequest;
 import com.ensambla.backend.domain.useCase.metrica.eliminarMetrica.EliminarMetricaRequest;
+import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.InterpretarPedidoRequest;
 import com.ensambla.backend.domain.useCase.metrica.listarMetricas.ListarMetricasRequest;
 import com.ensambla.backend.domain.useCase.metrica.listarSugeridas.ListarSugeridasRequest;
 import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetricaRequest;
@@ -23,6 +24,7 @@ import com.ensambla.backend.domain.useCase.metrica.previsualizarMetrica.Previsua
 import com.ensambla.backend.domain.useCase.metrica.renombrarMetrica.RenombrarMetricaRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.CrearMetricaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.DefinicionResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.metrica.InterpretarPedidoWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MetricaResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MetricaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MoverMetricaWebRequest;
@@ -166,6 +168,13 @@ class MetricaPresentationMapperTest {
                 new MoverMetricaRequest(USUARIO_ID, PROYECTO_ID, METRICA_ID, 2));
     }
 
+    @Test
+    @DisplayName("Arma el pedido de interpretar con el usuario, el cuaderno y lo que escribió la persona")
+    void armaElPedidoDeInterpretar() {
+        entoncesPideInterpretar(new InterpretarPedidoWebRequest("cuánto vendí"),
+                new InterpretarPedidoRequest(USUARIO_ID, PROYECTO_ID, "cuánto vendí"));
+    }
+
     private static void entoncesPideListar(Object pedido, Object esperado) {
         assertThat(pedido).isEqualTo(esperado);
     }
@@ -205,5 +214,9 @@ class MetricaPresentationMapperTest {
 
     private void entoncesPideMover(MoverMetricaWebRequest web, MoverMetricaRequest esperado) {
         assertThat(mapper.toMoverRequest(USUARIO_ID, PROYECTO_ID, METRICA_ID, web)).isEqualTo(esperado);
+    }
+
+    private void entoncesPideInterpretar(InterpretarPedidoWebRequest web, InterpretarPedidoRequest esperado) {
+        assertThat(mapper.toInterpretarRequest(USUARIO_ID, PROYECTO_ID, web)).isEqualTo(esperado);
     }
 }
