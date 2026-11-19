@@ -96,7 +96,7 @@ class DefinicionMetricaTest {
 
         cuandoSeValida();
 
-        entoncesSeRechazaPorque("de qué tabla");
+        entoncesSeRechazaPorque("Elegí qué querés mirar");
     }
 
     @Test
@@ -107,7 +107,7 @@ class DefinicionMetricaTest {
 
         cuandoSeValida();
 
-        entoncesSeRechazaPorque("de qué tabla");
+        entoncesSeRechazaPorque("Elegí qué querés mirar");
     }
 
     @Test

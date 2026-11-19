@@ -52,8 +52,8 @@ class ListarSugeridasTest {
     private static final DefinicionMetrica CUANTAS_VENTAS_HOY = definicion(
             FuenteMetrica.VENTAS, CalculoMetrica.CONTEO, AgrupacionMetrica.NINGUNA, PeriodoMetrica.HOY);
 
-    private static final DefinicionMetrica MIS_VENTAS_DE_HOY = unaReceta("Mis ventas", FuenteMetrica.VENTAS,
-            CalculoMetrica.SUMA, AgrupacionMetrica.NINGUNA, PeriodoMetrica.HOY, false);
+    private static final DefinicionMetrica MIS_CUENTAS_DE_HOY = unaReceta("Mis cuentas", FuenteMetrica.VENTAS,
+            CalculoMetrica.CONTEO, AgrupacionMetrica.NINGUNA, PeriodoMetrica.HOY, false);
 
     private static final CatalogoMetricas CATALOGO = new CatalogoMetricas(
             List.of(LAS_VENTAS_DE_HOY), Map.of(RubroNegocio.KIOSCO, List.of(CUANTAS_VENTAS_HOY)));
@@ -89,14 +89,25 @@ class ListarSugeridasTest {
     }
 
     @Test
-    @DisplayName("No vuelve a sugerir lo que el cuaderno ya guardó, aunque tenga otro nombre")
-    void noVuelveASugerirLoQueYaSeGuardo() {
+    @DisplayName("Marca «ya la tenés» la que muestra el panel de ventas del inicio, aunque no esté guardada")
+    void marcaYaLaTenesLaDelPanelDeVentas() {
         dadoUnNegocioQueHoyVendioPorTrescientos(RubroNegocio.KIOSCO);
-        dadoUnPanelCon(metrica(MIS_VENTAS_DE_HOY, 0));
+        dadoUnPanelCon();
 
         cuandoSeListanLasSugeridas();
 
-        entoncesSeSugierenEsteOrden(CUANTAS_VENTAS_HOY);
+        entoncesYaLasTiene(true, false);
+    }
+
+    @Test
+    @DisplayName("Marca «ya la tenés» lo que el cuaderno ya guardó, aunque tenga otro nombre")
+    void marcaYaLaTenesLoQueYaSeGuardo() {
+        dadoUnNegocioQueHoyVendioPorTrescientos(RubroNegocio.KIOSCO);
+        dadoUnPanelCon(metrica(MIS_CUENTAS_DE_HOY, 0));
+
+        cuandoSeListanLasSugeridas();
+
+        entoncesYaLasTiene(true, true);
     }
 
     @Test
@@ -151,6 +162,10 @@ class ListarSugeridasTest {
         assertThat(sugeridas).extracting(sugerida -> sugerida.definicion().calculo())
                 .containsExactly(Stream.of(recetas).map(DefinicionMetrica::calculo)
                         .toArray(CalculoMetrica[]::new));
+    }
+
+    private void entoncesYaLasTiene(Boolean... yaLasTiene) {
+        assertThat(sugeridas).extracting(SugeridaItem::yaLaTenes).containsExactly(yaLasTiene);
     }
 
     private void entoncesDarianHoy(String... valores) {

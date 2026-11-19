@@ -8,12 +8,18 @@ import com.ensambla.backend.domain.useCase.metrica.ResultadoItem;
 
 import java.util.List;
 
-/** La métrica que arma un pedido en palabras, con lo que daría hoy y cómo se entendió el pedido. */
-public record PedidoInterpretadoItem(DefinicionItem definicion, ResultadoItem resultado, LecturaItem lectura) {
+/**
+ * La métrica que arma un pedido en palabras, con lo que daría hoy y cómo se entendió el pedido.
+ *
+ * @param yaLaTenes si ya está a la vista (guardada o en el panel de ventas): se muestra pero no se puede guardar
+ */
+public record PedidoInterpretadoItem(
+        DefinicionItem definicion, ResultadoItem resultado, LecturaItem lectura, boolean yaLaTenes) {
 
-    public static PedidoInterpretadoItem de(PedidoInterpretado interpretado, ResultadoMetrica resultado) {
+    public static PedidoInterpretadoItem de(PedidoInterpretado interpretado, ResultadoMetrica resultado,
+                                            boolean yaLaTenes) {
         return new PedidoInterpretadoItem(DefinicionItem.de(interpretado.receta()), ResultadoItem.de(resultado),
-                LecturaItem.de(interpretado));
+                LecturaItem.de(interpretado), yaLaTenes);
     }
 
     /**

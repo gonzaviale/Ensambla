@@ -271,7 +271,7 @@ class MotorMetricasTest {
 
         cuandoSeCalcula(definicion(VENTAS, SUMA, NINGUNA, MES));
 
-        entoncesNoSePuedeCalcularPorque("No encontramos la tabla de ventas en este cuaderno.");
+        entoncesNoSePuedeCalcularPorque("Todavía no cargaste ventas en este negocio.");
     }
 
     @Test
@@ -281,7 +281,7 @@ class MotorMetricasTest {
 
         cuandoSeCalcula(definicion(GASTOS, SUMA, NINGUNA, MES));
 
-        entoncesNoSePuedeCalcularPorque("No encontramos la tabla de gastos en este cuaderno.");
+        entoncesNoSePuedeCalcularPorque("Todavía no cargaste gastos en este negocio.");
     }
 
     @Test
@@ -291,7 +291,7 @@ class MotorMetricasTest {
 
         cuandoSeCalcula(definicion(INVENTARIO, SUMA, NINGUNA, TODO));
 
-        entoncesNoSePuedeCalcularPorque("No encontramos la tabla de inventario en este cuaderno.");
+        entoncesNoSePuedeCalcularPorque("Todavía no cargaste productos en este negocio.");
     }
 
     @Test

@@ -25,8 +25,8 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
- * Las métricas que el catálogo le sugiere al rubro del negocio y el cuaderno todavía no guardó, cada una con lo que
- * daría hoy para que la persona vea el número antes de agregarla.
+ * Las métricas que el catálogo le sugiere al rubro del negocio, cada una con lo que daría hoy para que la persona vea
+ * el número antes de agregarla. Las que ya tiene a la vista vienen marcadas: se ven, pero no se agregan dos veces.
  */
 @RequiredArgsConstructor
 public class ListarSugeridas {
@@ -52,8 +52,7 @@ public class ListarSugeridas {
         DatosDeProyecto datos = leerElCuaderno(proyecto, negocio.getId());
         LocalDate hoy = ZonaNegocio.dia(OffsetDateTime.now(clock));
         return sugeridasDelRubro(negocio.getRubro()).stream()
-                .filter(sugerida -> !guardadas.incluye(sugerida))
-                .map(sugerida -> conLoQueDariaHoy(sugerida, datos, hoy))
+                .map(sugerida -> conLoQueDariaHoy(sugerida, datos, hoy, guardadas.incluye(sugerida)))
                 .toList();
     }
 
@@ -77,7 +76,8 @@ public class ListarSugeridas {
         return catalogoMetricas.paraRubro(rubro);
     }
 
-    private SugeridaItem conLoQueDariaHoy(DefinicionMetrica sugerida, DatosDeProyecto datos, LocalDate hoy) {
-        return SugeridaItem.de(sugerida, motorMetricas.calcular(sugerida, datos, hoy));
+    private SugeridaItem conLoQueDariaHoy(DefinicionMetrica sugerida, DatosDeProyecto datos, LocalDate hoy,
+                                          boolean yaLaTenes) {
+        return SugeridaItem.de(sugerida, motorMetricas.calcular(sugerida, datos, hoy), yaLaTenes);
     }
 }

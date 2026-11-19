@@ -59,7 +59,7 @@ public class MotorMetricas {
     }
 
     private static String faltaLaTabla(DefinicionMetrica definicion) {
-        return "No encontramos " + definicion.fuente().getTabla() + " en este cuaderno.";
+        return "Todavía no cargaste " + definicion.fuente().getFilas() + " en este negocio.";
     }
 
     private static String sinFilas(DefinicionMetrica definicion) {

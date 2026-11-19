@@ -15,6 +15,7 @@ import static com.ensambla.backend.support.MetricaTestData.metrica;
 import static com.ensambla.backend.support.MetricaTestData.unPanelDeVentasGastosYStock;
 import static com.ensambla.backend.support.MetricaTestData.unPanelLleno;
 import static com.ensambla.backend.support.MetricasDePrueba.cuantasVentasHuboEnElMes;
+import static com.ensambla.backend.support.MetricasDePrueba.lasVentasDeLaSemana;
 import static com.ensambla.backend.support.MetricasDePrueba.lasVentasDelMes;
 import static com.ensambla.backend.support.MetricasDePrueba.lasVentasDelMesLlamadas;
 import static com.ensambla.backend.support.MetricasDePrueba.losGastosDelMes;
@@ -62,7 +63,15 @@ class MetricasDelCuadernoTest {
 
         cuandoSePideLugarPara(lasVentasDelMesLlamadas("Mis ventas"));
 
-        entoncesSeRechazaPorque("Ya tenés esa métrica en el cuaderno");
+        entoncesSeRechazaPorque(MetricasDelCuaderno.YA_LA_TENES);
+    }
+
+    @Test
+    @DisplayName("Lo que ya muestra el panel de ventas del inicio cuenta como que ya está, sin guardarlo")
+    void loDelPanelDeVentasCuentaComoQueYaEsta() {
+        dadoUnPanelSinMetricas();
+
+        entoncesIncluye(lasVentasDeLaSemana());
     }
 
     @Test
@@ -80,7 +89,7 @@ class MetricasDelCuadernoTest {
     void sinMetricasNoIncluyeNingunaReceta() {
         dadoUnPanelSinMetricas();
 
-        entoncesNoIncluye(lasVentasDelMes());
+        entoncesNoIncluye(losGastosDelMes());
     }
 
     @Test
@@ -186,6 +195,10 @@ class MetricasDelCuadernoTest {
 
     private void entoncesSeRechazaPorque(String motivo) {
         assertThat(rechazo).isInstanceOf(BusinessRuleException.class).hasMessageContaining(motivo);
+    }
+
+    private void entoncesIncluye(DefinicionMetrica definicion) {
+        assertThat(guardadas.incluye(definicion)).isTrue();
     }
 
     private void entoncesNoIncluye(DefinicionMetrica definicion) {

@@ -34,12 +34,13 @@ class PedidoInterpretadoItemTest {
     }
 
     private void cuandoSeCopiaElPedidoDelFinde() {
-        interpretado = PedidoInterpretadoItem.de(unPedidoDelFindeInterpretadoComo(lasVentasDelMes()), SIN_VENTAS);
+        interpretado = PedidoInterpretadoItem.de(unPedidoDelFindeInterpretadoComo(lasVentasDelMes()), SIN_VENTAS, true);
     }
 
     private void entoncesTieneLaRecetaYLaLectura(LecturaItem lectura) {
         assertThat(interpretado.definicion()).isEqualTo(DefinicionItem.de(lasVentasDelMes()));
         assertThat(interpretado.resultado().motivo()).isEqualTo("No hay ventas en este período.");
         assertThat(interpretado.lectura()).isEqualTo(lectura);
+        assertThat(interpretado.yaLaTenes()).isTrue();
     }
 }

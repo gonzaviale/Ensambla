@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.model.metrica;
 
 import com.ensambla.backend.domain.model.reporte.DatosDeProyecto;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -14,7 +15,7 @@ import static com.ensambla.backend.domain.model.metrica.AgrupacionMetrica.PRODUC
 /** De qué tabla del cuaderno sale una métrica. Cada tabla sabe si está, cómo se lee y cómo se puede repartir. */
 public enum FuenteMetrica {
 
-    VENTAS("la tabla de ventas", "ventas", "precio", Set.of(NINGUNA, PRODUCTO, CLIENTE, DIA_DE_LA_SEMANA)) {
+    VENTAS("ventas", "precio", Set.of(NINGUNA, PRODUCTO, CLIENTE, DIA_DE_LA_SEMANA)) {
         @Override
         boolean estaEn(DatosDeProyecto datos) {
             return !datos.ventas().isEmpty();
@@ -31,7 +32,7 @@ public enum FuenteMetrica {
         }
     },
 
-    GASTOS("la tabla de gastos", "gastos", "importe", Set.of(NINGUNA, CATEGORIA, DIA_DE_LA_SEMANA)) {
+    GASTOS("gastos", "importe", Set.of(NINGUNA, CATEGORIA, DIA_DE_LA_SEMANA)) {
         @Override
         boolean estaEn(DatosDeProyecto datos) {
             return LecturaDeGastos.hayGastosConImporte(datos);
@@ -48,7 +49,7 @@ public enum FuenteMetrica {
         }
     },
 
-    INVENTARIO("la tabla de inventario", "productos", "costo", Set.of(NINGUNA, PRODUCTO)) {
+    INVENTARIO("productos", "costo", Set.of(NINGUNA, PRODUCTO)) {
         @Override
         boolean estaEn(DatosDeProyecto datos) {
             return !datos.inventarios().isEmpty();
@@ -65,16 +66,13 @@ public enum FuenteMetrica {
         }
     };
 
-    private final String tabla;
-
     private final String filas;
 
     private final String importe;
 
     private final Set<AgrupacionMetrica> repartos;
 
-    FuenteMetrica(String tabla, String filas, String importe, Set<AgrupacionMetrica> repartos) {
-        this.tabla = tabla;
+    FuenteMetrica(String filas, String importe, Set<AgrupacionMetrica> repartos) {
         this.filas = filas;
         this.importe = importe;
         this.repartos = repartos;
@@ -86,9 +84,9 @@ public enum FuenteMetrica {
     /** Las filas de esta tabla, ya leídas por su clave semántica. */
     abstract List<LineaMetrica> lineasDe(DatosDeProyecto datos);
 
-    /** Cómo se nombra en una frase: "de la tabla de ventas". */
-    public String getTabla() {
-        return tabla;
+    /** Las que el negocio ya cargó, en su orden: sólo de esas se puede armar una métrica. */
+    public static List<FuenteMetrica> lasQueEstanEn(DatosDeProyecto datos) {
+        return Arrays.stream(values()).filter(fuente -> fuente.estaEn(datos)).toList();
     }
 
     /** Cómo se nombra a lo que se cuenta: "no hay ventas en este período". */

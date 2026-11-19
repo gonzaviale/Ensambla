@@ -106,7 +106,7 @@ class MetricaItemsTest {
     }
 
     private void cuandoSeCopiaLaSugerida() {
-        sugerida = SugeridaItem.de(LAS_VENTAS_FIADAS_POR_PRODUCTO, SIN_VENTAS_EN_EL_PERIODO);
+        sugerida = SugeridaItem.de(LAS_VENTAS_FIADAS_POR_PRODUCTO, SIN_VENTAS_EN_EL_PERIODO, true);
     }
 
     private void entoncesLaRecetaEsLaDeLasVentasFiadasPorProducto() {

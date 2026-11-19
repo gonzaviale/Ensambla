@@ -18,14 +18,16 @@ public record MetricasDelCuaderno(List<Metrica> metricas) {
         metricas = List.copyOf(Objects.requireNonNullElse(metricas, List.of()));
     }
 
-    /** Rechaza la receta que ya está guardada y la que pasa el máximo por cuaderno. */
+    static final String YA_LA_TENES = "Esa ya la tenés en el panel: probá con otra";
+
+    /** Rechaza la receta que ya está a la vista (guardada o en el panel de ventas) y la que pasa el máximo. */
     public void exigirLugarPara(DefinicionMetrica definicion) {
         if (estaCompleto()) {
             throw new BusinessRuleException(
                     "Ya tenés " + Metrica.MAXIMO_POR_CUADERNO + " métricas: quitá alguna para agregar otra");
         }
         if (incluye(definicion)) {
-            throw new BusinessRuleException("Ya tenés esa métrica en el cuaderno");
+            throw new BusinessRuleException(YA_LA_TENES);
         }
     }
 
@@ -34,8 +36,12 @@ public record MetricasDelCuaderno(List<Metrica> metricas) {
         return metricas.stream().mapToInt(Metrica::getOrden).max().orElse(-1) + 1;
     }
 
-    /** {@code true} si alguna guardada pide lo mismo, aunque tenga otro nombre. */
+    /** {@code true} si ya está a la vista: alguna guardada pide lo mismo (aunque se llame distinto) o es del panel. */
     public boolean incluye(DefinicionMetrica definicion) {
+        return definicion.laMuestraElPanelDeVentas() || algunaGuardadaPide(definicion);
+    }
+
+    private boolean algunaGuardadaPide(DefinicionMetrica definicion) {
         return metricas.stream().anyMatch(guardada -> guardada.getDefinicion().esIgualA(definicion));
     }
 

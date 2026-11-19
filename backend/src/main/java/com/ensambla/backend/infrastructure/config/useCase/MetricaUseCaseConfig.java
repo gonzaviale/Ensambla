@@ -11,6 +11,7 @@ import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
 import com.ensambla.backend.domain.useCase.metrica.crearMetrica.CrearMetrica;
 import com.ensambla.backend.domain.useCase.metrica.eliminarMetrica.EliminarMetrica;
 import com.ensambla.backend.domain.useCase.metrica.listarMetricas.ListarMetricas;
+import com.ensambla.backend.domain.useCase.metrica.listarFuentesDelCuaderno.ListarFuentesDelCuaderno;
 import com.ensambla.backend.domain.useCase.metrica.listarSugeridas.ListarSugeridas;
 import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.InterpretarPedido;
 import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetrica;
@@ -39,6 +40,14 @@ public class MetricaUseCaseConfig {
                 datosDeProyectoService,
                 motorMetricas,
                 clock);
+    }
+
+    @Bean
+    public ListarFuentesDelCuaderno listarFuentesDelCuaderno(
+            NegocioRepository negocioRepository,
+            ProyectoRepository proyectoRepository,
+            DatosDeProyectoService datosDeProyectoService) {
+        return new ListarFuentesDelCuaderno(negocioRepository, proyectoRepository, datosDeProyectoService);
     }
 
     @Bean
@@ -122,6 +131,7 @@ public class MetricaUseCaseConfig {
     public InterpretarPedido interpretarPedido(
             NegocioRepository negocioRepository,
             ProyectoRepository proyectoRepository,
+            MetricaRepository metricaRepository,
             DatosDeProyectoService datosDeProyectoService,
             MotorMetricas motorMetricas,
             InterpreteDePedidos interpreteDePedidos,
@@ -129,6 +139,7 @@ public class MetricaUseCaseConfig {
         return new InterpretarPedido(
                 negocioRepository,
                 proyectoRepository,
+                metricaRepository,
                 datosDeProyectoService,
                 motorMetricas,
                 interpreteDePedidos,

@@ -76,10 +76,10 @@ class CrearMetricaTest {
         dadoUnPanelCon(metrica(lasVentasDeHoy(CalculoMetrica.CONTEO), 0),
                 metrica(lasVentasDeHoy(CalculoMetrica.PROMEDIO), 2));
 
-        cuandoSeAgrega(lasVentasDeHoyPedidas(CalculoMetrica.SUMA, AutoriaMetrica.SUGERIDA));
+        cuandoSeAgrega(lasVentasDeHoyPedidas(CalculoMetrica.UNIDADES, AutoriaMetrica.SUGERIDA));
 
         entoncesQuedoEnElLugar(3, AutoriaMetrica.SUGERIDA);
-        entoncesDaHoy("300");
+        entoncesDaHoy("2");
         entoncesSeGuardoEnElCuadernoDelNegocio();
     }
 
@@ -89,7 +89,7 @@ class CrearMetricaTest {
         dadoUnAlmacenQueHoyVendioPorTrescientos();
         dadoUnPanelCon();
 
-        cuandoSeAgrega(lasVentasDeHoyPedidas(CalculoMetrica.SUMA, AutoriaMetrica.PROPIA));
+        cuandoSeAgrega(lasVentasDeHoyPedidas(CalculoMetrica.UNIDADES, AutoriaMetrica.PROPIA));
 
         entoncesQuedoEnElLugar(0, AutoriaMetrica.PROPIA);
     }
@@ -98,11 +98,23 @@ class CrearMetricaTest {
     @DisplayName("No guarda dos veces la misma receta aunque se llame distinto")
     void noGuardaDosVecesLaMismaReceta() {
         dadoUnAlmacenQueHoyVendioPorTrescientos();
-        dadoUnPanelCon(metrica(lasVentasDeHoy(CalculoMetrica.SUMA), 0));
+        dadoUnPanelCon(metrica(lasVentasDeHoy(CalculoMetrica.CONTEO), 0));
+
+        cuandoSeIntentaAgregar(lasVentasDeHoyPedidas(CalculoMetrica.CONTEO, AutoriaMetrica.PROPIA));
+
+        entoncesSeRechazaPorque("Esa ya la tenés en el panel");
+        entoncesNoSeGuardoNada();
+    }
+
+    @Test
+    @DisplayName("No guarda lo que ya muestra el panel de ventas del inicio")
+    void noGuardaLoQueYaMuestraElPanelDeVentas() {
+        dadoUnAlmacenQueHoyVendioPorTrescientos();
+        dadoUnPanelCon();
 
         cuandoSeIntentaAgregar(lasVentasDeHoyPedidas(CalculoMetrica.SUMA, AutoriaMetrica.PROPIA));
 
-        entoncesSeRechazaPorque("Ya tenés esa métrica");
+        entoncesSeRechazaPorque("Esa ya la tenés en el panel");
         entoncesNoSeGuardoNada();
     }
 

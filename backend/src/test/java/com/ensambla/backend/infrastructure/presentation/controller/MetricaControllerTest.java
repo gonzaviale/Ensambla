@@ -27,6 +27,8 @@ import com.ensambla.backend.domain.useCase.metrica.listarSugeridas.ListarSugerid
 import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.InterpretarPedido;
 import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.InterpretarPedidoRequest;
 import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.PedidoInterpretadoItem;
+import com.ensambla.backend.domain.useCase.metrica.listarFuentesDelCuaderno.ListarFuentesDelCuaderno;
+import com.ensambla.backend.domain.useCase.metrica.listarFuentesDelCuaderno.ListarFuentesDelCuadernoRequest;
 import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetrica;
 import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetricaRequest;
 import com.ensambla.backend.domain.useCase.metrica.previsualizarMetrica.PrevisualizarMetrica;
@@ -114,11 +116,13 @@ class MetricaControllerTest {
     private final RenombrarMetrica renombrarMetrica = mock(RenombrarMetrica.class);
     private final MoverMetrica moverMetrica = mock(MoverMetrica.class);
     private final InterpretarPedido interpretarPedido = mock(InterpretarPedido.class);
+    private final ListarFuentesDelCuaderno listarFuentesDelCuaderno = mock(ListarFuentesDelCuaderno.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
     private final MockMvc mockMvc = MockMvcDePrueba.standalone(new MetricaController(
                     listarMetricas, listarSugeridas, previsualizarMetrica, crearMetrica, eliminarMetrica,
-                    renombrarMetrica, moverMetrica, interpretarPedido, new MetricaPresentationMapper()))
+                    renombrarMetrica, moverMetrica, interpretarPedido, listarFuentesDelCuaderno,
+                    new MetricaPresentationMapper()))
             .setControllerAdvice(new GlobalExceptionHandler())
             .build();
 
@@ -340,6 +344,16 @@ class MetricaControllerTest {
     }
 
     @Test
+    @DisplayName("GET fuentes devuelve de qué se puede armar una métrica en el cuaderno de la sesión")
+    void fuentesDevuelveDeQueSePuedeArmarUnaMetrica() throws Exception {
+        dadoUnCuadernoConVentasYStock();
+
+        cuandoSePide(get(RUTA + "/fuentes", PROYECTO_ID));
+
+        entoncesRespondeLasFuentesVentasYStock();
+    }
+
+    @Test
     @DisplayName("POST interpretar con el pedido en blanco devuelve 400 sin llegar al caso de uso")
     void interpretarUnPedidoEnBlancoDevuelveError() throws Exception {
         cuandoSeEnvia(post(RUTA + "/interpretar", PROYECTO_ID), UN_PEDIDO_EN_BLANCO);
@@ -380,7 +394,7 @@ class MetricaControllerTest {
 
     private void dadaUnaSugeridaQueNoSePuedeCalcular() {
         when(listarSugeridas.execute(any())).thenReturn(List.of(new SugeridaItem(
-                DefinicionItem.de(LAS_VENTAS_FIADAS_POR_PRODUCTO), ResultadoItem.de(SIN_VENTAS_EN_EL_PERIODO))));
+                DefinicionItem.de(LAS_VENTAS_FIADAS_POR_PRODUCTO), ResultadoItem.de(SIN_VENTAS_EN_EL_PERIODO), true)));
     }
 
     private void dadaUnaPrevisualizacionDeSetecientosCincuenta() {
@@ -526,7 +540,18 @@ class MetricaControllerTest {
 
     private void dadoQueElPedidoSeEntiende() {
         when(interpretarPedido.execute(any())).thenReturn(PedidoInterpretadoItem.de(
-                unPedidoDelFindeInterpretadoComo(LAS_VENTAS_FIADAS_POR_PRODUCTO), SETECIENTOS_CINCUENTA_DEL_PAN));
+                unPedidoDelFindeInterpretadoComo(LAS_VENTAS_FIADAS_POR_PRODUCTO), SETECIENTOS_CINCUENTA_DEL_PAN, false));
+    }
+
+    private void dadoUnCuadernoConVentasYStock() {
+        when(listarFuentesDelCuaderno.execute(new ListarFuentesDelCuadernoRequest(USUARIO_ID, PROYECTO_ID)))
+                .thenReturn(List.of(FuenteMetrica.VENTAS, FuenteMetrica.INVENTARIO));
+    }
+
+    private void entoncesRespondeLasFuentesVentasYStock() throws Exception {
+        respuesta.andExpect(status().isOk())
+                .andExpect(jsonPath("$[0]").value("VENTAS"))
+                .andExpect(jsonPath("$[1]").value("INVENTARIO"));
     }
 
     private void dadoQueElPedidoNoSeEntiende(String motivo) {
@@ -539,7 +564,8 @@ class MetricaControllerTest {
                 .andExpect(jsonPath("$.resultado.valor").value(750.0))
                 .andExpect(jsonPath("$.lectura.delPedido[0]").value("FUENTE"))
                 .andExpect(jsonPath("$.lectura.porDefecto[2]").value("PERIODO"))
-                .andExpect(jsonPath("$.lectura.noEntendidas[0]").value("finde"));
+                .andExpect(jsonPath("$.lectura.noEntendidas[0]").value("finde"))
+                .andExpect(jsonPath("$.yaLaTenes").value(false));
     }
 
     private void entoncesSeInterpreto(String pedido) {

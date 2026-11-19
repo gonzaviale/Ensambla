@@ -73,7 +73,7 @@ class ListarMetricasTest {
         cuandoSeListan();
 
         entoncesLaPrimeraEsLaDeVentasYDa("300");
-        entoncesLaSegundaNoSePuedeCalcularPorque("tabla de gastos");
+        entoncesLaSegundaNoSePuedeCalcularPorque("Todavía no cargaste gastos");
     }
 
     @Test

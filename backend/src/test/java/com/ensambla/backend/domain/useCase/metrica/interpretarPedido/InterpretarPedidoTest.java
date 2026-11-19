@@ -6,6 +6,7 @@ import com.ensambla.backend.domain.model.metrica.DefinicionMetrica;
 import com.ensambla.backend.domain.model.metrica.MotorMetricas;
 import com.ensambla.backend.domain.model.negocio.RubroNegocio;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
+import com.ensambla.backend.domain.repository.metrica.MetricaRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
@@ -22,11 +23,13 @@ import static com.ensambla.backend.domain.model.metrica.AgrupacionMetrica.NINGUN
 import static com.ensambla.backend.domain.model.metrica.CalculoMetrica.SUMA;
 import static com.ensambla.backend.domain.model.metrica.FuenteMetrica.VENTAS;
 import static com.ensambla.backend.domain.model.metrica.PeriodoMetrica.HOY;
+import static com.ensambla.backend.domain.model.metrica.PeriodoMetrica.TODO;
 import static com.ensambla.backend.support.MetricaTestData.AHORA;
 import static com.ensambla.backend.support.MetricaTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.MetricaTestData.PAN_ID;
 import static com.ensambla.backend.support.MetricaTestData.PROYECTO_ID;
 import static com.ensambla.backend.support.MetricaTestData.USUARIO_ID;
+import static com.ensambla.backend.support.MetricaTestData.metrica;
 import static com.ensambla.backend.support.MetricaTestData.negocio;
 import static com.ensambla.backend.support.MetricaTestData.proyecto;
 import static com.ensambla.backend.support.MetricaTestData.unAlmacenQueVendio;
@@ -43,11 +46,13 @@ class InterpretarPedidoTest {
 
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
+    private final MetricaRepository metricaRepository = mock(MetricaRepository.class);
     private final DatosDeProyectoService datosDeProyectoService = mock(DatosDeProyectoService.class);
     private final Proyecto proyecto = proyecto();
     private final InterpretarPedido interpretarPedido = new MetricaUseCaseConfig().interpretarPedido(
             negocioRepository,
             proyectoRepository,
+            metricaRepository,
             datosDeProyectoService,
             new MotorMetricas(),
             elInterpreteDeLaAplicacion(),
@@ -79,6 +84,36 @@ class InterpretarPedidoTest {
     }
 
     @Test
+    @DisplayName("Avisa que ya la tenés cuando el pedido es lo que muestra el panel de ventas del inicio")
+    void avisaQueYaLaTenesSiEsLaDelPanelDeVentas() {
+        dadoUnAlmacenQueHoyVendioPorTrescientos();
+
+        cuandoSePide("¿Cuánto vendí esta semana?");
+
+        entoncesYaLaTiene(true);
+    }
+
+    @Test
+    @DisplayName("Avisa que ya la tenés cuando el cuaderno guardó la misma métrica con otro nombre")
+    void avisaQueYaLaTenesSiElCuadernoLaGuardo() {
+        dadoUnAlmacenQueYaGuardo(unaReceta("Fiado", VENTAS, SUMA, NINGUNA, TODO, true));
+
+        cuandoSePide("lo que me deben");
+
+        entoncesYaLaTiene(true);
+    }
+
+    @Test
+    @DisplayName("Una métrica nueva se puede guardar")
+    void unaMetricaNuevaSePuedeGuardar() {
+        dadoUnAlmacenQueHoyVendioPorTrescientos();
+
+        cuandoSePide("lo que me deben");
+
+        entoncesYaLaTiene(false);
+    }
+
+    @Test
     @DisplayName("Un pedido que no se entiende se rechaza antes de leer el cuaderno")
     void unPedidoQueNoSeEntiendeSeRechazaAntesDeLeerElCuaderno() {
         cuandoSeIntentaPedir("hola, ¿cómo andás?");
@@ -102,6 +137,12 @@ class InterpretarPedidoTest {
         when(proyectoRepository.obtener(NEGOCIO_ID, PROYECTO_ID)).thenReturn(proyecto);
         when(datosDeProyectoService.cargar(proyecto, NEGOCIO_ID))
                 .thenReturn(unAlmacenQueVendio(venta(PAN_ID, 2, 150, "2026-11-11", "Ana", false)));
+    }
+
+    private void dadoUnAlmacenQueYaGuardo(DefinicionMetrica receta) {
+        dadoUnAlmacenQueHoyVendioPorTrescientos();
+        when(metricaRepository.findAllByProyectoIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID))
+                .thenReturn(List.of(metrica(receta, 0)));
     }
 
     private void dadoUnCuadernoAjeno() {
@@ -128,12 +169,16 @@ class InterpretarPedidoTest {
         assertThat(propuesta.lectura().noEntendidas()).isEqualTo(noEntendidas);
     }
 
+    private void entoncesYaLaTiene(boolean yaLaTenes) {
+        assertThat(propuesta.yaLaTenes()).isEqualTo(yaLaTenes);
+    }
+
     private void entoncesSeRechazaPorque(String motivo) {
         assertThat(rechazo).isInstanceOf(BusinessRuleException.class).hasMessageContaining(motivo);
     }
 
     private void entoncesNoSeLeyoElCuaderno() {
-        verifyNoInteractions(negocioRepository, proyectoRepository, datosDeProyectoService);
+        verifyNoInteractions(negocioRepository, proyectoRepository, metricaRepository, datosDeProyectoService);
     }
 
     private void entoncesNoSeEncuentraElCuaderno() {

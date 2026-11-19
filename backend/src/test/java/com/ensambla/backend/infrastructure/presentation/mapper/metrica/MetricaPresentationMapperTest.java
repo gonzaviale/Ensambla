@@ -19,6 +19,7 @@ import com.ensambla.backend.domain.useCase.metrica.crearMetrica.CrearMetricaRequ
 import com.ensambla.backend.domain.useCase.metrica.eliminarMetrica.EliminarMetricaRequest;
 import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.InterpretarPedidoRequest;
 import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.PedidoInterpretadoItem;
+import com.ensambla.backend.domain.useCase.metrica.listarFuentesDelCuaderno.ListarFuentesDelCuadernoRequest;
 import com.ensambla.backend.domain.useCase.metrica.listarMetricas.ListarMetricasRequest;
 import com.ensambla.backend.domain.useCase.metrica.listarSugeridas.ListarSugeridasRequest;
 import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetricaRequest;
@@ -91,6 +92,12 @@ class MetricaPresentationMapperTest {
     }
 
     @Test
+    @DisplayName("Arma el pedido de listar las fuentes con el usuario de la sesión y el cuaderno")
+    void armaElPedidoDeListarLasFuentes() {
+        entoncesPideListarLasFuentes(new ListarFuentesDelCuadernoRequest(USUARIO_ID, PROYECTO_ID));
+    }
+
+    @Test
     @DisplayName("Arma el pedido de previsualizar con toda la receta")
     void armaElPedidoDePrevisualizarConTodaLaReceta() {
         entoncesPidePrevisualizar(new MetricaWebRequest("Ventas del mes", FuenteMetrica.VENTAS,
@@ -143,19 +150,20 @@ class MetricaPresentationMapperTest {
     @DisplayName("Responde las sugeridas con su receta y su resultado")
     void respondeLasSugeridasConSuRecetaYSuResultado() {
         entoncesRespondeLasSugeridas(List.of(new SugeridaItem(DefinicionItem.de(LAS_VENTAS_FIADAS_POR_PRODUCTO),
-                        ResultadoItem.de(SETECIENTOS_CINCUENTA_DEL_PAN))),
-                new SugeridaResponse(LA_RECETA_RESPONDIDA, EL_RESULTADO_RESPONDIDO));
+                        ResultadoItem.de(SETECIENTOS_CINCUENTA_DEL_PAN), true)),
+                new SugeridaResponse(LA_RECETA_RESPONDIDA, EL_RESULTADO_RESPONDIDO, true));
     }
 
     @Test
     @DisplayName("Responde el pedido interpretado con su receta, su resultado y cómo se entendió")
     void respondeElPedidoInterpretadoConComoSeEntendio() {
         entoncesRespondeElInterpretado(PedidoInterpretadoItem.de(
-                        unPedidoDelFindeInterpretadoComo(LAS_VENTAS_FIADAS_POR_PRODUCTO), SETECIENTOS_CINCUENTA_DEL_PAN),
+                        unPedidoDelFindeInterpretadoComo(LAS_VENTAS_FIADAS_POR_PRODUCTO), SETECIENTOS_CINCUENTA_DEL_PAN,
+                        true),
                 new PedidoInterpretadoResponse(LA_RECETA_RESPONDIDA, EL_RESULTADO_RESPONDIDO, new LecturaResponse(
                         List.of(ParteDeLaReceta.FUENTE),
                         List.of(ParteDeLaReceta.CALCULO, ParteDeLaReceta.AGRUPACION, ParteDeLaReceta.PERIODO),
-                        List.of("finde"))));
+                        List.of("finde")), true));
     }
 
     @Test
@@ -223,6 +231,10 @@ class MetricaPresentationMapperTest {
     private void entoncesRespondeElInterpretado(PedidoInterpretadoItem interpretado,
                                                 PedidoInterpretadoResponse esperada) {
         assertThat(mapper.toInterpretadoResponse(interpretado)).isEqualTo(esperada);
+    }
+
+    private void entoncesPideListarLasFuentes(ListarFuentesDelCuadernoRequest esperado) {
+        assertThat(mapper.toListarFuentesRequest(USUARIO_ID, PROYECTO_ID)).isEqualTo(esperado);
     }
 
     private void entoncesRespondeLasSugeridas(List<SugeridaItem> sugeridas, SugeridaResponse... esperadas) {

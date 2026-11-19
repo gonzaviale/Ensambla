@@ -14,6 +14,7 @@ import com.ensambla.backend.domain.useCase.metrica.eliminarMetrica.EliminarMetri
 import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.InterpretarPedidoRequest;
 import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.PedidoInterpretadoItem;
 import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.PedidoInterpretadoItem.LecturaItem;
+import com.ensambla.backend.domain.useCase.metrica.listarFuentesDelCuaderno.ListarFuentesDelCuadernoRequest;
 import com.ensambla.backend.domain.useCase.metrica.listarMetricas.ListarMetricasRequest;
 import com.ensambla.backend.domain.useCase.metrica.listarSugeridas.ListarSugeridasRequest;
 import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetricaRequest;
@@ -41,6 +42,10 @@ public class MetricaPresentationMapper {
 
     public ListarMetricasRequest toListarRequest(UsuarioId usuarioId, ProyectoId proyectoId) {
         return new ListarMetricasRequest(usuarioId, proyectoId);
+    }
+
+    public ListarFuentesDelCuadernoRequest toListarFuentesRequest(UsuarioId usuarioId, ProyectoId proyectoId) {
+        return new ListarFuentesDelCuadernoRequest(usuarioId, proyectoId);
     }
 
     public ListarSugeridasRequest toListarSugeridasRequest(UsuarioId usuarioId, ProyectoId proyectoId) {
@@ -100,12 +105,13 @@ public class MetricaPresentationMapper {
     }
 
     public SugeridaResponse toSugeridaResponse(SugeridaItem sugerida) {
-        return new SugeridaResponse(toResponse(sugerida.definicion()), toResponse(sugerida.resultado()));
+        return new SugeridaResponse(toResponse(sugerida.definicion()), toResponse(sugerida.resultado()),
+                sugerida.yaLaTenes());
     }
 
     public PedidoInterpretadoResponse toInterpretadoResponse(PedidoInterpretadoItem interpretado) {
         return new PedidoInterpretadoResponse(toResponse(interpretado.definicion()),
-                toResponse(interpretado.resultado()), toResponse(interpretado.lectura()));
+                toResponse(interpretado.resultado()), toResponse(interpretado.lectura()), interpretado.yaLaTenes());
     }
 
     private LecturaResponse toResponse(LecturaItem lectura) {

@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.useCase.metrica.interpretarPedido;
 import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.metrica.DefinicionMetrica;
 import com.ensambla.backend.domain.model.metrica.InterpreteDePedidos;
+import com.ensambla.backend.domain.model.metrica.MetricasDelCuaderno;
 import com.ensambla.backend.domain.model.metrica.MotorMetricas;
 import com.ensambla.backend.domain.model.metrica.PedidoInterpretado;
 import com.ensambla.backend.domain.model.metrica.ResultadoMetrica;
@@ -11,6 +12,7 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.repository.metrica.MetricaRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
@@ -32,6 +34,8 @@ public class InterpretarPedido {
 
     private final ProyectoRepository proyectoRepository;
 
+    private final MetricaRepository metricaRepository;
+
     private final DatosDeProyectoService datosDeProyectoService;
 
     private final MotorMetricas motorMetricas;
@@ -44,7 +48,13 @@ public class InterpretarPedido {
         PedidoInterpretado interpretado = interpreteDePedidos.interpretar(request.pedido());
         Negocio negocio = obtenerNegocioDelUsuario(request.usuarioId());
         Proyecto proyecto = obtenerCuaderno(negocio.getId(), request.proyectoId());
-        return PedidoInterpretadoItem.de(interpretado, calcularHoy(interpretado.receta(), proyecto, negocio.getId()));
+        return PedidoInterpretadoItem.de(interpretado, calcularHoy(interpretado.receta(), proyecto, negocio.getId()),
+                yaEstaALaVista(interpretado.receta(), negocio.getId(), request.proyectoId()));
+    }
+
+    private boolean yaEstaALaVista(DefinicionMetrica receta, NegocioId negocioId, ProyectoId proyectoId) {
+        return new MetricasDelCuaderno(metricaRepository.findAllByProyectoIdAndNegocioId(proyectoId, negocioId))
+                .incluye(receta);
     }
 
     private Negocio obtenerNegocioDelUsuario(UsuarioId usuarioId) {

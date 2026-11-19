@@ -6,6 +6,8 @@ import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.metrica.crearMetrica.CrearMetrica;
 import com.ensambla.backend.domain.useCase.metrica.eliminarMetrica.EliminarMetrica;
 import com.ensambla.backend.domain.useCase.metrica.listarMetricas.ListarMetricas;
+import com.ensambla.backend.domain.model.metrica.FuenteMetrica;
+import com.ensambla.backend.domain.useCase.metrica.listarFuentesDelCuaderno.ListarFuentesDelCuaderno;
 import com.ensambla.backend.domain.useCase.metrica.listarSugeridas.ListarSugeridas;
 import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.InterpretarPedido;
 import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetrica;
@@ -61,6 +63,8 @@ public class MetricaController {
 
     private final InterpretarPedido interpretarPedido;
 
+    private final ListarFuentesDelCuaderno listarFuentesDelCuaderno;
+
     private final MetricaPresentationMapper metricaPresentationMapper;
 
     @GetMapping
@@ -69,6 +73,14 @@ public class MetricaController {
             Authentication authentication, @PathVariable ProyectoId proyectoId) {
         return ResponseEntity.ok(metricaPresentationMapper.toResponse(listarMetricas.execute(
                 metricaPresentationMapper.toListarRequest(UsuarioId.de(authentication.getName()), proyectoId))));
+    }
+
+    @GetMapping("/fuentes")
+    @Operation(summary = "Listar de qué se puede armar una métrica: las ventas, gastos o stock que el cuaderno tiene")
+    public ResponseEntity<List<FuenteMetrica>> fuentes(
+            Authentication authentication, @PathVariable ProyectoId proyectoId) {
+        return ResponseEntity.ok(listarFuentesDelCuaderno.execute(
+                metricaPresentationMapper.toListarFuentesRequest(UsuarioId.de(authentication.getName()), proyectoId)));
     }
 
     @GetMapping("/sugeridas")
