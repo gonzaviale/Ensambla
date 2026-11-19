@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class LecturaIaJsonMapperTest {
 
@@ -39,6 +39,10 @@ class LecturaIaJsonMapperTest {
     private static final CampoJson MONTO = new CampoJson("monto", "Monto", "numero", null);
 
     private LecturaIaJsonMapper mapper;
+    private LecturaIaJson json;
+    private List<BloqueConocido> bloquesDelNegocio = BLOQUES;
+    private LecturaCuaderno lectura;
+    private Throwable rechazo;
 
     @BeforeEach
     void setUp() {
@@ -47,268 +51,402 @@ class LecturaIaJsonMapperTest {
 
     @Test
     @DisplayName("Convierte una lectura válida con tipo, bloque, filas, advertencias y consumo")
-    void toDomainShouldMapValidLectura() {
-        LecturaIaJson json = givenLectura(givenBloque(null, FECHA, MONTO),
-                List.of(givenFila(1, 1, Map.of("fecha", new DatoJson("2026-10-03", 0.9), "monto", new DatoJson("100", 0.5)))),
-                List.of("Página borrosa"));
+    void convierteUnaLecturaValidaConTipoBloqueFilasAdvertenciasYConsumo() {
+        dadoUnaLecturaValidaConUnaFilaYUnaAdvertencia();
 
-        LecturaCuaderno result = mapper.toDomain(json, BLOQUES, PAGINAS, CONSUMO);
+        cuandoSeConvierte();
 
-        thenLecturaIsMapped(result);
+        entoncesLaLecturaQuedaConvertida();
     }
 
     @Test
     @DisplayName("Sin filas ni advertencias devuelve listas vacías")
-    void toDomainShouldReturnEmptyListsWhenFilasAndAdvertenciasAreNull() {
-        LecturaIaJson json = givenLectura(givenBloque(null, FECHA), null, null);
+    void sinFilasNiAdvertenciasDevuelveListasVacias() {
+        dadoUnaLecturaSinFilasNiAdvertencias();
 
-        LecturaCuaderno result = mapper.toDomain(json, BLOQUES, PAGINAS, CONSUMO);
+        cuandoSeConvierte();
 
-        assertThat(result.filas()).isEmpty();
-        assertThat(result.advertencias()).isEmpty();
+        entoncesNoHayFilasNiAdvertencias();
     }
 
     @Test
     @DisplayName("Una fila sin datos queda vacía")
-    void toDomainShouldAcceptFilaWithoutDatos() {
-        LecturaIaJson json = givenLectura(givenBloque(null, FECHA), List.of(givenFila(2, 3, null)), List.of());
+    void unaFilaSinDatosQuedaVacia() {
+        dadoUnaLecturaConUnaFilaSinDatos();
 
-        FilaLeida fila = mapper.toDomain(json, BLOQUES, PAGINAS, CONSUMO).filas().getFirst();
+        cuandoSeConvierte();
 
+        entoncesLaFilaQuedaVaciaEnLaPaginaYRenglonPedidos();
+    }
+
+    @Test
+    @DisplayName("Acepta el bloque existente que sugiere la IA si es del negocio")
+    void aceptaElBloqueExistenteQueSugiereLaIaSiEsDelNegocio() {
+        dadoUnaLecturaQueSugiereUnBloqueDelNegocioEnMayusculas();
+
+        cuandoSeConvierte();
+
+        entoncesSeConservaElBloqueExistente();
+    }
+
+    @Test
+    @DisplayName("Descarta un bloque existente que no es del negocio y propone uno nuevo")
+    void descartaUnBloqueExistenteQueNoEsDelNegocioYProponeUnoNuevo() {
+        dadoUnaLecturaQueSugiereUnBloqueAjeno();
+
+        cuandoSeConvierte();
+
+        entoncesSeProponeUnBloqueNuevo();
+    }
+
+    @Test
+    @DisplayName("Acepta un campo de conexión que el bloque existente elegido ya tiene")
+    void aceptaUnCampoDeConexionQueElBloqueExistenteElegidoYaTiene() {
+        dadoUnBloqueExistenteConUnCampoDeConexionYUnaLecturaQueLoUsa();
+
+        cuandoSeConvierte();
+
+        entoncesElCampoSigueSiendoUnaConexion();
+    }
+
+    @Test
+    @DisplayName("Una conexión que el bloque no tiene se lee como el texto escrito")
+    void unaConexionQueElBloqueNoTieneSeLeeComoElTextoEscrito() {
+        dadoUnaLecturaConUnaConexionInventada();
+
+        cuandoSeConvierte();
+
+        entoncesElCampoSeLeeComoTexto();
+    }
+
+    @Test
+    @DisplayName("Una conexión sin nombre se rechaza como cualquier campo sin nombre")
+    void unaConexionSinNombreSeRechazaComoCualquierCampoSinNombre() {
+        dadoUnaLecturaConUnaConexionSinNombre();
+
+        cuandoSeIntentaConvertir();
+
+        entoncesSeRechazaPor("falta el nombre del campo cliente");
+    }
+
+    @Test
+    @DisplayName("Acepta un campo OPCION con opciones")
+    void aceptaUnCampoOpcionConOpciones() {
+        dadoUnaLecturaConUnCampoOpcionConOpciones();
+
+        cuandoSeConvierte();
+
+        entoncesElCampoTieneSusOpciones();
+    }
+
+    @Test
+    @DisplayName("Rechaza un tipo de registro desconocido")
+    void rechazaUnTipoDeRegistroDesconocido() {
+        json = new LecturaIaJson("RECETAS", bloqueConCampos(null, FECHA), List.of(), List.of());
+
+        cuandoSeIntentaConvertir();
+
+        entoncesSeRechazaPor("tipoRegistro es desconocido: RECETAS");
+    }
+
+    @Test
+    @DisplayName("Rechaza una lectura sin tipo de registro")
+    void rechazaUnaLecturaSinTipoDeRegistro() {
+        json = new LecturaIaJson(null, bloqueConCampos(null, FECHA), List.of(), List.of());
+
+        cuandoSeIntentaConvertir();
+
+        entoncesSeRechazaPor("falta tipoRegistro");
+    }
+
+    @Test
+    @DisplayName("Rechaza una lectura sin bloque")
+    void rechazaUnaLecturaSinBloque() {
+        json = lecturaDe(null, List.of(), List.of());
+
+        cuandoSeIntentaConvertir();
+
+        entoncesSeRechazaPor("falta el bloque propuesto");
+    }
+
+    @Test
+    @DisplayName("Rechaza un bloque sin campos")
+    void rechazaUnBloqueSinCampos() {
+        json = lecturaDe(new BloqueJson("Ventas", null, null), List.of(), List.of());
+
+        cuandoSeIntentaConvertir();
+
+        entoncesSeRechazaPor("el bloque no tiene campos");
+    }
+
+    @Test
+    @DisplayName("Rechaza un bloque con nombre en blanco")
+    void rechazaUnBloqueConNombreEnBlanco() {
+        json = lecturaDe(new BloqueJson("  ", null, List.of(FECHA)), List.of(), List.of());
+
+        cuandoSeIntentaConvertir();
+
+        entoncesSeRechazaPor("falta el nombre del bloque");
+    }
+
+    @Test
+    @DisplayName("Rechaza un campo con tipo desconocido")
+    void rechazaUnCampoConTipoDesconocido() {
+        dadoUnaLecturaConUnCampo(new CampoJson("foto", "Foto", "IMAGEN", List.of()));
+
+        cuandoSeIntentaConvertir();
+
+        entoncesSeRechazaPor("el tipo del campo foto es desconocido");
+    }
+
+    @Test
+    @DisplayName("Rechaza un campo OPCION sin opciones")
+    void rechazaUnCampoOpcionSinOpciones() {
+        dadoUnaLecturaConUnCampo(new CampoJson("producto", "Producto", "OPCION", List.of()));
+
+        cuandoSeIntentaConvertir();
+
+        entoncesSeRechazaPor("es OPCION y no tiene opciones");
+    }
+
+    @Test
+    @DisplayName("Rechaza un campo sin clave")
+    void rechazaUnCampoSinClave() {
+        dadoUnaLecturaConUnCampo(new CampoJson(null, "Fecha", "FECHA", List.of()));
+
+        cuandoSeIntentaConvertir();
+
+        entoncesSeRechazaPor("falta la clave de un campo");
+    }
+
+    @Test
+    @DisplayName("Rechaza claves de campo repetidas")
+    void rechazaClavesDeCampoRepetidas() {
+        json = lecturaDe(bloqueConCampos(null, FECHA, FECHA), List.of(), List.of());
+
+        cuandoSeIntentaConvertir();
+
+        entoncesSeRechazaPor("la clave fecha está repetida");
+    }
+
+    @Test
+    @DisplayName("Rechaza una fila que menciona una página que no se envió")
+    void rechazaUnaFilaQueMencionaUnaPaginaQueNoSeEnvio() {
+        dadoUnaLecturaConUnaFila(filaDe(3, 1, Map.of()));
+
+        cuandoSeIntentaConvertir();
+
+        entoncesSeRechazaPor("la página 3 y sólo se enviaron 2");
+    }
+
+    @Test
+    @DisplayName("Rechaza una fila sin página")
+    void rechazaUnaFilaSinPagina() {
+        dadoUnaLecturaConUnaFila(filaDe(null, 1, Map.of()));
+
+        cuandoSeIntentaConvertir();
+
+        entoncesSeRechazaPor("la página de una fila debe ser 1 o mayor");
+    }
+
+    @Test
+    @DisplayName("Rechaza una fila con renglón cero")
+    void rechazaUnaFilaConRenglonCero() {
+        dadoUnaLecturaConUnaFila(filaDe(1, 0, Map.of()));
+
+        cuandoSeIntentaConvertir();
+
+        entoncesSeRechazaPor("el renglón de una fila debe ser 1 o mayor");
+    }
+
+    @Test
+    @DisplayName("Rechaza una fila que usa una clave que no está entre los campos")
+    void rechazaUnaFilaQueUsaUnaClaveQueNoEstaEntreLosCampos() {
+        dadoUnaLecturaConUnaFila(filaDe(1, 1, Map.of("cliente", new DatoJson("Marta", 0.9))));
+
+        cuandoSeIntentaConvertir();
+
+        entoncesSeRechazaPor("la clave cliente que no está entre los campos");
+    }
+
+    @Test
+    @DisplayName("Rechaza un dato nulo")
+    void rechazaUnDatoNulo() {
+        dadoUnaLecturaConUnDatoNulo();
+
+        cuandoSeIntentaConvertir();
+
+        entoncesSeRechazaPor("la confianza de fecha debe estar entre 0 y 1");
+    }
+
+    @Test
+    @DisplayName("Rechaza un dato sin confianza")
+    void rechazaUnDatoSinConfianza() {
+        dadoUnaLecturaConUnDatoDeConfianza(null);
+
+        cuandoSeIntentaConvertir();
+
+        entoncesSeRechazaPor("la confianza de fecha debe estar entre 0 y 1");
+    }
+
+    @Test
+    @DisplayName("Rechaza una confianza negativa")
+    void rechazaUnaConfianzaNegativa() {
+        dadoUnaLecturaConUnDatoDeConfianza(-0.1);
+
+        cuandoSeIntentaConvertir();
+
+        entoncesSeRechazaPor("la confianza de fecha debe estar entre 0 y 1");
+    }
+
+    @Test
+    @DisplayName("Rechaza una confianza mayor a 1")
+    void rechazaUnaConfianzaMayorA1() {
+        dadoUnaLecturaConUnDatoDeConfianza(1.5);
+
+        cuandoSeIntentaConvertir();
+
+        entoncesSeRechazaPor("la confianza de fecha debe estar entre 0 y 1");
+    }
+
+    // --- dado ---
+
+    private void dadoUnaLecturaValidaConUnaFilaYUnaAdvertencia() {
+        json = lecturaDe(bloqueConCampos(null, FECHA, MONTO),
+                List.of(filaDe(1, 1, Map.of("fecha", new DatoJson("2026-10-03", 0.9),
+                        "monto", new DatoJson("100", 0.5)))),
+                List.of("Página borrosa"));
+    }
+
+    private void dadoUnaLecturaSinFilasNiAdvertencias() {
+        json = lecturaDe(bloqueConCampos(null, FECHA), null, null);
+    }
+
+    private void dadoUnaLecturaConUnaFilaSinDatos() {
+        json = lecturaDe(bloqueConCampos(null, FECHA), List.of(filaDe(2, 3, null)), List.of());
+    }
+
+    private void dadoUnaLecturaQueSugiereUnBloqueDelNegocioEnMayusculas() {
+        json = lecturaDe(bloqueConCampos(BLOQUE_VENTAS_ID.toString().toUpperCase(), FECHA), List.of(), List.of());
+    }
+
+    private void dadoUnaLecturaQueSugiereUnBloqueAjeno() {
+        json = lecturaDe(bloqueConCampos(UUID.randomUUID().toString(), FECHA), List.of(), List.of());
+    }
+
+    private void dadoUnBloqueExistenteConUnCampoDeConexionYUnaLecturaQueLoUsa() {
+        bloquesDelNegocio = List.of(new BloqueConocido(BLOQUE_VENTAS_ID, "Ventas", List.of(
+                new CampoContexto("Cliente", TipoCampo.RELACION, List.of(), "Clientes"))));
+        CampoJson cliente = new CampoJson("cliente", " cliente ", "RELACION", List.of());
+        json = lecturaDe(bloqueConCampos(BLOQUE_VENTAS_ID.toString(), cliente), List.of(), List.of());
+    }
+
+    private void dadoUnaLecturaConUnaConexionInventada() {
+        dadoUnaLecturaConUnCampo(new CampoJson("cliente", "Cliente", "RELACION", List.of()));
+    }
+
+    private void dadoUnaLecturaConUnaConexionSinNombre() {
+        dadoUnaLecturaConUnCampo(new CampoJson("cliente", null, "RELACION", List.of()));
+    }
+
+    private void dadoUnaLecturaConUnCampoOpcionConOpciones() {
+        dadoUnaLecturaConUnCampo(new CampoJson("producto", "Producto", "OPCION", List.of("Vela", "Difusor")));
+    }
+
+    private void dadoUnaLecturaConUnCampo(CampoJson campo) {
+        json = lecturaDe(bloqueConCampos(null, campo), List.of(), List.of());
+    }
+
+    private void dadoUnaLecturaConUnaFila(FilaJson fila) {
+        json = lecturaDe(bloqueConCampos(null, FECHA), List.of(fila), List.of());
+    }
+
+    private void dadoUnaLecturaConUnDatoNulo() {
+        Map<String, DatoJson> datos = new HashMap<>();
+        datos.put("fecha", null);
+        dadoUnaLecturaConUnaFila(filaDe(1, 1, datos));
+    }
+
+    private void dadoUnaLecturaConUnDatoDeConfianza(Double confianza) {
+        dadoUnaLecturaConUnaFila(filaDe(1, 1, Map.of("fecha", new DatoJson("2026-10-03", confianza))));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeConvierte() {
+        lectura = mapper.toDomain(json, bloquesDelNegocio, PAGINAS, CONSUMO);
+    }
+
+    private void cuandoSeIntentaConvertir() {
+        rechazo = catchThrowable(this::cuandoSeConvierte);
+    }
+
+    // --- entonces ---
+
+    private void entoncesLaLecturaQuedaConvertida() {
+        assertThat(lectura.tipoRegistro()).isEqualTo(TipoRegistroCuaderno.VENTAS);
+        assertThat(lectura.bloque().nombre()).isEqualTo("Ventas");
+        assertThat(lectura.bloque().bloqueExistente()).isEmpty();
+        assertThat(lectura.bloque().campos()).extracting(campo -> campo.tipo())
+                .containsExactly(TipoCampo.FECHA, TipoCampo.NUMERO);
+        assertThat(lectura.bloque().campos().get(1).opciones()).isEmpty();
+        FilaLeida fila = lectura.filas().getFirst();
+        assertThat(fila.datos()).containsEntry("fecha", new DatoLeido("2026-10-03", 0.9))
+                .containsEntry("monto", new DatoLeido("100", 0.5));
+        assertThat(lectura.advertencias()).containsExactly("Página borrosa");
+        assertThat(lectura.consumo()).isEqualTo(CONSUMO);
+    }
+
+    private void entoncesNoHayFilasNiAdvertencias() {
+        assertThat(lectura.filas()).isEmpty();
+        assertThat(lectura.advertencias()).isEmpty();
+    }
+
+    private void entoncesLaFilaQuedaVaciaEnLaPaginaYRenglonPedidos() {
+        FilaLeida fila = lectura.filas().getFirst();
         assertThat(fila.pagina()).isEqualTo(2);
         assertThat(fila.renglon()).isEqualTo(3);
         assertThat(fila.datos()).isEmpty();
     }
 
-    @Test
-    @DisplayName("Acepta el bloque existente que sugiere la IA si es del negocio")
-    void toDomainShouldKeepBloqueExistenteWhenItBelongsToNegocio() {
-        LecturaIaJson json = givenLectura(givenBloque(BLOQUE_VENTAS_ID.toString().toUpperCase(), FECHA), List.of(), List.of());
-
-        LecturaCuaderno result = mapper.toDomain(json, BLOQUES, PAGINAS, CONSUMO);
-
-        assertThat(result.bloque().bloqueExistente()).contains(BLOQUE_VENTAS_ID);
+    private void entoncesSeConservaElBloqueExistente() {
+        assertThat(lectura.bloque().bloqueExistente()).contains(BLOQUE_VENTAS_ID);
     }
 
-    @Test
-    @DisplayName("Descarta un bloque existente que no es del negocio y propone uno nuevo")
-    void toDomainShouldDropBloqueExistenteWhenItIsUnknown() {
-        LecturaIaJson json = givenLectura(givenBloque(UUID.randomUUID().toString(), FECHA), List.of(), List.of());
-
-        LecturaCuaderno result = mapper.toDomain(json, BLOQUES, PAGINAS, CONSUMO);
-
-        assertThat(result.bloque().bloqueExistente()).isEmpty();
+    private void entoncesSeProponeUnBloqueNuevo() {
+        assertThat(lectura.bloque().bloqueExistente()).isEmpty();
     }
 
-    @Test
-    @DisplayName("Acepta un campo de conexión que el bloque existente elegido ya tiene")
-    void toDomainShouldKeepRelacionCampoOfExistingBloque() {
-        List<BloqueConocido> bloques = List.of(new BloqueConocido(BLOQUE_VENTAS_ID, "Ventas", List.of(
-                new CampoContexto("Cliente", TipoCampo.RELACION, List.of(), "Clientes"))));
-        CampoJson cliente = new CampoJson("cliente", " cliente ", "RELACION", List.of());
-        LecturaIaJson json = givenLectura(givenBloque(BLOQUE_VENTAS_ID.toString(), cliente), List.of(), List.of());
-
-        LecturaCuaderno result = mapper.toDomain(json, bloques, PAGINAS, CONSUMO);
-
-        assertThat(result.bloque().campos().getFirst().tipo()).isEqualTo(TipoCampo.RELACION);
+    private void entoncesElCampoSigueSiendoUnaConexion() {
+        assertThat(lectura.bloque().campos().getFirst().tipo()).isEqualTo(TipoCampo.RELACION);
     }
 
-    @Test
-    @DisplayName("Una conexión que el bloque no tiene se lee como el texto escrito")
-    void toDomainShouldDegradeInventedRelacionToTexto() {
-        CampoJson cliente = new CampoJson("cliente", "Cliente", "RELACION", List.of());
-        LecturaIaJson json = givenLectura(givenBloque(null, cliente), List.of(), List.of());
-
-        LecturaCuaderno result = mapper.toDomain(json, BLOQUES, PAGINAS, CONSUMO);
-
-        assertThat(result.bloque().campos().getFirst().tipo()).isEqualTo(TipoCampo.TEXTO);
+    private void entoncesElCampoSeLeeComoTexto() {
+        assertThat(lectura.bloque().campos().getFirst().tipo()).isEqualTo(TipoCampo.TEXTO);
     }
 
-    @Test
-    @DisplayName("Una conexión sin nombre se rechaza como cualquier campo sin nombre")
-    void toDomainShouldRejectRelacionWithoutName() {
-        CampoJson sinNombre = new CampoJson("cliente", null, "RELACION", List.of());
-        LecturaIaJson json = givenLectura(givenBloque(null, sinNombre), List.of(), List.of());
-
-        thenRejects(json, "falta el nombre del campo cliente");
+    private void entoncesElCampoTieneSusOpciones() {
+        assertThat(lectura.bloque().campos().getFirst().opciones()).containsExactly("Vela", "Difusor");
     }
 
-    @Test
-    @DisplayName("Acepta un campo OPCION con opciones")
-    void toDomainShouldMapOpcionCampoWithOptions() {
-        CampoJson producto = new CampoJson("producto", "Producto", "OPCION", List.of("Vela", "Difusor"));
-        LecturaIaJson json = givenLectura(givenBloque(null, producto), List.of(), List.of());
-
-        LecturaCuaderno result = mapper.toDomain(json, BLOQUES, PAGINAS, CONSUMO);
-
-        assertThat(result.bloque().campos().getFirst().opciones()).containsExactly("Vela", "Difusor");
-    }
-
-    @Test
-    @DisplayName("Rechaza un tipo de registro desconocido")
-    void toDomainShouldRejectUnknownTipoRegistro() {
-        LecturaIaJson json = new LecturaIaJson("RECETAS", givenBloque(null, FECHA), List.of(), List.of());
-
-        thenRejects(json, "tipoRegistro es desconocido: RECETAS");
-    }
-
-    @Test
-    @DisplayName("Rechaza una lectura sin tipo de registro")
-    void toDomainShouldRejectMissingTipoRegistro() {
-        LecturaIaJson json = new LecturaIaJson(null, givenBloque(null, FECHA), List.of(), List.of());
-
-        thenRejects(json, "falta tipoRegistro");
-    }
-
-    @Test
-    @DisplayName("Rechaza una lectura sin bloque")
-    void toDomainShouldRejectMissingBloque() {
-        thenRejects(givenLectura(null, List.of(), List.of()), "falta el bloque propuesto");
-    }
-
-    @Test
-    @DisplayName("Rechaza un bloque sin campos")
-    void toDomainShouldRejectBloqueWithoutCampos() {
-        thenRejects(givenLectura(new BloqueJson("Ventas", null, null), List.of(), List.of()), "el bloque no tiene campos");
-    }
-
-    @Test
-    @DisplayName("Rechaza un bloque con nombre en blanco")
-    void toDomainShouldRejectBlankBloqueNombre() {
-        thenRejects(givenLectura(new BloqueJson("  ", null, List.of(FECHA)), List.of(), List.of()),
-                "falta el nombre del bloque");
-    }
-
-    @Test
-    @DisplayName("Rechaza un campo con tipo desconocido")
-    void toDomainShouldRejectUnknownTipoCampo() {
-        CampoJson raro = new CampoJson("foto", "Foto", "IMAGEN", List.of());
-
-        thenRejects(givenLectura(givenBloque(null, raro), List.of(), List.of()), "el tipo del campo foto es desconocido");
-    }
-
-    @Test
-    @DisplayName("Rechaza un campo OPCION sin opciones")
-    void toDomainShouldRejectOpcionCampoWithoutOptions() {
-        CampoJson producto = new CampoJson("producto", "Producto", "OPCION", List.of());
-
-        thenRejects(givenLectura(givenBloque(null, producto), List.of(), List.of()), "es OPCION y no tiene opciones");
-    }
-
-    @Test
-    @DisplayName("Rechaza un campo sin clave")
-    void toDomainShouldRejectCampoWithoutClave() {
-        CampoJson sinClave = new CampoJson(null, "Fecha", "FECHA", List.of());
-
-        thenRejects(givenLectura(givenBloque(null, sinClave), List.of(), List.of()), "falta la clave de un campo");
-    }
-
-    @Test
-    @DisplayName("Rechaza claves de campo repetidas")
-    void toDomainShouldRejectDuplicatedClaves() {
-        thenRejects(givenLectura(givenBloque(null, FECHA, FECHA), List.of(), List.of()), "la clave fecha está repetida");
-    }
-
-    @Test
-    @DisplayName("Rechaza una fila que menciona una página que no se envió")
-    void toDomainShouldRejectFilaFromPageNotSent() {
-        LecturaIaJson json = givenLectura(givenBloque(null, FECHA), List.of(givenFila(3, 1, Map.of())), List.of());
-
-        thenRejects(json, "la página 3 y sólo se enviaron 2");
-    }
-
-    @Test
-    @DisplayName("Rechaza una fila sin página")
-    void toDomainShouldRejectFilaWithoutPagina() {
-        LecturaIaJson json = givenLectura(givenBloque(null, FECHA), List.of(givenFila(null, 1, Map.of())), List.of());
-
-        thenRejects(json, "la página de una fila debe ser 1 o mayor");
-    }
-
-    @Test
-    @DisplayName("Rechaza una fila con renglón cero")
-    void toDomainShouldRejectFilaWithRenglonZero() {
-        LecturaIaJson json = givenLectura(givenBloque(null, FECHA), List.of(givenFila(1, 0, Map.of())), List.of());
-
-        thenRejects(json, "el renglón de una fila debe ser 1 o mayor");
-    }
-
-    @Test
-    @DisplayName("Rechaza una fila que usa una clave que no está entre los campos")
-    void toDomainShouldRejectUnknownClaveInFila() {
-        LecturaIaJson json = givenLectura(givenBloque(null, FECHA),
-                List.of(givenFila(1, 1, Map.of("cliente", new DatoJson("Marta", 0.9)))), List.of());
-
-        thenRejects(json, "la clave cliente que no está entre los campos");
-    }
-
-    @Test
-    @DisplayName("Rechaza un dato nulo")
-    void toDomainShouldRejectNullDato() {
-        Map<String, DatoJson> datos = new HashMap<>();
-        datos.put("fecha", null);
-        LecturaIaJson json = givenLectura(givenBloque(null, FECHA), List.of(givenFila(1, 1, datos)), List.of());
-
-        thenRejects(json, "la confianza de fecha debe estar entre 0 y 1");
-    }
-
-    @Test
-    @DisplayName("Rechaza un dato sin confianza")
-    void toDomainShouldRejectDatoWithoutConfianza() {
-        thenRejectsConfianza(null);
-    }
-
-    @Test
-    @DisplayName("Rechaza una confianza negativa")
-    void toDomainShouldRejectNegativeConfianza() {
-        thenRejectsConfianza(-0.1);
-    }
-
-    @Test
-    @DisplayName("Rechaza una confianza mayor a 1")
-    void toDomainShouldRejectConfianzaAboveOne() {
-        thenRejectsConfianza(1.5);
-    }
-
-    // --- arrange ---
-    private LecturaIaJson givenLectura(BloqueJson bloque, List<FilaJson> filas, List<String> advertencias) {
-        return new LecturaIaJson("ventas", bloque, filas, advertencias);
-    }
-
-    private BloqueJson givenBloque(String bloqueExistenteId, CampoJson... campos) {
-        return new BloqueJson(" Ventas ", bloqueExistenteId, List.of(campos));
-    }
-
-    private FilaJson givenFila(Integer pagina, Integer renglon, Map<String, DatoJson> datos) {
-        return new FilaJson(pagina, renglon, datos);
-    }
-
-    // --- assert ---
-    private void thenLecturaIsMapped(LecturaCuaderno result) {
-        assertThat(result.tipoRegistro()).isEqualTo(TipoRegistroCuaderno.VENTAS);
-        assertThat(result.bloque().nombre()).isEqualTo("Ventas");
-        assertThat(result.bloque().bloqueExistente()).isEmpty();
-        assertThat(result.bloque().campos()).extracting(campo -> campo.tipo())
-                .containsExactly(TipoCampo.FECHA, TipoCampo.NUMERO);
-        assertThat(result.bloque().campos().get(1).opciones()).isEmpty();
-        FilaLeida fila = result.filas().getFirst();
-        assertThat(fila.datos()).containsEntry("fecha", new DatoLeido("2026-10-03", 0.9))
-                .containsEntry("monto", new DatoLeido("100", 0.5));
-        assertThat(result.advertencias()).containsExactly("Página borrosa");
-        assertThat(result.consumo()).isEqualTo(CONSUMO);
-    }
-
-    private void thenRejectsConfianza(Double confianza) {
-        LecturaIaJson json = givenLectura(givenBloque(null, FECHA),
-                List.of(givenFila(1, 1, Map.of("fecha", new DatoJson("2026-10-03", confianza)))), List.of());
-
-        thenRejects(json, "la confianza de fecha debe estar entre 0 y 1");
-    }
-
-    private void thenRejects(LecturaIaJson json, String detalle) {
-        assertThatThrownBy(() -> mapper.toDomain(json, BLOQUES, PAGINAS, CONSUMO))
+    private void entoncesSeRechazaPor(String detalle) {
+        assertThat(rechazo)
                 .isInstanceOf(LecturaCuadernoException.class)
                 .hasMessageStartingWith(LecturaIaJsonMapper.PREFIJO_ERROR)
                 .hasMessageContaining(detalle);
+    }
+
+    // --- datos ---
+
+    private static LecturaIaJson lecturaDe(BloqueJson bloque, List<FilaJson> filas, List<String> advertencias) {
+        return new LecturaIaJson("ventas", bloque, filas, advertencias);
+    }
+
+    private static BloqueJson bloqueConCampos(String bloqueExistenteId, CampoJson... campos) {
+        return new BloqueJson(" Ventas ", bloqueExistenteId, List.of(campos));
+    }
+
+    private static FilaJson filaDe(Integer pagina, Integer renglon, Map<String, DatoJson> datos) {
+        return new FilaJson(pagina, renglon, datos);
     }
 }

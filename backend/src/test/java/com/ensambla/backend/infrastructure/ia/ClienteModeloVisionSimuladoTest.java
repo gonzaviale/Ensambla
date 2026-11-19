@@ -13,19 +13,27 @@ class ClienteModeloVisionSimuladoTest {
 
     private static final String LECTURA = "{\"tipoRegistro\":\"VENTAS\"}";
 
+    private RespuestaModeloVision respuesta;
+
     @Test
     @DisplayName("Devuelve siempre la lectura de ejemplo sin consumir tokens")
-    void completarShouldReturnLecturaDeEjemploWithoutTokens() {
-        ClienteModeloVisionSimulado cliente = new ClienteModeloVisionSimulado(
-                new ByteArrayResource(LECTURA.getBytes(StandardCharsets.UTF_8)));
+    void devuelveSiempreLaLecturaDeEjemploSinConsumirTokens() {
+        cuandoSeCompleta();
 
-        RespuestaModeloVision respuesta = cliente.completar(new PeticionModeloVision("i", "c", List.of(), "{}"));
-
-        thenIsExampleWithoutTokens(respuesta);
+        entoncesDevuelveLaLecturaDeEjemploSinTokens();
     }
 
-    // --- assert ---
-    private void thenIsExampleWithoutTokens(RespuestaModeloVision respuesta) {
+    // --- cuando ---
+
+    private void cuandoSeCompleta() {
+        ClienteModeloVisionSimulado cliente = new ClienteModeloVisionSimulado(
+                new ByteArrayResource(LECTURA.getBytes(StandardCharsets.UTF_8)));
+        respuesta = cliente.completar(new PeticionModeloVision("i", "c", List.of(), "{}"));
+    }
+
+    // --- entonces ---
+
+    private void entoncesDevuelveLaLecturaDeEjemploSinTokens() {
         assertThat(respuesta.json()).isEqualTo(LECTURA);
         assertThat(respuesta.proveedor()).isEqualTo(ClienteModeloVisionSimulado.PROVEEDOR);
         assertThat(respuesta.modelo()).isEqualTo(ClienteModeloVisionSimulado.MODELO);
