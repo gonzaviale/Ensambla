@@ -18,6 +18,15 @@ export function IconSprite() {
         <symbol id="i-check" viewBox="0 0 24 24">
           <path d="m5 12 4 4L19 6" />
         </symbol>
+        <symbol id="i-igual" viewBox="0 0 24 24">
+          <path d="M5 9h14M5 15h14" />
+        </symbol>
+        <symbol id="i-sube" viewBox="0 0 24 24">
+          <path d="M7 17 17 7M8.5 7H17v8.5" stroke-width="3" />
+        </symbol>
+        <symbol id="i-baja" viewBox="0 0 24 24">
+          <path d="M7 7l10 10M17 8.5V17H8.5" stroke-width="3" />
+        </symbol>
         <symbol id="i-box" viewBox="0 0 24 24">
           <path d="m12 3 9 5v8l-9 5-9-5V8l9-5Zm0 10 9-5M3 8l9 5v8M7.5 5.5l9 5" />
         </symbol>
@@ -140,6 +149,10 @@ export function IconSprite() {
         </symbol>
         <symbol id="i-pin" viewBox="0 0 24 24">
           <path d="M9 3h6l-1 7 4 4H6l4-4-1-7Zm3 11v7" />
+        </symbol>
+        <symbol id="i-ubicacion" viewBox="0 0 24 24">
+          <path d="M12 21s-7-5.6-7-11a7 7 0 1 1 14 0c0 5.4-7 11-7 11Z" />
+          <circle cx="12" cy="10" r="2.5" />
         </symbol>
         <symbol id="i-mic" viewBox="0 0 24 24">
           <rect x="9" y="3" width="6" height="11" rx="3" />

@@ -1,20 +1,23 @@
 import { useEffect, useRef } from 'react';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { ModalAgregarSeccion } from './modales/ModalAgregarSeccion';
+import { ModalAgregarNegocio } from './modales/ModalAgregarNegocio';
 import { ModalAyuda } from './modales/ModalAyuda';
 import { ModalBienvenida } from './modales/ModalBienvenida';
 import { ModalBlanco } from './modales/ModalBlanco';
 import { ModalCampo } from './modales/ModalCampo';
 import { ModalConfirmar } from './modales/ModalConfirmar';
 import { ModalConsejosDeFoto } from './modales/ModalConsejosDeFoto';
-import { ModalEliminarCuaderno } from './modales/ModalEliminarCuaderno';
+import { ModalEliminarSistema } from './modales/ModalEliminarSistema';
+import { ModalEliminarNegocio } from './modales/ModalEliminarNegocio';
 import { ModalElegirBloque } from './modales/ModalElegirBloque';
 import { ModalImportar } from './modales/ModalImportar';
 import { ModalPlantilla } from './modales/ModalPlantilla';
-import { ModalProductosDelAviso } from './modales/ModalProductosDelAviso';
 import { ModalRenombrar } from './modales/ModalRenombrar';
 import { ModalRegistro } from './modales/ModalRegistro';
 import { ModalResumen } from './modales/ModalResumen';
+import { ModalDetalleDeAviso } from './modales/ModalDetalleDeAviso';
+import { ModalProductosDelAviso } from './modales/ModalProductosDelAviso';
 import { ModalRenombrarPieza } from './modales/ModalRenombrarPieza';
 import { ModalSecciones } from './modales/ModalSecciones';
 import { ModalPruebaPremium } from '@/components/planes/ModalPruebaPremium';
@@ -29,12 +32,14 @@ function ContenidoDelModal() {
   const modal = useSistemaStore((estado) => estado.modal);
   if (!modal) return null;
   switch (modal.tipo) {
+    case 'agregarNegocio':
+      return <ModalAgregarNegocio />;
+    case 'eliminarNegocio':
+      return <ModalEliminarNegocio negocioId={modal.negocioId} nombre={modal.nombre} />;
     case 'bienvenida':
       return <ModalBienvenida />;
     case 'blanco':
       return <ModalBlanco />;
-    case 'productosDelAviso':
-      return <ModalProductosDelAviso productos={modal.productos} />;
     case 'plantilla':
       return <ModalPlantilla clave={modal.clave} />;
     case 'ayuda':
@@ -49,8 +54,8 @@ function ContenidoDelModal() {
       return <ModalRenombrar />;
     case 'resumen':
       return <ModalResumen />;
-    case 'eliminarCuaderno':
-      return <ModalEliminarCuaderno />;
+    case 'eliminarSistema':
+      return <ModalEliminarSistema />;
     case 'renombrarPieza':
       return <ModalRenombrarPieza bloqueId={modal.bloqueId} />;
     case 'registro':
@@ -77,6 +82,16 @@ function ContenidoDelModal() {
           contexto={modal.contexto}
         />
       );
+    case 'productosDelAviso':
+      return (
+        <ModalProductosDelAviso
+          cambios={modal.cambios}
+          categoria={modal.categoria}
+          titulo={modal.titulo}
+        />
+      );
+    case 'detalleDeAviso':
+      return <ModalDetalleDeAviso avisoId={modal.avisoId} onAccion={modal.onAccion} />;
     case 'confirmar':
       return <ModalConfirmar {...modal} />;
   }

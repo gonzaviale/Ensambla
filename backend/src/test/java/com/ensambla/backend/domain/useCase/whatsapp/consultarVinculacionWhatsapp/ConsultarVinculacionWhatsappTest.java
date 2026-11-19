@@ -15,7 +15,7 @@ import java.time.OffsetDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -31,29 +31,62 @@ class ConsultarVinculacionWhatsappTest {
     private final MensajeriaWhatsappPort mensajeria = mock(MensajeriaWhatsappPort.class);
     private final ConsultarVinculacionWhatsapp consultarVinculacionWhatsapp = new WhatsappUseCaseConfig()
             .consultarVinculacionWhatsapp(vinculoRepository, mensajeria);
+    private ConsultarVinculacionWhatsappResponse vinculacion;
+    private Throwable error;
 
     @Test
-    @DisplayName("Consultar devuelve el número vinculado y cuándo se vinculó")
-    void executeShouldReturnLink() {
-        when(mensajeria.numeroBot()).thenReturn("5491100000000");
-        when(vinculoRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(
-                VinculoWhatsapp.nuevo(USUARIO_ID, NEGOCIO_ID, new TelefonoWhatsapp("5491122334455"), AHORA)));
+    @DisplayName("Consultar devuelve el número vinculado, cuándo se vinculó y el número del bot")
+    void consultarDevuelveElNumeroVinculado() {
+        dadoQueElNumeroDelBotEs("5491100000000");
+        dadoQueElUsuarioVinculo("5491122334455");
 
-        ConsultarVinculacionWhatsappResponse result = consultarVinculacionWhatsapp
-                .execute(new ConsultarVinculacionWhatsappRequest(USUARIO_ID));
+        cuandoSeConsulta();
 
-        assertThat(result.telefono()).isEqualTo("5491122334455");
-        assertThat(result.vinculadoEn()).isEqualTo(AHORA);
-        assertThat(result.numeroBot()).isEqualTo("5491100000000");
+        entoncesEstaVinculadoA("5491122334455", AHORA);
+        entoncesElNumeroDelBotEs("5491100000000");
     }
 
     @Test
     @DisplayName("Consultar sin número vinculado responde como inexistente")
-    void executeShouldFailWithoutLink() {
-        when(vinculoRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
+    void consultarSinNumeroVinculadoRespondeComoInexistente() {
+        dadoQueElUsuarioNoVinculoNingunNumero();
 
-        assertThatThrownBy(() -> consultarVinculacionWhatsapp
-                .execute(new ConsultarVinculacionWhatsappRequest(USUARIO_ID)))
-                .isInstanceOf(ResourceNotFoundException.class);
+        cuandoSeIntentaConsultar();
+
+        entoncesNoSeEncuentra();
+    }
+
+    private void dadoQueElNumeroDelBotEs(String numero) {
+        when(mensajeria.numeroBot()).thenReturn(numero);
+    }
+
+    private void dadoQueElUsuarioVinculo(String telefono) {
+        when(vinculoRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(
+                VinculoWhatsapp.nuevo(USUARIO_ID, NEGOCIO_ID, new TelefonoWhatsapp(telefono), AHORA)));
+    }
+
+    private void dadoQueElUsuarioNoVinculoNingunNumero() {
+        when(vinculoRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
+    }
+
+    private void cuandoSeConsulta() {
+        vinculacion = consultarVinculacionWhatsapp.execute(new ConsultarVinculacionWhatsappRequest(USUARIO_ID));
+    }
+
+    private void cuandoSeIntentaConsultar() {
+        error = catchThrowable(this::cuandoSeConsulta);
+    }
+
+    private void entoncesEstaVinculadoA(String telefono, OffsetDateTime desde) {
+        assertThat(vinculacion.telefono()).isEqualTo(telefono);
+        assertThat(vinculacion.vinculadoEn()).isEqualTo(desde);
+    }
+
+    private void entoncesElNumeroDelBotEs(String numero) {
+        assertThat(vinculacion.numeroBot()).isEqualTo(numero);
+    }
+
+    private void entoncesNoSeEncuentra() {
+        assertThat(error).isInstanceOf(ResourceNotFoundException.class);
     }
 }

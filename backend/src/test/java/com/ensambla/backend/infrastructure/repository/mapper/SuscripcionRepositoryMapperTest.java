@@ -15,80 +15,114 @@ class SuscripcionRepositoryMapperTest {
 
     @Test
     @DisplayName("Mapea todos los campos de persistencia al dominio de suscripcion")
-    void toDomainShouldMapEveryField() {
-        SuscripcionEntity origen = suscripcionEntity();
+    void unaEntidadSeLeeComoSuscripcionConTodosSusDatos() {
+        SuscripcionEntity entidad = dadoUnaEntidadDeSuscripcion();
 
-        Suscripcion result = suscripcionRepositoryMapper.toDomain(origen);
+        Suscripcion resultado = cuandoSeConvierteEnSuscripcion(entidad);
 
-        thenToDomainMatches(result);
+        entoncesLaSuscripcionTieneTodosLosDatosDeLaEntidad(resultado);
     }
 
     @Test
     @DisplayName("Conserva los campos nulos en toDomain de suscripcion")
-    void toDomainShouldPreserveNullFields() {
-        SuscripcionEntity origen = new SuscripcionEntity();
+    void unaEntidadVaciaSeLeeComoSuscripcionConCamposNulos() {
+        SuscripcionEntity entidad = dadoUnaEntidadVacia();
 
-        Suscripcion result = suscripcionRepositoryMapper.toDomain(origen);
+        Suscripcion resultado = cuandoSeConvierteEnSuscripcion(entidad);
 
-        assertThat(result.getId()).isNull();
-        assertThat(result.getNegocioId()).isNull();
-        assertThat(result.getPlanId()).isNull();
-        assertThat(result.getEstado()).isNull();
-        assertThat(result.getInicioEn()).isNull();
-        assertThat(result.getFinEn()).isNull();
-        assertThat(result.getCreadoEn()).isNull();
-        assertThat(result.getActualizadoEn()).isNull();
+        entoncesLaSuscripcionTieneTodosLosCamposNulos(resultado);
     }
 
     @Test
     @DisplayName("Mapea todos los campos del dominio a persistencia de suscripcion")
-    void toEntityShouldMapEveryField() {
-        Suscripcion origen = suscripcion();
+    void unaSuscripcionSeGuardaConTodosSusDatos() {
+        Suscripcion origen = dadoUnaSuscripcion();
 
-        SuscripcionEntity result = suscripcionRepositoryMapper.toEntity(origen);
+        SuscripcionEntity resultado = cuandoSeConvierteEnEntidad(origen);
 
-        thenToEntityMatches(result);
+        entoncesLaEntidadTieneTodosLosDatosDeLaSuscripcion(resultado);
     }
 
     @Test
     @DisplayName("Conserva los campos nulos en toEntity de suscripcion")
-    void toEntityShouldPreserveNullFields() {
-        Suscripcion origen = new Suscripcion();
+    void unaSuscripcionVaciaSeGuardaConCamposNulos() {
+        Suscripcion origen = dadoUnaSuscripcionVacia();
 
-        SuscripcionEntity result = suscripcionRepositoryMapper.toEntity(origen);
+        SuscripcionEntity resultado = cuandoSeConvierteEnEntidad(origen);
 
-        assertThat(result.getId()).isNull();
-        assertThat(result.getNegocioId()).isNull();
-        assertThat(result.getPlanId()).isNull();
-        assertThat(result.getEstado()).isNull();
-        assertThat(result.getInicioEn()).isNull();
-        assertThat(result.getFinEn()).isNull();
-        assertThat(result.getCreadoEn()).isNull();
-        assertThat(result.getActualizadoEn()).isNull();
+        entoncesLaEntidadTieneTodosLosCamposNulos(resultado);
     }
 
-    // --- assert ---
-    private void thenToDomainMatches(Suscripcion result) {
+    // --- dado ---
+    private SuscripcionEntity dadoUnaEntidadDeSuscripcion() {
+        return suscripcionEntity();
+    }
+
+    private SuscripcionEntity dadoUnaEntidadVacia() {
+        return new SuscripcionEntity();
+    }
+
+    private Suscripcion dadoUnaSuscripcion() {
+        return suscripcion();
+    }
+
+    private Suscripcion dadoUnaSuscripcionVacia() {
+        return new Suscripcion();
+    }
+
+    // --- cuando ---
+    private Suscripcion cuandoSeConvierteEnSuscripcion(SuscripcionEntity entidad) {
+        return suscripcionRepositoryMapper.toDomain(entidad);
+    }
+
+    private SuscripcionEntity cuandoSeConvierteEnEntidad(Suscripcion suscripcion) {
+        return suscripcionRepositoryMapper.toEntity(suscripcion);
+    }
+
+    // --- entonces ---
+    private void entoncesLaSuscripcionTieneTodosLosDatosDeLaEntidad(Suscripcion resultado) {
         Suscripcion esperado = suscripcion();
-        assertThat(result.getId()).isEqualTo(esperado.getId());
-        assertThat(result.getNegocioId()).isEqualTo(esperado.getNegocioId());
-        assertThat(result.getPlanId()).isEqualTo(esperado.getPlanId());
-        assertThat(result.getEstado()).isEqualTo(esperado.getEstado());
-        assertThat(result.getInicioEn()).isEqualTo(esperado.getInicioEn());
-        assertThat(result.getFinEn()).isEqualTo(esperado.getFinEn());
-        assertThat(result.getCreadoEn()).isEqualTo(esperado.getCreadoEn());
-        assertThat(result.getActualizadoEn()).isEqualTo(esperado.getActualizadoEn());
+        assertThat(resultado.getId()).isEqualTo(esperado.getId());
+        assertThat(resultado.getNegocioId()).isEqualTo(esperado.getNegocioId());
+        assertThat(resultado.getPlanId()).isEqualTo(esperado.getPlanId());
+        assertThat(resultado.getEstado()).isEqualTo(esperado.getEstado());
+        assertThat(resultado.getInicioEn()).isEqualTo(esperado.getInicioEn());
+        assertThat(resultado.getFinEn()).isEqualTo(esperado.getFinEn());
+        assertThat(resultado.getCreadoEn()).isEqualTo(esperado.getCreadoEn());
+        assertThat(resultado.getActualizadoEn()).isEqualTo(esperado.getActualizadoEn());
     }
 
-    private void thenToEntityMatches(SuscripcionEntity result) {
+    private void entoncesLaSuscripcionTieneTodosLosCamposNulos(Suscripcion resultado) {
+        assertThat(resultado.getId()).isNull();
+        assertThat(resultado.getNegocioId()).isNull();
+        assertThat(resultado.getPlanId()).isNull();
+        assertThat(resultado.getEstado()).isNull();
+        assertThat(resultado.getInicioEn()).isNull();
+        assertThat(resultado.getFinEn()).isNull();
+        assertThat(resultado.getCreadoEn()).isNull();
+        assertThat(resultado.getActualizadoEn()).isNull();
+    }
+
+    private void entoncesLaEntidadTieneTodosLosDatosDeLaSuscripcion(SuscripcionEntity resultado) {
         SuscripcionEntity esperado = suscripcionEntity();
-        assertThat(result.getId()).isEqualTo(esperado.getId());
-        assertThat(result.getNegocioId()).isEqualTo(esperado.getNegocioId());
-        assertThat(result.getPlanId()).isEqualTo(esperado.getPlanId());
-        assertThat(result.getEstado()).isEqualTo(esperado.getEstado());
-        assertThat(result.getInicioEn()).isEqualTo(esperado.getInicioEn());
-        assertThat(result.getFinEn()).isEqualTo(esperado.getFinEn());
-        assertThat(result.getCreadoEn()).isEqualTo(esperado.getCreadoEn());
-        assertThat(result.getActualizadoEn()).isEqualTo(esperado.getActualizadoEn());
+        assertThat(resultado.getId()).isEqualTo(esperado.getId());
+        assertThat(resultado.getNegocioId()).isEqualTo(esperado.getNegocioId());
+        assertThat(resultado.getPlanId()).isEqualTo(esperado.getPlanId());
+        assertThat(resultado.getEstado()).isEqualTo(esperado.getEstado());
+        assertThat(resultado.getInicioEn()).isEqualTo(esperado.getInicioEn());
+        assertThat(resultado.getFinEn()).isEqualTo(esperado.getFinEn());
+        assertThat(resultado.getCreadoEn()).isEqualTo(esperado.getCreadoEn());
+        assertThat(resultado.getActualizadoEn()).isEqualTo(esperado.getActualizadoEn());
+    }
+
+    private void entoncesLaEntidadTieneTodosLosCamposNulos(SuscripcionEntity resultado) {
+        assertThat(resultado.getId()).isNull();
+        assertThat(resultado.getNegocioId()).isNull();
+        assertThat(resultado.getPlanId()).isNull();
+        assertThat(resultado.getEstado()).isNull();
+        assertThat(resultado.getInicioEn()).isNull();
+        assertThat(resultado.getFinEn()).isNull();
+        assertThat(resultado.getCreadoEn()).isNull();
+        assertThat(resultado.getActualizadoEn()).isNull();
     }
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { PlusIcon } from '@phosphor-icons/react';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
+import { PageFooter } from '@/components/sistema/PageFooter';
 import { useEliminarObjetivo } from '@/hooks/objetivos/mutations';
 import { useObjetivos } from '@/hooks/objetivos/queries';
 import { useMedirObjetivos } from '@/hooks/objetivos/useMedirObjetivos';
@@ -8,8 +9,6 @@ import { useComoVieneTuNegocio } from '@/hooks/objetivos/useComoVieneTuNegocio';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { formatoPesos, type Objetivo } from '@/lib/objetivos';
-import { diaCorto, proximoCierre } from '@/lib/objetivosAutogestion';
-import { hoy } from '@/lib/sistema/formato';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { EntradaDondeAbrir } from '@/pages/DondeAbrir/EntradaDondeAbrir';
 import { DefinirObjetivo } from './DefinirObjetivo';
@@ -32,7 +31,7 @@ export function ObjetivosPage() {
     abrirModal({
       tipo: 'confirmar',
       titulo: '¿Quitar este objetivo?',
-      mensaje: `Dejás de seguir «${objetivo.texto}» (${formatoPesos(objetivo.meta)} por mes). Tus cuadernos no cambian.`,
+      mensaje: `Dejás de seguir «${objetivo.texto}» (${formatoPesos(objetivo.meta)} por mes). Tus secciones no cambian.`,
       etiqueta: 'Quitar objetivo',
       onConfirmar: () => eliminar(objetivo.id),
     });
@@ -50,9 +49,7 @@ export function ObjetivosPage() {
             <Encabezado
               etiqueta="Objetivos"
               titulo="Definí tu primer objetivo"
-              texto="Contale a Sami qué querés lograr con tu negocio. Te dice qué hacer con tus productos para llegar."
-              samiTitulo="Sami te ayuda"
-              sami="Le pone número a lo que querés lograr"
+              texto="Contale a Sami qué querés lograr y te dice cómo llegar."
             />
             <DefinirObjetivo onDefinido={() => setDefiniendo(false)} />
           </>
@@ -61,9 +58,7 @@ export function ObjetivosPage() {
             <Encabezado
               etiqueta="Objetivos"
               titulo="Cómo van tus objetivos"
-              texto="Acá ves cuánto te falta para llegar. En «Ver mi semana» están los mini-objetivos de Sami."
-              samiTitulo="Sami sigue tus objetivos"
-              sami={`Mide cada día · cierra el domingo ${diaCorto(proximoCierre(hoy()))}`}
+              texto="Cuánto te falta para llegar. Tus pasos están en «Ver mi semana»."
             />
             <NegocioHoy negocio={negocio} />
             <div className="objetivos-lista">
@@ -89,6 +84,7 @@ export function ObjetivosPage() {
           </>
         )}
         <EntradaDondeAbrir />
+        <PageFooter />
       </main>
     </>
   );

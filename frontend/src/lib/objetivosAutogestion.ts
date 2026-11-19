@@ -11,31 +11,30 @@ import type {
 
 const numero = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 });
 
+const enPesos = (valor: number) => formatoPesos(valor);
+const porSemana = (valor: number) => `${numero.format(valor)} por semana`;
+
+const FORMATO_DE_VALOR: Record<TipoMiniObjetivo, (valor: number) => string> = {
+  SUBIR_PRECIO: enPesos,
+  VENTAS_SEMANALES: (valor) => `${formatoPesos(valor)} por semana`,
+  RECORTAR_GASTO: (valor) => `${formatoPesos(valor)} en el mes`,
+  MEJORAR_MARGEN: (valor) => `${numero.format(valor)} %`,
+  MOVER_PARADO: porSemana,
+  PONER_A_LA_VISTA: porSemana,
+};
+
 /** El valor de un mini-objetivo en su unidad: pesos, unidades por semana o porcentaje. */
-export function valorDeMini(tipo: TipoMiniObjetivo, valor: number): string {
-  switch (tipo) {
-    case 'SUBIR_PRECIO':
-      return formatoPesos(valor);
-    case 'VENTAS_SEMANALES':
-      return `${formatoPesos(valor)} por semana`;
-    case 'RECORTAR_GASTO':
-      return `${formatoPesos(valor)} en el mes`;
-    case 'MEJORAR_MARGEN':
-      return `${numero.format(valor)} %`;
-    case 'MOVER_PARADO':
-    case 'PONER_A_LA_VISTA':
-      return `${numero.format(valor)} por semana`;
-  }
-}
+export const valorDeMini = (tipo: TipoMiniObjetivo, valor: number): string =>
+  FORMATO_DE_VALOR[tipo](valor);
 
 /** Qué se mide en cada tipo, para leer «hoy / meta» sin ambigüedad. */
 export const QUE_SE_MIDE: Record<TipoMiniObjetivo, string> = {
-  SUBIR_PRECIO: 'Precio',
-  VENTAS_SEMANALES: 'Ventas',
-  RECORTAR_GASTO: 'Gastos',
-  MEJORAR_MARGEN: 'Margen',
-  MOVER_PARADO: 'Unidades vendidas',
-  PONER_A_LA_VISTA: 'Unidades vendidas',
+  SUBIR_PRECIO: 'Precio actual',
+  VENTAS_SEMANALES: 'Venta semanal',
+  RECORTAR_GASTO: 'Gasto del mes',
+  MEJORAR_MARGEN: 'Margen actual',
+  MOVER_PARADO: 'Ventas por semana',
+  PONER_A_LA_VISTA: 'Ventas por semana',
 };
 
 export const ESTADO_DE_MINI: Record<MiniObjetivo['estado'], string> = {
@@ -177,7 +176,7 @@ export function estadoDeSami({
   if (alcanzado)
     return { titulo: 'Lograste tu objetivo', detalle: 'Podés ponerte una meta más alta' };
   if (sinDatos)
-    return { titulo: 'Sami espera tus ventas', detalle: 'Cargalas en un cuaderno para medir' };
+    return { titulo: 'Sami espera tus ventas', detalle: 'Cargalas en una sección para medir' };
   if (resumenListo) return { titulo: 'Tu resumen está listo', detalle: 'Sami cerró tu semana' };
   return {
     titulo: 'Sami sigue tu semana',
@@ -199,5 +198,5 @@ export function cuantoCubren(minis: MiniObjetivo[], teFaltan: number): string | 
   if (suman >= teFaltan) {
     return `Si cumplís estos mini-objetivos sumás cerca de ${formatoPesos(suman)} por mes: alcanza para llegar a tu meta.`;
   }
-  return `Si cumplís estos mini-objetivos sumás cerca de ${formatoPesos(suman)} por mes de los ${formatoPesos(teFaltan)} que te faltan. Cada domingo Sami propone los siguientes para seguir acercándote.`;
+  return `Si cumplís estos mini-objetivos sumás cerca de ${formatoPesos(suman)} por mes de los ${formatoPesos(teFaltan)} que te faltan.`;
 }

@@ -21,36 +21,70 @@ class PreferenciaRepositoryMapperTest {
 
     @Test
     @DisplayName("Mapea la entidad al dominio con todos sus campos")
-    void toDomainShouldMapEveryField() {
-        PreferenciaUsuarioEntity entity = PreferenciaUsuarioEntity.builder()
-                .usuarioId(USUARIO_ID.valor()).avisosDescartados(List.of("a1")).gruposAvisos(Map.of("ZONA", false))
-                .bienvenidaVista(true).nombrePreferido("Gonza").creadoEn(AHORA).actualizadoEn(AHORA).build();
+    void unaEntidadSeLeeComoPreferenciaConTodosSusDatos() {
+        PreferenciaUsuarioEntity entidad = dadoUnaEntidadConUnAvisoDescartadoYUnGrupoOculto();
 
-        PreferenciaUsuario result = mapper.toDomain(entity);
+        PreferenciaUsuario preferencia = cuandoSeConvierteEnPreferencia(entidad);
 
-        assertThat(result.getUsuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(result.getDescartadas()).containsExactly("a1");
-        assertThat(result.getGrupos()).containsEntry("ZONA", false);
-        assertThat(result.isBienvenidaVista()).isTrue();
-        assertThat(result.getNombre()).isEqualTo("Gonza");
-        assertThat(result.getCreadoEn()).isEqualTo(AHORA);
-        assertThat(result.getActualizadoEn()).isEqualTo(AHORA);
+        entoncesLaPreferenciaTieneTodosLosDatosDeLaEntidad(preferencia);
     }
 
     @Test
     @DisplayName("Mapea el dominio a la entidad con todos sus campos")
-    void toEntityShouldMapEveryField() {
+    void unaPreferenciaSeGuardaConTodosSusDatos() {
+        PreferenciaUsuario preferencia = dadoUnaPreferenciaConUnAvisoDescartadoYUnGrupoOculto();
+
+        PreferenciaUsuarioEntity entidad = cuandoSeConvierteEnEntidad(preferencia);
+
+        entoncesLaEntidadTieneTodosLosDatosDeLaPreferencia(entidad);
+    }
+
+    // --- dado ---
+    private PreferenciaUsuarioEntity dadoUnaEntidadConUnAvisoDescartadoYUnGrupoOculto() {
+        return PreferenciaUsuarioEntity.builder()
+                .usuarioId(USUARIO_ID.valor())
+                .avisosDescartados(List.of("a1"))
+                .gruposAvisos(Map.of("ZONA", false))
+                .bienvenidaVista(true)
+                .nombrePreferido("Gonza")
+                .creadoEn(AHORA)
+                .actualizadoEn(AHORA)
+                .build();
+    }
+
+    private PreferenciaUsuario dadoUnaPreferenciaConUnAvisoDescartadoYUnGrupoOculto() {
         PreferenciaUsuario preferencia = PreferenciaUsuario.inicial(USUARIO_ID, AHORA);
         preferencia.actualizar(List.of("a1"), Map.of("ZONA", false), true, "Gonza", AHORA);
+        return preferencia;
+    }
 
-        PreferenciaUsuarioEntity result = mapper.toEntity(preferencia);
+    // --- cuando ---
+    private PreferenciaUsuario cuandoSeConvierteEnPreferencia(PreferenciaUsuarioEntity entidad) {
+        return mapper.toDomain(entidad);
+    }
 
-        assertThat(result.getUsuarioId()).isEqualTo(USUARIO_ID.valor());
-        assertThat(result.getAvisosDescartados()).containsExactly("a1");
-        assertThat(result.getGruposAvisos()).containsEntry("ZONA", false);
-        assertThat(result.getBienvenidaVista()).isTrue();
-        assertThat(result.getNombrePreferido()).isEqualTo("Gonza");
-        assertThat(result.getCreadoEn()).isEqualTo(AHORA);
-        assertThat(result.getActualizadoEn()).isEqualTo(AHORA);
+    private PreferenciaUsuarioEntity cuandoSeConvierteEnEntidad(PreferenciaUsuario preferencia) {
+        return mapper.toEntity(preferencia);
+    }
+
+    // --- entonces ---
+    private void entoncesLaPreferenciaTieneTodosLosDatosDeLaEntidad(PreferenciaUsuario preferencia) {
+        assertThat(preferencia.getUsuarioId()).isEqualTo(USUARIO_ID);
+        assertThat(preferencia.getDescartadas()).containsExactly("a1");
+        assertThat(preferencia.getGrupos()).containsEntry("ZONA", false);
+        assertThat(preferencia.isBienvenidaVista()).isTrue();
+        assertThat(preferencia.getNombre()).isEqualTo("Gonza");
+        assertThat(preferencia.getCreadoEn()).isEqualTo(AHORA);
+        assertThat(preferencia.getActualizadoEn()).isEqualTo(AHORA);
+    }
+
+    private void entoncesLaEntidadTieneTodosLosDatosDeLaPreferencia(PreferenciaUsuarioEntity entidad) {
+        assertThat(entidad.getUsuarioId()).isEqualTo(USUARIO_ID.valor());
+        assertThat(entidad.getAvisosDescartados()).containsExactly("a1");
+        assertThat(entidad.getGruposAvisos()).containsEntry("ZONA", false);
+        assertThat(entidad.getBienvenidaVista()).isTrue();
+        assertThat(entidad.getNombrePreferido()).isEqualTo("Gonza");
+        assertThat(entidad.getCreadoEn()).isEqualTo(AHORA);
+        assertThat(entidad.getActualizadoEn()).isEqualTo(AHORA);
     }
 }

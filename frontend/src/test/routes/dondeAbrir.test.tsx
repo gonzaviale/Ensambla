@@ -109,7 +109,9 @@ describe('dónde abrir', () => {
       'href',
       '/ubicacion',
     );
-    expect(screen.queryByRole('button', { name: /No, quiero cambiar algo/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /No, quiero cambiar algo/ }),
+    ).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Cambiar el tipo de local' }));
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
     expect(screen.getByRole('button', { name: 'Continuar con estos datos' })).toBeVisible();
@@ -404,7 +406,7 @@ describe('dónde abrir', () => {
     expect(screen.getByRole('slider', { name: /Radio de búsqueda/ })).toHaveValue('4');
     expect(
       within(screen.getByRole('group', { name: 'Escuelas cerca' })).getByRole('radio', {
-        name: 'Importa',
+        name: 'Algo',
       }),
     ).toBeChecked();
   });

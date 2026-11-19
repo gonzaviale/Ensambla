@@ -1,19 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { GraduationCapIcon } from '@phosphor-icons/react';
 import { Icon } from './Icon';
 import { Logo } from './Logo';
 import { MenuDePerfil } from './MenuDePerfil';
+import { SelectorDeNegocio } from './SelectorDeNegocio';
 
 export type SeccionActiva =
-  | 'home'
-  | 'sistemas'
-  | 'templates'
-  | 'zone'
-  | 'avisos'
-  | 'goals'
-  | 'learn'
-  | 'plans'
-  | 'account';
+  'home' | 'negocio' | 'caja' | 'templates' | 'zone' | 'avisos' | 'goals' | 'plans' | 'account';
 
 type TopBarProps = {
   active?: SeccionActiva;
@@ -21,12 +13,11 @@ type TopBarProps = {
   /** La campana de avisos, que vive en el encabezado. */
   campana?: ReactNode;
   onInicio: () => void;
-  onSistemas: () => void;
-  onPlantillas: () => void;
+  onMiNegocio: () => void;
+  onCaja: () => void;
   onZona: () => void;
   onAvisos: () => void;
   onObjetivos: () => void;
-  onEnsenanza: () => void;
   onPlanes: () => void;
   onAyuda: () => void;
   /** «Configuración», en el menú del avatar. */
@@ -41,12 +32,11 @@ export function TopBar({
   nombre,
   campana,
   onInicio,
-  onSistemas,
-  onPlantillas,
+  onMiNegocio,
+  onCaja,
   onZona,
   onAvisos,
   onObjetivos,
-  onEnsenanza,
   onPlanes,
   onAyuda,
   onCuenta,
@@ -83,10 +73,19 @@ export function TopBar({
         </button>
         <button
           type="button"
-          className={active === 'sistemas' ? 'active' : ''}
-          onClick={ir(onSistemas)}
+          className={active === 'negocio' ? 'active' : ''}
+          aria-current={active === 'negocio' ? 'page' : undefined}
+          onClick={ir(onMiNegocio)}
         >
-          Mis cuadernos
+          Mi negocio
+        </button>
+        <button
+          type="button"
+          className={active === 'caja' ? 'active' : ''}
+          aria-current={active === 'caja' ? 'page' : undefined}
+          onClick={ir(onCaja)}
+        >
+          Caja
         </button>
         <button
           type="button"
@@ -103,13 +102,6 @@ export function TopBar({
           onClick={ir(onObjetivos)}
         >
           Objetivos
-        </button>
-        <button
-          type="button"
-          className={active === 'templates' ? 'active' : ''}
-          onClick={ir(onPlantillas)}
-        >
-          Plantillas
         </button>
         <button type="button" className={active === 'zone' ? 'active' : ''} onClick={ir(onZona)}>
           Zona
@@ -130,16 +122,6 @@ export function TopBar({
         {campana}
         <button
           type="button"
-          className={`boton-ensenanza ${active === 'learn' ? 'active' : ''}`.trim()}
-          aria-label="Sami te enseña"
-          aria-current={active === 'learn' ? 'page' : undefined}
-          title="Sami te enseña"
-          onClick={onEnsenanza}
-        >
-          <GraduationCapIcon aria-hidden size={20} />
-        </button>
-        <button
-          type="button"
           className="help-trigger"
           aria-label="¿Necesitás una mano?"
           title="¿Necesitás una mano?"
@@ -147,13 +129,16 @@ export function TopBar({
         >
           <Icon name="help" />
         </button>
-        <MenuDePerfil
-          nombre={nombre}
-          enCuenta={active === 'account'}
-          cerrando={cerrandoSesion}
-          onConfiguracion={onCuenta}
-          onCerrarSesion={onCerrarSesion}
-        />
+        <div className="topbar-cuenta">
+          <SelectorDeNegocio />
+          <MenuDePerfil
+            nombre={nombre}
+            enCuenta={active === 'account'}
+            cerrando={cerrandoSesion}
+            onConfiguracion={onCuenta}
+            onCerrarSesion={onCerrarSesion}
+          />
+        </div>
         <button
           type="button"
           className="menu-movil-boton"

@@ -11,6 +11,7 @@ type ControlProps = {
   /** Con `onCambio` el control es controlado; sin él, el formulario lee los valores al enviarse. */
   onCambio?: (valor: string | boolean) => void;
   etiqueta?: string;
+  invalido?: boolean;
 };
 
 // El control de un campo según su tipo: lo que `control()` del mockup escribía como HTML.
@@ -22,6 +23,7 @@ export function ControlDeCampo({
   name,
   onCambio,
   etiqueta,
+  invalido = false,
 }: ControlProps) {
   const comunes = {
     id,
@@ -29,6 +31,7 @@ export function ControlDeCampo({
     required: campo.required,
     'aria-describedby': `${id}-error`,
     'aria-label': etiqueta,
+    'aria-invalid': invalido || undefined,
   };
   const texto = valor == null ? '' : String(valor);
   const alCambiar = (

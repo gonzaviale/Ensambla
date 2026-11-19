@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -36,6 +37,8 @@ public class Receta {
     static final int MAX_DECIMALES = 3;
 
     static final BigDecimal CANTIDAD_MAXIMA = new BigDecimal("99999999999.999");
+
+    private static final String MENSAJE_INSUMO_INEXISTENTE = "Ese insumo ya no existe";
 
     private RecetaId id;
 
@@ -63,31 +66,17 @@ public class Receta {
             CampoId campoPrecioId,
             List<LineaReceta> lineas,
             OffsetDateTime ahora) {
-        Map<String, String> errores = new LinkedHashMap<>();
         List<LineaReceta> limpias = lineas.stream().map(Receta::limpiar).toList();
-        if (limpias.size() > MAX_LINEAS) {
-            errores.put("lineas", "Una receta puede tener hasta " + MAX_LINEAS + " insumos");
-        }
-        if (!limpias.isEmpty() && campoPrecioId == null) {
-            errores.put("campoPrecioId", "Elegí la columna con el precio de los insumos");
-        }
-        Set<RegistroId> vistos = new HashSet<>();
-        for (int indice = 0; indice < limpias.size(); indice++) {
-            String error = errorDeLinea(limpias.get(indice), productoId, vistos);
-            if (error != null) {
-                errores.put("lineas[" + indice + "]", error);
-            }
-        }
-        if (!errores.isEmpty()) {
-            throw new RegistroInvalidoException(errores);
-        }
+        exigirDatosValidos(erroresDe(productoId, campoPrecioId, limpias));
+        return armar(negocioId, productoId, campoPrecioId, limpias, ahora);
+    }
+
+    /** Receta sin líneas ni guardar: la que tiene un producto al que todavía no se le armó una. */
+    public static Receta vacia(NegocioId negocioId, RegistroId productoId) {
         return Receta.builder()
                 .negocioId(negocioId)
                 .productoId(productoId)
-                .campoPrecioId(limpias.isEmpty() ? null : campoPrecioId)
-                .lineas(limpias)
-                .creadoEn(ahora)
-                .actualizadoEn(ahora)
+                .lineas(List.of())
                 .build();
     }
 
@@ -106,40 +95,127 @@ public class Receta {
         return lineas.stream().map(LineaReceta::insumoId).toList();
     }
 
+    /** Un mensaje por cada línea cuyo insumo no está entre los {@code existentes}, indexado por {@code lineas[i]}. */
+    public Map<String, String> erroresDeInsumosInexistentes(Set<RegistroId> existentes) {
+        Map<String, String> errores = new LinkedHashMap<>();
+        for (int indice = 0; indice < lineas.size(); indice++) {
+            if (!existentes.contains(lineas.get(indice).insumoId())) {
+                errores.put(claveDeLinea(indice), MENSAJE_INSUMO_INEXISTENTE);
+            }
+        }
+        return errores;
+    }
+
+    private static Receta armar(
+            NegocioId negocioId,
+            RegistroId productoId,
+            CampoId campoPrecioId,
+            List<LineaReceta> lineas,
+            OffsetDateTime ahora) {
+        return Receta.builder()
+                .negocioId(negocioId)
+                .productoId(productoId)
+                .campoPrecioId(lineas.isEmpty() ? null : campoPrecioId)
+                .lineas(lineas)
+                .creadoEn(ahora)
+                .actualizadoEn(ahora)
+                .build();
+    }
+
+    private static void exigirDatosValidos(Map<String, String> errores) {
+        if (!errores.isEmpty()) {
+            throw new RegistroInvalidoException(errores);
+        }
+    }
+
+    private static Map<String, String> erroresDe(
+            RegistroId productoId, CampoId campoPrecioId, List<LineaReceta> lineas) {
+        Map<String, String> errores = new LinkedHashMap<>();
+        agregarErrorDeCantidadDeLineas(errores, lineas);
+        agregarErrorDeColumnaDelPrecio(errores, campoPrecioId, lineas);
+        agregarErroresDeLineas(errores, productoId, lineas);
+        return errores;
+    }
+
+    private static void agregarErrorDeCantidadDeLineas(Map<String, String> errores, List<LineaReceta> lineas) {
+        if (lineas.size() > MAX_LINEAS) {
+            errores.put("lineas", "Una receta puede tener hasta " + MAX_LINEAS + " insumos");
+        }
+    }
+
+    private static void agregarErrorDeColumnaDelPrecio(
+            Map<String, String> errores, CampoId campoPrecioId, List<LineaReceta> lineas) {
+        if (!lineas.isEmpty() && campoPrecioId == null) {
+            errores.put("campoPrecioId", "Elegí la columna con el precio de los insumos");
+        }
+    }
+
+    private static void agregarErroresDeLineas(
+            Map<String, String> errores, RegistroId productoId, List<LineaReceta> lineas) {
+        Set<RegistroId> vistos = new HashSet<>();
+        for (int indice = 0; indice < lineas.size(); indice++) {
+            agregarErrorDeLinea(errores, indice, errorDeLinea(lineas.get(indice), productoId, vistos));
+        }
+    }
+
+    private static void agregarErrorDeLinea(Map<String, String> errores, int indice, Optional<String> error) {
+        error.ifPresent(mensaje -> errores.put(claveDeLinea(indice), mensaje));
+    }
+
+    private static String claveDeLinea(int indice) {
+        return "lineas[" + indice + "]";
+    }
+
     private static LineaReceta limpiar(LineaReceta linea) {
-        String unidad = linea.unidad() == null || linea.unidad().isBlank() ? null : linea.unidad().strip();
-        return new LineaReceta(linea.insumoId(), linea.cantidad(), unidad);
+        return new LineaReceta(linea.insumoId(), linea.cantidad(), unidadSinEspacios(linea.unidad()));
     }
 
-    private static String errorDeLinea(LineaReceta linea, RegistroId productoId, Set<RegistroId> vistos) {
-        if (linea.insumoId() == null) {
-            return "Elegí el insumo";
+    private static String unidadSinEspacios(String unidad) {
+        if (unidad == null || unidad.isBlank()) {
+            return null;
         }
-        if (linea.insumoId().equals(productoId)) {
-            return "Un producto no puede ser insumo de sí mismo";
-        }
-        if (!vistos.add(linea.insumoId())) {
-            return "Ese insumo está repetido";
-        }
-        if (linea.unidad() != null && linea.unidad().length() > MAX_CARACTERES_UNIDAD) {
-            return "La unidad puede tener hasta " + MAX_CARACTERES_UNIDAD + " caracteres";
-        }
-        return errorDeCantidad(linea.cantidad());
+        return unidad.strip();
     }
 
-    private static String errorDeCantidad(BigDecimal cantidad) {
+    private static Optional<String> errorDeLinea(LineaReceta linea, RegistroId productoId, Set<RegistroId> vistos) {
+        return errorDeInsumo(linea.insumoId(), productoId, vistos)
+                .or(() -> errorDeUnidad(linea.unidad()))
+                .or(() -> errorDeCantidad(linea.cantidad()));
+    }
+
+    private static Optional<String> errorDeInsumo(RegistroId insumoId, RegistroId productoId, Set<RegistroId> vistos) {
+        if (insumoId == null) {
+            return Optional.of("Elegí el insumo");
+        }
+        if (insumoId.equals(productoId)) {
+            return Optional.of("Un producto no puede ser insumo de sí mismo");
+        }
+        if (!vistos.add(insumoId)) {
+            return Optional.of("Ese insumo está repetido");
+        }
+        return Optional.empty();
+    }
+
+    private static Optional<String> errorDeUnidad(String unidad) {
+        if (unidad != null && unidad.length() > MAX_CARACTERES_UNIDAD) {
+            return Optional.of("La unidad puede tener hasta " + MAX_CARACTERES_UNIDAD + " caracteres");
+        }
+        return Optional.empty();
+    }
+
+    private static Optional<String> errorDeCantidad(BigDecimal cantidad) {
         if (cantidad == null) {
-            return "Escribí la cantidad";
+            return Optional.of("Escribí la cantidad");
         }
         if (cantidad.signum() <= 0) {
-            return "La cantidad tiene que ser mayor a cero";
+            return Optional.of("La cantidad tiene que ser mayor a cero");
         }
         if (cantidad.stripTrailingZeros().scale() > MAX_DECIMALES) {
-            return "La cantidad admite hasta " + MAX_DECIMALES + " decimales";
+            return Optional.of("La cantidad admite hasta " + MAX_DECIMALES + " decimales");
         }
         if (cantidad.compareTo(CANTIDAD_MAXIMA) > 0) {
-            return "La cantidad es demasiado grande";
+            return Optional.of("La cantidad es demasiado grande");
         }
-        return null;
+        return Optional.empty();
     }
 }

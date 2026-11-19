@@ -65,17 +65,33 @@ public class VerificacionWhatsapp {
 
     /** Reemplaza el código por uno nuevo (y quizá de otro número) si pasó la espera y no se agotaron los envíos. */
     public void reenviar(TelefonoWhatsapp nuevoTelefono, String codigo, OffsetDateTime ahora) {
+        exigirQuePasoLaEspera(ahora);
+        reiniciarLaVentanaSiTermino(ahora);
+        exigirEnviosDisponibles();
+        enviosVentana++;
+        cambiarCodigo(nuevoTelefono, codigo, ahora);
+    }
+
+    private void exigirQuePasoLaEspera(OffsetDateTime ahora) {
         if (ahora.isBefore(reenviarDesde())) {
             throw new BusinessRuleException("Esperá un momento antes de pedir otro código");
         }
+    }
+
+    private void reiniciarLaVentanaSiTermino(OffsetDateTime ahora) {
         if (!ahora.isBefore(ventanaDesde.plus(VENTANA_ENVIOS))) {
             ventanaDesde = ahora;
             enviosVentana = 0;
         }
+    }
+
+    private void exigirEnviosDisponibles() {
         if (enviosVentana >= MAX_ENVIOS_POR_VENTANA) {
             throw new BusinessRuleException("Pediste demasiados códigos. Probá de nuevo en una hora");
         }
-        enviosVentana++;
+    }
+
+    private void cambiarCodigo(TelefonoWhatsapp nuevoTelefono, String codigo, OffsetDateTime ahora) {
         telefono = nuevoTelefono.valor();
         codigoHash = huella(codigo);
         intentos = 0;
@@ -90,23 +106,44 @@ public class VerificacionWhatsapp {
 
     /** Cuenta el intento antes de comparar: quien llama debe guardar la verificación aunque esto falle. */
     public void confirmar(String codigoIngresado, OffsetDateTime ahora) {
+        exigirQueNoVencio(ahora);
+        exigirIntentosDisponibles();
+        intentos++;
+        exigirQueCoincida(codigoIngresado);
+    }
+
+    private void exigirQueNoVencio(OffsetDateTime ahora) {
         if (!ahora.isBefore(expiraEn)) {
             throw new BusinessRuleException("El código venció. Pedí uno nuevo");
         }
+    }
+
+    private void exigirIntentosDisponibles() {
         if (intentos >= MAX_INTENTOS) {
             throw new BusinessRuleException("Hiciste demasiados intentos. Pedí un código nuevo");
         }
-        intentos++;
-        boolean coincide = MessageDigest.isEqual(huella(codigoIngresado.trim()).getBytes(StandardCharsets.UTF_8),
-                codigoHash.getBytes(StandardCharsets.UTF_8));
-        if (!coincide) {
+    }
+
+    private void exigirQueCoincida(String codigoIngresado) {
+        if (!coincideCon(codigoIngresado)) {
             throw new BusinessRuleException("El código no es correcto. Te quedan %d intentos"
                     .formatted(MAX_INTENTOS - intentos));
         }
     }
 
+    /** Compara las huellas en tiempo constante, para no dar pistas de cuántos dígitos acertó. */
+    private boolean coincideCon(String codigoIngresado) {
+        return MessageDigest.isEqual(huella(codigoIngresado.trim()).getBytes(StandardCharsets.UTF_8),
+                codigoHash.getBytes(StandardCharsets.UTF_8));
+    }
+
     /** SHA-256 en hexadecimal. */
     public static String huella(String codigo) {
-        try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(codigo.getBytes(StandardCharsets.UTF_8))); } catch (NoSuchAlgorithmException e) { throw new IllegalStateException(e); }
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(codigo.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 }

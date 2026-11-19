@@ -3,7 +3,15 @@ import type { UserEvent } from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { expect } from 'vitest';
 import { objetivoDeEjemplo } from '@/lib/objetivos';
-import { estado, guardarObjetivosDe, sembrarUsuario, type UsuarioMock } from '@/mocks/db/estado';
+import {
+  estado,
+  guardarObjetivosDe,
+  guardarSistemasDe,
+  sembrarUsuario,
+  type UsuarioMock,
+} from '@/mocks/db/estado';
+import { makeSystem } from '@/lib/sistema/core';
+import type { Sistema } from '@/lib/sistema/tipos';
 import { PREFERENCIAS_INICIALES } from '@/types/preferencias';
 import { server } from '@/mocks/node';
 
@@ -102,3 +110,13 @@ export const verifyToastAsync = (texto: string | RegExp) =>
     if (typeof texto === 'string') expect(toast).toHaveTextContent(texto);
     else expect(toast.textContent).toMatch(texto);
   }, ESPERA);
+
+/** Un negocio de la cuenta para sembrar en el mock: un cuaderno vacío con ese id y ese nombre. */
+export const negocioDePrueba = (id: string, nombre: string): Sistema => ({
+  ...makeSystem(nombre, [], false),
+  id,
+});
+
+/** Deja en el servidor simulado los negocios (cuadernos) de la cuenta, en ese orden. */
+export const setupNegocios = (email: string, ...negocios: Sistema[]) =>
+  guardarSistemasDe(email, structuredClone(negocios));

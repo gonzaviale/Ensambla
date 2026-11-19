@@ -6,21 +6,21 @@ import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.useCase.lote.FotoArchivoResponse;
-import com.ensambla.backend.support.LoteTestData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
 import java.util.Optional;
 
+import static com.ensambla.backend.support.LoteTestData.CLAVE;
 import static com.ensambla.backend.support.LoteTestData.FOTO_ID;
 import static com.ensambla.backend.support.LoteTestData.JPEG;
 import static com.ensambla.backend.support.LoteTestData.LOTE_ID;
 import static com.ensambla.backend.support.LoteTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.LoteTestData.USUARIO_ID;
+import static com.ensambla.backend.support.LotesDePrueba.unLoteConUnaFoto;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -33,57 +33,80 @@ class ObtenerFotoLoteTest {
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final LoteSubidaRepository loteSubidaRepository = mock(LoteSubidaRepository.class, CALLS_REAL_METHODS);
     private final ArchivoCuadernoPort archivoCuadernoPort = mock(ArchivoCuadernoPort.class, CALLS_REAL_METHODS);
-    private final ObtenerFotoLote obtenerFotoLote = new ObtenerFotoLote(negocioRepository,
-            archivoCuadernoPort,
-            loteSubidaRepository);
+    private final ObtenerFotoLote obtenerFotoLote = new ObtenerFotoLote(
+            negocioRepository, archivoCuadernoPort, loteSubidaRepository);
+
+    private FotoArchivoResponse foto;
+    private Throwable rechazo;
 
     @BeforeEach
-    void givenNegocio() {
+    void dadoUnNegocioDelUsuario() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @Test
-    @DisplayName("Devuelve los bytes y el tipo de la foto del lote del negocio de la sesión")
-    void executeShouldReturnFotoOfNegocio() {
-        givenLoteExists();
-        when(archivoCuadernoPort.leer(NEGOCIO_ID, LoteTestData.CLAVE)).thenReturn(JPEG);
+    @DisplayName("Se devuelven los bytes y el tipo de la foto del lote del negocio de la sesión")
+    void seDevuelvenLosBytesYElTipoDeLaFotoDelLoteDelNegocioDeLaSesion() {
+        dadoUnLoteDelNegocioConSuFotoGuardada();
 
-        FotoArchivoResponse result = obtenerFotoLote.execute(request(FOTO_ID));
+        cuandoSePideLaFoto(FOTO_ID);
 
-        assertThat(result.contenido()).isEqualTo(JPEG);
-        assertThat(result.tipoContenido()).isEqualTo("image/jpeg");
+        entoncesSeDevuelvenLosBytesYElTipoDeLaFoto();
     }
 
     @Test
     @DisplayName("Una foto que no es del lote responde como inexistente sin leer el archivo")
-    void executeShouldThrowWhenFotoIsNotInLote() {
-        givenLoteExists();
+    void unaFotoQueNoEsDelLoteRespondeComoInexistenteSinLeerElArchivo() {
+        dadoUnLoteDelNegocioConSuFotoGuardada();
 
-        assertThatThrownBy(() -> obtenerFotoLote.execute(request(FOTO_AJENA_ID)))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Foto no encontrada");
-        verifyNoInteractions(archivoCuadernoPort);
+        cuandoSeIntentaPedirLaFoto(FOTO_AJENA_ID);
+
+        entoncesSeRechazaPorqueNoExiste("Foto no encontrada");
+        entoncesNoSeLeeNingunArchivo();
     }
 
     @Test
     @DisplayName("Un lote de otro negocio responde como inexistente sin leer el archivo")
-    void executeShouldThrowWhenLoteIsNotOfTheNegocio() {
-        when(loteSubidaRepository.findByIdAndNegocioId(LOTE_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+    void unLoteDeOtroNegocioRespondeComoInexistenteSinLeerElArchivo() {
+        dadoUnLoteDeOtroNegocio();
 
-        assertThatThrownBy(() -> obtenerFotoLote.execute(request(FOTO_ID)))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Lote no encontrado");
-        verifyNoInteractions(archivoCuadernoPort);
+        cuandoSeIntentaPedirLaFoto(FOTO_ID);
+
+        entoncesSeRechazaPorqueNoExiste("Lote no encontrado");
+        entoncesNoSeLeeNingunArchivo();
     }
 
-    // --- arrange ---
-    private void givenLoteExists() {
+    // --- dado ---
+    private void dadoUnLoteDelNegocioConSuFotoGuardada() {
         when(loteSubidaRepository.findByIdAndNegocioId(LOTE_ID, NEGOCIO_ID))
-                .thenReturn(Optional.of(LoteTestData.lote(List.of(LoteTestData.foto()))));
+                .thenReturn(Optional.of(unLoteConUnaFoto()));
+        when(archivoCuadernoPort.leer(NEGOCIO_ID, CLAVE)).thenReturn(JPEG);
     }
 
-    // --- helpers ---
-    private static ObtenerFotoLoteRequest request(FotoId fotoId) {
-        return new ObtenerFotoLoteRequest(USUARIO_ID, LOTE_ID, fotoId);
+    private void dadoUnLoteDeOtroNegocio() {
+        when(loteSubidaRepository.findByIdAndNegocioId(LOTE_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+    }
+
+    // --- cuando ---
+    private void cuandoSePideLaFoto(FotoId fotoId) {
+        foto = obtenerFotoLote.execute(new ObtenerFotoLoteRequest(USUARIO_ID, LOTE_ID, fotoId));
+    }
+
+    private void cuandoSeIntentaPedirLaFoto(FotoId fotoId) {
+        rechazo = catchThrowable(() -> cuandoSePideLaFoto(fotoId));
+    }
+
+    // --- entonces ---
+    private void entoncesSeDevuelvenLosBytesYElTipoDeLaFoto() {
+        assertThat(foto.contenido()).isEqualTo(JPEG);
+        assertThat(foto.tipoContenido()).isEqualTo("image/jpeg");
+    }
+
+    private void entoncesSeRechazaPorqueNoExiste(String mensaje) {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class).hasMessage(mensaje);
+    }
+
+    private void entoncesNoSeLeeNingunArchivo() {
+        verifyNoInteractions(archivoCuadernoPort);
     }
 }

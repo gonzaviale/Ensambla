@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.lote.FotoCuaderno;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
@@ -36,12 +37,14 @@ public class SubirLote {
     private final Clock clock;
 
     public LoteItem execute(SubirLoteRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
         validarDestino(negocioId, request.bloqueDestinoId());
         OffsetDateTime ahora = OffsetDateTime.now(clock);
-        LoteSubida lote = transaccionPort.ejecutar(
-                () -> subir(negocioId, request.fotos(), request.bloqueDestinoId(), ahora));
-        return LoteItem.de(lote);
+        return LoteItem.de(subirEnTransaccion(negocioId, request, ahora));
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
     }
 
     /** Un bloque de otro negocio responde como inexistente. */
@@ -51,24 +54,50 @@ public class SubirLote {
         }
     }
 
-    /**
-     * Valida las fotos, las guarda en la carpeta privada del negocio y guarda el lote pendiente. Si algo falla a mitad
-     * de camino borra lo que ya se había guardado, así no quedan archivos sin lote.
-     */
+    private LoteSubida subirEnTransaccion(NegocioId negocioId, SubirLoteRequest request, OffsetDateTime ahora) {
+        return transaccionPort.ejecutar(
+                () -> subir(negocioId, request.fotos(), request.bloqueDestinoId(), ahora));
+    }
+
     private LoteSubida subir(NegocioId negocioId, List<byte[]> contenidos, BloqueId bloqueDestinoId,
             OffsetDateTime ahora) {
         LoteSubida lote = LoteSubida.nuevo(negocioId, contenidos, bloqueDestinoId, ahora);
+        validarPaginasDelPlan(negocioId, lote, ahora);
+        return guardarLoteConSusArchivos(negocioId, lote);
+    }
+
+    private void validarPaginasDelPlan(NegocioId negocioId, LoteSubida lote, OffsetDateTime ahora) {
         controlPlanService.validarPaginasIa(negocioId, lote.getFotos().size(), ahora);
-        List<String> subidas = new ArrayList<>();
+    }
+
+    /** Si algo falla a mitad de camino borra lo que ya se había guardado, así no quedan archivos sin lote. */
+    private LoteSubida guardarLoteConSusArchivos(NegocioId negocioId, LoteSubida lote) {
+        List<String> claves = new ArrayList<>();
         try {
-            for (FotoCuaderno foto : lote.getFotos()) {
-                archivoCuadernoPort.guardar(negocioId, foto.getClaveAlmacenamiento(), foto.getContenido());
-                subidas.add(foto.getClaveAlmacenamiento());
-            }
-            return loteSubidaRepository.saveConFotos(lote);
+            guardarArchivos(negocioId, lote, claves);
+            return guardarLote(lote);
         } catch (RuntimeException e) {
-            subidas.forEach(clave -> archivoCuadernoPort.eliminar(negocioId, clave));
+            eliminarArchivos(negocioId, claves);
             throw e;
         }
+    }
+
+    private void guardarArchivos(NegocioId negocioId, LoteSubida lote, List<String> claves) {
+        for (FotoCuaderno foto : lote.getFotos()) {
+            guardarArchivo(negocioId, foto);
+            claves.add(foto.getClaveAlmacenamiento());
+        }
+    }
+
+    private void guardarArchivo(NegocioId negocioId, FotoCuaderno foto) {
+        archivoCuadernoPort.guardar(negocioId, foto.getClaveAlmacenamiento(), foto.getContenido());
+    }
+
+    private LoteSubida guardarLote(LoteSubida lote) {
+        return loteSubidaRepository.saveConFotos(lote);
+    }
+
+    private void eliminarArchivos(NegocioId negocioId, List<String> claves) {
+        claves.forEach(clave -> archivoCuadernoPort.eliminar(negocioId, clave));
     }
 }

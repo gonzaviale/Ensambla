@@ -1,7 +1,7 @@
 import { useCerrarSesion } from '@/hooks/auth/mutations';
 import { useAbrirAvisos } from '@/hooks/avisos/useAbrirAvisos';
 import { useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
-import { useSistemaStore } from '@/stores/sistemaStore';
+import { seleccionarNegocioActivo, useSistemaStore } from '@/stores/sistemaStore';
 import { Campana } from './avisos/Campana';
 import { TopBar, type SeccionActiva } from './TopBar';
 
@@ -10,6 +10,7 @@ export function CabeceraComun({ active = 'home' }: { active?: SeccionActiva }) {
   const nombre = useNombre();
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const navegacion = useNavegacion();
+  const negocio = useSistemaStore(seleccionarNegocioActivo);
   const abrirAvisos = useAbrirAvisos();
   const { cerrarSesion, cerrando } = useCerrarSesion();
 
@@ -19,12 +20,13 @@ export function CabeceraComun({ active = 'home' }: { active?: SeccionActiva }) {
       nombre={nombre}
       campana={<Campana />}
       onInicio={() => void navegacion.irAInicio()}
-      onSistemas={() => void navegacion.irAMisSistemas()}
-      onPlantillas={() => void navegacion.irAPlantillas()}
+      onMiNegocio={() =>
+        negocio ? void navegacion.abrirSistema(negocio.id) : void navegacion.irAInicio()
+      }
+      onCaja={() => void navegacion.irACaja()}
       onZona={() => void navegacion.irAZona()}
       onAvisos={() => void abrirAvisos()}
       onObjetivos={() => void navegacion.irAObjetivos()}
-      onEnsenanza={() => void navegacion.irASamiTeEnsena()}
       onPlanes={() => void navegacion.irAPlanes()}
       onAyuda={() => abrirModal({ tipo: 'ayuda' })}
       onCuenta={() => void navegacion.irACuenta()}
@@ -33,7 +35,7 @@ export function CabeceraComun({ active = 'home' }: { active?: SeccionActiva }) {
           tipo: 'confirmar',
           titulo: '¿Cerrar la sesión?',
           mensaje:
-            'Salís de tu cuenta en este dispositivo. Tus cuadernos y tus datos quedan guardados para cuando vuelvas a entrar.',
+            'Salís de tu cuenta en este dispositivo. Tus secciones y tus datos quedan guardados para cuando vuelvas a entrar.',
           etiqueta: 'Cerrar sesión',
           onConfirmar: () => void cerrarSesion(),
         })

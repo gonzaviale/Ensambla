@@ -44,7 +44,7 @@ describe('API de planes', () => {
             timestamp: new Date().toISOString(),
             status: 403,
             error: 'Forbidden',
-            message: 'Este negocio ya utilizó su prueba premium.',
+            message: 'Esta cuenta ya utilizó su prueba premium.',
             path: '/api/planes/prueba',
             traceId: 'prueba',
             codigo: 'PRUEBA_UTILIZADA',

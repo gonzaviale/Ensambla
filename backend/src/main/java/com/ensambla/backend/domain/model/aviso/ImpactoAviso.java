@@ -33,15 +33,9 @@ public record ImpactoAviso(
         if (aplicadoEl.plusDays(ventanaDias).isAfter(hoy)) {
             return Optional.empty();
         }
-        LocalDate desde = aplicadoEl.minusDays(ventanaDias);
-        LocalDate hasta = aplicadoEl.plusDays(ventanaDias);
-        List<VentaProducto> antes = ventas.stream()
-                .filter(venta -> !venta.fecha().isBefore(desde) && venta.fecha().isBefore(aplicadoEl)).toList();
-        List<VentaProducto> despues = ventas.stream()
-                .filter(venta -> !venta.fecha().isBefore(aplicadoEl) && venta.fecha().isBefore(hasta)).toList();
-        return Optional.of(new ImpactoAviso(ventanaDias,
-                porDia(unidades(antes), ventanaDias), porDia(unidades(despues), ventanaDias),
-                porDia(ingreso(antes), ventanaDias), porDia(ingreso(despues), ventanaDias)));
+        List<VentaProducto> antes = ventasEntre(ventas, aplicadoEl.minusDays(ventanaDias), aplicadoEl);
+        List<VentaProducto> despues = ventasEntre(ventas, aplicadoEl, aplicadoEl.plusDays(ventanaDias));
+        return Optional.of(comparando(antes, despues, ventanaDias));
     }
 
     /** Lo que el impacto guardó en los datos del aviso, o vacío si todavía no se midió. */
@@ -49,12 +43,29 @@ public record ImpactoAviso(
         if (datos == null || !(datos.get(CLAVE) instanceof Map<?, ?> medido)) {
             return Optional.empty();
         }
-        return Optional.of(new ImpactoAviso(
+        return Optional.of(leido(medido));
+    }
+
+    private static ImpactoAviso comparando(List<VentaProducto> antes, List<VentaProducto> despues, int ventanaDias) {
+        return new ImpactoAviso(ventanaDias,
+                porDia(unidades(antes), ventanaDias), porDia(unidades(despues), ventanaDias),
+                porDia(ingreso(antes), ventanaDias), porDia(ingreso(despues), ventanaDias));
+    }
+
+    /** Las ventas desde {@code desde} inclusive hasta {@code hasta} exclusive. */
+    private static List<VentaProducto> ventasEntre(List<VentaProducto> ventas, LocalDate desde, LocalDate hasta) {
+        return ventas.stream()
+                .filter(venta -> !venta.fecha().isBefore(desde) && venta.fecha().isBefore(hasta))
+                .toList();
+    }
+
+    private static ImpactoAviso leido(Map<?, ?> medido) {
+        return new ImpactoAviso(
                 numero(medido.get("ventanaDias")).intValue(),
                 numero(medido.get("unidadesPorDiaAntes")),
                 numero(medido.get("unidadesPorDiaDespues")),
                 numero(medido.get("ingresoPorDiaAntes")),
-                numero(medido.get("ingresoPorDiaDespues"))));
+                numero(medido.get("ingresoPorDiaDespues")));
     }
 
     /** Lo que cambió el ingreso semanal: positivo si se vende más después del aviso. */

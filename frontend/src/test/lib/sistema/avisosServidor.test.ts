@@ -46,7 +46,7 @@ describe('aAvisoDeSami', () => {
     expect(aviso.acciones).toEqual([
       {
         tipo: 'registrar',
-        texto: 'Registrar entrada',
+        texto: 'Cargar entrada',
         sistemaId: PROYECTO_ID,
         bloqueId: 'entradas',
         avisoId: 'e0000000-0000-4000-8000-000000000001',
@@ -114,7 +114,12 @@ describe('aAvisoDeSami', () => {
       avisoDelServidor({
         tipo: 'COMBO',
         acciones: [
-          { tipo: 'CREAR_REGISTRO', texto: 'Crear el combo', proyectoId: PROYECTO_ID, bloqueId: 'inventario' },
+          {
+            tipo: 'CREAR_REGISTRO',
+            texto: 'Crear el combo',
+            proyectoId: PROYECTO_ID,
+            bloqueId: 'inventario',
+          },
           { tipo: 'CREAR_REGISTRO' },
         ],
       }),
@@ -144,7 +149,9 @@ describe('tiposCubiertosPorElServidor', () => {
     tipos.map((tipo) => aAvisoDeSami(avisoDelServidor({ tipo }), new Map()));
 
   it('sin motor activo sólo cubre los tipos que el servidor ya trajo', () => {
-    expect([...tiposCubiertosPorElServidor(delServidor('ESTANCADO'), false)]).toEqual(['estancado']);
+    expect([...tiposCubiertosPorElServidor(delServidor('ESTANCADO'), false)]).toEqual([
+      'estancado',
+    ]);
     expect(tiposCubiertosPorElServidor([], false).size).toBe(0);
   });
 

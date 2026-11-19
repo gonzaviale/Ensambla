@@ -1,43 +1,32 @@
 import { useMemo } from 'react';
 import { Btn } from '@/components/sistema/Btn';
 import { Icon } from '@/components/sistema/Icon';
-import { useAccionesDeAvisos } from '@/hooks/avisos/useAccionesDeAvisos';
 import { usePanelDelNegocio } from '@/hooks/panel/queries';
-import { useCuadernoElegido } from '@/hooks/reportes/useCuadernoElegido';
-import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
-import { bloqueDeVentas, pesos, sistemaDelPanel } from '@/lib/sistema/panelDelNegocio';
-import { useSistemaStore } from '@/stores/sistemaStore';
+import { useAbrirVentas } from '@/hooks/panel/useAbrirVentas';
+import { useSistemaElegido } from '@/hooks/reportes/useSistemaElegido';
+import { pesos, sistemaDelPanel } from '@/lib/sistema/panelDelNegocio';
+import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
 import type { PanelDelNegocio as Panel } from '@/types/panel';
-import { DecisionesRapidas } from './DecisionesRapidas';
 import { Desplegable } from './Desplegable';
 import { FlujoDeCajaPorSemana } from './FlujoDeCajaPorSemana';
 
 const DIA_MES = (fecha: string) => `${fecha.slice(8, 10)}/${fecha.slice(5, 7)}`;
 
-// Debajo de las métricas del inicio: las sugerencias de Sami y el flujo de caja de los últimos días, con el cálculo
-// del servidor. Mira el mismo cuaderno que las métricas (el que se eligió arriba). Sin cuadernos no aparece; sin
+// Al final del inicio: el flujo de caja de los últimos días, con el cálculo del servidor. Mira la sección
+// elegida en el inicio. Sin secciones no aparece; sin
 // ventas explica cómo cargarlas, sin inventar números.
 export function PanelDelNegocio() {
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
-  const { cuaderno } = useCuadernoElegido();
-  const sistema = useMemo(() => cuaderno ?? sistemaDelPanel(sistemas), [cuaderno, sistemas]);
+  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
+  const { sistema: elegido } = useSistemaElegido();
+  const sistema = useMemo(() => elegido ?? sistemaDelPanel(sistemas), [elegido, sistemas]);
   const consulta = usePanelDelNegocio(sistema?.id ?? null);
-  const navegacion = useNavegacion();
-  const acciones = useAccionesDeAvisos();
+  const abrirVentas = useAbrirVentas();
   if (!sistema) return null;
-
-  // «Ver mis ventas» lleva a la tabla de ventas y la marca; si el cuaderno no tiene una, lo abre.
-  const abrirVentas = () => {
-    const ventas = bloqueDeVentas(sistema);
-    return ventas
-      ? acciones.irAlObjeto({ sistemaId: sistema.id, bloqueId: ventas.id })
-      : navegacion.abrirSistema(sistema.id, 'use');
-  };
 
   return (
     <section className="panel-negocio" aria-labelledby="panel-negocio-titulo">
       <div className="inicio-titulo">
-        <h2 id="panel-negocio-titulo">Tu plata y lo que conviene hacer</h2>
+        <h2 id="panel-negocio-titulo">Tu flujo de caja</h2>
         {consulta.data?.hayDatos && <p>{periodo(consulta.data)}</p>}
       </div>
       {consulta.isPending && <Esqueleto />}
@@ -56,12 +45,11 @@ export function PanelDelNegocio() {
             Anotá tus primeras ventas en «{sistema.name}» y acá vas a ver cómo se mueve tu plata
             semana a semana.
           </p>
-          <Btn cls="small" onClick={() => void abrirVentas()}>
+          <Btn cls="small" onClick={() => void abrirVentas(sistema)}>
             Cargar mis ventas <Icon name="arrow" />
           </Btn>
         </div>
       )}
-      <DecisionesRapidas />
       {consulta.data?.hayDatos && <FlujoDeCaja panel={consulta.data} />}
     </section>
   );
@@ -83,12 +71,9 @@ function Esqueleto() {
 function FlujoDeCaja({ panel }: { panel: Panel }) {
   const queda = panel.flujoDeCaja.at(-1)?.saldoAcumulado ?? 0;
   return (
-    <Desplegable
-      titulo="Tu flujo de caja, semana a semana"
-      resumen={`Te va quedando ${pesos(queda)}`}
-    >
+    <Desplegable titulo="Semana a semana" resumen={`Te queda ${pesos(queda)}`}>
       <p className="panel-flujo-bajada">
-        Entra lo que cobraste. Sale lo que gastaste y la mercadería que compraste. Lo fiado no entra
+        Suma lo que cobraste. Resta lo que gastaste y la mercadería que compraste. Lo fiado no entra
         hasta que lo cobrás.
       </p>
       <FlujoDeCajaPorSemana semanas={panel.flujoDeCaja} />

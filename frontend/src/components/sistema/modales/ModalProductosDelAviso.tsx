@@ -3,36 +3,47 @@ import { Btn } from '../Btn';
 import { Icon } from '../Icon';
 import { Modal } from '../Modal';
 import { varsDeColor } from '../colores';
+import { formatoPesos } from '@/lib/sistema/formato';
 import { useSistemaStore } from '@/stores/sistemaStore';
+import type { AvisoEconomico } from '@/types/avisoEconomico';
 
-const sinTildes = (texto: string) =>
-  texto
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
+const sinTildes = (texto: string) => texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
-// Los productos detrás del aviso económico. Pueden ser cientos, así que van en una lista que se desplaza y,
-// pasados unos pocos, con un buscador.
-export function ModalProductosDelAviso({ productos }: { productos: string[] }) {
+// Qué pasó con cada producto, en palabras de todos los días: «Te dejó $4.200 menos de ganancia» o «Vendiste $800 más».
+// Sin costos cargados se cuentan las ventas.
+const queCambio = (monto: number, categoria: string) => {
+  const plata = formatoPesos(Math.abs(monto));
+  const comparacion = monto < 0 ? 'menos' : 'más';
+  return categoria === 'Ventas'
+    ? `Vendiste ${plata} ${comparacion} que la semana pasada`
+    : `Te dejó ${plata} ${comparacion} de ganancia que la semana pasada`;
+};
+
+// Los productos detrás del aviso económico y qué cambió en cada uno. Pasados unos pocos, con un buscador.
+export function ModalProductosDelAviso({
+  cambios,
+  categoria,
+  titulo,
+}: {
+  cambios: AvisoEconomico['cambios'];
+  categoria: string;
+  titulo: string;
+}) {
   const cerrarModal = useSistemaStore((estado) => estado.cerrarModal);
   const [busqueda, setBusqueda] = useState('');
   const buscado = sinTildes(busqueda.trim());
   const visibles = buscado
-    ? productos.filter((producto) => sinTildes(producto).includes(buscado))
-    : productos;
+    ? cambios.filter((cambio) => sinTildes(cambio.nombre).includes(buscado))
+    : cambios;
 
   return (
     <Modal>
       <div className="icon-tile large" style={varsDeColor('petrol')}>
         <Icon name="chart" />
       </div>
-      <h2 id="modal-title">Productos involucrados</h2>
-      <p>
-        {productos.length === 1
-          ? 'Este es el producto que mueve el aviso.'
-          : `Estos ${productos.length} productos son los que mueven el aviso.`}
-      </p>
-      {productos.length > 8 && (
+      <h2 id="modal-title">{titulo}</h2>
+      <p>Así les fue esta semana, uno por uno.</p>
+      {cambios.length > 8 && (
         <input
           type="search"
           className="productos-aviso-buscador"
@@ -46,8 +57,14 @@ export function ModalProductosDelAviso({ productos }: { productos: string[] }) {
         <p role="status">Ningún producto coincide con «{busqueda.trim()}».</p>
       ) : (
         <ul className="productos-aviso-lista" aria-label="Productos involucrados">
-          {visibles.map((producto) => (
-            <li key={producto}>{producto}</li>
+          {visibles.map((cambio) => (
+            <li key={cambio.nombre}>
+              <span className="productos-aviso-nombre">{cambio.nombre}</span>
+              <span className="productos-aviso-cambio" data-baja={cambio.monto < 0}>
+                <Icon name={cambio.monto < 0 ? 'baja' : 'sube'} />
+                {queCambio(cambio.monto, categoria)}
+              </span>
+            </li>
           ))}
         </ul>
       )}

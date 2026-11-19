@@ -8,6 +8,8 @@ import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
+import com.ensambla.backend.domain.useCase.plan.PruebaPremiumResponse;
+import com.ensambla.backend.domain.useCase.plan.consultarPlanes.ConsultarPlanesResponse;
 import com.ensambla.backend.domain.useCase.plan.iniciarPrueba.IniciarPruebaRequest;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
@@ -33,7 +35,7 @@ import static org.mockito.Mockito.when;
 
 class PlanUseCaseConfigTest {
 
-    private final PlanUseCaseConfig planUseCaseConfig = new PlanUseCaseConfig();
+    private final PlanUseCaseConfig config = new PlanUseCaseConfig();
     private final Clock clock = Clock.fixed(INSTANTE.toInstant(), ZoneOffset.UTC);
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final PlanRepository planRepository = mock(PlanRepository.class, CALLS_REAL_METHODS);
@@ -41,60 +43,94 @@ class PlanUseCaseConfigTest {
     private final PruebaPremiumRepository pruebaPremiumRepository = mock(PruebaPremiumRepository.class);
     private final UsoPlanRepository usoPlanRepository = mock(UsoPlanRepository.class);
     private final RenovacionPremiumRepository renovacionPremiumRepository = mock(RenovacionPremiumRepository.class);
+    private ConsultarPlanesResponse planes;
+    private PruebaPremiumResponse prueba;
+
     @Test
     @DisplayName("El wiring conecta la consulta con usuario, catálogo, uso y reloj")
-    void consultarPlanesUseCaseShouldWireDependencies() {
-        givenNegocio();
-        givenCatalogo();
-        Suscripcion suscripcion = suscripcion();
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
-        when(planRepository.findById(suscripcion.getPlanId())).thenReturn(Optional.of(plan()));
+    void elWiringConectaLaConsultaDePlanes() {
+        dadoUnNegocioConElCatalogo();
+        dadaLaSuscripcionGratuitaConSuPlan();
 
-        var result = planUseCaseConfig.consultarPlanes(negocioRepository, suscripcionRepository, planRepository,
-                        pruebaPremiumRepository, usoPlanRepository, renovacionPremiumRepository,
-                        new TransaccionDirecta(), clock)
-                .execute(USUARIO_ID);
+        cuandoSeConsultanLosPlanes();
 
-        assertThat(result.consultadoEn()).isEqualTo(INSTANTE);
-        assertThat(result.planes()).hasSize(2);
+        entoncesSeConsultaronLosDosPlanesEn();
     }
 
     @Test
     @DisplayName("El wiring conecta usuario, catálogo, suscripción y reloj al inicio de prueba")
-    void iniciarPruebaUseCaseShouldWireDependencies() {
-        givenNegocio();
-        givenCatalogo();
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
-        when(pruebaPremiumRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+    void elWiringConectaElInicioDePrueba() {
+        dadoUnNegocioConElCatalogo();
+        dadaLaSuscripcionDelNegocio();
+        dadoQueGuardarLaPruebaLaDevuelve();
 
-        var result = planUseCaseConfig.iniciarPrueba(negocioRepository, planRepository, pruebaPremiumRepository,
-                        suscripcionRepository, usoPlanRepository, renovacionPremiumRepository,
-                        new TransaccionDirecta(), clock)
-                .execute(new IniciarPruebaRequest(USUARIO_ID));
+        cuandoSeIniciaLaPrueba();
 
-        assertThat(result.finEn()).isEqualTo(INSTANTE.plusDays(7));
-        assertThat(result.limitePaginasIa()).isEqualTo(10);
+        entoncesLaPruebaDuraUnaSemanaConDiezPaginas();
     }
 
     @Test
     @DisplayName("El wiring conecta reloj, candidatos y suscripción al vencimiento automático")
-    void vencerPruebasUseCaseShouldWireDependencies() {
-        when(pruebaPremiumRepository.findNegociosVencidos(INSTANTE)).thenReturn(List.of(NEGOCIO_ID));
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
+    void elWiringConectaElVencimientoAutomatico() {
+        dadoUnNegocioConLaPruebaVencida();
 
-        planUseCaseConfig.vencerPruebas(planRepository, pruebaPremiumRepository, suscripcionRepository,
-                usoPlanRepository, new TransaccionDirecta(), clock).execute();
+        cuandoVencenLasPruebas();
 
-        verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
+        entoncesSeBloqueoElNegocio();
     }
 
-    // --- arrange ---
-    private void givenNegocio() {
+    private void dadoUnNegocioConElCatalogo() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-    }
-
-    private void givenCatalogo() {
         when(planRepository.findByCodigo(CodigoPlan.GRATUITO)).thenReturn(Optional.of(plan()));
         when(planRepository.findByCodigo(CodigoPlan.PREMIUM)).thenReturn(Optional.of(premium()));
+    }
+
+    private void dadaLaSuscripcionGratuitaConSuPlan() {
+        Suscripcion suscripcion = suscripcion();
+        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
+        when(planRepository.findById(suscripcion.getPlanId())).thenReturn(Optional.of(plan()));
+    }
+
+    private void dadaLaSuscripcionDelNegocio() {
+        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
+    }
+
+    private void dadoQueGuardarLaPruebaLaDevuelve() {
+        when(pruebaPremiumRepository.save(any())).thenAnswer(guardada -> guardada.getArgument(0));
+    }
+
+    private void dadoUnNegocioConLaPruebaVencida() {
+        when(pruebaPremiumRepository.findNegociosVencidos(INSTANTE)).thenReturn(List.of(NEGOCIO_ID));
+        dadaLaSuscripcionDelNegocio();
+    }
+
+    private void cuandoSeConsultanLosPlanes() {
+        planes = config.consultarPlanes(negocioRepository, suscripcionRepository, planRepository, pruebaPremiumRepository,
+                usoPlanRepository, renovacionPremiumRepository, new TransaccionDirecta(), clock).execute(USUARIO_ID);
+    }
+
+    private void cuandoSeIniciaLaPrueba() {
+        prueba = config.iniciarPrueba(negocioRepository, planRepository, pruebaPremiumRepository, suscripcionRepository,
+                        usoPlanRepository, renovacionPremiumRepository, new TransaccionDirecta(), clock)
+                .execute(new IniciarPruebaRequest(USUARIO_ID));
+    }
+
+    private void cuandoVencenLasPruebas() {
+        config.vencerPruebas(planRepository, pruebaPremiumRepository, suscripcionRepository, usoPlanRepository,
+                new TransaccionDirecta(), clock).execute();
+    }
+
+    private void entoncesSeConsultaronLosDosPlanesEn() {
+        assertThat(planes.consultadoEn()).isEqualTo(INSTANTE);
+        assertThat(planes.planes()).hasSize(2);
+    }
+
+    private void entoncesLaPruebaDuraUnaSemanaConDiezPaginas() {
+        assertThat(prueba.finEn()).isEqualTo(INSTANTE.plusDays(7));
+        assertThat(prueba.limitePaginasIa()).isEqualTo(10);
+    }
+
+    private void entoncesSeBloqueoElNegocio() {
+        verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
     }
 }

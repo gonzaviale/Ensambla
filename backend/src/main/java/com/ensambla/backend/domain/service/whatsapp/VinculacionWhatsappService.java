@@ -23,9 +23,21 @@ public class VinculacionWhatsappService {
     /** Quien llama abre la transacción. Si el usuario ya tenía un número, lo reemplaza. */
     public VinculoWhatsapp vincular(UsuarioId usuarioId, NegocioId negocioId, TelefonoWhatsapp telefono,
                                     OffsetDateTime ahora) {
+        exigirQueElTelefonoEsteLibre(telefono, usuarioId);
+        olvidarElVinculoYLaVerificacionAnteriores(usuarioId);
+        return guardar(VinculoWhatsapp.nuevo(usuarioId, negocioId, telefono, ahora));
+    }
+
+    private void exigirQueElTelefonoEsteLibre(TelefonoWhatsapp telefono, UsuarioId usuarioId) {
         vinculoRepository.exigirLibre(telefono, usuarioId);
+    }
+
+    private void olvidarElVinculoYLaVerificacionAnteriores(UsuarioId usuarioId) {
         vinculoRepository.deleteByUsuarioId(usuarioId);
         verificacionRepository.deleteByUsuarioId(usuarioId);
-        return vinculoRepository.save(VinculoWhatsapp.nuevo(usuarioId, negocioId, telefono, ahora));
+    }
+
+    private VinculoWhatsapp guardar(VinculoWhatsapp vinculo) {
+        return vinculoRepository.save(vinculo);
     }
 }

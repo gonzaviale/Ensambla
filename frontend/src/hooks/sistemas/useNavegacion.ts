@@ -1,12 +1,11 @@
 import { guardarSistema } from '@/api/sistemas';
 import { ApiError } from '@/api/apiError';
 import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate, useRouter } from '@tanstack/react-router';
 import { useUsuario } from '@/hooks/auth/queries';
 import { objetivosKeys } from '@/hooks/objetivos/queries';
 import { usePreferencias } from '@/hooks/preferencias/queries';
 import type { SeccionDeCuenta } from '@/lib/cuenta';
-import type { LeccionDeSami } from '@/lib/ensenanza';
 import type { Sistema } from '@/lib/sistema/tipos';
 import { useSistemaStore, type ModoDelEditor } from '@/stores/sistemaStore';
 import type { ImagenParaSami } from '@/types/samiTaller';
@@ -33,6 +32,7 @@ export const saludoParaAjustar = (nombreDelSistema: string) =>
 // Cada uno cierra el modal abierto y deja sin selección, como navigate() del original.
 export function useNavegacion() {
   const navigate = useNavigate();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const nombre = useNombre();
 
@@ -46,7 +46,7 @@ export function useNavegacion() {
   const irA = (
     to:
       | '/inicio'
-      | '/cuadernos'
+      | '/caja'
       | '/plantillas'
       | '/taller'
       | '/zona'
@@ -54,8 +54,7 @@ export function useNavegacion() {
       | '/planes'
       | '/sami'
       | '/avisos'
-      | '/objetivos'
-      | '/sami-te-ensena',
+      | '/objetivos',
   ) => {
     limpiar();
     return navigate({ to });
@@ -73,6 +72,36 @@ export function useNavegacion() {
 
   return {
     irAInicio: () => irA('/inicio'),
+    irACaja: () => irA('/caja'),
+    irAEscaneoInventario: (cuaderno: string, inventarioId: string) => {
+      limpiar();
+      useSistemaStore.getState().verTablaCompleta(null);
+      return navigate({
+        to: '/sistemas/$sistemaId',
+        params: { sistemaId: cuaderno },
+        search: { modo: 'usar', escanear: inventarioId },
+      });
+    },
+    volverAlInventario: async (cuaderno: string, inventarioId: string) => {
+      await navigate({
+        to: '/sistemas/$sistemaId',
+        params: { sistemaId: cuaderno },
+        search: { modo: 'usar' },
+      });
+      // Si la carga pendiente bloqueó la salida, dejamos la vista y el borrador intactos.
+      if (
+        useSistemaStore.getState().activeId === cuaderno &&
+        !router.state.location.search.escanear
+      ) {
+        const estado = useSistemaStore.getState();
+        const sistema = estado.sistemas.find((item) => item.id === cuaderno);
+        const seccion = sistema?.sections.find((item) =>
+          item.blocks.some((bloque) => bloque.id === inventarioId),
+        );
+        if (seccion) estado.elegirSeccion(seccion.id);
+        estado.verTablaCompleta(inventarioId);
+      }
+    },
     irAPlantillas: () => irA('/plantillas'),
     /** «Armémoslo con Sami»: cada vez empieza una conversación nueva. */
     irATaller: () => {
@@ -100,7 +129,9 @@ export function useNavegacion() {
       );
       estado.actualizarTaller({ foto, enviarAlAbrir: MENSAJE_DE_LA_FOTO });
       limpiar();
-      return sistema ? navigate({ to: '/taller', search: { sistema: sistema.id } }) : navigate({ to: '/taller' });
+      return sistema
+        ? navigate({ to: '/taller', search: { sistema: sistema.id } })
+        : navigate({ to: '/taller' });
     },
     irAZona: () => irA('/zona'),
     /** El avatar: la configuración de la cuenta, en la sección que se pida (el perfil, si no). */
@@ -118,11 +149,6 @@ export function useNavegacion() {
     irAObjetivo: (objetivoId: string) => {
       limpiar();
       return navigate({ to: '/objetivos/$objetivoId', params: { objetivoId } });
-    },
-    /** Sami te enseña: lecciones de contabilidad; con `objetivoId`, aplicadas a ese objetivo. */
-    irASamiTeEnsena: (leccion?: LeccionDeSami, objetivoId?: string) => {
-      limpiar();
-      return navigate({ to: '/sami-te-ensena', search: { leccion, objetivo: objetivoId } });
     },
     irAPlanes: () => irA('/planes'),
     /** «Armalo con Sami»: la conversación que crea un proyecto real en el backend. */
@@ -142,11 +168,9 @@ export function useNavegacion() {
           .avisar(
             error instanceof ApiError
               ? `${error.message}${error.status === 403 && error.codigo ? ' Revisá los beneficios de Premium en Planes.' : ''}`
-              : 'No pudimos crear tu cuaderno. Tus datos todavía no se guardaron. Probá de nuevo.',
+              : 'No pudimos crear tu sección. Tus datos todavía no se guardaron. Probá de nuevo.',
           );
       }
     },
-    /** «Mis cuadernos»: la pantalla con todos los cuadernos y las maneras de crear uno. */
-    irAMisSistemas: () => irA('/cuadernos'),
   };
 }

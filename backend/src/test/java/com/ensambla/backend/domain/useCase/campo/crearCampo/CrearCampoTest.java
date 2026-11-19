@@ -6,7 +6,6 @@ import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
@@ -25,11 +24,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.ensambla.backend.support.CamposDePrueba.referenciaA;
+import static com.ensambla.backend.support.CamposDePrueba.unCampoDeTexto;
+import static com.ensambla.backend.support.CamposDePrueba.unCampoNumerico;
 import static com.ensambla.backend.support.ProyectoTestData.AHORA;
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.ProyectoTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
@@ -43,8 +45,6 @@ class CrearCampoTest {
 
     private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
     private static final BloqueId RELACIONADO_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
-    private static final CampoId CAMPO_ID = CampoId.de("d0000000-0000-4000-8000-000000000001");
-    private static final CampoId OTRO_CAMPO_ID = CampoId.de("d0000000-0000-4000-8000-000000000002");
     private static final ProyectoId PROYECTO_ID = ProyectoId.de("e0000000-0000-4000-8000-000000000001");
     private static final ProyectoId OTRO_PROYECTO_ID = ProyectoId.de("e0000000-0000-4000-8000-000000000002");
     private static final List<String> TALLES = List.of("Chico", "Grande");
@@ -52,199 +52,287 @@ class CrearCampoTest {
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final BloqueRepository bloqueRepository = mock(BloqueRepository.class, CALLS_REAL_METHODS);
     private final CampoRepository campoRepository = mock(CampoRepository.class);
-    private final CampoUseCaseConfig config = new CampoUseCaseConfig();
-    private final CrearCampo crearCampo = config.crearCampo(
+    private final CrearCampo crearCampo = new CampoUseCaseConfig().crearCampo(
             negocioRepository,
             bloqueRepository,
             campoRepository,
             new TransaccionDirecta(),
             Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
 
+    private CampoItem campoCreado;
+    private Throwable rechazo;
+
     @Test
-    @DisplayName("Guarda el campo nuevo al final de los del bloque de la sesión, con la hora del reloj")
-    void executeShouldSaveCampoAfterTheLastOne() {
-        givenBloqueConCampos(givenCampo(OTRO_CAMPO_ID, "Producto", 1));
-        givenSaveReturnsArgument();
+    @DisplayName("El campo nuevo se guarda al final de los del bloque de la sesión con la hora del reloj")
+    void elCampoNuevoSeGuardaAlFinalDeLosDelBloqueDeLaSesionConLaHoraDelReloj() {
+        dadoUnBloqueCon(unCampoDelBloque("Producto", 1));
 
-        CampoItem result = crearCampo.execute(request(" Precio ", "TEXTO", null, null));
+        cuandoSeCreaUnCampoDeTexto(" Precio ");
 
-        Campo guardado = thenCampoGuardado();
-        assertThat(guardado.getNombre()).isEqualTo("Precio");
-        assertThat(guardado.getBloqueId()).isEqualTo(BLOQUE_ID);
-        assertThat(guardado.getNegocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(guardado.getPosicion()).isEqualTo((short) 2);
-        assertThat(guardado.getCreadoEn()).isEqualTo(AHORA);
-        assertThat(result.nombre()).isEqualTo("Precio");
+        entoncesSeGuardaElCampoPrecioAlFinalDelBloque();
     }
 
     @Test
     @DisplayName("Devuelve el campo con la configuración pedida")
-    void executeShouldMapSavedCampo() {
-        givenBloqueConCampos();
-        givenSaveReturnsArgument();
+    void devuelveElCampoConLaConfiguracionPedida() {
+        dadoUnBloqueSinCampos();
 
-        CampoItem result = crearCampo.execute(new CrearCampoRequest(
-                USUARIO_ID, BLOQUE_ID, "Talle", "OPCION", true, "Chico", TALLES, null, null));
+        cuandoSeCreaUnTalleDeOpcion();
 
-        assertThat(result.tipo()).isEqualTo("OPCION");
-        assertThat(result.opciones()).containsExactlyElementsOf(TALLES);
+        entoncesLaRespuestaEsUnaOpcionConLosTalles();
     }
 
     @Test
-    @DisplayName("Si el bloque es ajeno no crea ningún campo")
-    void executeShouldNotCreateWhenBloqueIsForeign() {
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(bloqueRepository.findByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+    @DisplayName("Si el bloque es ajeno no se crea ningún campo")
+    void siElBloqueEsAjenoNoSeCreaNingunCampo() {
+        dadoUnBloqueAjeno();
 
-        assertThatThrownBy(() -> crearCampo.execute(request("Talle", "TEXTO", null, null)))
-                .isInstanceOf(ResourceNotFoundException.class);
-        verifyNoInteractions(campoRepository);
+        cuandoSeIntentaCrearUnCampoDeTexto("Talle");
+
+        entoncesSeRechazaPorqueElBloqueNoExiste();
+        entoncesNoSeTocaNingunCampo();
     }
 
     @Test
-    @DisplayName("Con un nombre repetido en el bloque no guarda nada")
-    void executeShouldNotSaveWhenNameIsTaken() {
-        givenBloqueConCampos(givenCampo(OTRO_CAMPO_ID, "Producto", 0));
+    @DisplayName("Con un nombre repetido en el bloque no se guarda nada")
+    void conUnNombreRepetidoEnElBloqueNoSeGuardaNada() {
+        dadoUnBloqueCon(unCampoDelBloque("Producto", 0));
 
-        assertThatThrownBy(() -> crearCampo.execute(request("producto", "TEXTO", null, null)))
-                .isInstanceOf(DuplicateResourceException.class);
-        verify(campoRepository, never()).save(any());
+        cuandoSeIntentaCrearUnCampoDeTexto("producto");
+
+        entoncesSeRechazaPorNombreRepetido();
+        entoncesNoSeGuardaNingunCampo();
     }
 
     @Test
-    @DisplayName("Con una configuración inválida no guarda nada")
-    void executeShouldNotSaveWhenConfiguracionIsInvalid() {
-        givenBloqueConCampos();
+    @DisplayName("Con una configuración inválida no se guarda nada")
+    void conUnaConfiguracionInvalidaNoSeGuardaNada() {
+        dadoUnBloqueSinCampos();
 
-        assertThatThrownBy(() -> crearCampo.execute(request("Talle", "OPCION", null, null)))
-                .isInstanceOf(CampoInvalidoException.class);
-        verify(campoRepository, never()).save(any());
+        cuandoSeIntentaCrearUnCampoDeOpcionSinOpciones("Talle");
+
+        entoncesSeRechazaPorConfiguracionInvalida();
+        entoncesNoSeGuardaNingunCampo();
     }
 
     @Test
     @DisplayName("Crear un campo que no es de conexión no consulta otras tablas")
-    void executeShouldNotLookUpBloqueWhenCampoIsNotRelacion() {
-        givenBloqueConCampos();
-        givenSaveReturnsArgument();
+    void crearUnCampoQueNoEsDeConexionNoConsultaOtrasTablas() {
+        dadoUnBloqueSinCampos();
 
-        crearCampo.execute(request("Precio", "TEXTO", null, null));
+        cuandoSeCreaUnCampoDeTexto("Precio");
 
-        verify(bloqueRepository, times(1)).findByIdAndNegocioId(any(), any());
+        entoncesSeConsultaUnaSolaVezElBloque();
     }
 
     @Test
-    @DisplayName("Guarda una conexión con una tabla del mismo sistema")
-    void executeShouldSaveRelacionWhenBloqueIsOfSameProyecto() {
-        givenBloqueConCampos();
-        givenBloqueRelacionado(PROYECTO_ID);
-        givenSaveReturnsArgument();
+    @DisplayName("Se guarda una conexión con una tabla del mismo sistema")
+    void seGuardaUnaConexionConUnaTablaDelMismoSistema() {
+        dadoUnBloqueSinCampos();
+        dadoUnaTablaRelacionadaDelSistema(PROYECTO_ID);
 
-        crearCampo.execute(request("Cliente", "RELACION", RELACIONADO_ID, null));
+        cuandoSeCreaUnaConexion("Cliente");
 
-        Campo guardado = thenCampoGuardado();
-        assertThat(guardado.getTipo()).isEqualTo(TipoCampo.RELACION);
-        assertThat(guardado.getBloqueRelacionadoId()).isEqualTo(RELACIONADO_ID);
+        entoncesSeGuardaUnaConexionConLaTablaRelacionada();
     }
 
     @Test
-    @DisplayName("Rechaza una conexión con una tabla inexistente o de otro negocio")
-    void executeShouldRejectRelacionWhenBloqueIsMissing() {
-        givenBloqueConCampos();
-        when(bloqueRepository.findByIdAndNegocioId(RELACIONADO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+    @DisplayName("Se rechaza una conexión con una tabla inexistente o de otro negocio")
+    void seRechazaUnaConexionConUnaTablaInexistenteODeOtroNegocio() {
+        dadoUnBloqueSinCampos();
+        dadoUnaTablaRelacionadaInexistente();
 
-        assertThatThrownBy(() -> crearCampo.execute(request("Cliente", "RELACION", RELACIONADO_ID, null)))
-                .isInstanceOfSatisfying(CampoInvalidoException.class, e -> assertThat(e.getErrores())
-                        .isEqualTo(Map.of("bloqueRelacionadoId", "Elegí una tabla de este sistema")));
-        verify(campoRepository, never()).save(any());
+        cuandoSeIntentaCrearUnaConexion("Cliente");
+
+        entoncesSeRechazaPorqueLaTablaNoEsDeEsteSistema();
+        entoncesNoSeGuardaNingunCampo();
     }
 
     @Test
-    @DisplayName("Rechaza una conexión con una tabla de otro sistema")
-    void executeShouldRejectRelacionWhenBloqueIsOfOtherProyecto() {
-        givenBloqueConCampos();
-        givenBloqueRelacionado(OTRO_PROYECTO_ID);
+    @DisplayName("Se rechaza una conexión con una tabla de otro sistema")
+    void seRechazaUnaConexionConUnaTablaDeOtroSistema() {
+        dadoUnBloqueSinCampos();
+        dadoUnaTablaRelacionadaDelSistema(OTRO_PROYECTO_ID);
 
-        assertThatThrownBy(() -> crearCampo.execute(request("Cliente", "RELACION", RELACIONADO_ID, null)))
-                .isInstanceOf(CampoInvalidoException.class);
-        verify(campoRepository, never()).save(any());
+        cuandoSeIntentaCrearUnaConexion("Cliente");
+
+        entoncesSeRechazaPorConfiguracionInvalida();
+        entoncesNoSeGuardaNingunCampo();
     }
 
     @Test
-    @DisplayName("Guarda una fórmula que usa campos numéricos del bloque")
-    void executeShouldSaveFormulaThatUsesNumericFields() {
-        givenBloqueConCampos(givenCampo(OTRO_CAMPO_ID, "Cantidad", 0));
-        givenSaveReturnsArgument();
+    @DisplayName("Se guarda una fórmula que usa campos numéricos del bloque")
+    void seGuardaUnaFormulaQueUsaCamposNumericosDelBloque() {
+        Campo cantidad = unCampoDelBloque("Cantidad", 0);
+        dadoUnBloqueCon(cantidad);
 
-        crearCampo.execute(request("Total", "FORMULA", null, "{" + OTRO_CAMPO_ID + "} * 2"));
+        cuandoSeCreaUnaFormulaQueUsaA(cantidad);
 
-        Campo guardado = thenCampoGuardado();
-        assertThat(guardado.getTipo()).isEqualTo(TipoCampo.FORMULA);
-        assertThat(guardado.getFormula()).isEqualTo("{" + OTRO_CAMPO_ID + "} * 2");
+        entoncesSeGuardaUnaFormulaQueUsaA(cantidad);
     }
 
     @Test
-    @DisplayName("Rechaza una fórmula que cita un campo que no es del bloque")
-    void executeShouldRejectFormulaWithUnknownField() {
-        givenBloqueConCampos(givenCampo(OTRO_CAMPO_ID, "Cantidad", 0));
+    @DisplayName("Se rechaza una fórmula que cita un campo que no es del bloque")
+    void seRechazaUnaFormulaQueCitaUnCampoQueNoEsDelBloque() {
+        dadoUnBloqueCon(unCampoDelBloque("Cantidad", 0));
 
-        assertThatThrownBy(() -> crearCampo.execute(request("Total", "FORMULA", null, "{" + CAMPO_ID + "} * 2")))
-                .isInstanceOfSatisfying(CampoInvalidoException.class, e -> assertThat(e.getErrores())
-                        .containsEntry("formula", "Usá sólo campos numéricos de esta tabla"));
-        verify(campoRepository, never()).save(any());
+        cuandoSeIntentaCrearUnaFormulaQueUsaA(unCampoNumerico("De otra tabla"));
+
+        entoncesSeRechazaPorqueLaFormulaSoloUsaCamposNumericosDeLaTabla();
+        entoncesNoSeGuardaNingunCampo();
     }
 
     @Test
-    @DisplayName("Rechaza una fórmula que cita un campo que no es numérico")
-    void executeShouldRejectFormulaWithNonNumericField() {
-        Campo texto = givenCampo(OTRO_CAMPO_ID, "Nombre", 0);
-        texto.setTipo(TipoCampo.TEXTO);
-        givenBloqueConCampos(texto);
+    @DisplayName("Se rechaza una fórmula que cita un campo que no es numérico")
+    void seRechazaUnaFormulaQueCitaUnCampoQueNoEsNumerico() {
+        Campo nombre = unCampoDeTexto("Nombre").ubicadoEn(NEGOCIO_ID, BLOQUE_ID, (short) 0, AHORA);
+        dadoUnBloqueCon(nombre);
 
-        assertThatThrownBy(() -> crearCampo.execute(request("Total", "FORMULA", null, "{" + OTRO_CAMPO_ID + "} * 2")))
-                .isInstanceOf(CampoInvalidoException.class);
-        verify(campoRepository, never()).save(any());
+        cuandoSeIntentaCrearUnaFormulaQueUsaA(nombre);
+
+        entoncesSeRechazaPorConfiguracionInvalida();
+        entoncesNoSeGuardaNingunCampo();
     }
 
-    // --- arrange ---
-    private void givenBloqueConCampos(Campo... campos) {
+    private void dadoUnBloqueSinCampos() {
+        dadoUnBloqueCon();
+    }
+
+    private void dadoUnBloqueCon(Campo... campos) {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(bloqueRepository.findByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Optional.of(givenBloque()));
+        when(bloqueRepository.findByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID))
+                .thenReturn(Optional.of(unBloqueDelSistema(BLOQUE_ID, PROYECTO_ID)));
         when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of(campos));
-    }
-
-    private void givenBloqueRelacionado(ProyectoId proyectoId) {
-        Bloque relacionado = Bloque.builder().id(RELACIONADO_ID).negocioId(NEGOCIO_ID).proyectoId(proyectoId).build();
-        when(bloqueRepository.findByIdAndNegocioId(RELACIONADO_ID, NEGOCIO_ID)).thenReturn(Optional.of(relacionado));
-    }
-
-    private void givenSaveReturnsArgument() {
         when(campoRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
-    // --- assert ---
-    private Campo thenCampoGuardado() {
+    private void dadoUnBloqueAjeno() {
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(bloqueRepository.findByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+    }
+
+    private void dadoUnaTablaRelacionadaDelSistema(ProyectoId proyectoId) {
+        when(bloqueRepository.findByIdAndNegocioId(RELACIONADO_ID, NEGOCIO_ID))
+                .thenReturn(Optional.of(unBloqueDelSistema(RELACIONADO_ID, proyectoId)));
+    }
+
+    private void dadoUnaTablaRelacionadaInexistente() {
+        when(bloqueRepository.findByIdAndNegocioId(RELACIONADO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+    }
+
+    private Bloque unBloqueDelSistema(BloqueId bloqueId, ProyectoId proyectoId) {
+        return Bloque.builder().id(bloqueId).negocioId(NEGOCIO_ID).proyectoId(proyectoId).build();
+    }
+
+    private Campo unCampoDelBloque(String nombre, int posicion) {
+        return unCampoNumerico(nombre).ubicadoEn(NEGOCIO_ID, BLOQUE_ID, (short) posicion, AHORA);
+    }
+
+    private void cuandoSeCreaUnCampoDeTexto(String nombre) {
+        campoCreado = crear(pedido(nombre, "TEXTO", null, null));
+    }
+
+    private void cuandoSeCreaUnTalleDeOpcion() {
+        campoCreado = crear(new CrearCampoRequest(
+                USUARIO_ID, BLOQUE_ID, "Talle", "OPCION", true, "Chico", TALLES, null, null));
+    }
+
+    private void cuandoSeCreaUnaConexion(String nombre) {
+        campoCreado = crear(pedido(nombre, "RELACION", RELACIONADO_ID, null));
+    }
+
+    private void cuandoSeCreaUnaFormulaQueUsaA(Campo campo) {
+        campoCreado = crear(pedido("Total", "FORMULA", null, referenciaA(campo) + " * 2"));
+    }
+
+    private void cuandoSeIntentaCrearUnCampoDeTexto(String nombre) {
+        rechazo = catchThrowable(() -> cuandoSeCreaUnCampoDeTexto(nombre));
+    }
+
+    private void cuandoSeIntentaCrearUnCampoDeOpcionSinOpciones(String nombre) {
+        rechazo = catchThrowable(() -> crear(pedido(nombre, "OPCION", null, null)));
+    }
+
+    private void cuandoSeIntentaCrearUnaConexion(String nombre) {
+        rechazo = catchThrowable(() -> cuandoSeCreaUnaConexion(nombre));
+    }
+
+    private void cuandoSeIntentaCrearUnaFormulaQueUsaA(Campo campo) {
+        rechazo = catchThrowable(() -> cuandoSeCreaUnaFormulaQueUsaA(campo));
+    }
+
+    private CampoItem crear(CrearCampoRequest pedido) {
+        return crearCampo.execute(pedido);
+    }
+
+    private CrearCampoRequest pedido(String nombre, String tipo, BloqueId relacionadoId, String formula) {
+        return new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, nombre, tipo, null, null, null, relacionadoId, formula);
+    }
+
+    private Campo campoGuardado() {
         ArgumentCaptor<Campo> guardado = ArgumentCaptor.forClass(Campo.class);
         verify(campoRepository).save(guardado.capture());
         return guardado.getValue();
     }
 
-    // --- helpers ---
-    private CrearCampoRequest request(String nombre, String tipo, BloqueId relacionadoId, String formula) {
-        return new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, nombre, tipo, null, null, null, relacionadoId, formula);
+    private void entoncesSeGuardaElCampoPrecioAlFinalDelBloque() {
+        Campo guardado = campoGuardado();
+        assertThat(guardado.getNombre()).isEqualTo("Precio");
+        assertThat(guardado.getBloqueId()).isEqualTo(BLOQUE_ID);
+        assertThat(guardado.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(guardado.getPosicion()).isEqualTo((short) 2);
+        assertThat(guardado.getCreadoEn()).isEqualTo(AHORA);
+        assertThat(campoCreado.nombre()).isEqualTo("Precio");
     }
 
-    private Bloque givenBloque() {
-        return Bloque.builder().id(BLOQUE_ID).negocioId(NEGOCIO_ID).proyectoId(PROYECTO_ID).build();
+    private void entoncesLaRespuestaEsUnaOpcionConLosTalles() {
+        assertThat(campoCreado.tipo()).isEqualTo("OPCION");
+        assertThat(campoCreado.opciones()).containsExactlyElementsOf(TALLES);
     }
 
-    private Campo givenCampo(CampoId id, String nombre, int posicion) {
-        return Campo.builder()
-                .id(id)
-                .negocioId(NEGOCIO_ID)
-                .bloqueId(BLOQUE_ID)
-                .nombre(nombre)
-                .tipo(TipoCampo.NUMERO)
-                .posicion((short) posicion)
-                .build();
+    private void entoncesSeGuardaUnaConexionConLaTablaRelacionada() {
+        Campo guardado = campoGuardado();
+        assertThat(guardado.getTipo()).isEqualTo(TipoCampo.RELACION);
+        assertThat(guardado.getBloqueRelacionadoId()).isEqualTo(RELACIONADO_ID);
+    }
+
+    private void entoncesSeGuardaUnaFormulaQueUsaA(Campo campo) {
+        Campo guardado = campoGuardado();
+        assertThat(guardado.getTipo()).isEqualTo(TipoCampo.FORMULA);
+        assertThat(guardado.getFormula()).isEqualTo(referenciaA(campo) + " * 2");
+    }
+
+    private void entoncesSeRechazaPorqueElBloqueNoExiste() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    private void entoncesSeRechazaPorNombreRepetido() {
+        assertThat(rechazo).isInstanceOf(DuplicateResourceException.class);
+    }
+
+    private void entoncesSeRechazaPorConfiguracionInvalida() {
+        assertThat(rechazo).isInstanceOf(CampoInvalidoException.class);
+    }
+
+    private void entoncesSeRechazaPorqueLaTablaNoEsDeEsteSistema() {
+        assertThat(rechazo).isInstanceOfSatisfying(CampoInvalidoException.class, e -> assertThat(e.getErrores())
+                .isEqualTo(Map.of("bloqueRelacionadoId", "Elegí una tabla de este sistema")));
+    }
+
+    private void entoncesSeRechazaPorqueLaFormulaSoloUsaCamposNumericosDeLaTabla() {
+        assertThat(rechazo).isInstanceOfSatisfying(CampoInvalidoException.class, e -> assertThat(e.getErrores())
+                .containsEntry("formula", "Usá sólo campos numéricos de esta tabla"));
+    }
+
+    private void entoncesNoSeGuardaNingunCampo() {
+        verify(campoRepository, never()).save(any());
+    }
+
+    private void entoncesNoSeTocaNingunCampo() {
+        verifyNoInteractions(campoRepository);
+    }
+
+    private void entoncesSeConsultaUnaSolaVezElBloque() {
+        verify(bloqueRepository, times(1)).findByIdAndNegocioId(any(), any());
     }
 }

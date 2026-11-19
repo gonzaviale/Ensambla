@@ -1,8 +1,10 @@
 package com.ensambla.backend.domain.model.aviso;
 
+import com.ensambla.backend.domain.model.aviso.AccionCrearRegistro;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
+import com.ensambla.backend.support.AccionesDePrueba;
 import com.ensambla.backend.support.AvisoTestData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -62,12 +64,8 @@ class ReglaComboBajaRotacionTest {
         List<ResultadoRegla> resultados = whenEvaluar(ventasConCuatroCanastas(), alfajor(), galletitas());
 
         assertThat(resultados).singleElement().satisfies(resultado -> {
-            assertThat(resultado.acciones()).singleElement().isEqualTo(Map.of(
-                    "tipo", "CREAR_REGISTRO",
-                    "texto", "Crear el combo",
-                    "proyectoId", AvisoTestData.PROYECTO_ID.toString(),
-                    "bloqueId", AvisoTestData.INVENTARIO_ID.toString(),
-                    "valores", Map.of(
+            assertThat(resultado.acciones()).singleElement().isEqualTo(AccionesDePrueba.crearEnElInventario(
+                    "Crear el combo", Map.of(
                             "name", "Combo Alfajor Capitán del Espacio + Galletitas Sonrisas",
                             "quantity", 0,
                             "price", new BigDecimal("1710"),
@@ -289,8 +287,7 @@ class ReglaComboBajaRotacionTest {
         return AvisoTestData.venta(producto.toString(), cantidad, precio, fecha, cliente);
     }
 
-    @SuppressWarnings("unchecked")
     private static Map<String, Object> valoresDeLaAccion(ResultadoRegla resultado) {
-        return (Map<String, Object>) ((Map<String, Object>) resultado.acciones().get(0)).get("valores");
+        return ((AccionCrearRegistro) resultado.acciones().get(0)).valores();
     }
 }

@@ -1,0 +1,93 @@
+@media (max-width: 800px) {
+  .caja-pagina .caja-ayuda,
+  .caja-pagina .caja-antetitulo,
+  .caja-pagina .caja-barra-total > span,
+  .caja-pagina .caja-barra-movil > small,
+  .caja-pagina .caja-atajo-escanear,
+  .caja-pagina .caja-actividad-vistas button,
+  .caja-pagina .caja-medio-nombre,
+  .caja-dialogo .caja-antetitulo,
+  .caja-dialogo .caja-ayuda {
+    font-size: 14px;
+  }
+  .caja-dialogo .icon-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .caja-dialogo :is(input, select, textarea) {
+    scroll-margin-block: 80px;
+  }
+}
+
+@media (max-width: 640px) {
+  .tablero-aviso-sami-evidencias {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tablero-aviso-sami-evidencias > div {
+    min-width: 0;
+  }
+  .tablero-aviso-sami-evidencias dt {
+    overflow-wrap: anywhere;
+  }
+  .tablero-aviso-sami-evidencias dd {
+    flex-shrink: 0;
+  }
+  .tablero-aviso-sami-evidencia-boton {
+    min-height: 44px;
+  }
+  .topbar-cuenta .negocio-selector-disparador {
+    max-width: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .topbar .logo span {
+    display: none;
+  }
+  .topbar .logo {
+    gap: 0;
+  }
+}
+
+/* Celular: el selector de negocio queda en la misma fila de la cabecera, solo con la inicial del
+   negocio (antes bajaba a una tercera fila). Caja y el lector fijan la cabecera en 60 px y la
+   necesitan así hasta 800 px. */
+@media (max-width: 680px) {
+  .topbar .negocio-selector { order: 0; flex: 0 0 auto; }
+  .topbar .negocio-selector-disparador {
+    grid-template-columns: 34px;
+    width: auto;
+    min-width: 0;
+    min-height: 44px;
+    padding: 4px;
+  }
+  .topbar .negocio-selector-texto,
+  .topbar .negocio-selector-disparador > .icon { display: none; }
+  .topbar .negocio-selector-menu { right: -52px; left: auto; }
+}
+@media (max-width: 800px) {
+  .topbar:has(+ .caja-pagina) .negocio-selector,
+  .topbar:has(+ .escaneo-pagina[data-lectura='true']) .negocio-selector {
+    order: 0;
+    flex: 0 0 auto;
+  }
+  .topbar:has(+ .caja-pagina) .negocio-selector-disparador,
+  .topbar:has(+ .escaneo-pagina[data-lectura='true']) .negocio-selector-disparador {
+    grid-template-columns: 34px;
+    width: auto;
+    min-width: 0;
+    min-height: 44px;
+    padding: 4px;
+  }
+  .topbar:has(+ .caja-pagina) .negocio-selector-texto,
+  .topbar:has(+ .caja-pagina) .negocio-selector-disparador > .icon,
+  .topbar:has(+ .escaneo-pagina[data-lectura='true']) .negocio-selector-texto,
+  .topbar:has(+ .escaneo-pagina[data-lectura='true']) .negocio-selector-disparador > .icon {
+    display: none;
+  }
+  .topbar:has(+ .caja-pagina) .negocio-selector-menu,
+  .topbar:has(+ .escaneo-pagina[data-lectura='true']) .negocio-selector-menu {
+    right: -52px;
+    left: auto;
+  }
+}

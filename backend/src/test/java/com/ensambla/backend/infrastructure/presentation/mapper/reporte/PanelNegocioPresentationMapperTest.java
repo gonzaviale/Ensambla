@@ -22,47 +22,79 @@ class PanelNegocioPresentationMapperTest {
     private static final LocalDate HASTA = LocalDate.of(2026, 10, 7);
 
     private final PanelNegocioPresentationMapper mapper = new PanelNegocioPresentationMapper();
+    private PanelNegocioResponse panel;
 
     @Test
     @DisplayName("Arma el pedido con el usuario de la sesión, el sistema y los días")
-    void toRequestShouldBuildTheRequest() {
-        assertThat(mapper.toRequest(USUARIO_ID, PROYECTO_ID, 7))
-                .isEqualTo(new ObtenerPanelNegocioRequest(USUARIO_ID, PROYECTO_ID, 7));
+    void armaElPedidoConElUsuarioElSistemaYLosDias() {
+        entoncesElPedidoPara(7, new ObtenerPanelNegocioRequest(USUARIO_ID, PROYECTO_ID, 7));
+    }
+
+    @Test
+    @DisplayName("Pasa el período a la respuesta HTTP")
+    void pasaElPeriodoALaRespuesta() {
+        cuandoSeRespondeConUnPanelConDatos();
+
+        entoncesElPeriodoEs(DESDE, HASTA, 7);
     }
 
     @Test
     @DisplayName("Pasa las métricas y las semanas a la respuesta HTTP")
-    void toResponseShouldCopyMetricsAndWeeks() {
-        ObtenerPanelNegocioResponse response = new ObtenerPanelNegocioResponse(DESDE, HASTA, 7, true,
-                new ObtenerPanelNegocioResponse.Metricas(
-                        bd("1000"), bd("200"), bd("100"), bd("700"), bd("50"), bd("20.5"), bd("250"), bd("10")),
-                List.of(new ObtenerPanelNegocioResponse.Semana(
-                        DESDE, HASTA, bd("1000"), bd("300"), bd("700"), bd("700"))));
+    void pasaLasMetricasYLasSemanasALaRespuesta() {
+        cuandoSeRespondeConUnPanelConDatos();
 
-        PanelNegocioResponse web = mapper.toResponse(response);
-
-        assertThat(web.desde()).isEqualTo(DESDE);
-        assertThat(web.hasta()).isEqualTo(HASTA);
-        assertThat(web.dias()).isEqualTo(7);
-        assertThat(web.hayDatos()).isTrue();
-        assertThat(web.metricas()).isEqualTo(new PanelNegocioResponse.Metricas(
+        entoncesLasMetricasSon(new PanelNegocioResponse.Metricas(
                 bd("1000"), bd("200"), bd("100"), bd("700"), bd("50"), bd("20.5"), bd("250"), bd("10")));
-        assertThat(web.flujoDeCaja()).containsExactly(
+        entoncesLasSemanasSon(
                 new PanelNegocioResponse.Semana(DESDE, HASTA, bd("1000"), bd("300"), bd("700"), bd("700")));
     }
 
     @Test
     @DisplayName("Una respuesta vacía queda sin métricas ni semanas")
-    void toResponseShouldKeepAnEmptyPanelEmpty() {
-        PanelNegocioResponse web = mapper.toResponse(
-                new ObtenerPanelNegocioResponse(DESDE, HASTA, 7, false, null, List.of()));
+    void unaRespuestaVaciaQuedaSinMetricasNiSemanas() {
+        cuandoSeRespondeConUnPanelVacio();
 
-        assertThat(web.hayDatos()).isFalse();
-        assertThat(web.metricas()).isNull();
-        assertThat(web.flujoDeCaja()).isEmpty();
+        entoncesElPanelEstaVacio();
     }
 
     private static BigDecimal bd(String valor) {
         return new BigDecimal(valor);
+    }
+
+    private void cuandoSeRespondeConUnPanelConDatos() {
+        panel = mapper.toResponse(new ObtenerPanelNegocioResponse(DESDE, HASTA, 7, true,
+                new ObtenerPanelNegocioResponse.Metricas(
+                        bd("1000"), bd("200"), bd("100"), bd("700"), bd("50"), bd("20.5"), bd("250"), bd("10")),
+                List.of(new ObtenerPanelNegocioResponse.Semana(
+                        DESDE, HASTA, bd("1000"), bd("300"), bd("700"), bd("700")))));
+    }
+
+    private void cuandoSeRespondeConUnPanelVacio() {
+        panel = mapper.toResponse(new ObtenerPanelNegocioResponse(DESDE, HASTA, 7, false, null, List.of()));
+    }
+
+    private void entoncesElPedidoPara(int dias, ObtenerPanelNegocioRequest esperado) {
+        assertThat(mapper.toRequest(USUARIO_ID, PROYECTO_ID, dias)).isEqualTo(esperado);
+    }
+
+    private void entoncesElPeriodoEs(LocalDate desde, LocalDate hasta, int dias) {
+        assertThat(panel.desde()).isEqualTo(desde);
+        assertThat(panel.hasta()).isEqualTo(hasta);
+        assertThat(panel.dias()).isEqualTo(dias);
+        assertThat(panel.hayDatos()).isTrue();
+    }
+
+    private void entoncesLasMetricasSon(PanelNegocioResponse.Metricas metricas) {
+        assertThat(panel.metricas()).isEqualTo(metricas);
+    }
+
+    private void entoncesLasSemanasSon(PanelNegocioResponse.Semana... semanas) {
+        assertThat(panel.flujoDeCaja()).containsExactly(semanas);
+    }
+
+    private void entoncesElPanelEstaVacio() {
+        assertThat(panel.hayDatos()).isFalse();
+        assertThat(panel.metricas()).isNull();
+        assertThat(panel.flujoDeCaja()).isEmpty();
     }
 }

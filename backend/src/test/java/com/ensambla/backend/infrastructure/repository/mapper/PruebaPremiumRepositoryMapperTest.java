@@ -11,36 +11,67 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class PruebaPremiumRepositoryMapperTest {
 
+    private static final int DIAS_DE_PRUEBA = 7;
+    private static final int PAGINAS_DE_LA_ENTIDAD = 4;
+    private static final int PAGINAS_DEL_DOMINIO = 5;
+
     private final PruebaPremiumRepositoryMapper pruebaPremiumRepositoryMapper = new PruebaPremiumRepositoryMapper();
 
     @Test
     @DisplayName("Convierte todos los campos de la entidad al dominio")
-    void toDomainShouldMapEveryField() {
-        PruebaPremiumEntity entity = PruebaPremiumEntity.builder()
-                .negocioId(NEGOCIO_ID.valor())
-                .inicioEn(INSTANTE)
-                .finEn(INSTANTE.plusDays(7))
-                .paginasIa(4)
-                .build();
+    void unaEntidadSeLeeComoPruebaPremiumConTodosSusDatos() {
+        PruebaPremiumEntity entidad = dadoUnaEntidadDePruebaPremium();
 
-        PruebaPremium result = pruebaPremiumRepositoryMapper.toDomain(entity);
+        PruebaPremium prueba = cuandoSeConvierteEnPrueba(entidad);
 
-        assertThat(result.negocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(result.inicioEn()).isEqualTo(INSTANTE);
-        assertThat(result.finEn()).isEqualTo(INSTANTE.plusDays(7));
-        assertThat(result.paginasIa()).isEqualTo(4);
+        entoncesLaPruebaTieneTodosLosDatosDeLaEntidad(prueba);
     }
 
     @Test
     @DisplayName("Convierte todos los campos del dominio a la entidad")
-    void toEntityShouldMapEveryField() {
-        PruebaPremium prueba = new PruebaPremium(NEGOCIO_ID, INSTANTE, INSTANTE.plusDays(7), 5);
+    void unaPruebaPremiumSeGuardaConTodosSusDatos() {
+        PruebaPremium prueba = dadoUnaPruebaPremium();
 
-        PruebaPremiumEntity result = pruebaPremiumRepositoryMapper.toEntity(prueba);
+        PruebaPremiumEntity entidad = cuandoSeConvierteEnEntidad(prueba);
 
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
-        assertThat(result.getInicioEn()).isEqualTo(INSTANTE);
-        assertThat(result.getFinEn()).isEqualTo(INSTANTE.plusDays(7));
-        assertThat(result.getPaginasIa()).isEqualTo(5);
+        entoncesLaEntidadTieneTodosLosDatosDeLaPrueba(entidad);
+    }
+
+    // --- dado ---
+    private PruebaPremiumEntity dadoUnaEntidadDePruebaPremium() {
+        return PruebaPremiumEntity.builder()
+                .negocioId(NEGOCIO_ID.valor())
+                .inicioEn(INSTANTE)
+                .finEn(INSTANTE.plusDays(DIAS_DE_PRUEBA))
+                .paginasIa(PAGINAS_DE_LA_ENTIDAD)
+                .build();
+    }
+
+    private PruebaPremium dadoUnaPruebaPremium() {
+        return new PruebaPremium(NEGOCIO_ID, INSTANTE, INSTANTE.plusDays(DIAS_DE_PRUEBA), PAGINAS_DEL_DOMINIO);
+    }
+
+    // --- cuando ---
+    private PruebaPremium cuandoSeConvierteEnPrueba(PruebaPremiumEntity entidad) {
+        return pruebaPremiumRepositoryMapper.toDomain(entidad);
+    }
+
+    private PruebaPremiumEntity cuandoSeConvierteEnEntidad(PruebaPremium prueba) {
+        return pruebaPremiumRepositoryMapper.toEntity(prueba);
+    }
+
+    // --- entonces ---
+    private void entoncesLaPruebaTieneTodosLosDatosDeLaEntidad(PruebaPremium prueba) {
+        assertThat(prueba.negocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(prueba.inicioEn()).isEqualTo(INSTANTE);
+        assertThat(prueba.finEn()).isEqualTo(INSTANTE.plusDays(DIAS_DE_PRUEBA));
+        assertThat(prueba.paginasIa()).isEqualTo(PAGINAS_DE_LA_ENTIDAD);
+    }
+
+    private void entoncesLaEntidadTieneTodosLosDatosDeLaPrueba(PruebaPremiumEntity entidad) {
+        assertThat(entidad.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
+        assertThat(entidad.getInicioEn()).isEqualTo(INSTANTE);
+        assertThat(entidad.getFinEn()).isEqualTo(INSTANTE.plusDays(DIAS_DE_PRUEBA));
+        assertThat(entidad.getPaginasIa()).isEqualTo(PAGINAS_DEL_DOMINIO);
     }
 }

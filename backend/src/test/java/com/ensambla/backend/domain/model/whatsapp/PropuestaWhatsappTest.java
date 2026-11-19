@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class PropuestaWhatsappTest {
 
@@ -22,88 +22,208 @@ class PropuestaWhatsappTest {
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-27T12:00:00Z");
     private static final FilaPropuesta FILA = new FilaPropuesta(Map.of("c1", "5000"), Set.of());
 
-    @Test
-    @DisplayName("Pendiente nace abierta, con su tabla y filas, y vence a los 30 minutos")
-    void pendienteShouldBeOpenForThirtyMinutes() {
-        PropuestaWhatsapp propuesta = givenPendiente();
+    private PropuestaWhatsapp propuesta;
+    private BloqueId elegida;
+    private Throwable error;
 
-        assertThat(propuesta.estaAbierta()).isTrue();
-        assertThat(propuesta.estaVigente(AHORA.plusMinutes(29))).isTrue();
-        assertThat(propuesta.estaVigente(AHORA.plusMinutes(30))).isFalse();
-        assertThat(propuesta.getBloqueId()).isEqualTo(GASTOS);
+    @Test
+    @DisplayName("Pendiente nace abierta y con su tabla")
+    void pendienteNaceAbiertaYConSuTabla() {
+        dadoUnaCargaPendiente();
+
+        entoncesEstaAbierta(true);
+        entoncesEsDeLaTabla(GASTOS);
+    }
+
+    @Test
+    @DisplayName("Pendiente sigue vigente a los 29 minutos y vence a los 30")
+    void pendienteVenceALosTreintaMinutos() {
+        dadoUnaCargaPendiente();
+
+        entoncesEstaVigenteA(AHORA.plusMinutes(29), true);
+        entoncesEstaVigenteA(AHORA.plusMinutes(30), false);
     }
 
     @Test
     @DisplayName("Una propuesta ya cerrada no está vigente aunque no haya pasado el tiempo")
-    void estaVigenteShouldBeFalseWhenClosed() {
-        PropuestaWhatsapp propuesta = givenPendiente();
-        propuesta.descartar(AHORA);
+    void unaPropuestaCerradaNoEstaVigente() {
+        dadoUnaCargaPendiente();
+        dadoQueSeDescarto();
 
-        assertThat(propuesta.estaVigente(AHORA.plusMinutes(1))).isFalse();
+        entoncesEstaVigenteA(AHORA.plusMinutes(1), false);
     }
 
     @Test
-    @DisplayName("Elegir devuelve la tabla del número de la lista, que empieza en 1")
-    void elegirShouldReturnTheNumberedTable() {
-        PropuestaWhatsapp propuesta = givenEligiendo();
+    @DisplayName("Elegir 1 devuelve la primera tabla de la lista")
+    void elegirUnoDevuelveLaPrimeraTabla() {
+        dadoUnaCargaEsperandoLaTabla();
 
-        assertThat(propuesta.elegir(1)).isEqualTo(GASTOS);
-        assertThat(propuesta.elegir(2)).isEqualTo(VENTAS);
+        cuandoSeElige(1);
+
+        entoncesSeEligio(GASTOS);
     }
 
     @Test
-    @DisplayName("Elegir un número fuera de la lista, o sin lista, pide elegir de la lista")
-    void elegirShouldRejectOutOfRange() {
-        PropuestaWhatsapp propuesta = givenEligiendo();
+    @DisplayName("Elegir 2 devuelve la segunda tabla de la lista")
+    void elegirDosDevuelveLaSegundaTabla() {
+        dadoUnaCargaEsperandoLaTabla();
 
-        assertThatThrownBy(() -> propuesta.elegir(0)).hasMessage("Elegí un número de la lista");
-        assertThatThrownBy(() -> propuesta.elegir(3)).isInstanceOf(BusinessRuleException.class);
-        assertThatThrownBy(() -> givenPendiente().elegir(1)).isInstanceOf(BusinessRuleException.class);
+        cuandoSeElige(2);
+
+        entoncesSeEligio(VENTAS);
+    }
+
+    @Test
+    @DisplayName("Elegir 0 pide elegir un número de la lista")
+    void elegirCeroPideElegirUnNumeroDeLaLista() {
+        dadoUnaCargaEsperandoLaTabla();
+
+        cuandoSeElige(0);
+
+        entoncesSeRechazaPorque("Elegí un número de la lista");
+    }
+
+    @Test
+    @DisplayName("Elegir un número más grande que la lista se rechaza")
+    void elegirUnNumeroMasGrandeQueLaListaSeRechaza() {
+        dadoUnaCargaEsperandoLaTabla();
+
+        cuandoSeElige(3);
+
+        entoncesSeRechaza();
+    }
+
+    @Test
+    @DisplayName("Elegir en una carga que no tiene lista se rechaza")
+    void elegirEnUnaCargaSinListaSeRechaza() {
+        dadoUnaCargaPendiente();
+
+        cuandoSeElige(1);
+
+        entoncesSeRechaza();
     }
 
     @Test
     @DisplayName("Pasar a pendiente guarda la tabla elegida y las filas")
-    void aPendienteShouldKeepTableAndRows() {
-        PropuestaWhatsapp propuesta = givenEligiendo();
+    void pasarAPendienteGuardaLaTablaYLasFilas() {
+        dadoUnaCargaEsperandoLaTabla();
 
-        propuesta.aPendiente(VENTAS, List.of(FILA));
+        cuandoPasaAPendienteEn(VENTAS);
 
-        assertThat(propuesta.getEstado()).isEqualTo(EstadoPropuestaWhatsapp.PENDIENTE);
-        assertThat(propuesta.getBloqueId()).isEqualTo(VENTAS);
-        assertThat(propuesta.getFilas()).containsExactly(FILA);
+        entoncesQuedaEn(EstadoPropuestaWhatsapp.PENDIENTE);
+        entoncesEsDeLaTabla(VENTAS);
+        entoncesTieneLasFilas(FILA);
     }
 
     @Test
-    @DisplayName("Confirmar, descartar y vencer cierran la propuesta con la hora")
-    void closingShouldRecordStateAndTime() {
-        PropuestaWhatsapp confirmada = givenPendiente();
-        confirmada.confirmar(AHORA);
-        PropuestaWhatsapp descartada = givenPendiente();
-        descartada.descartar(AHORA);
-        PropuestaWhatsapp vencida = givenPendiente();
-        vencida.vencer(AHORA);
+    @DisplayName("Confirmar cierra la propuesta con la hora")
+    void confirmarCierraLaPropuestaConLaHora() {
+        dadoUnaCargaPendiente();
 
-        assertThat(confirmada.getEstado()).isEqualTo(EstadoPropuestaWhatsapp.CONFIRMADA);
-        assertThat(descartada.getEstado()).isEqualTo(EstadoPropuestaWhatsapp.DESCARTADA);
-        assertThat(vencida.getEstado()).isEqualTo(EstadoPropuestaWhatsapp.VENCIDA);
-        assertThat(confirmada.getCerradoEn()).isEqualTo(AHORA);
-        assertThat(confirmada.estaAbierta()).isFalse();
+        cuandoSeConfirma();
+
+        entoncesQuedaEn(EstadoPropuestaWhatsapp.CONFIRMADA);
+        entoncesSeCerroEl(AHORA);
+        entoncesEstaAbierta(false);
+    }
+
+    @Test
+    @DisplayName("Descartar cierra la propuesta como descartada")
+    void descartarCierraLaPropuestaComoDescartada() {
+        dadoUnaCargaPendiente();
+
+        dadoQueSeDescarto();
+
+        entoncesQuedaEn(EstadoPropuestaWhatsapp.DESCARTADA);
+    }
+
+    @Test
+    @DisplayName("Vencer cierra la propuesta como vencida")
+    void vencerCierraLaPropuestaComoVencida() {
+        dadoUnaCargaPendiente();
+
+        cuandoVence();
+
+        entoncesQuedaEn(EstadoPropuestaWhatsapp.VENCIDA);
     }
 
     @Test
     @DisplayName("No se puede confirmar una carga que todavía espera que se elija la tabla")
-    void confirmarShouldRequireATable() {
-        assertThatThrownBy(() -> givenEligiendo().confirmar(AHORA))
-                .hasMessage("Primero elegí la tabla respondiendo con su número");
+    void noSePuedeConfirmarSinElegirLaTabla() {
+        dadoUnaCargaEsperandoLaTabla();
+
+        cuandoSeIntentaConfirmar();
+
+        entoncesSeRechazaPorque("Primero elegí la tabla respondiendo con su número");
     }
 
-    private static PropuestaWhatsapp givenPendiente() {
-        return PropuestaWhatsapp.pendiente(NEGOCIO_ID, "5491122334455", OrigenPropuestaWhatsapp.TEXTO,
+    private void dadoUnaCargaPendiente() {
+        propuesta = PropuestaWhatsapp.pendiente(NEGOCIO_ID, "5491122334455", OrigenPropuestaWhatsapp.TEXTO,
                 "gasté 5000", GASTOS, List.of(FILA), AHORA);
     }
 
-    private static PropuestaWhatsapp givenEligiendo() {
-        return PropuestaWhatsapp.eligiendoTabla(NEGOCIO_ID, "5491122334455", OrigenPropuestaWhatsapp.TEXTO,
+    private void dadoUnaCargaEsperandoLaTabla() {
+        propuesta = PropuestaWhatsapp.eligiendoTabla(NEGOCIO_ID, "5491122334455", OrigenPropuestaWhatsapp.TEXTO,
                 "gasté 5000", null, List.of(GASTOS, VENTAS), AHORA);
+    }
+
+    private void dadoQueSeDescarto() {
+        propuesta.descartar(AHORA);
+    }
+
+    private void cuandoSeElige(int numero) {
+        error = catchThrowable(() -> elegida = propuesta.elegir(numero));
+    }
+
+    private void cuandoPasaAPendienteEn(BloqueId tabla) {
+        propuesta.aPendiente(tabla, List.of(FILA));
+    }
+
+    private void cuandoSeConfirma() {
+        propuesta.confirmar(AHORA);
+    }
+
+    private void cuandoSeIntentaConfirmar() {
+        error = catchThrowable(this::cuandoSeConfirma);
+    }
+
+    private void cuandoVence() {
+        propuesta.vencer(AHORA);
+    }
+
+    private void entoncesEstaAbierta(boolean abierta) {
+        assertThat(propuesta.estaAbierta()).isEqualTo(abierta);
+    }
+
+    private void entoncesEstaVigenteA(OffsetDateTime momento, boolean vigente) {
+        assertThat(propuesta.estaVigente(momento)).isEqualTo(vigente);
+    }
+
+    private void entoncesEsDeLaTabla(BloqueId tabla) {
+        assertThat(propuesta.getBloqueId()).isEqualTo(tabla);
+    }
+
+    private void entoncesSeEligio(BloqueId tabla) {
+        assertThat(elegida).isEqualTo(tabla);
+    }
+
+    private void entoncesSeRechaza() {
+        assertThat(error).isInstanceOf(BusinessRuleException.class);
+    }
+
+    private void entoncesSeRechazaPorque(String mensaje) {
+        assertThat(error).hasMessage(mensaje);
+    }
+
+    private void entoncesQuedaEn(EstadoPropuestaWhatsapp estado) {
+        assertThat(propuesta.getEstado()).isEqualTo(estado);
+    }
+
+    private void entoncesTieneLasFilas(FilaPropuesta... filas) {
+        assertThat(propuesta.getFilas()).containsExactly(filas);
+    }
+
+    private void entoncesSeCerroEl(OffsetDateTime momento) {
+        assertThat(propuesta.getCerradoEn()).isEqualTo(momento);
     }
 }

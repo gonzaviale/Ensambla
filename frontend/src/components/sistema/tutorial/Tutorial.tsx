@@ -59,7 +59,7 @@ export function Tutorial() {
         style={{ width: cartel.width, left: cartel.left, top: cartel.top }}
       >
         <div className="tour-coach-top">
-          <span>GUÍA DE TU PRIMER CUADERNO</span>
+          <span>GUÍA DE TU PRIMERA SECCIÓN</span>
           <button type="button" aria-label="Salir del tutorial" onClick={salirDelTutorial}>
             <Icon name="close" />
           </button>

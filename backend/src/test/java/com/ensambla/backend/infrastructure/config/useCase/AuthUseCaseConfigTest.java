@@ -19,32 +19,36 @@ class AuthUseCaseConfigTest {
     private final AuthUseCaseConfig config = new AuthUseCaseConfig();
 
     @Test
-    @DisplayName("Configura un reloj UTC y el caso de registro")
-    void registrarUsuarioUseCaseShouldWireDependencies() {
-        var result = config.registrarUsuario(mock(UsuarioRepository.class), mock(NegocioRepository.class),
-                mock(PlanRepository.class), mock(SuscripcionRepository.class), mock(ContraseniaPort.class),
-                new TransaccionDirecta(), config.clock());
+    @DisplayName("Configura un reloj UTC")
+    void configuraUnRelojUtc() {
+        entoncesElRelojEsDeLaZona(ZoneOffset.UTC);
+    }
 
-        assertThat(result).isNotNull();
-        assertThat(config.clock().getZone()).isEqualTo(ZoneOffset.UTC);
+    @Test
+    @DisplayName("Configura el caso de registro")
+    void configuraElCasoDeRegistro() {
+        entoncesSeArmo(config.registrarUsuario(mock(UsuarioRepository.class), mock(NegocioRepository.class),
+                mock(PlanRepository.class), mock(SuscripcionRepository.class), mock(ContraseniaPort.class),
+                new TransaccionDirecta(), config.clock()));
     }
 
     @Test
     @DisplayName("Configura el caso de inicio de sesión")
-    void iniciarSesionUseCaseShouldWireDependencies() {
-        var result = config.iniciarSesion(mock(UsuarioRepository.class), mock(ContraseniaPort.class));
-
-        assertThat(result).isNotNull();
+    void configuraElCasoDeInicioDeSesion() {
+        entoncesSeArmo(config.iniciarSesion(mock(UsuarioRepository.class), mock(ContraseniaPort.class)));
     }
 
     @Test
     @DisplayName("Configura el caso de consulta de sesión")
-    void obtenerSesionUseCaseShouldWireDependencies() {
-        UsuarioRepository usuarioRepository = mock(UsuarioRepository.class);
+    void configuraElCasoDeConsultaDeSesion() {
+        entoncesSeArmo(config.obtenerSesion(mock(UsuarioRepository.class)));
+    }
 
-        var result = config.obtenerSesion(usuarioRepository);
+    private void entoncesElRelojEsDeLaZona(ZoneOffset zona) {
+        assertThat(config.clock().getZone()).isEqualTo(zona);
+    }
 
-        assertThat(result).isNotNull();
+    private static void entoncesSeArmo(Object casoDeUso) {
+        assertThat(casoDeUso).isNotNull();
     }
 }
-

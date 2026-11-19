@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.model.precio.CambioPrecio;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
+import com.ensambla.backend.support.AccionesDePrueba;
 import com.ensambla.backend.support.AvisoTestData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -60,19 +61,8 @@ class ReglaRevisarPrecioTrasAumentoTest {
 
         assertThat(resultados).singleElement().satisfies(resultado -> {
             assertThat(resultado.acciones()).hasSize(2);
-            assertThat(resultado.acciones().get(0)).isEqualTo(Map.of(
-                    "tipo", "EDITAR_REGISTRO",
-                    "texto", "Volver a $1.000",
-                    "proyectoId", AvisoTestData.PROYECTO_ID.toString(),
-                    "bloqueId", AvisoTestData.INVENTARIO_ID.toString(),
-                    "registroId", YERBA_ID.toString(),
-                    "valores", Map.of("price", new BigDecimal("1000"))));
-            assertThat(resultado.acciones().get(1)).isEqualTo(Map.of(
-                    "tipo", "ABRIR",
-                    "texto", "Ver producto",
-                    "proyectoId", AvisoTestData.PROYECTO_ID.toString(),
-                    "bloqueId", AvisoTestData.INVENTARIO_ID.toString(),
-                    "registroId", YERBA_ID.toString()));
+            assertThat(resultado.acciones().get(0)).isEqualTo(AccionesDePrueba.cambiarPrecio("Volver a $1.000", YERBA_ID, "1000"));
+            assertThat(resultado.acciones().get(1)).isEqualTo(AccionesDePrueba.abrirProducto(YERBA_ID));
         });
     }
 

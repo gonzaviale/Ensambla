@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.model.aviso;
 
+import com.ensambla.backend.domain.model.common.ValorDeRegistro;
 import com.ensambla.backend.domain.model.zona.AgregadoZonaProducto;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
 import com.ensambla.backend.domain.model.zona.NombreDeProducto;
@@ -33,6 +34,9 @@ public class ReglaProductoDeLaZona implements ReglaAviso {
 
     private static final short PRIORIDAD = 1;
     private static final int STOCK_MINIMO_SUGERIDO = 5;
+    private static final List<Object> MOTIVOS = List.of(
+            "Es un dato agregado de varios comercios de tu zona: nadie queda identificado.",
+            "Lo cruzamos con tu inventario y no encontramos nada parecido.");
 
     private final BigDecimal popularidadMinima;
 
@@ -49,22 +53,31 @@ public class ReglaProductoDeLaZona implements ReglaAviso {
             return List.of();
         }
         BloqueInventario destino = contexto.inventarios().getFirst();
+        return productosQueLeFaltan(contexto).stream()
+                .map(producto -> resultado(destino, producto, contexto.zona()))
+                .toList();
+    }
+
+    private List<AgregadoZonaProducto> productosQueLeFaltan(ContextoNegocio contexto) {
         List<String> tuyos = nombresDelInventario(contexto.inventarios());
         AnalisisZona zona = contexto.zona();
         return zona.masVendidos().stream()
                 .filter(producto -> esPopular(producto, zona))
-                .filter(producto -> tuyos.stream().noneMatch(nombre -> NombreDeProducto.esElMismo(nombre, producto.nombre())))
+                .filter(producto -> noLoTiene(tuyos, producto))
                 .limit(maximo)
-                .map(producto -> resultado(destino, producto, zona))
                 .toList();
+    }
+
+    private static boolean noLoTiene(List<String> tuyos, AgregadoZonaProducto producto) {
+        return tuyos.stream().noneMatch(nombre -> NombreDeProducto.esElMismo(nombre, producto.nombre()));
     }
 
     private static List<String> nombresDelInventario(List<BloqueInventario> inventarios) {
         return inventarios.stream()
                 .flatMap(inventario -> inventario.registros().stream()
-                        .map(registro -> inventario.valorDe(registro, CLAVE_NOMBRE)))
-                .filter(nombre -> nombre instanceof String texto && !texto.isBlank())
-                .map(String.class::cast)
+                        .map(registro -> ValorDeRegistro.de(inventario.valorDe(registro, CLAVE_NOMBRE))))
+                .filter(ValorDeRegistro::tieneTexto)
+                .map(ValorDeRegistro::comoTexto)
                 .toList();
     }
 
@@ -76,23 +89,36 @@ public class ReglaProductoDeLaZona implements ReglaAviso {
 
     private ResultadoRegla resultado(BloqueInventario destino, AgregadoZonaProducto producto, AnalisisZona zona) {
         BigDecimal sugerido = aDiez(producto.precioPromedio());
-        // Sólo el nombre y el precio sugerido: la cantidad de comercios y las unidades cambian todo el tiempo.
-        Map<String, Object> datos = new LinkedHashMap<>();
-        datos.put("nombre", producto.nombre());
-        datos.put("precio", sugerido);
         return new ResultadoRegla(
                 destino.bloque().getProyectoId(),
                 ResultadoRegla.entidadDeZona(producto.nombre()),
                 PRIORIDAD,
                 "En tu zona se vende " + producto.nombre() + " y no lo tenés",
-                producto.comerciosVenden() + " de " + zona.comercios() + " comercios lo venden, a "
-                        + pesos(producto.precioPromedio()) + " en promedio. Cada uno vende unas "
-                        + texto(producto.unidadesSemana()) + " unidades por semana.",
-                datos,
-                List.of("Es un dato agregado de varios comercios de tu zona: nadie queda identificado.",
-                        "Lo cruzamos con tu inventario y no encontramos nada parecido."),
-                List.of(AccionesAviso.crearRegistro(destino, "Sumar a mi inventario", valoresDelProducto(producto, sugerido)),
-                        AccionesAviso.verZona("Ver en Mi zona", producto.nombre())));
+                detalle(producto, zona),
+                datos(producto, sugerido),
+                MOTIVOS,
+                acciones(destino, producto, sugerido));
+    }
+
+    private static String detalle(AgregadoZonaProducto producto, AnalisisZona zona) {
+        return producto.comerciosVenden() + " de " + zona.comercios() + " comercios lo venden, a "
+                + pesos(producto.precioPromedio()) + " en promedio. Cada uno vende unas "
+                + texto(producto.unidadesSemana()) + " unidades por semana.";
+    }
+
+    /** Sólo el nombre y el precio sugerido: la cantidad de comercios y las unidades cambian todo el tiempo. */
+    private static Map<String, Object> datos(AgregadoZonaProducto producto, BigDecimal sugerido) {
+        Map<String, Object> datos = new LinkedHashMap<>();
+        datos.put("nombre", producto.nombre());
+        datos.put("precio", sugerido);
+        return datos;
+    }
+
+    private static List<AccionDeAviso> acciones(
+            BloqueInventario destino, AgregadoZonaProducto producto, BigDecimal sugerido) {
+        return List.of(
+                AccionesAviso.crearRegistro(destino, "Sumar a mi inventario", valoresDelProducto(producto, sugerido)),
+                AccionesAviso.verZona("Ver en Mi zona", producto.nombre()));
     }
 
     private static Map<String, Object> valoresDelProducto(AgregadoZonaProducto producto, BigDecimal sugerido) {

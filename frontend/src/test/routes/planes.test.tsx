@@ -34,12 +34,26 @@ describe('planes y activación de prueba', () => {
     const premium = screen.getByRole('article', { name: 'Plan Premium' });
     const gratuito = screen.getByRole('article', { name: 'Plan Gratuito' });
     expect(within(gratuito).getByText('1.000')).toBeVisible();
-    expect(within(gratuito).getByText('Sin costo')).toBeVisible();
+    expect(within(gratuito).queryByText('Sin costo')).toBeNull();
     expect(within(premium).getByText('100')).toBeVisible();
     expect(within(premium).getByText(/14\.900/)).toBeVisible();
     expect(within(premium).getByText('Cada 30 días · renovación automática')).toBeVisible();
     expect(botonPrueba()).toBeEnabled();
     expect(document.title).toBe('Planes · Ensambla');
+  });
+
+  it('dice cuántos negocios deja tener cada plan y que el plan es de la cuenta', async () => {
+    setupUsuarioConSesion();
+    renderApp('/planes');
+    await esperarGratuito();
+
+    const premium = screen.getByRole('article', { name: 'Plan Premium' });
+    const gratuito = screen.getByRole('article', { name: 'Plan Gratuito' });
+    expect(within(gratuito).getByText('1 negocio')).toBeVisible();
+    expect(within(premium).getAllByText('Sin límite')[0]).toBeVisible();
+    expect(
+      screen.getByText('El plan es de tu cuenta y vale para todos tus negocios.'),
+    ).toBeVisible();
   });
 
   it('se puede entrar desde la navegación principal', async () => {
@@ -107,7 +121,7 @@ describe('planes y activación de prueba', () => {
     expect(csrf).toBe('csrf-token-de-prueba');
     expect(cuerpo).toBe('');
     expect(screen.getByRole('button', { name: 'Prueba activa' })).toBeDisabled();
-    expect(screen.getByText(/Los diez análisis de foto son para toda la prueba/)).toBeVisible();
+    expect(screen.getByText(/Los 10 análisis de foto valen para toda la prueba/)).toBeVisible();
     expect(document.getElementById('main')).toHaveFocus();
   });
 
@@ -120,7 +134,9 @@ describe('planes y activación de prueba', () => {
 
     expect(screen.getByText(/Usaste los análisis de foto incluidos/)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Prueba activa' })).toBeDisabled();
-    expect(screen.getByRole('progressbar', { name: 'Análisis de foto de la prueba' })).toHaveValue(10);
+    expect(screen.getByRole('progressbar', { name: 'Análisis de foto de la prueba' })).toHaveValue(
+      10,
+    );
   });
 
   it('muestra la prueba finalizada, conserva los datos y no ofrece reiniciarla', async () => {
@@ -132,7 +148,7 @@ describe('planes y activación de prueba', () => {
 
     expect(screen.getByText(/Tu prueba terminó/)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Prueba ya utilizada' })).toBeDisabled();
-    expect(screen.getByText(/conservás tus cuadernos, registros y recetas/)).toBeVisible();
+    expect(screen.getByText(/conservás tus secciones, registros y recetas/)).toBeVisible();
   });
 
   it('muestra premium vigente con cien páginas y sin ofrecer otra prueba', async () => {
@@ -150,10 +166,9 @@ describe('planes y activación de prueba', () => {
     await screen.findByRole('heading', { name: 'Premium, tu espacio actual' }, ESPERA);
 
     expect(screen.getByRole('button', { name: 'Premium activo' })).toBeDisabled();
-    expect(screen.getByRole('progressbar', { name: 'Análisis de foto de este mes' })).toHaveAttribute(
-      'max',
-      '100',
-    );
+    expect(
+      screen.getByRole('progressbar', { name: 'Análisis de foto de este mes' }),
+    ).toHaveAttribute('max', '100');
   });
 
   it('un error inicial permite reintentar sin mostrar un plan inventado', async () => {
@@ -182,7 +197,7 @@ describe('planes y activación de prueba', () => {
             timestamp: new Date().toISOString(),
             status: 403,
             error: 'Forbidden',
-            message: 'Este negocio ya utilizó su prueba premium.',
+            message: 'Esta cuenta ya utilizó su prueba premium.',
             path: '/api/planes/prueba',
             traceId: 'rechazo',
             codigo: 'PRUEBA_UTILIZADA',

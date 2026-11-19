@@ -25,7 +25,7 @@ public record TextoMiniObjetivo(String titulo, String justificacion) {
     public static TextoMiniObjetivo moverParado(
             String producto, BigDecimal stock, BigDecimal capital, BigDecimal rebaja, BigDecimal unidadesPorSemana) {
         return new TextoMiniObjetivo(
-                "Mové «" + producto + "»",
+                "Volvé a vender «" + producto + "»",
                 "En el último mes no se vendió y tenés " + numero(stock) + " guardados (" + pesos(capital)
                         + " en mercadería). Bajale " + pesos(rebaja) + " y apuntá a " + numero(unidadesPorSemana)
                         + " por semana.");

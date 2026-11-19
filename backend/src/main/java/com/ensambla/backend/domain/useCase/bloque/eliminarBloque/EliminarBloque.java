@@ -2,8 +2,10 @@ package com.ensambla.backend.domain.useCase.bloque.eliminarBloque;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
@@ -25,24 +27,47 @@ public class EliminarBloque {
     private final TransaccionPort transaccionPort;
 
     public void execute(EliminarBloqueRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        Bloque bloque = bloqueRepository.obtener(request.bloqueId(), negocioId);
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+        Bloque bloque = obtenerBloque(request.bloqueId(), negocioId);
+        eliminarEnTransaccion(bloque);
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private Bloque obtenerBloque(BloqueId bloqueId, NegocioId negocioId) {
+        return bloqueRepository.obtener(bloqueId, negocioId);
+    }
+
+    private void eliminarEnTransaccion(Bloque bloque) {
         transaccionPort.ejecutar(() -> eliminar(bloque));
     }
 
     private void eliminar(Bloque bloque) {
         validarSinConexionesHacia(bloque);
-        bloqueRepository.deleteByIdAndNegocioId(bloque.getId(), bloque.getNegocioId());
+        borrar(bloque);
     }
 
     private void validarSinConexionesHacia(Bloque bloque) {
-        List<Campo> conexiones = campoRepository.findRelacionesHacia(bloque.getId(), bloque.getNegocioId());
+        List<Campo> conexiones = buscarConexionesHacia(bloque);
         if (conexiones.isEmpty()) {
             return;
         }
-        Campo campo = conexiones.getFirst();
-        Bloque otro = bloqueRepository.obtener(campo.getBloqueId(), bloque.getNegocioId());
-        throw new BusinessRuleException("La tabla «" + bloque.getNombre() + "» se usa en la columna «"
-                + campo.getNombre() + "» de «" + otro.getNombre() + "»");
+        throw bloqueEnUso(bloque, conexiones.getFirst());
+    }
+
+    private List<Campo> buscarConexionesHacia(Bloque bloque) {
+        return campoRepository.findRelacionesHacia(bloque.getId(), bloque.getNegocioId());
+    }
+
+    private BusinessRuleException bloqueEnUso(Bloque bloque, Campo conexion) {
+        Bloque otro = obtenerBloque(conexion.getBloqueId(), bloque.getNegocioId());
+        return new BusinessRuleException("La tabla «" + bloque.getNombre() + "» se usa en la columna «"
+                + conexion.getNombre() + "» de «" + otro.getNombre() + "»");
+    }
+
+    private void borrar(Bloque bloque) {
+        bloqueRepository.deleteByIdAndNegocioId(bloque.getId(), bloque.getNegocioId());
     }
 }

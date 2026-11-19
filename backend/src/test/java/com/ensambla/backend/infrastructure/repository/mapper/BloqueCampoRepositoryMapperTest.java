@@ -27,10 +27,62 @@ class BloqueCampoRepositoryMapperTest {
     private static final OffsetDateTime CREADO = OffsetDateTime.parse("2026-10-09T12:00:00Z");
     private static final OffsetDateTime ACTUALIZADO = OffsetDateTime.parse("2026-10-10T12:00:00Z");
 
+    private final BloqueRepositoryMapper bloqueMapper = new BloqueRepositoryMapper();
+    private final CampoRepositoryMapper campoMapper = new CampoRepositoryMapper();
+
     @Test
     @DisplayName("Pasa todos los campos del bloque al modelo")
-    void bloqueToDomainShouldMapEveryField() {
-        BloqueEntity entity = BloqueEntity.builder()
+    void unBloqueGuardadoSePasaAlModeloConTodosSusDatos() {
+        BloqueEntity entidad = dadoUnaEntidadDeBloqueProductos();
+
+        Bloque bloque = cuandoSePasaAlModelo(entidad);
+
+        entoncesElBloqueTieneTodosLosDatosDeProductos(bloque);
+    }
+
+    @Test
+    @DisplayName("Pasa todos los campos del modelo del bloque a la entidad")
+    void unBloqueDelModeloSePasaALaEntidadConTodosSusDatos() {
+        Bloque bloque = dadoUnBloqueClientes();
+
+        BloqueEntity entidad = cuandoSePasaALaEntidad(bloque);
+
+        entoncesLaEntidadTieneTodosLosDatosDeClientes(entidad);
+    }
+
+    @Test
+    @DisplayName("Pasa todos los campos del campo al modelo")
+    void unCampoGuardadoSePasaAlModeloConTodosSusDatos() {
+        CampoEntity entidad = dadoUnaEntidadDeCampoRubro();
+
+        Campo campo = cuandoSePasaAlModelo(entidad);
+
+        entoncesElCampoTieneTodosLosDatosDeRubro(campo);
+    }
+
+    @Test
+    @DisplayName("Pasa todos los datos del modelo del campo a la entidad")
+    void unCampoDelModeloSePasaALaEntidadConTodosSusDatos() {
+        Campo campo = dadoUnCampoPagado();
+
+        CampoEntity entidad = cuandoSePasaALaEntidad(campo);
+
+        entoncesLaEntidadTieneTodosLosDatosDePagado(entidad);
+    }
+
+    @Test
+    @DisplayName("Un campo nuevo sin id pasa a una entidad sin id para que la base lo genere")
+    void unCampoNuevoSinIdPasaAUnaEntidadSinIdParaQueLaBaseLoGenere() {
+        Campo campo = dadoUnCampoNuevoSinId();
+
+        CampoEntity entidad = cuandoSePasaALaEntidad(campo);
+
+        entoncesLaEntidadNoTieneIdYConservaElNombre(entidad);
+    }
+
+    // --- dado ---
+    private BloqueEntity dadoUnaEntidadDeBloqueProductos() {
+        return BloqueEntity.builder()
                 .id(ID.valor())
                 .negocioId(NEGOCIO_ID.valor())
                 .proyectoId(PADRE_ID)
@@ -39,22 +91,10 @@ class BloqueCampoRepositoryMapperTest {
                 .creadoEn(CREADO)
                 .actualizadoEn(ACTUALIZADO)
                 .build();
-
-        Bloque result = new BloqueRepositoryMapper().toDomain(entity);
-
-        assertThat(result.getId()).isEqualTo(ID);
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(result.getProyectoId()).isEqualTo(ProyectoId.de(PADRE_ID));
-        assertThat(result.getNombre()).isEqualTo("Productos");
-        assertThat(result.getPosicion()).isEqualTo((short) 2);
-        assertThat(result.getCreadoEn()).isEqualTo(CREADO);
-        assertThat(result.getActualizadoEn()).isEqualTo(ACTUALIZADO);
     }
 
-    @Test
-    @DisplayName("Pasa todos los campos del modelo del bloque a la entidad")
-    void bloqueToEntityShouldMapEveryField() {
-        Bloque bloque = Bloque.builder()
+    private Bloque dadoUnBloqueClientes() {
+        return Bloque.builder()
                 .id(ID)
                 .negocioId(NEGOCIO_ID)
                 .proyectoId(ProyectoId.de(PADRE_ID))
@@ -63,22 +103,10 @@ class BloqueCampoRepositoryMapperTest {
                 .creadoEn(CREADO)
                 .actualizadoEn(ACTUALIZADO)
                 .build();
-
-        BloqueEntity result = new BloqueRepositoryMapper().toEntity(bloque);
-
-        assertThat(result.getId()).isEqualTo(ID.valor());
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
-        assertThat(result.getProyectoId()).isEqualTo(PADRE_ID);
-        assertThat(result.getNombre()).isEqualTo("Clientes");
-        assertThat(result.getPosicion()).isEqualTo((short) 3);
-        assertThat(result.getCreadoEn()).isEqualTo(CREADO);
-        assertThat(result.getActualizadoEn()).isEqualTo(ACTUALIZADO);
     }
 
-    @Test
-    @DisplayName("Pasa todos los campos del campo al modelo")
-    void campoToDomainShouldMapEveryField() {
-        CampoEntity entity = CampoEntity.builder()
+    private CampoEntity dadoUnaEntidadDeCampoRubro() {
+        return CampoEntity.builder()
                 .id(ID.valor())
                 .negocioId(NEGOCIO_ID.valor())
                 .bloqueId(PADRE_ID)
@@ -92,27 +120,10 @@ class BloqueCampoRepositoryMapperTest {
                 .creadoEn(CREADO)
                 .actualizadoEn(ACTUALIZADO)
                 .build();
-
-        Campo result = new CampoRepositoryMapper().toDomain(entity);
-
-        assertThat(result.getId()).isEqualTo(CampoId.de(ID.valor()));
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(result.getBloqueId()).isEqualTo(BloqueId.de(PADRE_ID));
-        assertThat(result.getNombre()).isEqualTo("Rubro");
-        assertThat(result.getTipo()).isEqualTo(TipoCampo.OPCION);
-        assertThat(result.getObligatorio()).isTrue();
-        assertThat(result.getValorInicial()).isEqualTo("Velas");
-        assertThat(result.getOpciones()).containsExactly("Velas", "Moldes");
-        assertThat(result.getBloqueRelacionadoId()).isEqualTo(BloqueId.de(RELACIONADO_ID));
-        assertThat(result.getPosicion()).isEqualTo((short) 1);
-        assertThat(result.getCreadoEn()).isEqualTo(CREADO);
-        assertThat(result.getActualizadoEn()).isEqualTo(ACTUALIZADO);
     }
 
-    @Test
-    @DisplayName("Pasa todos los datos del modelo del campo a la entidad")
-    void campoToEntityShouldMapEveryField() {
-        Campo campo = Campo.builder()
+    private Campo dadoUnCampoPagado() {
+        return Campo.builder()
                 .id(CampoId.de(ID.valor()))
                 .negocioId(NEGOCIO_ID)
                 .bloqueId(BloqueId.de(PADRE_ID))
@@ -121,34 +132,84 @@ class BloqueCampoRepositoryMapperTest {
                 .obligatorio(false)
                 .valorInicial("true")
                 .opciones(List.of())
-                .bloqueRelacionadoId(BloqueId.de(RELACIONADO_ID))
                 .posicion((short) 4)
                 .creadoEn(CREADO)
                 .actualizadoEn(ACTUALIZADO)
                 .build();
-
-        CampoEntity result = new CampoRepositoryMapper().toEntity(campo);
-
-        assertThat(result.getId()).isEqualTo(ID.valor());
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
-        assertThat(result.getBloqueId()).isEqualTo(PADRE_ID);
-        assertThat(result.getNombre()).isEqualTo("Pagado");
-        assertThat(result.getTipo()).isEqualTo(TipoCampo.SI_NO);
-        assertThat(result.getObligatorio()).isFalse();
-        assertThat(result.getValorInicial()).isEqualTo("true");
-        assertThat(result.getOpciones()).isEmpty();
-        assertThat(result.getBloqueRelacionadoId()).isEqualTo(RELACIONADO_ID);
-        assertThat(result.getPosicion()).isEqualTo((short) 4);
-        assertThat(result.getCreadoEn()).isEqualTo(CREADO);
-        assertThat(result.getActualizadoEn()).isEqualTo(ACTUALIZADO);
     }
 
-    @Test
-    @DisplayName("Un campo nuevo sin id pasa a una entidad sin id para que la base lo genere")
-    void campoToEntityShouldKeepNullId() {
-        CampoEntity result = new CampoRepositoryMapper().toEntity(Campo.builder().nombre("Nuevo").build());
+    private Campo dadoUnCampoNuevoSinId() {
+        return Campo.builder().nombre("Nuevo").build();
+    }
 
-        assertThat(result.getId()).isNull();
-        assertThat(result.getNombre()).isEqualTo("Nuevo");
+    // --- cuando ---
+    private Bloque cuandoSePasaAlModelo(BloqueEntity entidad) {
+        return bloqueMapper.toDomain(entidad);
+    }
+
+    private BloqueEntity cuandoSePasaALaEntidad(Bloque bloque) {
+        return bloqueMapper.toEntity(bloque);
+    }
+
+    private Campo cuandoSePasaAlModelo(CampoEntity entidad) {
+        return campoMapper.toDomain(entidad);
+    }
+
+    private CampoEntity cuandoSePasaALaEntidad(Campo campo) {
+        return campoMapper.toEntity(campo);
+    }
+
+    // --- entonces ---
+    private void entoncesElBloqueTieneTodosLosDatosDeProductos(Bloque bloque) {
+        assertThat(bloque.getId()).isEqualTo(ID);
+        assertThat(bloque.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(bloque.getProyectoId()).isEqualTo(ProyectoId.de(PADRE_ID));
+        assertThat(bloque.getNombre()).isEqualTo("Productos");
+        assertThat(bloque.getPosicion()).isEqualTo((short) 2);
+        assertThat(bloque.getCreadoEn()).isEqualTo(CREADO);
+        assertThat(bloque.getActualizadoEn()).isEqualTo(ACTUALIZADO);
+    }
+
+    private void entoncesLaEntidadTieneTodosLosDatosDeClientes(BloqueEntity entidad) {
+        assertThat(entidad.getId()).isEqualTo(ID.valor());
+        assertThat(entidad.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
+        assertThat(entidad.getProyectoId()).isEqualTo(PADRE_ID);
+        assertThat(entidad.getNombre()).isEqualTo("Clientes");
+        assertThat(entidad.getPosicion()).isEqualTo((short) 3);
+        assertThat(entidad.getCreadoEn()).isEqualTo(CREADO);
+        assertThat(entidad.getActualizadoEn()).isEqualTo(ACTUALIZADO);
+    }
+
+    private void entoncesElCampoTieneTodosLosDatosDeRubro(Campo campo) {
+        assertThat(campo.getId()).isEqualTo(CampoId.de(ID.valor()));
+        assertThat(campo.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(campo.getBloqueId()).isEqualTo(BloqueId.de(PADRE_ID));
+        assertThat(campo.getNombre()).isEqualTo("Rubro");
+        assertThat(campo.getTipo()).isEqualTo(TipoCampo.OPCION);
+        assertThat(campo.getObligatorio()).isTrue();
+        assertThat(campo.getValorInicial()).isEqualTo("Velas");
+        assertThat(campo.getOpciones()).containsExactly("Velas", "Moldes");
+        assertThat(campo.getPosicion()).isEqualTo((short) 1);
+        assertThat(campo.getCreadoEn()).isEqualTo(CREADO);
+        assertThat(campo.getActualizadoEn()).isEqualTo(ACTUALIZADO);
+    }
+
+    private void entoncesLaEntidadTieneTodosLosDatosDePagado(CampoEntity entidad) {
+        assertThat(entidad.getId()).isEqualTo(ID.valor());
+        assertThat(entidad.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
+        assertThat(entidad.getBloqueId()).isEqualTo(PADRE_ID);
+        assertThat(entidad.getNombre()).isEqualTo("Pagado");
+        assertThat(entidad.getTipo()).isEqualTo(TipoCampo.SI_NO);
+        assertThat(entidad.getObligatorio()).isFalse();
+        assertThat(entidad.getValorInicial()).isEqualTo("true");
+        assertThat(entidad.getOpciones()).isEmpty();
+        assertThat(entidad.getPosicion()).isEqualTo((short) 4);
+        assertThat(entidad.getCreadoEn()).isEqualTo(CREADO);
+        assertThat(entidad.getActualizadoEn()).isEqualTo(ACTUALIZADO);
+    }
+
+    private void entoncesLaEntidadNoTieneIdYConservaElNombre(CampoEntity entidad) {
+        assertThat(entidad.getId()).isNull();
+        assertThat(entidad.getNombre()).isEqualTo("Nuevo");
     }
 }

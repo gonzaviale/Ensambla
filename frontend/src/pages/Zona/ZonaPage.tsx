@@ -4,8 +4,6 @@ import { Link } from '@tanstack/react-router';
 import { Btn } from '@/components/sistema/Btn';
 import { Icon } from '@/components/sistema/Icon';
 import { PageFooter } from '@/components/sistema/PageFooter';
-import { BuscadorDireccion } from '@/components/sistema/ubicacion/BuscadorDireccion';
-import { MapaUbicacion } from '@/components/sistema/ubicacion/MapaUbicacion';
 import { ResumenFrenteALaZona } from '@/components/sistema/zona/ResumenFrenteALaZona';
 import { TarjetaDePrecio } from '@/components/sistema/zona/TarjetaDePrecio';
 import { varsDeColor } from '@/components/sistema/colores';
@@ -20,16 +18,14 @@ import {
 } from '@/lib/sistema/zona';
 import { useAccionesDeAvisos } from '@/hooks/avisos/useAccionesDeAvisos';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
-import { useAnalisisDeOtraZona } from '@/hooks/zona/useAnalisisDeOtraZona';
 import { useZona, useZonaDeLoQueSeVende } from '@/hooks/zona/queries';
-import { useSistemaStore } from '@/stores/sistemaStore';
+import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
 
-type Vista = 'precios' | 'cerca' | 'otra';
+type Vista = 'precios' | 'cerca';
 
-const VISTAS: { clave: Vista; etiqueta: string; icono: 'chart' | 'orders' | 'search' }[] = [
+const VISTAS: { clave: Vista; etiqueta: string; icono: 'chart' | 'orders' }[] = [
   { clave: 'precios', etiqueta: 'Precios', icono: 'chart' },
   { clave: 'cerca', etiqueta: 'Qué se vende cerca', icono: 'orders' },
-  { clave: 'otra', etiqueta: 'Otra zona', icono: 'search' },
 ];
 
 const TITULOS: Record<Vista, { titulo: ReactNode; texto: string }> = {
@@ -51,17 +47,6 @@ const TITULOS: Record<Vista, { titulo: ReactNode; texto: string }> = {
       </>
     ),
     texto: 'Lo que más sale cerca. Sumá lo que te falte.',
-  },
-  otra: {
-    titulo: (
-      <>
-        Probá con otra zona.
-        <br />
-        Para decidir dónde abrir o a quién mirar.
-      </>
-    ),
-    texto:
-      'Buscá un barrio o una dirección y ajustá el punto en el mapa para ver el mismo análisis.',
   },
 };
 
@@ -88,48 +73,45 @@ function SinDatosSuficientes({ zona }: { zona: Zona }) {
 export function ZonaPage() {
   useTituloPagina('Mi zona');
   const zona = useZona();
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
+  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
   const [vista, setVista] = useState<Vista>('precios');
   const propios = useMemo(() => productosPropios(sistemas), [sistemas]);
   const { titulo, texto } = TITULOS[vista];
 
   return (
     <main id="main" tabIndex={-1} className="page-wrap zona-page reveal">
-        <Link className="text-link" to="/ubicacion">
-          Probar ubicación y rubro de mi comercio
-        </Link>
-        <div className="zona-cabeza">
-          <div className="page-title">
-            <div className="eyebrow">
-              DATOS DE {zona.nombre ? zona.nombre.toUpperCase() : 'TU ZONA'}
-            </div>
-            <h1>{titulo}</h1>
-            <p>{texto}</p>
-          </div>
-          <div className="zona-vistas" role="tablist" aria-label="Qué querés ver">
-            {VISTAS.map(({ clave, etiqueta, icono }) => (
-              <button
-                key={clave}
-                type="button"
-                role="tab"
-                aria-selected={vista === clave}
-                className={vista === clave ? 'active' : ''}
-                onClick={() => setVista(clave)}
-              >
-                <Icon name={icono} /> {etiqueta}
-              </button>
-            ))}
-          </div>
+      <Link className="text-link" to="/ubicacion">
+        Probar ubicación y rubro de mi comercio
+      </Link>
+      <div className="zona-cabeza">
+        <div className="page-title">
+          <div className="eyebrow">Datos de {zona.nombre || 'tu zona'}</div>
+          <h1>{titulo}</h1>
+          <p>{texto}</p>
         </div>
-        {vista === 'precios' && (
-          <>
-            <VistaDePrecios zona={zona} propios={propios} titulo={`Precios en ${zona.nombre}`} />
-            <ContenidoPremium acceso={zona.acceso} recurso="recomendaciones" compacto />
-          </>
-        )}
-        {vista === 'cerca' && <VistaDeLoQueSeVende zona={zona} />}
-        {vista === 'otra' && <VistaDeOtraZona />}
-        <PageFooter />
+        <div className="zona-vistas" role="tablist" aria-label="Qué querés ver">
+          {VISTAS.map(({ clave, etiqueta, icono }) => (
+            <button
+              key={clave}
+              type="button"
+              role="tab"
+              aria-selected={vista === clave}
+              className={vista === clave ? 'active' : ''}
+              onClick={() => setVista(clave)}
+            >
+              <Icon name={icono} /> {etiqueta}
+            </button>
+          ))}
+        </div>
+      </div>
+      {vista === 'precios' && (
+        <>
+          <VistaDePrecios zona={zona} propios={propios} titulo={`Precios en ${zona.nombre}`} />
+          <ContenidoPremium acceso={zona.acceso} recurso="recomendaciones" compacto />
+        </>
+      )}
+      {vista === 'cerca' && <VistaDeLoQueSeVende zona={zona} />}
+      <PageFooter />
     </main>
   );
 }
@@ -201,7 +183,7 @@ function VistaDePrecios({
 // `zona` es la de «Precios» (primero lo que ya tenés): sirve para el resumen lateral, que compara tus precios. La lista
 // sale de la zona de esta pestaña, que prioriza lo que todavía no tenés y gasta su propio cupo del plan gratuito.
 function VistaDeLoQueSeVende({ zona }: { zona: Zona }) {
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
+  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
   const acciones = useAccionesDeAvisos();
   const propios = useMemo(() => productosPropios(sistemas), [sistemas]);
   const cerca = useZonaDeLoQueSeVende(!sinSuficientes(zona));
@@ -237,7 +219,7 @@ function VistaDeLoQueSeVende({ zona }: { zona: Zona }) {
       sistemaId: destino.sistema.id,
       bloqueId: destino.inventario.id,
       valores: { name: producto.nombre, quantity: 0, price: precio, cost: '', minimum: 5 },
-      confirmacion: `Sumamos ${producto.nombre} a tu inventario, a ${pesos(precio)}.`,
+      confirmacion: `Sumamos ${producto.nombre} a tu stock, a ${pesos(precio)}.`,
     });
   };
 
@@ -247,7 +229,7 @@ function VistaDeLoQueSeVende({ zona }: { zona: Zona }) {
         <section className="zona-panel">
           {!destino && (
             <div className="info-box">
-              Para sumar productos a tu inventario necesitás un cuaderno con un bloque de
+              Para sumar productos a tu inventario necesitás una sección con un bloque de
               Inventario.
             </div>
           )}
@@ -322,116 +304,5 @@ function VistaDeLoQueSeVende({ zona }: { zona: Zona }) {
       </div>
       <ContenidoPremium acceso={cerca.data?.acceso} recurso="recomendaciones" compacto />
     </>
-  );
-}
-
-const TEXTOS_DEL_BUSCADOR = {
-  paso: 'PASO 1',
-  titulo: 'Buscá el lugar',
-  etiqueta: 'Barrio o dirección',
-  ayuda: 'Un barrio, o calle, altura y localidad. Buscamos direcciones de Argentina.',
-  ejemplo: 'Ej.: Av. de Mayo 500, Ramos Mejía',
-};
-
-const TEXTOS_DEL_MARCADOR = {
-  titulo: 'Punto de la zona a analizar',
-  alternativo: 'Punto de la zona a analizar: arrastrá para ajustarlo',
-};
-
-function VistaDeOtraZona() {
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
-  const propios = useMemo(() => productosPropios(sistemas), [sistemas]);
-  const estado = useAnalisisDeOtraZona();
-  const resultado = estado.resultado;
-
-  return (
-    <div className="zona-panel">
-      <div className="zona-otra-grid">
-        <BuscadorDireccion
-          consulta={estado.consulta}
-          onConsulta={estado.cambiarConsulta}
-          onBuscar={estado.buscar}
-          buscando={estado.buscando}
-          resultados={estado.resultados}
-          elegida={estado.elegida}
-          onElegir={estado.elegirDireccion}
-          error={estado.errorBusqueda}
-          textos={TEXTOS_DEL_BUSCADOR}
-          botonSecundario
-        />
-        <section className="ubicacion-panel ubicacion-ajuste" aria-labelledby="titulo-punto-zona">
-          <div className="eyebrow">PASO 2</div>
-          <h2 id="titulo-punto-zona">Revisá el punto en el mapa</h2>
-          <p>
-            Arrastrá el marcador o tocá otro lugar del mapa. Analizamos la zona que contiene ese
-            punto.
-          </p>
-          {estado.punto ? (
-            <MapaUbicacion
-              punto={estado.punto}
-              onMover={estado.moverPunto}
-              etiqueta="Mapa de la zona a analizar"
-              marcador={TEXTOS_DEL_MARCADOR}
-              ayudaSinMapa="No se pudo cargar parte del mapa. Igual podés analizar el punto elegido."
-            />
-          ) : (
-            <div className="ubicacion-sin-mapa">
-              Buscá un lugar y elegilo para verlo acá. Si no, escribí un barrio y analizalo directo.
-            </div>
-          )}
-        </section>
-      </div>
-      <div className="zona-otra-acciones">
-        <button
-          className="btn primary"
-          type="button"
-          onClick={() => estado.analizar()}
-          disabled={estado.analizando}
-        >
-          {estado.analizando ? 'Analizando…' : 'Analizar la zona'}
-        </button>
-      </div>
-      <div className="form-error" role="alert">
-        {estado.error}
-      </div>
-      {resultado ? (
-        sinSuficientes(resultado) ? (
-          <SinDatosSuficientes zona={resultado} />
-        ) : (
-          <div className="zona-grid">
-            <section className="zona-panel">
-              <div className="row between">
-                <h2>Precios en {resultado.nombre}</h2>
-                <span className="tag outline">{resultado.productos.length}</span>
-              </div>
-              <div className="zona-lista">
-                {resultado.productos.map((producto) => (
-                  <TarjetaDePrecio
-                    key={producto.nombre}
-                    producto={producto}
-                    propio={propioDe(producto, propios)}
-                  />
-                ))}
-              </div>
-            </section>
-            <aside className="zona-lateral">
-              <ResumenFrenteALaZona
-                productos={resultado.productos}
-                propios={propios}
-                zona={resultado.nombre}
-              />
-            </aside>
-            <ContenidoPremium acceso={resultado.acceso} recurso="recomendaciones" compacto />
-          </div>
-        )
-      ) : null}
-      {estado.simulado && (
-        <div className="simulation-label">
-          <strong>Análisis simulado</strong>
-          Los datos de otra zona son de ejemplo. Con el servicio real vas a ver los precios y ventas
-          agregados de los comercios de ese lugar.
-        </div>
-      )}
-    </div>
   );
 }

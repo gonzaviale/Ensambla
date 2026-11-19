@@ -1,5 +1,7 @@
 package com.ensambla.backend.infrastructure.repository;
 
+import com.ensambla.backend.domain.model.aviso.AccionEditarRegistro;
+import com.ensambla.backend.domain.model.aviso.AccionRegistrar;
 import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.model.aviso.MetricasVentas;
@@ -49,7 +51,7 @@ import static org.mockito.Mockito.when;
 class MotorAvisosDatosPruebaTest {
 
     private static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
-            DockerImageName.parse("postgres:17-alpine"));
+            DockerImageName.parse("postgres:17-alpine")).withUrlParam("sslmode", "disable");
 
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-19T12:00:00Z");
 
@@ -123,8 +125,8 @@ class MotorAvisosDatosPruebaTest {
         ejecutarMotor(NegocioId.de(demoId), AHORA);
 
         assertThat(pendientesDe(demoId, TipoAviso.STOCK))
-                .allSatisfy(aviso -> assertThat(aviso.getAcciones().toString())
-                        .contains("REGISTRAR").contains("Registrar entrada"));
+                .allSatisfy(aviso -> assertThat(aviso.getAcciones())
+                        .hasAtLeastOneElementOfType(AccionRegistrar.class));
     }
 
     @Test
@@ -188,7 +190,9 @@ class MotorAvisosDatosPruebaTest {
         assertThat(pendientesDe(demoId, TipoAviso.ESTANCADO)).singleElement().satisfies(aviso -> {
             assertThat(aviso.getTitulo()).isEqualTo("Azúcar Ledesma 1 kg está caro y no se mueve");
             assertThat(aviso.getPrioridad()).isEqualTo((short) 2);
-            assertThat(aviso.getAcciones().toString()).contains("EDITAR_REGISTRO").contains("Rebajar a $1.150");
+            assertThat(aviso.getAcciones()).anySatisfy(accion -> assertThat(accion)
+                    .isInstanceOfSatisfying(AccionEditarRegistro.class,
+                            editar -> assertThat(editar.texto()).isEqualTo("Rebajar a $1.150")));
             assertThat(aviso.getMotivos().getFirst().toString()).startsWith("En tu zona, 8 comercios lo venden");
         });
     }

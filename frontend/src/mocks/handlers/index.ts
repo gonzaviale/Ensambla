@@ -1,5 +1,6 @@
 import type { ModoMocks } from '@/config/env';
 import { handlersAuth } from './auth';
+import { handlersCatalogos } from './catalogos';
 import { handlersAvisos } from './avisos';
 import { handlersImportaciones } from './importaciones';
 import { handlersMetricas } from './metricas';
@@ -24,6 +25,7 @@ export function handlersPara(modo: ModoMocks) {
   if (modo === 'completo')
     return [
       ...handlersAuth,
+      ...handlersCatalogos,
       ...handlersDelSistema,
       ...handlersImportaciones,
       ...handlersMetricas,

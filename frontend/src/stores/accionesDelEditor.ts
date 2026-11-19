@@ -1,7 +1,9 @@
 import { CATALOG, COLORS, TEMPLATES } from '@/lib/sistema/catalogo';
+import { comportamientoDe } from '@/lib/sistema/comportamiento';
 import {
   allBlocks,
   applyLayout,
+  camposDeVinculo,
   clearExamples,
   clone,
   findBlock,
@@ -26,27 +28,44 @@ import {
 } from '@/lib/sistema/secciones';
 import type {
   Ancho,
+  Bloque,
   Campo,
   ClavePlantilla,
   Color,
+  ErroresFila,
   Sistema,
   TipoBloque,
   Valor,
 } from '@/lib/sistema/tipos';
-import { seleccionarSistemaActivo, useSistemaStore } from './sistemaStore';
+import { seleccionarSistemaActivo, useSistemaStore, type SistemaStore } from './sistemaStore';
 
 // Lo que cada botón del editor hace con el sistema: el cuerpo de los `case` del onClick de app.js.
-// Todas pasan por `commit`, así que quedan en el historial de «Deshacer» y se guardan en el servidor.
+// Todas pasan por `guardarCambio`, así que quedan en el historial de «Deshacer» y se guardan en el servidor.
+
+type Confirmacion = { titulo: string; mensaje: string; etiqueta: string; onConfirmar: () => void };
+
+const MOVIMIENTOS: TipoBloque[] = ['entries', 'exits', 'sales'];
 
 const store = () => useSistemaStore.getState();
 const sistemaActivo = () => seleccionarSistemaActivo(store());
+const borradorDelTaller = () => store().taller?.borrador ?? undefined;
+const guardarCambio = <T>(cambio: (sistema: Sistema) => T) => store().commit(cambio);
+const cambiarElBorrador = (cambio: (borrador: Sistema) => void) => store().editarBorrador(cambio);
+const mostrarEnElEditor = (cambio: Partial<SistemaStore>) => useSistemaStore.setState(cambio);
+const avisar = (texto: string) => store().avisar(texto);
+const cerrarElModal = () => store().cerrarModal();
+const pedirConfirmacion = (confirmacion: Confirmacion) =>
+  store().abrirModal({ tipo: 'confirmar', ...confirmacion });
+
 const seccionActivaDe = (sistema: Sistema) =>
   sistema.sections.find((seccion) => seccion.id === store().sectionId) ?? sistema.sections[0];
+
+const primerError = (errores: ErroresFila, otro: string) => Object.values(errores)[0] ?? otro;
 
 /** Los vínculos que apuntaban a estos registros quedan vacíos. */
 function limpiarVinculos(sistema: Sistema, ids: string[]) {
   for (const bloque of allBlocks(sistema)) {
-    for (const campo of bloque.fields.filter((item) => item.type === 'relation')) {
+    for (const campo of camposDeVinculo(bloque)) {
       for (const fila of bloque.rows)
         if (ids.includes(String(fila[campo.key]))) fila[campo.key] = '';
     }
@@ -62,83 +81,99 @@ export function agregarBloque(
   const destinoId = seccionId ?? (sistema ? seccionActivaDe(sistema)?.id : undefined);
   if (!sistema || !destinoId) return;
   const creado = makeBlock(tipo);
-  useSistemaStore.setState({ selectedId: creado.id, sectionId: destinoId, modal: null });
-  store().commit((s) => {
-    const seccion = s.sections.find((item) => item.id === destinoId);
-    if (!seccion) return;
-    const lugar = antesDeId ? seccion.blocks.findIndex((bloque) => bloque.id === antesDeId) : -1;
-    seccion.blocks.splice(lugar < 0 ? seccion.blocks.length : lugar, 0, creado);
-    wireSystem(s);
-  });
-  store().avisar(`${CATALOG[tipo].name} agregado. Podés personalizarlo a la derecha.`);
+  mostrarEnElEditor({ selectedId: creado.id, sectionId: destinoId, modal: null });
+  guardarCambio((s) => ponerElBloque(s, creado, destinoId, antesDeId));
+  avisar(`${CATALOG[tipo].name} agregado. Podés personalizarlo a la derecha.`);
 }
 
-/** Soltar un bloque sobre otro de la misma sección los cambia de lugar; cada uno conserva su ancho. */
+function ponerElBloque(
+  sistema: Sistema,
+  bloque: Bloque,
+  seccionId: string,
+  antesDeId: string | null,
+) {
+  const seccion = sistema.sections.find((item) => item.id === seccionId);
+  if (!seccion) return;
+  const lugar = antesDeId ? seccion.blocks.findIndex((otro) => otro.id === antesDeId) : -1;
+  seccion.blocks.splice(lugar < 0 ? seccion.blocks.length : lugar, 0, bloque);
+  wireSystem(sistema);
+}
+
+/** Soltar un bloque sobre otro de la misma pestaña los cambia de lugar; cada uno conserva su ancho. */
 export function intercambiarBloques(bloqueId: string, otroId: string) {
   if (bloqueId === otroId) return;
-  store().commit((s) => {
-    const lista = s.sections.find((seccion) =>
-      seccion.blocks.some((bloque) => bloque.id === bloqueId),
-    )?.blocks;
-    if (!lista) return;
-    const uno = lista.findIndex((bloque) => bloque.id === bloqueId);
-    const otro = lista.findIndex((bloque) => bloque.id === otroId);
-    const [a, b] = [lista[uno], lista[otro]];
-    if (!a || !b) return;
-    lista[uno] = b;
-    lista[otro] = a;
-  });
-  store().avisar('Las tablas cambiaron de lugar.');
+  guardarCambio((s) => cambiarDeLugar(s, bloqueId, otroId));
+  avisar('Las tablas cambiaron de lugar.');
+}
+
+function cambiarDeLugar(sistema: Sistema, bloqueId: string, otroId: string) {
+  const lista = sistema.sections.find((seccion) =>
+    seccion.blocks.some((bloque) => bloque.id === bloqueId),
+  )?.blocks;
+  if (!lista) return;
+  const uno = lista.findIndex((bloque) => bloque.id === bloqueId);
+  const otro = lista.findIndex((bloque) => bloque.id === otroId);
+  const [a, b] = [lista[uno], lista[otro]];
+  if (!a || !b) return;
+  lista[uno] = b;
+  lista[otro] = a;
 }
 
 export function reubicarBloque(bloqueId: string, seccionId: string, antesDeId: string | null) {
-  useSistemaStore.setState({ sectionId: seccionId, selectedId: bloqueId });
-  store().commit((s) => {
+  mostrarEnElEditor({ sectionId: seccionId, selectedId: bloqueId });
+  guardarCambio((s) => {
     moveBlock(s, bloqueId, seccionId, antesDeId);
   });
-  store().avisar('Bloque reubicado.');
+  avisar('Bloque reubicado.');
 }
 
 export function moverBloque(bloqueId: string, direccion: 'arriba' | 'abajo') {
-  store().commit((s) => {
-    const lista = seccionActivaDe(s)?.blocks;
-    if (!lista) return;
-    const indice = lista.findIndex((bloque) => bloque.id === bloqueId);
-    const destino = indice + (direccion === 'arriba' ? -1 : 1);
-    const [bloque] = lista.splice(indice, 1);
-    if (bloque && destino >= 0 && destino <= lista.length) lista.splice(destino, 0, bloque);
-    else if (bloque) lista.splice(indice, 0, bloque);
-  });
+  guardarCambio((s) => correrUnLugar(seccionActivaDe(s)?.blocks, bloqueId, direccion));
+}
+
+function correrUnLugar(
+  lista: Bloque[] | undefined,
+  bloqueId: string,
+  direccion: 'arriba' | 'abajo',
+) {
+  if (!lista) return;
+  const indice = lista.findIndex((bloque) => bloque.id === bloqueId);
+  const destino = indice + (direccion === 'arriba' ? -1 : 1);
+  const [bloque] = lista.splice(indice, 1);
+  if (!bloque) return;
+  const entra = destino >= 0 && destino <= lista.length;
+  lista.splice(entra ? destino : indice, 0, bloque);
 }
 
 export function duplicarBloque(bloqueId: string) {
   const copiaId = nuevoId();
-  store().commit((s) => {
-    const original = findBlock(s, bloqueId);
-    const seccion = seccionActivaDe(s);
-    if (!original || !seccion) return;
-    const copia = clone(original);
-    copia.id = copiaId;
-    copia.name += ' (copia)';
-    if (['entries', 'exits', 'sales'].includes(copia.type)) copia.rows = [];
-    else for (const fila of copia.rows) fila.id = nuevoId();
-    seccion.blocks.splice(
-      seccion.blocks.findIndex((bloque) => bloque.id === bloqueId) + 1,
-      0,
-      copia,
-    );
-  });
-  useSistemaStore.setState({ selectedId: copiaId });
-  store().avisar(
+  guardarCambio((s) => ponerUnaCopia(s, bloqueId, copiaId));
+  mostrarEnElEditor({ selectedId: copiaId });
+  avisar(
     'Bloque duplicado. Los movimientos y las ventas comienzan sin registros para conservar el stock.',
   );
+}
+
+function ponerUnaCopia(sistema: Sistema, bloqueId: string, copiaId: string) {
+  const original = findBlock(sistema, bloqueId);
+  const seccion = seccionActivaDe(sistema);
+  if (!original || !seccion) return;
+  const lugar = seccion.blocks.findIndex((bloque) => bloque.id === bloqueId) + 1;
+  seccion.blocks.splice(lugar, 0, copiaDe(original, copiaId));
+}
+
+// Las copias de movimientos y ventas arrancan vacías: si copiaran las filas, moverían el stock dos veces.
+function copiaDe(original: Bloque, copiaId: string): Bloque {
+  const copia = { ...clone(original), id: copiaId, name: `${original.name} (copia)` };
+  if (MOVIMIENTOS.includes(copia.type)) copia.rows = [];
+  else for (const fila of copia.rows) fila.id = nuevoId();
+  return copia;
 }
 
 export function pedirQuitarBloque(bloqueId: string) {
   const bloque = findBlock(sistemaActivo(), bloqueId);
   if (!bloque) return;
-  store().abrirModal({
-    tipo: 'confirmar',
+  pedirConfirmacion({
     titulo: `¿Quitar ${bloque.name}?`,
     mensaje: `Se quitarán este bloque y sus ${bloque.rows.length} registros. Los vínculos que apuntan a él quedarán vacíos. Podés deshacer este cambio.`,
     etiqueta: 'Quitar bloque',
@@ -149,33 +184,38 @@ export function pedirQuitarBloque(bloqueId: string) {
 function quitarBloque(bloqueId: string) {
   const sistema = sistemaActivo();
   if (!sistema) return;
-  const ensayo = clone(sistema);
-  const control = removeBlock(ensayo, bloqueId);
+  const control = removeBlock(clone(sistema), bloqueId);
   if (control.errors) {
-    store().avisar(Object.values(control.errors)[0] ?? 'No se pudo quitar el bloque.');
+    avisar(primerError(control.errors, 'No se pudo quitar el bloque.'));
     return;
   }
-  store().commit((s) => {
-    const ids = (findBlock(s, bloqueId)?.rows ?? []).map((fila) => fila.id);
-    removeBlock(s, bloqueId);
-    limpiarVinculos(s, ids);
-  });
+  guardarCambio((s) => quitarConSusVinculos(s, bloqueId));
   if (store().selectedId === bloqueId) store().seleccionar(null);
-  store().avisar('Bloque quitado. Podés deshacer el cambio.');
+  avisar('Bloque quitado. Podés deshacer el cambio.');
 }
+
+function quitarConSusVinculos(sistema: Sistema, bloqueId: string) {
+  const ids = (findBlock(sistema, bloqueId)?.rows ?? []).map((fila) => fila.id);
+  removeBlock(sistema, bloqueId);
+  limpiarVinculos(sistema, ids);
+}
+
+const cambiarElBloque = (bloqueId: string, cambio: (bloque: Bloque) => void) =>
+  guardarCambio((s) => {
+    const bloque = findBlock(s, bloqueId);
+    if (bloque) cambio(bloque);
+  });
 
 export function cambiarColor(bloqueId: string, color: Color) {
   if (!COLORS[color]) return;
-  store().commit((s) => {
-    const bloque = findBlock(s, bloqueId);
-    if (bloque) bloque.color = color;
+  cambiarElBloque(bloqueId, (bloque) => {
+    bloque.color = color;
   });
 }
 
 export function cambiarAncho(bloqueId: string, ancho: Ancho) {
-  store().commit((s) => {
-    const bloque = findBlock(s, bloqueId);
-    if (bloque) bloque.width = ancho;
+  cambiarElBloque(bloqueId, (bloque) => {
+    bloque.width = ancho;
   });
 }
 
@@ -184,21 +224,20 @@ export function cambiarDatoDelBloque(
   dato: 'name' | 'description' | 'content',
   valor: string,
 ) {
-  store().commit((s) => {
-    const bloque = findBlock(s, bloqueId);
-    if (bloque) bloque[dato] = valor;
+  cambiarElBloque(bloqueId, (bloque) => {
+    bloque[dato] = valor;
   });
 }
 
 export function cambiarSeccionDelBloque(bloqueId: string, seccionId: string) {
-  useSistemaStore.setState({ sectionId: seccionId });
-  store().commit((s) => {
+  mostrarEnElEditor({ sectionId: seccionId });
+  guardarCambio((s) => {
     moveBlock(s, bloqueId, seccionId);
   });
 }
 
 export function aplicarDistribucion(distribucion: NonNullable<Sistema['layout']>) {
-  store().commit((s) => {
+  guardarCambio((s) => {
     const seccion = seccionActivaDe(s);
     if (seccion) applyLayout(s, distribucion, seccion.id);
   });
@@ -206,29 +245,29 @@ export function aplicarDistribucion(distribucion: NonNullable<Sistema['layout']>
 
 export function agregarSeccion(nombre: string, inicio: string) {
   const nueva = armarSeccion(nombre, inicio);
-  useSistemaStore.setState({ modal: null, selectedId: null, sectionId: nueva.id });
-  store().commit((s) => {
+  mostrarEnElEditor({ modal: null, selectedId: null, sectionId: nueva.id });
+  guardarCambio((s) => {
     s.sections.push(nueva);
   });
-  store().avisar('Sección agregada. Ya podés sumar o mover bloques.');
+  avisar('Pestaña agregada. Ya podés sumar o mover bloques.');
 }
 
 export function agregarConjunto(clave: ClavePlantilla) {
   const compuesta = makeTemplate(clave, {}, false).sections[0];
   if (!compuesta) return;
-  useSistemaStore.setState({ sectionId: compuesta.id, selectedId: null });
-  store().commit((s) => {
+  mostrarEnElEditor({ sectionId: compuesta.id, selectedId: null });
+  guardarCambio((s) => {
     s.sections.push({ ...compuesta, name: TEMPLATES[clave].name });
   });
-  store().avisar('Conjunto agregado en una sección nueva.');
+  avisar('Conjunto agregado en una pestaña nueva.');
 }
 
 export function renombrarSecciones(nombres: [string, string][]) {
-  store().commit((s) => renombrarSeccionesEn(s, nombres));
+  guardarCambio((s) => renombrarSeccionesEn(s, nombres));
 }
 
 export function moverSeccion(seccionId: string, direccion: 'arriba' | 'abajo') {
-  store().commit((s) => moverSeccionEn(s, seccionId, direccion));
+  guardarCambio((s) => moverSeccionEn(s, seccionId, direccion));
 }
 
 export function quitarSeccion(seccionId: string) {
@@ -236,36 +275,35 @@ export function quitarSeccion(seccionId: string) {
   if (!sistema || sistema.sections.length < 2) return;
   const destino = seccionReceptora(sistema, seccionId);
   if (!destino) return;
-  store().commit((s) => {
+  guardarCambio((s) => {
     quitarSeccionDe(s, seccionId);
   });
-  if (store().sectionId === seccionId) useSistemaStore.setState({ sectionId: destino.id });
-  store().avisar('Sección quitada. Los bloques y sus datos se conservaron.');
+  if (store().sectionId === seccionId) mostrarEnElEditor({ sectionId: destino.id });
+  avisar('Pestaña quitada. Los bloques y sus datos se conservaron.');
 }
 
 export function pedirQuitarCampo(bloqueId: string, clave: string) {
   const bloque = findBlock(sistemaActivo(), bloqueId);
   if (!bloque) return;
   if (bloque.fields.length <= 1) {
-    store().avisar('Conservá al menos un campo para identificar los registros.');
+    avisar('Conservá al menos un campo para identificar los registros.');
     return;
   }
-  store().abrirModal({
-    tipo: 'confirmar',
+  pedirConfirmacion({
     titulo: '¿Quitar este campo?',
     mensaje:
       'También se quitarán sus valores de los registros existentes. Podés deshacer el cambio.',
     etiqueta: 'Quitar campo',
-    onConfirmar: () => {
-      store().commit((s) => {
-        const objetivo = findBlock(s, bloqueId);
-        if (!objetivo) return;
-        objetivo.fields = objetivo.fields.filter((campo) => campo.key !== clave);
-        for (const fila of objetivo.rows) Reflect.deleteProperty(fila, clave);
-      });
-      store().avisar('Campo quitado.');
-    },
+    onConfirmar: () => quitarCampo(bloqueId, clave),
   });
+}
+
+function quitarCampo(bloqueId: string, clave: string) {
+  cambiarElBloque(bloqueId, (bloque) => {
+    bloque.fields = bloque.fields.filter((campo) => campo.key !== clave);
+    for (const fila of bloque.rows) Reflect.deleteProperty(fila, clave);
+  });
+  avisar('Campo quitado.');
 }
 
 export type DatosDeCampo = {
@@ -281,57 +319,71 @@ export function guardarCampo(bloqueId: string, clave: string | null, datos: Dato
   const sistema = sistemaActivo();
   const bloque = findBlock(sistema, bloqueId);
   if (!sistema || !bloque) return 'Este bloque ya no existe.';
-  const label = datos.label.trim();
-  if (!label) return 'Elegí un nombre para el campo.';
-  if (
-    bloque.fields.some(
-      (campo) => campo.key !== clave && normalize(campo.label) === normalize(label),
-    )
-  ) {
-    return 'Ya hay un campo con ese nombre.';
-  }
-  const campo: Campo = {
-    key: clave ?? nuevoId(),
-    label,
-    type: datos.type,
-    required: datos.required,
-  };
-  if (datos.type === 'select') {
-    campo.options = [
-      ...new Set(
-        datos.options
-          .split(/[,\n]/)
-          .map((opcion) => opcion.trim())
-          .filter(Boolean),
-      ),
-    ];
-    if (!campo.options.length) return 'Agregá al menos una opción.';
-  }
-  if (datos.type === 'relation') {
-    campo.target = datos.target;
-    if (!campo.target) return 'Elegí con qué bloque querés vincularlo.';
-  }
-  if (clave || datos.required) {
-    const candidato = clone(bloque);
-    if (clave)
-      candidato.fields = candidato.fields.map((item) => (item.key === clave ? campo : item));
-    else candidato.fields.push(campo);
-    if (bloque.rows.some((fila) => validateRow(candidato, fila, sistema)[campo.key])) {
-      return 'Hay registros que no cumplen esta configuración. Conservá un tipo compatible o agregá primero un campo opcional.';
-    }
-  }
-  store().commit((s) => {
-    const objetivo = findBlock(s, bloqueId);
-    if (!objetivo) return;
-    if (clave) objetivo.fields = objetivo.fields.map((item) => (item.key === clave ? campo : item));
-    else objetivo.fields.push(campo);
+  const campo = campoPedido(clave, datos);
+  const problema =
+    problemaDelCampo(bloque, clave, campo) ??
+    problemaConLosRegistros(sistema, bloque, clave, campo, datos);
+  if (problema) return problema;
+  cambiarElBloque(bloqueId, (objetivo) => {
+    objetivo.fields = conElCampo(objetivo.fields, clave, campo);
   });
-  store().cerrarModal();
-  store().avisar('Campo guardado.');
+  cerrarElModal();
+  avisar('Campo guardado.');
   return null;
 }
 
-/** Guarda un registro (nuevo o editado). Devuelve los errores por campo, o `null` si quedó guardado. */
+function campoPedido(clave: string | null, datos: DatosDeCampo): Campo {
+  const campo: Campo = {
+    key: clave ?? nuevoId(),
+    label: datos.label.trim(),
+    type: datos.type,
+    required: datos.required,
+  };
+  if (comportamientoDe(datos.type).llevaOpciones()) campo.options = opcionesEscritas(datos.options);
+  if (comportamientoDe(datos.type).esVinculo()) campo.target = datos.target;
+  return campo;
+}
+
+const opcionesEscritas = (texto: string) => [
+  ...new Set(
+    texto
+      .split(/[,\n]/)
+      .map((opcion) => opcion.trim())
+      .filter(Boolean),
+  ),
+];
+
+function problemaDelCampo(bloque: Bloque, clave: string | null, campo: Campo) {
+  if (!campo.label) return 'Elegí un nombre para el campo.';
+  const repetido = bloque.fields.some(
+    (otro) => otro.key !== clave && normalize(otro.label) === normalize(campo.label),
+  );
+  if (repetido) return 'Ya hay un campo con ese nombre.';
+  if (campo.options && !campo.options.length) return 'Agregá al menos una opción.';
+  if (comportamientoDe(campo.type).esVinculo() && !campo.target)
+    return 'Elegí con qué bloque querés vincularlo.';
+  return undefined;
+}
+
+const conElCampo = (campos: Campo[], clave: string | null, campo: Campo) =>
+  clave ? campos.map((item) => (item.key === clave ? campo : item)) : [...campos, campo];
+
+function problemaConLosRegistros(
+  sistema: Sistema,
+  bloque: Bloque,
+  clave: string | null,
+  campo: Campo,
+  datos: DatosDeCampo,
+) {
+  if (!clave && !datos.required) return undefined;
+  const candidato = { ...clone(bloque), fields: conElCampo(clone(bloque).fields, clave, campo) };
+  const algunoNoCumple = bloque.rows.some(
+    (fila) => validateRow(candidato, fila, sistema)[campo.key],
+  );
+  if (!algunoNoCumple) return undefined;
+  return 'Hay registros que no cumplen esta configuración. Conservá un tipo compatible o agregá primero un campo opcional.';
+}
+
 /** Los valores listos para guardar, o los errores de cada campo si el registro no es válido. */
 function revisarRegistro(
   sistema: Sistema | undefined,
@@ -346,6 +398,23 @@ function revisarRegistro(
   return Object.keys(errores).length ? { errores } : { valores };
 }
 
+const guardarLaFila = (
+  sistema: Sistema,
+  bloqueId: string,
+  valores: Record<string, Valor>,
+  filaId: string | null,
+) => {
+  const objetivo = findBlock(sistema, bloqueId);
+  if (objetivo) upsertRow(objetivo, valores, filaId, sistema);
+};
+
+function cerrarYAvisarElRegistro(filaId: string | null) {
+  cerrarElModal();
+  avisar(filaId ? 'Registro actualizado.' : 'Registro guardado.');
+  return null;
+}
+
+/** Guarda un registro (nuevo o editado). Devuelve los errores por campo, o `null` si quedó guardado. */
 export function guardarRegistro(
   bloqueId: string,
   crudos: Record<string, Valor>,
@@ -353,14 +422,8 @@ export function guardarRegistro(
 ) {
   const revision = revisarRegistro(sistemaActivo(), bloqueId, crudos, filaId);
   if ('errores' in revision) return revision.errores;
-  const { valores } = revision;
-  store().commit((s) => {
-    const objetivo = findBlock(s, bloqueId);
-    if (objetivo) upsertRow(objetivo, valores, filaId, s);
-  });
-  store().cerrarModal();
-  store().avisar(filaId ? 'Registro actualizado.' : 'Registro guardado.');
-  return null;
+  guardarCambio((s) => guardarLaFila(s, bloqueId, revision.valores, filaId));
+  return cerrarYAvisarElRegistro(filaId);
 }
 
 /**
@@ -372,59 +435,62 @@ export function guardarRegistroDelBorrador(
   crudos: Record<string, Valor>,
   filaId: string | null,
 ) {
-  const revision = revisarRegistro(store().taller?.borrador ?? undefined, bloqueId, crudos, filaId);
+  const revision = revisarRegistro(borradorDelTaller(), bloqueId, crudos, filaId);
   if ('errores' in revision) return revision.errores;
-  const { valores } = revision;
-  store().editarBorrador((copia) => {
-    const objetivo = findBlock(copia, bloqueId);
-    if (objetivo) upsertRow(objetivo, valores, filaId, copia);
-  });
-  store().cerrarModal();
-  store().avisar(filaId ? 'Registro actualizado.' : 'Registro guardado.');
-  return null;
+  cambiarElBorrador((copia) => guardarLaFila(copia, bloqueId, revision.valores, filaId));
+  return cerrarYAvisarElRegistro(filaId);
 }
 
 export function pedirQuitarRegistro(bloqueId: string, filaId: string) {
-  store().abrirModal({
-    tipo: 'confirmar',
+  pedirConfirmacion({
     titulo: '¿Eliminar este registro?',
     mensaje: 'Se quitará del bloque y se vaciarán sus vínculos. Podés deshacer este cambio.',
     etiqueta: 'Eliminar',
-    onConfirmar: () => {
-      const sistema = sistemaActivo();
-      if (!sistema) return;
-      const copia = clone(sistema);
-      const objetivo = findBlock(copia, bloqueId);
-      const control = objetivo ? removeRow(objetivo, filaId, copia) : undefined;
-      if (control?.errors) {
-        store().avisar(Object.values(control.errors)[0] ?? 'No se pudo eliminar el registro.');
-        return;
-      }
-      store().commit((s) => {
-        const bloque = findBlock(s, bloqueId);
-        if (bloque) removeRow(bloque, filaId, s);
-        limpiarVinculos(s, [filaId]);
-      });
-      store().avisar('Registro eliminado.');
-    },
+    onConfirmar: () => quitarRegistro(bloqueId, filaId),
   });
 }
 
+function quitarRegistro(bloqueId: string, filaId: string) {
+  const sistema = sistemaActivo();
+  if (!sistema) return;
+  const errores = erroresAlQuitarEnUnaCopia(sistema, bloqueId, filaId);
+  if (errores) {
+    avisar(primerError(errores, 'No se pudo eliminar el registro.'));
+    return;
+  }
+  guardarCambio((s) => quitarLaFilaConSusVinculos(s, bloqueId, filaId));
+  avisar('Registro eliminado.');
+}
+
+function erroresAlQuitarEnUnaCopia(sistema: Sistema, bloqueId: string, filaId: string) {
+  const copia = clone(sistema);
+  const objetivo = findBlock(copia, bloqueId);
+  return objetivo ? removeRow(objetivo, filaId, copia).errors : undefined;
+}
+
+function quitarLaFilaConSusVinculos(sistema: Sistema, bloqueId: string, filaId: string) {
+  const bloque = findBlock(sistema, bloqueId);
+  if (bloque) removeRow(bloque, filaId, sistema);
+  limpiarVinculos(sistema, [filaId]);
+}
+
+/** Quita los ejemplos y vacía los vínculos que apuntaban a ellos. Devuelve si hubo que conservar alguno. */
+function quitarLosEjemplos(sistema: Sistema) {
+  const resultado = clearExamples(sistema);
+  limpiarVinculos(sistema, resultado.removed);
+  return resultado.retained.length > 0;
+}
+
 export function pedirQuitarEjemplos() {
-  store().abrirModal({
-    tipo: 'confirmar',
+  pedirConfirmacion({
     titulo: '¿Quitar los datos de ejemplo?',
     mensaje:
       'Se conservan tus bloques, campos y los registros que cargaste o editaste. Solo se eliminan los ejemplos que siguen sin modificar.',
     etiqueta: 'Quitar ejemplos',
     onConfirmar: () => {
-      let resultado: ReturnType<typeof clearExamples> | undefined;
-      store().commit((s) => {
-        resultado = clearExamples(s);
-        limpiarVinculos(s, resultado.removed);
-      });
-      store().avisar(
-        resultado?.retained.length
+      const conservoMovimientos = guardarCambio(quitarLosEjemplos);
+      avisar(
+        conservoMovimientos
           ? 'Se quitaron los ejemplos. Se conservaron los movimientos necesarios para tu stock.'
           : 'Listo. Se conservaron tus datos y los vínculos que utilizaste.',
       );
@@ -434,20 +500,18 @@ export function pedirQuitarEjemplos() {
 
 /** Lo mismo que `pedirQuitarEjemplos`, pero sobre la propuesta de Sami que todavía no se guardó. */
 export function pedirQuitarEjemplosDelBorrador() {
-  store().abrirModal({
-    tipo: 'confirmar',
+  pedirConfirmacion({
     titulo: '¿Borrar los datos de ejemplo?',
     mensaje:
       'Se quitan las filas de ejemplo de esta propuesta. Se conservan las piezas, los campos y los registros reales.',
     etiqueta: 'Borrar ejemplos',
     onConfirmar: () => {
-      let resultado: ReturnType<typeof clearExamples> | undefined;
-      store().editarBorrador((copia) => {
-        resultado = clearExamples(copia);
-        limpiarVinculos(copia, resultado.removed);
+      let conservoMovimientos = false;
+      cambiarElBorrador((copia) => {
+        conservoMovimientos = quitarLosEjemplos(copia);
       });
-      store().avisar(
-        resultado?.retained.length
+      avisar(
+        conservoMovimientos
           ? 'Borré los ejemplos. Quedaron los movimientos necesarios para el stock.'
           : 'Listo, borré los ejemplos.',
       );
@@ -456,8 +520,7 @@ export function pedirQuitarEjemplosDelBorrador() {
 }
 
 export function deshacerCambio() {
-  if (store().deshacer()) {
-    store().cerrarModal();
-    store().avisar('Cambio deshecho.');
-  }
+  if (!store().deshacer()) return;
+  cerrarElModal();
+  avisar('Cambio deshecho.');
 }

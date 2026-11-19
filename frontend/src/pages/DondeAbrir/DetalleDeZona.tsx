@@ -184,7 +184,7 @@ function PorQueEstaZona({
           Contamos lugares registrados dentro de 500 metros de cada zona. Sirven para comparar
           cercanía de comercios, escuelas, plazas, oficinas, transporte y salud; no reemplazan una
           recorrida porque puede haber lugares todavía no registrados. Abajo podés revisar la fuente
-          del snapshot.
+          de los datos.
         </p>
         {fuentes.length > 0 && (
           <ul>

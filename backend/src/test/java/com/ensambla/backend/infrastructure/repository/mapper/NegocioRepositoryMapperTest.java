@@ -17,40 +17,36 @@ class NegocioRepositoryMapperTest {
 
     @Test
     @DisplayName("Mapea todos los campos del negocio a la entidad")
-    void toEntityShouldMapEveryField() {
-        Negocio negocio = givenNegocio();
+    void unNegocioSeGuardaConTodosSusDatos() {
+        Negocio negocio = dadoUnNegocio();
 
-        NegocioEntity result = negocioRepositoryMapper.toEntity(negocio);
+        NegocioEntity entidad = cuandoSeConvierteEnEntidad(negocio);
 
-        assertThat(result).usingRecursiveComparison()
-                .withEqualsForFieldsMatchingRegexes(IdsDePrueba::mismoValor, IdsDePrueba.CAMPOS_DE_ID)
-                .isEqualTo(negocio);
+        entoncesLaEntidadTieneLosMismosDatosQueElNegocio(entidad, negocio);
     }
 
     @Test
     @DisplayName("Mapea todos los campos de la entidad al dominio")
-    void toDomainShouldMapEveryField() {
-        NegocioEntity entity = negocioRepositoryMapper.toEntity(givenNegocio());
+    void unaEntidadSeLeeComoNegocioConTodosSusDatos() {
+        NegocioEntity entidad = dadoUnaEntidadDeNegocio();
 
-        Negocio result = negocioRepositoryMapper.toDomain(entity);
+        Negocio negocio = cuandoSeConvierteEnNegocio(entidad);
 
-        assertThat(result).usingRecursiveComparison().withEqualsForFieldsMatchingRegexes(IdsDePrueba::mismoValor,
-                        IdsDePrueba.CAMPOS_DE_ID).isEqualTo(entity);
+        entoncesElNegocioTieneLosMismosDatosQueLaEntidad(negocio, entidad);
     }
 
     @Test
     @DisplayName("Conserva campos nulos de una entidad nueva")
-    void toDomainShouldKeepNullableFields() {
-        NegocioEntity entity = new NegocioEntity();
+    void unaEntidadNuevaSeLeeConservandoLosCamposNulos() {
+        NegocioEntity entidad = dadoUnaEntidadNueva();
 
-        Negocio result = negocioRepositoryMapper.toDomain(entity);
+        Negocio negocio = cuandoSeConvierteEnNegocio(entidad);
 
-        assertThat(result).usingRecursiveComparison().withEqualsForFieldsMatchingRegexes(IdsDePrueba::mismoValor,
-                        IdsDePrueba.CAMPOS_DE_ID).isEqualTo(entity);
+        entoncesElNegocioTieneLosMismosDatosQueLaEntidad(negocio, entidad);
     }
 
-    // --- arrange ---
-    private Negocio givenNegocio() {
+    // --- dado ---
+    private Negocio dadoUnNegocio() {
         return Negocio.builder()
                 .id(NegocioId.de(USUARIO_ID.valor()))
                 .nombre("Mi negocio")
@@ -59,5 +55,34 @@ class NegocioRepositoryMapperTest {
                 .actualizadoEn(FECHA)
                 .build();
     }
-}
 
+    private NegocioEntity dadoUnaEntidadDeNegocio() {
+        return negocioRepositoryMapper.toEntity(dadoUnNegocio());
+    }
+
+    private NegocioEntity dadoUnaEntidadNueva() {
+        return new NegocioEntity();
+    }
+
+    // --- cuando ---
+    private NegocioEntity cuandoSeConvierteEnEntidad(Negocio negocio) {
+        return negocioRepositoryMapper.toEntity(negocio);
+    }
+
+    private Negocio cuandoSeConvierteEnNegocio(NegocioEntity entidad) {
+        return negocioRepositoryMapper.toDomain(entidad);
+    }
+
+    // --- entonces ---
+    private void entoncesLaEntidadTieneLosMismosDatosQueElNegocio(NegocioEntity entidad, Negocio negocio) {
+        assertThat(entidad).usingRecursiveComparison()
+                .withEqualsForFieldsMatchingRegexes(IdsDePrueba::mismoValor, IdsDePrueba.CAMPOS_DE_ID)
+                .isEqualTo(negocio);
+    }
+
+    private void entoncesElNegocioTieneLosMismosDatosQueLaEntidad(Negocio negocio, NegocioEntity entidad) {
+        assertThat(negocio).usingRecursiveComparison()
+                .withEqualsForFieldsMatchingRegexes(IdsDePrueba::mismoValor, IdsDePrueba.CAMPOS_DE_ID)
+                .isEqualTo(entidad);
+    }
+}

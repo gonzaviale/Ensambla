@@ -3,6 +3,7 @@ package com.ensambla.backend.infrastructure.presentation.mapper.reporte;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.useCase.registro.RegistroItem;
 import com.ensambla.backend.domain.useCase.reporte.GenerarReporteRequest;
 import com.ensambla.backend.domain.useCase.reporte.generarReporte.GenerarReporteResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.RegistroResponse;
@@ -22,17 +23,14 @@ public class ReportePresentationMapper {
 
     public ReporteResponse toResponse(GenerarReporteResponse response) {
         return new ReporteResponse(
-                response.filas().stream()
-                        .map(fila -> new RegistroResponse(
-                                fila.id(),
-                                fila.bloqueId(),
-                                fila.valores(),
-                                fila.fotoOrigenId(),
-                                fila.creadoEn(),
-                                fila.actualizadoEn()))
-                        .toList(),
+                response.filas().stream().map(ReportePresentationMapper::toResponse).toList(),
                 new TotalesRegistrosResponse(response.totales().cantidad(), response.totales().sumas()),
                 response.truncado(),
                 response.maximoFilas());
+    }
+
+    private static RegistroResponse toResponse(RegistroItem fila) {
+        return new RegistroResponse(fila.id(), fila.bloqueId(), fila.valores(), fila.fotoOrigenId(), fila.creadoEn(),
+                fila.actualizadoEn());
     }
 }

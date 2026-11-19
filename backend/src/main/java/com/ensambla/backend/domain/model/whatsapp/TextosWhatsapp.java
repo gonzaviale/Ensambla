@@ -29,7 +29,7 @@ public final class TextosWhatsapp {
     public static final String VENCIDA = "Esa carga venció sin confirmarse. Mandámela de nuevo.";
     public static final String NO_ENTENDI = "No encontré nada para cargar en ese mensaje. Probá con algo como "
             + "«gasté 5000 en harina» o mandame una foto del cuaderno.";
-    public static final String SIN_TABLAS = "Todavía no tenés tablas para cargar datos. Armá tu sistema en la app y "
+    public static final String SIN_TABLAS = "Todavía no tenés tablas para cargar datos. Armá tu negocio en la app y "
             + "volvé a escribirme.";
     public static final String TABLA_INEXISTENTE = "Esa tabla ya no existe. Mandame los datos de nuevo.";
     public static final String LIMITE_SAMI = "Hoy ya usaste todas las consultas con Sami. Probá mañana o cargalo desde la app.";
@@ -67,17 +67,25 @@ public final class TextosWhatsapp {
      */
     public static String guardado(int nuevas, int actualizadas, String tabla, List<String> sumados,
                                   List<MovimientoDeStock> stock) {
-        String cambios = actualizadas == 0 ? "guardé %d %s".formatted(nuevas, filas(nuevas))
-                : nuevas == 0 ? "actualicé %d %s".formatted(actualizadas, filas(actualizadas))
-                : "actualicé %d y agregué %d filas".formatted(actualizadas, nuevas);
         List<String> lineas = new ArrayList<>();
-        lineas.add("Listo, %s en *%s*.".formatted(cambios, tabla));
+        lineas.add("Listo, %s en *%s*.".formatted(cambios(nuevas, actualizadas), tabla));
         if (!sumados.isEmpty()) {
             lineas.add("También sumé " + String.join(", ", sumados) + ".");
         }
         stock.forEach(movimiento -> lineas.add(stock(movimiento)));
         lineas.add("Si tenés la app abierta, actualizá la página para verlas.");
         return String.join("\n", lineas);
+    }
+
+    /** «guardé 2 filas», «actualicé 1 fila» o, si hubo de las dos, «actualicé 1 y agregué 2 filas». */
+    private static String cambios(int nuevas, int actualizadas) {
+        if (actualizadas == 0) {
+            return "guardé %d %s".formatted(nuevas, filas(nuevas));
+        }
+        if (nuevas == 0) {
+            return "actualicé %d %s".formatted(actualizadas, filas(actualizadas));
+        }
+        return "actualicé %d y agregué %d filas".formatted(actualizadas, nuevas);
     }
 
     private static String stock(MovimientoDeStock movimiento) {
@@ -99,14 +107,21 @@ public final class TextosWhatsapp {
         List<FilaPropuesta> filas = propuesta.getFilas();
         IntStream.range(0, Math.min(filas.size(), MAX_FILAS_EN_RESUMEN))
                 .forEach(i -> lineas.add("%d) %s".formatted(i + 1, accion(filas.get(i)) + fila(filas.get(i), tabla))));
-        if (filas.size() > MAX_FILAS_EN_RESUMEN) {
-            lineas.add("…y %d filas más.".formatted(filas.size() - MAX_FILAS_EN_RESUMEN));
-        }
-        if (filas.stream().anyMatch(fila -> !fila.dudosos().isEmpty())) {
-            lineas.add("(?) = dato que no pude leer bien.");
-        }
+        lineas.addAll(notasDelResumen(filas));
         lineas.add(PIE_DE_CONFIRMACION);
         return String.join("\n", lineas);
+    }
+
+    /** Cuántas filas no entraron en el resumen y, si hay datos dudosos, qué significa la marca. */
+    private static List<String> notasDelResumen(List<FilaPropuesta> filas) {
+        List<String> notas = new ArrayList<>();
+        if (filas.size() > MAX_FILAS_EN_RESUMEN) {
+            notas.add("…y %d filas más.".formatted(filas.size() - MAX_FILAS_EN_RESUMEN));
+        }
+        if (filas.stream().anyMatch(fila -> !fila.dudosos().isEmpty())) {
+            notas.add("(?) = dato que no pude leer bien.");
+        }
+        return notas;
     }
 
     /** La lista numerada de tablas entre las que la persona tiene que elegir. */

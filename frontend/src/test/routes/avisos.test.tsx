@@ -1,5 +1,4 @@
-import type { QueryClient } from '@tanstack/react-query';
-import { act, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { id as nuevoId, makeSystem, wireSystem } from '@/lib/sistema/core';
@@ -9,55 +8,33 @@ import type { Sistema } from '@/lib/sistema/tipos';
 import { estado } from '@/mocks/db/estado';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { avisoDelServidor } from '@/test/avisosData';
+import {
+  abrirConDemo,
+  cuandoBajaElStockDeLaGaseosa,
+  cuandoSeAbreElAvisoPendiente,
+  dadoUnAlmacenDeEjemploAbierto,
+  dadoUnAlmacenDeEjemploAbiertoConSamiAtenta,
+  entoncesAparecePendienteElAvisoDeStockDeLaGaseosa,
+  entoncesElPanelResaltaElAvisoDeStockDeLaGaseosa,
+  entoncesSamiTodaviaNoAvisaNada,
+  setupUsuarioConSesion,
+} from '@/test/avisosDeSami';
+import {
+  cuandoSeAbreElPorQue,
+  cuandoSeAplicaDesdeElPorQue,
+  entoncesElAvisoEstaEnSuSeccion,
+  entoncesElPorQueMuestra,
+  entoncesHayFilasDeAviso,
+  entoncesLaFilaNoOfreceElPorQue,
+  entoncesNoHayPorQueAbierto,
+} from '@/test/avisosEnPantalla';
 import { renderApp } from '@/test/renderApp';
 import {
   ESPERA,
-  clickButton,
   setupServerError,
-  setupUsuarioConSesion as setupUsuarioBase,
   verifyHeadingPresentAsync,
   verifyToastAsync,
 } from '@/test/testHelpers';
-
-// Estos casos revisan todas las herramientas; los límites gratuitos tienen pruebas propias.
-const setupUsuarioConSesion = (...args: Parameters<typeof setupUsuarioBase>) => {
-  const usuario = setupUsuarioBase(...args);
-  estado.pruebasPremium.set(usuario.email, {
-    inicioEn: new Date(Date.now() - 1000).toISOString(),
-    finEn: new Date(Date.now() + 7 * 86400000).toISOString(),
-    paginasIaUtilizadas: 0,
-    limitePaginasIa: 10,
-  });
-  return usuario;
-};
-
-const abrirConDemo = async (ruta: 'usar' | 'construir' = 'usar', configurado = false) => {
-  const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
-  if (configurado)
-    estado.negocios.set(usuario.email, {
-      nombre: 'Mi almacén',
-      rubro: 'ALMACEN',
-      comparteDatosZona: true,
-      zona: null,
-      ubicacion: {
-        direccion: 'Calle 123',
-        localidad: 'San Justo',
-        latitud: -34.67,
-        longitud: -58.56,
-      },
-    });
-  const sistema = crearAlmacenDeEjemplo(hoy());
-  estado.sistemas.set(usuario.email, [sistema]);
-  const router = renderApp(`/sistemas/${sistema.id}?modo=${ruta}`);
-  await screen.findByRole('heading', { level: 1, name: /Almacén de ejemplo/ }, ESPERA);
-  await waitFor(() => expect(useSistemaStore.getState().avisos.length).toBeGreaterThan(0), ESPERA);
-  return {
-    user: userEvent.setup(),
-    sistema,
-    usuario,
-    cliente: router.options.context.queryClient as QueryClient,
-  };
-};
 
 const productoDe = (sistema: Sistema | undefined, nombre: string) =>
   sistema?.sections[0]?.blocks[0]?.rows.find((fila) => fila.name === nombre);
@@ -175,9 +152,9 @@ describe('la campana y la pantalla de avisos', () => {
     expect(within(panel).getByText(/9 en total/)).toBeVisible();
     expect(within(panel).getByText(/12 comercios, sin nombres/)).toBeVisible();
     await user.click(within(panel).getByRole('button', { name: /Tu zona/ }));
-    expect(panel.querySelectorAll('.alerta')).toHaveLength(2);
+    entoncesHayFilasDeAviso(panel, 2);
     await user.click(within(panel).getByRole('button', { name: /Urgentes/ }));
-    expect(panel.querySelectorAll('.alerta.p1')).toHaveLength(0);
+    entoncesHayFilasDeAviso(panel, 0, '.aviso-fila.p1');
   });
 
   it('la pestaña «Avisos» de arriba abre la misma pantalla', async () => {
@@ -200,16 +177,17 @@ describe('la campana y la pantalla de avisos', () => {
     await abrirPanel(user);
 
     const aviso = tarjeta('Te quedaste sin Aceite Natura 900 ml');
-    expect(within(aviso).queryByText(/En los últimos 30 días vendiste 10 unidades/)).toBeNull();
-    await user.click(within(aviso).getByRole('button', { name: /Ver por qué/ }));
-    expect(within(aviso).getByText(/En los últimos 30 días vendiste 10 unidades/)).toBeVisible();
-    expect(within(aviso).getByRole('button', { name: 'Registrar entrada' })).toBeVisible();
+    expect(within(aviso).queryByText(/Vendiste 10 en los últimos 30 días/)).toBeNull();
+    await cuandoSeAbreElPorQue(user, aviso);
+    await entoncesElPorQueMuestra(
+      'Te quedaste sin Aceite Natura 900 ml',
+      /Vendiste 10 en los últimos 30 días/,
+    );
+    expect(within(aviso).getByRole('button', { name: 'Cargar entrada' })).toBeVisible();
     expect(within(aviso).getByRole('button', { name: 'Descartar' })).toBeVisible();
 
     const subida = tarjeta(/Yerba Playadito 1 kg se vende mucho/);
-    expect(
-      within(subida).getByRole('button', { name: /Subir a \$ 3\.820/ }),
-    ).toBeVisible();
+    expect(within(subida).getByRole('button', { name: /Subir a \$ 3\.820/ })).toBeVisible();
   });
 
   it('aplicar un aviso cambia el precio y el aviso desaparece', async () => {
@@ -281,7 +259,7 @@ describe('la campana y la pantalla de avisos', () => {
 
     await user.click(
       within(tarjeta('Te quedaste sin Aceite Natura 900 ml')).getByRole('button', {
-        name: 'Registrar entrada',
+        name: 'Cargar entrada',
       }),
     );
 
@@ -295,7 +273,7 @@ describe('la campana y la pantalla de avisos', () => {
 
     await user.click(
       within(tarjeta(/Leche La Serenísima 1 L y no lo tenés/)).getByRole('button', {
-        name: 'Sumar a mi inventario',
+        name: 'Sumar a mi stock',
       }),
     );
 
@@ -349,13 +327,14 @@ describe('sin datos y con el almacén de ejemplo', () => {
     await verTodosDesdeLaCampana(user);
     const panel = await screen.findByRole('region', { name: /Tus avisos/ }, ESPERA);
     expect(within(panel).getByText('Todavía no tengo datos para mirar.')).toBeVisible();
+    expect(within(panel).queryByRole('img', { name: /Sami, el pulpito/ })).toBeNull();
     await user.click(
       within(panel).getByRole('button', { name: 'Probar con un almacén de ejemplo' }),
     );
 
     await waitFor(() => expect(useSistemaStore.getState().sistemas).toHaveLength(1), ESPERA);
     expect(useSistemaStore.getState().sistemas[0]?.demoAlmacen).toBe(true);
-    // Primero el cuaderno (la pantalla de avisos también tiene su Sami flotante); después el número.
+    // Primero la sección (la pantalla de avisos también tiene su Sami flotante); después el número.
     await screen.findByRole('heading', { level: 1, name: /Almacén de ejemplo/ }, ESPERA);
     await waitFor(
       () => expect(screen.getByRole('button', { name: /Hablar con Sami: 9 avisos/ })).toBeVisible(),
@@ -379,7 +358,7 @@ describe('sin datos y con el almacén de ejemplo', () => {
       await user.click(within(chat).getByRole('button', { name: 'Enviar' }));
     };
 
-    it('el Sami flotante muestra cuántos avisos tiene el cuaderno', async () => {
+    it('el Sami flotante muestra cuántos avisos tiene la sección', async () => {
       await abrirConDemo();
 
       const sami = screen.getByRole('button', { name: /Hablar con Sami: 9 avisos/ });
@@ -457,14 +436,14 @@ describe('sin datos y con el almacén de ejemplo', () => {
     expect(screen.getByRole('group', { name: 'Distribuí tus piezas' })).toBeVisible();
   });
 
-  it('con una sola sección no hay barra de secciones (se agrega otra desde los íconos)', async () => {
+  it('con una sola pestaña no hay barra de pestañas (se agrega otra desde los íconos)', async () => {
     await abrirConDemo();
 
-    expect(screen.queryByRole('navigation', { name: 'Secciones del cuaderno' })).toBeNull();
+    expect(screen.queryByRole('navigation', { name: 'Pestañas de la sección' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Agregar y organizar' })).toBeVisible();
   });
 
-  it('el cuaderno ya no muestra los avisos arriba: viven en el chat de Sami', async () => {
+  it('la sección ya no muestra los avisos arriba: viven en el chat de Sami', async () => {
     await abrirConDemo();
 
     expect(screen.queryByRole('region', { name: /Encontré \d+ cosas para mirar/ })).toBeNull();
@@ -472,46 +451,27 @@ describe('sin datos y con el almacén de ejemplo', () => {
 });
 
 describe('«Sami vio un cambio»', () => {
-  it('no avisa al abrir, pero sí cuando un cambio genera un aviso nuevo', async () => {
-    const { cliente } = await abrirConDemo();
-    expect(document.getElementById('sami-aviso')).toBeNull();
-    // Mientras cargan los avisos del servidor el motor todavía no tomó su línea base: sin esperarlos, el cambio
-    // de abajo quedaría incluido en ella y no se avisaría.
-    await waitFor(
-      () => expect(cliente.isFetching({ queryKey: ['avisos', 'pendientes'] })).toBe(0),
-      ESPERA,
-    );
-    await waitFor(
-      () => expect(cliente.getQueryState(['avisos', 'pendientes'])?.status).toBe('success'),
-      ESPERA,
-    );
-    await act(async () => {
-      await new Promise((resolver) => setTimeout(resolver, 50));
-    });
+  it('no avisa nada mientras el almacén recién se abre', async () => {
+    await dadoUnAlmacenDeEjemploAbierto();
 
-    // Bajar la gaseosa por debajo de su mínimo: aparece un aviso de stock nuevo.
-    act(() => {
-      useSistemaStore.getState().actualizarSistema(sistemaActual()?.id ?? '', (sistema) => {
-        const gaseosa = sistema.sections[0]?.blocks[0]?.rows.find(
-          (fila) => fila.name === 'Coca-Cola 2,25 L',
-        );
-        if (gaseosa) gaseosa.quantity = 3;
-      });
-    });
+    entoncesSamiTodaviaNoAvisaNada();
+  });
 
-    const aviso = await waitFor(() => {
-      const nodo = document.getElementById('sami-aviso');
-      if (!nodo) throw new Error('Todavía no apareció');
-      return nodo;
-    }, ESPERA);
-    expect(within(aviso).getByText('Sami vio un cambio')).toBeVisible();
-    expect(within(aviso).getByText('Coca-Cola 2,25 L está por debajo del mínimo')).toBeVisible();
+  it('una gaseosa que baja de su mínimo genera un aviso pendiente', async () => {
+    await dadoUnAlmacenDeEjemploAbiertoConSamiAtenta();
 
-    await clickButton(userEvent.setup(), 'Ver el aviso');
-    expect(await screen.findByRole('region', { name: /Lo que encontré/ }, ESPERA)).toBeVisible();
-    expect(document.querySelector('.alerta.foco')).toHaveTextContent(
-      'Coca-Cola 2,25 L está por debajo del mínimo',
-    );
+    cuandoBajaElStockDeLaGaseosa();
+
+    await entoncesAparecePendienteElAvisoDeStockDeLaGaseosa();
+  });
+
+  it('el aviso pendiente lleva al panel con ese aviso resaltado', async () => {
+    await dadoUnAlmacenDeEjemploAbiertoConSamiAtenta();
+    cuandoBajaElStockDeLaGaseosa();
+
+    await cuandoSeAbreElAvisoPendiente();
+
+    await entoncesElPanelResaltaElAvisoDeStockDeLaGaseosa();
   });
 });
 
@@ -547,7 +507,7 @@ describe('los avisos del motor del servidor', () => {
     ).toBeVisible();
   });
 
-  it('cada tipo tiene su color y el detalle abre los números y el contexto del aviso', async () => {
+  it('cada tipo tiene su ícono y el ojo abre en un modal los números y el contexto del aviso', async () => {
     const { user } = await abrirConAvisosDelServidor(
       avisoDelServidor({ datos: { cantidad: 0, minimo: 10 } }),
       avisoDelServidor({
@@ -572,17 +532,55 @@ describe('los avisos del motor del servidor', () => {
     expect(within(estancado).getByText(/Bajar el precio de \$ 2\.600 a \$ 1\.900/)).toBeVisible();
 
     expect(within(estancado).queryByText('Precio sugerido')).toBeNull();
-    const ver = within(estancado).getByRole('button', { name: /Ver por qué/ });
-    expect(ver).toHaveAttribute('aria-expanded', 'false');
-    await user.click(ver);
-    expect(ver).toHaveAttribute('aria-expanded', 'true');
-    expect(within(estancado).getByText('Precio sugerido')).toBeVisible();
-    expect(within(estancado).getByText('$ 1.900')).toBeVisible();
-    expect(within(estancado).getByText(/En tu zona, 6 comercios/)).toBeVisible();
-    expect(within(estancado).getByText(/detectado/)).toBeVisible();
+    await cuandoSeAbreElPorQue(user, estancado);
+    await entoncesElPorQueMuestra(
+      'Mermelada está cara y no se mueve',
+      'Precio sugerido',
+      '$ 1.900',
+      /En tu zona, 6 comercios/,
+      /Hace \d+ días/,
+    );
   });
 
-  it('se filtra por cuaderno y la franja resume lo que no puede esperar', async () => {
+  describe('la sección y el porqué de cada aviso', () => {
+    const TITULO = 'Te quedaste sin Yerba Playadito 1 kg';
+    const givenUnSoloAvisoDeStock = () => abrirConAvisosDelServidor(avisoDelServidor());
+    const givenUnAvisoSinMasQueContar = () =>
+      abrirConAvisosDelServidor(
+        avisoDelServidor({ detalle: 'Vendiste 0 en 30 días.', motivos: [] }),
+      );
+    const givenUnAvisoConAccionDeDatos = () =>
+      abrirConAvisosDelServidor(
+        avisoDelServidor({
+          acciones: [{ tipo: 'EDITAR_REGISTRO', texto: 'Subir a $ 4.200', registroId: 'fila-1' }],
+        }),
+      );
+    const whenSeAbreLaPantalla = ({ user }: { user: ReturnType<typeof userEvent.setup> }) =>
+      abrirPanel(user);
+
+    it('un aviso solo se muestra en su sección igual que varios', async () => {
+      const abierta = await givenUnSoloAvisoDeStock();
+      await whenSeAbreLaPantalla(abierta);
+      entoncesElAvisoEstaEnSuSeccion('1 producto sin stock', TITULO);
+    });
+
+    it('la fila que no tiene más para contar no ofrece el ojo', async () => {
+      const abierta = await givenUnAvisoSinMasQueContar();
+      await whenSeAbreLaPantalla(abierta);
+      entoncesLaFilaNoOfreceElPorQue(tarjeta(TITULO));
+    });
+
+    it('aplicar desde el porqué ejecuta la acción y cierra el modal', async () => {
+      const abierta = await givenUnAvisoConAccionDeDatos();
+      await whenSeAbreLaPantalla(abierta);
+      await cuandoSeAbreElPorQue(abierta.user, tarjeta(TITULO));
+      await cuandoSeAplicaDesdeElPorQue(abierta.user, TITULO, 'Subir a $ 4.200');
+      await verifyToastAsync('Listo, aplicamos el cambio.');
+      entoncesNoHayPorQueAbierto();
+    });
+  });
+
+  it('se filtra por sección y la franja resume lo que no puede esperar', async () => {
     const { user } = await abrirConAvisosDelServidor(
       avisoDelServidor(),
       avisoDelServidor({
@@ -597,10 +595,10 @@ describe('los avisos del motor del servidor', () => {
 
     const franja = screen.getByRole('complementary', { name: 'Lo urgente' });
     expect(within(franja).getByText(/1 cosa que no puede esperar/)).toBeVisible();
-    const cuadernos = screen.getByRole('group', { name: 'Filtrar por cuaderno' });
-    expect(within(cuadernos).getAllByRole('button').length).toBeGreaterThanOrEqual(3);
+    const sistemas = screen.getByRole('group', { name: 'Filtrar por sección' });
+    expect(within(sistemas).getAllByRole('button').length).toBeGreaterThanOrEqual(3);
 
-    await user.click(within(cuadernos).getAllByRole('button')[2] as HTMLElement);
+    await user.click(within(sistemas).getAllByRole('button')[2] as HTMLElement);
     expect(screen.queryByRole('heading', { level: 3, name: /Yerba Playadito/ })).toBeNull();
     expect(screen.getByRole('heading', { level: 3, name: /Azúcar/ })).toBeVisible();
   });
@@ -648,7 +646,7 @@ describe('los avisos del motor del servidor', () => {
     const bloques = sistema.sections.flatMap((seccion) => seccion.blocks);
     const inventario = bloques.find((bloque) => bloque.type === 'inventory');
     const entradas = bloques.find((bloque) => bloque.type === 'entries');
-    if (!inventario || !entradas) throw new Error('Faltan las tablas del cuaderno');
+    if (!inventario || !entradas) throw new Error('Faltan las tablas de la sección');
     const producto = { id: nuevoId(), name: 'Yerba Playadito 1 kg', quantity: 0, price: 4200 };
     inventario.rows = [producto];
     wireSystem(sistema);
@@ -657,7 +655,12 @@ describe('los avisos del motor del servidor', () => {
       avisoDelServidor({
         proyectoId: sistema.id,
         acciones: [
-          { tipo: 'REGISTRAR', texto: 'Registrar entrada', proyectoId: sistema.id, bloqueId: entradas.id },
+          {
+            tipo: 'REGISTRAR',
+            texto: 'Cargar entrada',
+            proyectoId: sistema.id,
+            bloqueId: entradas.id,
+          },
         ],
       }),
     ]);
@@ -669,7 +672,7 @@ describe('los avisos del motor del servidor', () => {
 
     await user.click(
       within(tarjeta('Te quedaste sin Yerba Playadito 1 kg')).getByRole('button', {
-        name: 'Registrar entrada',
+        name: 'Cargar entrada',
       }),
     );
     const modal = await screen.findByRole('dialog', { name: 'Registrar entrada' }, ESPERA);

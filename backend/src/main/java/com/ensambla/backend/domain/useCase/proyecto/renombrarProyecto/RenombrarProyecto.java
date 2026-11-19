@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.useCase.proyecto.renombrarProyecto;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
@@ -24,16 +25,31 @@ public class RenombrarProyecto {
     private final Clock clock;
 
     public ProyectoItem execute(RenombrarProyectoRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
         OffsetDateTime ahora = OffsetDateTime.now(clock);
-        return ProyectoItem.de(transaccionPort.ejecutar(
-                () -> renombrar(negocioId, request.proyectoId(), request.nombre(), ahora)));
+        return ProyectoItem.de(renombrarEnTransaccion(negocioId, request.proyectoId(), request.nombre(), ahora));
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private Proyecto renombrarEnTransaccion(
+            NegocioId negocioId, ProyectoId proyectoId, String nombre, OffsetDateTime ahora) {
+        return transaccionPort.ejecutar(() -> renombrar(negocioId, proyectoId, nombre, ahora));
     }
 
     private Proyecto renombrar(NegocioId negocioId, ProyectoId proyectoId, String nombre, OffsetDateTime ahora) {
-        Proyecto proyecto = proyectoRepository.obtener(negocioId, proyectoId);
+        Proyecto proyecto = obtenerProyecto(negocioId, proyectoId);
         proyecto.renombrar(nombre, ahora);
+        return guardar(proyecto);
+    }
+
+    private Proyecto obtenerProyecto(NegocioId negocioId, ProyectoId proyectoId) {
+        return proyectoRepository.obtener(negocioId, proyectoId);
+    }
+
+    private Proyecto guardar(Proyecto proyecto) {
         return proyectoRepository.save(proyecto);
     }
 }
-

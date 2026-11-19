@@ -49,6 +49,7 @@ type BloqueEnLienzoProps = {
   onArrastrar: (evento: DragEvent<HTMLElement>, carga: CargaDeArrastre) => void;
   onFinArrastre: () => void;
   onTirador: (evento: PointerEvent<HTMLButtonElement>, bloque: Bloque, nodo: HTMLElement) => void;
+  onEscanear?: () => void;
 };
 
 const ENCABEZADOS_BAJOS_STOCK = 'low-stock';
@@ -56,7 +57,7 @@ const ENCABEZADOS_BAJOS_STOCK = 'low-stock';
 function Resumen({ sistema }: { sistema: Sistema }) {
   const total = totals(sistema);
   const indicadores: [number, string][] = [
-    [total.records, 'Registros en tu cuaderno'],
+    [total.records, 'Registros en tu sección'],
     [total.pending, 'Pedidos pendientes'],
     [total.stock, 'Unidades en inventario'],
     [total.clients, 'Clientes registrados'],
@@ -74,7 +75,7 @@ function Resumen({ sistema }: { sistema: Sistema }) {
 }
 
 // La tabla del bloque: los registros se dibujan de a 10 (con el scroll del propio bloque) y la búsqueda filtra sobre
-// todos. Un cuaderno con cientos de registros no estira la página ni dibuja de más.
+// todos. Una sección con cientos de registros no estira la página ni dibuja de más.
 function Registros({
   bloque,
   sistema,
@@ -104,13 +105,12 @@ function Registros({
   );
 
   // Si piden llevar la vista a un registro que todavía no se dibujó, se dibujan los que hagan falta hasta él.
-  useEffect(
-    () =>
-      alPedirFila(({ bloqueId, filaId }) => {
-        if (bloqueId !== bloque.id) return;
-        const indice = coincidentes.findIndex((fila) => fila.id === filaId);
-        if (indice >= 0) mostrarHasta(indice);
-      }),
+  useEffect(() =>
+    alPedirFila(({ bloqueId, filaId }) => {
+      if (bloqueId !== bloque.id) return;
+      const indice = coincidentes.findIndex((fila) => fila.id === filaId);
+      if (indice >= 0) mostrarHasta(indice);
+    }),
   );
 
   if (!bloque.rows.length) {
@@ -251,6 +251,7 @@ export function BloqueEnLienzo({
   onArrastrar,
   onFinArrastre,
   onTirador,
+  onEscanear,
 }: BloqueEnLienzoProps) {
   const definicion = CATALOG[bloque.type];
   const seleccionar = useSistemaStore((estado) => estado.seleccionar);
@@ -360,7 +361,7 @@ export function BloqueEnLienzo({
         </>
       ) : (
         <>
-          <div className="block-bar">
+          <div className={`block-bar ${onEscanear ? 'con-escaneo' : ''}`.trim()}>
             <label className="searchbox">
               <Icon name="search" />
               <input
@@ -373,6 +374,11 @@ export function BloqueEnLienzo({
               />
             </label>
             <span className="record-count">{bloque.rows.length} registros</span>
+            {onEscanear && (
+              <Btn cls="primary small" onClick={onEscanear}>
+                <Icon name="camera" /> Escanear productos
+              </Btn>
+            )}
             <IconBtn
               name="expand"
               label={`Ver ${bloque.name} a pantalla completa`}

@@ -1,9 +1,9 @@
 package com.ensambla.backend.domain.useCase.whatsapp.procesarMensajeEntrante;
 
-import com.ensambla.backend.domain.model.whatsapp.MensajeEntrante;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.whatsapp.CodigoVinculacion;
+import com.ensambla.backend.domain.model.whatsapp.MensajeEntrante;
 import com.ensambla.backend.domain.model.whatsapp.MensajeWhatsapp;
 import com.ensambla.backend.domain.model.whatsapp.TelefonoWhatsapp;
 import com.ensambla.backend.domain.model.whatsapp.TextosWhatsapp;
@@ -45,6 +45,7 @@ class ProcesarMensajeEntranteTest {
     private static final Instant INSTANTE = Instant.parse("2026-10-19T12:00:00Z");
     private static final OffsetDateTime AHORA = OffsetDateTime.ofInstant(INSTANTE, ZoneOffset.UTC);
     private static final String TELEFONO = "5491122334455";
+    private static final String CODIGO = "ABC234";
 
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final CodigoVinculacionRepository codigoRepository = mock(CodigoVinculacionRepository.class);
@@ -54,165 +55,231 @@ class ProcesarMensajeEntranteTest {
     private final MensajeWhatsappRepository mensajeRepository = mock(MensajeWhatsappRepository.class);
     private final MensajeriaWhatsappPort mensajeria = mock(MensajeriaWhatsappPort.class);
     private final ProcesarMensajeEntrante procesarMensajeEntrante = new WhatsappUseCaseConfig()
-            .procesarMensajeEntrante(
-                    negocioRepository,
-                    codigoRepository,
-                    vinculoRepository,
-                    mensajeRepository,
-                    new VinculacionWhatsappService(vinculoRepository, verificacionRepository),
-                    mensajeria,
-                    new TransaccionDirecta(),
-                    Clock.fixed(INSTANTE, ZoneOffset.UTC));
+            .procesarMensajeEntrante(negocioRepository, codigoRepository, vinculoRepository, mensajeRepository,
+                    new VinculacionWhatsappService(vinculoRepository, verificacionRepository), mensajeria,
+                    new TransaccionDirecta(), Clock.fixed(INSTANTE, ZoneOffset.UTC));
 
     @Test
-    @DisplayName("VINCULAR con un código vigente vincula el número al negocio del usuario y avisa por el chat")
-    void executeShouldLinkNumberWithValidCodigo() {
-        givenCodigo("ABC234", USUARIO_ID);
-        givenNegocioDelUsuario();
-        when(vinculoRepository.findByTelefono(TELEFONO)).thenReturn(Optional.empty());
+    @DisplayName("VINCULAR con un código vigente vincula el número al negocio del usuario")
+    void vincularConUnCodigoVigenteVinculaElNumero() {
+        dadoUnCodigoVigenteDe(USUARIO_ID);
+        dadoQueElNumeroEstaLibre();
 
-        procesarMensajeEntrante.execute(texto("ID1", " vincular abc234 "));
+        cuandoLlegaElTexto("ID1", " vincular abc234 ");
 
-        VinculoWhatsapp vinculo = thenVinculoGuardado();
-        assertThat(vinculo.getUsuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(vinculo.getNegocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(vinculo.getTelefono()).isEqualTo(TELEFONO);
-        verify(vinculoRepository).deleteByUsuarioId(USUARIO_ID);
-        verify(codigoRepository).save(any(CodigoVinculacion.class));
-        verify(mensajeria).enviarTexto(TELEFONO, TextosWhatsapp.VINCULADO);
+        entoncesSeVinculoElNumeroAlNegocioDe(USUARIO_ID);
+    }
+
+    @Test
+    @DisplayName("VINCULAR reemplaza el número anterior, marca el código como usado y avisa por el chat")
+    void vincularReemplazaElNumeroAnteriorYAvisa() {
+        dadoUnCodigoVigenteDe(USUARIO_ID);
+        dadoQueElNumeroEstaLibre();
+
+        cuandoLlegaElTexto("ID1", " vincular abc234 ");
+
+        entoncesSeBorroElVinculoAnterior();
+        entoncesSeGuardoElCodigoUsado();
+        entoncesSeContesto(TextosWhatsapp.VINCULADO);
     }
 
     @Test
     @DisplayName("VINCULAR permite que el mismo usuario vuelva a vincular su número")
-    void executeShouldAllowSameUserToRelink() {
-        givenCodigo("ABC234", USUARIO_ID);
-        givenNegocioDelUsuario();
-        when(vinculoRepository.findByTelefono(TELEFONO)).thenReturn(Optional.of(givenVinculo(USUARIO_ID)));
+    void vincularPermiteQueElMismoUsuarioVuelvaAVincular() {
+        dadoUnCodigoVigenteDe(USUARIO_ID);
+        dadoQueElNumeroEsDe(USUARIO_ID);
 
-        procesarMensajeEntrante.execute(texto("ID1", "VINCULAR ABC234"));
+        cuandoLlegaElTexto("ID1", "VINCULAR ABC234");
 
-        verify(mensajeria).enviarTexto(TELEFONO, TextosWhatsapp.VINCULADO);
+        entoncesSeContesto(TextosWhatsapp.VINCULADO);
     }
 
     @Test
     @DisplayName("VINCULAR con un código inexistente responde el motivo y no vincula")
-    void executeShouldReplyWhenCodigoDoesNotExist() {
-        when(codigoRepository.findByCodigo(anyString())).thenReturn(Optional.empty());
+    void vincularConUnCodigoInexistenteNoVincula() {
+        dadoQueNoExisteNingunCodigo();
 
-        procesarMensajeEntrante.execute(texto("ID1", "VINCULAR ZZZ999"));
+        cuandoLlegaElTexto("ID1", "VINCULAR ZZZ999");
 
-        verify(mensajeria).enviarTexto(TELEFONO, "El código de vinculación no existe");
-        verify(vinculoRepository, never()).save(any());
+        entoncesSeContesto("El código de vinculación no existe");
+        entoncesNoSeVinculoNada();
     }
 
     @Test
     @DisplayName("VINCULAR con un código vencido responde el motivo y no vincula")
-    void executeShouldReplyWhenCodigoExpired() {
-        CodigoVinculacion vencido = CodigoVinculacion.nuevo(USUARIO_ID, "ABC234", AHORA.minusHours(1));
-        when(codigoRepository.findByCodigo("ABC234")).thenReturn(Optional.of(vencido));
+    void vincularConUnCodigoVencidoNoVincula() {
+        dadoUnCodigoVencido();
 
-        procesarMensajeEntrante.execute(texto("ID1", "VINCULAR ABC234"));
+        cuandoLlegaElTexto("ID1", "VINCULAR ABC234");
 
-        verify(mensajeria).enviarTexto(TELEFONO, "El código de vinculación venció o ya se usó");
-        verify(vinculoRepository, never()).save(any());
+        entoncesSeContesto("El código de vinculación venció o ya se usó");
+        entoncesNoSeVinculoNada();
     }
 
     @Test
     @DisplayName("VINCULAR un número que ya es de otra cuenta responde el motivo y no vincula")
-    void executeShouldReplyWhenNumberBelongsToAnotherUser() {
-        givenCodigo("ABC234", USUARIO_ID);
-        when(vinculoRepository.findByTelefono(TELEFONO)).thenReturn(Optional.of(givenVinculo(OTRO_USUARIO_ID)));
+    void vincularUnNumeroDeOtraCuentaNoVincula() {
+        dadoUnCodigoVigenteDe(USUARIO_ID);
+        dadoQueElNumeroEsDe(OTRO_USUARIO_ID);
 
-        procesarMensajeEntrante.execute(texto("ID1", "VINCULAR ABC234"));
+        cuandoLlegaElTexto("ID1", "VINCULAR ABC234");
 
-        verify(mensajeria).enviarTexto(TELEFONO, "Ese número de WhatsApp ya está vinculado a otra cuenta");
-        verify(vinculoRepository, never()).save(any());
+        entoncesSeContesto("Ese número de WhatsApp ya está vinculado a otra cuenta");
+        entoncesNoSeVinculoNada();
     }
 
     @Test
-    @DisplayName("Un texto de un número vinculado se guarda en el negocio del vínculo")
-    void executeShouldStoreTextFromLinkedNumber() {
-        when(vinculoRepository.findByTelefono(TELEFONO)).thenReturn(Optional.of(givenVinculo(USUARIO_ID)));
-        when(mensajeRepository.existsByIdExterno("ID2")).thenReturn(false);
+    @DisplayName("Un texto de un número vinculado se guarda en el negocio del vínculo sin contestar nada")
+    void unTextoDeUnNumeroVinculadoSeGuardaEnSuNegocio() {
+        dadoQueElNumeroEsDe(USUARIO_ID);
+        dadoQueElMensajeEsNuevo("ID2");
 
-        procesarMensajeEntrante.execute(texto("ID2", "gasté 5000 en harina"));
+        cuandoLlegaElTexto("ID2", "gasté 5000 en harina");
 
-        ArgumentCaptor<MensajeWhatsapp> captor = ArgumentCaptor.forClass(MensajeWhatsapp.class);
-        verify(mensajeRepository).save(captor.capture());
-        assertThat(captor.getValue().getNegocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(captor.getValue().getTexto()).isEqualTo("gasté 5000 en harina");
-        verify(mensajeria, never()).enviarTexto(anyString(), anyString());
+        entoncesSeEncoloEnElNegocioElTexto("gasté 5000 en harina");
+        entoncesNoSeContestoNada();
     }
 
     @Test
     @DisplayName("Una nota de voz de un número vinculado se guarda sin buscar un código")
-    void executeShouldStoreVoiceNoteFromLinkedNumber() {
-        when(vinculoRepository.findByTelefono(TELEFONO)).thenReturn(Optional.of(givenVinculo(USUARIO_ID)));
+    void unaNotaDeVozDeUnNumeroVinculadoSeGuarda() {
+        dadoQueElNumeroEsDe(USUARIO_ID);
 
-        procesarMensajeEntrante.execute(new MensajeEntrante(TELEFONO, "ID3", TipoMensajeWhatsapp.AUDIO, null,
-                "audio/ogg", 4, AHORA));
+        cuandoLlega(new MensajeEntrante(TELEFONO, "ID3", TipoMensajeWhatsapp.AUDIO, null, "audio/ogg", 4, AHORA));
 
-        ArgumentCaptor<MensajeWhatsapp> captor = ArgumentCaptor.forClass(MensajeWhatsapp.class);
-        verify(mensajeRepository).save(captor.capture());
-        assertThat(captor.getValue().getTipo()).isEqualTo(TipoMensajeWhatsapp.AUDIO);
+        entoncesSeEncoloUn(TipoMensajeWhatsapp.AUDIO);
     }
 
     @Test
     @DisplayName("Una foto de un número vinculado se guarda con su pie y su tipo")
-    void executeShouldStorePhotoFromLinkedNumber() {
-        when(vinculoRepository.findByTelefono(TELEFONO)).thenReturn(Optional.of(givenVinculo(USUARIO_ID)));
+    void unaFotoDeUnNumeroVinculadoSeGuardaConSuPie() {
+        dadoQueElNumeroEsDe(USUARIO_ID);
 
-        procesarMensajeEntrante.execute(new MensajeEntrante(TELEFONO, "ID5", TipoMensajeWhatsapp.IMAGEN, "ventas",
-                "image/jpeg", null, AHORA));
+        cuandoLlega(new MensajeEntrante(TELEFONO, "ID5", TipoMensajeWhatsapp.IMAGEN, "ventas", "image/jpeg", null,
+                AHORA));
 
-        ArgumentCaptor<MensajeWhatsapp> captor = ArgumentCaptor.forClass(MensajeWhatsapp.class);
-        verify(mensajeRepository).save(captor.capture());
-        assertThat(captor.getValue().getTipo()).isEqualTo(TipoMensajeWhatsapp.IMAGEN);
-        assertThat(captor.getValue().getTexto()).isEqualTo("ventas");
-        assertThat(captor.getValue().getMimeMedia()).isEqualTo("image/jpeg");
+        entoncesSeEncoloUnaFotoConElPie("ventas", "image/jpeg");
     }
 
     @Test
     @DisplayName("Un mensaje que el proveedor reintentó no se guarda dos veces")
-    void executeShouldIgnoreDuplicatedMessage() {
-        when(vinculoRepository.findByTelefono(TELEFONO)).thenReturn(Optional.of(givenVinculo(USUARIO_ID)));
-        when(mensajeRepository.existsByIdExterno("ID2")).thenReturn(true);
+    void unMensajeReintentadoNoSeGuardaDosVeces() {
+        dadoQueElNumeroEsDe(USUARIO_ID);
+        dadoQueElMensajeYaLlego("ID2");
 
-        procesarMensajeEntrante.execute(texto("ID2", "hola"));
+        cuandoLlegaElTexto("ID2", "hola");
 
-        verify(mensajeRepository, never()).save(any());
+        entoncesNoSeEncoloNada();
     }
 
     @Test
     @DisplayName("Un mensaje de un número sin vincular recibe las instrucciones y no se guarda")
-    void executeShouldExplainHowToLinkUnknownNumber() {
+    void unMensajeDeUnNumeroSinVincularRecibeLasInstrucciones() {
+        dadoQueElNumeroEstaLibre();
+
+        cuandoLlegaElTexto("ID4", "hola");
+
+        entoncesSeContesto(TextosWhatsapp.NO_VINCULADO);
+        entoncesNoSeEncoloNada();
+    }
+
+    private void dadoUnCodigoVigenteDe(UsuarioId usuarioId) {
+        when(codigoRepository.findByCodigo(CODIGO))
+                .thenReturn(Optional.of(CodigoVinculacion.nuevo(usuarioId, CODIGO, AHORA)));
+        when(negocioRepository.obtenerIdDelUsuario(usuarioId)).thenReturn(NEGOCIO_ID);
+    }
+
+    private void dadoUnCodigoVencido() {
+        when(codigoRepository.findByCodigo(CODIGO))
+                .thenReturn(Optional.of(CodigoVinculacion.nuevo(USUARIO_ID, CODIGO, AHORA.minusHours(1))));
+    }
+
+    private void dadoQueNoExisteNingunCodigo() {
+        when(codigoRepository.findByCodigo(anyString())).thenReturn(Optional.empty());
+    }
+
+    private void dadoQueElNumeroEstaLibre() {
         when(vinculoRepository.findByTelefono(TELEFONO)).thenReturn(Optional.empty());
-
-        procesarMensajeEntrante.execute(texto("ID4", "hola"));
-
-        verify(mensajeria).enviarTexto(TELEFONO, TextosWhatsapp.NO_VINCULADO);
-        verify(mensajeRepository, never()).save(any());
     }
 
-    private void givenCodigo(String texto, UsuarioId usuarioId) {
-        when(codigoRepository.findByCodigo(texto)).thenReturn(Optional.of(CodigoVinculacion.nuevo(usuarioId, texto, AHORA)));
+    private void dadoQueElNumeroEsDe(UsuarioId usuarioId) {
+        when(vinculoRepository.findByTelefono(TELEFONO)).thenReturn(Optional.of(
+                VinculoWhatsapp.nuevo(usuarioId, NEGOCIO_ID, new TelefonoWhatsapp(TELEFONO), AHORA)));
     }
 
-    private void givenNegocioDelUsuario() {
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+    private void dadoQueElMensajeEsNuevo(String idExterno) {
+        when(mensajeRepository.existsByIdExterno(idExterno)).thenReturn(false);
     }
 
-    private static VinculoWhatsapp givenVinculo(UsuarioId usuarioId) {
-        return VinculoWhatsapp.nuevo(usuarioId, NEGOCIO_ID, new TelefonoWhatsapp(TELEFONO), AHORA);
+    private void dadoQueElMensajeYaLlego(String idExterno) {
+        when(mensajeRepository.existsByIdExterno(idExterno)).thenReturn(true);
     }
 
-    private static MensajeEntrante texto(String idExterno, String texto) {
-        return new MensajeEntrante(TELEFONO, idExterno, TipoMensajeWhatsapp.TEXTO, texto, null, null, AHORA);
+    private void cuandoLlegaElTexto(String idExterno, String texto) {
+        cuandoLlega(new MensajeEntrante(TELEFONO, idExterno, TipoMensajeWhatsapp.TEXTO, texto, null, null, AHORA));
     }
 
-    private VinculoWhatsapp thenVinculoGuardado() {
+    private void cuandoLlega(MensajeEntrante entrante) {
+        procesarMensajeEntrante.execute(entrante);
+    }
+
+    private VinculoWhatsapp vinculoGuardado() {
         ArgumentCaptor<VinculoWhatsapp> captor = ArgumentCaptor.forClass(VinculoWhatsapp.class);
         verify(vinculoRepository).save(captor.capture());
         return captor.getValue();
+    }
+
+    private MensajeWhatsapp mensajeEncolado() {
+        ArgumentCaptor<MensajeWhatsapp> captor = ArgumentCaptor.forClass(MensajeWhatsapp.class);
+        verify(mensajeRepository).save(captor.capture());
+        return captor.getValue();
+    }
+
+    private void entoncesSeVinculoElNumeroAlNegocioDe(UsuarioId usuarioId) {
+        VinculoWhatsapp vinculo = vinculoGuardado();
+        assertThat(vinculo.getUsuarioId()).isEqualTo(usuarioId);
+        assertThat(vinculo.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(vinculo.getTelefono()).isEqualTo(TELEFONO);
+    }
+
+    private void entoncesSeBorroElVinculoAnterior() {
+        verify(vinculoRepository).deleteByUsuarioId(USUARIO_ID);
+    }
+
+    private void entoncesSeGuardoElCodigoUsado() {
+        verify(codigoRepository).save(any(CodigoVinculacion.class));
+    }
+
+    private void entoncesSeContesto(String texto) {
+        verify(mensajeria).enviarTexto(TELEFONO, texto);
+    }
+
+    private void entoncesNoSeContestoNada() {
+        verify(mensajeria, never()).enviarTexto(anyString(), anyString());
+    }
+
+    private void entoncesNoSeVinculoNada() {
+        verify(vinculoRepository, never()).save(any());
+    }
+
+    private void entoncesSeEncoloEnElNegocioElTexto(String texto) {
+        MensajeWhatsapp mensaje = mensajeEncolado();
+        assertThat(mensaje.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(mensaje.getTexto()).isEqualTo(texto);
+    }
+
+    private void entoncesSeEncoloUn(TipoMensajeWhatsapp tipo) {
+        assertThat(mensajeEncolado().getTipo()).isEqualTo(tipo);
+    }
+
+    private void entoncesSeEncoloUnaFotoConElPie(String pie, String mime) {
+        MensajeWhatsapp mensaje = mensajeEncolado();
+        assertThat(mensaje.getTipo()).isEqualTo(TipoMensajeWhatsapp.IMAGEN);
+        assertThat(mensaje.getTexto()).isEqualTo(pie);
+        assertThat(mensaje.getMimeMedia()).isEqualTo(mime);
+    }
+
+    private void entoncesNoSeEncoloNada() {
+        verify(mensajeRepository, never()).save(any());
     }
 }

@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.ia;
 
 import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.campo.ClaseDeDatoInterpretable;
 import com.ensambla.backend.domain.model.common.TextoNormalizado;
 import com.ensambla.backend.domain.model.procesamiento.CampoConocido;
 import com.ensambla.backend.domain.model.procesamiento.TablaDisponible;
@@ -8,6 +9,7 @@ import com.ensambla.backend.domain.model.whatsapp.ConsultaInterpretacion;
 import com.ensambla.backend.domain.model.whatsapp.InterpretacionRegistros;
 import com.ensambla.backend.domain.port.InterpreteRegistrosIaPort;
 
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -53,26 +55,37 @@ public class InterpreteRegistrosSimulado implements InterpreteRegistrosIaPort {
     }
 
     private static Map<CampoId, String> fila(ConsultaInterpretacion consulta, List<CampoConocido> campos) {
-        Matcher numero = NUMERO.matcher(consulta.texto());
-        String importe = numero.find() ? numero.group().replace(',', '.') : null;
-        String resto = NUMERO.matcher(consulta.texto()).replaceAll("").strip();
+        Map<ClaseDeDatoInterpretable, String> datos = datosDelTexto(consulta);
         Map<CampoId, String> fila = new LinkedHashMap<>();
-        Set<String> completados = new HashSet<>();
+        Set<ClaseDeDatoInterpretable> completadas = new HashSet<>();
         for (CampoConocido campo : campos) {
-            switch (campo.tipo()) {
-                case NUMERO, MONEDA -> poner(fila, completados, "numero", campo, importe);
-                case FECHA -> poner(fila, completados, "fecha", campo, consulta.hoy().toString());
-                case TEXTO, TEXTO_LARGO -> poner(fila, completados, "texto", campo, resto);
-                default -> { }
-            }
+            campo.comoCampo().claseInterpretable()
+                    .ifPresent(clase -> poner(fila, completadas, clase, campo, datos.get(clase)));
         }
         return fila;
     }
 
+    private static Map<ClaseDeDatoInterpretable, String> datosDelTexto(ConsultaInterpretacion consulta) {
+        Map<ClaseDeDatoInterpretable, String> datos = new EnumMap<>(ClaseDeDatoInterpretable.class);
+        datos.put(ClaseDeDatoInterpretable.NUMERO, importeDe(consulta));
+        datos.put(ClaseDeDatoInterpretable.FECHA, consulta.hoy().toString());
+        datos.put(ClaseDeDatoInterpretable.TEXTO, textoSinImporte(consulta));
+        return datos;
+    }
+
+    private static String importeDe(ConsultaInterpretacion consulta) {
+        Matcher numero = NUMERO.matcher(consulta.texto());
+        return numero.find() ? numero.group().replace(',', '.') : null;
+    }
+
+    private static String textoSinImporte(ConsultaInterpretacion consulta) {
+        return NUMERO.matcher(consulta.texto()).replaceAll("").strip();
+    }
+
     /** Sólo la primera columna de cada clase recibe el valor. */
-    private static void poner(Map<CampoId, String> fila, Set<String> completados, String clase, CampoConocido campo,
-                              String valor) {
-        if (valor != null && !valor.isBlank() && completados.add(clase)) {
+    private static void poner(Map<CampoId, String> fila, Set<ClaseDeDatoInterpretable> completadas,
+                              ClaseDeDatoInterpretable clase, CampoConocido campo, String valor) {
+        if (valor != null && !valor.isBlank() && completadas.add(clase)) {
             fila.put(campo.id(), valor);
         }
     }

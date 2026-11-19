@@ -2,7 +2,6 @@ package com.ensambla.backend.domain.model.receta;
 
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.model.campo.CampoId;
-import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11,142 +10,274 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-import java.util.stream.IntStream;
+import java.util.Set;
 
+import static com.ensambla.backend.support.RecetasDePrueba.AHORA;
+import static com.ensambla.backend.support.RecetasDePrueba.AZUCAR_ID;
+import static com.ensambla.backend.support.RecetasDePrueba.HARINA_ID;
+import static com.ensambla.backend.support.RecetasDePrueba.NEGOCIO_ID;
+import static com.ensambla.backend.support.RecetasDePrueba.PRECIO_ID;
+import static com.ensambla.backend.support.RecetasDePrueba.PRODUCTO_ID;
+import static com.ensambla.backend.support.RecetasDePrueba.unaLinea;
+import static com.ensambla.backend.support.RecetasDePrueba.unasLineasConInsumosDistintos;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class RecetaTest {
 
-    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
-    private static final RegistroId PRODUCTO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
-    private static final RegistroId HARINA_ID = RegistroId.de("d0000000-0000-4000-8000-000000000002");
-    private static final RegistroId AZUCAR_ID = RegistroId.de("d0000000-0000-4000-8000-000000000003");
-    private static final CampoId PRECIO_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
-    private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-13T12:00:00Z");
+    private static final RecetaId ID_GUARDADA = RecetaId.nuevo();
+    private static final OffsetDateTime CREADA_ANTES = AHORA.minusDays(3);
+
+    private Receta receta;
+    private Receta guardada;
+    private Map<String, String> errores;
+    private Throwable rechazo;
 
     @Test
-    @DisplayName("Arma una receta válida y deja la unidad sin espacios en los bordes")
-    void nuevaShouldBuildValidReceta() {
-        Receta result = Receta.nueva(NEGOCIO_ID, PRODUCTO_ID, PRECIO_ID, List.of(
-                new LineaReceta(HARINA_ID, new BigDecimal("0.5"), " kg "),
-                new LineaReceta(AZUCAR_ID, new BigDecimal("2"), "  ")), AHORA);
+    @DisplayName("Una receta válida se arma y deja la unidad sin espacios en los bordes")
+    void unaRecetaValidaSeArmaYDejaLaUnidadSinEspaciosEnLosBordes() {
+        cuandoSeArmaLaReceta(PRECIO_ID, List.of(
+                unaLinea(HARINA_ID, "0.5", " kg "),
+                unaLinea(AZUCAR_ID, "2", "  ")));
 
-        assertThat(result.getId()).isNull();
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(result.getProductoId()).isEqualTo(PRODUCTO_ID);
-        assertThat(result.getCampoPrecioId()).isEqualTo(PRECIO_ID);
-        assertThat(result.getLineas()).extracting(LineaReceta::unidad).containsExactly("kg", null);
-        assertThat(result.getCreadoEn()).isEqualTo(AHORA);
-        assertThat(result.esVacia()).isFalse();
-        assertThat(result.insumoIds()).containsExactly(HARINA_ID, AZUCAR_ID);
+        entoncesLaRecetaTieneLosDatosPedidosYLasUnidadesLimpias();
     }
 
     @Test
     @DisplayName("Una receta sin líneas es vacía y no guarda la columna del precio")
-    void nuevaShouldBeEmptyWithoutLines() {
-        Receta result = Receta.nueva(NEGOCIO_ID, PRODUCTO_ID, PRECIO_ID, List.of(), AHORA);
+    void unaRecetaSinLineasEsVaciaYNoGuardaLaColumnaDelPrecio() {
+        cuandoSeArmaLaReceta(PRECIO_ID, List.of());
 
-        assertThat(result.esVacia()).isTrue();
-        assertThat(result.getCampoPrecioId()).isNull();
+        entoncesLaRecetaEsVaciaYNoTieneColumnaDelPrecio();
     }
 
     @Test
-    @DisplayName("Con líneas pide la columna del precio")
-    void nuevaShouldRequirePriceColumnWithLines() {
-        List<LineaReceta> lineas = List.of(new LineaReceta(HARINA_ID, BigDecimal.ONE, null));
+    @DisplayName("Con líneas se pide la columna del precio")
+    void conLineasSePideLaColumnaDelPrecio() {
+        cuandoSeIntentaArmarLaReceta(null, List.of(unaLinea(HARINA_ID, "1", null)));
 
-        assertThat(erroresDe(null, lineas)).containsEntry(
-                "campoPrecioId", "Elegí la columna con el precio de los insumos");
+        entoncesSeRechazaConElError("campoPrecioId", "Elegí la columna con el precio de los insumos");
     }
 
     @Test
-    @DisplayName("Rechaza un insumo faltante, el propio producto y un insumo repetido")
-    void nuevaShouldRejectMissingSelfAndRepeatedInsumo() {
-        Map<String, String> errores = erroresDe(PRECIO_ID, List.of(
-                new LineaReceta(null, BigDecimal.ONE, null),
-                new LineaReceta(PRODUCTO_ID, BigDecimal.ONE, null),
-                new LineaReceta(HARINA_ID, BigDecimal.ONE, null),
-                new LineaReceta(HARINA_ID, BigDecimal.ONE, null)));
+    @DisplayName("Se rechaza un insumo faltante, el propio producto y un insumo repetido")
+    void seRechazaUnInsumoFaltanteElPropioProductoYUnInsumoRepetido() {
+        cuandoSeIntentaArmarLaReceta(PRECIO_ID, List.of(
+                unaLinea(null, "1", null),
+                unaLinea(PRODUCTO_ID, "1", null),
+                unaLinea(HARINA_ID, "1", null),
+                unaLinea(HARINA_ID, "1", null)));
 
-        assertThat(errores).containsExactlyInAnyOrderEntriesOf(Map.of(
+        entoncesSeRechazaConLosErrores(Map.of(
                 "lineas[0]", "Elegí el insumo",
                 "lineas[1]", "Un producto no puede ser insumo de sí mismo",
                 "lineas[3]", "Ese insumo está repetido"));
     }
 
     @Test
-    @DisplayName("Rechaza cantidades ausentes, en cero, con muchos decimales o demasiado grandes")
-    void nuevaShouldRejectInvalidQuantities() {
-        assertThat(errorDeLinea(new LineaReceta(HARINA_ID, null, null))).isEqualTo("Escribí la cantidad");
-        assertThat(errorDeLinea(new LineaReceta(HARINA_ID, BigDecimal.ZERO, null)))
-                .isEqualTo("La cantidad tiene que ser mayor a cero");
-        assertThat(errorDeLinea(new LineaReceta(HARINA_ID, new BigDecimal("0.0001"), null)))
-                .isEqualTo("La cantidad admite hasta 3 decimales");
-        assertThat(errorDeLinea(new LineaReceta(HARINA_ID, new BigDecimal("100000000000"), null)))
-                .isEqualTo("La cantidad es demasiado grande");
+    @DisplayName("Se rechaza una cantidad ausente")
+    void seRechazaUnaCantidadAusente() {
+        cuandoSeIntentaArmarLaRecetaConLaLinea(new LineaReceta(HARINA_ID, null, null));
+
+        entoncesLaLineaSeRechazaPorque("Escribí la cantidad");
     }
 
     @Test
-    @DisplayName("Acepta la cantidad máxima y ceros de más en los decimales")
-    void nuevaShouldAcceptMaximumQuantityAndTrailingZeros() {
-        Receta result = Receta.nueva(NEGOCIO_ID, PRODUCTO_ID, PRECIO_ID, List.of(
+    @DisplayName("Se rechaza una cantidad en cero")
+    void seRechazaUnaCantidadEnCero() {
+        cuandoSeIntentaArmarLaRecetaConLaLinea(new LineaReceta(HARINA_ID, BigDecimal.ZERO, null));
+
+        entoncesLaLineaSeRechazaPorque("La cantidad tiene que ser mayor a cero");
+    }
+
+    @Test
+    @DisplayName("Se rechaza una cantidad con más de tres decimales")
+    void seRechazaUnaCantidadConMasDeTresDecimales() {
+        cuandoSeIntentaArmarLaRecetaConLaLinea(unaLinea(HARINA_ID, "0.0001", null));
+
+        entoncesLaLineaSeRechazaPorque("La cantidad admite hasta 3 decimales");
+    }
+
+    @Test
+    @DisplayName("Se rechaza una cantidad demasiado grande")
+    void seRechazaUnaCantidadDemasiadoGrande() {
+        cuandoSeIntentaArmarLaRecetaConLaLinea(unaLinea(HARINA_ID, "100000000000", null));
+
+        entoncesLaLineaSeRechazaPorque("La cantidad es demasiado grande");
+    }
+
+    @Test
+    @DisplayName("Se acepta la cantidad máxima y los ceros de más en los decimales")
+    void seAceptaLaCantidadMaximaYLosCerosDeMasEnLosDecimales() {
+        cuandoSeArmaLaReceta(PRECIO_ID, List.of(
                 new LineaReceta(HARINA_ID, Receta.CANTIDAD_MAXIMA, null),
-                new LineaReceta(AZUCAR_ID, new BigDecimal("1.50000"), null)), AHORA);
+                unaLinea(AZUCAR_ID, "1.50000", null)));
 
-        assertThat(result.getLineas()).hasSize(2);
+        entoncesLaRecetaTieneLineas(2);
     }
 
     @Test
-    @DisplayName("Rechaza una unidad demasiado larga")
-    void nuevaShouldRejectTooLongUnit() {
-        assertThat(errorDeLinea(new LineaReceta(HARINA_ID, BigDecimal.ONE, "x".repeat(31))))
-                .isEqualTo("La unidad puede tener hasta 30 caracteres");
+    @DisplayName("Se rechaza una unidad demasiado larga")
+    void seRechazaUnaUnidadDemasiadoLarga() {
+        cuandoSeIntentaArmarLaRecetaConLaLinea(unaLinea(HARINA_ID, "1", "x".repeat(31)));
+
+        entoncesLaLineaSeRechazaPorque("La unidad puede tener hasta 30 caracteres");
     }
 
     @Test
-    @DisplayName("Rechaza una receta con demasiados insumos")
-    void nuevaShouldRejectTooManyLines() {
-        List<LineaReceta> lineas = IntStream.range(0, 51)
-                .mapToObj(n -> new LineaReceta(RegistroId.nuevo(), BigDecimal.ONE, null))
-                .toList();
+    @DisplayName("Se rechaza una receta con demasiados insumos")
+    void seRechazaUnaRecetaConDemasiadosInsumos() {
+        cuandoSeIntentaArmarLaReceta(PRECIO_ID, unasLineasConInsumosDistintos(51));
 
-        assertThat(erroresDe(PRECIO_ID, lineas)).containsEntry("lineas", "Una receta puede tener hasta 50 insumos");
+        entoncesSeRechazaConElError("lineas", "Una receta puede tener hasta 50 insumos");
+    }
+
+    @Test
+    @DisplayName("Una receta inválida lanza una excepción con los errores")
+    void unaRecetaInvalidaLanzaUnaExcepcionConLosErrores() {
+        cuandoSeIntentaArmarLaReceta(null, List.of(unaLinea(HARINA_ID, "1", null)));
+
+        entoncesSeRechazaPorDatosInvalidos();
     }
 
     @Test
     @DisplayName("Reemplazar conserva el id y la fecha de creación de la receta guardada")
-    void reemplazarShouldKeepIdentityOfTheSavedOne() {
-        Receta nueva = Receta.nueva(NEGOCIO_ID, PRODUCTO_ID, PRECIO_ID, List.of(), AHORA);
-        UUID id = UUID.fromString("f0000000-0000-4000-8000-000000000001");
-        OffsetDateTime antes = AHORA.minusDays(3);
+    void reemplazarConservaElIdYLaFechaDeCreacionDeLaRecetaGuardada() {
+        dadoUnaRecetaNuevaSinLineas();
+        dadoUnaRecetaGuardadaCreadaAntes();
 
-        nueva.reemplazar(Receta.builder().id(RecetaId.de(id)).creadoEn(antes).build());
+        cuandoLaRecetaNuevaReemplazaALaGuardada();
 
-        assertThat(nueva.getId()).isEqualTo(RecetaId.de(id));
-        assertThat(nueva.getCreadoEn()).isEqualTo(antes);
-        assertThat(nueva.getActualizadoEn()).isEqualTo(AHORA);
-    }
-
-    private static String errorDeLinea(LineaReceta linea) {
-        return erroresDe(PRECIO_ID, List.of(linea)).get("lineas[0]");
-    }
-
-    private static Map<String, String> erroresDe(CampoId campoPrecioId, List<LineaReceta> lineas) {
-        try {
-            Receta.nueva(NEGOCIO_ID, PRODUCTO_ID, campoPrecioId, lineas, AHORA);
-            return Map.of();
-        } catch (RegistroInvalidoException e) {
-            return e.getErrores();
-        }
+        entoncesLaRecetaNuevaConservaLaIdentidadDeLaGuardada();
     }
 
     @Test
-    @DisplayName("Lanza una excepción con los errores cuando algo es inválido")
-    void nuevaShouldThrowRegistroInvalido() {
-        assertThatThrownBy(() -> Receta.nueva(
-                NEGOCIO_ID, PRODUCTO_ID, null, List.of(new LineaReceta(HARINA_ID, BigDecimal.ONE, null)), AHORA))
-                .isInstanceOf(RegistroInvalidoException.class);
+    @DisplayName("Una receta vacía de un producto no tiene líneas ni se guardó")
+    void unaRecetaVaciaDeUnProductoNoTieneLineasNiSeGuardo() {
+        cuandoSeArmaUnaRecetaVaciaDelProducto();
+
+        entoncesLaRecetaEsVaciaYSoloConoceAlNegocioYAlProducto();
+    }
+
+    @Test
+    @DisplayName("Los insumos que ya no existen se marcan en la línea que los usa")
+    void losInsumosQueYaNoExistenSeMarcanEnLaLineaQueLosUsa() {
+        dadoUnaRecetaDeHarinaYAzucar();
+
+        cuandoSePidenLosErroresDeInsumosInexistentes(Set.of(HARINA_ID));
+
+        entoncesSoloLaSegundaLineaTieneElError("Ese insumo ya no existe");
+    }
+
+    @Test
+    @DisplayName("Si todos los insumos existen no hay errores de insumos")
+    void siTodosLosInsumosExistenNoHayErroresDeInsumos() {
+        dadoUnaRecetaDeHarinaYAzucar();
+
+        cuandoSePidenLosErroresDeInsumosInexistentes(Set.of(HARINA_ID, AZUCAR_ID));
+
+        entoncesNoHayErrores();
+    }
+
+    // --- dado ---
+    private void dadoUnaRecetaNuevaSinLineas() {
+        receta = Receta.nueva(NEGOCIO_ID, PRODUCTO_ID, PRECIO_ID, List.of(), AHORA);
+    }
+
+    private void dadoUnaRecetaGuardadaCreadaAntes() {
+        guardada = Receta.builder().id(ID_GUARDADA).creadoEn(CREADA_ANTES).build();
+    }
+
+    private void dadoUnaRecetaDeHarinaYAzucar() {
+        receta = Receta.nueva(NEGOCIO_ID, PRODUCTO_ID, PRECIO_ID,
+                List.of(unaLinea(HARINA_ID, "1", null), unaLinea(AZUCAR_ID, "1", null)), AHORA);
+    }
+
+    // --- cuando ---
+    private void cuandoSeArmaLaReceta(CampoId campoPrecioId, List<LineaReceta> lineas) {
+        receta = Receta.nueva(NEGOCIO_ID, PRODUCTO_ID, campoPrecioId, lineas, AHORA);
+    }
+
+    private void cuandoSeIntentaArmarLaReceta(CampoId campoPrecioId, List<LineaReceta> lineas) {
+        rechazo = catchThrowable(() -> cuandoSeArmaLaReceta(campoPrecioId, lineas));
+    }
+
+    private void cuandoSeIntentaArmarLaRecetaConLaLinea(LineaReceta linea) {
+        cuandoSeIntentaArmarLaReceta(PRECIO_ID, List.of(linea));
+    }
+
+    private void cuandoLaRecetaNuevaReemplazaALaGuardada() {
+        receta.reemplazar(guardada);
+    }
+
+    private void cuandoSeArmaUnaRecetaVaciaDelProducto() {
+        receta = Receta.vacia(NEGOCIO_ID, PRODUCTO_ID);
+    }
+
+    private void cuandoSePidenLosErroresDeInsumosInexistentes(Set<RegistroId> existentes) {
+        errores = receta.erroresDeInsumosInexistentes(existentes);
+    }
+
+    // --- entonces ---
+    private void entoncesLaRecetaTieneLosDatosPedidosYLasUnidadesLimpias() {
+        assertThat(receta.getId()).isNull();
+        assertThat(receta.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(receta.getProductoId()).isEqualTo(PRODUCTO_ID);
+        assertThat(receta.getCampoPrecioId()).isEqualTo(PRECIO_ID);
+        assertThat(receta.getLineas()).extracting(LineaReceta::unidad).containsExactly("kg", null);
+        assertThat(receta.getCreadoEn()).isEqualTo(AHORA);
+        assertThat(receta.esVacia()).isFalse();
+        assertThat(receta.insumoIds()).containsExactly(HARINA_ID, AZUCAR_ID);
+    }
+
+    private void entoncesLaRecetaEsVaciaYNoTieneColumnaDelPrecio() {
+        assertThat(receta.esVacia()).isTrue();
+        assertThat(receta.getCampoPrecioId()).isNull();
+    }
+
+    private void entoncesLaRecetaTieneLineas(int cantidad) {
+        assertThat(receta.getLineas()).hasSize(cantidad);
+    }
+
+    private void entoncesSeRechazaConElError(String clave, String mensaje) {
+        assertThat(erroresDelRechazo()).containsEntry(clave, mensaje);
+    }
+
+    private void entoncesSeRechazaConLosErrores(Map<String, String> esperados) {
+        assertThat(erroresDelRechazo()).containsExactlyInAnyOrderEntriesOf(esperados);
+    }
+
+    private void entoncesLaLineaSeRechazaPorque(String mensaje) {
+        assertThat(erroresDelRechazo()).containsEntry("lineas[0]", mensaje);
+    }
+
+    private void entoncesSeRechazaPorDatosInvalidos() {
+        assertThat(rechazo).isInstanceOf(RegistroInvalidoException.class);
+    }
+
+    private void entoncesLaRecetaNuevaConservaLaIdentidadDeLaGuardada() {
+        assertThat(receta.getId()).isEqualTo(ID_GUARDADA);
+        assertThat(receta.getCreadoEn()).isEqualTo(CREADA_ANTES);
+        assertThat(receta.getActualizadoEn()).isEqualTo(AHORA);
+    }
+
+    private void entoncesLaRecetaEsVaciaYSoloConoceAlNegocioYAlProducto() {
+        assertThat(receta.esVacia()).isTrue();
+        assertThat(receta.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(receta.getProductoId()).isEqualTo(PRODUCTO_ID);
+        assertThat(receta.getId()).isNull();
+    }
+
+    private void entoncesSoloLaSegundaLineaTieneElError(String mensaje) {
+        assertThat(errores).containsOnly(Map.entry("lineas[1]", mensaje));
+    }
+
+    private void entoncesNoHayErrores() {
+        assertThat(errores).isEmpty();
+    }
+
+    private Map<String, String> erroresDelRechazo() {
+        assertThat(rechazo).isInstanceOf(RegistroInvalidoException.class);
+        return ((RegistroInvalidoException) rechazo).getErrores();
     }
 }

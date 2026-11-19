@@ -24,28 +24,34 @@ class ProgresoObjetivoRepositoryMapperTest {
 
     @Test
     @DisplayName("Mapea la foto de un mini-objetivo con todos sus campos")
-    void toDomainShouldMapEveryField() {
-        ProgresoObjetivo result = mapper.toDomain(entity(MINI_ID.valor()));
+    void unaFotoDeUnMiniObjetivoSeLeeConTodosSusDatos() {
+        ProgresoObjetivoEntity entidad = dadoUnaFotoDeUnMiniObjetivo();
 
-        assertThat(result.id().valor()).isEqualTo(ID);
-        assertThat(result.objetivoId()).isEqualTo(OBJETIVO_ID);
-        assertThat(result.miniObjetivoId()).isEqualTo(MINI_ID);
-        assertThat(result.dia()).isEqualTo(DIA);
-        assertThat(result.valor()).isEqualTo(VALOR);
-        assertThat(result.medidoEn()).isEqualTo(AHORA);
+        ProgresoObjetivo progreso = cuandoSeConvierteEnProgreso(entidad);
+
+        entoncesElProgresoTieneTodosLosDatosDeLaFoto(progreso);
     }
 
     @Test
     @DisplayName("La foto del objetivo mayor se mapea sin mini-objetivo")
-    void toDomainShouldKeepTheMiniObjetivoEmptyForTheObjetivoPhoto() {
-        ProgresoObjetivo result = mapper.toDomain(entity(null));
+    void laFotoDelObjetivoMayorSeLeeSinMiniObjetivo() {
+        ProgresoObjetivoEntity entidad = dadoUnaFotoDelObjetivoMayor();
 
-        assertThat(result.miniObjetivoId()).isNull();
-        assertThat(result.esDelObjetivo()).isTrue();
+        ProgresoObjetivo progreso = cuandoSeConvierteEnProgreso(entidad);
+
+        entoncesElProgresoEsDelObjetivoYNoDeUnMini(progreso);
     }
 
-    // --- helpers ---
-    private static ProgresoObjetivoEntity entity(UUID miniObjetivoId) {
+    // --- dado ---
+    private ProgresoObjetivoEntity dadoUnaFotoDeUnMiniObjetivo() {
+        return unaFotoDe(MINI_ID.valor());
+    }
+
+    private ProgresoObjetivoEntity dadoUnaFotoDelObjetivoMayor() {
+        return unaFotoDe(null);
+    }
+
+    private ProgresoObjetivoEntity unaFotoDe(UUID miniObjetivoId) {
         return ProgresoObjetivoEntity.builder()
                 .id(ID)
                 .objetivoId(OBJETIVO_ID.valor())
@@ -54,5 +60,25 @@ class ProgresoObjetivoRepositoryMapperTest {
                 .valor(VALOR)
                 .medidoEn(AHORA)
                 .build();
+    }
+
+    // --- cuando ---
+    private ProgresoObjetivo cuandoSeConvierteEnProgreso(ProgresoObjetivoEntity entidad) {
+        return mapper.toDomain(entidad);
+    }
+
+    // --- entonces ---
+    private void entoncesElProgresoTieneTodosLosDatosDeLaFoto(ProgresoObjetivo progreso) {
+        assertThat(progreso.id().valor()).isEqualTo(ID);
+        assertThat(progreso.objetivoId()).isEqualTo(OBJETIVO_ID);
+        assertThat(progreso.miniObjetivoId()).isEqualTo(MINI_ID);
+        assertThat(progreso.dia()).isEqualTo(DIA);
+        assertThat(progreso.valor()).isEqualTo(VALOR);
+        assertThat(progreso.medidoEn()).isEqualTo(AHORA);
+    }
+
+    private void entoncesElProgresoEsDelObjetivoYNoDeUnMini(ProgresoObjetivo progreso) {
+        assertThat(progreso.miniObjetivoId()).isNull();
+        assertThat(progreso.esDelObjetivo()).isTrue();
     }
 }

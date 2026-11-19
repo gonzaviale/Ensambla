@@ -18,41 +18,57 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AuthPresentationMapperTest {
 
     private final AuthPresentationMapper mapper = new AuthPresentationMapper();
+    private RegistrarUsuarioRequest registro;
+    private IniciarSesionRequest login;
+    private UsuarioResponse usuario;
 
     @Test
     @DisplayName("Mapea el registro al dominio y recorta el email")
-    void toRequestShouldMapRegistro() {
-        RegistroRequest input = new RegistroRequest(NOMBRE, "Negocio", " " + EMAIL + " ", CONTRASENIA);
+    void mapeaElRegistroYRecortaElEmail() {
+        cuandoLlegaElRegistro(new RegistroRequest(NOMBRE, "Negocio", " " + EMAIL + " ", CONTRASENIA));
 
-        RegistrarUsuarioRequest result = mapper.toRequest(input);
-
-        assertThat(result.nombre()).isEqualTo(NOMBRE);
-        assertThat(result.nombreNegocio()).isEqualTo("Negocio");
-        assertThat(result.email()).isEqualTo(EMAIL);
-        assertThat(result.contrasenia()).isEqualTo(CONTRASENIA);
+        entoncesElRegistroEs(new RegistrarUsuarioRequest(NOMBRE, "Negocio", EMAIL, CONTRASENIA));
     }
 
     @Test
     @DisplayName("Mapea el login al dominio sin modificar la contraseña")
-    void toRequestShouldMapLogin() {
-        LoginRequest input = new LoginRequest(" " + EMAIL + " ", CONTRASENIA);
+    void mapeaElLoginSinModificarLaContrasenia() {
+        cuandoLlegaElLogin(new LoginRequest(" " + EMAIL + " ", CONTRASENIA));
 
-        IniciarSesionRequest result = mapper.toRequest(input);
-
-        assertThat(result.email()).isEqualTo(EMAIL);
-        assertThat(result.contrasenia()).isEqualTo(CONTRASENIA);
+        entoncesElLoginEs(new IniciarSesionRequest(EMAIL, CONTRASENIA));
     }
 
     @Test
     @DisplayName("Mapea únicamente los datos públicos del usuario")
-    void toResponseShouldMapIdentity() {
-        var input = com.ensambla.backend.domain.useCase.auth.UsuarioResponse.de(usuario());
+    void mapeaUnicamenteLosDatosPublicosDelUsuario() {
+        cuandoSeRespondeConElUsuario();
 
-        UsuarioResponse result = mapper.toResponse(input);
+        entoncesLaRespuestaEs(USUARIO_ID, NOMBRE, EMAIL);
+    }
 
-        assertThat(result.id()).isEqualTo(USUARIO_ID);
-        assertThat(result.nombre()).isEqualTo(NOMBRE);
-        assertThat(result.email()).isEqualTo(EMAIL);
+    private void cuandoLlegaElRegistro(RegistroRequest pedido) {
+        registro = mapper.toRequest(pedido);
+    }
+
+    private void cuandoLlegaElLogin(LoginRequest pedido) {
+        login = mapper.toRequest(pedido);
+    }
+
+    private void cuandoSeRespondeConElUsuario() {
+        usuario = mapper.toResponse(com.ensambla.backend.domain.useCase.auth.UsuarioResponse.de(usuario()));
+    }
+
+    private void entoncesElRegistroEs(RegistrarUsuarioRequest esperado) {
+        assertThat(registro).isEqualTo(esperado);
+    }
+
+    private void entoncesElLoginEs(IniciarSesionRequest esperado) {
+        assertThat(login).isEqualTo(esperado);
+    }
+
+    private void entoncesLaRespuestaEs(Object id, String nombre, String email) {
+        assertThat(usuario.id()).isEqualTo(id);
+        assertThat(usuario.nombre()).isEqualTo(nombre);
+        assertThat(usuario.email()).isEqualTo(email);
     }
 }
-

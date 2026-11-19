@@ -1280,7 +1280,7 @@ body:has(.editor-layout) {
   }
 }
 
-/* Las herramientas del cuaderno arriba del lienzo: el navbar de arriba es el común a todas las pantallas. */
+/* Las herramientas de la sección arriba del lienzo: el navbar de arriba es el común a todas las pantallas. */
 .editor-herramientas {
   display: flex;
   flex-wrap: wrap;

@@ -4,23 +4,79 @@ import com.ensambla.backend.domain.exception.BusinessRuleException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.nio.charset.StandardCharsets;
-
 import static com.ensambla.backend.support.LoteTestData.AHORA;
 import static com.ensambla.backend.support.LoteTestData.JPEG;
 import static com.ensambla.backend.support.LoteTestData.NEGOCIO_ID;
+import static com.ensambla.backend.support.LotesDePrueba.unArchivoDeMasDeDiezMegas;
+import static com.ensambla.backend.support.LotesDePrueba.unArchivoDeTexto;
+import static com.ensambla.backend.support.LotesDePrueba.unArchivoVacio;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class FotoCuadernoTest {
 
     private static final short POSICION = 2;
 
-    @Test
-    @DisplayName("Arma la foto con el tipo detectado, el tamaño y una clave dentro de la carpeta privada del negocio")
-    void nuevaShouldBuildFotoInsideNegocioFolder() {
-        FotoCuaderno foto = FotoCuaderno.nueva(NEGOCIO_ID, JPEG, POSICION, AHORA);
+    private FotoCuaderno foto;
+    private FotoCuaderno otraFoto;
+    private Throwable rechazo;
 
+    @Test
+    @DisplayName("La foto nueva tiene el tipo detectado, el tamaño y una clave en la carpeta privada del negocio")
+    void laFotoNuevaTieneElTipoDetectadoElTamanioYUnaClaveEnLaCarpetaPrivadaDelNegocio() {
+        cuandoSeArmaUnaFotoJpeg();
+
+        entoncesLaFotoQuedaEnLaCarpetaDelNegocioConSusDatos();
+    }
+
+    @Test
+    @DisplayName("Dos fotos iguales reciben claves distintas")
+    void dosFotosIgualesRecibenClavesDistintas() {
+        cuandoSeArmanDosFotosJpegIguales();
+
+        entoncesLasDosFotosTienenClavesDistintas();
+    }
+
+    @Test
+    @DisplayName("Un archivo vacío se rechaza indicando qué foto es")
+    void unArchivoVacioSeRechazaIndicandoQueFotoEs() {
+        cuandoSeIntentaArmarUnaFotoConElArchivo(unArchivoVacio());
+
+        entoncesSeRechazaPorque("La foto 3 está vacía");
+    }
+
+    @Test
+    @DisplayName("Un archivo de más de 10 MB se rechaza")
+    void unArchivoDeMasDeDiezMegasSeRechaza() {
+        cuandoSeIntentaArmarUnaFotoConElArchivo(unArchivoDeMasDeDiezMegas(FotoCuaderno.MAX_BYTES));
+
+        entoncesSeRechazaPorque("La foto 3 supera el máximo de 10 MB");
+    }
+
+    @Test
+    @DisplayName("Un archivo que no es una imagen ni un PDF se rechaza")
+    void unArchivoQueNoEsUnaImagenNiUnPdfSeRechaza() {
+        cuandoSeIntentaArmarUnaFotoConElArchivo(unArchivoDeTexto());
+
+        entoncesSeRechazaPorque("La foto 3 no es una imagen JPEG, PNG, WEBP o HEIC ni un PDF");
+    }
+
+    // --- cuando ---
+    private void cuandoSeArmaUnaFotoJpeg() {
+        foto = FotoCuaderno.nueva(NEGOCIO_ID, JPEG, POSICION, AHORA);
+    }
+
+    private void cuandoSeArmanDosFotosJpegIguales() {
+        foto = FotoCuaderno.nueva(NEGOCIO_ID, JPEG, POSICION, AHORA);
+        otraFoto = FotoCuaderno.nueva(NEGOCIO_ID, JPEG, POSICION, AHORA);
+    }
+
+    private void cuandoSeIntentaArmarUnaFotoConElArchivo(byte[] contenido) {
+        rechazo = catchThrowable(() -> FotoCuaderno.nueva(NEGOCIO_ID, contenido, POSICION, AHORA));
+    }
+
+    // --- entonces ---
+    private void entoncesLaFotoQuedaEnLaCarpetaDelNegocioConSusDatos() {
         assertThat(foto.getClaveAlmacenamiento()).startsWith(NEGOCIO_ID + "/fotos/").endsWith(".jpg");
         assertThat(foto.getNegocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(foto.getTipoContenido()).isEqualTo("image/jpeg");
@@ -32,43 +88,11 @@ class FotoCuadernoTest {
         assertThat(foto.getContenido()).isEqualTo(JPEG);
     }
 
-    @Test
-    @DisplayName("Dos fotos iguales reciben claves distintas")
-    void nuevaShouldGenerateUniqueKeys() {
-        FotoCuaderno primera = FotoCuaderno.nueva(NEGOCIO_ID, JPEG, POSICION, AHORA);
-
-        FotoCuaderno segunda = FotoCuaderno.nueva(NEGOCIO_ID, JPEG, POSICION, AHORA);
-
-        assertThat(segunda.getClaveAlmacenamiento()).isNotEqualTo(primera.getClaveAlmacenamiento());
+    private void entoncesLasDosFotosTienenClavesDistintas() {
+        assertThat(otraFoto.getClaveAlmacenamiento()).isNotEqualTo(foto.getClaveAlmacenamiento());
     }
 
-    @Test
-    @DisplayName("Rechaza un archivo vacío indicando qué foto es")
-    void nuevaShouldRejectEmptyFile() {
-        byte[] vacio = new byte[0];
-
-        assertThatThrownBy(() -> FotoCuaderno.nueva(NEGOCIO_ID, vacio, POSICION, AHORA))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("La foto 3 está vacía");
-    }
-
-    @Test
-    @DisplayName("Rechaza un archivo de más de 10 MB")
-    void nuevaShouldRejectTooBigFile() {
-        byte[] grande = new byte[(int) FotoCuaderno.MAX_BYTES + 1];
-
-        assertThatThrownBy(() -> FotoCuaderno.nueva(NEGOCIO_ID, grande, POSICION, AHORA))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("La foto 3 supera el máximo de 10 MB");
-    }
-
-    @Test
-    @DisplayName("Rechaza un archivo que no es una imagen ni un PDF")
-    void nuevaShouldRejectUnsupportedType() {
-        byte[] texto = "no soy una foto".getBytes(StandardCharsets.UTF_8);
-
-        assertThatThrownBy(() -> FotoCuaderno.nueva(NEGOCIO_ID, texto, POSICION, AHORA))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("La foto 3 no es una imagen JPEG, PNG, WEBP o HEIC ni un PDF");
+    private void entoncesSeRechazaPorque(String motivo) {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class).hasMessage(motivo);
     }
 }

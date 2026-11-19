@@ -2,9 +2,6 @@ package com.ensambla.backend.domain.model.lectura;
 
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -59,29 +56,21 @@ public record LecturaCuaderno(TipoRegistroCuaderno tipoRegistro, BloquePropuesto
     }
 
     private static void validarDato(CampoPropuesto campo, DatoLeido dato) {
-        if (!Double.isFinite(dato.confianza())) {
-            throw invalida("La confianza debe ser un número finito");
-        }
-        if (dato.valor() == null) {
-            return;
-        }
-        try {
-            switch (campo.tipo()) {
-                case NUMERO, MONEDA -> new BigDecimal(dato.valor());
-                case FECHA -> LocalDate.parse(dato.valor());
-                case SI_NO -> comprobar("true".equals(dato.valor()) || "false".equals(dato.valor()));
-                case OPCION -> comprobar(campo.opciones().contains(dato.valor()));
-                case FORMULA -> throw new IllegalArgumentException("La lectura no propone fórmulas");
-                default -> { } // TEXTO y RELACION: cualquier texto sirve (la conexión se resuelve a una fila después)
-            }
-        } catch (IllegalArgumentException | DateTimeParseException e) {
-            throw invalida("El valor del campo " + campo.clave() + " no coincide con su tipo");
+        exigirConfianzaFinita(dato);
+        if (dato.valor() != null) {
+            exigirValorDelTipo(campo, dato.valor());
         }
     }
 
-    private static void comprobar(boolean valido) {
-        if (!valido) {
-            throw new IllegalArgumentException("Valor incompatible");
+    private static void exigirConfianzaFinita(DatoLeido dato) {
+        if (!Double.isFinite(dato.confianza())) {
+            throw invalida("La confianza debe ser un número finito");
+        }
+    }
+
+    private static void exigirValorDelTipo(CampoPropuesto campo, String valor) {
+        if (campo.comoCampo().errorDeValorLeido(valor).isPresent()) {
+            throw invalida("El valor del campo " + campo.clave() + " no coincide con su tipo");
         }
     }
 

@@ -6,34 +6,161 @@ import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
-import com.ensambla.backend.support.ProyectoTestData;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static com.ensambla.backend.support.ColumnasDePrueba.unaColumna;
 import static com.ensambla.backend.support.ProyectoTestData.AHORA;
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
+import static com.ensambla.backend.support.ProyectoTestData.plantilla;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class ProyectoColumnasTest {
 
     private Proyecto proyecto;
-
-    @BeforeEach
-    void setUp() {
-        proyecto = Proyecto.desdePlantilla(NEGOCIO_ID, ProyectoTestData.plantilla(), AHORA);
-    }
+    private Throwable rechazo;
 
     @Test
     @DisplayName("Suma las columnas al final del primer bloque, con su tipo, opciones y posición")
-    void agregarColumnasShouldAppendToFirstBlock() {
-        proyecto.agregarColumnas(List.of(
-                columna("  Saldo pendiente ", "NUMERO", null),
-                columna("Forma de pago", "OPCION", List.of("Efectivo", "Tarjeta"))), AHORA);
+    void sumaLasColumnasAlFinalDelPrimerBloqueConSuTipoOpcionesYPosicion() {
+        dadoUnProyectoCopiadoDeLaPlantilla();
 
+        cuandoSeAgreganSaldoPendienteYFormaDePago();
+
+        entoncesElPrimerBloqueTerminaConLasDosColumnasNuevas();
+        entoncesElSegundoBloqueSigueSinCampos();
+    }
+
+    @Test
+    @DisplayName("Sin columnas no cambia nada, ni siquiera si el proyecto no tiene bloques")
+    void sinColumnasNoCambiaNadaNiSiquieraSiElProyectoNoTieneBloques() {
+        dadoUnProyectoEnBlanco();
+
+        cuandoSeAgreganCeroColumnas();
+
+        entoncesElProyectoSigueSinBloques();
+    }
+
+    @Test
+    @DisplayName("Sin columnas un proyecto con bloques conserva sus campos")
+    void sinColumnasUnProyectoConBloquesConservaSusCampos() {
+        dadoUnProyectoCopiadoDeLaPlantilla();
+
+        cuandoSeAgreganCeroColumnas();
+
+        entoncesElPrimerBloqueSigueConSusDosCampos();
+    }
+
+    @Test
+    @DisplayName("Un proyecto sin bloques no tiene dónde agregar columnas")
+    void unProyectoSinBloquesNoTieneDondeAgregarColumnas() {
+        dadoUnProyectoEnBlanco();
+
+        cuandoSeIntentaAgregarLaColumna(unaColumna("Saldo", "NUMERO"));
+
+        entoncesSeRechazaPorFaltaDeBloqueConMensaje("La plantilla no tiene una tabla donde agregar columnas");
+    }
+
+    @Test
+    @DisplayName("Rechaza una columna con el nombre de una que la plantilla ya trae, sin distinguir mayúsculas")
+    void rechazaUnaColumnaConElNombreDeUnaQueLaPlantillaYaTraeSinDistinguirMayusculas() {
+        dadoUnProyectoCopiadoDeLaPlantilla();
+
+        cuandoSeIntentaAgregarLaColumna(unaColumna(" nombre ", "TEXTO"));
+
+        entoncesSeRechazaPorNombreRepetidoConMensaje("Ya hay una columna llamada \"nombre\"");
+    }
+
+    @Test
+    @DisplayName("Rechaza dos columnas nuevas con el mismo nombre")
+    void rechazaDosColumnasNuevasConElMismoNombre() {
+        dadoUnProyectoCopiadoDeLaPlantilla();
+
+        cuandoSeIntentaAgregarLasColumnas(unaColumna("Saldo", "NUMERO"), unaColumna("SALDO", "TEXTO"));
+
+        entoncesSeRechazaPorNombreRepetido();
+    }
+
+    @Test
+    @DisplayName("No admite conexiones y dice cuál de las columnas es")
+    void noAdmiteConexionesYDiceCualDeLasColumnasEs() {
+        dadoUnProyectoCopiadoDeLaPlantilla();
+
+        cuandoSeIntentaAgregarLasColumnas(unaColumna("Total", "NUMERO"), unaColumna("Cliente", "RELACION"));
+
+        entoncesElErrorSenalaSoloLaClave("columnas[1].tipo");
+    }
+
+    @Test
+    @DisplayName("No admite fórmulas y dice cuál de las columnas es")
+    void noAdmiteFormulasYDiceCualDeLasColumnasEs() {
+        dadoUnProyectoCopiadoDeLaPlantilla();
+
+        cuandoSeIntentaAgregarLaColumna(unaColumna("Cuenta", "FORMULA"));
+
+        entoncesElErrorSenalaSoloLaClave("columnas[0].tipo");
+    }
+
+    @Test
+    @DisplayName("Los errores de una columna llevan su posición para ubicarla")
+    void losErroresDeUnaColumnaLlevanSuPosicionParaUbicarla() {
+        dadoUnProyectoCopiadoDeLaPlantilla();
+
+        cuandoSeIntentaAgregarUnaColumnaConOpcionesRepetidasSeguidaDeUnaSinNombre();
+
+        entoncesElErrorSenalaSoloLaClave("columnas[0].opciones");
+        entoncesElErrorNoSenalaLaClave("columnas[1].nombre");
+    }
+
+    @Test
+    @DisplayName("Una columna sin nombre se señala en la posición donde viene")
+    void unaColumnaSinNombreSeSenalaEnLaPosicionDondeViene() {
+        dadoUnProyectoCopiadoDeLaPlantilla();
+
+        cuandoSeIntentaAgregarLasColumnas(unaColumna("Saldo", "NUMERO"), unaColumna(" ", "TEXTO"));
+
+        entoncesElErrorSenalaSoloLaClave("columnas[1].nombre");
+    }
+
+    // --- dado ---
+    private void dadoUnProyectoCopiadoDeLaPlantilla() {
+        proyecto = Proyecto.desdePlantilla(NEGOCIO_ID, plantilla(), AHORA);
+    }
+
+    private void dadoUnProyectoEnBlanco() {
+        proyecto = Proyecto.enBlanco(NEGOCIO_ID, "Mi negocio", null, AHORA);
+    }
+
+    // --- cuando ---
+    private void cuandoSeAgreganSaldoPendienteYFormaDePago() {
+        proyecto.agregarColumnas(List.of(
+                unaColumna("  Saldo pendiente ", "NUMERO"),
+                unaColumna("Forma de pago", "OPCION", List.of("Efectivo", "Tarjeta"))), AHORA);
+    }
+
+    private void cuandoSeAgreganCeroColumnas() {
+        proyecto.agregarColumnas(List.of(), AHORA);
+    }
+
+    private void cuandoSeIntentaAgregarLaColumna(ConfiguracionCampo columna) {
+        rechazo = catchThrowable(() -> proyecto.agregarColumnas(List.of(columna), AHORA));
+    }
+
+    private void cuandoSeIntentaAgregarLasColumnas(ConfiguracionCampo primera, ConfiguracionCampo segunda) {
+        rechazo = catchThrowable(() -> proyecto.agregarColumnas(List.of(primera, segunda), AHORA));
+    }
+
+    private void cuandoSeIntentaAgregarUnaColumnaConOpcionesRepetidasSeguidaDeUnaSinNombre() {
+        cuandoSeIntentaAgregarLasColumnas(
+                unaColumna("Forma de pago", "OPCION", List.of("Efectivo", "efectivo")),
+                unaColumna(" ", "TEXTO"));
+    }
+
+    // --- entonces ---
+    private void entoncesElPrimerBloqueTerminaConLasDosColumnasNuevas() {
         List<Campo> campos = proyecto.getBloques().getFirst().getCampos();
         assertThat(campos).extracting(Campo::getNombre)
                 .containsExactly("Nombre", "Rubro", "Saldo pendiente", "Forma de pago");
@@ -41,77 +168,39 @@ class ProyectoColumnasTest {
         assertThat(campos.get(2).getPosicion()).isEqualTo((short) 2);
         assertThat(campos.get(2).getNegocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(campos.get(3).getOpciones()).containsExactly("Efectivo", "Tarjeta");
+    }
+
+    private void entoncesElSegundoBloqueSigueSinCampos() {
         assertThat(proyecto.getBloques().get(1).getCampos()).isEmpty();
     }
 
-    @Test
-    @DisplayName("Sin columnas no cambia nada, ni siquiera si el proyecto no tiene bloques")
-    void agregarColumnasShouldDoNothingWithoutColumns() {
-        Proyecto enBlanco = Proyecto.enBlanco(NEGOCIO_ID, "Mi negocio", null, AHORA);
+    private void entoncesElProyectoSigueSinBloques() {
+        assertThat(proyecto.getBloques()).isEmpty();
+    }
 
-        enBlanco.agregarColumnas(List.of(), AHORA);
-        proyecto.agregarColumnas(List.of(), AHORA);
-
+    private void entoncesElPrimerBloqueSigueConSusDosCampos() {
         assertThat(proyecto.getBloques().getFirst().getCampos()).hasSize(2);
     }
 
-    @Test
-    @DisplayName("Un proyecto sin bloques no tiene dónde agregar columnas")
-    void agregarColumnasShouldFailWithoutBlocks() {
-        Proyecto enBlanco = Proyecto.enBlanco(NEGOCIO_ID, "Mi negocio", null, AHORA);
-
-        assertThatThrownBy(() -> enBlanco.agregarColumnas(List.of(columna("Saldo", "NUMERO", null)), AHORA))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("La plantilla no tiene una tabla donde agregar columnas");
+    private void entoncesSeRechazaPorFaltaDeBloqueConMensaje(String mensaje) {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class).hasMessage(mensaje);
     }
 
-    @Test
-    @DisplayName("Rechaza una columna con el nombre de una que la plantilla ya trae, sin distinguir mayúsculas")
-    void agregarColumnasShouldRejectNameOfExistingColumn() {
-        assertThatThrownBy(() -> proyecto.agregarColumnas(List.of(columna(" nombre ", "TEXTO", null)), AHORA))
-                .isInstanceOf(DuplicateResourceException.class)
-                .hasMessage("Ya hay una columna llamada \"nombre\"");
+    private void entoncesSeRechazaPorNombreRepetidoConMensaje(String mensaje) {
+        assertThat(rechazo).isInstanceOf(DuplicateResourceException.class).hasMessage(mensaje);
     }
 
-    @Test
-    @DisplayName("Rechaza dos columnas nuevas con el mismo nombre")
-    void agregarColumnasShouldRejectRepeatedNewColumn() {
-        List<ConfiguracionCampo> repetidas = List.of(columna("Saldo", "NUMERO", null), columna("SALDO", "TEXTO", null));
-
-        assertThatThrownBy(() -> proyecto.agregarColumnas(repetidas, AHORA))
-                .isInstanceOf(DuplicateResourceException.class);
+    private void entoncesSeRechazaPorNombreRepetido() {
+        assertThat(rechazo).isInstanceOf(DuplicateResourceException.class);
     }
 
-    @Test
-    @DisplayName("No admite conexiones ni fórmulas y dice cuál de las columnas es")
-    void agregarColumnasShouldRejectRelationAndFormula() {
-        assertThatThrownBy(() -> proyecto.agregarColumnas(
-                List.of(columna("Total", "NUMERO", null), columna("Cliente", "RELACION", null)), AHORA))
-                .isInstanceOfSatisfying(CampoInvalidoException.class, e -> assertThat(e.getErrores())
-                        .containsOnlyKeys("columnas[1].tipo"));
-        assertThatThrownBy(() -> proyecto.agregarColumnas(List.of(columna("Cuenta", "FORMULA", null)), AHORA))
-                .isInstanceOfSatisfying(CampoInvalidoException.class, e -> assertThat(e.getErrores())
-                        .containsOnlyKeys("columnas[0].tipo"));
+    private void entoncesElErrorSenalaSoloLaClave(String clave) {
+        assertThat(rechazo).isInstanceOfSatisfying(CampoInvalidoException.class,
+                error -> assertThat(error.getErrores()).containsOnlyKeys(clave));
     }
 
-    @Test
-    @DisplayName("Los errores de una columna llevan su posición para ubicarla")
-    void agregarColumnasShouldPrefixValidationErrorsWithPosition() {
-        List<ConfiguracionCampo> columnas = List.of(
-                columna("Saldo", "NUMERO", null),
-                columna("Forma de pago", "OPCION", List.of("Efectivo", "efectivo")),
-                columna(" ", "TEXTO", null));
-
-        assertThatThrownBy(() -> proyecto.agregarColumnas(columnas.subList(1, 3), AHORA))
-                .isInstanceOfSatisfying(CampoInvalidoException.class, e -> assertThat(e.getErrores())
-                        .containsOnlyKeys("columnas[0].opciones").doesNotContainKey("columnas[1].nombre"));
-        assertThatThrownBy(() -> proyecto.agregarColumnas(
-                List.of(columnas.getFirst(), columnas.getLast()), AHORA))
-                .isInstanceOfSatisfying(CampoInvalidoException.class, e -> assertThat(e.getErrores())
-                        .containsOnlyKeys("columnas[1].nombre"));
-    }
-
-    private ConfiguracionCampo columna(String nombre, String tipo, List<String> opciones) {
-        return new ConfiguracionCampo(nombre, tipo, false, null, opciones, null, null);
+    private void entoncesElErrorNoSenalaLaClave(String clave) {
+        assertThat(rechazo).isInstanceOfSatisfying(CampoInvalidoException.class,
+                error -> assertThat(error.getErrores()).doesNotContainKey(clave));
     }
 }

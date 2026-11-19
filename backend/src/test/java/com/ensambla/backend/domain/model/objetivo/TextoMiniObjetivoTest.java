@@ -27,7 +27,7 @@ class TextoMiniObjetivoTest {
         TextoMiniObjetivo result = TextoMiniObjetivo.moverParado(
                 "Fideos 500 g", decimal("40"), decimal("32000.00"), decimal("10"), decimal("3"));
 
-        assertThat(result.titulo()).isEqualTo("Mové «Fideos 500 g»");
+        assertThat(result.titulo()).isEqualTo("Volvé a vender «Fideos 500 g»");
         assertThat(result.justificacion()).isEqualTo(
                 "En el último mes no se vendió y tenés 40 guardados ($32.000 en mercadería). Bajale $10 y apuntá a 3 "
                         + "por semana.");

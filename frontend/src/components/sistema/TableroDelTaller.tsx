@@ -21,7 +21,7 @@ const bloqueDeEvento = (evento: DragEvent<HTMLElement>) =>
 function Resumen({ sistema }: { sistema: Sistema }) {
   const total = totals(sistema);
   const indicadores: [number, string][] = [
-    [total.records, 'Registros en tu cuaderno'],
+    [total.records, 'Registros en tu sección'],
     [total.pending, 'Pedidos pendientes'],
     [total.stock, 'Unidades en inventario'],
     [total.clients, 'Clientes registrados'],
@@ -55,9 +55,9 @@ function Tabla({ bloque, sistema, nuevas, onRegistro }: TablaProps) {
     const ordenadas = conNuevasPrimero(bloque.rows, nuevas);
     if (!buscado) return ordenadas;
     return ordenadas.filter((fila) =>
-      normalize(bloque.fields.map((campo) => textoPlano(sistema, campo, fila[campo.key])).join(' ')).includes(
-        buscado,
-      ),
+      normalize(
+        bloque.fields.map((campo) => textoPlano(sistema, campo, fila[campo.key])).join(' '),
+      ).includes(buscado),
     );
   }, [bloque.rows, bloque.fields, nuevas, buscado, sistema]);
 
@@ -179,7 +179,7 @@ type TableroDelTallerProps = {
   onFinArrastre: () => void;
 };
 
-// La propuesta de Sami con el aspecto del cuaderno: los mismos bloques, cabeceras y tablas, pero editando el borrador.
+// La propuesta de Sami con el aspecto de la sección: los mismos bloques, cabeceras y tablas, pero editando el borrador.
 export function TableroDelTaller({
   sistema,
   seccionId,
