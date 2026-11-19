@@ -17,16 +17,36 @@ class VentaDelDiaTest {
     private static final LocalDate DESDE = LocalDate.of(2026, 10, 17);
     private static final LocalDate HASTA = LocalDate.of(2026, 10, 19);
 
+    private List<VentaProducto> ventas;
+    private List<VentaDelDia> serie;
+
     @Test
     @DisplayName("Suma lo que entró cada día con precio y deja en cero los días sin ventas")
     void sumaLoQueEntroCadaDiaConPrecioYDejaEnCeroLosDiasSinVentas() {
-        List<VentaDelDia> serie = VentaDelDia.serie(List.of(
+        dadoVentasDeVariosDiasConUnaSinPrecioYUnaFueraDelRango();
+
+        cuandoSeArmaLaSerieDelRango();
+
+        entoncesHayUnDiaPorFechaConLoQueEntroYCeroEnLosDiasSinVentas();
+    }
+
+    // --- dado ---
+    private void dadoVentasDeVariosDiasConUnaSinPrecioYUnaFueraDelRango() {
+        ventas = List.of(
                 venta(2, "3400", "2026-10-17"),
                 venta(1, "3400", "2026-10-17"),
                 venta(5, null, "2026-10-19"),
                 venta(1, "1000", "2026-10-19"),
-                venta(9, "3400", "2026-10-10")), DESDE, HASTA);
+                venta(9, "3400", "2026-10-10"));
+    }
 
+    // --- cuando ---
+    private void cuandoSeArmaLaSerieDelRango() {
+        serie = VentaDelDia.serie(ventas, DESDE, HASTA);
+    }
+
+    // --- entonces ---
+    private void entoncesHayUnDiaPorFechaConLoQueEntroYCeroEnLosDiasSinVentas() {
         assertThat(serie).extracting(VentaDelDia::fecha).containsExactly(
                 LocalDate.of(2026, 10, 17), LocalDate.of(2026, 10, 18), LocalDate.of(2026, 10, 19));
         assertThat(serie.get(0).ingresos()).isEqualByComparingTo("10200");

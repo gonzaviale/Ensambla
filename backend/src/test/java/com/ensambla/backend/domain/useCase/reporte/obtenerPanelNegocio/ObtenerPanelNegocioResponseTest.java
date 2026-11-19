@@ -16,36 +16,63 @@ class ObtenerPanelNegocioResponseTest {
     private static final PeriodoResumen PERIODO =
             new PeriodoResumen(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 7));
 
+    private PanelNegocio panel;
+    private ObtenerPanelNegocioResponse respuesta;
+
     @Test
     @DisplayName("Copia el período, las métricas y cada semana del panel")
     void copiaElPeriodoLasMetricasYCadaSemanaDelPanel() {
-        PanelNegocio.Metricas metricas = new PanelNegocio.Metricas(
-                bd("1000"), bd("200"), null, bd("800"), bd("50"), bd("20.5"), bd("250"), null);
-        PanelNegocio.SemanaDeCaja semana = new PanelNegocio.SemanaDeCaja(
-                PERIODO.desde(), PERIODO.hasta(), bd("1000"), bd("200"), bd("800"), bd("800"));
+        dadoUnPanelConMetricasYUnaSemana();
 
-        ObtenerPanelNegocioResponse response = ObtenerPanelNegocioResponse.de(
-                new PanelNegocio(PERIODO, metricas, List.of(semana)));
+        cuandoSeArmaLaRespuesta();
 
-        assertThat(response.desde()).isEqualTo(PERIODO.desde());
-        assertThat(response.hasta()).isEqualTo(PERIODO.hasta());
-        assertThat(response.dias()).isEqualTo(7);
-        assertThat(response.hayDatos()).isTrue();
-        assertThat(response.metricas()).isEqualTo(new ObtenerPanelNegocioResponse.Metricas(
-                bd("1000"), bd("200"), null, bd("800"), bd("50"), bd("20.5"), bd("250"), null));
-        assertThat(response.flujoDeCaja()).containsExactly(new ObtenerPanelNegocioResponse.Semana(
-                PERIODO.desde(), PERIODO.hasta(), bd("1000"), bd("200"), bd("800"), bd("800")));
+        entoncesCopiaElPeriodoLasMetricasYLaSemana();
     }
 
     @Test
     @DisplayName("Un panel vacío no tiene datos, métricas ni semanas")
     void unPanelVacioNoTieneDatosMetricasNiSemanas() {
-        ObtenerPanelNegocioResponse response = ObtenerPanelNegocioResponse.de(
-                new PanelNegocio(PERIODO, null, List.of()));
+        dadoUnPanelVacio();
 
-        assertThat(response.hayDatos()).isFalse();
-        assertThat(response.metricas()).isNull();
-        assertThat(response.flujoDeCaja()).isEmpty();
+        cuandoSeArmaLaRespuesta();
+
+        entoncesNoTieneDatosNiMetricasNiSemanas();
+    }
+
+    // --- dado ---
+    private void dadoUnPanelConMetricasYUnaSemana() {
+        PanelNegocio.Metricas metricas = new PanelNegocio.Metricas(
+                bd("1000"), bd("200"), null, bd("800"), bd("50"), bd("20.5"), bd("250"), null);
+        PanelNegocio.SemanaDeCaja semana = new PanelNegocio.SemanaDeCaja(
+                PERIODO.desde(), PERIODO.hasta(), bd("1000"), bd("200"), bd("800"), bd("800"));
+        panel = new PanelNegocio(PERIODO, metricas, List.of(semana));
+    }
+
+    private void dadoUnPanelVacio() {
+        panel = new PanelNegocio(PERIODO, null, List.of());
+    }
+
+    // --- cuando ---
+    private void cuandoSeArmaLaRespuesta() {
+        respuesta = ObtenerPanelNegocioResponse.de(panel);
+    }
+
+    // --- entonces ---
+    private void entoncesCopiaElPeriodoLasMetricasYLaSemana() {
+        assertThat(respuesta.desde()).isEqualTo(PERIODO.desde());
+        assertThat(respuesta.hasta()).isEqualTo(PERIODO.hasta());
+        assertThat(respuesta.dias()).isEqualTo(7);
+        assertThat(respuesta.hayDatos()).isTrue();
+        assertThat(respuesta.metricas()).isEqualTo(new ObtenerPanelNegocioResponse.Metricas(
+                bd("1000"), bd("200"), null, bd("800"), bd("50"), bd("20.5"), bd("250"), null));
+        assertThat(respuesta.flujoDeCaja()).containsExactly(new ObtenerPanelNegocioResponse.Semana(
+                PERIODO.desde(), PERIODO.hasta(), bd("1000"), bd("200"), bd("800"), bd("800")));
+    }
+
+    private void entoncesNoTieneDatosNiMetricasNiSemanas() {
+        assertThat(respuesta.hayDatos()).isFalse();
+        assertThat(respuesta.metricas()).isNull();
+        assertThat(respuesta.flujoDeCaja()).isEmpty();
     }
 
     private static BigDecimal bd(String valor) {

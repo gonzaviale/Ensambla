@@ -36,25 +36,72 @@ class ReporteDtosTest {
     private static final RegistroId FILA_ID = RegistroId.de("d0000000-0000-4000-8000-000000000002");
     private static final OffsetDateTime CREADO = OffsetDateTime.parse("2026-10-13T01:30:00Z");
 
+    private ReporteRegistros reporte;
+    private List<Campo> campos;
+    private GenerarReporteResponse respuesta;
+    private TablaReporte tabla;
+    private byte[] contenido;
+    private ExportarReporteResponse exportacion;
+    private ExportarReporteResponse exportacionSinNombre;
+
     @Test
     @DisplayName("La respuesta lleva las filas, los totales, si está truncado y el máximo que se muestra")
     void laRespuestaLlevaLasFilasLosTotalesSiEstaTruncadoYElMaximoQueSeMuestra() {
-        Registro fila = Registro.builder().id(FILA_ID).valores(Map.of("k", "v")).creadoEn(CREADO).build();
-        ReporteRegistros reporte = new ReporteRegistros(
-                List.of(fila), new TotalesRegistros(7, Map.of(CANTIDAD_ID, new BigDecimal("12"))), true);
+        dadoUnReporteTruncadoConUnaFilaYSieteRegistros();
 
-        GenerarReporteResponse result = GenerarReporteResponse.de(reporte, 50);
+        cuandoSeArmaLaRespuestaConUnMaximoDe(50);
 
-        assertThat(result.filas()).singleElement().satisfies(item -> assertThat(item.id()).isEqualTo(FILA_ID));
-        assertThat(result.totales().cantidad()).isEqualTo(7);
-        assertThat(result.totales().sumas().get(CANTIDAD_ID)).isEqualByComparingTo("12");
-        assertThat(result.truncado()).isTrue();
-        assertThat(result.maximoFilas()).isEqualTo(50);
+        entoncesLaRespuestaLlevaLaFilaLosTotalesElTruncadoYElMaximo();
     }
 
     @Test
     @DisplayName("La tabla tiene una columna por campo y la fecha de carga, con cada valor del tipo de su columna")
     void laTablaTieneUnaColumnaPorCampoYLaFechaDeCargaConCadaValorDelTipoDeSuColumna() {
+        dadoUnReporteConUnaFilaCompletaYUnaFilaConUnClienteEliminado();
+
+        cuandoSeArmaLaTablaConElClienteBeto();
+
+        entoncesLaTablaTieneUnaColumnaPorCampoMasLaFechaDeCargaConCadaValorEnSuTipo();
+    }
+
+    @Test
+    @DisplayName("La fila de totales pone la etiqueta en la primera columna que no es numérica y la suma de las numéricas")
+    void laFilaDeTotalesPoneLaEtiquetaEnLaPrimeraColumnaQueNoEsNumericaYLaSumaDeLasNumericas() {
+        dadoUnReporteSinFilasConUnTotalDeCantidad();
+
+        cuandoSeArmaLaTablaConTodosLosCampos();
+
+        entoncesLosTotalesTienenLaEtiquetaEnLaPrimeraColumnaYLaSumaEnLaNumerica();
+    }
+
+    @Test
+    @DisplayName("La etiqueta de totales va en la columna de la fecha de carga si todas las columnas son numéricas")
+    void laEtiquetaDeTotalesVaEnLaColumnaDeLaFechaDeCargaSiTodasLasColumnasSonNumericas() {
+        dadoUnReporteDeUnaSolaColumnaNumerica();
+
+        cuandoSeArmaLaTablaConLosCamposDelReporte();
+
+        entoncesLaEtiquetaDeTotalesVaEnLaFechaDeCarga();
+    }
+
+    @Test
+    @DisplayName("El nombre del archivo es reporte, la tabla sin tildes ni espacios y la fecha")
+    void elNombreDelArchivoEsReporteLaTablaSinTildesNiEspaciosYLaFecha() {
+        dadoUnContenidoDeTresBytes();
+
+        cuandoSeArmanLasExportacionesConUnNombreConTildesYUnoSinLetras();
+
+        entoncesElNombreDelArchivoUsaLaTablaSinTildesNiEspaciosYLaFecha();
+    }
+
+    // --- dado ---
+    private void dadoUnReporteTruncadoConUnaFilaYSieteRegistros() {
+        Registro fila = Registro.builder().id(FILA_ID).valores(Map.of("k", "v")).creadoEn(CREADO).build();
+        reporte = new ReporteRegistros(
+                List.of(fila), new TotalesRegistros(7, Map.of(CANTIDAD_ID, new BigDecimal("12"))), true);
+    }
+
+    private void dadoUnReporteConUnaFilaCompletaYUnaFilaConUnClienteEliminado() {
         Registro fila = Registro.builder().id(FILA_ID).creadoEn(CREADO).valores(Map.of(
                 NOMBRE_ID.toString(), "Pan",
                 CANTIDAD_ID.toString(), 2.5,
@@ -66,59 +113,80 @@ class ReporteDtosTest {
         Registro vacia = Registro.builder().id(RegistroId.nuevo()).creadoEn(CREADO).valores(Map.of(
                 PAGADO_ID.toString(), false,
                 CLIENTE_ID.toString(), UUID.randomUUID().toString())).build();
-        ReporteRegistros reporte = new ReporteRegistros(
+        reporte = new ReporteRegistros(
                 List.of(fila, vacia), new TotalesRegistros(2, Map.of(CANTIDAD_ID, new BigDecimal("2.5"))), false);
+    }
 
-        TablaReporte result = TablaReporte.de(
-                "Pedidos", dadoCampos(), reporte, Map.of(BETO_ID, "Beto"));
+    private void dadoUnReporteSinFilasConUnTotalDeCantidad() {
+        reporte = new ReporteRegistros(
+                List.of(), new TotalesRegistros(1, Map.of(CANTIDAD_ID, new BigDecimal("2.5"))), false);
+    }
 
-        assertThat(result.hoja()).isEqualTo("Pedidos");
-        assertThat(result.encabezados())
+    private void dadoUnReporteDeUnaSolaColumnaNumerica() {
+        campos = List.of(Campo.builder().id(CANTIDAD_ID).nombre("Cantidad").tipo(TipoCampo.NUMERO).build());
+        reporte = new ReporteRegistros(
+                List.of(), new TotalesRegistros(3, Map.of(CANTIDAD_ID, BigDecimal.TEN)), false);
+    }
+
+    private void dadoUnContenidoDeTresBytes() {
+        contenido = new byte[] {1, 2, 3};
+    }
+
+    // --- cuando ---
+    private void cuandoSeArmaLaRespuestaConUnMaximoDe(int maximo) {
+        respuesta = GenerarReporteResponse.de(reporte, maximo);
+    }
+
+    private void cuandoSeArmaLaTablaConElClienteBeto() {
+        tabla = TablaReporte.de("Pedidos", dadoCampos(), reporte, Map.of(BETO_ID, "Beto"));
+    }
+
+    private void cuandoSeArmaLaTablaConTodosLosCampos() {
+        tabla = TablaReporte.de("Pedidos", dadoCampos(), reporte, Map.of());
+    }
+
+    private void cuandoSeArmaLaTablaConLosCamposDelReporte() {
+        tabla = TablaReporte.de("Pedidos", campos, reporte, Map.of());
+    }
+
+    private void cuandoSeArmanLasExportacionesConUnNombreConTildesYUnoSinLetras() {
+        exportacion = ExportarReporteResponse.de(contenido, "Órdenes de Compra", LocalDate.parse("2026-10-13"));
+        exportacionSinNombre = ExportarReporteResponse.de(contenido, "¿¿??", LocalDate.parse("2026-01-02"));
+    }
+
+    // --- entonces ---
+    private void entoncesLaRespuestaLlevaLaFilaLosTotalesElTruncadoYElMaximo() {
+        assertThat(respuesta.filas()).singleElement().satisfies(item -> assertThat(item.id()).isEqualTo(FILA_ID));
+        assertThat(respuesta.totales().cantidad()).isEqualTo(7);
+        assertThat(respuesta.totales().sumas().get(CANTIDAD_ID)).isEqualByComparingTo("12");
+        assertThat(respuesta.truncado()).isTrue();
+        assertThat(respuesta.maximoFilas()).isEqualTo(50);
+    }
+
+    private void entoncesLaTablaTieneUnaColumnaPorCampoMasLaFechaDeCargaConCadaValorEnSuTipo() {
+        assertThat(tabla.hoja()).isEqualTo("Pedidos");
+        assertThat(tabla.encabezados())
                 .containsExactly("Nombre", "Cantidad", "Fecha", "Pagado", "Cliente", "Total", "Estado", "Cargado");
-        assertThat(result.filas().get(0)).containsExactly(
+        assertThat(tabla.filas().get(0)).containsExactly(
                 "Pan", new BigDecimal("2.5"), LocalDate.parse("2026-10-12"), "Sí", "Beto", new BigDecimal("5"),
                 "Entregado", LocalDateTime.parse("2026-10-12T22:30:00"));
-        assertThat(result.filas().get(1)).containsExactly(
+        assertThat(tabla.filas().get(1)).containsExactly(
                 null, null, null, "No", "Fila eliminada", null, null, LocalDateTime.parse("2026-10-12T22:30:00"));
     }
 
-    @Test
-    @DisplayName("La fila de totales pone la etiqueta en la primera columna que no es numérica y la suma de las numéricas")
-    void laFilaDeTotalesPoneLaEtiquetaEnLaPrimeraColumnaQueNoEsNumericaYLaSumaDeLasNumericas() {
-        ReporteRegistros reporte = new ReporteRegistros(
-                List.of(), new TotalesRegistros(1, Map.of(CANTIDAD_ID, new BigDecimal("2.5"))), false);
-
-        TablaReporte result = TablaReporte.de("Pedidos", dadoCampos(), reporte, Map.of());
-
-        assertThat(result.totales()).containsExactly(
+    private void entoncesLosTotalesTienenLaEtiquetaEnLaPrimeraColumnaYLaSumaEnLaNumerica() {
+        assertThat(tabla.totales()).containsExactly(
                 "Total (1 fila)", new BigDecimal("2.5"), null, null, null, null, null, null);
     }
 
-    @Test
-    @DisplayName("La etiqueta de totales va en la columna de la fecha de carga si todas las columnas son numéricas")
-    void laEtiquetaDeTotalesVaEnLaColumnaDeLaFechaDeCargaSiTodasLasColumnasSonNumericas() {
-        List<Campo> soloNumeros = List.of(Campo.builder().id(CANTIDAD_ID).nombre("Cantidad")
-                .tipo(TipoCampo.NUMERO).build());
-        ReporteRegistros reporte = new ReporteRegistros(
-                List.of(), new TotalesRegistros(3, Map.of(CANTIDAD_ID, BigDecimal.TEN)), false);
-
-        TablaReporte result = TablaReporte.de("Pedidos", soloNumeros, reporte, Map.of());
-
-        assertThat(result.totales()).containsExactly(BigDecimal.TEN, "Total (3 filas)");
+    private void entoncesLaEtiquetaDeTotalesVaEnLaFechaDeCarga() {
+        assertThat(tabla.totales()).containsExactly(BigDecimal.TEN, "Total (3 filas)");
     }
 
-    @Test
-    @DisplayName("El nombre del archivo es reporte, la tabla sin tildes ni espacios y la fecha")
-    void elNombreDelArchivoEsReporteLaTablaSinTildesNiEspaciosYLaFecha() {
-        byte[] contenido = {1, 2, 3};
-
-        ExportarReporteResponse result = ExportarReporteResponse.de(
-                contenido, "Órdenes de Compra", LocalDate.parse("2026-10-13"));
-
-        assertThat(result.contenido()).isEqualTo(contenido);
-        assertThat(result.nombreArchivo()).isEqualTo("reporte-ordenes-de-compra-20261013.xlsx");
-        assertThat(ExportarReporteResponse.de(contenido, "¿¿??", LocalDate.parse("2026-01-02")).nombreArchivo())
-                .isEqualTo("reporte-20260102.xlsx");
+    private void entoncesElNombreDelArchivoUsaLaTablaSinTildesNiEspaciosYLaFecha() {
+        assertThat(exportacion.contenido()).isEqualTo(contenido);
+        assertThat(exportacion.nombreArchivo()).isEqualTo("reporte-ordenes-de-compra-20261013.xlsx");
+        assertThat(exportacionSinNombre.nombreArchivo()).isEqualTo("reporte-20260102.xlsx");
     }
 
     private static List<Campo> dadoCampos() {
