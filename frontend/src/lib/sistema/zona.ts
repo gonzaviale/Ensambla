@@ -1,6 +1,6 @@
 import { parecido } from './alertas';
 import { allBlocks } from './core';
-import type { Sistema } from './tipos';
+import type { Bloque, Fila, Sistema } from './tipos';
 import type { AccesoContenido } from '@/types/contenidoPlan';
 
 // Los datos de la zona son AGREGADOS y ANÓNIMOS: nunca se sabe qué comercio cobra qué ni dónde queda. Un
@@ -51,12 +51,11 @@ export type PosicionDelPrecio = 'bajo' | 'justo' | 'alto';
 export const EN_LINEA = { desde: 0.92, hasta: 1.12 } as const;
 
 /** Tu precio frente al promedio de la zona. */
-export const posicionDelPrecio = (precio: number, promedio: number): PosicionDelPrecio =>
-  precio < promedio * EN_LINEA.desde
-    ? 'bajo'
-    : precio > promedio * EN_LINEA.hasta
-      ? 'alto'
-      : 'justo';
+export function posicionDelPrecio(precio: number, promedio: number): PosicionDelPrecio {
+  if (precio < promedio * EN_LINEA.desde) return 'bajo';
+  if (precio > promedio * EN_LINEA.hasta) return 'alto';
+  return 'justo';
+}
 
 export type ProductoPropio = {
   nombre: string;
@@ -67,25 +66,30 @@ export type ProductoPropio = {
   filaId: string;
 };
 
+const esInventario = (bloque: Bloque) => bloque.type === 'inventory';
+
+const tieneNombreYPrecio = (fila: Fila) => String(fila.name ?? '').trim() && Number(fila.price) > 0;
+
+const productoDeLaFila = (fila: Fila, bloque: Bloque, sistema: Sistema): ProductoPropio => ({
+  nombre: String(fila.name),
+  precio: Number(fila.price),
+  sistemaId: sistema.id,
+  sistema: sistema.name,
+  bloqueId: bloque.id,
+  filaId: fila.id,
+});
+
+const productosDelBloque = (bloque: Bloque, sistema: Sistema): ProductoPropio[] =>
+  bloque.rows.filter(tieneNombreYPrecio).map((fila) => productoDeLaFila(fila, bloque, sistema));
+
+const productosDelSistema = (sistema: Sistema): ProductoPropio[] =>
+  allBlocks(sistema)
+    .filter(esInventario)
+    .flatMap((bloque) => productosDelBloque(bloque, sistema));
+
 /** Los productos del inventario de la persona que tienen precio, de todos sus sistemas. */
-export function productosPropios(sistemas: Sistema[]): ProductoPropio[] {
-  return sistemas.flatMap((sistema) =>
-    allBlocks(sistema)
-      .filter((bloque) => bloque.type === 'inventory')
-      .flatMap((bloque) =>
-        bloque.rows
-          .filter((fila) => String(fila.name ?? '').trim() && Number(fila.price) > 0)
-          .map((fila) => ({
-            nombre: String(fila.name),
-            precio: Number(fila.price),
-            sistemaId: sistema.id,
-            sistema: sistema.name,
-            bloqueId: bloque.id,
-            filaId: fila.id,
-          })),
-      ),
-  );
-}
+export const productosPropios = (sistemas: Sistema[]): ProductoPropio[] =>
+  sistemas.flatMap(productosDelSistema);
 
 /** El producto propio que corresponde a uno de la zona (mismo nombre, salvo tamaño o marca extra). */
 export const propioDe = (producto: ProductoDeZona, propios: ProductoPropio[]) =>

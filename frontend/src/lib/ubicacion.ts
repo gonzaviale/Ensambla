@@ -2,6 +2,7 @@ import {
   puntoSchema,
   type ConfiguracionUbicacion,
   type Direccion,
+  type Punto,
   type Rubro,
 } from '@/types/ubicacion';
 
@@ -39,31 +40,32 @@ export function leerPunto(latitud: string, longitud: string) {
   return parsed.success ? parsed.data : null;
 }
 
+type Revision = { error: string; configuracion: ConfiguracionUbicacion | null };
+
+const rechazada = (error: string): Revision => ({ error, configuracion: null });
+
+const aceptada = (configuracion: ConfiguracionUbicacion): Revision => ({
+  error: '',
+  configuracion,
+});
+
+const seMovioElPunto = (punto: Punto, direccion: Direccion) =>
+  punto.latitud !== direccion.latitud || punto.longitud !== direccion.longitud;
+
 export function revisarConfiguracion(
   direccion: Direccion | null,
   latitud: string,
   longitud: string,
   codigoRubro: string,
   rubros: Rubro[],
-): { error: string; configuracion: ConfiguracionUbicacion | null } {
-  if (!direccion)
-    return { error: 'Buscá y elegí la dirección de tu comercio.', configuracion: null };
+): Revision {
+  if (!direccion) return rechazada('Buscá y elegí la dirección de tu comercio.');
   const punto = leerPunto(latitud, longitud);
   if (!punto) {
-    return {
-      error: 'Revisá las coordenadas: latitud entre -90 y 90, longitud entre -180 y 180.',
-      configuracion: null,
-    };
+    return rechazada('Revisá las coordenadas: latitud entre -90 y 90, longitud entre -180 y 180.');
   }
   const rubro = rubros.find((item) => item.codigo === codigoRubro);
-  if (!rubro) return { error: 'Elegí el rubro de tu comercio.', configuracion: null };
-  return {
-    error: '',
-    configuracion: {
-      direccion: direccion.direccion,
-      punto,
-      rubro,
-      ajustado: punto.latitud !== direccion.latitud || punto.longitud !== direccion.longitud,
-    },
-  };
+  if (!rubro) return rechazada('Elegí el rubro de tu comercio.');
+  const ajustado = seMovioElPunto(punto, direccion);
+  return aceptada({ direccion: direccion.direccion, punto, rubro, ajustado });
 }
