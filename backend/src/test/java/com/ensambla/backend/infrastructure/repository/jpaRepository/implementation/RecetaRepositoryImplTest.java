@@ -41,44 +41,51 @@ class RecetaRepositoryImplTest {
     private RecetaRepositoryImpl repository;
 
     @BeforeEach
-    void setUp() {
+    void dadoUnRepositorioDeRecetas() {
         repository = new RecetaRepositoryImpl(jpa, new RecetaRepositoryMapper());
     }
 
+    private Receta guardada;
+    private Optional<Receta> delProducto;
+    private Optional<Receta> deOtroProducto;
+
     @Test
     @DisplayName("Guarda la receta y devuelve el modelo persistido")
-    void saveShouldPersistAndReturnDomain() {
-        when(jpa.save(any(RecetaEntity.class))).thenReturn(entity());
+    void guardaLaRecetaYDevuelveElModeloPersistido() {
+        dadoQueGuardarDevuelveLaReceta();
 
-        Receta result = repository.save(Receta.builder()
-                .negocioId(NEGOCIO_ID)
-                .productoId(PRODUCTO_ID)
-                .campoPrecioId(CampoId.de(HARINA_ID.valor()))
-                .lineas(List.of(new LineaReceta(HARINA_ID, BigDecimal.ONE, null)))
-                .build());
+        cuandoSeGuardaUnaRecetaNueva();
 
-        assertThat(result.getId()).isEqualTo(RecetaId.de(ID));
-        assertThat(result.getLineas()).containsExactly(new LineaReceta(HARINA_ID, new BigDecimal("1.5"), "kg"));
+        entoncesSeDevuelveLaRecetaPersistidaConSuLinea();
     }
 
     @Test
     @DisplayName("Busca la receta por producto y negocio")
-    void findShouldMapTheEntityOfTheProduct() {
-        when(jpa.findByProductoIdAndNegocioId(PRODUCTO_ID.valor(), NEGOCIO_ID.valor()))
-                .thenReturn(Optional.of(entity()));
-        when(jpa.findByProductoIdAndNegocioId(HARINA_ID.valor(), NEGOCIO_ID.valor())).thenReturn(Optional.empty());
+    void buscaLaRecetaPorProductoYNegocio() {
+        dadoQueSoloElProductoTieneReceta();
 
-        assertThat(repository.findByProductoIdAndNegocioId(PRODUCTO_ID, NEGOCIO_ID)).get()
-                .extracting(Receta::getId).isEqualTo(RecetaId.de(ID));
-        assertThat(repository.findByProductoIdAndNegocioId(HARINA_ID, NEGOCIO_ID)).isEmpty();
+        cuandoSeBuscaLaRecetaDelProductoYDeOtro();
+
+        entoncesSoloSeEncuentraLaRecetaDelProducto();
     }
 
     @Test
     @DisplayName("Borra la receta por producto y negocio")
-    void deleteShouldDelegateToJpa() {
-        repository.deleteByProductoIdAndNegocioId(PRODUCTO_ID, NEGOCIO_ID);
+    void borraLaRecetaPorProductoYNegocio() {
+        cuandoSeBorraLaRecetaDelProducto();
 
-        verify(jpa).deleteByProductoIdAndNegocioId(PRODUCTO_ID.valor(), NEGOCIO_ID.valor());
+        entoncesSeDelegoElBorradoAlJpa();
+    }
+
+    // --- dado ---
+    private void dadoQueGuardarDevuelveLaReceta() {
+        when(jpa.save(any(RecetaEntity.class))).thenReturn(entity());
+    }
+
+    private void dadoQueSoloElProductoTieneReceta() {
+        when(jpa.findByProductoIdAndNegocioId(PRODUCTO_ID.valor(), NEGOCIO_ID.valor()))
+                .thenReturn(Optional.of(entity()));
+        when(jpa.findByProductoIdAndNegocioId(HARINA_ID.valor(), NEGOCIO_ID.valor())).thenReturn(Optional.empty());
     }
 
     private static RecetaEntity entity() {
@@ -89,5 +96,39 @@ class RecetaRepositoryImplTest {
                 .campoPrecioId(HARINA_ID.valor())
                 .lineas(List.of(Map.of("insumoId", HARINA_ID.toString(), "cantidad", "1.5", "unidad", "kg")))
                 .build();
+    }
+
+    // --- cuando ---
+    private void cuandoSeGuardaUnaRecetaNueva() {
+        guardada = repository.save(Receta.builder()
+                .negocioId(NEGOCIO_ID)
+                .productoId(PRODUCTO_ID)
+                .campoPrecioId(CampoId.de(HARINA_ID.valor()))
+                .lineas(List.of(new LineaReceta(HARINA_ID, BigDecimal.ONE, null)))
+                .build());
+    }
+
+    private void cuandoSeBuscaLaRecetaDelProductoYDeOtro() {
+        delProducto = repository.findByProductoIdAndNegocioId(PRODUCTO_ID, NEGOCIO_ID);
+        deOtroProducto = repository.findByProductoIdAndNegocioId(HARINA_ID, NEGOCIO_ID);
+    }
+
+    private void cuandoSeBorraLaRecetaDelProducto() {
+        repository.deleteByProductoIdAndNegocioId(PRODUCTO_ID, NEGOCIO_ID);
+    }
+
+    // --- entonces ---
+    private void entoncesSeDevuelveLaRecetaPersistidaConSuLinea() {
+        assertThat(guardada.getId()).isEqualTo(RecetaId.de(ID));
+        assertThat(guardada.getLineas()).containsExactly(new LineaReceta(HARINA_ID, new BigDecimal("1.5"), "kg"));
+    }
+
+    private void entoncesSoloSeEncuentraLaRecetaDelProducto() {
+        assertThat(delProducto).get().extracting(Receta::getId).isEqualTo(RecetaId.de(ID));
+        assertThat(deOtroProducto).isEmpty();
+    }
+
+    private void entoncesSeDelegoElBorradoAlJpa() {
+        verify(jpa).deleteByProductoIdAndNegocioId(PRODUCTO_ID.valor(), NEGOCIO_ID.valor());
     }
 }

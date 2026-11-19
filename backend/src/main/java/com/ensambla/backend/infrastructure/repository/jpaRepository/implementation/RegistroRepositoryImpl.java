@@ -93,15 +93,11 @@ public class RegistroRepositoryImpl implements RegistroRepository {
         if (campoIds.isEmpty()) {
             return Map.of();
         }
-        return jpa.sumarNumericos(
-                        consulta.negocioId().valor(),
-                        consulta.bloqueId().valor(),
-                        patronDe(consulta.texto()),
-                        campoIds.stream().map(CampoId::toString).toList())
-                .stream()
-                .collect(Collectors.toMap(
-                        fila -> CampoId.de(fila.getCampo()),
-                        IRegistroJpaRepository.SumaPorCampo::getSuma));
+        return sumasPorCampo(jpa.sumarNumericos(
+                consulta.negocioId().valor(),
+                consulta.bloqueId().valor(),
+                patronDe(consulta.texto()),
+                campoIds.stream().map(CampoId::toString).toList()));
     }
 
     @Override
@@ -137,19 +133,21 @@ public class RegistroRepositoryImpl implements RegistroRepository {
         if (campoIds.isEmpty()) {
             return Map.of();
         }
-        return jpa.sumarNumericosParaReporte(
-                        filtro.negocioId().valor(),
-                        filtro.bloqueId().valor(),
-                        patronDe(filtro.texto()),
-                        textoDe(filtro.desde()),
-                        textoDe(filtro.hasta()),
-                        textoDe(filtro.campoId()),
-                        filtro.valor(),
-                        campoIds.stream().map(CampoId::toString).toList())
-                .stream()
-                .collect(Collectors.toMap(
-                        fila -> CampoId.de(fila.getCampo()),
-                        IRegistroJpaRepository.SumaPorCampo::getSuma));
+        return sumasPorCampo(jpa.sumarNumericosParaReporte(
+                filtro.negocioId().valor(),
+                filtro.bloqueId().valor(),
+                patronDe(filtro.texto()),
+                textoDe(filtro.desde()),
+                textoDe(filtro.hasta()),
+                textoDe(filtro.campoId()),
+                filtro.valor(),
+                campoIds.stream().map(CampoId::toString).toList()));
+    }
+
+    private static Map<CampoId, BigDecimal> sumasPorCampo(List<IRegistroJpaRepository.SumaPorCampo> sumas) {
+        return sumas.stream().collect(Collectors.toMap(
+                fila -> CampoId.de(fila.getCampo()),
+                IRegistroJpaRepository.SumaPorCampo::getSuma));
     }
 
     private Page<RegistroEntity> consultar(ConsultaRegistros consulta) {

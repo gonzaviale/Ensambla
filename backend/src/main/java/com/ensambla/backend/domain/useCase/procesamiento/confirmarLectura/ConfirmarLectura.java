@@ -12,6 +12,7 @@ import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
 import com.ensambla.backend.domain.model.lote.FotoCuaderno;
 import com.ensambla.backend.domain.model.lote.FotoId;
+import com.ensambla.backend.domain.model.lote.LoteId;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionGuardada;
@@ -20,6 +21,7 @@ import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura.FilaC
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
@@ -38,6 +40,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -60,11 +63,19 @@ public class ConfirmarLectura {
     private final Clock clock;
 
     public ConfirmarLecturaResponse execute(ConfirmarLecturaRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        LoteSubida lote = loteSubidaRepository.obtener(negocioId, request.loteId());
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+        LoteSubida lote = obtenerLote(negocioId, request.loteId());
         ConfirmacionGuardada guardada = confirmar(
                 negocioId, lote, request.aConfirmacionLectura(), OffsetDateTime.now(clock));
         return ConfirmarLecturaResponse.de(guardada);
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private LoteSubida obtenerLote(NegocioId negocioId, LoteId loteId) {
+        return loteSubidaRepository.obtener(negocioId, loteId);
     }
 
     private ConfirmacionGuardada confirmar(NegocioId negocioId, LoteSubida lote, ConfirmacionLectura confirmacion,
@@ -75,11 +86,19 @@ public class ConfirmarLectura {
             Bloque bloque = destino(negocioId, confirmacion, ahora);
             Map<String, Campo> campos = prepararCampos(negocioId, bloque, confirmacion, ahora);
             List<Registro> registros = armarRegistros(negocioId, bloque, campos, lote, confirmacion, ahora);
-            controlPlanService.validarAltaRegistros(negocioId, registros.size(), ahora);
-            registroRepository.saveAll(registros);
+            exigirCupoDeAltas(negocioId, registros.size(), ahora);
+            guardar(registros);
             marcarConfirmado(lote, bloque.getId(), ahora);
             return new ConfirmacionGuardada(bloque.getProyectoId(), bloque.getId(), registros.size());
         });
+    }
+
+    private void exigirCupoDeAltas(NegocioId negocioId, int cantidad, OffsetDateTime ahora) {
+        controlPlanService.validarAltaRegistros(negocioId, cantidad, ahora);
+    }
+
+    private void guardar(List<Registro> registros) {
+        registroRepository.saveAll(registros);
     }
 
     private Bloque destino(NegocioId negocioId, ConfirmacionLectura confirmacion, OffsetDateTime ahora) {
@@ -138,28 +157,43 @@ public class ConfirmarLectura {
     }
 
     private List<Registro> armarRegistros(NegocioId negocioId, Bloque bloque, Map<String, Campo> campos,
-            LoteSubida lote,
-                                          ConfirmacionLectura confirmacion, OffsetDateTime ahora) {
-        List<Campo> delBloque = campoRepository.findByBloqueIdAndNegocioId(bloque.getId(), negocioId);
-        Map<String, String> clavePorCampoId = new HashMap<>();
-        campos.forEach((clave, campo) -> clavePorCampoId.put(campo.getId().toString(), clave));
+                                          LoteSubida lote, ConfirmacionLectura confirmacion, OffsetDateTime ahora) {
+        FilasEnArmado armado = new FilasEnArmado(negocioId, bloque,
+                campoRepository.findByBloqueIdAndNegocioId(bloque.getId(), negocioId), campos,
+                clavePorCampoId(campos), lote, ahora);
         Map<String, String> errores = new LinkedHashMap<>();
         List<Registro> registros = new ArrayList<>();
         for (int i = 0; i < confirmacion.filas().size(); i++) {
-            FilaConfirmada fila = confirmacion.filas().get(i);
-            FotoId fotoOrigenId = fotoOrigen(lote, fila, "filas[" + i + "].pagina", errores);
-            try {
-                Map<String, Object> validos = Registro.validar(delBloque, valoresPorCampo(campos, fila));
-                registroDatosService.validarConexiones(negocioId, delBloque, validos);
-                registros.add(Registro.desdeCuaderno(negocioId, bloque.getId(), validos, fotoOrigenId, ahora));
-            } catch (RegistroInvalidoException e) {
-                errores.putAll(ubicarPorClave("filas[" + i + "].", e.getErrores(), clavePorCampoId));
-            }
+            armarFila(armado, i, confirmacion.filas().get(i), errores).ifPresent(registros::add);
         }
+        exigirSinErrores(errores);
+        return registros;
+    }
+
+    private Optional<Registro> armarFila(FilasEnArmado armado, int indice, FilaConfirmada fila,
+                                         Map<String, String> errores) {
+        FotoId fotoOrigenId = fotoOrigen(armado.lote(), fila, "filas[" + indice + "].pagina", errores);
+        try {
+            Map<String, Object> validos = Registro.validar(armado.delBloque(), valoresPorCampo(armado.campos(), fila));
+            registroDatosService.validarConexiones(armado.negocioId(), armado.delBloque(), validos);
+            return Optional.of(Registro.desdeCuaderno(
+                    armado.negocioId(), armado.bloque().getId(), validos, fotoOrigenId, armado.ahora()));
+        } catch (RegistroInvalidoException e) {
+            errores.putAll(ubicarPorClave("filas[" + indice + "].", e.getErrores(), armado.clavePorCampoId()));
+            return Optional.empty();
+        }
+    }
+
+    private static Map<String, String> clavePorCampoId(Map<String, Campo> campos) {
+        Map<String, String> clavePorCampoId = new HashMap<>();
+        campos.forEach((clave, campo) -> clavePorCampoId.put(campo.getId().toString(), clave));
+        return clavePorCampoId;
+    }
+
+    private static void exigirSinErrores(Map<String, String> errores) {
         if (!errores.isEmpty()) {
             throw new RegistroInvalidoException(errores);
         }
-        return registros;
     }
 
     private FotoId fotoOrigen(LoteSubida lote, FilaConfirmada fila, String ubicacion, Map<String, String> errores) {
@@ -204,5 +238,11 @@ public class ConfirmarLectura {
         errores.forEach((campoId, mensaje) ->
                 ubicados.put(prefijo + clavePorCampoId.getOrDefault(campoId, campoId), mensaje));
         return ubicados;
+    }
+
+    /** Lo que comparten todas las filas de una confirmación mientras se arman los registros. */
+    private record FilasEnArmado(NegocioId negocioId, Bloque bloque, List<Campo> delBloque,
+                                 Map<String, Campo> campos, Map<String, String> clavePorCampoId,
+                                 LoteSubida lote, OffsetDateTime ahora) {
     }
 }

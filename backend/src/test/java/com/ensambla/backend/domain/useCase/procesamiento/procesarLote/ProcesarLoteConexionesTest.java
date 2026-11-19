@@ -90,9 +90,13 @@ class ProcesarLoteConexionesTest {
     private ControlPlanService controlPlanService;
 
     private ProcesarLote procesarLote;
+    private PropuestaLectura propuestaDada;
+    private LecturaCuaderno lecturaDada;
+    private CampoPropuesto telefono;
+    private PropuestaLectura resultado;
 
     @BeforeEach
-    void setUp() {
+    void dadoUnProcesadorDeLotes() {
         procesarLote = new ProcesarLote(procesamientoRepository, archivoCuadernoPort, lectorCuadernoPort,
                 campoRepository, registroDatosService, controlPlanService,
                 ProcesamientoTestData.politica(), Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
@@ -100,175 +104,176 @@ class ProcesarLoteConexionesTest {
 
     @Test
     @DisplayName("Reemplaza el texto leído por el id de la única fila de la tabla conectada que se llama igual")
-    void executeShouldReplaceTextWithRowId() {
-        givenClientes(registro(JUAN_ID, "Juan Pérez"));
-        PropuestaLectura propuesta = propuesta(fila(1, dato("juan perez", 0.8)));
+    void reemplazaElTextoLeidoPorElIdDeLaUnicaFilaDeLaTablaConectadaQueSeLlamaIgual() {
+        dadoUnaTablaDeClientesCon(unRegistro(JUAN_ID, "Juan Pérez"));
+        dadoUnaPropuestaConLasFilas(unaFila(1, unDato("juan perez", 0.8)));
 
-        PropuestaLectura result = resolver(propuesta);
+        cuandoSeResuelveLaPropuesta();
 
-        assertThat(result.lectura().filas().getFirst().datos().get("cliente"))
-                .isEqualTo(new DatoLeido(JUAN_ID.toString(), 0.8));
-        assertThat(result.lectura().filas().getFirst().datos().get("monto")).isEqualTo(new DatoLeido("100", 0.9));
-        assertThat(result.lectura().advertencias()).containsExactly("Aviso");
-        assertThat(result.mapeoCampos()).isEqualTo(propuesta.mapeoCampos());
+        entoncesElClienteApuntaALaFilaDeJuanYElRestoQuedaIgual();
     }
 
     @Test
     @DisplayName("Al resolver las conexiones conserva los campos nuevos detectados")
-    void executeShouldKeepNewFields() {
-        givenClientes(registro(JUAN_ID, "Juan Pérez"));
-        CampoPropuesto telefono = new CampoPropuesto("telefono", "Teléfono", TipoCampo.TEXTO, List.of());
-        FilaLeida fila = new FilaLeida(1, 1, Map.of("cliente", dato("juan perez", 0.8), "monto", dato("100", 0.9),
-                "telefono", dato("1155", 0.9)));
-        List<CampoPropuesto> columnas = List.of(campos().get(0), campos().get(1), telefono);
+    void alResolverLasConexionesConservaLosCamposNuevosDetectados() {
+        dadoUnaTablaDeClientesCon(unRegistro(JUAN_ID, "Juan Pérez"));
+        dadoUnaLecturaConUnCampoNuevoDeTelefono();
 
-        PropuestaLectura result = resolver(lectura("Ventas", VENTAS_ID, columnas, List.of(fila)), VENTAS_ID, bloques());
+        cuandoSeResuelveLaLecturaDelBloque(VENTAS_ID, bloques());
 
-        assertThat(result.camposNuevos()).containsExactly(telefono);
+        entoncesSeConservaElCampoNuevoDeTelefono();
     }
 
     @Test
     @DisplayName("Si no hay ninguna fila con ese nombre deja la celda vacía, sin confianza, y avisa")
-    void executeShouldLeaveEmptyWhenNothingMatches() {
-        givenClientes(registro(JUAN_ID, "Juan Pérez"));
+    void siNoHayNingunaFilaConEseNombreDejaLaCeldaVaciaSinConfianzaYAvisa() {
+        dadoUnaTablaDeClientesCon(unRegistro(JUAN_ID, "Juan Pérez"));
+        dadoUnaPropuestaConLasFilas(unaFila(1, unDato("Mariana", 0.9)));
 
-        PropuestaLectura result = resolver(propuesta(fila(1, dato("Mariana", 0.9))));
+        cuandoSeResuelveLaPropuesta();
 
-        assertThat(result.lectura().filas().getFirst().datos().get("cliente")).isEqualTo(new DatoLeido(null, 0.0));
-        assertThat(result.lectura().advertencias()).containsExactly(
-                "Aviso", "No encontramos «Mariana» en «Clientes», o hay más de una igual: elegila vos.");
+        entoncesLaCeldaQuedaVaciaSinConfianzaYSeAvisaQueNoSeEncontroMariana();
     }
 
     @Test
     @DisplayName("Si hay más de una fila con ese nombre no adivina: deja la celda vacía y avisa")
-    void executeShouldLeaveEmptyWhenSeveralMatch() {
-        givenClientes(registro(JUAN_ID, "Juan"), registro(OTRO_JUAN_ID, "juan"));
+    void siHayMasDeUnaFilaConEseNombreNoAdivinaDejaLaCeldaVaciaYAvisa() {
+        dadoUnaTablaDeClientesCon(unRegistro(JUAN_ID, "Juan"), unRegistro(OTRO_JUAN_ID, "juan"));
+        dadoUnaPropuestaConLasFilas(unaFila(1, unDato("Juan", 0.9)));
 
-        PropuestaLectura result = resolver(propuesta(fila(1, dato("Juan", 0.9))));
+        cuandoSeResuelveLaPropuesta();
 
-        assertThat(result.lectura().filas().getFirst().datos().get("cliente").valor()).isNull();
-        assertThat(result.lectura().advertencias()).hasSize(2);
+        entoncesLaCeldaQuedaVaciaYHayDosAvisos();
     }
 
     @Test
     @DisplayName("No cuenta como coincidencia una fila que sólo contiene el texto buscado")
-    void executeShouldRequireTheWholeNameToMatch() {
-        givenClientes(registro(JUAN_ID, "Juan Pérez"));
+    void noCuentaComoCoincidenciaUnaFilaQueSoloContieneElTextoBuscado() {
+        dadoUnaTablaDeClientesCon(unRegistro(JUAN_ID, "Juan Pérez"));
+        dadoUnaPropuestaConLasFilas(unaFila(1, unDato("Juan", 0.9)));
 
-        PropuestaLectura result = resolver(propuesta(fila(1, dato("Juan", 0.9))));
+        cuandoSeResuelveLaPropuesta();
 
-        assertThat(result.lectura().filas().getFirst().datos().get("cliente").valor()).isNull();
+        entoncesLaCeldaDelClienteQuedaVacia();
     }
 
     @Test
     @DisplayName("Consulta una sola vez cada nombre repetido y avisa una sola vez")
-    void executeShouldLookUpEachDistinctTextOnce() {
-        givenClientes(registro(JUAN_ID, "Juan Pérez"));
-        PropuestaLectura propuesta = propuesta(
-                fila(1, dato("Juan Pérez", 0.9)), fila(2, dato("JUAN PEREZ", 0.7)),
-                fila(3, dato("Mariana", 0.9)), fila(4, dato("mariana", 0.9)));
+    void consultaUnaSolaVezCadaNombreRepetidoYAvisaUnaSolaVez() {
+        dadoUnaTablaDeClientesCon(unRegistro(JUAN_ID, "Juan Pérez"));
+        dadoUnaPropuestaConLasFilas(
+                unaFila(1, unDato("Juan Pérez", 0.9)), unaFila(2, unDato("JUAN PEREZ", 0.7)),
+                unaFila(3, unDato("Mariana", 0.9)), unaFila(4, unDato("mariana", 0.9)));
 
-        PropuestaLectura result = resolver(propuesta);
+        cuandoSeResuelveLaPropuesta();
 
-        assertThat(result.lectura().filas()).extracting(fila -> fila.datos().get("cliente").valor())
-                .containsExactly(JUAN_ID.toString(), JUAN_ID.toString(), null, null);
-        assertThat(result.lectura().advertencias()).hasSize(2);
-        verify(campoRepository, times(1)).findByBloqueIdAndNegocioId(CLIENTES_ID, NEGOCIO_ID);
-        verify(registroDatosService, times(2)).buscarReferenciables(
-                eq(NEGOCIO_ID), eq(CLIENTES_ID), any(), any(), eq(List.of()));
+        entoncesSeConsultoUnaVezCadaNombreDistintoYSeAvisoUnaVez();
     }
 
     @Test
     @DisplayName("Deja como están las celdas de conexión vacías o en blanco")
-    void executeShouldIgnoreBlankValues() {
-        PropuestaLectura propuesta = propuesta(fila(1, new DatoLeido(null, 0.9)), fila(2, dato("  ", 0.9)));
+    void dejaComoEstanLasCeldasDeConexionVaciasOEnBlanco() {
+        dadoUnaPropuestaConLasFilas(unaFila(1, new DatoLeido(null, 0.9)), unaFila(2, unDato("  ", 0.9)));
 
-        PropuestaLectura result = resolver(propuesta);
+        cuandoSeResuelveLaPropuesta();
 
-        assertThat(result.lectura().filas()).isEqualTo(propuesta.lectura().filas());
-        verifyNoInteractions(registroDatosService);
+        entoncesLasFilasQuedanComoLasLeyoLaIaSinConsultarNada();
     }
 
     @Test
     @DisplayName("Una fila que no cargó la columna de conexión queda igual")
-    void executeShouldIgnoreRowsWithoutTheColumn() {
+    void unaFilaQueNoCargoLaColumnaDeConexionQuedaIgual() {
         FilaLeida sinCliente = new FilaLeida(1, 1, Map.of("monto", new DatoLeido("100", 0.9)));
+        dadoUnaPropuestaConLasFilas(sinCliente);
 
-        PropuestaLectura result = resolver(propuesta(sinCliente));
+        cuandoSeResuelveLaPropuesta();
 
-        assertThat(result.lectura().filas()).containsExactly(sinCliente);
+        entoncesLaUnicaFilaEs(sinCliente);
     }
 
     @Test
     @DisplayName("Sin columnas de conexión devuelve la misma propuesta sin consultar nada")
-    void executeShouldReturnSamePropuestaWithoutConexiones() {
-        LecturaCuaderno lectura = lectura("Ventas", null,
-                List.of(new CampoPropuesto("monto", "Monto", TipoCampo.NUMERO, List.of())),
-                List.of(fila(1, dato("Juan", 0.9))));
+    void sinColumnasDeConexionDevuelveLaMismaPropuestaSinConsultarNada() {
+        dadoUnaLecturaSinConexiones();
 
-        PropuestaLectura result = resolver(lectura, null, bloques());
+        cuandoSeResuelveLaLecturaDelBloque(null, bloques());
 
-        assertThat(result).isEqualTo(PropuestaLectura.proponer(lectura, bloques(), null));
-        verifyNoInteractions(campoRepository, registroDatosService);
-
+        entoncesSeDevuelveLaMismaPropuestaSinConsultarNada(null, bloques());
     }
 
     @Test
     @DisplayName("Una columna de conexión sin campo mapeado en el bloque queda como la leyó la IA")
-    void executeShouldIgnoreConexionWithoutMappedCampo() {
-        LecturaCuaderno lectura = lectura("Ventas", VENTAS_ID, campos(), List.of(fila(1, dato("Juan", 0.9))));
-        List<BloqueLectura> sinCliente = List.of(new BloqueLectura(VENTAS_ID, "Ventas", List.of(
-                new CampoConocido(CAMPO_MONTO_ID, "Monto", TipoCampo.NUMERO, List.of()))));
+    void unaColumnaDeConexionSinCampoMapeadoEnElBloqueQuedaComoLaLeyoLaIa() {
+        dadoUnaLecturaDeVentasConUnClienteSinMapear();
 
-        PropuestaLectura result = resolver(lectura, VENTAS_ID, sinCliente);
+        cuandoSeResuelveLaLecturaDelBloque(VENTAS_ID, bloquesSinCliente());
 
-        assertThat(result).isEqualTo(PropuestaLectura.proponer(lectura, sinCliente, VENTAS_ID));
-        verifyNoInteractions(campoRepository, registroDatosService);
-
+        entoncesSeDevuelveLaMismaPropuestaSinConsultarNada(VENTAS_ID, bloquesSinCliente());
     }
 
     @Test
     @DisplayName("Un campo mapeado que no es una conexión no se resuelve")
-    void executeShouldIgnoreMappedCampoThatIsNotAConexion() {
-        LecturaCuaderno lectura = lectura("Ventas", VENTAS_ID,
-                List.of(new CampoPropuesto("cliente", "Monto", TipoCampo.RELACION, List.of())),
-                List.of(fila(1, dato("Juan", 0.9))));
+    void unCampoMapeadoQueNoEsUnaConexionNoSeResuelve() {
+        dadoUnaLecturaConUnCampoMapeadoQueNoEsConexion();
 
-        PropuestaLectura result = resolver(lectura, VENTAS_ID, bloques());
+        cuandoSeResuelveLaLecturaDelBloque(VENTAS_ID, bloques());
 
-        assertThat(result).isEqualTo(PropuestaLectura.proponer(lectura, bloques(), VENTAS_ID));
-        verifyNoInteractions(campoRepository, registroDatosService);
-
+        entoncesSeDevuelveLaMismaPropuestaSinConsultarNada(VENTAS_ID, bloques());
     }
 
     @Test
     @DisplayName("Una propuesta para un bloque nuevo no tiene conexiones que resolver")
-    void executeShouldIgnorePropuestaForNewBloque() {
-        LecturaCuaderno lectura = lectura("Otra tabla", null, campos(), List.of(fila(1, dato("Juan", 0.9))));
+    void unaPropuestaParaUnBloqueNuevoNoTieneConexionesQueResolver() {
+        dadoUnaLecturaParaUnBloqueNuevo();
 
-        PropuestaLectura result = resolver(lectura, null, bloques());
+        cuandoSeResuelveLaLecturaDelBloque(null, bloques());
 
-        assertThat(result).isEqualTo(PropuestaLectura.proponer(lectura, bloques(), null));
-        assertThat(result.lectura().bloque().bloqueExistenteId()).isNull();
-        verifyNoInteractions(campoRepository, registroDatosService);
-
+        entoncesNoHayBloqueExistenteNiSeConsultaNada();
     }
 
-    // --- arrange ---
-    private void givenClientes(Registro... registros) {
+    // --- dado ---
+    private void dadoUnaTablaDeClientesCon(Registro... registros) {
         Campo nombre = Campo.builder().id(CAMPO_NOMBRE_ID).tipo(TipoCampo.TEXTO).posicion((short) 0).build();
         when(campoRepository.findByBloqueIdAndNegocioId(CLIENTES_ID, NEGOCIO_ID)).thenReturn(List.of(nombre));
         when(registroDatosService.buscarReferenciables(eq(NEGOCIO_ID), eq(CLIENTES_ID), any(), any(), eq(List.of())))
                 .thenReturn(List.of(registros));
     }
 
-    private Registro registro(UUID id, String nombre) {
-        return Registro.builder().id(RegistroId.de(id)).valores(Map.of(CAMPO_NOMBRE_ID.toString(), nombre)).build();
+    private void dadoUnaPropuestaConLasFilas(FilaLeida... filas) {
+        propuestaDada = new PropuestaLectura(unaLectura("Ventas", VENTAS_ID, campos(), List.of(filas)),
+                Map.of("cliente", CAMPO_CLIENTE_ID, "monto", CAMPO_MONTO_ID));
     }
 
-    private PropuestaLectura propuesta(FilaLeida... filas) {
-        return new PropuestaLectura(lectura("Ventas", VENTAS_ID, campos(), List.of(filas)),
-                Map.of("cliente", CAMPO_CLIENTE_ID, "monto", CAMPO_MONTO_ID));
+    private void dadoUnaLecturaConUnCampoNuevoDeTelefono() {
+        telefono = new CampoPropuesto("telefono", "Teléfono", TipoCampo.TEXTO, List.of());
+        FilaLeida fila = new FilaLeida(1, 1, Map.of("cliente", unDato("juan perez", 0.8), "monto", unDato("100", 0.9),
+                "telefono", unDato("1155", 0.9)));
+        lecturaDada = unaLectura("Ventas", VENTAS_ID, List.of(campos().get(0), campos().get(1), telefono),
+                List.of(fila));
+    }
+
+    private void dadoUnaLecturaSinConexiones() {
+        lecturaDada = unaLectura("Ventas", null,
+                List.of(new CampoPropuesto("monto", "Monto", TipoCampo.NUMERO, List.of())),
+                List.of(unaFila(1, unDato("Juan", 0.9))));
+    }
+
+    private void dadoUnaLecturaDeVentasConUnClienteSinMapear() {
+        lecturaDada = unaLectura("Ventas", VENTAS_ID, campos(), List.of(unaFila(1, unDato("Juan", 0.9))));
+    }
+
+    private void dadoUnaLecturaConUnCampoMapeadoQueNoEsConexion() {
+        lecturaDada = unaLectura("Ventas", VENTAS_ID,
+                List.of(new CampoPropuesto("cliente", "Monto", TipoCampo.RELACION, List.of())),
+                List.of(unaFila(1, unDato("Juan", 0.9))));
+    }
+
+    private void dadoUnaLecturaParaUnBloqueNuevo() {
+        lecturaDada = unaLectura("Otra tabla", null, campos(), List.of(unaFila(1, unDato("Juan", 0.9))));
+    }
+
+    private Registro unRegistro(UUID id, String nombre) {
+        return Registro.builder().id(RegistroId.de(id)).valores(Map.of(CAMPO_NOMBRE_ID.toString(), nombre)).build();
     }
 
     private List<CampoPropuesto> campos() {
@@ -276,17 +281,17 @@ class ProcesarLoteConexionesTest {
                 new CampoPropuesto("monto", "Monto", TipoCampo.NUMERO, List.of()));
     }
 
-    private LecturaCuaderno lectura(String nombre, BloqueId bloqueId, List<CampoPropuesto> campos,
-                                    List<FilaLeida> filas) {
+    private LecturaCuaderno unaLectura(String nombre, BloqueId bloqueId, List<CampoPropuesto> campos,
+                                       List<FilaLeida> filas) {
         return new LecturaCuaderno(TipoRegistroCuaderno.VENTAS, new BloquePropuesto(nombre, bloqueId, campos),
                 filas, List.of("Aviso"), CONSUMO);
     }
 
-    private FilaLeida fila(int renglon, DatoLeido cliente) {
+    private FilaLeida unaFila(int renglon, DatoLeido cliente) {
         return new FilaLeida(1, renglon, Map.of("cliente", cliente, "monto", new DatoLeido("100", 0.9)));
     }
 
-    private DatoLeido dato(String valor, double confianza) {
+    private DatoLeido unDato(String valor, double confianza) {
         return new DatoLeido(valor, confianza);
     }
 
@@ -298,12 +303,21 @@ class ProcesarLoteConexionesTest {
                 new BloqueLectura(CLIENTES_ID, "Clientes", List.of()));
     }
 
-    // --- act ---
-    /** Procesa un lote cuya lectura propone {@code propuesta} y devuelve la propuesta con la que finalizó. */
-    private PropuestaLectura resolver(PropuestaLectura propuesta) {
-        return resolver(propuesta.lectura(), null, bloques());
+    private List<BloqueLectura> bloquesSinCliente() {
+        return List.of(new BloqueLectura(VENTAS_ID, "Ventas", List.of(
+                new CampoConocido(CAMPO_MONTO_ID, "Monto", TipoCampo.NUMERO, List.of()))));
     }
 
+    // --- cuando ---
+    private void cuandoSeResuelveLaPropuesta() {
+        resultado = resolver(propuestaDada.lectura(), null, bloques());
+    }
+
+    private void cuandoSeResuelveLaLecturaDelBloque(BloqueId destino, List<BloqueLectura> bloques) {
+        resultado = resolver(lecturaDada, destino, bloques);
+    }
+
+    /** Procesa un lote cuya lectura propone {@code lectura} y devuelve la propuesta con la que finalizó. */
     private PropuestaLectura resolver(LecturaCuaderno lectura, BloqueId destino, List<BloqueLectura> bloques) {
         LoteTrabajo lote = new LoteTrabajo(LOTE.id(), NEGOCIO_ID, destino, LOTE.reclamoId(), 1);
         when(procesamientoRepository.reclamar(eq(AHORA), any())).thenReturn(Optional.of(lote));
@@ -315,8 +329,68 @@ class ProcesarLoteConexionesTest {
 
         procesarLote.execute();
 
-        ArgumentCaptor<ResultadoIntento> resultado = ArgumentCaptor.forClass(ResultadoIntento.class);
-        verify(procesamientoRepository).finalizar(eq(lote), resultado.capture(), any(), eq(AHORA), any());
-        return resultado.getValue().propuesta();
+        ArgumentCaptor<ResultadoIntento> intento = ArgumentCaptor.forClass(ResultadoIntento.class);
+        verify(procesamientoRepository).finalizar(eq(lote), intento.capture(), any(), eq(AHORA), any());
+        return intento.getValue().propuesta();
+    }
+
+    // --- entonces ---
+    private DatoLeido elClienteDeLaPrimeraFila() {
+        return resultado.lectura().filas().getFirst().datos().get("cliente");
+    }
+
+    private void entoncesElClienteApuntaALaFilaDeJuanYElRestoQuedaIgual() {
+        assertThat(elClienteDeLaPrimeraFila()).isEqualTo(new DatoLeido(JUAN_ID.toString(), 0.8));
+        assertThat(resultado.lectura().filas().getFirst().datos().get("monto")).isEqualTo(new DatoLeido("100", 0.9));
+        assertThat(resultado.lectura().advertencias()).containsExactly("Aviso");
+        assertThat(resultado.mapeoCampos()).isEqualTo(propuestaDada.mapeoCampos());
+    }
+
+    private void entoncesSeConservaElCampoNuevoDeTelefono() {
+        assertThat(resultado.camposNuevos()).containsExactly(telefono);
+    }
+
+    private void entoncesLaCeldaQuedaVaciaSinConfianzaYSeAvisaQueNoSeEncontroMariana() {
+        assertThat(elClienteDeLaPrimeraFila()).isEqualTo(new DatoLeido(null, 0.0));
+        assertThat(resultado.lectura().advertencias()).containsExactly(
+                "Aviso", "No encontramos «Mariana» en «Clientes», o hay más de una igual: elegila vos.");
+    }
+
+    private void entoncesLaCeldaQuedaVaciaYHayDosAvisos() {
+        assertThat(elClienteDeLaPrimeraFila().valor()).isNull();
+        assertThat(resultado.lectura().advertencias()).hasSize(2);
+    }
+
+    private void entoncesLaCeldaDelClienteQuedaVacia() {
+        assertThat(elClienteDeLaPrimeraFila().valor()).isNull();
+    }
+
+    private void entoncesSeConsultoUnaVezCadaNombreDistintoYSeAvisoUnaVez() {
+        assertThat(resultado.lectura().filas()).extracting(fila -> fila.datos().get("cliente").valor())
+                .containsExactly(JUAN_ID.toString(), JUAN_ID.toString(), null, null);
+        assertThat(resultado.lectura().advertencias()).hasSize(2);
+        verify(campoRepository, times(1)).findByBloqueIdAndNegocioId(CLIENTES_ID, NEGOCIO_ID);
+        verify(registroDatosService, times(2)).buscarReferenciables(
+                eq(NEGOCIO_ID), eq(CLIENTES_ID), any(), any(), eq(List.of()));
+    }
+
+    private void entoncesLasFilasQuedanComoLasLeyoLaIaSinConsultarNada() {
+        assertThat(resultado.lectura().filas()).isEqualTo(propuestaDada.lectura().filas());
+        verifyNoInteractions(registroDatosService);
+    }
+
+    private void entoncesLaUnicaFilaEs(FilaLeida esperada) {
+        assertThat(resultado.lectura().filas()).containsExactly(esperada);
+    }
+
+    private void entoncesSeDevuelveLaMismaPropuestaSinConsultarNada(BloqueId destino, List<BloqueLectura> bloques) {
+        assertThat(resultado).isEqualTo(PropuestaLectura.proponer(lecturaDada, bloques, destino));
+        verifyNoInteractions(campoRepository, registroDatosService);
+    }
+
+    private void entoncesNoHayBloqueExistenteNiSeConsultaNada() {
+        assertThat(resultado).isEqualTo(PropuestaLectura.proponer(lecturaDada, bloques(), null));
+        assertThat(resultado.lectura().bloque().bloqueExistenteId()).isNull();
+        verifyNoInteractions(campoRepository, registroDatosService);
     }
 }

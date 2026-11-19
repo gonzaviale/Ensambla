@@ -18,22 +18,323 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class RegistroTest {
 
     private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
     private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
+    private static final BloqueId OTRO_BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
     private static final CampoId NOMBRE_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
     private static final CampoId CANTIDAD_ID = CampoId.de("c0000000-0000-4000-8000-000000000002");
+    private static final CampoId TOTAL_ID = CampoId.de("c0000000-0000-4000-8000-000000000003");
+    private static final FotoId FOTO_ID = FotoId.de("f0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T12:00:00Z");
     private static final OffsetDateTime ANTES = OffsetDateTime.parse("2026-10-09T12:00:00Z");
 
+    private Registro registro;
+    private Registro conFormulas;
+    private Map<String, Object> validos;
+    private Map<String, Object> combinados;
+    private FotoId fotoDeOrigen;
+    private Throwable rechazo;
+
     @Test
     @DisplayName("Un registro nuevo nace sin id y con la misma fecha de creación y de modificación")
-    void nuevoShouldBuildRegistroWithoutIdAndWithBothDates() {
-        Registro registro = Registro.nuevo(NEGOCIO_ID, BLOQUE_ID, Map.of("k", "v"), AHORA);
+    void unRegistroNuevoNaceSinIdYConLaMismaFechaDeCreacionYDeModificacion() {
+        cuandoSeCreaUnRegistroNuevo();
 
+        entoncesNaceSinIdConLosDatosYLasDosFechas();
+    }
+
+    @Test
+    @DisplayName("Un registro del cuaderno guarda la foto de la que salió")
+    void unRegistroDelCuadernoGuardaLaFotoDeLaQueSalio() {
+        cuandoSeCreaUnRegistroDesdeElCuaderno();
+
+        entoncesGuardaLaFotoDeOrigen();
+    }
+
+    @Test
+    @DisplayName("Devuelve la foto de origen del registro del cuaderno")
+    void devuelveLaFotoDeOrigenDelRegistroDelCuaderno() {
+        dadoUnRegistroDelCuaderno();
+
+        cuandoSePideLaFotoDeOrigen();
+
+        entoncesLaFotoDeOrigenEsLaDelCuaderno();
+    }
+
+    @Test
+    @DisplayName("Un registro cargado a mano no tiene foto de origen")
+    void unRegistroCargadoAManoNoTieneFotoDeOrigen() {
+        dadoUnRegistroCargadoAMano();
+
+        cuandoSeIntentaPedirLaFotoDeOrigen();
+
+        entoncesSeRechazaPorFaltaDeFotoDeOrigen();
+    }
+
+    @Test
+    @DisplayName("Valida y devuelve los valores de los campos sin espacios en los bordes")
+    void validaYDevuelveLosValoresDeLosCamposSinEspaciosEnLosBordes() {
+        cuandoSeValida(campos(true), Map.of(NOMBRE_ID.toString(), "  Harina  ", CANTIDAD_ID.toString(), 12));
+
+        entoncesLosValoresValidosSon(Map.of(NOMBRE_ID.toString(), "Harina", CANTIDAD_ID.toString(), 12));
+    }
+
+    @Test
+    @DisplayName("Descarta las claves que no son campos del bloque")
+    void descartaLasClavesQueNoSonCamposDelBloque() {
+        cuandoSeValida(campos(true), Map.of(NOMBRE_ID.toString(), "Harina", "otro", "dato"));
+
+        entoncesSoloQuedaElValorDe(NOMBRE_ID);
+    }
+
+    @Test
+    @DisplayName("Omite los datos vacíos de los campos opcionales")
+    void omiteLosDatosVaciosDeLosCamposOpcionales() {
+        cuandoSeValida(campos(true), Map.of(NOMBRE_ID.toString(), "Harina", CANTIDAD_ID.toString(), "   "));
+
+        entoncesSoloQuedaElValorDe(NOMBRE_ID);
+    }
+
+    @Test
+    @DisplayName("Marca como obligatorio al campo requerido que no se cargó")
+    void marcaComoObligatorioAlCampoRequeridoQueNoSeCargo() {
+        cuandoSeIntentaValidar(campos(true), Map.of(CANTIDAD_ID.toString(), 3));
+
+        entoncesSeRechazaConLosErrores(Map.of(NOMBRE_ID.toString(), "Este dato es obligatorio"));
+    }
+
+    @Test
+    @DisplayName("Junta el error de cada campo inválido")
+    void juntaElErrorDeCadaCampoInvalido() {
+        cuandoSeIntentaValidar(campos(true), Map.of(NOMBRE_ID.toString(), 5, CANTIDAD_ID.toString(), "muchos"));
+
+        entoncesSeRechazaConLosErrores(
+                Map.of(NOMBRE_ID.toString(), "Tiene que ser un texto", CANTIDAD_ID.toString(), "Tiene que ser un número"));
+    }
+
+    @Test
+    @DisplayName("Acepta un registro sin datos cuando ningún campo es obligatorio")
+    void aceptaUnRegistroSinDatosCuandoNingunCampoEsObligatorio() {
+        cuandoSeValida(campos(false), Map.of());
+
+        entoncesNoQuedaNingunValor();
+    }
+
+    @Test
+    @DisplayName("Combina los valores actuales con los cambios sin modificar el registro")
+    void combinaLosValoresActualesConLosCambiosSinModificarElRegistro() {
+        dadoUnRegistroConNombreYCantidad();
+
+        cuandoSeCombinaConUnaCantidadNueva();
+
+        entoncesSeCombinanLosValoresSinModificarElRegistro();
+    }
+
+    @Test
+    @DisplayName("Un cambio nulo reemplaza el valor actual para poder borrarlo")
+    void unCambioNuloReemplazaElValorActualParaPoderBorrarlo() {
+        dadoUnRegistroConUnaCantidadDeTres();
+
+        cuandoSeCombinaConUnCambioNulo();
+
+        entoncesLaCantidadCombinadaEsNula();
+    }
+
+    @Test
+    @DisplayName("Reemplazar los valores actualiza la fecha de modificación y respeta la de creación")
+    void reemplazarLosValoresActualizaLaFechaDeModificacionYRespetaLaDeCreacion() {
+        dadoUnRegistroCreadoAyer();
+
+        cuandoSeReemplazanLosValores();
+
+        entoncesSeActualizaLaModificacionYSeRespetaLaCreacion();
+    }
+
+    @Test
+    @DisplayName("Calcula el valor de los campos fórmula sin tocar los valores guardados")
+    void calculaElValorDeLosCamposFormulaSinTocarLosValoresGuardados() {
+        dadoUnRegistroConUnaCantidadDeCuatro();
+
+        cuandoSeCalculaUnaFormulaDeUnoYMedio();
+
+        entoncesLaCopiaTieneElTotalSeisYElOriginalNo();
+    }
+
+    @Test
+    @DisplayName("Una fórmula a la que le falta un dato queda sin valor")
+    void unaFormulaALaQueLeFaltaUnDatoQuedaSinValor() {
+        dadoUnRegistroConUnaCantidadQueNoEsNumero();
+
+        cuandoSeCalculaUnaFormulaQueDuplicaLaCantidad();
+
+        entoncesLaFormulaQuedaSinValor();
+    }
+
+    @Test
+    @DisplayName("Ignora lo que se mande en un campo fórmula al validar")
+    void ignoraLoQueSeMandeEnUnCampoFormulaAlValidar() {
+        Campo formula = dadoUnCampoFormulaObligatorio();
+
+        cuandoSeValida(List.of(formula), Map.of(formula.getId().toString(), 99));
+
+        entoncesNoQuedaNingunValor();
+    }
+
+    @Test
+    @DisplayName("Un registro del bloque pasa la comprobación")
+    void unRegistroDelBloquePasaLaComprobacion() {
+        dadoUnRegistroNuevoDelBloque();
+
+        cuandoSeIntentaExigirElBloque(BLOQUE_ID);
+
+        entoncesNoSeRechaza();
+    }
+
+    @Test
+    @DisplayName("Un registro de otro bloque responde 'no existe'")
+    void unRegistroDeOtroBloqueRespondeNoExiste() {
+        dadoUnRegistroNuevoDelBloque();
+
+        cuandoSeIntentaExigirElBloque(OTRO_BLOQUE_ID);
+
+        entoncesSeRechazaPorRegistroInexistente();
+    }
+
+    @Test
+    @DisplayName("Una fila marcada como ejemplo de la plantilla es de ejemplo")
+    void unaFilaMarcadaComoEjemploDeLaPlantillaEsDeEjemplo() {
+        dadoUnRegistroMarcadoComoEjemplo(true);
+
+        entoncesEsDeEjemplo(true);
+    }
+
+    @Test
+    @DisplayName("Una fila cargada por el negocio, o sin la marca, no es de ejemplo")
+    void unaFilaCargadaPorElNegocioOSinLaMarcaNoEsDeEjemplo() {
+        dadoUnRegistroMarcadoComoEjemplo(false);
+        entoncesEsDeEjemplo(false);
+
+        dadoUnRegistroMarcadoComoEjemplo(null);
+        entoncesEsDeEjemplo(false);
+    }
+
+    // --- dado ---
+    private void dadoUnRegistroDelCuaderno() {
+        registro = Registro.desdeCuaderno(NEGOCIO_ID, BLOQUE_ID, Map.of(), FOTO_ID, AHORA);
+    }
+
+    private void dadoUnRegistroCargadoAMano() {
+        registro = Registro.nuevo(NEGOCIO_ID, BLOQUE_ID, Map.of(), AHORA);
+    }
+
+    private void dadoUnRegistroNuevoDelBloque() {
+        registro = Registro.nuevo(NEGOCIO_ID, BLOQUE_ID, Map.of(), AHORA);
+    }
+
+    private void dadoUnRegistroConNombreYCantidad() {
+        registro = unRegistroConValores(Map.of(NOMBRE_ID.toString(), "Harina", CANTIDAD_ID.toString(), 3));
+    }
+
+    private void dadoUnRegistroConUnaCantidadDeTres() {
+        registro = unRegistroConValores(Map.of(CANTIDAD_ID.toString(), 3));
+    }
+
+    private void dadoUnRegistroConUnaCantidadDeCuatro() {
+        registro = unRegistroConValores(Map.of(CANTIDAD_ID.toString(), 4));
+    }
+
+    private void dadoUnRegistroConUnaCantidadQueNoEsNumero() {
+        registro = unRegistroConValores(Map.of(CANTIDAD_ID.toString(), "no es número"));
+    }
+
+    private void dadoUnRegistroCreadoAyer() {
+        registro = unRegistroConValores(Map.of("k", "v"));
+    }
+
+    private void dadoUnRegistroMarcadoComoEjemplo(Boolean esEjemplo) {
+        registro = Registro.builder().esEjemplo(esEjemplo).build();
+    }
+
+    private Campo dadoUnCampoFormulaObligatorio() {
+        return Campo.builder().id(CampoId.nuevo()).tipo(TipoCampo.FORMULA).obligatorio(true).formula("1 + 1").build();
+    }
+
+    private List<Campo> campos(boolean nombreObligatorio) {
+        return List.of(
+                Campo.builder().id(NOMBRE_ID).tipo(TipoCampo.TEXTO).obligatorio(nombreObligatorio).build(),
+                Campo.builder().id(CANTIDAD_ID).tipo(TipoCampo.NUMERO).obligatorio(false).build());
+    }
+
+    private Campo unCampoFormula(String formula) {
+        return Campo.builder().id(TOTAL_ID).tipo(TipoCampo.FORMULA).formula(formula).build();
+    }
+
+    private Registro unRegistroConValores(Map<String, Object> valores) {
+        return Registro.builder()
+                .id(RegistroId.nuevo())
+                .valores(valores)
+                .creadoEn(ANTES)
+                .actualizadoEn(ANTES)
+                .build();
+    }
+
+    // --- cuando ---
+    private void cuandoSeCreaUnRegistroNuevo() {
+        registro = Registro.nuevo(NEGOCIO_ID, BLOQUE_ID, Map.of("k", "v"), AHORA);
+    }
+
+    private void cuandoSeCreaUnRegistroDesdeElCuaderno() {
+        registro = Registro.desdeCuaderno(NEGOCIO_ID, BLOQUE_ID, Map.of("k", "v"), FOTO_ID, AHORA);
+    }
+
+    private void cuandoSePideLaFotoDeOrigen() {
+        fotoDeOrigen = registro.exigirFotoOrigen();
+    }
+
+    private void cuandoSeIntentaPedirLaFotoDeOrigen() {
+        rechazo = catchThrowable(this::cuandoSePideLaFotoDeOrigen);
+    }
+
+    private void cuandoSeValida(List<Campo> campos, Map<String, Object> valores) {
+        validos = Registro.validar(campos, valores);
+    }
+
+    private void cuandoSeIntentaValidar(List<Campo> campos, Map<String, Object> valores) {
+        rechazo = catchThrowable(() -> cuandoSeValida(campos, valores));
+    }
+
+    private void cuandoSeCombinaConUnaCantidadNueva() {
+        combinados = registro.combinarCon(Map.of(CANTIDAD_ID.toString(), 8));
+    }
+
+    private void cuandoSeCombinaConUnCambioNulo() {
+        Map<String, Object> cambios = new HashMap<>();
+        cambios.put(CANTIDAD_ID.toString(), null);
+        combinados = registro.combinarCon(cambios);
+    }
+
+    private void cuandoSeReemplazanLosValores() {
+        registro.reemplazarValores(Map.of("k", "nuevo"), AHORA);
+    }
+
+    private void cuandoSeCalculaUnaFormulaDeUnoYMedio() {
+        conFormulas = registro.conFormulas(List.of(campos(false).get(1), unCampoFormula("{" + CANTIDAD_ID + "} * 1.5")));
+    }
+
+    private void cuandoSeCalculaUnaFormulaQueDuplicaLaCantidad() {
+        conFormulas = registro.conFormulas(List.of(unCampoFormula("{" + CANTIDAD_ID + "} * 2")));
+    }
+
+    private void cuandoSeIntentaExigirElBloque(BloqueId bloqueId) {
+        rechazo = catchThrowable(() -> registro.exigirDelBloque(bloqueId));
+    }
+
+    // --- entonces ---
+    private void entoncesNaceSinIdConLosDatosYLasDosFechas() {
         assertThat(registro.getId()).isNull();
         assertThat(registro.getNegocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(registro.getBloqueId()).isEqualTo(BLOQUE_ID);
@@ -43,236 +344,77 @@ class RegistroTest {
         assertThat(registro.getActualizadoEn()).isEqualTo(AHORA);
     }
 
-    @Test
-    @DisplayName("Un registro del cuaderno guarda la foto de la que salió")
-    void desdeCuadernoShouldKeepFotoOrigen() {
-        FotoId fotoId = FotoId.de("f0000000-0000-4000-8000-000000000001");
-
-        Registro registro = Registro.desdeCuaderno(NEGOCIO_ID, BLOQUE_ID, Map.of("k", "v"), fotoId, AHORA);
-
+    private void entoncesGuardaLaFotoDeOrigen() {
         assertThat(registro.getId()).isNull();
         assertThat(registro.getNegocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(registro.getBloqueId()).isEqualTo(BLOQUE_ID);
         assertThat(registro.getValores()).containsEntry("k", "v");
-        assertThat(registro.getFotoOrigenId()).isEqualTo(fotoId);
+        assertThat(registro.getFotoOrigenId()).isEqualTo(FOTO_ID);
         assertThat(registro.getCreadoEn()).isEqualTo(AHORA);
     }
 
-    @Test
-    @DisplayName("Devuelve la foto de origen del registro del cuaderno")
-    void exigirFotoOrigenShouldReturnFotoId() {
-        FotoId fotoId = FotoId.de("f0000000-0000-4000-8000-000000000001");
-        Registro registro = Registro.desdeCuaderno(NEGOCIO_ID, BLOQUE_ID, Map.of(), fotoId, AHORA);
-
-        assertThat(registro.exigirFotoOrigen()).isEqualTo(fotoId);
+    private void entoncesLaFotoDeOrigenEsLaDelCuaderno() {
+        assertThat(fotoDeOrigen).isEqualTo(FOTO_ID);
     }
 
-    @Test
-    @DisplayName("Un registro cargado a mano no tiene foto de origen")
-    void exigirFotoOrigenShouldThrowWhenRegistroWasLoadedByHand() {
-        Registro registro = Registro.nuevo(NEGOCIO_ID, BLOQUE_ID, Map.of(), AHORA);
-
-        assertThatThrownBy(registro::exigirFotoOrigen)
-                .isInstanceOf(ResourceNotFoundException.class)
+    private void entoncesSeRechazaPorFaltaDeFotoDeOrigen() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("El registro no tiene foto de origen");
     }
 
-    @Test
-    @DisplayName("Valida y devuelve los valores de los campos sin espacios en los bordes")
-    void validarShouldReturnTrimmedValues() {
-        Map<String, Object> valores = Map.of(
-                NOMBRE_ID.toString(), "  Harina  ",
-                CANTIDAD_ID.toString(), 12);
-
-        Map<String, Object> result = Registro.validar(campos(true), valores);
-
-        assertThat(result)
-                .containsEntry(NOMBRE_ID.toString(), "Harina")
-                .containsEntry(CANTIDAD_ID.toString(), 12)
-                .hasSize(2);
+    private void entoncesLosValoresValidosSon(Map<String, Object> esperados) {
+        assertThat(validos).containsAllEntriesOf(esperados).hasSize(esperados.size());
     }
 
-    @Test
-    @DisplayName("Descarta las claves que no son campos del bloque")
-    void validarShouldDiscardUnknownKeys() {
-        Map<String, Object> valores = Map.of(
-                NOMBRE_ID.toString(), "Harina",
-                "otro", "dato");
-
-        Map<String, Object> result = Registro.validar(campos(true), valores);
-
-        assertThat(result).containsOnlyKeys(NOMBRE_ID.toString());
+    private void entoncesSoloQuedaElValorDe(CampoId campoId) {
+        assertThat(validos).containsOnlyKeys(campoId.toString());
     }
 
-    @Test
-    @DisplayName("Omite los datos vacíos de los campos opcionales")
-    void validarShouldOmitEmptyOptionalValues() {
-        Map<String, Object> valores = Map.of(
-                NOMBRE_ID.toString(), "Harina",
-                CANTIDAD_ID.toString(), "   ");
-
-        Map<String, Object> result = Registro.validar(campos(true), valores);
-
-        assertThat(result).containsOnlyKeys(NOMBRE_ID.toString());
+    private void entoncesNoQuedaNingunValor() {
+        assertThat(validos).isEmpty();
     }
 
-    @Test
-    @DisplayName("Marca como obligatorio al campo requerido que no se cargó")
-    void validarShouldReportMissingRequiredField() {
-        Map<String, Object> valores = Map.of(CANTIDAD_ID.toString(), 3);
-
-        assertThatThrownBy(() -> Registro.validar(campos(true), valores))
-                .isInstanceOfSatisfying(RegistroInvalidoException.class, error -> assertThat(error.getErrores())
-                        .containsOnly(Map.entry(NOMBRE_ID.toString(), "Este dato es obligatorio")));
+    private void entoncesSeRechazaConLosErrores(Map<String, String> errores) {
+        assertThat(rechazo).isInstanceOfSatisfying(RegistroInvalidoException.class,
+                error -> assertThat(error.getErrores()).containsExactlyInAnyOrderEntriesOf(errores));
     }
 
-    @Test
-    @DisplayName("Junta el error de cada campo inválido")
-    void validarShouldCollectEveryFieldError() {
-        Map<String, Object> valores = Map.of(
-                NOMBRE_ID.toString(), 5,
-                CANTIDAD_ID.toString(), "muchos");
-
-        assertThatThrownBy(() -> Registro.validar(campos(true), valores))
-                .isInstanceOfSatisfying(RegistroInvalidoException.class, error -> assertThat(error.getErrores())
-                        .containsEntry(NOMBRE_ID.toString(), "Tiene que ser un texto")
-                        .containsEntry(CANTIDAD_ID.toString(), "Tiene que ser un número"));
-    }
-
-    @Test
-    @DisplayName("Acepta un registro sin datos cuando ningún campo es obligatorio")
-    void validarShouldAcceptEmptyValuesWhenNothingIsRequired() {
-        Map<String, Object> result = Registro.validar(campos(false), Map.of());
-
-        assertThat(result).isEmpty();
-    }
-
-    @Test
-    @DisplayName("Combina los valores actuales con los cambios sin modificar el registro")
-    void combinarConShouldOverlayChangesWithoutMutating() {
-        Registro registro = registroConValores(Map.of(NOMBRE_ID.toString(), "Harina", CANTIDAD_ID.toString(), 3));
-        Map<String, Object> cambios = Map.of(CANTIDAD_ID.toString(), 8);
-
-        Map<String, Object> result = registro.combinarCon(cambios);
-
-        assertThat(result)
+    private void entoncesSeCombinanLosValoresSinModificarElRegistro() {
+        assertThat(combinados)
                 .containsEntry(NOMBRE_ID.toString(), "Harina")
                 .containsEntry(CANTIDAD_ID.toString(), 8);
         assertThat(registro.getValores()).containsEntry(CANTIDAD_ID.toString(), 3);
     }
 
-    @Test
-    @DisplayName("Un cambio nulo reemplaza el valor actual para poder borrarlo")
-    void combinarConShouldKeepNullChange() {
-        Registro registro = registroConValores(Map.of(CANTIDAD_ID.toString(), 3));
-        Map<String, Object> cambios = new HashMap<>();
-        cambios.put(CANTIDAD_ID.toString(), null);
-
-        Map<String, Object> result = registro.combinarCon(cambios);
-
-        assertThat(result).containsEntry(CANTIDAD_ID.toString(), null);
+    private void entoncesLaCantidadCombinadaEsNula() {
+        assertThat(combinados).containsEntry(CANTIDAD_ID.toString(), null);
     }
 
-    @Test
-    @DisplayName("Reemplazar los valores actualiza la fecha de modificación y respeta la de creación")
-    void reemplazarValoresShouldSetValuesAndTouchActualizadoEn() {
-        Registro registro = registroConValores(Map.of("k", "v"));
-
-        registro.reemplazarValores(Map.of("k", "nuevo"), AHORA);
-
+    private void entoncesSeActualizaLaModificacionYSeRespetaLaCreacion() {
         assertThat(registro.getValores()).containsEntry("k", "nuevo");
         assertThat(registro.getActualizadoEn()).isEqualTo(AHORA);
         assertThat(registro.getCreadoEn()).isEqualTo(ANTES);
     }
 
-    // --- helpers ---
-    private List<Campo> campos(boolean nombreObligatorio) {
-        return List.of(
-                Campo.builder().id(NOMBRE_ID).tipo(TipoCampo.TEXTO).obligatorio(nombreObligatorio).build(),
-                Campo.builder().id(CANTIDAD_ID).tipo(TipoCampo.NUMERO).obligatorio(false).build());
+    private void entoncesLaCopiaTieneElTotalSeisYElOriginalNo() {
+        assertThat(conFormulas.getValores()).containsEntry(TOTAL_ID.toString(), new java.math.BigDecimal("6"));
+        assertThat(conFormulas.getId()).isEqualTo(registro.getId());
+        assertThat(registro.getValores()).doesNotContainKey(TOTAL_ID.toString());
     }
 
-    private Registro registroConValores(Map<String, Object> valores) {
-        return Registro.builder()
-                .id(RegistroId.nuevo())
-                .valores(valores)
-                .creadoEn(ANTES)
-                .actualizadoEn(ANTES)
-                .build();
+    private void entoncesLaFormulaQuedaSinValor() {
+        assertThat(conFormulas.getValores()).doesNotContainKey(TOTAL_ID.toString());
     }
 
-    @Test
-    @DisplayName("Calcula el valor de los campos fórmula sin tocar los valores guardados")
-    void conFormulasShouldAddCalculatedValuesToACopy() {
-        UUID totalId = UUID.fromString("c0000000-0000-4000-8000-000000000003");
-        Campo total = Campo.builder().id(CampoId.de(totalId)).tipo(TipoCampo.FORMULA)
-                .formula("{" + CANTIDAD_ID + "} * 1.5").build();
-        Registro registro = registroConValores(Map.of(CANTIDAD_ID.toString(), 4));
-
-        Registro result = registro.conFormulas(List.of(campos(false).get(1), total));
-
-        assertThat(result.getValores()).containsEntry(totalId.toString(), new java.math.BigDecimal("6"));
-        assertThat(result.getId()).isEqualTo(registro.getId());
-        assertThat(registro.getValores()).doesNotContainKey(totalId.toString());
+    private void entoncesNoSeRechaza() {
+        assertThat(rechazo).isNull();
     }
 
-    @Test
-    @DisplayName("Una fórmula a la que le falta un dato queda sin valor")
-    void conFormulasShouldSkipFormulaWithMissingData() {
-        UUID totalId = UUID.fromString("c0000000-0000-4000-8000-000000000003");
-        Campo total = Campo.builder().id(CampoId.de(totalId)).tipo(TipoCampo.FORMULA)
-                .formula("{" + CANTIDAD_ID + "} * 2").build();
-        Registro registro = registroConValores(Map.of(CANTIDAD_ID.toString(), "no es número"));
-
-        Registro result = registro.conFormulas(List.of(total));
-
-        assertThat(result.getValores()).doesNotContainKey(totalId.toString());
+    private void entoncesSeRechazaPorRegistroInexistente() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class).hasMessage("El registro no existe");
     }
 
-    @Test
-    @DisplayName("Ignora lo que se mande en un campo fórmula al validar")
-    void validarShouldIgnoreValuesOfFormulaFields() {
-        Campo total = Campo.builder().id(CampoId.nuevo()).tipo(TipoCampo.FORMULA).obligatorio(true)
-                .formula("1 + 1").build();
-
-        Map<String, Object> result = Registro.validar(List.of(total), Map.of(total.getId().toString(), 99));
-
-        assertThat(result).isEmpty();
-    }
-
-    @Test
-    @DisplayName("Un registro del bloque pasa la comprobación")
-    void exigirDelBloqueShouldAcceptRegistroOfTheBloque() {
-        Registro registro = Registro.nuevo(NEGOCIO_ID, BLOQUE_ID, Map.of(), AHORA);
-
-        registro.exigirDelBloque(BLOQUE_ID);
-
-        assertThat(registro.getBloqueId()).isEqualTo(BLOQUE_ID);
-    }
-
-    @Test
-    @DisplayName("Un registro de otro bloque responde 'no existe'")
-    void exigirDelBloqueShouldRejectRegistroOfAnotherBloque() {
-        Registro registro = Registro.nuevo(NEGOCIO_ID, BLOQUE_ID, Map.of(), AHORA);
-        UUID otroBloque = UUID.fromString("b0000000-0000-4000-8000-000000000002");
-
-        assertThatThrownBy(() -> registro.exigirDelBloque(BloqueId.de(otroBloque)))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("El registro no existe");
-    }
-
-    @Test
-    @DisplayName("Una fila marcada como ejemplo de la plantilla es de ejemplo")
-    void esDeEjemploShouldBeTrueWhenMarkedAsEjemplo() {
-        Registro registro = Registro.builder().esEjemplo(true).build();
-
-        assertThat(registro.esDeEjemplo()).isTrue();
-    }
-
-    @Test
-    @DisplayName("Una fila cargada por el negocio, o sin la marca, no es de ejemplo")
-    void esDeEjemploShouldBeFalseWhenNotMarkedOrNull() {
-        assertThat(Registro.builder().esEjemplo(false).build().esDeEjemplo()).isFalse();
-        assertThat(Registro.builder().esEjemplo(null).build().esDeEjemplo()).isFalse();
+    private void entoncesEsDeEjemplo(boolean esperado) {
+        assertThat(registro.esDeEjemplo()).isEqualTo(esperado);
     }
 }

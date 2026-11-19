@@ -33,26 +33,51 @@ class PlantillaRepositoryImplTest {
     private PlantillaRepositoryImpl repository;
 
     @BeforeEach
-    void setUp() {
+    void dadoUnRepositorioDePlantillas() {
         repository = new PlantillaRepositoryImpl(jpa, new PlantillaRepositoryMapper());
     }
 
+    private List<Plantilla> plantillas;
+    private List<PlantillaProyecto> plantillasParaProyecto;
+
     @Test
     @DisplayName("Devuelve las plantillas activas mapeadas y en el orden de la consulta")
-    void findAllActivasShouldReturnMappedPlantillasInOrder() {
-        when(jpa.findByActivaTrueOrderByNombreAscIdAsc()).thenReturn(List.of(
-                PlantillaEntity.builder().id(PRIMER_ID).nombre("Clientes").build(),
-                PlantillaEntity.builder().id(SEGUNDO_ID).nombre("Pedidos").build()));
+    void devuelveLasPlantillasActivasMapeadasYEnElOrdenDeLaConsulta() {
+        dadoQueHayDosPlantillasActivas();
 
-        List<Plantilla> result = repository.findAllActivas();
+        cuandoSeListanLasPlantillasActivas();
 
-        assertThat(result).extracting(Plantilla::getId)
-                .containsExactly(PlantillaId.de(PRIMER_ID), PlantillaId.de(SEGUNDO_ID));
+        entoncesSeListanClientesYPedidosEnOrden();
     }
 
     @Test
     @DisplayName("Devuelve las plantillas activas con su estructura interpretada, en el orden de la consulta")
-    void findAllParaProyectoActivasShouldReturnParsedStructures() {
+    void devuelveLasPlantillasActivasConSuEstructuraInterpretadaEnElOrdenDeLaConsulta() {
+        dadoQueHayUnaPlantillaActivaDeVentasConUnCampoNumerico();
+
+        cuandoSeListanLasPlantillasActivasParaProyecto();
+
+        entoncesSeInterpretaLaEstructuraDeVentas();
+    }
+
+    @Test
+    @DisplayName("Devuelve una lista vacía cuando no hay plantillas activas")
+    void devuelveUnaListaVaciaCuandoNoHayPlantillasActivas() {
+        dadoQueNoHayPlantillasActivas();
+
+        cuandoSeListanLasPlantillasActivas();
+
+        entoncesNoSeListaNingunaPlantilla();
+    }
+
+    // --- dado ---
+    private void dadoQueHayDosPlantillasActivas() {
+        when(jpa.findByActivaTrueOrderByNombreAscIdAsc()).thenReturn(List.of(
+                PlantillaEntity.builder().id(PRIMER_ID).nombre("Clientes").build(),
+                PlantillaEntity.builder().id(SEGUNDO_ID).nombre("Pedidos").build()));
+    }
+
+    private void dadoQueHayUnaPlantillaActivaDeVentasConUnCampoNumerico() {
         when(jpa.findByActivaTrueOrderByNombreAscIdAsc()).thenReturn(List.of(PlantillaEntity.builder()
                 .id(PRIMER_ID)
                 .nombre("Ventas")
@@ -61,20 +86,36 @@ class PlantillaRepositoryImplTest {
                         "nombre", "Ventas",
                         "campos", List.of(Map.of("nombre", "Monto", "tipo", "NUMERO"))))))
                 .build()));
+    }
 
-        List<PlantillaProyecto> result = repository.findAllParaProyectoActivas();
+    private void dadoQueNoHayPlantillasActivas() {
+        when(jpa.findByActivaTrueOrderByNombreAscIdAsc()).thenReturn(List.of());
+    }
 
-        assertThat(result).extracting(PlantillaProyecto::id, PlantillaProyecto::nombre)
+    // --- cuando ---
+    private void cuandoSeListanLasPlantillasActivas() {
+        plantillas = repository.findAllActivas();
+    }
+
+    private void cuandoSeListanLasPlantillasActivasParaProyecto() {
+        plantillasParaProyecto = repository.findAllParaProyectoActivas();
+    }
+
+    // --- entonces ---
+    private void entoncesSeListanClientesYPedidosEnOrden() {
+        assertThat(plantillas).extracting(Plantilla::getId)
+                .containsExactly(PlantillaId.de(PRIMER_ID), PlantillaId.de(SEGUNDO_ID));
+    }
+
+    private void entoncesSeInterpretaLaEstructuraDeVentas() {
+        assertThat(plantillasParaProyecto).extracting(PlantillaProyecto::id, PlantillaProyecto::nombre)
                 .containsExactly(org.assertj.core.groups.Tuple.tuple(PlantillaId.de(PRIMER_ID), "Ventas"));
-        assertThat(result.getFirst().estructura().bloques().getFirst().campos()).extracting("nombre", "tipo")
+        assertThat(plantillasParaProyecto.getFirst().estructura().bloques().getFirst().campos())
+                .extracting("nombre", "tipo")
                 .containsExactly(org.assertj.core.groups.Tuple.tuple("Monto", TipoCampo.NUMERO));
     }
 
-    @Test
-    @DisplayName("Devuelve una lista vacía cuando no hay plantillas activas")
-    void findAllActivasShouldReturnEmptyListWhenThereAreNone() {
-        when(jpa.findByActivaTrueOrderByNombreAscIdAsc()).thenReturn(List.of());
-
-        assertThat(repository.findAllActivas()).isEmpty();
+    private void entoncesNoSeListaNingunaPlantilla() {
+        assertThat(plantillas).isEmpty();
     }
 }
