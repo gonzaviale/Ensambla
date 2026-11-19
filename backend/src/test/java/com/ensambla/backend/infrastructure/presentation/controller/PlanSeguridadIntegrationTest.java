@@ -32,6 +32,7 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.security.web.csrf.DefaultCsrfToken;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
@@ -89,6 +90,14 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     private RegistroId registroId;
     private OffsetDateTime ahora;
 
+    private ResultActions respuesta;
+    private ResultActions segundaRespuesta;
+    private UUID ajenoId;
+    private LoteId loteId;
+    private MockMultipartFile foto;
+    private MockMultipartFile imagen;
+    private MockMultipartFile pedido;
+
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
@@ -115,42 +124,26 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("El receptor real de contenidos admite seis claves y rechaza la séptima sin reiniciar el cupo")
     void elReceptorRealDeContenidosAdmiteSeisClavesYRechazaLaSeptimaSinReiniciarElCupo() throws Exception {
-        mockMvc.perform(post("/api/planes/contenidos").session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"tipo\":\"AVISOS\",\"claves\":[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\"]}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.autorizadas.length()").value(6))
-                .andExpect(jsonPath("$.bloqueadas").value(1))
-                .andExpect(header().string("Cache-Control", "no-store"));
+        cuandoSeEjecutaElReceptorRealDeContenidosAdmiteSeisClavesYRechazaLaSeptimaSinReiniciarElCupo();
 
-        mockMvc.perform(post("/api/planes/contenidos").session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"tipo\":\"AVISOS\",\"claves\":[\"g\"]}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.autorizadas.length()").value(0))
-                .andExpect(jsonPath("$.usadas").value(6));
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM contenido_plan_desbloqueado WHERE negocio_id=?",
-                Long.class, negocioId.valor())).isEqualTo(6);
+        entoncesSeVerificaElReceptorRealDeContenidosAdmiteSeisClavesYRechazaLaSeptimaSinReiniciarElCupo();
     }
 
     @Test
     @DisplayName("El desbloqueo exige autenticación y CSRF")
     void elDesbloqueoExigeAutenticacionYCSRF() throws Exception {
-        mockMvc.perform(post("/api/planes/contenidos").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"tipo\":\"AVISOS\",\"claves\":[]}"))
-                .andExpect(status().isUnauthorized());
-        mockMvc.perform(post("/api/planes/contenidos").session(sesion).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"tipo\":\"AVISOS\",\"claves\":[]}"))
-                .andExpect(status().isForbidden());
+        cuandoSeEjecutaElDesbloqueoExigeAutenticacionYCSRF();
+
+        entoncesSeVerificaElDesbloqueoExigeAutenticacionYCSRF();
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"receta", "reporte", "excel"})
     @DisplayName("El gratuito recibe 403 y un código claro al pedir una función premium")
     void elGratuitoRecibe403YUnCodigoClaroAlPedirUnaFuncionPremium(String funcion) throws Exception {
-        mockMvc.perform(get(ruta(funcion)).session(sesion))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.codigo").value("FUNCION_PREMIUM"))
-                .andExpect(jsonPath("$.message").value(
-                        "Esta función requiere un plan premium activo. Tus datos se conservan."))
-                .andExpect(header().string("Cache-Control", "no-store"));
+        cuandoSePideLaFuncion(funcion);
+
+        entoncesSeRechazaConUnCodigoClaroDePlanPremium();
     }
 
     @ParameterizedTest
@@ -159,273 +152,175 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     void unPremiumActivoPuedeConsultarLasFuncionesDisponibles(String funcion) throws Exception {
         dadoPremium(ahora.plusDays(30));
 
-        mockMvc.perform(get(ruta(funcion)).session(sesion)).andExpect(status().isOk());
+        cuandoSePideLaFuncion(funcion);
+
+        entoncesLaFuncionEstaDisponible();
     }
 
     @Test
     @DisplayName("Una suscripción vencida pierde el acceso premium sin depender de un job")
     void unaSuscripcionVencidaPierdeElAccesoPremiumSinDependerDeUnJob() throws Exception {
-        dadoPremium(ahora.minusSeconds(1));
+        dadoElEscenarioDeUnaSuscripcionVencidaPierdeElAccesoPremiumSinDependerDeUnJob();
 
-        mockMvc.perform(get(ruta("receta")).session(sesion))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.codigo").value("FUNCION_PREMIUM"));
+        cuandoSeEjecutaUnaSuscripcionVencidaPierdeElAccesoPremiumSinDependerDeUnJob();
+
+        entoncesSeVerificaUnaSuscripcionVencidaPierdeElAccesoPremiumSinDependerDeUnJob();
     }
 
     @Test
     @DisplayName("Una receta ajena sigue respondiendo 404 antes de comprobar el plan")
     void unaRecetaAjenaSigueRespondiendo404AntesDeComprobarElPlan() throws Exception {
-        mockMvc.perform(get("/api/registros/{id}/receta", UUID.randomUUID()).session(sesion))
-                .andExpect(status().isNotFound());
+        cuandoSeEjecutaUnaRecetaAjenaSigueRespondiendo404AntesDeComprobarElPlan();
+
+        entoncesSeVerificaUnaRecetaAjenaSigueRespondiendo404AntesDeComprobarElPlan();
     }
 
     @Test
     @DisplayName("La segunda alta de sistema se rechaza y la consulta básica conserva el existente")
     void laSegundaAltaDeSistemaSeRechazaYLaConsultaBasicaConservaElExistente() throws Exception {
-        mockMvc.perform(post("/api/proyectos").session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"nombre\":\"Segundo\"}"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.codigo").value("LIMITE_SISTEMAS"));
+        cuandoSeEjecutaLaSegundaAltaDeSistemaSeRechazaYLaConsultaBasicaConservaElExistente();
 
-        mockMvc.perform(get("/api/proyectos").session(sesion).param("negocioId", UUID.randomUUID().toString()))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
+        entoncesSeVerificaLaSegundaAltaDeSistemaSeRechazaYLaConsultaBasicaConservaElExistente();
     }
 
     @Test
     @DisplayName("El límite de filas bloquea altas pero permite editar las existentes")
     void elLimiteDeFilasBloqueaAltasPeroPermiteEditarLasExistentes() throws Exception {
-        jdbcTemplate.update("""
-                INSERT INTO registro (negocio_id, bloque_id, valores)
-                SELECT ?, ?, '{}'::jsonb FROM generate_series(1, 999)
-                """, negocioId.valor(), bloqueId.valor());
+        dadoElEscenarioDeElLimiteDeFilasBloqueaAltasPeroPermiteEditarLasExistentes();
 
-        mockMvc.perform(post("/api/bloques/{id}/registros", bloqueId).session(sesion)
-                        .header("X-CSRF-TOKEN", csrfToken).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"valores\":{}}"))
-                .andExpect(status().isForbidden()).andExpect(jsonPath("$.codigo").value("LIMITE_REGISTROS"));
+        cuandoSeEjecutaElLimiteDeFilasBloqueaAltasPeroPermiteEditarLasExistentes();
 
-        mockMvc.perform(patch("/api/registros/{id}", registroId).session(sesion)
-                        .header("X-CSRF-TOKEN", csrfToken).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"valores\":{}}"))
-                .andExpect(status().isOk());
-        assertThat(jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM registro WHERE negocio_id = ?", Long.class, negocioId.valor())).isEqualTo(1000);
+        entoncesSeVerificaElLimiteDeFilasBloqueaAltasPeroPermiteEditarLasExistentes();
     }
 
     @Test
     @DisplayName("La lectura inmediata no puede eludir la cuota mensual ni elegir otro negocio")
     void laLecturaInmediataNoPuedeEludirLaCuotaMensualNiElegirOtroNegocio() throws Exception {
-        dadoMonthlyQuotaFull();
-        MockMultipartFile imagen = new MockMultipartFile("imagen", "foto.jpg", "image/jpeg", ImagenTestData.jpeg());
-        MockMultipartFile pedido = new MockMultipartFile(
-                "pedido", "", "application/json", PEDIDO.getBytes(StandardCharsets.UTF_8));
+        dadoElEscenarioDeLaLecturaInmediataNoPuedeEludirLaCuotaMensualNiElegirOtroNegocio();
 
-        mockMvc.perform(multipart("/api/importaciones/lectura").file(imagen).file(pedido).session(sesion)
-                        .header("X-CSRF-TOKEN", csrfToken).param("negocioId", UUID.randomUUID().toString()))
-                .andExpect(status().isForbidden()).andExpect(jsonPath("$.codigo").value("LIMITE_IA_MENSUAL"));
+        cuandoSeEjecutaLaLecturaInmediataNoPuedeEludirLaCuotaMensualNiElegirOtroNegocio();
 
-        assertThat(jdbcTemplate.queryForObject(
-                "SELECT sum(paginas) FROM consumo_ia_diario WHERE negocio_id = ?", Long.class, negocioId.valor()))
-                .isEqualTo(10);
+        entoncesSeVerificaLaLecturaInmediataNoPuedeEludirLaCuotaMensualNiElegirOtroNegocio();
     }
 
     @Test
     @DisplayName("La subida rechaza una cuota mensual agotada antes de guardar archivos y lotes")
     void laSubidaRechazaUnaCuotaMensualAgotadaAntesDeGuardarArchivosYLotes() throws Exception {
-        dadoMonthlyQuotaFull();
-        MockMultipartFile foto = new MockMultipartFile("fotos", "foto.jpg", "image/jpeg", JPEG);
+        dadoElEscenarioDeLaSubidaRechazaUnaCuotaMensualAgotadaAntesDeGuardarArchivosYLotes();
 
-        mockMvc.perform(multipart("/api/lotes").file(foto).session(sesion)
-                        .header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isForbidden()).andExpect(jsonPath("$.codigo").value("LIMITE_IA_MENSUAL"));
+        cuandoSeEjecutaLaSubidaRechazaUnaCuotaMensualAgotadaAntesDeGuardarArchivosYLotes();
 
-        assertThat(jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM lote_subida WHERE negocio_id = ?", Long.class, negocioId.valor())).isZero();
+        entoncesSeVerificaLaSubidaRechazaUnaCuotaMensualAgotadaAntesDeGuardarArchivosYLotes();
     }
 
     @Test
     @DisplayName("Un reintento de IA también respeta la cuota mensual agotada")
     void unReintentoDeIATambienRespetaLaCuotaMensualAgotada() throws Exception {
-        dadoMonthlyQuotaFull();
-        LoteId loteId = LoteId.nuevo();
-        jdbcTemplate.update("""
-                INSERT INTO lote_subida (id, negocio_id, estado, motivo_error) VALUES (?, ?, 'ERROR', 'Fallo')
-                """, loteId.valor(), negocioId.valor());
+        dadoElEscenarioDeUnReintentoDeIATambienRespetaLaCuotaMensualAgotada();
 
-        mockMvc.perform(post("/api/lotes/{id}/reintentar", loteId).session(sesion)
-                        .header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isForbidden()).andExpect(jsonPath("$.codigo").value("LIMITE_IA_MENSUAL"));
+        cuandoSeEjecutaUnReintentoDeIATambienRespetaLaCuotaMensualAgotada();
+
+        entoncesSeVerificaUnReintentoDeIATambienRespetaLaCuotaMensualAgotada();
     }
 
     @Test
     @DisplayName("La lectura inmediata exige sesión antes de recibir el negocio")
     void laLecturaInmediataExigeSesionAntesDeRecibirElNegocio() throws Exception {
-        mockMvc.perform(multipart("/api/importaciones/lectura")
-                        .file(new MockMultipartFile("imagen", new byte[] {1})))
-                .andExpect(status().isUnauthorized());
+        cuandoSeEjecutaLaLecturaInmediataExigeSesionAntesDeRecibirElNegocio();
+
+        entoncesSeVerificaLaLecturaInmediataExigeSesionAntesDeRecibirElNegocio();
     }
 
     @Test
     @DisplayName("El inicio de prueba exige una sesión autenticada")
     void elInicioDePruebaExigeUnaSesionAutenticada() throws Exception {
-        mockMvc.perform(post("/api/planes/prueba"))
-                .andExpect(status().isUnauthorized());
+        cuandoSeEjecutaElInicioDePruebaExigeUnaSesionAutenticada();
+
+        entoncesSeVerificaElInicioDePruebaExigeUnaSesionAutenticada();
     }
 
     @Test
     @DisplayName("El inicio de prueba exige el token CSRF de la sesión")
     void elInicioDePruebaExigeElTokenCSRFDeLaSesion() throws Exception {
-        mockMvc.perform(post("/api/planes/prueba").session(sesion))
-                .andExpect(status().isForbidden());
+        cuandoSeEjecutaElInicioDePruebaExigeElTokenCSRFDeLaSesion();
 
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id = ?",
-                Long.class, negocioId.valor())).isZero();
+        entoncesSeVerificaElInicioDePruebaExigeElTokenCSRFDeLaSesion();
     }
 
     @Test
     @DisplayName("La prueba ignora plan, fechas y negocio enviados por el cliente")
     void laPruebaIgnoraPlanFechasYNegocioEnviadosPorElCliente() throws Exception {
-        UUID ajenoId = UUID.randomUUID();
+        dadoElEscenarioDeLaPruebaIgnoraPlanFechasYNegocioEnviadosPorElCliente();
 
-        mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                        .param("negocioId", ajenoId.toString()).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"negocioId\":\"" + ajenoId + "\",\"dias\":365,\"paginasIa\":999}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.inicioEn").isNotEmpty())
-                .andExpect(jsonPath("$.finEn").isNotEmpty())
-                .andExpect(jsonPath("$.paginasIaUtilizadas").value(0))
-                .andExpect(jsonPath("$.limitePaginasIa").value(10))
-                .andExpect(header().string("Cache-Control", "no-store"));
+        cuandoSeEjecutaLaPruebaIgnoraPlanFechasYNegocioEnviadosPorElCliente();
 
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id = ?",
-                Long.class, negocioId.valor())).isEqualTo(1);
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id = ?",
-                Long.class, ajenoId)).isZero();
+        entoncesSeVerificaLaPruebaIgnoraPlanFechasYNegocioEnviadosPorElCliente();
     }
 
     @Test
     @DisplayName("Repetir el inicio devuelve una restricción clara sin renovar la prueba")
     void repetirElInicioDevuelveUnaRestriccionClaraSinRenovarLaPrueba() throws Exception {
-        mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isOk());
+        cuandoSeEjecutaRepetirElInicioDevuelveUnaRestriccionClaraSinRenovarLaPrueba();
 
-        mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.codigo").value("PRUEBA_UTILIZADA"));
+        entoncesSeVerificaRepetirElInicioDevuelveUnaRestriccionClaraSinRenovarLaPrueba();
     }
 
     @Test
     @DisplayName("El consumo agotado de prueba devuelve su código propio en la ruta de IA")
     void elConsumoAgotadoDePruebaDevuelveSuCodigoPropioEnLaRutaDeIA() throws Exception {
-        mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isOk());
-        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 10 WHERE negocio_id = ?", negocioId.valor());
-        entityManager.clear();
-        MockMultipartFile imagen = new MockMultipartFile("imagen", "foto.jpg", "image/jpeg", ImagenTestData.jpeg());
-        MockMultipartFile pedido = new MockMultipartFile(
-                "pedido", "", "application/json", PEDIDO.getBytes(StandardCharsets.UTF_8));
+        cuandoSeEjecutaElConsumoAgotadoDePruebaDevuelveSuCodigoPropioEnLaRutaDeIA();
 
-        mockMvc.perform(multipart("/api/importaciones/lectura").file(imagen).file(pedido).session(sesion)
-                        .header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isForbidden()).andExpect(jsonPath("$.codigo").value("LIMITE_IA_PRUEBA"));
+        entoncesSeVerificaElConsumoAgotadoDePruebaDevuelveSuCodigoPropioEnLaRutaDeIA();
     }
 
     @Test
     @DisplayName("Consultar planes exige sesión")
     void consultarPlanesExigeSesion() throws Exception {
-        mockMvc.perform(get("/api/planes")).andExpect(status().isUnauthorized());
+        cuandoSeEjecutaConsultarPlanesExigeSesion();
+
+        entoncesSeVerificaConsultarPlanesExigeSesion();
     }
 
     @Test
     @DisplayName("El gratuito consulta catálogo y uso del negocio sin activar la prueba")
     void elGratuitoConsultaCatalogoYUsoDelNegocioSinActivarLaPrueba() throws Exception {
-        mockMvc.perform(get("/api/planes").session(sesion).param("negocioId", UUID.randomUUID().toString()))
-                .andExpect(status().isOk())
-                .andExpect(header().string("Cache-Control", "no-store"))
-                .andExpect(jsonPath("$.planes.length()").value(2))
-                .andExpect(jsonPath("$.planes[0].codigo").value("GRATUITO"))
-                .andExpect(jsonPath("$.planes[1].precioMensual").value(14900))
-                .andExpect(jsonPath("$.planes[1].moneda").value("ARS"))
-                .andExpect(jsonPath("$.suscripcion.codigoPlanActual").value("GRATUITO"))
-                .andExpect(jsonPath("$.suscripcion.puedeIniciarPrueba").value(true))
-                .andExpect(jsonPath("$.suscripcion.pruebaActiva").value(false))
-                .andExpect(jsonPath("$.uso.proyectos").value(1))
-                .andExpect(jsonPath("$.uso.registros").value(1))
-                .andExpect(jsonPath("$.uso.periodoIa").value("MENSUAL"))
-                .andExpect(jsonPath("$.uso.limitePaginasIa").value(10))
-                .andExpect(jsonPath("$.prueba").doesNotExist());
+        cuandoSeEjecutaElGratuitoConsultaCatalogoYUsoDelNegocioSinActivarLaPrueba();
 
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id = ?",
-                Long.class, negocioId.valor())).isZero();
+        entoncesSeVerificaElGratuitoConsultaCatalogoYUsoDelNegocioSinActivarLaPrueba();
     }
 
     @Test
     @DisplayName("Consultar después de activar muestra diez páginas totales y las fechas persistidas")
     void consultarDespuesDeActivarMuestraDiezPaginasTotalesYLasFechasPersistidas() throws Exception {
-        mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isOk());
-        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 8 WHERE negocio_id = ?", negocioId.valor());
-        entityManager.clear();
+        cuandoSeEjecutaConsultarDespuesDeActivarMuestraDiezPaginasTotalesYLasFechasPersistidas();
 
-        mockMvc.perform(get("/api/planes").session(sesion))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.suscripcion.codigoPlanActual").value("PREMIUM"))
-                .andExpect(jsonPath("$.suscripcion.pruebaActiva").value(true))
-                .andExpect(jsonPath("$.suscripcion.puedeIniciarPrueba").value(false))
-                .andExpect(jsonPath("$.uso.paginasIa").value(8))
-                .andExpect(jsonPath("$.uso.periodoIa").value("PRUEBA"))
-                .andExpect(jsonPath("$.uso.limitePaginasIa").value(10))
-                .andExpect(jsonPath("$.prueba.paginasIaUtilizadas").value(8))
-                .andExpect(jsonPath("$.prueba.finEn").isNotEmpty());
+        entoncesSeVerificaConsultarDespuesDeActivarMuestraDiezPaginasTotalesYLasFechasPersistidas();
     }
 
     @Test
     @DisplayName("Una prueba agotada mantiene premium y no ofrece otra activación")
     void unaPruebaAgotadaMantienePremiumYNoOfreceOtraActivacion() throws Exception {
-        mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isOk());
-        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 10 WHERE negocio_id = ?", negocioId.valor());
-        entityManager.clear();
+        cuandoSeEjecutaUnaPruebaAgotadaMantienePremiumYNoOfreceOtraActivacion();
 
-        mockMvc.perform(get("/api/planes").session(sesion))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.suscripcion.pruebaActiva").value(true))
-                .andExpect(jsonPath("$.suscripcion.puedeIniciarPrueba").value(false))
-                .andExpect(jsonPath("$.uso.paginasIa").value(10));
+        entoncesSeVerificaUnaPruebaAgotadaMantienePremiumYNoOfreceOtraActivacion();
     }
 
     @Test
     @DisplayName("Una prueba vencida aparece gratuita sin depender del worker y conserva su historial")
     void unaPruebaVencidaApareceGratuitaSinDependerDelWorkerYConservaSuHistorial() throws Exception {
-        mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isOk());
-        jdbcTemplate.update("UPDATE suscripcion SET inicio_en = ?, fin_en = ? WHERE negocio_id = ?",
-                ahora.minusDays(8), ahora.minusDays(1), negocioId.valor());
-        jdbcTemplate.update("UPDATE prueba_premium SET inicio_en = ?, fin_en = ? WHERE negocio_id = ?",
-                ahora.minusDays(8), ahora.minusDays(1), negocioId.valor());
-        entityManager.clear();
+        cuandoSeEjecutaUnaPruebaVencidaApareceGratuitaSinDependerDelWorkerYConservaSuHistorial();
 
-        mockMvc.perform(get("/api/planes").session(sesion))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.suscripcion.codigoPlanActual").value("GRATUITO"))
-                .andExpect(jsonPath("$.suscripcion.pruebaActiva").value(false))
-                .andExpect(jsonPath("$.suscripcion.puedeIniciarPrueba").value(false))
-                .andExpect(jsonPath("$.uso.periodoIa").value("MENSUAL"))
-                .andExpect(jsonPath("$.prueba.finEn").isNotEmpty());
+        entoncesSeVerificaUnaPruebaVencidaApareceGratuitaSinDependerDelWorkerYConservaSuHistorial();
     }
 
     @Test
     @DisplayName("Premium vigente mantiene cien páginas mensuales y no ofrece prueba")
     void premiumVigenteMantieneCienPaginasMensualesYNoOfrecePrueba() throws Exception {
-        dadoPremium(ahora.plusDays(30));
+        dadoElEscenarioDePremiumVigenteMantieneCienPaginasMensualesYNoOfrecePrueba();
 
-        mockMvc.perform(get("/api/planes").session(sesion))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.suscripcion.codigoPlanActual").value("PREMIUM"))
-                .andExpect(jsonPath("$.suscripcion.pruebaActiva").value(false))
-                .andExpect(jsonPath("$.suscripcion.puedeIniciarPrueba").value(false))
-                .andExpect(jsonPath("$.uso.periodoIa").value("MENSUAL"))
-                .andExpect(jsonPath("$.uso.limitePaginasIa").value(100));
+        cuandoSeEjecutaPremiumVigenteMantieneCienPaginasMensualesYNoOfrecePrueba();
+
+        entoncesSeVerificaPremiumVigenteMantieneCienPaginasMensualesYNoOfrecePrueba();
     }
 
     // --- dado ---
@@ -465,5 +360,375 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
             case "excel" -> "/api/bloques/" + bloqueId + "/reporte/descarga";
             default -> throw new IllegalArgumentException(funcion);
         };
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeUnaSuscripcionVencidaPierdeElAccesoPremiumSinDependerDeUnJob() throws Exception {
+        dadoPremium(ahora.minusSeconds(1));
+    }
+
+    private void dadoElEscenarioDeElLimiteDeFilasBloqueaAltasPeroPermiteEditarLasExistentes() throws Exception {
+        jdbcTemplate.update("""
+                INSERT INTO registro (negocio_id, bloque_id, valores)
+                SELECT ?, ?, '{}'::jsonb FROM generate_series(1, 999)
+                """, negocioId.valor(), bloqueId.valor());
+    }
+
+    private void dadoElEscenarioDeLaLecturaInmediataNoPuedeEludirLaCuotaMensualNiElegirOtroNegocio() throws Exception {
+        dadoMonthlyQuotaFull();
+        imagen = new MockMultipartFile("imagen", "foto.jpg", "image/jpeg", ImagenTestData.jpeg());
+        pedido = new MockMultipartFile(
+                "pedido", "", "application/json", PEDIDO.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private void dadoElEscenarioDeLaSubidaRechazaUnaCuotaMensualAgotadaAntesDeGuardarArchivosYLotes() throws Exception {
+        dadoMonthlyQuotaFull();
+        foto = new MockMultipartFile("fotos", "foto.jpg", "image/jpeg", JPEG);
+    }
+
+    private void dadoElEscenarioDeUnReintentoDeIATambienRespetaLaCuotaMensualAgotada() throws Exception {
+        dadoMonthlyQuotaFull();
+        loteId = LoteId.nuevo();
+        jdbcTemplate.update("""
+                INSERT INTO lote_subida (id, negocio_id, estado, motivo_error) VALUES (?, ?, 'ERROR', 'Fallo')
+                """, loteId.valor(), negocioId.valor());
+    }
+
+    private void dadoElEscenarioDeLaPruebaIgnoraPlanFechasYNegocioEnviadosPorElCliente() throws Exception {
+        ajenoId = UUID.randomUUID();
+    }
+
+    private void dadoElEscenarioDePremiumVigenteMantieneCienPaginasMensualesYNoOfrecePrueba() throws Exception {
+        dadoPremium(ahora.plusDays(30));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaElReceptorRealDeContenidosAdmiteSeisClavesYRechazaLaSeptimaSinReiniciarElCupo() throws Exception {
+        respuesta = mockMvc.perform(post("/api/planes/contenidos").session(sesion).header("X-CSRF-TOKEN", csrfToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"tipo\":\"AVISOS\",\"claves\":[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\"]}"));
+        segundaRespuesta = mockMvc.perform(post("/api/planes/contenidos").session(sesion).header("X-CSRF-TOKEN", csrfToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"tipo\":\"AVISOS\",\"claves\":[\"g\"]}"));
+    }
+
+    private void cuandoSeEjecutaElDesbloqueoExigeAutenticacionYCSRF() throws Exception {
+        respuesta = mockMvc.perform(post("/api/planes/contenidos").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"tipo\":\"AVISOS\",\"claves\":[]}"));
+        segundaRespuesta = mockMvc.perform(post("/api/planes/contenidos").session(sesion).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"tipo\":\"AVISOS\",\"claves\":[]}"));
+    }
+
+    private void cuandoSeEjecutaUnaSuscripcionVencidaPierdeElAccesoPremiumSinDependerDeUnJob() throws Exception {
+        respuesta = mockMvc.perform(get(ruta("receta")).session(sesion));
+    }
+
+    private void cuandoSeEjecutaUnaRecetaAjenaSigueRespondiendo404AntesDeComprobarElPlan() throws Exception {
+        respuesta = mockMvc.perform(get("/api/registros/{id}/receta", UUID.randomUUID()).session(sesion));
+    }
+
+    private void cuandoSeEjecutaLaSegundaAltaDeSistemaSeRechazaYLaConsultaBasicaConservaElExistente() throws Exception {
+        respuesta = mockMvc.perform(post("/api/proyectos").session(sesion).header("X-CSRF-TOKEN", csrfToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"nombre\":\"Segundo\"}"));
+        segundaRespuesta = mockMvc.perform(get("/api/proyectos").session(sesion).param("negocioId", UUID.randomUUID().toString()));
+    }
+
+    private void cuandoSeEjecutaElLimiteDeFilasBloqueaAltasPeroPermiteEditarLasExistentes() throws Exception {
+        respuesta = mockMvc.perform(post("/api/bloques/{id}/registros", bloqueId).session(sesion)
+                        .header("X-CSRF-TOKEN", csrfToken).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"valores\":{}}"));
+        segundaRespuesta = mockMvc.perform(patch("/api/registros/{id}", registroId).session(sesion)
+                        .header("X-CSRF-TOKEN", csrfToken).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"valores\":{}}"));
+    }
+
+    private void cuandoSeEjecutaLaLecturaInmediataNoPuedeEludirLaCuotaMensualNiElegirOtroNegocio() throws Exception {
+        respuesta = mockMvc.perform(multipart("/api/importaciones/lectura").file(imagen).file(pedido).session(sesion)
+                        .header("X-CSRF-TOKEN", csrfToken).param("negocioId", UUID.randomUUID().toString()));
+    }
+
+    private void cuandoSeEjecutaLaSubidaRechazaUnaCuotaMensualAgotadaAntesDeGuardarArchivosYLotes() throws Exception {
+        respuesta = mockMvc.perform(multipart("/api/lotes").file(foto).session(sesion)
+                        .header("X-CSRF-TOKEN", csrfToken));
+    }
+
+    private void cuandoSeEjecutaUnReintentoDeIATambienRespetaLaCuotaMensualAgotada() throws Exception {
+        respuesta = mockMvc.perform(post("/api/lotes/{id}/reintentar", loteId).session(sesion)
+                        .header("X-CSRF-TOKEN", csrfToken));
+    }
+
+    private void cuandoSeEjecutaLaLecturaInmediataExigeSesionAntesDeRecibirElNegocio() throws Exception {
+        respuesta = mockMvc.perform(multipart("/api/importaciones/lectura")
+                        .file(new MockMultipartFile("imagen", new byte[] {1})));
+    }
+
+    private void cuandoSeEjecutaElInicioDePruebaExigeUnaSesionAutenticada() throws Exception {
+        respuesta = mockMvc.perform(post("/api/planes/prueba"));
+    }
+
+    private void cuandoSeEjecutaElInicioDePruebaExigeElTokenCSRFDeLaSesion() throws Exception {
+        respuesta = mockMvc.perform(post("/api/planes/prueba").session(sesion));
+    }
+
+    private void cuandoSeEjecutaLaPruebaIgnoraPlanFechasYNegocioEnviadosPorElCliente() throws Exception {
+        respuesta = mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken)
+                        .param("negocioId", ajenoId.toString()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"negocioId\":\"" + ajenoId + "\",\"dias\":365,\"paginasIa\":999}"));
+    }
+
+    private void cuandoSeEjecutaRepetirElInicioDevuelveUnaRestriccionClaraSinRenovarLaPrueba() throws Exception {
+        respuesta = mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken));
+        segundaRespuesta = mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken));
+    }
+
+    private void cuandoSeEjecutaElConsumoAgotadoDePruebaDevuelveSuCodigoPropioEnLaRutaDeIA() throws Exception {
+        respuesta = mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken));
+        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 10 WHERE negocio_id = ?", negocioId.valor());
+        entityManager.clear();
+        MockMultipartFile imagen = new MockMultipartFile("imagen", "foto.jpg", "image/jpeg", ImagenTestData.jpeg());
+        MockMultipartFile pedido = new MockMultipartFile(
+                "pedido", "", "application/json", PEDIDO.getBytes(StandardCharsets.UTF_8));
+        segundaRespuesta = mockMvc.perform(multipart("/api/importaciones/lectura").file(imagen).file(pedido).session(sesion)
+                        .header("X-CSRF-TOKEN", csrfToken));
+    }
+
+    private void cuandoSeEjecutaConsultarPlanesExigeSesion() throws Exception {
+        respuesta = mockMvc.perform(get("/api/planes"));
+    }
+
+    private void cuandoSeEjecutaElGratuitoConsultaCatalogoYUsoDelNegocioSinActivarLaPrueba() throws Exception {
+        respuesta = mockMvc.perform(get("/api/planes").session(sesion).param("negocioId", UUID.randomUUID().toString()));
+    }
+
+    private void cuandoSeEjecutaConsultarDespuesDeActivarMuestraDiezPaginasTotalesYLasFechasPersistidas() throws Exception {
+        respuesta = mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken));
+        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 8 WHERE negocio_id = ?", negocioId.valor());
+        entityManager.clear();
+        segundaRespuesta = mockMvc.perform(get("/api/planes").session(sesion));
+    }
+
+    private void cuandoSeEjecutaUnaPruebaAgotadaMantienePremiumYNoOfreceOtraActivacion() throws Exception {
+        respuesta = mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken));
+        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 10 WHERE negocio_id = ?", negocioId.valor());
+        entityManager.clear();
+        segundaRespuesta = mockMvc.perform(get("/api/planes").session(sesion));
+    }
+
+    private void cuandoSeEjecutaUnaPruebaVencidaApareceGratuitaSinDependerDelWorkerYConservaSuHistorial() throws Exception {
+        respuesta = mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken));
+        jdbcTemplate.update("UPDATE suscripcion SET inicio_en = ?, fin_en = ? WHERE negocio_id = ?",
+                ahora.minusDays(8), ahora.minusDays(1), negocioId.valor());
+        jdbcTemplate.update("UPDATE prueba_premium SET inicio_en = ?, fin_en = ? WHERE negocio_id = ?",
+                ahora.minusDays(8), ahora.minusDays(1), negocioId.valor());
+        entityManager.clear();
+        segundaRespuesta = mockMvc.perform(get("/api/planes").session(sesion));
+    }
+
+    private void cuandoSeEjecutaPremiumVigenteMantieneCienPaginasMensualesYNoOfrecePrueba() throws Exception {
+        respuesta = mockMvc.perform(get("/api/planes").session(sesion));
+    }
+
+    private void cuandoSePideLaFuncion(String funcion) throws Exception {
+        respuesta = mockMvc.perform(get(ruta(funcion)).session(sesion));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaElReceptorRealDeContenidosAdmiteSeisClavesYRechazaLaSeptimaSinReiniciarElCupo() throws Exception {
+        respuesta
+                .andExpect(status().isOk()).andExpect(jsonPath("$.autorizadas.length()").value(6))
+                .andExpect(jsonPath("$.bloqueadas").value(1))
+                .andExpect(header().string("Cache-Control", "no-store"));
+        segundaRespuesta
+                .andExpect(status().isOk()).andExpect(jsonPath("$.autorizadas.length()").value(0))
+                .andExpect(jsonPath("$.usadas").value(6));
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM contenido_plan_desbloqueado WHERE negocio_id=?",
+                Long.class, negocioId.valor())).isEqualTo(6);
+    }
+
+    private void entoncesSeVerificaElDesbloqueoExigeAutenticacionYCSRF() throws Exception {
+        respuesta
+                .andExpect(status().isUnauthorized());
+        segundaRespuesta
+                .andExpect(status().isForbidden());
+    }
+
+    private void entoncesSeVerificaUnaSuscripcionVencidaPierdeElAccesoPremiumSinDependerDeUnJob() throws Exception {
+        respuesta
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.codigo").value("FUNCION_PREMIUM"));
+    }
+
+    private void entoncesSeVerificaUnaRecetaAjenaSigueRespondiendo404AntesDeComprobarElPlan() throws Exception {
+        respuesta
+                .andExpect(status().isNotFound());
+    }
+
+    private void entoncesSeVerificaLaSegundaAltaDeSistemaSeRechazaYLaConsultaBasicaConservaElExistente() throws Exception {
+        respuesta
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.codigo").value("LIMITE_SISTEMAS"));
+        segundaRespuesta
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
+    }
+
+    private void entoncesSeVerificaElLimiteDeFilasBloqueaAltasPeroPermiteEditarLasExistentes() throws Exception {
+        respuesta
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.codigo").value("LIMITE_REGISTROS"));
+        segundaRespuesta
+                .andExpect(status().isOk());
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM registro WHERE negocio_id = ?", Long.class, negocioId.valor())).isEqualTo(1000);
+    }
+
+    private void entoncesSeVerificaLaLecturaInmediataNoPuedeEludirLaCuotaMensualNiElegirOtroNegocio() throws Exception {
+        respuesta
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.codigo").value("LIMITE_IA_MENSUAL"));
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT sum(paginas) FROM consumo_ia_diario WHERE negocio_id = ?", Long.class, negocioId.valor()))
+                .isEqualTo(10);
+    }
+
+    private void entoncesSeVerificaLaSubidaRechazaUnaCuotaMensualAgotadaAntesDeGuardarArchivosYLotes() throws Exception {
+        respuesta
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.codigo").value("LIMITE_IA_MENSUAL"));
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM lote_subida WHERE negocio_id = ?", Long.class, negocioId.valor())).isZero();
+    }
+
+    private void entoncesSeVerificaUnReintentoDeIATambienRespetaLaCuotaMensualAgotada() throws Exception {
+        respuesta
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.codigo").value("LIMITE_IA_MENSUAL"));
+    }
+
+    private void entoncesSeVerificaLaLecturaInmediataExigeSesionAntesDeRecibirElNegocio() throws Exception {
+        respuesta
+                .andExpect(status().isUnauthorized());
+    }
+
+    private void entoncesSeVerificaElInicioDePruebaExigeUnaSesionAutenticada() throws Exception {
+        respuesta
+                .andExpect(status().isUnauthorized());
+    }
+
+    private void entoncesSeVerificaElInicioDePruebaExigeElTokenCSRFDeLaSesion() throws Exception {
+        respuesta
+                .andExpect(status().isForbidden());
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id = ?",
+                Long.class, negocioId.valor())).isZero();
+    }
+
+    private void entoncesSeVerificaLaPruebaIgnoraPlanFechasYNegocioEnviadosPorElCliente() throws Exception {
+        respuesta
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.inicioEn").isNotEmpty())
+                .andExpect(jsonPath("$.finEn").isNotEmpty())
+                .andExpect(jsonPath("$.paginasIaUtilizadas").value(0))
+                .andExpect(jsonPath("$.limitePaginasIa").value(10))
+                .andExpect(header().string("Cache-Control", "no-store"));
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id = ?",
+                Long.class, negocioId.valor())).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id = ?",
+                Long.class, ajenoId)).isZero();
+    }
+
+    private void entoncesSeVerificaRepetirElInicioDevuelveUnaRestriccionClaraSinRenovarLaPrueba() throws Exception {
+        respuesta
+                .andExpect(status().isOk());
+        segundaRespuesta
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.codigo").value("PRUEBA_UTILIZADA"));
+    }
+
+    private void entoncesSeVerificaElConsumoAgotadoDePruebaDevuelveSuCodigoPropioEnLaRutaDeIA() throws Exception {
+        respuesta
+                .andExpect(status().isOk());
+        segundaRespuesta
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.codigo").value("LIMITE_IA_PRUEBA"));
+    }
+
+    private void entoncesSeVerificaConsultarPlanesExigeSesion() throws Exception {
+        respuesta
+                .andExpect(status().isUnauthorized());
+    }
+
+    private void entoncesSeVerificaElGratuitoConsultaCatalogoYUsoDelNegocioSinActivarLaPrueba() throws Exception {
+        respuesta
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.planes.length()").value(2))
+                .andExpect(jsonPath("$.planes[0].codigo").value("GRATUITO"))
+                .andExpect(jsonPath("$.planes[1].precioMensual").value(14900))
+                .andExpect(jsonPath("$.planes[1].moneda").value("ARS"))
+                .andExpect(jsonPath("$.suscripcion.codigoPlanActual").value("GRATUITO"))
+                .andExpect(jsonPath("$.suscripcion.puedeIniciarPrueba").value(true))
+                .andExpect(jsonPath("$.suscripcion.pruebaActiva").value(false))
+                .andExpect(jsonPath("$.uso.proyectos").value(1))
+                .andExpect(jsonPath("$.uso.registros").value(1))
+                .andExpect(jsonPath("$.uso.periodoIa").value("MENSUAL"))
+                .andExpect(jsonPath("$.uso.limitePaginasIa").value(10))
+                .andExpect(jsonPath("$.prueba").doesNotExist());
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id = ?",
+                Long.class, negocioId.valor())).isZero();
+    }
+
+    private void entoncesSeVerificaConsultarDespuesDeActivarMuestraDiezPaginasTotalesYLasFechasPersistidas() throws Exception {
+        respuesta
+                .andExpect(status().isOk());
+        segundaRespuesta
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.suscripcion.codigoPlanActual").value("PREMIUM"))
+                .andExpect(jsonPath("$.suscripcion.pruebaActiva").value(true))
+                .andExpect(jsonPath("$.suscripcion.puedeIniciarPrueba").value(false))
+                .andExpect(jsonPath("$.uso.paginasIa").value(8))
+                .andExpect(jsonPath("$.uso.periodoIa").value("PRUEBA"))
+                .andExpect(jsonPath("$.uso.limitePaginasIa").value(10))
+                .andExpect(jsonPath("$.prueba.paginasIaUtilizadas").value(8))
+                .andExpect(jsonPath("$.prueba.finEn").isNotEmpty());
+    }
+
+    private void entoncesSeVerificaUnaPruebaAgotadaMantienePremiumYNoOfreceOtraActivacion() throws Exception {
+        respuesta
+                .andExpect(status().isOk());
+        segundaRespuesta
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.suscripcion.pruebaActiva").value(true))
+                .andExpect(jsonPath("$.suscripcion.puedeIniciarPrueba").value(false))
+                .andExpect(jsonPath("$.uso.paginasIa").value(10));
+    }
+
+    private void entoncesSeVerificaUnaPruebaVencidaApareceGratuitaSinDependerDelWorkerYConservaSuHistorial() throws Exception {
+        respuesta
+                .andExpect(status().isOk());
+        segundaRespuesta
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.suscripcion.codigoPlanActual").value("GRATUITO"))
+                .andExpect(jsonPath("$.suscripcion.pruebaActiva").value(false))
+                .andExpect(jsonPath("$.suscripcion.puedeIniciarPrueba").value(false))
+                .andExpect(jsonPath("$.uso.periodoIa").value("MENSUAL"))
+                .andExpect(jsonPath("$.prueba.finEn").isNotEmpty());
+    }
+
+    private void entoncesSeVerificaPremiumVigenteMantieneCienPaginasMensualesYNoOfrecePrueba() throws Exception {
+        respuesta
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.suscripcion.codigoPlanActual").value("PREMIUM"))
+                .andExpect(jsonPath("$.suscripcion.pruebaActiva").value(false))
+                .andExpect(jsonPath("$.suscripcion.puedeIniciarPrueba").value(false))
+                .andExpect(jsonPath("$.uso.periodoIa").value("MENSUAL"))
+                .andExpect(jsonPath("$.uso.limitePaginasIa").value(100));
+    }
+
+    private void entoncesSeRechazaConUnCodigoClaroDePlanPremium() throws Exception {
+        respuesta.andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.codigo").value("FUNCION_PREMIUM"))
+                .andExpect(jsonPath("$.message").value(
+                        "Esta función requiere un plan premium activo. Tus datos se conservan."))
+                .andExpect(header().string("Cache-Control", "no-store"));
+    }
+
+    private void entoncesLaFuncionEstaDisponible() throws Exception {
+        respuesta.andExpect(status().isOk());
     }
 }
