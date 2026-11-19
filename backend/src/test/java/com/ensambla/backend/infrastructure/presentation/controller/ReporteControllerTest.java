@@ -20,6 +20,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 import java.math.BigDecimal;
 import java.security.Principal;
@@ -52,6 +53,10 @@ class ReporteControllerTest {
     private ExportarReporte exportarReporte;
     private MockMvc mockMvc;
 
+    private ResultActions respuesta;
+    private ResultActions segundaRespuesta;
+    private byte[] contenido;
+
     @BeforeEach
     void setUp() {
         generarReporte = mock(GenerarReporte.class);
@@ -65,16 +70,96 @@ class ReporteControllerTest {
     @Test
     @DisplayName("GET devuelve las filas, los totales y pasa los filtros con el usuario de la sesión")
     void gETDevuelveLasFilasLosTotalesYPasaLosFiltrosConElUsuarioDeLaSesion() throws Exception {
+        dadoElEscenarioDeGETDevuelveLasFilasLosTotalesYPasaLosFiltrosConElUsuarioDeLaSesion();
+
+        cuandoSeEjecutaGETDevuelveLasFilasLosTotalesYPasaLosFiltrosConElUsuarioDeLaSesion();
+
+        entoncesSeVerificaGETDevuelveLasFilasLosTotalesYPasaLosFiltrosConElUsuarioDeLaSesion();
+    }
+
+    @Test
+    @DisplayName("GET sin filtros pasa todo vacío")
+    void gETSinFiltrosPasaTodoVacio() throws Exception {
+        dadoElEscenarioDeGETSinFiltrosPasaTodoVacio();
+
+        cuandoSeEjecutaGETSinFiltrosPasaTodoVacio();
+
+        entoncesSeVerificaGETSinFiltrosPasaTodoVacio();
+    }
+
+    @Test
+    @DisplayName("GET con un filtro inválido responde 400 y una fecha mal escrita también")
+    void gETConUnFiltroInvalidoResponde400YUnaFechaMalEscritaTambien() throws Exception {
+        dadoElEscenarioDeGETConUnFiltroInvalidoResponde400YUnaFechaMalEscritaTambien();
+
+        cuandoSeEjecutaGETConUnFiltroInvalidoResponde400YUnaFechaMalEscritaTambien();
+
+        entoncesSeVerificaGETConUnFiltroInvalidoResponde400YUnaFechaMalEscritaTambien();
+    }
+
+    @Test
+    @DisplayName("GET de la descarga devuelve el XLSX con su nombre y pasa los mismos filtros")
+    void gETDeLaDescargaDevuelveElXLSXConSuNombreYPasaLosMismosFiltros() throws Exception {
+        dadoElEscenarioDeGETDeLaDescargaDevuelveElXLSXConSuNombreYPasaLosMismosFiltros();
+
+        cuandoSeEjecutaGETDeLaDescargaDevuelveElXLSXConSuNombreYPasaLosMismosFiltros();
+
+        entoncesSeVerificaGETDeLaDescargaDevuelveElXLSXConSuNombreYPasaLosMismosFiltros();
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeGETDevuelveLasFilasLosTotalesYPasaLosFiltrosConElUsuarioDeLaSesion() throws Exception {
         when(generarReporte.execute(any(GenerarReporteRequest.class))).thenReturn(new GenerarReporteResponse(
                 List.of(new RegistroItem(REGISTRO_ID, BLOQUE_ID, Map.of("k", "v"), null, AHORA, AHORA)),
                 new TotalesItem(7, Map.of(CAMPO_ID, new BigDecimal("12.5"))),
                 true,
                 50));
+    }
 
-        mockMvc.perform(get("/api/bloques/{id}/reporte", BLOQUE_ID)
+    private void dadoElEscenarioDeGETSinFiltrosPasaTodoVacio() throws Exception {
+        when(generarReporte.execute(any(GenerarReporteRequest.class))).thenReturn(
+                new GenerarReporteResponse(List.of(), new TotalesItem(0, Map.of()), false, 50));
+    }
+
+    private void dadoElEscenarioDeGETConUnFiltroInvalidoResponde400YUnaFechaMalEscritaTambien() throws Exception {
+        when(generarReporte.execute(any(GenerarReporteRequest.class)))
+                .thenThrow(new BusinessRuleException("No se puede filtrar por ese campo"));
+    }
+
+    private void dadoElEscenarioDeGETDeLaDescargaDevuelveElXLSXConSuNombreYPasaLosMismosFiltros() throws Exception {
+        contenido = new byte[] {1, 2, 3};
+        when(exportarReporte.execute(any(GenerarReporteRequest.class)))
+                .thenReturn(new ExportarReporteResponse(contenido, "reporte-pedidos-20261013.xlsx"));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaGETDevuelveLasFilasLosTotalesYPasaLosFiltrosConElUsuarioDeLaSesion() throws Exception {
+        respuesta = mockMvc.perform(get("/api/bloques/{id}/reporte", BLOQUE_ID)
                         .param("q", "pan").param("desde", "2026-10-01").param("hasta", "2026-10-31")
                         .param("campoId", CAMPO_ID.toString()).param("valor", "true")
-                        .principal(sesion))
+                        .principal(sesion));
+    }
+
+    private void cuandoSeEjecutaGETSinFiltrosPasaTodoVacio() throws Exception {
+        respuesta = mockMvc.perform(get("/api/bloques/{id}/reporte", BLOQUE_ID).principal(sesion));
+    }
+
+    private void cuandoSeEjecutaGETConUnFiltroInvalidoResponde400YUnaFechaMalEscritaTambien() throws Exception {
+        respuesta = mockMvc.perform(get("/api/bloques/{id}/reporte", BLOQUE_ID).principal(sesion));
+        segundaRespuesta = mockMvc.perform(get("/api/bloques/{id}/reporte", BLOQUE_ID).param("desde", "ayer").principal(sesion));
+    }
+
+    private void cuandoSeEjecutaGETDeLaDescargaDevuelveElXLSXConSuNombreYPasaLosMismosFiltros() throws Exception {
+        respuesta = mockMvc.perform(get("/api/bloques/{id}/reporte/descarga", BLOQUE_ID)
+                        .param("desde", "2026-10-01").principal(sesion));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaGETDevuelveLasFilasLosTotalesYPasaLosFiltrosConElUsuarioDeLaSesion() throws Exception {
+        respuesta
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.filas[0].id").value(REGISTRO_ID.toString()))
                 .andExpect(jsonPath("$.filas[0].valores.k").value("v"))
@@ -87,40 +172,23 @@ class ReporteControllerTest {
                 CAMPO_ID, "true"));
     }
 
-    @Test
-    @DisplayName("GET sin filtros pasa todo vacío")
-    void gETSinFiltrosPasaTodoVacio() throws Exception {
-        when(generarReporte.execute(any(GenerarReporteRequest.class))).thenReturn(
-                new GenerarReporteResponse(List.of(), new TotalesItem(0, Map.of()), false, 50));
-
-        mockMvc.perform(get("/api/bloques/{id}/reporte", BLOQUE_ID).principal(sesion))
+    private void entoncesSeVerificaGETSinFiltrosPasaTodoVacio() throws Exception {
+        respuesta
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.filas").isEmpty());
         verify(generarReporte).execute(
                 new GenerarReporteRequest(USUARIO_ID, BLOQUE_ID, null, null, null, null, null));
     }
 
-    @Test
-    @DisplayName("GET con un filtro inválido responde 400 y una fecha mal escrita también")
-    void gETConUnFiltroInvalidoResponde400YUnaFechaMalEscritaTambien() throws Exception {
-        when(generarReporte.execute(any(GenerarReporteRequest.class)))
-                .thenThrow(new BusinessRuleException("No se puede filtrar por ese campo"));
-
-        mockMvc.perform(get("/api/bloques/{id}/reporte", BLOQUE_ID).principal(sesion))
+    private void entoncesSeVerificaGETConUnFiltroInvalidoResponde400YUnaFechaMalEscritaTambien() throws Exception {
+        respuesta
                 .andExpect(status().isBadRequest());
-        mockMvc.perform(get("/api/bloques/{id}/reporte", BLOQUE_ID).param("desde", "ayer").principal(sesion))
+        segundaRespuesta
                 .andExpect(status().isBadRequest());
     }
 
-    @Test
-    @DisplayName("GET de la descarga devuelve el XLSX con su nombre y pasa los mismos filtros")
-    void gETDeLaDescargaDevuelveElXLSXConSuNombreYPasaLosMismosFiltros() throws Exception {
-        byte[] contenido = {1, 2, 3};
-        when(exportarReporte.execute(any(GenerarReporteRequest.class)))
-                .thenReturn(new ExportarReporteResponse(contenido, "reporte-pedidos-20261013.xlsx"));
-
-        mockMvc.perform(get("/api/bloques/{id}/reporte/descarga", BLOQUE_ID)
-                        .param("desde", "2026-10-01").principal(sesion))
+    private void entoncesSeVerificaGETDeLaDescargaDevuelveElXLSXConSuNombreYPasaLosMismosFiltros() throws Exception {
+        respuesta
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
