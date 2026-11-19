@@ -1,0 +1,60 @@
+package com.ensambla.backend.domain.useCase.objetivo.listarRespuestasPendientes;
+
+import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
+import com.ensambla.backend.domain.model.objetivo.Objetivo;
+import com.ensambla.backend.domain.model.objetivo.ObjetivoId;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static com.ensambla.backend.support.MiniObjetivoTestData.OTRO_MINI_ID;
+import static com.ensambla.backend.support.MiniObjetivoTestData.miniManual;
+import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
+import static com.ensambla.backend.support.ObjetivoTestData.TEXTO;
+import static com.ensambla.backend.support.ObjetivoTestData.TEXTO_SIN_META;
+import static com.ensambla.backend.support.ObjetivoTestData.objetivo;
+import static com.ensambla.backend.support.ObjetivoTestData.objetivoSinMeta;
+import static org.assertj.core.api.Assertions.assertThat;
+
+class ListarRespuestasPendientesResponseTest {
+
+    private static final ObjetivoId OTRO_OBJETIVO_ID = ObjetivoId.de("00000000-0000-4000-8000-0000000000b1");
+
+    private Objetivo otroObjetivo;
+    private MiniObjetivo miniDelOtro;
+    private ListarRespuestasPendientesResponse respuesta;
+
+    @Test
+    @DisplayName("Cada pendiente trae el texto del objetivo al que pertenece, en el orden recibido")
+    void cadaPendienteTraeElTextoDelObjetivoAlQuePerteneceEnElOrdenRecibido() {
+        dadoUnOtroObjetivoConUnMiniManual();
+
+        cuandoSeArmaLaRespuesta();
+
+        entoncesCadaPendienteTraeElTextoDeSuObjetivoEnOrden();
+    }
+
+    // --- arrange ---
+    private void dadoUnOtroObjetivoConUnMiniManual() {
+        otroObjetivo = objetivoSinMeta();
+        otroObjetivo.setId(OTRO_OBJETIVO_ID);
+        miniDelOtro = miniManual();
+        miniDelOtro.setObjetivoId(OTRO_OBJETIVO_ID);
+    }
+
+    // --- act ---
+    private void cuandoSeArmaLaRespuesta() {
+        respuesta = ListarRespuestasPendientesResponse.de(
+                List.of(objetivo(), otroObjetivo), List.of(miniDelOtro, miniManual()));
+    }
+
+    // --- assert ---
+    private void entoncesCadaPendienteTraeElTextoDeSuObjetivoEnOrden() {
+        assertThat(respuesta.pendientes()).extracting(ListarRespuestasPendientesResponse.Pendiente::objetivoTexto)
+                .containsExactly(TEXTO_SIN_META, TEXTO);
+        assertThat(respuesta.pendientes()).extracting(ListarRespuestasPendientesResponse.Pendiente::objetivoId)
+                .containsExactly(OTRO_OBJETIVO_ID, OBJETIVO_ID);
+        assertThat(respuesta.pendientes().getFirst().miniObjetivo().id()).isEqualTo(OTRO_MINI_ID);
+    }
+}

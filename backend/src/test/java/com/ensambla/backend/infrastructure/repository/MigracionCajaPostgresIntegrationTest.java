@@ -6,6 +6,9 @@ import com.ensambla.backend.support.CajaTestData;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.configuration.FluentConfiguration;
+import org.flywaydb.core.api.output.MigrateResult;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -23,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class MigracionCajaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     private static final String ESQUEMA = "prueba_migracion_caja";
+    private static final Path MIGRACIONES = Path.of("src/main/resources/db/migration");
 
     @Value("${spring.datasource.url}")
     private String jdbcUrl;
@@ -42,79 +46,134 @@ class MigracionCajaPostgresIntegrationTest extends PostgresRepositoryTestSupport
     @TempDir
     private Path migracionesDev;
 
+    private Long negociosAntes;
+    private MigrateResult resultado;
+
+    @AfterEach
+    void borrarElEsquemaDePrueba() {
+        jdbcTemplate.execute("DROP SCHEMA IF EXISTS " + ESQUEMA + " CASCADE");
+    }
+
     @Test
     @DisplayName("Una base de dev en V33 incorpora Caja sin perder datos ni editar su historial")
-    void migrateShouldUpgradeExistingDevWithoutCaja() throws IOException {
-        try {
-            givenDevWithoutCaja();
-            Long negociosAntes = jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA + ".negocio",
-                    Long.class);
+    void unaBaseDeDevEnV33IncorporaCajaSinPerderDatosNiEditarSuHistorial() throws IOException {
+        dadoUnaBaseDeDevEnV33();
 
-            var resultado = Flyway.configure().dataSource(jdbcUrl, jdbcUsuario, jdbcContrasenia)
-                    .schemas(ESQUEMA).defaultSchema(ESQUEMA)
-                    .outOfOrder(permitirMigracionesPendientesAnteriores).load().migrate();
+        cuandoSeMigraHastaLaUltimaVersion();
 
-            assertThat(permitirMigracionesPendientesAnteriores).isFalse();
-            assertThat(resultado.migrationsExecuted).isEqualTo(4);
-            assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA + ".negocio", Long.class))
-                    .isEqualTo(negociosAntes);
-            assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA + ".venta_caja", Long.class))
-                    .isZero();
-            assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA + ".cierre_caja", Long.class))
-                    .isZero();
-            assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA + ".cobro_caja", Long.class))
-                    .isZero();
-        } finally {
-            jdbcTemplate.execute("DROP SCHEMA IF EXISTS " + ESQUEMA + " CASCADE");
-        }
+        entoncesNoSePermitenMigracionesAnterioresPendientes();
+        entoncesSeAplicaronSoloLasMigracionesPosterioresALaV33();
+        entoncesSeConservaronLosNegocios();
+        entoncesLasTablasDeCajaEstanVacias();
     }
 
     @Test
     @DisplayName("Las ventas de la primera caja siguen siendo legibles después de agregar pagos y cierres")
-    void migrateShouldPreserveLegacyReceiptAndTypedInventoryId() throws Exception {
-        try {
-            givenLegacySale();
+    void lasVentasDeLaPrimeraCajaSiguenSiendoLegiblesDespuesDeAgregarPagosYCierres() throws Exception {
+        dadoUnaVentaGuardadaConElFormatoDeLaPrimeraCaja();
 
-            Flyway.configure().dataSource(jdbcUrl, jdbcUsuario, jdbcContrasenia)
-                    .schemas(ESQUEMA).defaultSchema(ESQUEMA).load().migrate();
+        cuandoSeMigraHastaLaUltimaVersion();
 
-            String datos = jdbcTemplate.queryForObject("SELECT datos::text FROM " + ESQUEMA + ".venta_caja",
-                    String.class);
-            VentaCaja venta = new ObjectMapper().findAndRegisterModules().readValue(datos, VentaCaja.class);
-            assertThat(venta.id()).isEqualTo(CajaTestData.OPERACION);
-            assertThat(venta.inventarioId()).isEqualTo(CajaTestData.INVENTARIO);
-            assertThat(venta.total()).isEqualByComparingTo("2000");
-            assertThat(venta.recibido()).isEqualByComparingTo("5000");
-            assertThat(venta.vuelto()).isEqualByComparingTo("3000");
-            assertThat(venta.pagos()).singleElement().satisfies(pago -> {
-                assertThat(pago.medio()).isEqualTo(MedioPagoCaja.EFECTIVO);
-                assertThat(pago.importe()).isEqualByComparingTo("2000");
-            });
-            assertThat(venta.lineas().getFirst().nombre()).isEqualTo("Pan");
-        } finally {
-            jdbcTemplate.execute("DROP SCHEMA IF EXISTS " + ESQUEMA + " CASCADE");
+        entoncesLaVentaConservaSusImportes(ventaGuardada());
+        entoncesLaVentaConservaSuPagoEnEfectivo(ventaGuardada());
+        entoncesLaVentaConservaSuLinea(ventaGuardada());
+    }
+
+    // --- dado ---
+    private void dadoUnaBaseDeDevEnV33() throws IOException {
+        copiarLasMigracionesDeDevSinCaja();
+        migrador().locations("filesystem:" + migracionesDev).target("33").load().migrate();
+        negociosAntes = cantidadDeFilasEn("negocio");
+    }
+
+    private void dadoUnaVentaGuardadaConElFormatoDeLaPrimeraCaja() {
+        migrador().target("34").load().migrate();
+        UUID negocioId = jdbcTemplate.queryForObject("SELECT id FROM " + ESQUEMA + ".negocio LIMIT 1", UUID.class);
+        insertarVentaCon(datosDeLaVentaDeLaPrimeraCaja(negocioId), negocioId);
+    }
+
+    // --- cuando ---
+    private void cuandoSeMigraHastaLaUltimaVersion() {
+        resultado = migrador().outOfOrder(permitirMigracionesPendientesAnteriores).load().migrate();
+    }
+
+    // --- entonces ---
+    private void entoncesNoSePermitenMigracionesAnterioresPendientes() {
+        assertThat(permitirMigracionesPendientesAnteriores).isFalse();
+    }
+
+    private void entoncesSeAplicaronSoloLasMigracionesPosterioresALaV33() throws IOException {
+        assertThat(resultado.migrationsExecuted).isEqualTo(cantidadDeMigracionesPosterioresALaV33());
+    }
+
+    private void entoncesSeConservaronLosNegocios() {
+        assertThat(cantidadDeFilasEn("negocio")).isEqualTo(negociosAntes);
+    }
+
+    private void entoncesLasTablasDeCajaEstanVacias() {
+        assertThat(cantidadDeFilasEn("venta_caja")).isZero();
+        assertThat(cantidadDeFilasEn("cierre_caja")).isZero();
+        assertThat(cantidadDeFilasEn("cobro_caja")).isZero();
+    }
+
+    private void entoncesLaVentaConservaSusImportes(VentaCaja venta) {
+        assertThat(venta.id()).isEqualTo(CajaTestData.OPERACION);
+        assertThat(venta.inventarioId()).isEqualTo(CajaTestData.INVENTARIO);
+        assertThat(venta.total()).isEqualByComparingTo("2000");
+        assertThat(venta.recibido()).isEqualByComparingTo("5000");
+        assertThat(venta.vuelto()).isEqualByComparingTo("3000");
+    }
+
+    private void entoncesLaVentaConservaSuPagoEnEfectivo(VentaCaja venta) {
+        assertThat(venta.pagos()).singleElement().satisfies(pago -> {
+            assertThat(pago.medio()).isEqualTo(MedioPagoCaja.EFECTIVO);
+            assertThat(pago.importe()).isEqualByComparingTo("2000");
+        });
+    }
+
+    private void entoncesLaVentaConservaSuLinea(VentaCaja venta) {
+        assertThat(venta.lineas().getFirst().nombre()).isEqualTo("Pan");
+    }
+
+    // --- apoyo ---
+    private FluentConfiguration migrador() {
+        return Flyway.configure().dataSource(jdbcUrl, jdbcUsuario, jdbcContrasenia)
+                .schemas(ESQUEMA).defaultSchema(ESQUEMA);
+    }
+
+    private Long cantidadDeFilasEn(String tabla) {
+        return jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA + "." + tabla, Long.class);
+    }
+
+    private VentaCaja ventaGuardada() throws Exception {
+        String datos = jdbcTemplate.queryForObject("SELECT datos::text FROM " + ESQUEMA + ".venta_caja", String.class);
+        return new ObjectMapper().findAndRegisterModules().readValue(datos, VentaCaja.class);
+    }
+
+    private int cantidadDeMigracionesPosterioresALaV33() throws IOException {
+        try (var archivos = Files.list(MIGRACIONES)) {
+            return (int) archivos.filter(archivo -> versionDe(archivo) > 33).count();
         }
     }
 
-    // --- arrange ---
-    private void givenDevWithoutCaja() throws IOException {
-        try (var archivos = Files.list(Path.of("src/main/resources/db/migration"))) {
-            for (Path archivo : archivos.filter(path -> !path.getFileName().toString()
-                    .matches("V(34|35|36|37)__.*")).toList()) {
+    private int versionDe(Path archivo) {
+        return Integer.parseInt(archivo.getFileName().toString().replaceFirst("^V(\\d+)__.*", "$1"));
+    }
+
+    private void copiarLasMigracionesDeDevSinCaja() throws IOException {
+        try (var archivos = Files.list(MIGRACIONES)) {
+            for (Path archivo : archivos.filter(this::esAnteriorALaCaja).toList()) {
                 Files.copy(archivo, migracionesDev.resolve(archivo.getFileName()));
             }
         }
-        Flyway.configure().dataSource(jdbcUrl, jdbcUsuario, jdbcContrasenia)
-                .schemas(ESQUEMA).defaultSchema(ESQUEMA)
-                .locations("filesystem:" + migracionesDev).target("33").load().migrate();
     }
 
-    private void givenLegacySale() {
-        Flyway.configure().dataSource(jdbcUrl, jdbcUsuario, jdbcContrasenia)
-                .schemas(ESQUEMA).defaultSchema(ESQUEMA)
-                .target("34").load().migrate();
-        UUID negocioId = jdbcTemplate.queryForObject("SELECT id FROM " + ESQUEMA + ".negocio LIMIT 1", UUID.class);
-        String datos = """
+    private boolean esAnteriorALaCaja(Path archivo) {
+        return versionDe(archivo) <= 33;
+    }
+
+    private String datosDeLaVentaDeLaPrimeraCaja(UUID negocioId) {
+        return """
                 {"id":{"valor":"%s"},"negocioId":{"valor":"%s"},"proyectoId":{"valor":"%s"},
                 "huella":"%s:%s:%s:EFECTIVO:5000:[]",
                 "lineas":[{"productoId":{"valor":"%s"},"nombre":"Pan","modo":"PESO",
@@ -122,6 +181,9 @@ class MigracionCajaPostgresIntegrationTest extends PostgresRepositoryTestSupport
                 "medio":"EFECTIVO","total":2000,"recibido":5000,"vuelto":3000,"creadoEn":"2026-11-12T12:00:00Z"}
                 """.formatted(CajaTestData.OPERACION, negocioId, CajaTestData.PROYECTO,
                 CajaTestData.PROYECTO, CajaTestData.INVENTARIO, CajaTestData.VENTAS, CajaTestData.PRODUCTO);
+    }
+
+    private void insertarVentaCon(String datos, UUID negocioId) {
         jdbcTemplate.update("INSERT INTO " + ESQUEMA + ".venta_caja "
                         + "(id,negocio_id,proyecto_id,datos,creado_en,actualizado_en) VALUES (?,?,?,?::jsonb,?,?)",
                 CajaTestData.OPERACION.valor(), negocioId, CajaTestData.PROYECTO.valor(), datos,

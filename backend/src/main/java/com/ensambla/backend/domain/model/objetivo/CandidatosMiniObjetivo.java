@@ -42,6 +42,8 @@ public final class CandidatosMiniObjetivo {
     private static final BigDecimal PUNTOS_DE_MARGEN = BigDecimal.valueOf(2);
     private static final BigDecimal TOPE_DE_MARGEN = BigDecimal.valueOf(60);
     private static final BigDecimal SUBA_DE_VENTAS = new BigDecimal("0.10");
+    /** Del capital parado se le pide liberar un cuarto: queda el 75 %. */
+    private static final BigDecimal CAPITAL_QUE_QUEDA = new BigDecimal("0.75");
     private static final BigDecimal CIEN = BigDecimal.valueOf(100);
     private static final BigDecimal DIAS_DEL_MES = BigDecimal.valueOf(MedidorMiniObjetivo.DIAS_MES);
     private static final BigDecimal DIAS_DE_LA_SEMANA = BigDecimal.valueOf(MedidorMiniObjetivo.DIAS_SEMANA);
@@ -76,6 +78,9 @@ public final class CandidatosMiniObjetivo {
         medidor.gastos().forEach(gasto -> candidatos.add(recortarGasto(gasto)));
         mejorarMargen(medidor).ifPresent(candidatos::add);
         ventasSemanales(medidor).ifPresent(candidatos::add);
+        reponerStock(medidor).ifPresent(candidatos::add);
+        capitalParado(medidor).ifPresent(candidatos::add);
+        variedadVendida(medidor).ifPresent(candidatos::add);
         candidatos.sort(POR_APORTE);
         return List.copyOf(candidatos);
     }
@@ -233,6 +238,46 @@ public final class CandidatosMiniObjetivo {
                     TextoMiniObjetivo texto = TextoMiniObjetivo.ventasSemanales(ventas, meta, aporte);
                     return new CandidatoMiniObjetivo(TipoMiniObjetivo.VENTAS_SEMANALES, null, null,
                             dos(ventas), dos(meta), dos(aporte), texto.titulo(), texto.justificacion(), false);
+                });
+    }
+
+    /**
+     * Los productos que ya llegaron a su mínimo: llevarlos a cero. No suma plata al resultado, así que su aporte es
+     * cero (sin estimación) y queda al final; sin productos con un mínimo definido no se arma.
+     */
+    private static Optional<CandidatoMiniObjetivo> reponerStock(MedidorMiniObjetivo medidor) {
+        return medidor.productosBajoElMinimo()
+                .filter(productos -> productos.signum() > 0)
+                .map(productos -> {
+                    TextoMiniObjetivo texto = TextoMiniObjetivo.reponerStock(productos);
+                    return new CandidatoMiniObjetivo(TipoMiniObjetivo.PRODUCTOS_BAJO_EL_MINIMO, null, null,
+                            dos(productos), dos(BigDecimal.ZERO), dos(BigDecimal.ZERO), texto.titulo(),
+                            texto.justificacion(), false);
+                });
+    }
+
+    /** Mercadería que no rota: pedirle que baje un cuarto. Libera plata pero no suma al resultado (aporte cero). */
+    private static Optional<CandidatoMiniObjetivo> capitalParado(MedidorMiniObjetivo medidor) {
+        return medidor.capitalParado()
+                .filter(capital -> capital.signum() > 0)
+                .map(capital -> {
+                    BigDecimal meta = capital.multiply(CAPITAL_QUE_QUEDA);
+                    TextoMiniObjetivo texto = TextoMiniObjetivo.capitalParado(capital, meta);
+                    return new CandidatoMiniObjetivo(TipoMiniObjetivo.CAPITAL_PARADO, null, null, dos(capital),
+                            dos(meta), dos(BigDecimal.ZERO), texto.titulo(), texto.justificacion(), false);
+                });
+    }
+
+    /** Un producto distinto más por semana, mientras el negocio tenga más productos que los que hoy vende. */
+    private static Optional<CandidatoMiniObjetivo> variedadVendida(MedidorMiniObjetivo medidor) {
+        BigDecimal cuantos = BigDecimal.valueOf(medidor.productos().size());
+        return medidor.variedadVendida()
+                .filter(vendidos -> cuantos.compareTo(vendidos) > 0)
+                .map(vendidos -> {
+                    BigDecimal meta = vendidos.add(BigDecimal.ONE);
+                    TextoMiniObjetivo texto = TextoMiniObjetivo.variedadVendida(vendidos, meta);
+                    return new CandidatoMiniObjetivo(TipoMiniObjetivo.VARIEDAD_VENDIDA, null, null, dos(vendidos),
+                            dos(meta), dos(BigDecimal.ZERO), texto.titulo(), texto.justificacion(), false);
                 });
     }
 

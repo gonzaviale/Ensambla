@@ -8,7 +8,7 @@ Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (
 `V15__renovaciones_y_pagos_premium.sql`,
 `V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`,
 `V24__objetivo.sql`, `V29__mini_objetivo.sql`, `V30__progreso_objetivo.sql`, `V31__decision_objetivo.sql`,
-`V32__resumen_semanal_objetivo.sql`).
+`V32__resumen_semanal_objetivo.sql`, `V33__objetivo_demo.sql`, `V38__objetivo_tipo_y_modo.sql`, `V39__respuesta_mini_objetivo.sql`, `V40__cuota_objetivos_ia.sql`, `V41__metricas_mini_objetivo_nuevas.sql`, `V42__cierre_con_manuales.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -373,6 +373,99 @@ arrancar, para cerrar las semanas que quedaron sin cerrar (`ensambla.objetivos.c
 **API.** `GET /api/objetivos/{id}/semanas`: `{ ultimoCierre, semanas: [{ semana, resultado, avance, decisiones, queFunciono,
 textoConIa, reajustes: [{ tipo, motivo, de: { titulo, meta }, a }] }] }`, de la más nueva a la más vieja. Un objetivo de otro
 negocio responde 404.
+
+### Objetivos con Sami: tipo y modo (V34)
+
+Diseño completo en [`objetivos-con-sami.md`](objetivos-con-sami.md). `V34` deja que un objetivo no tenga meta en pesos y que un
+mini-objetivo no tenga números.
+
+- `objetivo.tipo` (`MONETARIO`, `CON_DATOS`, `SIN_DATOS` o `HIBRIDO`, por defecto `MONETARIO`) y `objetivo.armado_con_sami`
+  (si lo armó Sami con IA; es lo que cuenta para la cuota mensual). `objetivo.meta` ahora admite `NULL`, y la restricción
+  `ck_objetivo_meta_segun_tipo` exige que **sólo** el monetario la tenga.
+- `mini_objetivo.modo` (`MEDIDO` o `MANUAL`, por defecto `MEDIDO`). En uno `MANUAL` (una acción que la persona responde)
+  `tipo`, `registro_id`, `referencia`, `meta`, `valor_inicial`, `valor_actual` y `aporte_estimado` son `NULL`; en uno `MEDIDO`
+  todos los números y el `tipo` son obligatorios (`ck_mini_objetivo_segun_modo`). `tipo`, `meta`, `valor_inicial`,
+  `valor_actual` y `aporte_estimado` ahora admiten `NULL`.
+- Los objetivos y mini-objetivos que ya existían quedan `MONETARIO` y `MEDIDO`: no cambia nada de lo que ven.
+- Sin meta en pesos el objetivo nunca se da por alcanzado solo, el monitoreo no le propone mini-objetivos medidos y el
+  resumen del domingo guarda `avance = 0`. El monitoreo, el cierre y el progreso sólo miran los mini-objetivos medidos.
+
+**API.** `GET`/`POST /api/objetivos` suman `tipo` y `armadoConSami` y `meta` puede ser `null`; los mini-objetivos suman `modo`
+(en un manual `tipo`, `sentido`, `valorInicial`, `valorActual`, `meta`, `avance`, `aporteEstimado`, `registroId` y
+`referencia` son `null`).
+
+### Armar un objetivo con Sami (sin cambios de esquema)
+
+Usa lo de V34 (diseño en [`objetivos-con-sami.md`](objetivos-con-sami.md)). La conversación no se guarda: el frontend manda
+el historial en cada pedido y el servidor lo acota (hasta 6 mensajes de la persona de 500 caracteres,
+`ensambla.objetivos.ia.max-mensajes`).
+
+**API.** `POST /api/objetivos/sami/propuesta` (`{ mensajes: [{ rol: PERSONA|SAMI, texto }] }`): Sami contesta con los datos del
+negocio y propone hasta 3 mini-objetivos, sin guardar nada ni gastar cuota: `{ respuesta, entendido, tipo, esMonetario, minis,
+datos, origen, mensajesRestantes, puedeGuardar }`. Un `MEDIDO` sale de una métrica del catálogo con los números del servidor;
+un `MANUAL` es una acción sin números. Si la IA está apagada, sin acceso, sin reserva diaria, falla o responde algo inválido,
+`origen` es `RESPALDO` y la propuesta es un solo manual de seguimiento. `POST /api/objetivos/sami` (`{ texto,
+seguimientoManual?, minis: [...] }`, `201`) guarda el objetivo: de cada medido sólo se manda cuál es (`tipo`, `registroId`,
+`referencia`) y el servidor vuelve a calcular todo; el `tipo` del objetivo lo deduce el servidor. `400` si no hay entre 1 y 3,
+uno medido ya no está en el catálogo, dos miden lo mismo o una acción trae importes o porcentajes.
+
+**IA.** Puerto `ConversacionObjetivosIaPort` (proveedor simulado por defecto, sin costo). A la IA se le manda el texto de la
+persona como dato (sin correos ni teléfonos), el catálogo de métricas con códigos y datos agregados del negocio y de la zona;
+nunca nombres, contactos ni clientes. Una métrica fuera del catálogo se descarta y una acción con `$` o `%` también.
+`ensambla.objetivos.ia.conversacion-habilitada` apaga la conversación. Comparte el contador diario de Sami
+(`ensambla.objetivos.ia.limite-diario`). La cuota mensual por plan está en «Cuota mensual de objetivos con IA (V36)».
+
+### Cuota mensual de objetivos con IA (V36)
+
+`V36` suma `plan.limite_objetivos_ia_mensuales` (Gratuito 5, Premium 20; vacío es sin límite; `CHECK >= 0`) y la tabla
+`consumo_objetivo_ia`: una fila por objetivo armado con Sami con IA que se guardó (`negocio_id` con borrado en cascada,
+`objetivo_id` **sin** clave foránea y `consumido_en`). Borrar el objetivo no devuelve la cuota del mes. El mes es el del
+calendario argentino. Un monetario del formulario clásico y el seguimiento manual no gastan cuota.
+
+**API.** Guardar con IA sin cuota responde `403` con `codigo: "LIMITE_OBJETIVOS_IA"`. `GET /api/planes` suma
+`planes[].limiteObjetivosIaMensuales` y `uso.objetivosIa` / `uso.limiteObjetivosIa`; la propuesta de Sami trae `cuota`.
+
+### Métricas nuevas del catálogo (V37)
+
+`V37` amplía el `CHECK` de `mini_objetivo.tipo` con tres métricas del negocio (ninguna de un producto: `registro_id` y
+`referencia` quedan vacíos). Las mide el servidor; sin datos dicen «no se puede medir» y nunca un número inventado:
+
+| Tipo | Qué mide | Sentido | Meta | Sin datos cuando |
+|---|---|---|---|---|
+| `PRODUCTOS_BAJO_EL_MINIMO` | cuántos productos están en el mínimo que definió el negocio (campo `minimum`) o por debajo | baja | 0 | ningún producto tiene un mínimo positivo |
+| `CAPITAL_PARADO` | pesos de mercadería (costo × stock) de lo que no se vendió en 30 días | baja | el 75 % de hoy | no hubo ventas en 30 días o no hay productos con precio y costo |
+| `VARIEDAD_VENDIDA` | productos distintos vendidos en los últimos 7 días | sube | uno más (sólo si hay más productos que los vendidos) | no hubo ventas en 30 días o no hay productos |
+
+Como no suman al resultado mensual, su `aporte_estimado` es 0 (sin estimación): quedan al final del ranking y sólo llenan
+lugares que las métricas que suman no ocupan, o las elige Sami. Quedan para después las de H-58 (fiados pendientes y clientes
+que compran).
+
+### Cierre del domingo con mini-objetivos manuales (V38)
+
+`V38` deja que el cierre renueve los manuales (diseño en [`objetivos-con-sami.md`](objetivos-con-sami.md)):
+`reajuste_mini_objetivo.meta_anterior` admite `NULL` (un manual no tiene meta) y `resumen_semanal_objetivo.manuales` (jsonb,
+por defecto `[]`) guarda por cada manual en curso al cierre `{miniObjetivoId, titulo, hizo, quePaso}`; `hizo` en `null` es un
+manual sin respuesta, que no se renueva hasta que se responda. `GET /api/objetivos/{id}/semanas` suma `manuales` a cada
+semana.
+
+### Responder un mini-objetivo manual (V35)
+
+`V35` crea `respuesta_mini_objetivo`: lo que la persona cuenta de un mini-objetivo manual (diseño en
+[`objetivos-con-sami.md`](objetivos-con-sami.md)).
+
+- Cuelga del `mini_objetivo` (`mini_objetivo_id`, **único**: un manual se responde una sola vez y la respuesta no se pisa),
+  del `objetivo` y del `negocio` (los tres con borrado en cascada).
+- `hizo` (`SI`, `EN_PARTE`, `NO`) y `que_paso` (`FUNCIONO`, `NO_TUVE_TIEMPO`, `NO_FUNCIONO`, `OTRA`, obligatoria). No admite
+  «lo hice» con «no tuve tiempo». `comentario` es opcional (hasta 300 caracteres), `semana_inicio` es el lunes argentino de la
+  semana en que se respondió y `respondida_en` el instante.
+- Cada respuesta deja una fila en `decision_objetivo` con tipo `MINI_HECHO`, `MINI_EN_PARTE` o `MINI_NO_HECHO` (el título del
+  mini-objetivo como descripción), que `V35` suma al `CHECK` de `tipo`. El efecto de esas decisiones es `SIN_MEDICION`.
+- Responder **no cambia el estado** del mini-objetivo: sigue «en curso» hasta que el cierre del domingo lo renueve (T-247).
+
+**API.** `POST /api/objetivos/{id}/mini-objetivos/{miniId}/respuesta` (`{ hizo, quePaso, comentario? }`, `201`): `400` si el
+mini-objetivo es medido o ya no está en curso o la combinación es contradictoria, `409` si ya se respondió, `404` si es de otro
+negocio. `GET /api/objetivos/respuestas-pendientes` lista los manuales en curso sin respuesta de todos los objetivos del
+negocio, del más viejo al más nuevo.
 
 ## Datos de prueba (V10)
 

@@ -2,6 +2,9 @@ package com.ensambla.backend.domain.useCase.objetivo.listarSemanas;
 
 import com.ensambla.backend.domain.model.objetivo.CierreMini;
 import com.ensambla.backend.domain.model.objetivo.ConteoDecisiones;
+import com.ensambla.backend.domain.model.objetivo.HizoManual;
+import com.ensambla.backend.domain.model.objetivo.ManualCierre;
+import com.ensambla.backend.domain.model.objetivo.QuePaso;
 import com.ensambla.backend.domain.model.objetivo.ReajusteMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.ReajusteMiniObjetivoId;
 import com.ensambla.backend.domain.model.objetivo.ResumenSemanal;
@@ -24,17 +27,58 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ListarSemanasResponseTest {
 
     private static final LocalDate SEMANA = LocalDate.of(2026, 11, 9);
+    private static final BigDecimal RESULTADO = new BigDecimal("180000");
+
+    private ListarSemanasResponse respuesta;
 
     @Test
     @DisplayName("El último cierre es la semana del primer resumen y se copia cada campo")
-    void deShouldCopyEverySummaryAndTakeTheNewestAsLastClose() {
-        ListarSemanasResponse result = ListarSemanasResponse.de(List.of(
-                resumen(SEMANA, List.of(reajuste("Nuevo", new BigDecimal("110")))),
-                resumen(SEMANA.minusWeeks(1), List.of())));
+    void elUltimoCierreEsLaSemanaDelPrimerResumenYSeCopiaCadaCampo() {
+        cuandoSeResponde(
+                resumenConUnReajusteSubidoA110(),
+                resumen(SEMANA.minusWeeks(1), List.of()));
 
-        assertThat(result.ultimoCierre()).isEqualTo(SEMANA);
-        assertThat(result.semanas()).extracting(SemanaItem::semana).containsExactly(SEMANA, SEMANA.minusWeeks(1));
-        SemanaItem semana = result.semanas().get(0);
+        entoncesElUltimoCierreEsLaSemanaMasNueva();
+        entoncesSeCopiaCadaCampoDeLaSemanaMasNueva();
+    }
+
+    @Test
+    @DisplayName("Un reajuste cuyo mini-objetivo nuevo ya no existe queda sin «a»")
+    void unReajusteCuyoMiniObjetivoNuevoYaNoExisteQuedaSinA() {
+        cuandoSeResponde(resumen(SEMANA, List.of(reajuste(null, null))));
+
+        entoncesElReajusteNoTieneDestino();
+    }
+
+    @Test
+    @DisplayName("Sin resúmenes no hay último cierre")
+    void sinResumenesNoHayUltimoCierre() {
+        cuandoSeResponde();
+
+        entoncesNoHayUltimoCierreNiSemanas();
+    }
+
+    @Test
+    @DisplayName("Cada semana trae lo que la persona respondió de sus manuales, o que no respondió")
+    void cadaSemanaTraeLoQueLaPersonaRespondioDeSusManualesOQueNoRespondio() {
+        cuandoSeResponde(resumenConManuales());
+
+        entoncesCadaSemanaTraeLasRespuestasDeSusManuales();
+    }
+
+    // --- act ---
+    private void cuandoSeResponde(ResumenSemanal... resumenes) {
+        respuesta = ListarSemanasResponse.de(List.of(resumenes));
+    }
+
+    // --- assert ---
+    private void entoncesElUltimoCierreEsLaSemanaMasNueva() {
+        assertThat(respuesta.ultimoCierre()).isEqualTo(SEMANA);
+        assertThat(respuesta.semanas()).extracting(SemanaItem::semana).containsExactly(SEMANA, SEMANA.minusWeeks(1));
+    }
+
+    private void entoncesSeCopiaCadaCampoDeLaSemanaMasNueva() {
+        SemanaItem semana = respuesta.semanas().get(0);
         assertThat(semana.resultado()).isEqualByComparingTo("180000");
         assertThat(semana.avance()).isEqualByComparingTo("0.45");
         assertThat(semana.decisiones().aplicadas()).isEqualTo(1);
@@ -53,32 +97,41 @@ class ListarSemanasResponseTest {
         });
     }
 
-    @Test
-    @DisplayName("Un reajuste cuyo mini-objetivo nuevo ya no existe queda sin «a»")
-    void deShouldLeaveTheFollowerEmptyWhenItNoLongerExists() {
-        ListarSemanasResponse result = ListarSemanasResponse.de(List.of(resumen(SEMANA, List.of(reajuste(null, null)))));
-
-        assertThat(result.semanas().get(0).reajustes().get(0).a()).isNull();
+    private void entoncesElReajusteNoTieneDestino() {
+        assertThat(respuesta.semanas().get(0).reajustes().get(0).a()).isNull();
     }
 
-    @Test
-    @DisplayName("Sin resúmenes no hay último cierre")
-    void deShouldHaveNoLastCloseWhenThereAreNoSummaries() {
-        ListarSemanasResponse result = ListarSemanasResponse.de(List.of());
+    private void entoncesNoHayUltimoCierreNiSemanas() {
+        assertThat(respuesta.ultimoCierre()).isNull();
+        assertThat(respuesta.semanas()).isEmpty();
+    }
 
-        assertThat(result.ultimoCierre()).isNull();
-        assertThat(result.semanas()).isEmpty();
+    private void entoncesCadaSemanaTraeLasRespuestasDeSusManuales() {
+        assertThat(respuesta.semanas().getFirst().manuales()).containsExactly(
+                new ListarSemanasResponse.ManualItem(MINI_ID, "Pedile a 3 clientes", HizoManual.SI, QuePaso.FUNCIONO),
+                new ListarSemanasResponse.ManualItem(OTRO_MINI_ID, "Un cartel", null, null));
     }
 
     // --- helpers ---
     private static ResumenSemanal resumen(LocalDate semana, List<ReajusteMiniObjetivo> reajustes) {
-        return new ResumenSemanal(ResumenSemanalId.nuevo(), OBJETIVO_ID, semana, new BigDecimal("180000"),
-                new BigDecimal("0.45"), new ConteoDecisiones(1, 2, 3, 4), List.of(new CierreMini(MINI_ID,
-                BigDecimal.ONE)), "Bien", false, AHORA, reajustes);
+        return new ResumenSemanal(ResumenSemanalId.nuevo(), OBJETIVO_ID, semana, RESULTADO,
+                new BigDecimal("0.45"), new ConteoDecisiones(1, 2, 3, 4),
+                List.of(new CierreMini(MINI_ID, BigDecimal.ONE)), "Bien", false, AHORA, reajustes, List.of());
+    }
+
+    private static ResumenSemanal resumenConManuales() {
+        return new ResumenSemanal(ResumenSemanalId.nuevo(), OBJETIVO_ID, SEMANA, RESULTADO, BigDecimal.ZERO,
+                new ConteoDecisiones(0, 0, 0, 0), List.of(), "Bien", false, AHORA, List.of(), List.of(
+                        new ManualCierre(MINI_ID, "Pedile a 3 clientes", HizoManual.SI, QuePaso.FUNCIONO),
+                        new ManualCierre(OTRO_MINI_ID, "Un cartel", null, null)));
     }
 
     private static ReajusteMiniObjetivo reajuste(String tituloNuevo, BigDecimal metaNueva) {
         return new ReajusteMiniObjetivo(ReajusteMiniObjetivoId.nuevo(), MINI_ID, OTRO_MINI_ID,
                 TipoReajuste.SUBIR_META, "Lo lograste", "Viejo", new BigDecimal("100"), tituloNuevo, metaNueva, AHORA);
+    }
+
+    private static ResumenSemanal resumenConUnReajusteSubidoA110() {
+        return resumen(SEMANA, List.of(reajuste("Nuevo", new BigDecimal("110"))));
     }
 }

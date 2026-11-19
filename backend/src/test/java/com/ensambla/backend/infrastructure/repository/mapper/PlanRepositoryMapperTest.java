@@ -60,6 +60,7 @@ class PlanRepositoryMapperTest {
         assertThat(resultado.getLimiteProyectos()).isEqualTo(esperado.getLimiteProyectos());
         assertThat(resultado.getLimiteRegistros()).isEqualTo(esperado.getLimiteRegistros());
         assertThat(resultado.getLimitePaginasIaMensuales()).isEqualTo(esperado.getLimitePaginasIaMensuales());
+        assertThat(resultado.getLimiteObjetivosIaMensuales()).isEqualTo(esperado.getLimiteObjetivosIaMensuales());
         assertThat(resultado.getFunciones()).isEqualTo(esperado.getFunciones());
         assertThat(resultado.getCreadoEn()).isEqualTo(esperado.getCreadoEn());
         assertThat(resultado.getActualizadoEn()).isEqualTo(esperado.getActualizadoEn());
@@ -75,6 +76,7 @@ class PlanRepositoryMapperTest {
         assertThat(resultado.getLimiteProyectos()).isNull();
         assertThat(resultado.getLimiteRegistros()).isNull();
         assertThat(resultado.getLimitePaginasIaMensuales()).isNull();
+        assertThat(resultado.getLimiteObjetivosIaMensuales()).isNull();
         assertThat(resultado.getFunciones()).isNull();
         assertThat(resultado.getCreadoEn()).isNull();
         assertThat(resultado.getActualizadoEn()).isNull();

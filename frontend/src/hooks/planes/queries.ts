@@ -34,6 +34,16 @@ export function useFuncionDePlan(funcion: string) {
   return { cargando: isPending, incluida: plan?.funciones.includes(funcion) ?? false };
 }
 
+/** El plan de la persona; mientras se consulta (o si falla) no se sabe y no se le ofrece nada. */
+export function usePlanActual() {
+  return usePlanes().data?.suscripcion.codigoPlanActual;
+}
+
+/** Si está en el plan Gratuito y tiene sentido ofrecerle Premium. */
+export function useEsPlanGratuito() {
+  return usePlanActual() === 'GRATUITO';
+}
+
 export function usePlanes() {
   const consulta = useQuery(planesQuery());
   return {

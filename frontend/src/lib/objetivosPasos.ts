@@ -222,7 +222,7 @@ export function escenarioDe(
   return {
     hoy,
     conPasos: hoy + suma,
-    faltaria: Math.max(0, objetivo.meta - (hoy + suma)),
+    faltaria: Math.max(0, (objetivo.meta ?? 0) - (hoy + suma)),
     liberada: resultados.reduce((total, resultado) => total + (resultado.liberaPlata ?? 0), 0),
   };
 }

@@ -11,10 +11,10 @@ import {
   faltaParaLaMeta,
   partesDeMini,
 } from '@/lib/objetivosAutogestion';
-import type { DecisionDePaso, MiniObjetivo } from '@/types/objetivos';
+import type { DecisionDePaso, MiniMedido } from '@/types/objetivos';
 
 type Props = {
-  mini: MiniObjetivo;
+  mini: MiniMedido;
   /** Lo que la persona ya decidió esta semana sobre este mini, si decidió algo. */
   decidido?: DecisionDePaso;
   ocupado?: boolean;

@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces;
 
+import com.ensambla.backend.domain.model.objetivo.TipoObjetivo;
 import com.ensambla.backend.infrastructure.repository.entity.ObjetivoEntity;
 import com.ensambla.backend.support.PostgresDatosTestSupport;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,256 +22,251 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 class IObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
 
     private static final BigDecimal META = new BigDecimal("400000.00");
+    private static final UUID ID_PROPIO = UUID.fromString("00000000-0000-4000-8000-0000000000a1");
 
     @Autowired
     private IObjetivoJpaRepository objetivos;
 
     private UUID negocioA;
     private UUID negocioB;
+    private UUID negocioSinObjetivos;
+    private UUID idGuardado;
+    private UUID idViejo;
+    private UUID idNuevo;
+    private ObjetivoEntity guardado;
+    private ObjetivoEntity leido;
+    private Optional<ObjetivoEntity> buscado;
+    private List<ObjetivoEntity> listados;
+    private List<UUID> negociosConObjetivos;
+    private List<UUID> primeraPagina;
+    private List<UUID> segundaPagina;
+    private Throwable error;
 
     @BeforeEach
-    void dadoDosNegocios() {
+    void setUp() {
         negocioA = givenNegocio("a@example.com").getId();
         negocioB = givenNegocio("b@example.com").getId();
     }
 
-    private UUID id;
-    private UUID nuevo;
-    private UUID viejo;
-    private UUID deA;
-    private UUID sinObjetivos;
-    private ObjetivoEntity guardado;
-    private ObjetivoEntity releido;
-    private List<ObjetivoEntity> listados;
-    private Optional<ObjetivoEntity> encontrado;
-    private List<UUID> negocioIds;
-    private List<UUID> primeraPagina;
-    private List<UUID> segundaPagina;
-    private Throwable rechazo;
-
     @Test
     @DisplayName("Guarda y relee el objetivo con todos sus datos")
     void guardaYReleeElObjetivoConTodosSusDatos() {
-        dadoUnObjetivoGuardado("Ganar más");
+        dadoUnObjetivoGuardado(negocioA, "Ganar más", AHORA);
 
-        cuandoSeReleeElObjetivo();
+        cuandoSeLeeElObjetivoGuardado();
 
-        entoncesSeConservanTodosLosDatosDelObjetivo();
+        entoncesSeRelenTodosLosDatos();
     }
 
     @Test
     @DisplayName("Asigna un id cuando la entidad no trae uno")
     void asignaUnIdCuandoLaEntidadNoTraeUno() {
-        cuandoSeGuardaUnObjetivoSinId();
+        dadoUnObjetivoGuardado(negocioA, "Sin id", AHORA);
 
-        entoncesElObjetivoGuardadoTieneId();
+        entoncesElObjetivoTieneId();
     }
 
     @Test
     @DisplayName("Conserva el id cuando la entidad ya trae uno")
     void conservaElIdCuandoLaEntidadYaTraeUno() {
-        cuandoSeGuardaUnObjetivoConUnIdPropio();
+        cuandoSeGuardaConId(ID_PROPIO);
 
-        entoncesElObjetivoGuardadoConservaSuId();
+        entoncesElIdEs(ID_PROPIO);
     }
 
     @Test
     @DisplayName("Lista solo los objetivos del negocio, del más viejo al más nuevo")
     void listaSoloLosObjetivosDelNegocioDelMasViejoAlMasNuevo() {
-        dadoUnObjetivoNuevoUnoViejoYUnoAjeno();
+        dadoDosObjetivosDeAYUnoDeB();
 
-        cuandoSeListanLosObjetivosDelNegocioA();
+        cuandoSeListanLosObjetivosDe(negocioA);
 
-        entoncesSeListanElViejoYElNuevoEnOrden();
+        entoncesSeListanDelMasViejoAlMasNuevo();
     }
 
     @Test
     @DisplayName("Un negocio sin objetivos recibe una lista vacía")
     void unNegocioSinObjetivosRecibeUnaListaVacia() {
-        dadoUnObjetivoPropio();
+        dadoUnObjetivoGuardado(negocioA, "Propio", AHORA);
 
-        cuandoSeListanLosObjetivosDelNegocioB();
+        cuandoSeListanLosObjetivosDe(negocioB);
 
-        entoncesNoSeListaNingunObjetivo();
+        entoncesNoSeListaNada();
     }
 
     @Test
     @DisplayName("No devuelve un objetivo de otro negocio")
     void noDevuelveUnObjetivoDeOtroNegocio() {
-        dadoUnObjetivoDeA();
+        dadoUnObjetivoGuardado(negocioA, "De A", AHORA);
 
-        cuandoSeBuscaElObjetivoDeAConElNegocioB();
+        cuandoSeBuscaElObjetivoGuardadoEn(negocioB);
 
-        entoncesNoSeEncuentraNingunObjetivo();
+        entoncesNoSeEncuentra();
     }
 
     @Test
     @DisplayName("Borra el objetivo del negocio")
     void borraElObjetivoDelNegocio() {
-        dadoUnObjetivoParaBorrar();
+        dadoUnObjetivoGuardado(negocioA, "Para borrar", AHORA);
 
-        cuandoSeBorraElObjetivoConSuNegocio();
+        cuandoSeBorraElObjetivoEn(negocioA);
 
-        entoncesElObjetivoYaNoExiste();
+        entoncesElObjetivoYaNoEstaEn(negocioA);
     }
 
     @Test
     @DisplayName("No borra un objetivo de otro negocio")
     void noBorraUnObjetivoDeOtroNegocio() {
-        dadoUnObjetivoDeA();
+        dadoUnObjetivoGuardado(negocioA, "De A", AHORA);
 
-        cuandoSeBorraElObjetivoDeAConElNegocioB();
+        cuandoSeBorraElObjetivoEn(negocioB);
 
-        entoncesElObjetivoDeASigueExistiendo();
+        entoncesElObjetivoSigueEn(negocioA);
     }
 
     @Test
     @DisplayName("Al borrar el negocio se borran sus objetivos")
     void alBorrarElNegocioSeBorranSusObjetivos() {
-        dadoUnObjetivoDeA();
+        dadoUnObjetivoGuardado(negocioA, "De A", AHORA);
 
-        cuandoSeBorraElNegocioA();
+        cuandoSeBorraElNegocio(negocioA);
 
-        entoncesNoQuedanObjetivosDelNegocioA();
+        entoncesElNegocioNoTieneObjetivos(negocioA);
     }
 
     @Test
     @DisplayName("La base rechaza una meta que no es positiva")
-    void laBaseRechazaUnaMetaQueNoEsPositiva() {
-        cuandoSeIntentaGuardarUnObjetivoConMetaCero();
+    void shouldRejectNonPositiveMeta() {
+        cuandoSeGuardaConMetaEnCero();
 
-        entoncesLaBaseRechazaPorIntegridad();
+        entoncesLaBaseLoRechaza();
     }
 
     @Test
     @DisplayName("Lista cada negocio con objetivos una sola vez y no incluye a los que no tienen")
     void listaCadaNegocioConObjetivosUnaSolaVezYNoIncluyeALosQueNoTienen() {
-        dadoDosObjetivosEnAUnoEnBYUnNegocioSinObjetivos();
+        dadoTresObjetivosEnDosNegociosYOtroNegocioSinObjetivos();
 
         cuandoSeListanLosNegociosConObjetivos();
 
-        entoncesCadaNegocioConObjetivosApareceUnaSolaVez();
+        entoncesCadaNegocioConObjetivosApareceUnaVez();
     }
 
     @Test
     @DisplayName("Pagina los negocios con objetivos sin repetirlos entre páginas")
     void paginaLosNegociosConObjetivosSinRepetirlosEntrePaginas() {
-        dadoUnObjetivoEnAYUnoEnB();
+        dadoUnObjetivoGuardado(negocioA, "Uno", AHORA);
+        dadoUnObjetivoGuardado(negocioB, "Dos", AHORA);
 
         cuandoSePidenDosPaginasDeUnNegocio();
 
-        entoncesLasPaginasNoRepitenNegocios();
+        entoncesLasPaginasNoSeRepiten();
     }
 
     @Test
     @DisplayName("La base rechaza un texto en blanco")
-    void laBaseRechazaUnTextoEnBlanco() {
-        cuandoSeIntentaGuardarUnObjetivoConTextoEnBlanco();
+    void shouldRejectBlankText() {
+        cuandoSeGuardaConError(negocioA, "   ");
 
-        entoncesLaBaseRechazaPorIntegridad();
+        entoncesLaBaseLoRechaza();
     }
 
-    // --- dado ---
-    private void dadoUnObjetivoGuardado(String texto) {
-        id = unObjetivoGuardado(negocioA, texto, AHORA).getId();
+    @Test
+    @DisplayName("Guarda y relee un objetivo armado con Sami, sin meta en pesos")
+    void guardaYReleeUnObjetivoArmadoConSamiSinMetaEnPesos() {
+        cuandoSeGuardaUnObjetivoSinMeta(TipoObjetivo.HIBRIDO);
+
+        entoncesSeReleeSinMetaYArmadoConSami();
     }
 
-    private void dadoUnObjetivoNuevoUnoViejoYUnoAjeno() {
-        nuevo = unObjetivoGuardado(negocioA, "Nuevo", AHORA.plusDays(1)).getId();
-        viejo = unObjetivoGuardado(negocioA, "Viejo", AHORA).getId();
-        unObjetivoGuardado(negocioB, "Ajeno", AHORA);
+    @Test
+    @DisplayName("Un objetivo guardado sin tipo es monetario y no lo armó Sami")
+    void unObjetivoGuardadoSinTipoEsMonetarioYNoLoArmoSami() {
+        dadoUnObjetivoGuardado(negocioA, "Clásico", AHORA);
+
+        cuandoSeLeeElObjetivoGuardado();
+
+        entoncesEsMonetarioYNoLoArmoSami();
     }
 
-    private void dadoUnObjetivoPropio() {
-        unObjetivoGuardado(negocioA, "Propio", AHORA);
+    @Test
+    @DisplayName("La base rechaza un objetivo monetario sin meta")
+    void laBaseRechazaUnObjetivoMonetarioSinMeta() {
+        cuandoSeGuardaConError(objetivoSinMeta(negocioA, TipoObjetivo.MONETARIO));
+
+        entoncesLaBaseLoRechaza();
     }
 
-    private void dadoUnObjetivoDeA() {
-        deA = unObjetivoGuardado(negocioA, "De A", AHORA).getId();
+    @Test
+    @DisplayName("La base rechaza un objetivo no monetario con meta")
+    void laBaseRechazaUnObjetivoNoMonetarioConMeta() {
+        cuandoSeGuardaConError(objetivoConMetaYSinDatos());
+
+        entoncesLaBaseLoRechaza();
     }
 
-    private void dadoUnObjetivoParaBorrar() {
-        id = unObjetivoGuardado(negocioA, "Para borrar", AHORA).getId();
+    // --- arrange ---
+    private void dadoUnObjetivoGuardado(UUID negocioId, String texto, OffsetDateTime creadoEn) {
+        guardado = objetivos.saveAndFlush(objetivo(null, negocioId, texto, creadoEn));
+        idGuardado = guardado.getId();
     }
 
-    private void dadoDosObjetivosEnAUnoEnBYUnNegocioSinObjetivos() {
-        sinObjetivos = givenNegocio("c@example.com").getId();
-        unObjetivoGuardado(negocioA, "Uno", AHORA);
-        unObjetivoGuardado(negocioA, "Dos", AHORA.plusDays(1));
-        unObjetivoGuardado(negocioB, "Tres", AHORA);
+    private void dadoDosObjetivosDeAYUnoDeB() {
+        idNuevo = objetivos.saveAndFlush(objetivo(null, negocioA, "Nuevo", AHORA.plusDays(1))).getId();
+        idViejo = objetivos.saveAndFlush(objetivo(null, negocioA, "Viejo", AHORA)).getId();
+        objetivos.saveAndFlush(objetivo(null, negocioB, "Ajeno", AHORA));
     }
 
-    private void dadoUnObjetivoEnAYUnoEnB() {
-        unObjetivoGuardado(negocioA, "Uno", AHORA);
-        unObjetivoGuardado(negocioB, "Dos", AHORA);
+    private void dadoTresObjetivosEnDosNegociosYOtroNegocioSinObjetivos() {
+        negocioSinObjetivos = givenNegocio("c@example.com").getId();
+        dadoUnObjetivoGuardado(negocioA, "Uno", AHORA);
+        dadoUnObjetivoGuardado(negocioA, "Dos", AHORA.plusDays(1));
+        dadoUnObjetivoGuardado(negocioB, "Tres", AHORA);
     }
 
-    private ObjetivoEntity unObjetivoGuardado(UUID negocioId, String texto, OffsetDateTime creadoEn) {
-        return objetivos.saveAndFlush(unObjetivo(null, negocioId, texto, creadoEn));
+    // --- act ---
+    private void cuandoSeLeeElObjetivoGuardado() {
+        leido = objetivos.findByIdAndNegocioId(idGuardado, negocioA).orElseThrow();
     }
 
-    private ObjetivoEntity unObjetivo(UUID idDado, UUID negocioId, String texto, OffsetDateTime creadoEn) {
-        return ObjetivoEntity.builder()
-                .id(idDado)
-                .negocioId(negocioId)
-                .texto(texto)
-                .meta(META)
-                .creadoEn(creadoEn)
-                .build();
+    private void cuandoSeGuardaConId(UUID id) {
+        guardado = objetivos.saveAndFlush(objetivo(id, negocioA, "Con id", AHORA));
     }
 
-    // --- cuando ---
-    private void cuandoSeReleeElObjetivo() {
-        releido = objetivos.findByIdAndNegocioId(id, negocioA).orElseThrow();
+    private void cuandoSeListanLosObjetivosDe(UUID negocioId) {
+        listados = objetivos.findAllByNegocioIdOrderByCreadoEnAscIdAsc(negocioId);
     }
 
-    private void cuandoSeGuardaUnObjetivoSinId() {
-        guardado = unObjetivoGuardado(negocioA, "Sin id", AHORA);
+    private void cuandoSeBuscaElObjetivoGuardadoEn(UUID negocioId) {
+        buscado = objetivos.findByIdAndNegocioId(idGuardado, negocioId);
     }
 
-    private void cuandoSeGuardaUnObjetivoConUnIdPropio() {
-        id = UUID.fromString("00000000-0000-4000-8000-0000000000a1");
-        guardado = objetivos.saveAndFlush(unObjetivo(id, negocioA, "Con id", AHORA));
+    private void cuandoSeBorraElObjetivoEn(UUID negocioId) {
+        objetivos.deleteByIdAndNegocioId(idGuardado, negocioId);
     }
 
-    private void cuandoSeListanLosObjetivosDelNegocioA() {
-        listados = objetivos.findAllByNegocioIdOrderByCreadoEnAscIdAsc(negocioA);
-    }
-
-    private void cuandoSeListanLosObjetivosDelNegocioB() {
-        listados = objetivos.findAllByNegocioIdOrderByCreadoEnAscIdAsc(negocioB);
-    }
-
-    private void cuandoSeBuscaElObjetivoDeAConElNegocioB() {
-        encontrado = objetivos.findByIdAndNegocioId(deA, negocioB);
-    }
-
-    private void cuandoSeBorraElObjetivoConSuNegocio() {
-        objetivos.deleteByIdAndNegocioId(id, negocioA);
-    }
-
-    private void cuandoSeBorraElObjetivoDeAConElNegocioB() {
-        objetivos.deleteByIdAndNegocioId(deA, negocioB);
-    }
-
-    private void cuandoSeBorraElNegocioA() {
-        negocios.deleteById(negocioA);
+    private void cuandoSeBorraElNegocio(UUID negocioId) {
+        negocios.deleteById(negocioId);
         negocios.flush();
         objetivos.flush();
     }
 
-    private void cuandoSeIntentaGuardarUnObjetivoConMetaCero() {
-        ObjetivoEntity sinMeta = unObjetivo(null, negocioA, "Sin meta", AHORA);
+    private void cuandoSeGuardaConMetaEnCero() {
+        ObjetivoEntity sinMeta = objetivo(null, negocioA, "Sin meta", AHORA);
         sinMeta.setMeta(BigDecimal.ZERO);
-        rechazo = catchThrowable(() -> objetivos.saveAndFlush(sinMeta));
+        cuandoSeGuardaConError(sinMeta);
     }
 
-    private void cuandoSeIntentaGuardarUnObjetivoConTextoEnBlanco() {
-        rechazo = catchThrowable(() -> unObjetivoGuardado(negocioA, "   ", AHORA));
+    private void cuandoSeGuardaConError(UUID negocioId, String texto) {
+        error = catchThrowable(() -> dadoUnObjetivoGuardado(negocioId, texto, AHORA));
+    }
+
+    private void cuandoSeGuardaConError(ObjetivoEntity objetivo) {
+        error = catchThrowable(() -> objetivos.saveAndFlush(objetivo));
     }
 
     private void cuandoSeListanLosNegociosConObjetivos() {
-        negocioIds = objetivos.findNegocioIdsConObjetivos(PageRequest.of(0, 1000));
+        negociosConObjetivos = objetivos.findNegocioIdsConObjetivos(PageRequest.of(0, 1000));
     }
 
     private void cuandoSePidenDosPaginasDeUnNegocio() {
@@ -278,56 +274,100 @@ class IObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
         segundaPagina = objetivos.findNegocioIdsConObjetivos(PageRequest.of(1, 1));
     }
 
-    // --- entonces ---
-    private void entoncesSeConservanTodosLosDatosDelObjetivo() {
-        assertThat(releido.getNegocioId()).isEqualTo(negocioA);
-        assertThat(releido.getTexto()).isEqualTo("Ganar más");
-        assertThat(releido.getMeta()).isEqualByComparingTo(META);
-        assertThat(releido.getCreadoEn()).isEqualTo(AHORA);
+    private void cuandoSeGuardaUnObjetivoSinMeta(TipoObjetivo tipo) {
+        idGuardado = objetivos.saveAndFlush(objetivoSinMeta(negocioA, tipo)).getId();
+        cuandoSeLeeElObjetivoGuardado();
     }
 
-    private void entoncesElObjetivoGuardadoTieneId() {
+    // --- assert ---
+    private void entoncesSeRelenTodosLosDatos() {
+        assertThat(leido.getNegocioId()).isEqualTo(negocioA);
+        assertThat(leido.getTexto()).isEqualTo("Ganar más");
+        assertThat(leido.getMeta()).isEqualByComparingTo(META);
+        assertThat(leido.getCreadoEn()).isEqualTo(AHORA);
+    }
+
+    private void entoncesElObjetivoTieneId() {
         assertThat(guardado.getId()).isNotNull();
     }
 
-    private void entoncesElObjetivoGuardadoConservaSuId() {
-        assertThat(guardado.getId()).isEqualTo(id);
+    private void entoncesElIdEs(UUID esperado) {
+        assertThat(guardado.getId()).isEqualTo(esperado);
     }
 
-    private void entoncesSeListanElViejoYElNuevoEnOrden() {
-        assertThat(listados).extracting(ObjetivoEntity::getId).containsExactly(viejo, nuevo);
+    private void entoncesSeListanDelMasViejoAlMasNuevo() {
+        assertThat(listados).extracting(ObjetivoEntity::getId).containsExactly(idViejo, idNuevo);
     }
 
-    private void entoncesNoSeListaNingunObjetivo() {
+    private void entoncesNoSeListaNada() {
         assertThat(listados).isEmpty();
     }
 
-    private void entoncesNoSeEncuentraNingunObjetivo() {
-        assertThat(encontrado).isEmpty();
+    private void entoncesNoSeEncuentra() {
+        assertThat(buscado).isEmpty();
     }
 
-    private void entoncesElObjetivoYaNoExiste() {
-        assertThat(objetivos.findByIdAndNegocioId(id, negocioA)).isEmpty();
+    private void entoncesElObjetivoYaNoEstaEn(UUID negocioId) {
+        assertThat(objetivos.findByIdAndNegocioId(idGuardado, negocioId)).isEmpty();
     }
 
-    private void entoncesElObjetivoDeASigueExistiendo() {
-        assertThat(objetivos.findByIdAndNegocioId(deA, negocioA)).isPresent();
+    private void entoncesElObjetivoSigueEn(UUID negocioId) {
+        assertThat(objetivos.findByIdAndNegocioId(idGuardado, negocioId)).isPresent();
     }
 
-    private void entoncesNoQuedanObjetivosDelNegocioA() {
-        assertThat(objetivos.findAllByNegocioIdOrderByCreadoEnAscIdAsc(negocioA)).isEmpty();
+    private void entoncesElNegocioNoTieneObjetivos(UUID negocioId) {
+        assertThat(objetivos.findAllByNegocioIdOrderByCreadoEnAscIdAsc(negocioId)).isEmpty();
     }
 
-    private void entoncesLaBaseRechazaPorIntegridad() {
-        assertThat(rechazo).isInstanceOf(DataIntegrityViolationException.class);
+    private void entoncesLaBaseLoRechaza() {
+        assertThat(error).isInstanceOf(DataIntegrityViolationException.class);
     }
 
-    private void entoncesCadaNegocioConObjetivosApareceUnaSolaVez() {
-        assertThat(negocioIds).doesNotHaveDuplicates().contains(negocioA, negocioB).doesNotContain(sinObjetivos);
+    private void entoncesCadaNegocioConObjetivosApareceUnaVez() {
+        assertThat(negociosConObjetivos).doesNotHaveDuplicates().contains(negocioA, negocioB)
+                .doesNotContain(negocioSinObjetivos);
     }
 
-    private void entoncesLasPaginasNoRepitenNegocios() {
+    private void entoncesLasPaginasNoSeRepiten() {
         assertThat(primeraPagina).hasSize(1);
         assertThat(segundaPagina).hasSize(1).doesNotContainAnyElementsOf(primeraPagina);
+    }
+
+    private void entoncesSeReleeSinMetaYArmadoConSami() {
+        assertThat(leido.getTipo()).isEqualTo(TipoObjetivo.HIBRIDO);
+        assertThat(leido.getMeta()).isNull();
+        assertThat(leido.isArmadoConSami()).isTrue();
+    }
+
+    private void entoncesEsMonetarioYNoLoArmoSami() {
+        assertThat(leido.getTipo()).isEqualTo(TipoObjetivo.MONETARIO);
+        assertThat(leido.isArmadoConSami()).isFalse();
+    }
+
+    // --- helpers ---
+    private ObjetivoEntity objetivo(UUID id, UUID negocioId, String texto, OffsetDateTime creadoEn) {
+        return ObjetivoEntity.builder()
+                .id(id)
+                .negocioId(negocioId)
+                .texto(texto)
+                .meta(META)
+                .creadoEn(creadoEn)
+                .build();
+    }
+
+    private ObjetivoEntity objetivoSinMeta(UUID negocioId, TipoObjetivo tipo) {
+        return ObjetivoEntity.builder()
+                .negocioId(negocioId)
+                .texto("Que me conozcan")
+                .tipo(tipo)
+                .armadoConSami(true)
+                .creadoEn(AHORA)
+                .build();
+    }
+
+    private ObjetivoEntity objetivoConMetaYSinDatos() {
+        ObjetivoEntity conMeta = objetivoSinMeta(negocioA, TipoObjetivo.SIN_DATOS);
+        conMeta.setMeta(META);
+        return conMeta;
     }
 }

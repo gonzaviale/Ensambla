@@ -131,6 +131,7 @@ describe('objetivos que se autogestionan', () => {
 
 const miniDePrueba = {
   id: 'mini-1',
+  modo: 'MEDIDO' as const,
   posicion: 1,
   tipo: 'MOVER_PARADO' as const,
   sentido: 'SUBE' as const,
@@ -154,6 +155,7 @@ describe('cuantoCubren', () => {
     estado: MiniObjetivo['estado'] = 'EN_CURSO',
   ): MiniObjetivo => ({
     id: `m-${aporteEstimado}-${estado}`,
+    modo: 'MEDIDO',
     posicion: 1,
     tipo: 'VENTAS_SEMANALES',
     sentido: 'SUBE',

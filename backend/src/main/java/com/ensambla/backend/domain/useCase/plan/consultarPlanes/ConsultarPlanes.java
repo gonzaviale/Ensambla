@@ -67,25 +67,28 @@ public class ConsultarPlanes {
                 && !renovacionPremiumRepository.existeAbierta(negocioId);
         long proyectos = usoPlanRepository.contarProyectos(negocioId);
         long registros = usoPlanRepository.contarRegistros(negocioId);
-        if (pruebaActiva) {
-            return consultaEnPrueba(gratuito, premium, actual, suscripcion, prueba, proyectos, registros);
-        }
         LocalDate primerDia = ZonaNegocio.primerDiaDelMes(ahora);
         OffsetDateTime inicioMes = ZonaNegocio.inicioDelDia(primerDia);
         OffsetDateTime finMes = ZonaNegocio.inicioDelDia(primerDia.plusMonths(1));
+        long objetivos = usoPlanRepository.objetivosIaEnPeriodo(negocioId, inicioMes, finMes);
+        if (pruebaActiva) {
+            return consultaEnPrueba(gratuito, premium, actual, suscripcion, prueba, proyectos, registros, objetivos);
+        }
         long paginas = usoPlanRepository.paginasEnPeriodo(negocioId, primerDia, primerDia.plusMonths(1));
         return new ConsultaPlanes(List.of(gratuito, premium), actual, suscripcion, prueba, false, puedeIniciar,
-                proyectos, registros, paginas, actual.getLimitePaginasIaMensuales(), "MENSUAL", inicioMes, finMes);
+                proyectos, registros, paginas, actual.getLimitePaginasIaMensuales(), "MENSUAL", inicioMes, finMes,
+                objetivos, actual.getLimiteObjetivosIaMensuales());
     }
 
     /** Durante la prueba el cupo de IA es el total de la prueba y su período, el de la prueba. */
     private ConsultaPlanes consultaEnPrueba(Plan gratuito, Plan premium, Plan actual, Suscripcion suscripcion,
-                                            PruebaPremium prueba, long proyectos, long registros) {
+                                            PruebaPremium prueba, long proyectos, long registros,
+                                            long objetivos) {
         if (prueba == null) {
             throw new ResourceNotFoundException("Prueba no encontrada");
         }
         return new ConsultaPlanes(List.of(gratuito, premium), actual, suscripcion, prueba, true, false,
                 proyectos, registros, prueba.paginasIa(), PruebaPremium.LIMITE_PAGINAS_IA,
-                "PRUEBA", prueba.inicioEn(), prueba.finEn());
+                "PRUEBA", prueba.inicioEn(), prueba.finEn(), objetivos, actual.getLimiteObjetivosIaMensuales());
     }
 }

@@ -5,10 +5,11 @@ import { GraficoSemanal } from '@/pages/Objetivos/autogestion/GraficoSemanal';
 import { HistorialReajustes } from '@/pages/Objetivos/autogestion/HistorialReajustes';
 import { MiniObjetivoCard } from '@/pages/Objetivos/autogestion/MiniObjetivoCard';
 import { RecorridoDeLaSemana } from '@/pages/Objetivos/autogestion/RecorridoDeLaSemana';
-import type { DecisionObjetivo, MiniObjetivo, SemanasObjetivo } from '@/types/objetivos';
+import type { DecisionObjetivo, MiniMedido, SemanasObjetivo } from '@/types/objetivos';
 
-const mini: MiniObjetivo = {
+const mini: MiniMedido = {
   id: 'mini-1',
+  modo: 'MEDIDO',
   posicion: 1,
   tipo: 'VENTAS_SEMANALES',
   sentido: 'SUBE',
