@@ -159,9 +159,11 @@ public class ProcesamientoRepositoryImpl implements ProcesamientoRepository {
     public boolean reservar(LoteTrabajo lote, int paginas, int limite, OffsetDateTime ahora) {
         MapSqlParameterSource parametros = parametros(lote).addValue("paginas", paginas)
                 .addValue("limite", limite).addValue("fecha", ZonaNegocio.dia(ahora)).addValue("ahora", ahora);
-        return loteSinReservaPrevia(parametros)
-                && reservarEnElConsumoDiario(parametros)
-                && marcarLaReservaEnElLote(parametros);
+        boolean sePudoReservar = loteSinReservaPrevia(parametros) && reservarEnElConsumoDiario(parametros);
+        if (sePudoReservar) {
+            marcarLaReservaEnElLote(parametros);
+        }
+        return sePudoReservar;
     }
 
     private boolean loteSinReservaPrevia(MapSqlParameterSource parametros) {
@@ -183,12 +185,11 @@ public class ProcesamientoRepositoryImpl implements ProcesamientoRepository {
                 """, parametros) != 0;
     }
 
-    private boolean marcarLaReservaEnElLote(MapSqlParameterSource parametros) {
+    private void marcarLaReservaEnElLote(MapSqlParameterSource parametros) {
         jdbcTemplate.update("""
                 UPDATE lote_subida SET paginas_reservadas = :paginas, dia_reserva = :fecha
                 WHERE negocio_id = :negocio AND id = :lote AND reclamo_id = :token
                 """, parametros);
-        return true;
     }
 
     @Override
