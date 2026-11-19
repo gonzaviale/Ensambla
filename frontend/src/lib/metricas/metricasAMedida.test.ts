@@ -65,9 +65,9 @@ describe('metricasAMedida', () => {
   });
 
   it('cuenta de dónde sale el número', () => {
-    expect(textoDeDondeSale(resultado())).toBe('Sale de la tabla de ventas, del 7/11 al 13/11. Se usaron 3 ventas.');
+    expect(textoDeDondeSale(resultado())).toBe('Sale de tus ventas, del 7/11 al 13/11. Se usaron 3 ventas.');
     expect(textoDeDondeSale(resultado({ desde: '2026-11-13', filasUsadas: 1 }))).toBe(
-      'Sale de la tabla de ventas de hoy (13/11). Se usó 1 venta.',
+      'Sale de tus ventas de hoy (13/11). Se usó 1 venta.',
     );
     expect(textoDeDondeSale(resultado({ desde: null, hasta: null, filasSinDato: 1 }))).toContain(
       '1 venta quedó afuera porque le falta un dato.',

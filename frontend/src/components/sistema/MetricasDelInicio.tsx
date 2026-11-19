@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Icon } from '@/components/sistema/Icon';
 import { GraficoDeBarras } from '@/components/sistema/metricas/GraficoDeBarras';
-import { MetricasAMedida } from '@/components/sistema/metricas/MetricasAMedida';
 import { SelectorDePeriodo } from '@/components/sistema/metricas/Selectores';
 import { useNumeroAnimado } from '@/components/sistema/metricas/useNumeroAnimado';
 import { useAbrirVentas } from '@/hooks/panel/useAbrirVentas';
@@ -20,8 +19,7 @@ import {
 import type { Sistema } from '@/lib/sistema/tipos';
 import type { ResumenInicio } from '@/types/resumenInicio';
 
-// Las métricas del negocio, dentro de «Tu negocio»: lo que viene vendiendo. Nunca muestra ceros de relleno: si no
-// hay datos, lo dice.
+// La solapa fija de «Tu negocio»: lo que viene vendiendo. Nunca muestra ceros de relleno: si no hay datos, lo dice.
 export function MetricasDelInicio({ sistema }: { sistema: Sistema }) {
   const { resumen, fallo, reintentar } = useResumenInicio(sistema.id);
 
@@ -51,7 +49,6 @@ export function MetricasDelInicio({ sistema }: { sistema: Sistema }) {
           <TarjetaDeVentas resumen={resumen} />
         </div>
       )}
-      <MetricasAMedida sistemaId={sistema.id} cuaderno={sistema.name} />
     </section>
   );
 }

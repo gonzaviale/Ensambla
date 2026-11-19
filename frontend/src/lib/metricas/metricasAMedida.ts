@@ -24,9 +24,9 @@ const NOMBRE_DE_LAS_FILAS: Record<FuenteDeMetrica, { uno: string; varios: string
 };
 
 const TABLA_DE: Record<FuenteDeMetrica, string> = {
-  VENTAS: 'la tabla de ventas',
-  GASTOS: 'la tabla de gastos',
-  INVENTARIO: 'la tabla de inventario',
+  VENTAS: 'tus ventas',
+  GASTOS: 'tus gastos',
+  INVENTARIO: 'tu stock',
 };
 
 export const ETIQUETA_DE_AGRUPACION: Record<AgrupacionDeMetrica, string> = {

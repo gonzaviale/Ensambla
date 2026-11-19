@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { LoQueEntendi } from '@/components/sistema/metricas/LoQueEntendi';
-import { ResultadoDeLaMetrica } from '@/components/sistema/metricas/MetricasAMedida';
+import { ResultadoDeLaMetrica } from '@/components/sistema/metricas/ResultadoDeLaMetrica';
 import { leerErrorServidor } from '@/hooks/errores';
 import { useEntenderPedido, useGuardarMetrica, useVerComoQueda } from '@/hooks/metricas/mutations';
 import { useFuentesDelCuaderno, useMetricasSugeridas } from '@/hooks/metricas/queries';
@@ -39,16 +39,18 @@ const mensajeDe = (error: unknown) => {
 export function AgregarMetrica({
   sistemaId,
   onCerrar,
+  onAgregada,
 }: {
   sistemaId: string;
   onCerrar: () => void;
+  onAgregada: (metricaId: string) => void;
 }) {
   const [camino, setCamino] = useState<Camino>('sugeridas');
   const guardar = useGuardarMetrica(sistemaId);
   const { Componente } = CAMINOS[camino];
 
   const guardarMetrica = (definicion: DefinicionDeMetrica, autoria: AutoriaDeMetrica) =>
-    guardar.mutate({ ...definicion, autoria }, { onSuccess: onCerrar });
+    guardar.mutate({ ...definicion, autoria }, { onSuccess: (creada) => onAgregada(creada.id) });
 
   return (
     <div className="agregar-metrica">
