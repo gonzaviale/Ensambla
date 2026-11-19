@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class IResumenSemanalJpaRepositoryTest extends PostgresDatosTestSupport {
 
@@ -32,66 +32,74 @@ class IResumenSemanalJpaRepositoryTest extends PostgresDatosTestSupport {
     private UUID otroObjetivo;
 
     @BeforeEach
-    void setUp() {
-        objetivo = givenObjetivo(givenNegocio("a@example.com").getId());
-        otroObjetivo = givenObjetivo(givenNegocio("b@example.com").getId());
+    void dadoDosObjetivosDeDosNegocios() {
+        objetivo = unObjetivo(givenNegocio("a@example.com").getId());
+        otroObjetivo = unObjetivo(givenNegocio("b@example.com").getId());
     }
+
+    private UUID mini;
+    private ResumenSemanalEntity releido;
+    private List<ResumenSemanalEntity> semanas;
+    private Throwable rechazo;
 
     @Test
     @DisplayName("Guarda el resumen y lo relee con los mini-objetivos en JSON")
-    void saveShouldRoundTripTheResumenWithTheMinisAsJson() {
-        UUID mini = UUID.randomUUID();
-        resumenes.saveAndFlush(resumen(objetivo, SEMANA, List.of(Map.of("miniObjetivoId", mini.toString(),
-                "valor", "12600.50"))));
+    void guardaElResumenYLoReleeConLosMiniObjetivosEnJson() {
+        dadoUnResumenConUnMiniObjetivo();
 
-        ResumenSemanalEntity result = resumenes.findAllByObjetivoIdOrderBySemanaInicioDesc(objetivo).getFirst();
+        cuandoSeReleeElUltimoResumenDelObjetivo();
 
-        assertThat(result.getSemanaInicio()).isEqualTo(SEMANA);
-        assertThat(result.getResultado()).isEqualByComparingTo("120000.00");
-        assertThat(result.getAvance()).isEqualByComparingTo("0.3");
-        assertThat(result.getDecisionesAplicadas()).isEqualTo(1);
-        assertThat(result.getDecisionesIgnoradas()).isEqualTo(4);
-        assertThat(result.getMinis()).containsExactly(Map.of("miniObjetivoId", mini.toString(), "valor", "12600.50"));
-        assertThat(result.getQueFunciono()).isEqualTo("Bien");
-        assertThat(result.getCerradoEn()).isEqualTo(AHORA);
+        entoncesSeConservanTodosLosDatosDelResumen();
     }
 
     @Test
     @DisplayName("Lista las semanas del objetivo de la más nueva a la más vieja y no las de otro objetivo")
-    void findAllByObjetivoIdShouldOrderFromNewestAndExcludeOtherObjetivos() {
-        resumenes.saveAndFlush(resumen(objetivo, SEMANA, List.of()));
-        resumenes.saveAndFlush(resumen(objetivo, SEMANA.plusWeeks(1), List.of()));
-        resumenes.saveAndFlush(resumen(otroObjetivo, SEMANA, List.of()));
+    void listaLasSemanasDelObjetivoDeLaMasNuevaALaMasViejaYNoLasDeOtroObjetivo() {
+        dadoDosSemanasDelObjetivoYUnaDeOtroObjetivo();
 
-        List<ResumenSemanalEntity> result = resumenes.findAllByObjetivoIdOrderBySemanaInicioDesc(objetivo);
+        cuandoSeListanLasSemanasDelObjetivo();
 
-        assertThat(result).extracting(ResumenSemanalEntity::getSemanaInicio)
-                .containsExactly(SEMANA.plusWeeks(1), SEMANA);
+        entoncesVienenDeLaMasNuevaALaMasViejaSinLasDeOtroObjetivo();
     }
 
     @Test
     @DisplayName("No deja cerrar dos veces la misma semana del mismo objetivo")
-    void saveShouldRejectASecondResumenForTheSameWeek() {
-        resumenes.saveAndFlush(resumen(objetivo, SEMANA, List.of()));
+    void noDejaCerrarDosVecesLaMismaSemanaDelMismoObjetivo() {
+        dadoUnaSemanaCerrada();
 
-        assertThatThrownBy(() -> resumenes.saveAndFlush(resumen(objetivo, SEMANA, List.of())))
-                .isInstanceOf(DataIntegrityViolationException.class)
-                .hasMessageContaining("ux_resumen_semana");
+        cuandoSeIntentaCerrarLaMismaSemanaOtraVez();
+
+        entoncesLaBaseRechazaLaSemanaRepetida();
     }
 
     @Test
     @DisplayName("Al borrar el objetivo se borran sus resúmenes")
-    void deleteObjetivoShouldCascadeToItsResumenes() {
-        resumenes.saveAndFlush(resumen(objetivo, SEMANA, List.of()));
+    void alBorrarElObjetivoSeBorranSusResumenes() {
+        dadoUnaSemanaCerrada();
 
-        objetivos.deleteById(objetivo);
-        objetivos.flush();
+        cuandoSeBorraElObjetivo();
 
-        assertThat(resumenes.findAllByObjetivoIdOrderBySemanaInicioDesc(objetivo)).isEmpty();
+        entoncesNoQuedanResumenesDelObjetivo();
     }
 
-    // --- helpers ---
-    private UUID givenObjetivo(UUID negocioId) {
+    // --- dado ---
+    private void dadoUnResumenConUnMiniObjetivo() {
+        mini = UUID.randomUUID();
+        resumenes.saveAndFlush(resumen(objetivo, SEMANA, List.of(Map.of("miniObjetivoId", mini.toString(),
+                "valor", "12600.50"))));
+    }
+
+    private void dadoDosSemanasDelObjetivoYUnaDeOtroObjetivo() {
+        resumenes.saveAndFlush(resumen(objetivo, SEMANA, List.of()));
+        resumenes.saveAndFlush(resumen(objetivo, SEMANA.plusWeeks(1), List.of()));
+        resumenes.saveAndFlush(resumen(otroObjetivo, SEMANA, List.of()));
+    }
+
+    private void dadoUnaSemanaCerrada() {
+        resumenes.saveAndFlush(resumen(objetivo, SEMANA, List.of()));
+    }
+
+    private UUID unObjetivo(UUID negocioId) {
         return objetivos.saveAndFlush(ObjetivoEntity.builder()
                 .negocioId(negocioId)
                 .texto("Ganar más")
@@ -116,5 +124,49 @@ class IResumenSemanalJpaRepositoryTest extends PostgresDatosTestSupport {
                 .textoConIa(false)
                 .cerradoEn(AHORA)
                 .build();
+    }
+
+    // --- cuando ---
+    private void cuandoSeReleeElUltimoResumenDelObjetivo() {
+        releido = resumenes.findAllByObjetivoIdOrderBySemanaInicioDesc(objetivo).getFirst();
+    }
+
+    private void cuandoSeListanLasSemanasDelObjetivo() {
+        semanas = resumenes.findAllByObjetivoIdOrderBySemanaInicioDesc(objetivo);
+    }
+
+    private void cuandoSeIntentaCerrarLaMismaSemanaOtraVez() {
+        rechazo = catchThrowable(() -> resumenes.saveAndFlush(resumen(objetivo, SEMANA, List.of())));
+    }
+
+    private void cuandoSeBorraElObjetivo() {
+        objetivos.deleteById(objetivo);
+        objetivos.flush();
+    }
+
+    // --- entonces ---
+    private void entoncesSeConservanTodosLosDatosDelResumen() {
+        assertThat(releido.getSemanaInicio()).isEqualTo(SEMANA);
+        assertThat(releido.getResultado()).isEqualByComparingTo("120000.00");
+        assertThat(releido.getAvance()).isEqualByComparingTo("0.3");
+        assertThat(releido.getDecisionesAplicadas()).isEqualTo(1);
+        assertThat(releido.getDecisionesIgnoradas()).isEqualTo(4);
+        assertThat(releido.getMinis()).containsExactly(Map.of("miniObjetivoId", mini.toString(), "valor", "12600.50"));
+        assertThat(releido.getQueFunciono()).isEqualTo("Bien");
+        assertThat(releido.getCerradoEn()).isEqualTo(AHORA);
+    }
+
+    private void entoncesVienenDeLaMasNuevaALaMasViejaSinLasDeOtroObjetivo() {
+        assertThat(semanas).extracting(ResumenSemanalEntity::getSemanaInicio)
+                .containsExactly(SEMANA.plusWeeks(1), SEMANA);
+    }
+
+    private void entoncesLaBaseRechazaLaSemanaRepetida() {
+        assertThat(rechazo).isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("ux_resumen_semana");
+    }
+
+    private void entoncesNoQuedanResumenesDelObjetivo() {
+        assertThat(resumenes.findAllByObjetivoIdOrderBySemanaInicioDesc(objetivo)).isEmpty();
     }
 }
