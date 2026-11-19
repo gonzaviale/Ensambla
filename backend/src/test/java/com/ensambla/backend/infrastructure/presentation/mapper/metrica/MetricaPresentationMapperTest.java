@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.model.metrica.DeDondeSale;
 import com.ensambla.backend.domain.model.metrica.DefinicionMetrica;
 import com.ensambla.backend.domain.model.metrica.FormatoMetrica;
 import com.ensambla.backend.domain.model.metrica.FuenteMetrica;
+import com.ensambla.backend.domain.model.metrica.GraficoMetrica;
 import com.ensambla.backend.domain.model.metrica.ParteDeLaReceta;
 import com.ensambla.backend.domain.model.metrica.PeriodoMetrica;
 import com.ensambla.backend.domain.model.metrica.ResultadoMetrica;
@@ -15,6 +16,7 @@ import com.ensambla.backend.domain.useCase.metrica.DefinicionItem;
 import com.ensambla.backend.domain.useCase.metrica.MetricaItem;
 import com.ensambla.backend.domain.useCase.metrica.ResultadoItem;
 import com.ensambla.backend.domain.useCase.metrica.SugeridaItem;
+import com.ensambla.backend.domain.useCase.metrica.cambiarGrafico.CambiarGraficoRequest;
 import com.ensambla.backend.domain.useCase.metrica.crearMetrica.CrearMetricaRequest;
 import com.ensambla.backend.domain.useCase.metrica.eliminarMetrica.EliminarMetricaRequest;
 import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.InterpretarPedidoRequest;
@@ -25,6 +27,7 @@ import com.ensambla.backend.domain.useCase.metrica.listarSugeridas.ListarSugerid
 import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetricaRequest;
 import com.ensambla.backend.domain.useCase.metrica.previsualizarMetrica.PrevisualizarMetricaRequest;
 import com.ensambla.backend.domain.useCase.metrica.renombrarMetrica.RenombrarMetricaRequest;
+import com.ensambla.backend.infrastructure.presentation.dto.metrica.CambiarGraficoWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.CrearMetricaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.DefinicionResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.InterpretarPedidoWebRequest;
@@ -92,6 +95,13 @@ class MetricaPresentationMapperTest {
     }
 
     @Test
+    @DisplayName("Arma el pedido de cambiar el gráfico con la métrica de la ruta y el gráfico elegido")
+    void armaElPedidoDeCambiarElGrafico() {
+        entoncesPideCambiarElGrafico(new CambiarGraficoRequest(USUARIO_ID, PROYECTO_ID, METRICA_ID,
+                GraficoMetrica.DONA));
+    }
+
+    @Test
     @DisplayName("Arma el pedido de listar las fuentes con el usuario de la sesión y el cuaderno")
     void armaElPedidoDeListarLasFuentes() {
         entoncesPideListarLasFuentes(new ListarFuentesDelCuadernoRequest(USUARIO_ID, PROYECTO_ID));
@@ -137,7 +147,8 @@ class MetricaPresentationMapperTest {
         entoncesRespondeLasMetricas(List.of(MetricaItem.de(metrica(LAS_VENTAS_FIADAS_POR_PRODUCTO, 2),
                         SETECIENTOS_CINCUENTA_DEL_PAN)),
                 new MetricaResponse(METRICA_ID, LA_RECETA_RESPONDIDA, 2, AutoriaMetrica.SUGERIDA,
-                        EL_RESULTADO_RESPONDIDO));
+                        EL_RESULTADO_RESPONDIDO, GraficoMetrica.BARRAS,
+                        List.of(GraficoMetrica.NUMERO, GraficoMetrica.BARRAS, GraficoMetrica.DONA)));
     }
 
     @Test
@@ -231,6 +242,11 @@ class MetricaPresentationMapperTest {
     private void entoncesRespondeElInterpretado(PedidoInterpretadoItem interpretado,
                                                 PedidoInterpretadoResponse esperada) {
         assertThat(mapper.toInterpretadoResponse(interpretado)).isEqualTo(esperada);
+    }
+
+    private void entoncesPideCambiarElGrafico(CambiarGraficoRequest esperado) {
+        assertThat(mapper.toCambiarGraficoRequest(USUARIO_ID, PROYECTO_ID, METRICA_ID,
+                new CambiarGraficoWebRequest(GraficoMetrica.DONA))).isEqualTo(esperado);
     }
 
     private void entoncesPideListarLasFuentes(ListarFuentesDelCuadernoRequest esperado) {

@@ -8,6 +8,7 @@ import com.ensambla.backend.domain.repository.metrica.MetricaRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
+import com.ensambla.backend.domain.useCase.metrica.cambiarGrafico.CambiarGrafico;
 import com.ensambla.backend.domain.useCase.metrica.crearMetrica.CrearMetrica;
 import com.ensambla.backend.domain.useCase.metrica.eliminarMetrica.EliminarMetrica;
 import com.ensambla.backend.domain.useCase.metrica.listarMetricas.ListarMetricas;
@@ -117,6 +118,14 @@ public class MetricaUseCaseConfig {
             MetricaRepository metricaRepository,
             TransaccionPort transaccionPort) {
         return new RenombrarMetrica(negocioRepository, metricaRepository, transaccionPort);
+    }
+
+    @Bean
+    public CambiarGrafico cambiarGrafico(
+            NegocioRepository negocioRepository,
+            MetricaRepository metricaRepository,
+            TransaccionPort transaccionPort) {
+        return new CambiarGrafico(negocioRepository, metricaRepository, transaccionPort);
     }
 
     @Bean

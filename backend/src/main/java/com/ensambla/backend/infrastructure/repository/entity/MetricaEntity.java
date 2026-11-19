@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.model.metrica.AgrupacionMetrica;
 import com.ensambla.backend.domain.model.metrica.AutoriaMetrica;
 import com.ensambla.backend.domain.model.metrica.CalculoMetrica;
 import com.ensambla.backend.domain.model.metrica.FuenteMetrica;
+import com.ensambla.backend.domain.model.metrica.GraficoMetrica;
 import com.ensambla.backend.domain.model.metrica.PeriodoMetrica;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -70,6 +71,11 @@ public class MetricaEntity {
 
     @Column(name = "creado_en", nullable = false, updatable = false)
     private OffsetDateTime creadoEn;
+
+    /** Vacío mientras la persona no eligió: se usa el de siempre para su reparto. */
+    @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "text")
+    private GraficoMetrica grafico;
 
     /** El id se genera al insertar. */
     @PrePersist

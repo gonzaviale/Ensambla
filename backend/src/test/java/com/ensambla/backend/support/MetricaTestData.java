@@ -12,6 +12,7 @@ import com.ensambla.backend.domain.model.metrica.CalculoMetrica;
 import com.ensambla.backend.domain.model.metrica.DefinicionMetrica;
 import com.ensambla.backend.domain.model.metrica.AutoriaMetrica;
 import com.ensambla.backend.domain.model.metrica.FuenteMetrica;
+import com.ensambla.backend.domain.model.metrica.GraficoMetrica;
 import com.ensambla.backend.domain.model.metrica.Metrica;
 import com.ensambla.backend.domain.model.metrica.MetricaId;
 import com.ensambla.backend.domain.model.metrica.PeriodoMetrica;
@@ -138,6 +139,7 @@ public final class MetricaTestData {
                 .orden(3)
                 .autoria(AutoriaMetrica.PROPIA)
                 .creadoEn(AHORA)
+                .grafico(GraficoMetrica.DONA)
                 .build();
     }
 

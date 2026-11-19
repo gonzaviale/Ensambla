@@ -3,6 +3,7 @@ package com.ensambla.backend.infrastructure.presentation.controller;
 import com.ensambla.backend.domain.model.metrica.MetricaId;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.useCase.metrica.cambiarGrafico.CambiarGrafico;
 import com.ensambla.backend.domain.useCase.metrica.crearMetrica.CrearMetrica;
 import com.ensambla.backend.domain.useCase.metrica.eliminarMetrica.EliminarMetrica;
 import com.ensambla.backend.domain.useCase.metrica.listarMetricas.ListarMetricas;
@@ -13,6 +14,7 @@ import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.Interpretar
 import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetrica;
 import com.ensambla.backend.domain.useCase.metrica.previsualizarMetrica.PrevisualizarMetrica;
 import com.ensambla.backend.domain.useCase.metrica.renombrarMetrica.RenombrarMetrica;
+import com.ensambla.backend.infrastructure.presentation.dto.metrica.CambiarGraficoWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.CrearMetricaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.InterpretarPedidoWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MetricaResponse;
@@ -64,6 +66,8 @@ public class MetricaController {
     private final InterpretarPedido interpretarPedido;
 
     private final ListarFuentesDelCuaderno listarFuentesDelCuaderno;
+
+    private final CambiarGrafico cambiarGrafico;
 
     private final MetricaPresentationMapper metricaPresentationMapper;
 
@@ -129,6 +133,16 @@ public class MetricaController {
             Authentication authentication, @PathVariable ProyectoId proyectoId, @PathVariable MetricaId metricaId,
             @Valid @RequestBody RenombrarMetricaWebRequest request) {
         renombrarMetrica.execute(metricaPresentationMapper.toRenombrarRequest(
+                UsuarioId.de(authentication.getName()), proyectoId, metricaId, request));
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{metricaId}/grafico")
+    @Operation(summary = "Elegir cómo se dibuja una métrica del panel: número, barras, dona o línea")
+    public ResponseEntity<Void> cambiarGrafico(
+            Authentication authentication, @PathVariable ProyectoId proyectoId, @PathVariable MetricaId metricaId,
+            @Valid @RequestBody CambiarGraficoWebRequest request) {
+        cambiarGrafico.execute(metricaPresentationMapper.toCambiarGraficoRequest(
                 UsuarioId.de(authentication.getName()), proyectoId, metricaId, request));
         return ResponseEntity.noContent().build();
     }

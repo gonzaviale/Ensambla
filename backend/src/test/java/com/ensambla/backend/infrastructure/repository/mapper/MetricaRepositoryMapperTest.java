@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.model.metrica.AutoriaMetrica;
 import com.ensambla.backend.domain.model.metrica.CalculoMetrica;
 import com.ensambla.backend.domain.model.metrica.DefinicionMetrica;
 import com.ensambla.backend.domain.model.metrica.FuenteMetrica;
+import com.ensambla.backend.domain.model.metrica.GraficoMetrica;
 import com.ensambla.backend.domain.model.metrica.Metrica;
 import com.ensambla.backend.domain.model.metrica.PeriodoMetrica;
 import com.ensambla.backend.infrastructure.repository.entity.MetricaEntity;
@@ -85,6 +86,7 @@ class MetricaRepositoryMapperTest {
         assertThat(metrica.getOrden()).isEqualTo(3);
         assertThat(metrica.getAutoria()).isEqualTo(AutoriaMetrica.PROPIA);
         assertThat(metrica.getCreadoEn()).isEqualTo(AHORA);
+        assertThat(metrica.getGrafico()).isEqualTo(GraficoMetrica.DONA);
     }
 
     private void entoncesLaMetricaNoTieneIds() {
@@ -112,5 +114,6 @@ class MetricaRepositoryMapperTest {
         assertThat(fila.getId()).isNull();
         assertThat(fila.getAgrupar()).isEqualTo(AgrupacionMetrica.NINGUNA);
         assertThat(fila.getPeriodo()).isEqualTo(PeriodoMetrica.MES);
+        assertThat(fila.getGrafico()).isNull();
     }
 }

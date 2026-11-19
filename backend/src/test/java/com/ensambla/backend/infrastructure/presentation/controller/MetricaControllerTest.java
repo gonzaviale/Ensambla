@@ -16,6 +16,9 @@ import com.ensambla.backend.domain.useCase.metrica.DefinicionItem;
 import com.ensambla.backend.domain.useCase.metrica.MetricaItem;
 import com.ensambla.backend.domain.useCase.metrica.ResultadoItem;
 import com.ensambla.backend.domain.useCase.metrica.SugeridaItem;
+import com.ensambla.backend.domain.model.metrica.GraficoMetrica;
+import com.ensambla.backend.domain.useCase.metrica.cambiarGrafico.CambiarGrafico;
+import com.ensambla.backend.domain.useCase.metrica.cambiarGrafico.CambiarGraficoRequest;
 import com.ensambla.backend.domain.useCase.metrica.crearMetrica.CrearMetrica;
 import com.ensambla.backend.domain.useCase.metrica.crearMetrica.CrearMetricaRequest;
 import com.ensambla.backend.domain.useCase.metrica.eliminarMetrica.EliminarMetrica;
@@ -117,12 +120,13 @@ class MetricaControllerTest {
     private final MoverMetrica moverMetrica = mock(MoverMetrica.class);
     private final InterpretarPedido interpretarPedido = mock(InterpretarPedido.class);
     private final ListarFuentesDelCuaderno listarFuentesDelCuaderno = mock(ListarFuentesDelCuaderno.class);
+    private final CambiarGrafico cambiarGrafico = mock(CambiarGrafico.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
     private final MockMvc mockMvc = MockMvcDePrueba.standalone(new MetricaController(
                     listarMetricas, listarSugeridas, previsualizarMetrica, crearMetrica, eliminarMetrica,
                     renombrarMetrica, moverMetrica, interpretarPedido, listarFuentesDelCuaderno,
-                    new MetricaPresentationMapper()))
+                    cambiarGrafico, new MetricaPresentationMapper()))
             .setControllerAdvice(new GlobalExceptionHandler())
             .build();
 
@@ -344,6 +348,23 @@ class MetricaControllerTest {
     }
 
     @Test
+    @DisplayName("PATCH grafico cambia cómo se dibuja la métrica del cuaderno de la sesión y responde 204")
+    void cambiarGraficoDelegaYRespondeSinContenido() throws Exception {
+        cuandoSeEnvia(patch(RUTA + "/{metricaId}/grafico", PROYECTO_ID, METRICA_ID), "{\"grafico\":\"DONA\"}");
+
+        entoncesRespondeSinContenidoYSeCambioElGraficoA(GraficoMetrica.DONA);
+    }
+
+    @Test
+    @DisplayName("PATCH grafico sin decir cuál devuelve 400 sin llegar al caso de uso")
+    void cambiarGraficoSinDecirCualDevuelveError() throws Exception {
+        cuandoSeEnvia(patch(RUTA + "/{metricaId}/grafico", PROYECTO_ID, METRICA_ID), "{}");
+
+        entoncesRespondeErroresEn("grafico");
+        entoncesNoSeCambioElGrafico();
+    }
+
+    @Test
     @DisplayName("GET fuentes devuelve de qué se puede armar una métrica en el cuaderno de la sesión")
     void fuentesDevuelveDeQueSePuedeArmarUnaMetrica() throws Exception {
         dadoUnCuadernoConVentasYStock();
@@ -541,6 +562,15 @@ class MetricaControllerTest {
     private void dadoQueElPedidoSeEntiende() {
         when(interpretarPedido.execute(any())).thenReturn(PedidoInterpretadoItem.de(
                 unPedidoDelFindeInterpretadoComo(LAS_VENTAS_FIADAS_POR_PRODUCTO), SETECIENTOS_CINCUENTA_DEL_PAN, false));
+    }
+
+    private void entoncesRespondeSinContenidoYSeCambioElGraficoA(GraficoMetrica grafico) throws Exception {
+        respuesta.andExpect(status().isNoContent());
+        verify(cambiarGrafico).execute(new CambiarGraficoRequest(USUARIO_ID, PROYECTO_ID, METRICA_ID, grafico));
+    }
+
+    private void entoncesNoSeCambioElGrafico() {
+        verifyNoInteractions(cambiarGrafico);
     }
 
     private void dadoUnCuadernoConVentasYStock() {

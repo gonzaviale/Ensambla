@@ -17,6 +17,16 @@ public enum AgrupacionMetrica {
         List<Fila> repartir(List<LineaMetrica> lineas, CalculoMetrica calculo) {
             return List.of();
         }
+
+        @Override
+        public boolean reparte() {
+            return false;
+        }
+
+        @Override
+        public GraficoMetrica graficoDeSiempre() {
+            return GraficoMetrica.NUMERO;
+        }
     },
     PRODUCTO(LineaMetrica::producto),
     CLIENTE(LineaMetrica::cliente),
@@ -28,6 +38,11 @@ public enum AgrupacionMetrica {
                     .sorted(Comparator.comparingInt(fila -> LineaMetrica.lugarEnLaSemana(fila.etiqueta())))
                     .toList();
         }
+
+        @Override
+        public boolean vaEnOrden() {
+            return true;
+        }
     };
 
     private static final Comparator<Fila> DE_MAYOR_A_MENOR =
@@ -37,6 +52,21 @@ public enum AgrupacionMetrica {
 
     AgrupacionMetrica(Function<LineaMetrica, String> etiqueta) {
         this.etiqueta = etiqueta;
+    }
+
+    /** {@code true} si el número se parte en filas (por producto, cliente…); sin repartir es un solo número. */
+    public boolean reparte() {
+        return true;
+    }
+
+    /** {@code true} si las partes tienen un orden propio, como los días de la semana: se pueden unir con una línea. */
+    public boolean vaEnOrden() {
+        return false;
+    }
+
+    /** El gráfico con que se muestra si la persona no eligió otro: el número solo o las barras del reparto. */
+    public GraficoMetrica graficoDeSiempre() {
+        return GraficoMetrica.BARRAS;
     }
 
     /** El número de cada parte del reparto, ya ordenado para mostrar. */

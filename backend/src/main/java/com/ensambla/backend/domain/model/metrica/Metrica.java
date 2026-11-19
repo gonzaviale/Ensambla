@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.model.metrica;
 
+import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import lombok.AllArgsConstructor;
@@ -9,6 +10,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Objects;
 
 /** Una métrica guardada en un cuaderno: su receta, su lugar en el panel y quién la eligió (el rubro o la persona). */
 @Getter
@@ -35,6 +38,9 @@ public class Metrica {
 
     private OffsetDateTime creadoEn;
 
+    /** El que eligió la persona; {@code null} mientras no eligió ninguno. */
+    private GraficoMetrica graficoElegido;
+
     /** Valida la receta antes de guardarla; el lugar lo da quien la agrega (después de las que ya hay). */
     public static Metrica nueva(NegocioId negocioId, ProyectoId proyectoId, DefinicionMetrica definicion,
                                 int orden, AutoriaMetrica autoria, OffsetDateTime ahora) {
@@ -47,6 +53,24 @@ public class Metrica {
                 .autoria(autoria)
                 .creadoEn(ahora)
                 .build();
+    }
+
+    /** Cómo se dibuja: el que eligió la persona o, si no eligió, el de siempre para su reparto. */
+    public GraficoMetrica getGrafico() {
+        return Objects.requireNonNullElse(graficoElegido, definicion.agrupar().graficoDeSiempre());
+    }
+
+    /** Los gráficos que se le pueden elegir: una métrica sin repartir sólo se muestra como número. */
+    public List<GraficoMetrica> graficosPosibles() {
+        return GraficoMetrica.posiblesPara(definicion.agrupar());
+    }
+
+    /** Elige cómo se dibuja; rechaza el gráfico que no sirve para su reparto (una dona de un solo número). */
+    public void cambiarGrafico(GraficoMetrica grafico) {
+        if (!graficosPosibles().contains(grafico)) {
+            throw new BusinessRuleException("Ese gráfico no sirve para esta métrica: elegí otro");
+        }
+        graficoElegido = grafico;
     }
 
     /** Le cambia el nombre que se ve en el panel; rechaza el nombre vacío o demasiado largo. */

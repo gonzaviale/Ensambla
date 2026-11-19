@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.model.metrica.DeDondeSale;
 import com.ensambla.backend.domain.model.metrica.DefinicionMetrica;
 import com.ensambla.backend.domain.model.metrica.FormatoMetrica;
 import com.ensambla.backend.domain.model.metrica.FuenteMetrica;
+import com.ensambla.backend.domain.model.metrica.GraficoMetrica;
 import com.ensambla.backend.domain.model.metrica.PeriodoMetrica;
 import com.ensambla.backend.domain.model.metrica.ResultadoMetrica;
 import com.ensambla.backend.domain.model.metrica.ResultadoMetrica.Fila;
@@ -137,6 +138,9 @@ class MetricaItemsTest {
         assertThat(guardada.autoria()).isEqualTo(AutoriaMetrica.SUGERIDA);
         assertThat(guardada.definicion()).isEqualTo(DefinicionItem.de(LAS_VENTAS_FIADAS_POR_PRODUCTO));
         assertThat(guardada.resultado()).isEqualTo(ResultadoItem.de(SIN_VENTAS_EN_EL_PERIODO));
+        assertThat(guardada.grafico()).isEqualTo(GraficoMetrica.BARRAS);
+        assertThat(guardada.graficosPosibles())
+                .containsExactly(GraficoMetrica.NUMERO, GraficoMetrica.BARRAS, GraficoMetrica.DONA);
     }
 
     private void entoncesLaSugeridaTraeSuRecetaYSuResultado() {

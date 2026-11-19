@@ -27,6 +27,7 @@ public class MetricaRepositoryMapper {
                 .orden(source.getOrden())
                 .autoria(source.getAutoria())
                 .creadoEn(source.getCreadoEn())
+                .graficoElegido(source.getGrafico())
                 .build();
     }
 
@@ -45,6 +46,7 @@ public class MetricaRepositoryMapper {
                 .orden(source.getOrden())
                 .autoria(source.getAutoria())
                 .creadoEn(source.getCreadoEn())
+                .grafico(source.getGraficoElegido())
                 .build();
     }
 }
