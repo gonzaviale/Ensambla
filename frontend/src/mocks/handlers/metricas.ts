@@ -124,12 +124,12 @@ export const handlersMetricas = [
     if (error) return error;
     const pedido = pedidoSchema.safeParse(await request.json());
     if (!pedido.success) return errorDeCampos(request, pedido.error);
-    const receta = interpretarPedido(pedido.data.pedido);
-    if ('motivo' in receta) return errorResponse(400, receta.motivo, pathDe(request));
+    const entendido = interpretarPedido(pedido.data.pedido);
+    if ('motivo' in entendido) return errorResponse(400, entendido.motivo, pathDe(request));
     await delay(LATENCIA_BACKEND_MS);
     return HttpResponse.json({
-      definicion: receta,
-      resultado: calcularMetricaDeEjemplo(receta, sistema, hoy()),
+      ...entendido,
+      resultado: calcularMetricaDeEjemplo(entendido.definicion, sistema, hoy()),
     });
   }),
   http.patch(api('/proyectos/:sistemaId/metricas/:metricaId'), async ({ request, params }) => {

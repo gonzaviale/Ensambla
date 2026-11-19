@@ -2,8 +2,8 @@ import { z } from 'zod';
 import {
   metricaSchema,
   metricasSchema,
+  pedidoInterpretadoSchema,
   resultadoDeMetricaSchema,
-  sugeridaSchema,
   sugeridasSchema,
   type DefinicionDeMetrica,
   type NuevaMetrica,
@@ -42,6 +42,6 @@ export const moverMetrica = (sistemaId: string, metricaId: string, lugar: number
     z.undefined(),
   );
 
-/** Entiende un pedido en palabras y devuelve la receta que arma, con lo que daría hoy. No guarda nada. */
+/** Entiende un pedido en palabras y devuelve la receta que arma, con lo que daría hoy y cómo se lo entendió. */
 export const interpretarPedidoDeMetrica = (sistemaId: string, pedido: string) =>
-  http.post(`${rutaDe(sistemaId)}/interpretar`, { pedido }, sugeridaSchema);
+  http.post(`${rutaDe(sistemaId)}/interpretar`, { pedido }, pedidoInterpretadoSchema);

@@ -1,4 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
+import { LoQueEntendi } from '@/components/sistema/metricas/LoQueEntendi';
 import { ResultadoDeLaMetrica } from '@/components/sistema/metricas/MetricasAMedida';
 import { leerErrorServidor } from '@/hooks/errores';
 import { useEntenderPedido, useGuardarMetrica, useVerComoQueda } from '@/hooks/metricas/mutations';
@@ -20,7 +21,7 @@ import {
   FUENTES_DE_METRICA,
   type AutoriaDeMetrica,
   type DefinicionDeMetrica,
-  type MetricaSugerida,
+  type PedidoInterpretado,
 } from '@/types/metricas';
 
 const NO_SE_PUDO_GUARDAR = 'No pudimos guardarla. Probá de nuevo.';
@@ -322,6 +323,7 @@ function PedilaConTusPalabras({ sistemaId, guardando, onAgregar }: PropsDelCamin
         </button>
       </div>
       {aviso && <AvisoDelPedido texto={aviso} />}
+      {propuesta && <LoQueEntendi propuesta={propuesta} />}
       {propuesta && (
         <PropuestaDelPedido
           propuesta={propuesta}
@@ -380,7 +382,7 @@ function AvisoDelPedido({ texto }: { texto: string }) {
 }
 
 type PropsDeLaPropuesta = {
-  propuesta: MetricaSugerida;
+  propuesta: PedidoInterpretado;
   guardando: boolean;
   onGuardar: () => void;
   onDescartar: () => void;

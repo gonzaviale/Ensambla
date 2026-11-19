@@ -70,6 +70,31 @@ export const sugeridasSchema = z.array(sugeridaSchema);
 
 export type MetricaSugerida = z.infer<typeof sugeridaSchema>;
 
+/** Las partes de la receta que puede decir un pedido en palabras. */
+export const PARTES_DE_LA_RECETA = [
+  'FUENTE',
+  'CALCULO',
+  'AGRUPACION',
+  'PERIODO',
+  'SOLO_FIADO',
+] as const;
+
+export type ParteDeLaReceta = (typeof PARTES_DE_LA_RECETA)[number];
+
+/** Cómo se entendió el pedido: qué dijo la persona, qué se tomó por defecto y qué palabras no se entendieron. */
+export const lecturaDelPedidoSchema = z.object({
+  delPedido: z.array(z.enum(PARTES_DE_LA_RECETA)),
+  porDefecto: z.array(z.enum(PARTES_DE_LA_RECETA)),
+  noEntendidas: z.array(z.string()),
+});
+
+export type LecturaDelPedido = z.infer<typeof lecturaDelPedidoSchema>;
+
+/** La métrica que arma un pedido en palabras: la propuesta de siempre más cómo se lo entendió. */
+export const pedidoInterpretadoSchema = sugeridaSchema.extend({ lectura: lecturaDelPedidoSchema });
+
+export type PedidoInterpretado = z.infer<typeof pedidoInterpretadoSchema>;
+
 export type AutoriaDeMetrica = Metrica['autoria'];
 
 /** Lo que se manda para guardar: la receta y quién la eligió. */

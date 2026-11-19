@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { crearAlmacenCargado } from '@/lib/sistema/demo';
 import { hoy } from '@/lib/sistema/formato';
 import { estado } from '@/mocks/db/estado';
+import { entoncesApareceQueEntendio } from '@/test/loQueEntendi';
 import { renderApp } from '@/test/renderApp';
 import type { DefinicionDeMetrica } from '@/types/metricas';
 import { setupUsuarioConSesion, verifyHeadingPresentAsync } from '@/test/testHelpers';
@@ -182,6 +183,14 @@ describe('Inicio: métricas a medida', () => {
     expect(within(vista).getByText(/Por producto/)).toBeInTheDocument();
     await usuario.click(within(vista).getByRole('button', { name: 'Guardar métrica' }));
     await entoncesElPanelMuestraEnOrden(['Qué producto vendo más este mes']);
+  });
+
+  it('al pedir con sus palabras muestra qué entendió, qué tomó por defecto y qué no entendió', async () => {
+    const { usuario } = await abrirInicio();
+
+    await cuandoSePideConPalabras(usuario, 'cuanto vendi el finde');
+
+    await entoncesApareceQueEntendio('Período: este mes (no dijiste cuándo)', '«finde»');
   });
 
   it('si no entiende el pedido dice qué falta y da ejemplos', async () => {

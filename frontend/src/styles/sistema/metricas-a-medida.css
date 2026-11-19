@@ -275,6 +275,26 @@
   border: 2px dashed var(--line);
   border-radius: 12px;
 }
+.agregar-metrica-entendi {
+  grid-column: 1 / -1;
+}
+.agregar-metrica-entendi ul {
+  display: grid;
+  gap: 4px;
+  list-style: none;
+  padding-left: 0;
+}
+.agregar-metrica-entendi b {
+  color: var(--petrol);
+}
+.agregar-metrica-por-defecto {
+  color: var(--muted);
+}
+.agregar-metrica-entendi .agregar-metrica-no-entendidas {
+  color: var(--coral);
+  font-size: 13px;
+  font-weight: 700;
+}
 .agregar-metrica-no-entendi {
   display: grid;
   gap: 4px;
