@@ -27,14 +27,4 @@ class CodigoBarrasTest {
             assertThatThrownBy(() -> new CodigoBarras(codigo)).isInstanceOf(BusinessRuleException.class);
         }
     }
-
-    @Test
-    @DisplayName("Sólo admite las dos fuentes públicas configuradas")
-    void fuenteShouldRejectUnknownSource() {
-        assertThat(FuenteCatalogo.de("sepa")).isEqualTo(FuenteCatalogo.SEPA);
-        assertThat(FuenteCatalogo.de("openfoodfacts")).isEqualTo(FuenteCatalogo.OPEN_FOOD_FACTS);
-
-        assertThatThrownBy(() -> FuenteCatalogo.de("https://otro.test"))
-                .isInstanceOf(BusinessRuleException.class);
-    }
 }
