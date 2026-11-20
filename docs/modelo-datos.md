@@ -8,7 +8,8 @@ Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (
 `V15__renovaciones_y_pagos_premium.sql`,
 `V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`,
 `V24__objetivo.sql`, `V29__mini_objetivo.sql`, `V30__progreso_objetivo.sql`, `V31__decision_objetivo.sql`,
-`V32__resumen_semanal_objetivo.sql`, `V33__objetivo_demo.sql`, `V38__objetivo_tipo_y_modo.sql`, `V39__respuesta_mini_objetivo.sql`, `V40__cuota_objetivos_ia.sql`, `V41__metricas_mini_objetivo_nuevas.sql`, `V42__cierre_con_manuales.sql`).
+`V32__resumen_semanal_objetivo.sql`, `V33__objetivo_demo.sql`, `V38__objetivo_tipo_y_modo.sql`, `V39__respuesta_mini_objetivo.sql`, `V40__cuota_objetivos_ia.sql`, `V41__metricas_mini_objetivo_nuevas.sql`, `V42__cierre_con_manuales.sql`, `V43__metrica.sql`, `V44__grafico_metrica.sql`,
+`V45__metrica_calculo_ganancia_y_costo.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -493,6 +494,31 @@ producción hay que borrarlo antes de publicar.
   `INSERT … ON CONFLICT DO UPDATE … WHERE consultas < límite`, atómica por negocio y día.
 
 Detalles: [sami-asistente.md](sami-asistente.md).
+
+### Métricas a medida (V43, V44, V45)
+
+`V43__metrica.sql` crea `metrica`: lo que la persona guarda en un cuaderno para verlo en la home, sea una sugerida de su
+rubro o una que armó ella. Se guarda la **receta**, nunca el número: el servidor lo calcula cada vez con las filas reales.
+
+- Pertenece a un `negocio` y a un `proyecto` (cuaderno), los dos con borrado en cascada. Una métrica de otro negocio o de otro
+  cuaderno responde 404.
+- La receta son columnas con `CHECK`: `fuente` (`VENTAS`, `GASTOS`, `INVENTARIO`), `calculo` (`SUMA`, `PROMEDIO`, `CONTEO`,
+  `UNIDADES`, `GANANCIA`, `COSTO`), `agrupar` (`NINGUNA`, `PRODUCTO`, `CLIENTE`, `CATEGORIA`, `DIA_DE_LA_SEMANA`), `periodo` (`HOY`, `SEMANA`, `MES`,
+  `TODO`) y `solo_fiado`. Qué combinaciones valen lo decide el dominio (`DefinicionMetrica.validar()`).
+- `orden` es el lugar en el panel (de menor a mayor) y `autoria` es `SUGERIDA` (del catálogo del rubro) o `PROPIA`.
+- Un cuaderno guarda hasta 12 y no repite una receta, aunque el nombre cambie. Tampoco guarda lo que ya muestra el panel
+  de ventas del inicio (las ventas sumadas, sin repartir, de hoy, la semana o el mes).
+- `V44__grafico_metrica.sql` suma `grafico` (`NUMERO`, `BARRAS`, `DONA`, `LINEA`, o `NULL`): cómo se dibuja en su solapa.
+  `NULL` mientras la persona no eligió; el dominio usa el de siempre para su reparto (sin repartir, el número; repartida, las
+  barras). Qué gráficos sirven para cada reparto lo decide `GraficoMetrica`.
+- `V45__metrica_calculo_ganancia_y_costo.sql` amplía el `CHECK` de `calculo` con `GANANCIA` y `COSTO`.
+
+El catálogo de sugeridas vive en `resources/metricas/catalogo-metricas.json`, por rubro del negocio (`RubroNegocio`).
+
+**API.** Bajo `/api/proyectos/{proyectoId}/metricas`: `GET` (las guardadas, cada una con su resultado y «de dónde sale»),
+`GET /sugeridas`, `GET /fuentes` (de qué se puede armar en ese cuaderno), `POST /previsualizar` (calcula sin guardar),
+`POST` (201), `PATCH /{metricaId}` (nombre), `PATCH /{metricaId}/lugar`, `PATCH /{metricaId}/grafico`
+y `DELETE /{metricaId}` (204).
 
 ### Objetivo de la cuenta demo (V33)
 

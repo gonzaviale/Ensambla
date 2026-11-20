@@ -19,8 +19,7 @@ import {
 import type { Sistema } from '@/lib/sistema/tipos';
 import type { ResumenInicio } from '@/types/resumenInicio';
 
-// Las métricas del negocio, dentro de «Tu negocio»: lo que viene vendiendo. Nunca muestra ceros de relleno: si no
-// hay datos, lo dice.
+// La solapa fija de «Tu negocio»: lo que viene vendiendo. Nunca muestra ceros de relleno: si no hay datos, lo dice.
 export function MetricasDelInicio({ sistema }: { sistema: Sistema }) {
   const { resumen, fallo, reintentar } = useResumenInicio(sistema.id);
 

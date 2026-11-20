@@ -34,12 +34,12 @@ class ArchitectureTest {
     private static final List<String> PAQUETES_MIGRADOS = List.of(
             "exception", "port", "repository", "service",
             "model/aviso", "model/bloque", "model/caja", "model/campo", "model/catalogo", "model/common",
-            "model/inventario", "model/lectura", "model/lote", "model/negocio", "model/pago", "model/plan",
+            "model/inventario", "model/lectura", "model/lote", "model/metrica", "model/negocio", "model/pago", "model/plan",
             "model/plantilla", "model/precio", "model/preferencia", "model/procesamiento", "model/proyecto",
             "model/receta", "model/registro", "model/reporte", "model/sami", "model/seccion", "model/sistema",
             "model/ubicacion", "model/usuario", "model/whatsapp", "model/zona",
             "useCase/auth", "useCase/aviso", "useCase/bloque", "useCase/caja", "useCase/campo", "useCase/catalogo",
-            "useCase/inventario", "useCase/lote", "useCase/negocio", "useCase/pago", "useCase/plan",
+            "useCase/inventario", "useCase/lote", "useCase/metrica", "useCase/negocio", "useCase/pago", "useCase/plan",
             "useCase/plantilla", "useCase/preferencia", "useCase/procesamiento", "useCase/proyecto",
             "useCase/receta", "useCase/registro", "useCase/reporte", "useCase/sami", "useCase/sistema",
             "useCase/ubicacion", "useCase/zona");

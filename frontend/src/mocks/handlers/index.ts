@@ -3,6 +3,7 @@ import { handlersAuth } from './auth';
 import { handlersCatalogos } from './catalogos';
 import { handlersAvisos } from './avisos';
 import { handlersImportaciones } from './importaciones';
+import { handlersMetricas } from './metricas';
 import { handlersObjetivos } from './objetivos';
 import { handlersSamiProyecto } from './samiProyecto';
 import { handlersSamiTaller } from './samiTaller';
@@ -27,6 +28,7 @@ export function handlersPara(modo: ModoMocks) {
       ...handlersCatalogos,
       ...handlersDelSistema,
       ...handlersImportaciones,
+      ...handlersMetricas,
       ...handlersObjetivos,
       ...handlersAvisos,
       ...handlersUbicacion,

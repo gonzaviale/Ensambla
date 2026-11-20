@@ -1,9 +1,9 @@
 import { Icon } from '@/components/sistema/Icon';
-import { MetricasDelInicio } from '@/components/sistema/MetricasDelInicio';
+import { PanelDeTuNegocio } from '@/components/sistema/metricas/PanelDeTuNegocio';
 import { seleccionarNegocioActivo, useSistemaStore } from '@/stores/sistemaStore';
 
-// «Tu negocio»: el negocio con que se está trabajando, que es un cuaderno. Muestra sus métricas; sus tablas se abren
-// desde «Mi negocio», en la barra. Los demás negocios se eligen en la barra y se agregan desde «Agregar un negocio».
+// «Tu negocio»: el negocio con que se está trabajando, que es un cuaderno. Muestra sus ventas y las métricas que la
+// persona eligió, en solapas; sus tablas se abren desde «Mi negocio», en la barra. Los demás negocios se eligen en la barra y se agregan desde «Agregar un negocio».
 // Sin ningún negocio no aparece: la bienvenida ya invita a crear el primero.
 export function TuNegocio() {
   const negocio = useSistemaStore(seleccionarNegocioActivo);
@@ -18,7 +18,7 @@ export function TuNegocio() {
       </div>
 
       <div className="tu-negocio-cuerpo">
-        <MetricasDelInicio sistema={negocio} />
+        <PanelDeTuNegocio sistema={negocio} />
       </div>
     </section>
   );

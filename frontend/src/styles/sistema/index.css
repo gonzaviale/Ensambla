@@ -14,6 +14,8 @@
 @import './inicio.css';
 /* El tablero del inicio y sus gráficos. */
 @import './tablero.css';
+/* Las métricas a medida del inicio. */
+@import './metricas-a-medida.css';
 /* Mis negocios: elegirlo al iniciar sesión, el selector de la barra, crearlos y eliminarlos, y compararlos. */
 @import './negocios.css';
 /* La pantalla del sistema: fondo blanco, piezas y cabeceras de color. */
