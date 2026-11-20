@@ -69,6 +69,12 @@ export const dadoElGrafico = (metrica: Metrica, grafico: GraficoDeMetrica) =>
 export const entoncesSeVeElNumero = (texto: string) =>
   expect(screen.getByText(texto)).toBeInTheDocument();
 
+export const entoncesSeLee = (texto: string | RegExp) =>
+  expect(screen.getByText(texto)).toBeInTheDocument();
+
+export const entoncesNoSeLee = (texto: string | RegExp) =>
+  expect(screen.queryByText(texto)).not.toBeInTheDocument();
+
 export const entoncesSeVeElDibujo = (nombre: string) =>
   expect(screen.getByLabelText(nombre)).toBeInTheDocument();
 

@@ -1,3 +1,4 @@
+import { formatoDelValor } from '@/lib/metricas/metricasAMedida';
 import type {
   AgrupacionDeMetrica,
   CalculoDeMetrica,
@@ -81,3 +82,74 @@ const otrosDe = (primeras: Parte[], total: number): Parte => ({
 /** {@code true} si hay más partes que las que se ven de entrada (los días de la semana se ven siempre todos). */
 export const hayMasPartes = (definicion: DefinicionDeMetrica, resultado: ResultadoDeMetrica) =>
   !VA_EN_ORDEN[definicion.agrupar] && resultado.filas.length > PARTES_A_LA_VISTA;
+
+// Los colores de la paleta de Ensambla, en orden, para las porciones; «Otros» va en arena para no competir con las
+// partes de verdad.
+const COLORES_DE_LA_PALETA = [
+  '#00506a',
+  '#ee8000',
+  '#f85f5a',
+  '#4eb2d4',
+  '#ebce32',
+  '#003e53',
+  '#a95700',
+  '#416048',
+];
+const COLOR_DE_OTROS = '#e6c9a8';
+
+/** Lo que cada gráfico necesita saber de una parte: cómo se llama, cómo se escribe y de qué color va. */
+export type DatoDelGrafico = {
+  etiqueta: string;
+  corta: string;
+  valor: number;
+  detalle: string;
+  porcentaje: number;
+  color: string;
+  otros: boolean;
+};
+
+const LARGO_DE_LA_ETIQUETA_CORTA = 11;
+
+const recortar = (etiqueta: string, largo: number) =>
+  etiqueta.length > largo ? `${etiqueta.slice(0, largo - 1).trimEnd()}…` : etiqueta;
+
+const colorDeLaParte = (parte: Parte, lugar: number) =>
+  parte.otros
+    ? COLOR_DE_OTROS
+    : (COLORES_DE_LA_PALETA[lugar % COLORES_DE_LA_PALETA.length] ?? '#00506a');
+
+/** Las partes listas para dibujar: etiqueta corta para el eje, valor escrito, porcentaje del total y color. */
+export function datosDelGrafico(
+  partes: Parte[],
+  formato: ResultadoDeMetrica['formato'],
+  etiquetaCorta: (etiqueta: string) => string = (etiqueta) =>
+    recortar(etiqueta, LARGO_DE_LA_ETIQUETA_CORTA),
+): DatoDelGrafico[] {
+  const total = partes.reduce((suma, parte) => suma + parte.valor, 0);
+  return partes.map((parte, lugar) => ({
+    etiqueta: parte.etiqueta,
+    corta: etiquetaCorta(parte.etiqueta),
+    valor: parte.valor,
+    detalle: formatoDelValor(parte.valor, formato),
+    porcentaje: total > 0 ? Math.round((parte.valor / total) * 100) : 0,
+    color: colorDeLaParte(parte, lugar),
+    otros: parte.otros === true,
+  }));
+}
+
+/** Quién encabeza el reparto («Doña Rosa, $ 7.200»); los días de la semana no tienen primero. */
+export function elPrimero(
+  definicion: DefinicionDeMetrica,
+  resultado: ResultadoDeMetrica,
+): string | null {
+  const primero = resultado.filas[0];
+  if (!primero || VA_EN_ORDEN[definicion.agrupar]) return null;
+  return `${primero.etiqueta}, ${formatoDelValor(primero.valor, resultado.formato)}`;
+}
+
+/** Qué es el número grande, para que no haya que adivinarlo (un promedio no es el de cada cliente). */
+export function queEsElNumero(definicion: DefinicionDeMetrica): string {
+  const repartida = definicion.agrupar !== 'NINGUNA';
+  if (definicion.calculo === 'PROMEDIO') return repartida ? 'Promedio de todas juntas' : 'Promedio';
+  return repartida ? 'Total de todas las partes' : 'Total';
+}

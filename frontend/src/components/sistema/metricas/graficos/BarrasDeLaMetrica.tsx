@@ -1,54 +1,57 @@
-import type { ReactNode } from 'react';
-import { GraficoDeBarras } from '@/components/sistema/metricas/GraficoDeBarras';
-import type { PropsDelGrafico } from '@/lib/metricas/graficos';
-import { formatoDelValor } from '@/lib/metricas/metricasAMedida';
-import type { AgrupacionDeMetrica } from '@/types/metricas';
+import { Bar, BarChart, Cell, LabelList, Tooltip, XAxis, YAxis } from 'recharts';
+import { LienzoDelGrafico } from '@/components/sistema/metricas/graficos/LienzoDelGrafico';
+import { ListaParaElLector } from '@/components/sistema/metricas/graficos/ListaParaElLector';
+import { TarjetaDelDato } from '@/components/sistema/metricas/graficos/TarjetaDelDato';
+import { datosDelGrafico, type PropsDelGrafico } from '@/lib/metricas/graficos';
 
-// Los días van como el gráfico de ventas del inicio (barras paradas, en orden); lo demás, acostado, para que entren
-// los nombres de productos y clientes.
-const BARRAS_PARA: Record<AgrupacionDeMetrica, (props: PropsDelGrafico) => ReactNode> = {
-  NINGUNA: () => null,
-  PRODUCTO: BarrasAcostadas,
-  CLIENTE: BarrasAcostadas,
-  CATEGORIA: BarrasAcostadas,
-  DIA_DE_LA_SEMANA: BarrasParadas,
-};
+const ALTO = 260;
+const COLOR_DEL_TEXTO = '#263443';
+const MAS_PARTES_QUE_NO_ENTRAN_ESCRITAS = 7;
+const LARGO_DE_LOS_DIAS = 3;
 
-export function BarrasDeLaMetrica(props: PropsDelGrafico) {
-  const Barras = BARRAS_PARA[props.definicion.agrupar];
-  return <Barras {...props} />;
-}
-
-function BarrasParadas({ definicion, resultado, partes }: PropsDelGrafico) {
-  const barras = partes.map((parte) => ({
-    clave: parte.etiqueta,
-    etiqueta: parte.etiqueta.slice(0, 3),
-    nombre: parte.etiqueta,
-    valor: parte.valor,
-    detalle: formatoDelValor(parte.valor, resultado.formato),
-  }));
-  return <GraficoDeBarras barras={barras} titulo={definicion.nombre} variante="claro" />;
-}
-
-function BarrasAcostadas({ definicion, resultado, partes }: PropsDelGrafico) {
-  // «Otros» junta muchas partes: la escala sale de las de verdad y su barra no pasa del ancho.
-  const maximo = Math.max(0, ...partes.filter((parte) => !parte.otros).map((parte) => parte.valor));
+// Barras paradas, una por parte, del color de la solapa; «Otros» en arena. Al pasar el mouse cada barra dice de quién
+// es y cuánto vale. Los días van con tres letras; los nombres largos se recortan y se leen completos en la tarjeta.
+export function BarrasDeLaMetrica({ definicion, resultado, partes }: PropsDelGrafico) {
+  const datos = datosDelGrafico(
+    partes,
+    resultado.formato,
+    definicion.agrupar === 'DIA_DE_LA_SEMANA'
+      ? (dia) => dia.slice(0, LARGO_DE_LOS_DIAS)
+      : undefined,
+  );
   return (
-    <ul className="metrica-medida-reparto" aria-label={definicion.nombre}>
-      {partes.map((parte) => (
-        <li key={parte.etiqueta} data-otros={parte.otros ? 'true' : undefined}>
-          <span className="metrica-medida-etiqueta">{parte.etiqueta}</span>
-          <span className="metrica-medida-barra" aria-hidden="true">
-            <span style={{ width: anchoDeLaBarra(parte.valor, maximo) }} />
-          </span>
-          <span className="metrica-medida-numero">
-            {formatoDelValor(parte.valor, resultado.formato)}
-          </span>
-        </li>
-      ))}
-    </ul>
+    <figure className="grafico-recharts" aria-label={definicion.nombre}>
+      <LienzoDelGrafico alto={ALTO}>
+        <BarChart data={datos} margin={{ top: 26, right: 8, bottom: 4, left: 8 }}>
+          <XAxis
+            dataKey="corta"
+            interval={0}
+            tickLine={false}
+            axisLine={{ stroke: '#00506a', strokeWidth: 2 }}
+            tick={{ fill: COLOR_DEL_TEXTO, fontSize: 12, fontWeight: 700 }}
+          />
+          <YAxis hide domain={[0, 'auto']} />
+          <Tooltip content={TarjetaDelDato} cursor={{ fill: '#e6f3f7' }} />
+          <Bar dataKey="valor" radius={[8, 8, 0, 0]} maxBarSize={64}>
+            {datos.map((dato) => (
+              <Cell
+                key={dato.etiqueta}
+                fill={dato.otros ? dato.color : 'var(--color-solapa, #00506a)'}
+              />
+            ))}
+            {datos.length <= MAS_PARTES_QUE_NO_ENTRAN_ESCRITAS && (
+              <LabelList
+                dataKey="detalle"
+                position="top"
+                fill={COLOR_DEL_TEXTO}
+                fontSize={12}
+                fontWeight={700}
+              />
+            )}
+          </Bar>
+        </BarChart>
+      </LienzoDelGrafico>
+      <ListaParaElLector datos={datos} />
+    </figure>
   );
 }
-
-const anchoDeLaBarra = (valor: number, maximo: number) =>
-  `${maximo > 0 ? Math.min(100, Math.max(4, (valor / maximo) * 100)) : 0}%`;

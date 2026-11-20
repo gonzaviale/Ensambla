@@ -598,35 +598,43 @@
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.grafico-dona {
-  display: grid;
-  grid-template-columns: minmax(140px, 200px) minmax(0, 1fr);
-  align-items: center;
-  gap: 24px;
+.grafico-recharts {
+  width: 100%;
+  min-width: 0;
   margin: 0;
 }
-.grafico-dona svg {
-  width: 100%;
-  transform: rotate(-90deg);
+.grafico-recharts .recharts-wrapper,
+.grafico-dona .recharts-wrapper {
+  max-width: 100%;
 }
-.grafico-dona circle {
-  fill: none;
-  stroke-width: 16;
+.grafico-recharts svg:focus,
+.grafico-dona svg:focus,
+.grafico-recharts .recharts-surface:focus,
+.grafico-dona .recharts-surface:focus {
+  outline: none;
 }
-.grafico-dona-fondo {
-  stroke: var(--c-estructura-100);
+.grafico-dona {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+.grafico-dona-dibujo {
+  min-width: 0;
 }
 .grafico-dona-lista {
   display: grid;
   gap: 8px;
-  max-width: 440px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 .grafico-dona-lista li {
   display: grid;
-  grid-template-columns: 14px minmax(0, 1fr) auto 48px;
+  grid-template-columns: 14px minmax(0, 1fr) auto 44px;
   align-items: center;
   gap: 10px;
   color: var(--c-estructura);
@@ -637,65 +645,50 @@
   height: 14px;
   border-radius: 4px;
 }
+.grafico-dona-etiqueta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .grafico-dona-porcentaje {
   color: var(--c-accion-texto);
   font-weight: 800;
   text-align: right;
 }
-.grafico-linea {
+.grafico-tarjeta {
   display: grid;
-  gap: 8px;
-  margin: 0;
-}
-.grafico-linea-area {
-  position: relative;
-  height: 180px;
-}
-.grafico-linea-area svg {
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-.grafico-linea polyline {
-  fill: none;
-  stroke: var(--c-estructura);
-  stroke-width: 4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.grafico-linea-punto {
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  border: 3px solid #fff;
-  border-radius: 50%;
-  background: var(--c-accion);
-  transform: translate(-50%, -50%);
-  cursor: default;
-}
-.grafico-linea-punto:hover,
-.grafico-linea-punto:focus-visible {
-  background: var(--resalte);
-  outline: none;
-}
-.grafico-linea-dias {
-  position: relative;
-  height: 20px;
-}
-.grafico-linea-dias span {
-  position: absolute;
-  transform: translateX(-50%);
+  gap: 2px;
+  padding: 10px 14px;
+  border: 2px solid var(--c-estructura);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgb(0 80 106 / 18%);
   color: var(--c-estructura);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 14px;
+}
+.grafico-tarjeta strong {
+  font-size: 15px;
+}
+.grafico-tarjeta-porcentaje {
+  color: var(--c-accion-texto);
+  font-weight: 800;
+}
+.grafico-metrica-nota {
+  margin: -8px 0 0;
+  color: var(--c-estructura);
+  font-size: 14px;
+}
+.grafico-metrica-nota strong {
+  font-weight: 800;
 }
 @media (max-width: 560px) {
   .grafico-dona {
     grid-template-columns: minmax(0, 1fr);
     justify-items: center;
   }
-  .grafico-dona svg {
-    max-width: 180px;
+  .grafico-dona-dibujo {
+    width: 100%;
+    max-width: 240px;
   }
   .grafico-dona-lista {
     width: 100%;

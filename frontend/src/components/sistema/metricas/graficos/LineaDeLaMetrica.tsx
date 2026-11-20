@@ -1,55 +1,43 @@
-import type { CSSProperties } from 'react';
-import { formatoDelValor } from '@/lib/metricas/metricasAMedida';
-import type { Parte, PropsDelGrafico } from '@/lib/metricas/graficos';
+import { Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts';
+import { LienzoDelGrafico } from '@/components/sistema/metricas/graficos/LienzoDelGrafico';
+import { ListaParaElLector } from '@/components/sistema/metricas/graficos/ListaParaElLector';
+import { TarjetaDelDato } from '@/components/sistema/metricas/graficos/TarjetaDelDato';
+import { datosDelGrafico, type PropsDelGrafico } from '@/lib/metricas/graficos';
 
-// Margen en porcentaje para que el primer y el último punto no queden pegados al borde.
-const MARGEN = 4;
+const ALTO = 240;
+const LARGO_DE_LOS_DIAS = 3;
 
-type Punto = Parte & { x: number; y: number };
-
-// La línea une los días de la semana en su orden. Se estira con el ancho del panel sin deformar los puntos ni el texto:
-// la línea es SVG y los puntos y los días van encima, en HTML. Cada punto dice su valor al pasar el mouse o con el lector.
+// La línea une los días de la semana en su orden, con un punto por día; al pasar el mouse el punto dice su valor.
 export function LineaDeLaMetrica({ definicion, resultado, partes }: PropsDelGrafico) {
-  const puntos = puntosDe(partes);
+  const datos = datosDelGrafico(partes, resultado.formato, (dia) =>
+    dia.slice(0, LARGO_DE_LOS_DIAS),
+  );
   return (
-    <figure className="grafico-linea" aria-label={definicion.nombre}>
-      <div className="grafico-linea-area">
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          <polyline
-            points={puntos.map((punto) => `${punto.x},${punto.y}`).join(' ')}
-            vectorEffect="non-scaling-stroke"
+    <figure className="grafico-recharts" aria-label={definicion.nombre}>
+      <LienzoDelGrafico alto={ALTO}>
+        <LineChart data={datos} margin={{ top: 16, right: 20, bottom: 4, left: 20 }}>
+          <XAxis
+            dataKey="corta"
+            tickLine={false}
+            axisLine={{ stroke: '#00506a', strokeWidth: 2 }}
+            tick={{ fill: '#263443', fontSize: 12, fontWeight: 700 }}
           />
-        </svg>
-        {puntos.map((punto) => (
-          <span
-            key={punto.etiqueta}
-            className="grafico-linea-punto"
-            style={posicionDe(punto)}
-            tabIndex={0}
-            aria-label={`${punto.etiqueta}: ${formatoDelValor(punto.valor, resultado.formato)}`}
-            title={formatoDelValor(punto.valor, resultado.formato)}
+          <YAxis hide domain={[0, 'auto']} />
+          <Tooltip
+            content={TarjetaDelDato}
+            cursor={{ stroke: '#00506a', strokeDasharray: '4 4' }}
           />
-        ))}
-      </div>
-      <div className="grafico-linea-dias" aria-hidden="true">
-        {puntos.map((punto) => (
-          <span key={punto.etiqueta} style={{ left: `${punto.x}%` }}>
-            {punto.etiqueta.slice(0, 3)}
-          </span>
-        ))}
-      </div>
+          <Line
+            type="monotone"
+            dataKey="valor"
+            stroke="#00506a"
+            strokeWidth={4}
+            dot={{ r: 6, fill: '#ee8000', stroke: '#fff', strokeWidth: 3 }}
+            activeDot={{ r: 8, fill: '#f85f5a', stroke: '#fff', strokeWidth: 3 }}
+          />
+        </LineChart>
+      </LienzoDelGrafico>
+      <ListaParaElLector datos={datos} />
     </figure>
   );
 }
-
-function puntosDe(partes: Parte[]): Punto[] {
-  const maximo = Math.max(0, ...partes.map((parte) => parte.valor));
-  const paso = partes.length > 1 ? (100 - 2 * MARGEN) / (partes.length - 1) : 0;
-  return partes.map((parte, lugar) => ({
-    ...parte,
-    x: MARGEN + lugar * paso,
-    y: maximo > 0 ? 100 - MARGEN - (parte.valor / maximo) * (100 - 2 * MARGEN) : 100 - MARGEN,
-  }));
-}
-
-const posicionDe = (punto: Punto): CSSProperties => ({ left: `${punto.x}%`, top: `${punto.y}%` });

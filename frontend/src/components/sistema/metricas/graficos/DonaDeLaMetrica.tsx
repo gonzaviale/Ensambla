@@ -1,80 +1,61 @@
-import { formatoDelValor } from '@/lib/metricas/metricasAMedida';
-import type { Parte, PropsDelGrafico } from '@/lib/metricas/graficos';
+import { Cell, Pie, PieChart, Tooltip } from 'recharts';
+import { LienzoDelGrafico } from '@/components/sistema/metricas/graficos/LienzoDelGrafico';
+import { TarjetaDelDato } from '@/components/sistema/metricas/graficos/TarjetaDelDato';
+import {
+  datosDelGrafico,
+  type DatoDelGrafico,
+  type PropsDelGrafico,
+} from '@/lib/metricas/graficos';
 
-// Los colores de la paleta para las porciones, en orden; «Otros» va en celeste claro para no competir con las grandes.
-const COLORES = [
-  '#00506a',
-  '#ee8000',
-  '#f85f5a',
-  '#b52d66',
-  '#4eb2d4',
-  '#ebce32',
-  '#003e53',
-  '#a95700',
-];
-const COLOR_DE_OTROS = '#a8dcec';
+const LADO = 220;
 
-const RADIO = 42;
-const LARGO = 2 * Math.PI * RADIO;
-
-type Porcion = Parte & { color: string; largo: number; desde: number; porcentaje: number };
-
-// La torta como dona: cada parte es una porción con su color y, al lado, la lista con el valor y el porcentaje.
+// La torta como dona, a la izquierda, y al lado cada parte con su color, su valor y su porcentaje. Pasando el mouse por
+// una porción se ve de quién es. Con muchas partes la lista crece sin deformar el dibujo.
 export function DonaDeLaMetrica({ definicion, resultado, partes }: PropsDelGrafico) {
-  const porciones = porcionesDe(partes);
+  const datos = datosDelGrafico(partes, resultado.formato, (etiqueta) => etiqueta);
   return (
-    <figure className="grafico-dona">
-      <svg viewBox="0 0 100 100" role="img" aria-label={definicion.nombre}>
-        <circle className="grafico-dona-fondo" cx="50" cy="50" r={RADIO} />
-        {porciones.map((porcion) => (
-          <circle
-            key={porcion.etiqueta}
-            cx="50"
-            cy="50"
-            r={RADIO}
-            stroke={porcion.color}
-            strokeDasharray={`${porcion.largo} ${LARGO - porcion.largo}`}
-            strokeDashoffset={-porcion.desde}
-          />
-        ))}
-      </svg>
-      <ul className="grafico-dona-lista">
-        {porciones.map((porcion) => (
-          <li key={porcion.etiqueta}>
-            <span
-              className="grafico-dona-color"
-              style={{ background: porcion.color }}
-              aria-hidden="true"
-            />
-            <span className="grafico-dona-etiqueta">{porcion.etiqueta}</span>
-            <strong>{formatoDelValor(porcion.valor, resultado.formato)}</strong>
-            <span className="grafico-dona-porcentaje">{porcion.porcentaje}%</span>
-          </li>
-        ))}
-      </ul>
+    <figure className="grafico-dona" aria-label={definicion.nombre}>
+      <div className="grafico-dona-dibujo">
+        <LienzoDelGrafico alto={LADO}>
+          <PieChart>
+            <Pie
+              data={datos}
+              dataKey="valor"
+              nameKey="etiqueta"
+              innerRadius="60%"
+              outerRadius="96%"
+              paddingAngle={2}
+              stroke="#fff"
+              strokeWidth={2}
+            >
+              {datos.map((dato) => (
+                <Cell key={dato.etiqueta} fill={dato.color} />
+              ))}
+            </Pie>
+            <Tooltip content={TarjetaDelDato} />
+          </PieChart>
+        </LienzoDelGrafico>
+      </div>
+      <ListaDeLasPorciones datos={datos} />
     </figure>
   );
 }
 
-function porcionesDe(partes: Parte[]): Porcion[] {
-  const total = partes.reduce((suma, parte) => suma + parte.valor, 0);
-  let desde = 0;
-  return partes.map((parte, lugar) => {
-    const largo = total > 0 ? (parte.valor / total) * LARGO : 0;
-    const porcion = {
-      ...parte,
-      color: colorDe(parte, lugar),
-      largo,
-      desde,
-      porcentaje: porcentajeDe(parte, total),
-    };
-    desde += largo;
-    return porcion;
-  });
+function ListaDeLasPorciones({ datos }: { datos: DatoDelGrafico[] }) {
+  return (
+    <ul className="grafico-dona-lista">
+      {datos.map((dato) => (
+        <li key={dato.etiqueta}>
+          <span
+            className="grafico-dona-color"
+            style={{ background: dato.color }}
+            aria-hidden="true"
+          />
+          <span className="grafico-dona-etiqueta">{dato.etiqueta}</span>
+          <strong>{dato.detalle}</strong>
+          <span className="grafico-dona-porcentaje">{dato.porcentaje}%</span>
+        </li>
+      ))}
+    </ul>
+  );
 }
-
-const colorDe = (parte: Parte, lugar: number) =>
-  parte.otros ? COLOR_DE_OTROS : (COLORES[lugar % COLORES.length] ?? COLORES[0] ?? '#00506a');
-
-const porcentajeDe = (parte: Parte, total: number) =>
-  total > 0 ? Math.round((parte.valor / total) * 100) : 0;

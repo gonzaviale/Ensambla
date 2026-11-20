@@ -31,6 +31,15 @@ beforeAll(() => {
   server.events.on('request:start', () => pedidosEnCurso++);
   server.events.on('request:end', () => pedidosEnCurso--);
   window.scrollTo = () => undefined;
+  // jsdom no mide elementos: el dibujo de los gráficos pregunta por su tamaño, que acá no cambia.
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
   // jsdom no implementa el desplazamiento de un elemento a la vista.
   Element.prototype.scrollIntoView = () => undefined;
   server.listen({ onUnhandledRequest: 'error' });

@@ -11,10 +11,12 @@ import {
   entoncesEstaElegido,
   entoncesNoHayDibujo,
   entoncesNoHaySelector,
+  entoncesNoSeLee,
   entoncesNoOfreceVerTodas,
   entoncesOfreceLosGraficos,
   entoncesOfreceVerTodas,
   entoncesOtrosSuma,
+  entoncesSeLee,
   entoncesSeVeElDibujo,
   entoncesSeVeElNumero,
   entoncesSeVenLasPartes,
@@ -83,6 +85,19 @@ describe('el gráfico de una métrica', () => {
     dadoElGrafico(LA_SEMANA, 'LINEA');
 
     entoncesSeVeElDibujo('Ventas por día');
+  });
+
+  it('dice qué es el número grande y quién encabeza el reparto', () => {
+    dadoElGrafico(SIETE_PRODUCTOS, 'BARRAS');
+
+    entoncesSeLee(/Total de todas las partes/);
+    entoncesSeLee('Yerba, 70');
+  });
+
+  it('con los días de la semana no hay un «primero»', () => {
+    dadoElGrafico(LA_SEMANA, 'LINEA');
+
+    entoncesNoSeLee(/El primero/);
   });
 
   it('con más de cinco partes ofrece verlas todas', () => {

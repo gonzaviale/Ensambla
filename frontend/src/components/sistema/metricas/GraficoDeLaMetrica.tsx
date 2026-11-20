@@ -2,7 +2,13 @@ import { useState, type ReactNode } from 'react';
 import { BarrasDeLaMetrica } from '@/components/sistema/metricas/graficos/BarrasDeLaMetrica';
 import { DonaDeLaMetrica } from '@/components/sistema/metricas/graficos/DonaDeLaMetrica';
 import { LineaDeLaMetrica } from '@/components/sistema/metricas/graficos/LineaDeLaMetrica';
-import { hayMasPartes, partesParaMostrar, type PropsDelGrafico } from '@/lib/metricas/graficos';
+import {
+  elPrimero,
+  hayMasPartes,
+  partesParaMostrar,
+  queEsElNumero,
+  type PropsDelGrafico,
+} from '@/lib/metricas/graficos';
 import { formatoDelValor } from '@/lib/metricas/metricasAMedida';
 import type { DefinicionDeMetrica, GraficoDeMetrica, ResultadoDeMetrica } from '@/types/metricas';
 
@@ -28,6 +34,7 @@ export function GraficoDeLaMetrica({ definicion, resultado, grafico }: Props) {
   return (
     <div className="grafico-metrica">
       <p className="metrica-medida-valor">{formatoDelValor(resultado.valor, resultado.formato)}</p>
+      <NotaDelNumero definicion={definicion} resultado={resultado} />
       <Dibujo
         definicion={definicion}
         resultado={resultado}
@@ -41,6 +48,23 @@ export function GraficoDeLaMetrica({ definicion, resultado, grafico }: Props) {
         onCambiar={setTodas}
       />
     </div>
+  );
+}
+
+// Dice qué es el número grande y, si se reparte, quién lo encabeza: así no hay que adivinar de dónde sale.
+function NotaDelNumero({ definicion, resultado }: Omit<Props, 'grafico'>) {
+  if (definicion.agrupar === 'NINGUNA') return null;
+  const primero = elPrimero(definicion, resultado);
+  return (
+    <p className="grafico-metrica-nota">
+      {queEsElNumero(definicion)}
+      {primero && (
+        <>
+          {' · El primero: '}
+          <strong>{primero}</strong>
+        </>
+      )}
+    </p>
   );
 }
 
