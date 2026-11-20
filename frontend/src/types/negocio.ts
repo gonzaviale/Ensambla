@@ -13,6 +13,8 @@ export const configuracionNegocioSchema = z.object({
   comparteDatosZona: z.boolean(),
   // Nombre de la zona que cubre la ubicación; null mientras ninguna la cubra.
   zona: z.string().nullable(),
+  cobroAlias: z.string().nullish(),
+  cobroTitular: z.string().nullish(),
 });
 
 export type ConfiguracionNegocio = z.infer<typeof configuracionNegocioSchema>;
@@ -27,6 +29,8 @@ export const cambiosNegocioSchema = z
       })
       .optional(),
     comparteDatosZona: z.boolean().optional(),
+    cobroAlias: z.string().max(120).optional(),
+    cobroTitular: z.string().max(120).optional(),
   })
   .strict();
 export type CambiosNegocio = z.infer<typeof cambiosNegocioSchema>;

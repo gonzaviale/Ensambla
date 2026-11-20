@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.dto.caja;
 
+import com.ensambla.backend.domain.model.caja.CobroQrId;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.caja.VentaCajaId;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
@@ -21,7 +22,7 @@ public record CobrarVentaWebRequest(@NotNull VentaCajaId id, @NotNull ProyectoId
                                     @NotNull @Pattern(regexp = "EFECTIVO|TRANSFERENCIA|TARJETA|MIXTO") String medio,
                                     @DecimalMin("0") @Digits(integer = 12, fraction = 2) BigDecimal recibido,
                                     @Size(max = 3) List<@NotNull @Valid PagoWebRequest> pagos,
-                                    RegistroId clienteId) {
+                                    RegistroId clienteId, CobroQrId cobroQrId) {
 
     public record PagoWebRequest(
             @NotNull @Pattern(regexp = "EFECTIVO|TRANSFERENCIA|TARJETA") String medio,

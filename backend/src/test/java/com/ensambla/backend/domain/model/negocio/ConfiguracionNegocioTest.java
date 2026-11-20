@@ -11,6 +11,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
+import static com.ensambla.backend.support.NegociosDePrueba.unNegocioConDestinoDeCobro;
 import static com.ensambla.backend.support.NegociosDePrueba.unNegocioDeSanJusto;
 import static com.ensambla.backend.support.NegociosDePrueba.unNegocioSinUbicacion;
 import static com.ensambla.backend.support.NegociosDePrueba.unaUbicacionConEspacios;
@@ -243,7 +244,41 @@ class ConfiguracionNegocioTest {
         entoncesLasCoordenadasQuedanConSeisDecimales();
     }
 
+    @Test
+    @DisplayName("Conserva el destino de cobro si no se envía uno")
+    void conservaElDestinoDeCobroSiNoSeEnviaUno() {
+        dadoUnNegocioConDestinoDeCobro("mi.alias.mp", "Ana Pérez");
+
+        cuandoSeConfiguraSoloElNombre("Nuevo nombre");
+
+        entoncesElDestinoDeCobroEs("mi.alias.mp", "Ana Pérez");
+    }
+
+    @Test
+    @DisplayName("Reemplaza el alias y el titular de cobro por los nuevos")
+    void reemplazaElAliasYElTitularDeCobroPorLosNuevos() {
+        dadoUnNegocioConDestinoDeCobro("mi.alias.mp", "Ana Pérez");
+
+        cuandoSeConfiguraElDestinoDeCobro(DestinoDeCobro.de("otro alias", null));
+
+        entoncesElDestinoDeCobroEs("otro alias", null);
+    }
+
+    @Test
+    @DisplayName("Quita el destino de cobro si se envía sin cargar")
+    void quitaElDestinoDeCobroSiSeEnviaSinCargar() {
+        dadoUnNegocioConDestinoDeCobro("mi.alias.mp", "Ana Pérez");
+
+        cuandoSeConfiguraElDestinoDeCobro(DestinoDeCobro.SIN_CARGAR);
+
+        entoncesElDestinoDeCobroEs(null, null);
+    }
+
     // --- dado ---
+    private void dadoUnNegocioConDestinoDeCobro(String alias, String titular) {
+        negocio = unNegocioConDestinoDeCobro(alias, titular);
+    }
+
     private void dadoUnNegocioDeSanJustoConZona() {
         negocio = unNegocioDeSanJusto(ZONA_ID);
     }
@@ -258,15 +293,19 @@ class ConfiguracionNegocioTest {
 
     // --- cuando ---
     private void cuandoSeConfiguraSoloElNombre(String nombre) {
-        negocio.configurar(nombre, null, null, null, AHORA);
+        negocio.configurar(nombre, null, null, null, null, AHORA);
     }
 
     private void cuandoSeConfiguraUnaUbicacionNuevaUnRubroYLaPrivacidad() {
-        negocio.configurar(null, RubroNegocio.KIOSCO, unaUbicacionConEspacios("-35", "-59"), false, AHORA);
+        negocio.configurar(null, RubroNegocio.KIOSCO, unaUbicacionConEspacios("-35", "-59"), false, null, AHORA);
     }
 
     private void cuandoSeConfiguraLaUbicacion(String latitud, String longitud) {
-        negocio.configurar(null, null, unaUbicacionConEspacios(latitud, longitud), null, AHORA);
+        negocio.configurar(null, null, unaUbicacionConEspacios(latitud, longitud), null, null, AHORA);
+    }
+
+    private void cuandoSeConfiguraElDestinoDeCobro(DestinoDeCobro destino) {
+        negocio.configurar(null, null, null, null, destino, AHORA);
     }
 
     private void cuandoSeConsultaSiCambiaLaUbicacion(UbicacionNegocio nueva) {
@@ -311,6 +350,12 @@ class ConfiguracionNegocioTest {
     }
 
     // --- entonces ---
+    private void entoncesElDestinoDeCobroEs(String alias, String titular) {
+        assertThat(negocio.getCobroAlias()).isEqualTo(alias);
+        assertThat(negocio.getCobroTitular()).isEqualTo(titular);
+        assertThat(negocio.destinoDeCobro()).isEqualTo(new DestinoDeCobro(alias, titular));
+    }
+
     private void entoncesElNombreEsNuevoYSeActualizoAhora() {
         assertThat(negocio.getNombre()).isEqualTo("Nuevo nombre");
         assertThat(negocio.getActualizadoEn()).isEqualTo(AHORA);

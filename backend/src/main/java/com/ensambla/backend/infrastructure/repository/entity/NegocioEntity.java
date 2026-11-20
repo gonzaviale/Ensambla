@@ -62,6 +62,12 @@ public class NegocioEntity {
     @Builder.Default
     private Boolean comparteDatosZona = true;
 
+    @Column(name = "cobro_alias", columnDefinition = "text")
+    private String cobroAlias;
+
+    @Column(name = "cobro_titular", columnDefinition = "text")
+    private String cobroTitular;
+
     @Column(name = "creado_en", nullable = false, updatable = false)
     private OffsetDateTime creadoEn;
 

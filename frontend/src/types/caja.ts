@@ -31,6 +31,7 @@ export type SolicitudCobro = {
   recibido: number | null;
   pagos?: PagoCaja[];
   clienteId?: string;
+  cobroQrId?: string;
   lineas: {
     productoId: string | null;
     descripcion?: string;
@@ -96,6 +97,7 @@ export type SolicitudPagoDeudaCaja = {
   proyectoId: string;
   inventarioId: string;
   aplicaciones: { ventaId: string; pagos: PagoCaja[] }[];
+  cobroQrId?: string;
 };
 export const cuentaClienteCajaSchema = z.object({
   clienteId: z.string(),
@@ -167,3 +169,14 @@ export type SolicitudCierreCaja = {
   contado: number | null;
   nota: string;
 };
+
+export const cobroQrSchema = z.object({
+  id: z.string(),
+  importe: z.number(),
+  alias: z.string(),
+  titular: z.string().nullish(),
+  estado: z.enum(['PENDIENTE', 'VENCIDO', 'COBRADO', 'CANCELADO']),
+  venceEn: z.string(),
+});
+export type CobroQr = z.infer<typeof cobroQrSchema>;
+export type SolicitudCobroQr = { id: string; importe: number };

@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { CobroConQrCaja } from './CobroConQrCaja';
 import { DialogoCaja } from './DialogoCaja';
 import { ConfirmacionCambios } from './ConfirmacionCambios';
 import { usePagoDeudaCaja } from '@/hooks/caja/usePagoDeudaCaja';
 import { useConfirmarCambios } from '@/hooks/useConfirmarCambios';
 import { dineroCaja, fechaCaja, leerPrecio } from '@/lib/caja';
+import { centavosPorTransferencia } from '@/lib/caja/cobroQr';
 import { repartirCobroDeuda } from '@/lib/cobrosDeudasCaja';
 import type { MedioCaja, PagoCaja, VentaCaja } from '@/types/caja';
 import { tonoDe } from '@/lib/sistema/tonos';
@@ -34,6 +36,7 @@ export function CobroDeudaCaja({
   const [dividido, setDividido] = useState(false);
   const [primeraParte, setPrimeraParte] = useState('');
   const [modificado, setModificado] = useState(false);
+  const [cobrandoConQr, setCobrandoConQr] = useState(false);
   const pago = usePagoDeudaCaja(sistemaId, inventarioId, clienteId);
   const cambios = useConfirmarCambios();
   const bloqueado = pago.ocupada || !!pago.solicitud;
@@ -51,6 +54,9 @@ export function CobroDeudaCaja({
   } catch (e) {
     errorImporte = e instanceof Error ? e.message : 'Revisá el importe.';
   }
+  const aTransferir = errorImporte
+    ? 0
+    : centavosPorTransferencia(aplicaciones.flatMap((aplicacion) => aplicacion.pagos));
   const cerrar = async () => {
     if (bloqueado) return;
     if (
@@ -231,6 +237,16 @@ export function CobroDeudaCaja({
               >
                 Cancelar
               </button>
+              {aTransferir > 0 && !pago.solicitud && (
+                <button
+                  type="button"
+                  className="btn secondary"
+                  disabled={pago.ocupada}
+                  onClick={() => setCobrandoConQr(true)}
+                >
+                  Cobrar con QR
+                </button>
+              )}
               <button
                 type="button"
                 className="btn primary"
@@ -247,6 +263,16 @@ export function CobroDeudaCaja({
           </>
         )}
       </DialogoCaja>
+      {cobrandoConQr && !pago.confirmado && (
+        <CobroConQrCaja
+          importeCentavos={aTransferir}
+          ocupada={pago.ocupada}
+          incierta={!!pago.solicitud}
+          error={pago.error}
+          onYaTransfirieron={(cobroQrId) => void pago.confirmar(aplicaciones, cobroQrId)}
+          onCerrar={() => setCobrandoConQr(false)}
+        />
+      )}
       {cambios.confirmacion && (
         <ConfirmacionCambios
           mensaje={cambios.confirmacion}

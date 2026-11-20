@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.dto.negocio;
 
 public record ConfiguracionNegocioWebResponse(String nombre, String rubro, UbicacionNegocioWeb ubicacion,
-                                              Boolean comparteDatosZona, String zona) {
+                                              Boolean comparteDatosZona, String zona,
+                                              String cobroAlias, String cobroTitular) {
 }

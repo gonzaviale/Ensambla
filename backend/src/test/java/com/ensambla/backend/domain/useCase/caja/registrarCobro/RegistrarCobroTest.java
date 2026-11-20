@@ -1,10 +1,12 @@
 package com.ensambla.backend.domain.useCase.caja.registrarCobro;
 
+import com.ensambla.backend.domain.service.caja.CobroQrService;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.caja.CobroCaja;
+import com.ensambla.backend.domain.model.caja.CobroQrId;
 import com.ensambla.backend.domain.model.caja.VentaCaja;
 import com.ensambla.backend.domain.model.caja.VentaCajaId;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
@@ -31,6 +33,8 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
+import static org.mockito.Mockito.doThrow;
+import static com.ensambla.backend.support.CobrosQrDePrueba.COBRO_QR_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
@@ -50,6 +54,8 @@ class RegistrarCobroTest {
     private VentaCajaRepository ventas;
     @Mock
     private CobroCajaRepository cobros;
+    @Mock
+    private CobroQrService cobroQrService;
     private final Clock clock = Clock.fixed(CajaTestData.AHORA.plusDays(1).toInstant(), ZoneOffset.UTC);
     private RegistrarCobro registrar;
 
@@ -59,7 +65,7 @@ class RegistrarCobroTest {
 
     @BeforeEach
     void setUp() {
-        registrar = new RegistrarCobro(negocios, uso, ventas, cobros, new TransaccionDirecta(), clock);
+        registrar = new RegistrarCobro(negocios, uso, ventas, cobros, cobroQrService, new TransaccionDirecta(), clock);
     }
 
     @Test
@@ -167,7 +173,46 @@ class RegistrarCobroTest {
         entoncesElCobroSumaDoscientosEnDosAplicaciones();
     }
 
+    @Test
+    @DisplayName("Cobrar una deuda con QR confirma el cobro por lo transferido en la misma operación")
+    void cobrarUnaDeudaConQrConfirmaElCobroPorLoTransferidoEnLaMismaOperacion() {
+        dadoUnaVentaConDeuda(CobroCajaTestData.venta());
+        dadoQueGuardarUnCobroDevuelveElCobro();
+
+        cuandoSeRegistraElCobroConQr();
+
+        entoncesSeConfirmaElCobroQrPorLoTransferido("600");
+    }
+
+    @Test
+    @DisplayName("Un cobro de deuda sin QR no identifica ningún cobro con QR")
+    void unCobroDeDeudaSinQrNoIdentificaNingunCobroConQr() {
+        dadoUnaVentaConDeuda(CobroCajaTestData.venta());
+        dadoQueGuardarUnCobroDevuelveElCobro();
+
+        cuandoSeRegistraElCobro();
+
+        entoncesNoSeIdentificaNingunCobroQr();
+    }
+
+    @Test
+    @DisplayName("Si el cobro con QR se rechaza no se guarda el cobro de la deuda")
+    void siElCobroConQrSeRechazaNoSeGuardaElCobroDeLaDeuda() {
+        dadoUnaVentaConDeuda(CobroCajaTestData.venta());
+        dadoUnCobroConQrQueSeRechaza();
+
+        cuandoSeIntentaRegistrarElCobroConQr();
+
+        entoncesSeRechazaCon(BusinessRuleException.class);
+        entoncesNoSeGuardaNingunCobro();
+    }
+
     // --- dado ---
+
+    private void dadoUnCobroConQrQueSeRechaza() {
+        doThrow(new BusinessRuleException("El cobro con QR está cancelado"))
+                .when(cobroQrService).confirmarSiHay(any(), any(), any(), any());
+    }
 
     private void dadoUnUsuarioDelNegocio() {
         when(negocios.obtenerIdDelUsuario(CajaTestData.USUARIO)).thenReturn(CajaTestData.NEGOCIO);
@@ -220,6 +265,14 @@ class RegistrarCobroTest {
         respuesta = registrar.execute(CobroCajaTestData.request());
     }
 
+    private void cuandoSeRegistraElCobroConQr() {
+        respuesta = registrar.execute(elCobroConQr());
+    }
+
+    private void cuandoSeIntentaRegistrarElCobroConQr() {
+        rechazo = catchThrowable(() -> registrar.execute(elCobroConQr()));
+    }
+
     private void cuandoSeIntentaRegistrarElCobro() {
         rechazo = catchThrowable(() -> registrar.execute(CobroCajaTestData.request()));
     }
@@ -250,6 +303,21 @@ class RegistrarCobroTest {
         assertThat(respuesta).isEqualTo(CobroCajaItem.de(CobroCajaTestData.cobro()));
     }
 
+    private void entoncesSeConfirmaElCobroQrPorLoTransferido(String importe) {
+        assertThat(importeTransferidoAlConfirmar(COBRO_QR_ID)).isEqualByComparingTo(importe);
+    }
+
+    private void entoncesNoSeIdentificaNingunCobroQr() {
+        assertThat(importeTransferidoAlConfirmar(null)).isEqualByComparingTo("600");
+    }
+
+    private BigDecimal importeTransferidoAlConfirmar(CobroQrId cobroQrId) {
+        ArgumentCaptor<BigDecimal> transferido = ArgumentCaptor.forClass(BigDecimal.class);
+        verify(cobroQrService).confirmarSiHay(eq(cobroQrId), eq(CajaTestData.NEGOCIO), transferido.capture(),
+                eq(CajaTestData.AHORA.plusDays(1)));
+        return transferido.getValue();
+    }
+
     private void entoncesSeBloqueoElNegocio() {
         verify(uso).bloquearNegocio(CajaTestData.NEGOCIO);
     }
@@ -276,6 +344,12 @@ class RegistrarCobroTest {
     }
 
     // --- datos ---
+
+    private RegistrarCobroRequest elCobroConQr() {
+        RegistrarCobroRequest base = CobroCajaTestData.request();
+        return new RegistrarCobroRequest(base.usuarioId(), base.id(), base.proyectoId(), base.inventarioId(),
+                base.aplicaciones(), COBRO_QR_ID);
+    }
 
     private RegistrarCobroRequest unCobroDeLasDosDeudas() {
         return solicitudDoble(segundaVenta.id());

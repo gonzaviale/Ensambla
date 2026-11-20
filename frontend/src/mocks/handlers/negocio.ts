@@ -1,6 +1,10 @@
 import { http, HttpResponse } from 'msw';
 import { coincideLocalidad } from '@/lib/ubicacion';
-import { cambiosNegocioSchema, type ConfiguracionNegocio } from '@/types/negocio';
+import {
+  cambiosNegocioSchema,
+  type CambiosNegocio,
+  type ConfiguracionNegocio,
+} from '@/types/negocio';
 import { estado } from '../db/estado';
 import {
   dentroDeLaZonaDePrueba,
@@ -21,7 +25,22 @@ const configuracionDe = (email: string, nombre: string): ConfiguracionNegocio =>
     ubicacion: null,
     comparteDatosZona: true,
     zona: null,
+    cobroAlias: null,
+    cobroTitular: null,
   };
+
+const textoONulo = (texto: string | undefined) => texto?.trim() || null;
+
+// Igual que el backend: si llega alguno de los dos, se reemplazan juntos y un alias vacío los quita.
+const conElDestinoDeCobro = (
+  guardado: ConfiguracionNegocio,
+  cambios: CambiosNegocio,
+): ConfiguracionNegocio => {
+  if (cambios.cobroAlias === undefined && cambios.cobroTitular === undefined) return guardado;
+  const alias = textoONulo(cambios.cobroAlias);
+  const titular = alias ? textoONulo(cambios.cobroTitular) : null;
+  return { ...guardado, cobroAlias: alias, cobroTitular: titular };
+};
 
 // Igual que el backend: sólo se verifica la localidad si cambia el punto o la localidad guardados.
 const localidadFueraDelMapa = (
@@ -62,7 +81,7 @@ export const handlersNegocio = [
         `La localidad no coincide con la del mapa (${delMapa})`,
         pathDe(request),
       );
-    const guardado = { ...actual, ...cambios.data };
+    const guardado = conElDestinoDeCobro({ ...actual, ...cambios.data }, cambios.data);
     guardado.zona = zonaQueCubre(guardado.ubicacion);
     estado.negocios.set(usuario.email, guardado);
     estado.alCambiar?.();

@@ -51,6 +51,8 @@ class NegocioRepositoryMapperTest {
                 .id(NegocioId.de(USUARIO_ID.valor()))
                 .nombre("Mi negocio")
                 .duenioId(USUARIO_ID)
+                .cobroAlias("mi.alias.mp")
+                .cobroTitular("Ana Pérez")
                 .creadoEn(FECHA)
                 .actualizadoEn(FECHA)
                 .build();

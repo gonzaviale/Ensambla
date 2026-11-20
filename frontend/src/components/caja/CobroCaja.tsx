@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { CobroConQrCaja } from './CobroConQrCaja';
 import { DialogoCaja } from './DialogoCaja';
 import { SelectorClienteCaja } from './SelectorClienteCaja';
 import { ConfirmacionCambios } from './ConfirmacionCambios';
 import { useConfirmarCambios } from '@/hooks/useConfirmarCambios';
 import { dineroCaja, leerPrecio } from '@/lib/caja';
+import { centavosPorTransferencia } from '@/lib/caja/cobroQr';
 import { clientesCaja } from '@/lib/clientesCaja';
 import { Icon } from '@/components/sistema/Icon';
 import { useSistemaStore } from '@/stores/sistemaStore';
@@ -39,6 +41,7 @@ export function CobroCaja({
     recibido: number | null,
     pagos?: PagoCaja[],
     clienteId?: string,
+    cobroQrId?: string,
   ) => void;
   onCerrar: () => void;
 }) {
@@ -51,6 +54,7 @@ export function CobroCaja({
   const [importeParcial, setImporteParcial] = useState('');
   const [clienteId, setClienteId] = useState('');
   const [eligiendoCliente, setEligiendoCliente] = useState(false);
+  const [cobrandoConQr, setCobrandoConQr] = useState(false);
   const pendiente = useSistemaStore((s) => s.pendientes.includes(sistemaId));
   const sistema = useSistemaStore((s) => s.sistemas.find((item) => item.id === sistemaId));
   const cliente = clientesCaja(sistema).find((c) => c.fila.id === clienteId);
@@ -92,21 +96,23 @@ export function CobroCaja({
   }
   if (efectivo > 0 && entregado < efectivo) valido = false;
   const bloqueado = ocupada || incierta;
-  const confirmar = () => {
-    const pagos: PagoCaja[] =
-      tipo === 'fiada'
-        ? []
-        : dividido
-          ? [
-              { medio, importe: parte / 100 },
-              { medio: segundo, importe: restante / 100 },
-            ]
-          : [{ medio, importe: aCobrar / 100 }];
+  const armarPagos = (): PagoCaja[] =>
+    tipo === 'fiada'
+      ? []
+      : dividido
+        ? [
+            { medio, importe: parte / 100 },
+            { medio: segundo, importe: restante / 100 },
+          ]
+        : [{ medio, importe: aCobrar / 100 }];
+  const aTransferir = valido ? centavosPorTransferencia(armarPagos()) : 0;
+  const confirmar = (cobroQrId?: string) => {
     onConfirmar(
       dividido && tipo !== 'fiada' ? 'MIXTO' : medio,
       efectivo > 0 && recibido ? entregado / 100 : null,
-      pagos,
+      armarPagos(),
       clienteId || undefined,
+      cobroQrId,
     );
   };
   return (
@@ -314,11 +320,21 @@ export function CobroCaja({
           >
             Volver
           </button>
+          {aTransferir > 0 && !incierta && (
+            <button
+              type="button"
+              className="btn secondary"
+              disabled={ocupada || pendiente}
+              onClick={() => setCobrandoConQr(true)}
+            >
+              Cobrar con QR
+            </button>
+          )}
           <button
             type="button"
             className="btn primary"
             disabled={ocupada || pendiente || (!incierta && !valido)}
-            onClick={confirmar}
+            onClick={() => confirmar()}
           >
             {ocupada
               ? 'Confirmando…'
@@ -345,6 +361,16 @@ export function CobroCaja({
             }}
           />
         </DialogoCaja>
+      )}
+      {cobrandoConQr && (
+        <CobroConQrCaja
+          importeCentavos={aTransferir}
+          ocupada={ocupada}
+          incierta={incierta}
+          error={error}
+          onYaTransfirieron={confirmar}
+          onCerrar={() => setCobrandoConQr(false)}
+        />
       )}
       {cambios.confirmacion && (
         <ConfirmacionCambios

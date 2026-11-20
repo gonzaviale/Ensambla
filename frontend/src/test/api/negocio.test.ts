@@ -67,6 +67,41 @@ describe('Configuración del negocio', () => {
     entoncesLaLocalidadGuardadaEs('san JUSTO');
   });
 
+  it('guarda el alias y el titular de cobro sin los espacios de los bordes', async () => {
+    dadoUnUsuarioConSesion();
+
+    await cuandoSeGuardaElDestinoDeCobro('  mi.alias.mp  ', ' Ana Pérez ');
+
+    entoncesElDestinoDeCobroEs('mi.alias.mp', 'Ana Pérez');
+    await entoncesLaConsultaTieneElDestinoDeCobro('mi.alias.mp', 'Ana Pérez');
+  });
+
+  it('un alias vacío quita el destino de cobro guardado', async () => {
+    dadoUnUsuarioConSesion();
+    await dadoUnDestinoDeCobroGuardado();
+
+    await cuandoSeGuardaElDestinoDeCobro('   ', 'Ana Pérez');
+
+    entoncesElDestinoDeCobroEs(null, null);
+  });
+
+  it('un cambio que no toca el cobro conserva el alias y el titular', async () => {
+    dadoUnUsuarioConSesion();
+    await dadoUnDestinoDeCobroGuardado();
+
+    await cuandoSeEditaSoloElNombre();
+
+    entoncesElDestinoDeCobroEs('mi.alias.mp', 'Ana Pérez');
+  });
+
+  it('rechaza un alias de más de 120 caracteres', async () => {
+    dadoUnUsuarioConSesion();
+
+    cuandoSeIntentaGuardarElDestinoDeCobro('a'.repeat(121));
+
+    await entoncesSeRechazaConEstado(400);
+  });
+
   it('resuelve la localidad que el mapa reconoce en un punto', async () => {
     dadoUnUsuarioConSesion();
 
@@ -126,6 +161,28 @@ describe('Configuración del negocio', () => {
 
 function dadoUnUsuarioConSesion() {
   setupUsuarioConSesion();
+}
+
+async function dadoUnDestinoDeCobroGuardado() {
+  await actualizarNegocio({ cobroAlias: 'mi.alias.mp', cobroTitular: 'Ana Pérez' });
+}
+
+async function cuandoSeGuardaElDestinoDeCobro(alias: string, titular: string) {
+  respuesta = await actualizarNegocio({ cobroAlias: alias, cobroTitular: titular });
+}
+
+function cuandoSeIntentaGuardarElDestinoDeCobro(alias: string) {
+  rechazo = actualizarNegocio({ cobroAlias: alias });
+}
+
+function entoncesElDestinoDeCobroEs(alias: string | null, titular: string | null) {
+  expect(respuesta.cobroAlias).toBe(alias);
+  expect(respuesta.cobroTitular).toBe(titular);
+}
+
+async function entoncesLaConsultaTieneElDestinoDeCobro(alias: string, titular: string) {
+  const consulta = await obtenerConfiguracionNegocio();
+  expect([consulta.cobroAlias, consulta.cobroTitular]).toEqual([alias, titular]);
 }
 
 async function dadoUnNegocioGuardadoComoKiosco() {
@@ -192,6 +249,8 @@ function entoncesLaRespuestaConservaElRubroYLaPrivacidad() {
     ubicacion: null,
     comparteDatosZona: false,
     zona: null,
+    cobroAlias: null,
+    cobroTitular: null,
   });
 }
 

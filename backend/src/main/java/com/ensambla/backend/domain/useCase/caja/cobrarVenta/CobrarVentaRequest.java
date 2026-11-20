@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.useCase.caja.cobrarVenta;
 
+import com.ensambla.backend.domain.model.caja.CobroQrId;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.caja.VentaCajaId;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
@@ -15,7 +16,14 @@ import com.ensambla.backend.domain.exception.BusinessRuleException;
 
 public record CobrarVentaRequest(UsuarioId usuarioId, VentaCajaId id, ProyectoId proyectoId,
                                  BloqueId inventarioId, BloqueId ventasId, List<LineaRequest> lineas,
-                                 String medio, BigDecimal recibido, List<PagoRequest> pagos, RegistroId clienteId) {
+                                 String medio, BigDecimal recibido, List<PagoRequest> pagos, RegistroId clienteId,
+                                 CobroQrId cobroQrId) {
+
+    public CobrarVentaRequest(UsuarioId usuarioId, VentaCajaId id, ProyectoId proyectoId,
+            BloqueId inventarioId, BloqueId ventasId, List<LineaRequest> lineas, String medio,
+            BigDecimal recibido, List<PagoRequest> pagos, RegistroId clienteId) {
+        this(usuarioId, id, proyectoId, inventarioId, ventasId, lineas, medio, recibido, pagos, clienteId, null);
+    }
 
     public CobrarVentaRequest(UsuarioId usuarioId, VentaCajaId id, ProyectoId proyectoId,
             BloqueId inventarioId, BloqueId ventasId, List<LineaRequest> lineas, String medio,
@@ -63,6 +71,7 @@ public record CobrarVentaRequest(UsuarioId usuarioId, VentaCajaId id, ProyectoId
     public String huella() {
         String base = proyectoId + ":" + inventarioId + ":" + ventasId + ":" + medio + ":" + recibido + ":" + lineas;
         String conPagos = pagos == null ? base : base + ":" + pagos;
-        return clienteId == null ? conPagos : conPagos + ":cliente:" + clienteId;
+        String conCliente = clienteId == null ? conPagos : conPagos + ":cliente:" + clienteId;
+        return cobroQrId == null ? conCliente : conCliente + ":cobroQr:" + cobroQrId;
     }
 }

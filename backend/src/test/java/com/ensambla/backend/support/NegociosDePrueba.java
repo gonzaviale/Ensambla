@@ -1,5 +1,6 @@
 package com.ensambla.backend.support;
 
+import com.ensambla.backend.domain.model.negocio.DestinoDeCobro;
 import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.negocio.RubroNegocio;
 import com.ensambla.backend.domain.model.negocio.UbicacionNegocio;
@@ -22,6 +23,10 @@ public final class NegociosDePrueba {
 
     public static Negocio unNegocioSinUbicacionEnUnaZonaAnterior() {
         return Negocio.builder().id(NEGOCIO_ID).zonaId(ZonaId.nuevo()).build();
+    }
+
+    public static Negocio unNegocioConDestinoDeCobro(String alias, String titular) {
+        return Negocio.builder().id(NEGOCIO_ID).cobroAlias(alias).cobroTitular(titular).build();
     }
 
     public static Negocio unNegocioLlamado(String nombre) {
