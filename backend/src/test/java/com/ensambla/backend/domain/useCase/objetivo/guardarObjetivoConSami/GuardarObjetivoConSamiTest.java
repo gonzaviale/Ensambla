@@ -356,7 +356,7 @@ class GuardarObjetivoConSamiTest {
     private void entoncesSeGuardaSoloElManualGenerico() {
         MiniObjetivo mini = unicoMiniGuardado();
         assertThat(mini.esManual()).isTrue();
-        assertThat(mini.getTitulo()).isEqualTo("Anotá cómo te fue con tu objetivo");
+        assertThat(mini.getTitulo()).isEqualTo("Cargá cómo te fue con tu objetivo");
         assertThat(mini.getJustificacion()).contains(OBJETIVO);
         assertThat(mini.isTextoConIa()).isFalse();
         verifyNoInteractions(propuestaMiniObjetivosService);

@@ -25,8 +25,8 @@ public final class RepertorioDeHerramientas {
     public RepertorioDeHerramientas(CatalogoComponentes catalogo, KitsRubro kits) {
         AgregarPieza agregarPieza = new AgregarPieza(catalogo);
         Conectar conectar = new Conectar(catalogo);
-        EditarCampo editarCampo = new EditarCampo();
-        List.of(agregarPieza, new QuitarPieza(), new RenombrarPieza(), new RenombrarSistema(), new AgregarCampo(),
+        EditarCampo editarCampo = new EditarCampo(catalogo);
+        List.of(agregarPieza, new QuitarPieza(catalogo), new RenombrarPieza(), new RenombrarSistema(), new AgregarCampo(),
                 new QuitarCampo(catalogo), editarCampo, new CargarRegistros(), new EditarRegistros(),
                 new BorrarRegistros(), conectar, new SepararEnSeccion(), new CambiarDistribucion())
                 .forEach(herramienta -> sobreElSistema.put(herramienta.herramienta(), herramienta));

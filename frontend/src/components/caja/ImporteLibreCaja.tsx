@@ -32,7 +32,7 @@ export function ImporteLibreCaja({
   };
   return (
     <>
-      <DialogoCaja titulo="Agregar importe" onCerrar={() => void solicitarCierre()}>
+      <DialogoCaja titulo="Agregar importe" tono="naranja" onCerrar={() => void solicitarCierre()}>
         <form onSubmit={agregar}>
           <p className="caja-ayuda">Sumá un servicio u otro importe a esta venta.</p>
           <label>

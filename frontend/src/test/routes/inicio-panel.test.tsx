@@ -242,7 +242,7 @@ function entoncesLaBienvenidaCompactaOfreceLasTresFormasDeEmpezar() {
   expect(bienvenida.getByRole('button', { name: /Elegir una plantilla/ })).toBeVisible();
   expect(bienvenida.getByRole('button', { name: /Empezar de cero/ })).toBeVisible();
   expect(bienvenida.getByRole('button', { name: /Primera vez/ })).toBeVisible();
-  expect(screen.queryByText(/Tocá una ficha para arrancar/)).toBeNull();
+  expect(screen.queryByText(/Elegí una opción para empezar/)).toBeNull();
 }
 
 function entoncesLosAtajosVanEnLaFranjaUnaSolaVez() {
@@ -264,17 +264,17 @@ function entoncesLosAtajosSonCompletos() {
 
 function entoncesSeVeLaBienvenidaGrandeSinPanel() {
   expect(screen.getByRole('region', { name: 'Empezar algo nuevo' })).toBeVisible();
-  expect(screen.getByText(/Tocá una ficha para arrancar/)).toBeVisible();
+  expect(screen.getByText(/Elegí una opción para empezar/)).toBeVisible();
   expect(titulo()).toBeNull();
 }
 
 function entoncesAvisaQueEstaHaciendoLasCuentas() {
   const panel = screen.getByRole('region', { name: NOMBRE_DEL_PANEL });
-  expect(within(panel).getByRole('status')).toHaveTextContent('Estamos haciendo tus cuentas');
+  expect(within(panel).getByRole('status')).toHaveTextContent('Calculando tus números');
 }
 
 function entoncesYaNoAvisaQueEstaHaciendoLasCuentas() {
-  expect(screen.queryByText('Estamos haciendo tus cuentas…')).toBeNull();
+  expect(screen.queryByText('Calculando tus números…')).toBeNull();
 }
 
 async function entoncesSeVeLaBienvenidaSinPanel() {

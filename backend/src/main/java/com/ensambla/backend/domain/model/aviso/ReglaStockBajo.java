@@ -105,7 +105,7 @@ public class ReglaStockBajo implements ReglaAviso {
         }
 
         String sugerencia() {
-            return "Para no quedarte corto, pedí " + texto(cantidadAPedir()) + ".";
+            return "Te conviene pedir " + texto(cantidadAPedir()) + " para no quedarte sin stock.";
         }
 
         Map<String, Object> datos() {

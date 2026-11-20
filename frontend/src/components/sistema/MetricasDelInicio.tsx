@@ -35,7 +35,7 @@ export function MetricasDelInicio({ sistema }: { sistema: Sistema }) {
       ) : !resumen ? (
         <div className="tablero-cargando">
           <span className="sr-only" role="status">
-            Mirando tus números…
+            Cargando tus números…
           </span>
           <span className="tablero-cargando-principal" />
           <span />
@@ -61,8 +61,8 @@ function SinVentas({ sistema }: { sistema: Sistema }) {
       <span className="tablero-vacio-icono" aria-hidden="true">
         <Icon name="chart" />
       </span>
-      <h3>Acá vas a ver tus ventas</h3>
-      <p>Anotalas en «{sistema.name}» y aparecen solas.</p>
+      <h3>Aquí vas a ver tus ventas</h3>
+      <p>Cargalas en «{sistema.name}» y se muestran aquí.</p>
       <button type="button" className="btn primary" onClick={() => void abrirVentas(sistema)}>
         Cargar mis primeras ventas
       </button>
@@ -133,7 +133,7 @@ function TarjetaDeVentas({ resumen }: PropsDeTarjeta) {
             </p>
             {!conPlata && (
               <p className="tablero-ventas-dato">
-                Esas ventas no tienen precio, así que no puedo sumar la plata.
+                Esas ventas no tienen precio: no se pueden sumar.
               </p>
             )}
             {ventas.ventasFiadas > 0 && (

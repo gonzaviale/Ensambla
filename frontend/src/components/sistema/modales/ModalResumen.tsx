@@ -16,7 +16,7 @@ import { seleccionarSistemaActivo, useSistemaStore } from '@/stores/sistemaStore
 const QUE_INCLUYE = [
   'Cuánto vendiste, ganaste y gastaste, comparado con el período anterior.',
   'Lo que más se vende y lo que está parado.',
-  'El stock que falta y lo que vale tu inventario.',
+  'El stock que falta y lo que vale tu stock.',
   'Tus clientes, el fiado y los gastos por categoría.',
   'Tus precios frente a la zona y lo que te avisó Sami.',
 ];

@@ -147,7 +147,7 @@ public class AplicarAviso {
         valores.forEach((clave, valor) -> campoDeClave(campos, clave)
                 .ifPresent(campo -> cambios.put(campo.getId().toString(), valor)));
         if (cambios.isEmpty()) {
-            throw new BusinessRuleException("La tabla ya no tiene los campos que el aviso quería cambiar");
+            throw new BusinessRuleException("La sección ya no tiene los datos que el aviso quería cambiar");
         }
         return cambios;
     }

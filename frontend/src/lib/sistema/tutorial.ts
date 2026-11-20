@@ -38,8 +38,8 @@ export const PASOS: Record<PasoDeTutorial, DetalleDePaso> = {
   },
   describe: {
     grupo: 1,
-    title: 'Contame lo que necesitás.',
-    text: 'Comentame cómo te manejás, qué querés organizar o el negocio que tenés en mente, y te ayudo a crearlo.',
+    title: 'Describí lo que necesitás.',
+    text: 'Escribí cómo trabajás, qué querés organizar o el negocio que tenés en mente, y te ayudo a crearlo.',
     hint: 'Escribí tu idea y enviá el mensaje.',
   },
   review: {
@@ -50,7 +50,7 @@ export const PASOS: Record<PasoDeTutorial, DetalleDePaso> = {
   },
   create: {
     grupo: 1,
-    title: 'Cuando te cierre, la creamos.',
+    title: 'Cuando te sirva, la creamos.',
     text: 'Esta propuesta todavía no es una sección guardada. Podés seguir ajustándola o confirmar para empezar a usarla.',
     hint: 'Tocá “Sí, crear mi sección”.',
   },
@@ -62,7 +62,7 @@ export const PASOS: Record<PasoDeTutorial, DetalleDePaso> = {
   },
   useTemplate: {
     grupo: 1,
-    title: 'Mirá las piezas antes de empezar.',
+    title: 'Revisá las piezas antes de empezar.',
     text: 'Revisá los bloques y sus opciones. Cuando te sirva esta base, elegí empezar con este conjunto.',
     hint: 'Confirmá la plantilla para crear tu sección.',
   },
@@ -75,36 +75,36 @@ export const PASOS: Record<PasoDeTutorial, DetalleDePaso> = {
   addBlock: {
     grupo: 1,
     title: 'Traé tu primera pieza.',
-    text: 'Elegí un bloque del catálogo y arrastralo al lienzo. También podés tocar el +. Para empezar, Clientes o Inventario son buenas opciones.',
+    text: 'Elegí un bloque del catálogo y arrastralo al lienzo. También podés tocar el +. Para empezar, Clientes o Stock son buenas opciones.',
     hint: 'Agregá un bloque al lienzo.',
   },
   customize: {
     grupo: 2,
-    title: 'De acá se cambia.',
+    title: 'Desde aquí se cambia.',
     text: 'Abrí los ajustes de esta pieza. Podés cambiar su nombre, sus campos, su color y la pestaña donde aparece.',
     hint: 'Tocá el botón de ajustes del bloque.',
   },
   rename: {
     grupo: 2,
-    title: 'Ponelo en tus palabras.',
+    title: 'Elegí un nombre claro.',
     text: 'Cambiá el nombre de este bloque por uno que te resulte claro. Al salir del campo, el cambio se guarda solo.',
     hint: 'Escribí otro nombre y salí del campo con Tab o tocando afuera.',
   },
   addSecond: {
     grupo: 2,
-    title: 'Sumemos otra pieza para moverlas.',
+    title: 'Agregá otra pieza para moverlas.',
     text: 'Agregá un segundo bloque del catálogo. Con dos piezas vas a poder probar cómo cambiar su orden.',
     hint: 'Arrastrá otra pieza o tocá su +.',
   },
   move: {
     grupo: 2,
-    title: 'De acá se mueve.',
-    text: 'Arrastrá el bloque desde los seis puntitos o usá las flechas de subir y bajar. Cambialo de lugar para probar.',
+    title: 'Desde aquí se mueve.',
+    text: 'Arrastrá el bloque desde los seis puntos o usá las flechas de subir y bajar. Cambialo de lugar para probar.',
     hint: 'Mové el bloque a otra posición.',
   },
   openRecord: {
     grupo: 3,
-    title: 'De acá se llena.',
+    title: 'Desde aquí se carga.',
     text: 'El diseño está listo para empezar. Tocá Registrar en esta pieza para cargar tu primer dato.',
     hint: 'Abrí el formulario con “Registrar”.',
   },

@@ -61,7 +61,7 @@ public record TextoMiniObjetivo(String titulo, String justificacion) {
         return new TextoMiniObjetivo(
                 "Reponé lo que está por debajo de tu mínimo",
                 "Productos en su mínimo o por debajo: hoy son " + numero(productos) + ". Reponelos y bajá ese número a "
-                        + "0 para no quedarte sin.");
+                        + "0 para no quedarte sin stock.");
     }
 
     public static TextoMiniObjetivo capitalParado(BigDecimal capital, BigDecimal meta) {

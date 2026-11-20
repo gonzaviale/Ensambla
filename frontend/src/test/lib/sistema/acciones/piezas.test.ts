@@ -17,6 +17,7 @@ import {
   separarEnSeccion,
 } from '@/test/accionesDeSami';
 import {
+  cuandoDejaDeExistirLaPiezaDeTipo,
   cuandoSeCopiaConOtraFecha,
   cuandoSeCopiaConOtroNombre,
   cuandoSeResume,
@@ -26,6 +27,7 @@ import {
   dadoUnAlmacenConDosVentasCargadas,
   dadoUnAlmacenConUnaVentaAAntoGuardada,
   dadoUnAlmacenConUnaVentaDeUnProductoQueNoExiste,
+  dadoUnAlmacenConOtraPiezaDeCadaTipoObligatorio,
   dadoUnAlmacenDeEjemploDeUnaSolaColumna,
   dadoUnAlmacenSinPestanas,
   entoncesElClienteDeLasVentasVuelveASerTextoSinValores,
@@ -196,7 +198,7 @@ describe('agregar y quitar piezas', () => {
   });
 
   it('quita una pieza por id, por tipo o por nombre', () => {
-    dadoUnAlmacenDeEjemplo();
+    dadoUnAlmacenConOtraPiezaDeCadaTipoObligatorio();
 
     cuandoSamiPide(
       quitarPieza(idDeLaPieza('clients')),
@@ -207,7 +209,7 @@ describe('agregar y quitar piezas', () => {
     entoncesSeAplicaron(3);
   });
 
-  it('después de quitarlas todas no queda ninguna pieza', () => {
+  it('no quita la última pieza de un tipo que el negocio necesita', () => {
     dadoUnAlmacenDeEjemplo();
 
     cuandoSamiPide(
@@ -216,7 +218,7 @@ describe('agregar y quitar piezas', () => {
       quitarPieza('inventario'),
     );
 
-    entoncesHayPiezas(0);
+    entoncesHayPiezas(3);
   });
 
   it('no quita una pieza que no existe', () => {
@@ -227,26 +229,26 @@ describe('agregar y quitar piezas', () => {
     entoncesSeOmitio('No encontré esa pieza.');
   });
 
-  it('al quitar los clientes, el cliente de las ventas vuelve a ser un texto sin valores', () => {
+  it('si faltan los clientes, el cliente de las ventas vuelve a ser un texto sin valores', () => {
     dadaUnaTablaDeTurnosConectadaALosClientes();
 
-    cuandoSamiPide(quitarPieza('clients'));
+    cuandoDejaDeExistirLaPiezaDeTipo('clients');
 
     entoncesElClienteDeLasVentasVuelveASerTextoSinValores();
   });
 
-  it('al quitar los clientes, un vínculo que sumó Sami también vuelve a ser texto', () => {
+  it('si faltan los clientes, un vínculo que sumó Sami también vuelve a ser texto', () => {
     dadaUnaTablaDeTurnosConectadaALosClientes();
 
-    cuandoSamiPide(quitarPieza('clients'));
+    cuandoDejaDeExistirLaPiezaDeTipo('clients');
 
     entoncesLaClientaDeLosTurnosVuelveASerTexto();
   });
 
-  it('al quitar el inventario, el producto de las ventas sigue siendo un vínculo, sin destino', () => {
+  it('si falta el inventario, el producto de las ventas sigue siendo un vínculo, sin destino', () => {
     dadoUnAlmacenDeEjemplo();
 
-    cuandoSamiPide(quitarPieza('inventory'));
+    cuandoDejaDeExistirLaPiezaDeTipo('inventory');
 
     entoncesElProductoDeLasVentasSigueSiendoUnVinculoSinDestino();
   });

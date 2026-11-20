@@ -464,7 +464,7 @@ class ConversarEnTallerTest {
     @DisplayName("Describe con el nombre de cada pieza las piezas y los datos que se tocaron")
     void describeConElNombreDeCadaPiezaLasPiezasYLosDatosQueSeTocaron() {
         dadoElCupoDisponible();
-        dadoUnSistemaConDatos();
+        dadoUnSistemaConDatosYUnaPiezaDePedidos();
         dadoQueElModeloQuitaRenombraYAmpliaPiezas();
 
         cuandoSeConversaCon("ordená");
@@ -582,6 +582,12 @@ class ConversarEnTallerTest {
 
     private void dadoUnSistemaConDatos() {
         estado = ESTADO_CON_DATOS;
+    }
+
+    private void dadoUnSistemaConDatosYUnaPiezaDePedidos() {
+        estado = new EstadoTaller("Mi almacén", "mosaic", List.of(
+                new PiezaTaller("e1", "inventory", "Inventario", null, List.of(new CampoTaller("Producto", "text"))),
+                new PiezaTaller("e2", "orders", "Pedidos", null, List.of())));
     }
 
     private void dadoUnSistemaConRegistros() {
@@ -1048,7 +1054,7 @@ class ConversarEnTallerTest {
     }
 
     private void entoncesElTextoDescribeCadaPiezaYDatoTocado() {
-        entoncesElTextoEs("Quité clientes. Renombré inventario a Productos. Llamé al sistema Velas."
+        entoncesElTextoEs("Quité pedidos. Renombré inventario a Productos. Llamé al sistema Velas."
                 + " Sumé Proveedor a inventario. Quité Proveedor de inventario. Mirá cómo queda.");
     }
 

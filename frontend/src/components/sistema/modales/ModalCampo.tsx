@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { FIELD_TYPES } from '@/lib/sistema/catalogo';
 import { allBlocks, findBlock } from '@/lib/sistema/core';
+import { esColumnaFija } from '@/lib/sistema/estructuraFija';
 import type { Campo } from '@/lib/sistema/tipos';
 import { guardarCampo, pedirQuitarCampo } from '@/stores/accionesDelEditor';
 import { seleccionarSistemaActivo, useSistemaStore } from '@/stores/sistemaStore';
@@ -22,6 +23,7 @@ export function ModalCampo({ bloqueId, clave }: { bloqueId: string; clave?: stri
   const [objetivo, setObjetivo] = useState(existente?.target ?? '');
   const [requerido, setRequerido] = useState(existente?.required ?? false);
   const [error, setError] = useState('');
+  const esFija = existente !== undefined && esColumnaFija(existente);
 
   if (!bloque || !sistema) return null;
   const destinos = allBlocks(sistema).filter(
@@ -47,6 +49,12 @@ export function ModalCampo({ bloqueId, clave }: { bloqueId: string; clave?: stri
       </div>
       <h2 id="modal-title">{clave ? 'Editar' : 'Agregar'} campo</h2>
       <p>Elegí qué dato querés registrar en {bloque.name.toLowerCase()}.</p>
+      {esFija && (
+        <p className="input-hint">
+          <Icon name="lock" /> Ensambla necesita este campo para funcionar. Podés cambiarle el nombre, pero no
+          quitarlo ni cambiar su tipo.
+        </p>
+      )}
       <form onSubmit={guardar} noValidate>
         <div className="field">
           <label htmlFor="field-name">Nombre del campo</label>
@@ -66,6 +74,7 @@ export function ModalCampo({ bloqueId, clave }: { bloqueId: string; clave?: stri
           <select
             id="field-type"
             name="type"
+            disabled={esFija}
             value={tipo}
             onChange={(evento) => setTipo(evento.target.value as Campo['type'])}
           >
@@ -111,6 +120,7 @@ export function ModalCampo({ bloqueId, clave }: { bloqueId: string; clave?: stri
           <input
             type="checkbox"
             name="required"
+            disabled={esFija}
             checked={requerido}
             onChange={(evento) => setRequerido(evento.target.checked)}
           />
@@ -120,7 +130,7 @@ export function ModalCampo({ bloqueId, clave }: { bloqueId: string; clave?: stri
           {error}
         </div>
         <div className="modal-footer spread">
-          {clave ? (
+          {clave && !esFija ? (
             <Btn cls="danger small" onClick={() => pedirQuitarCampo(bloque.id, clave)}>
               <Icon name="trash" /> Quitar campo
             </Btn>

@@ -84,7 +84,7 @@ function AvanceSinSemanasTodavia() {
   return (
     <figure className="avance-semanas vacio">
       <p className="avance-semanas-vacio">
-        Este gráfico se arma solo. Cuando le cuentes a Sami cómo te fue y cierre el domingo, acá
+        Este gráfico se arma solo. Cuando le cuentes a Sami cómo te fue y cierre el domingo, aquí
         aparece tu primera semana.
       </p>
       <div className="avance-semanas-fantasma" aria-hidden>

@@ -46,8 +46,8 @@ function LoQueSabemosDelNegocio({
   return (
     <>
       Veo que tu negocio es <strong>{negocio.nombre}</strong>
-      <EnElLugar negocio={negocio} />. Vamos a buscar dónde abrir <strong>{UN_RUBRO[rubro]}</strong>
-      . ¿Querés continuar con estos datos?
+      <EnElLugar negocio={negocio} />. Buscaremos dónde abrir <strong>{UN_RUBRO[rubro]}</strong>.
+      ¿Querés continuar con estos datos?
     </>
   );
 }

@@ -160,7 +160,7 @@ export function DefinirObjetivo({ onDefinido, onCancelar, textoInicial = '' }: P
           <strong>Cómo se mide</strong>
           <p>
             Ventas − costo de mercadería − gastos = resultado. Sami compara ese resultado con tu
-            meta, y revisa margen, punto de equilibrio y ventas pendientes de cobro.
+            meta, y revisa la ganancia, el punto de equilibrio y las ventas pendientes de cobro.
           </p>
         </div>
       </aside>

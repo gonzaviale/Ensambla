@@ -22,7 +22,7 @@ export function RecorridoDeLaSemana({ decisiones, semanas, estaSemana }: Props) 
   if (lunes.length === 0) {
     return (
       <p className="recorrido-vacio">
-        Todavía no pasó nada. Cuando decidas algo o cierre el primer domingo, lo vas a ver acá.
+        Todavía no pasó nada. Cuando decidas algo o cierre el primer domingo, lo vas a ver aquí.
       </p>
     );
   }

@@ -45,14 +45,14 @@ export function IngresarCodigo({
     if (!valido.success) return setErrorLocal(valido.error.issues[0]?.message);
     setErrorLocal(undefined);
     confirmar.mutate(valido.data, {
-      onSuccess: () => avisar('Listo, vinculamos tu número de WhatsApp.'),
+      onSuccess: () => avisar('Vinculamos tu número de WhatsApp.'),
     });
   };
 
   return (
     <form onSubmit={enviar} aria-labelledby="cuenta-whatsapp-titulo" noValidate>
       <p role="status">
-        Te mandamos un código de 6 dígitos por WhatsApp al +{verificacion.telefono}. Vence en 10
+        Te enviamos un código de 6 dígitos por WhatsApp al +{verificacion.telefono}. Vence en 10
         minutos.
       </p>
       <div className="field">

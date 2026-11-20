@@ -18,10 +18,10 @@ export function guardarClienteCaja(
   let tabla = allBlocks(sistema).find((item) => item.id === tablaId && item.type === 'clients');
   const nueva = !tabla;
   if (!tabla) {
-    if (tablaId) return { errores: { name: 'La tabla de clientes ya no está disponible.' } };
+    if (tablaId) return { errores: { name: 'La sección de clientes ya no está disponible.' } };
     tabla = makeBlock('clients');
     if (!sistema.sections[0])
-      return { errores: { name: 'Primero creá una sección en Mi Negocio.' } };
+      return { errores: { name: 'Primero creá una sección en Mi negocio.' } };
   }
   const datos = { ...valores, name: String(valores.name ?? '').trim() };
   const errores = validateRow(tabla, datos, sistema, clienteId);

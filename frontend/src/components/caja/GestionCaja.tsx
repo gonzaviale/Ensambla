@@ -33,7 +33,7 @@ export function GestionCaja({
     <section className="caja-gestion" aria-label="Ventas y cierres">
       <div className="caja-entre">
         <div>
-          <span className="caja-antetitulo">LAS CUENTAS CLARAS</span>
+          <span className="caja-antetitulo">ACTIVIDAD DE LA CAJA</span>
           <h2>
             {vista === 'cobros'
               ? 'Cobros del día'
@@ -159,6 +159,7 @@ export function GestionCaja({
                   <button
                     type="button"
                     key={c.id}
+                    data-con-diferencia={tieneDiferencia(c.diferencia) || undefined}
                     disabled={caja.ocupada}
                     onClick={() => void caja.abrirDetalle(c.id)}
                   >
@@ -288,3 +289,5 @@ export function GestionCaja({
     </section>
   );
 }
+
+const tieneDiferencia = (diferencia: number | null) => !!diferencia;

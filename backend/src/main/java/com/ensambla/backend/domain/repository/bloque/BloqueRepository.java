@@ -6,13 +6,18 @@ import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 public interface BloqueRepository {
 
     Optional<Bloque> findByIdAndNegocioId(BloqueId id, NegocioId negocioId);
+
+    /** Los bloques del sistema, sin sus campos cargados. */
+    List<Bloque> findByProyectoIdAndNegocioId(ProyectoId proyectoId, NegocioId negocioId);
 
     Bloque save(Bloque bloque);
 

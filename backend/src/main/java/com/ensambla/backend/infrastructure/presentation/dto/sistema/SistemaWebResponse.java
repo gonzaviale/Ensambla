@@ -38,7 +38,9 @@ public record SistemaWebResponse(
             List<Map<String, Object>> rows,
             String content,
             Boolean startRow,
-            Integer stockDirection) {
+            Integer stockDirection,
+            boolean removable,
+            boolean typeLocked) {
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -49,6 +51,7 @@ public record SistemaWebResponse(
             boolean required,
             List<String> options,
             BigDecimal min,
-            String target) {
+            String target,
+            boolean system) {
     }
 }

@@ -11,7 +11,7 @@ export function VincularConCodigo() {
     <details className="cuenta-alternativa">
       <summary>¿No te llega el código?</summary>
       <p>
-        También podés vincular el número desde tu teléfono: generá un código y mandáselo a Sami.
+        También podés vincular el número desde tu teléfono: generá un código y enviáselo a Sami.
       </p>
       {generar.isError ? <p role="alert">{leerErrorServidor(generar.error)?.mensaje}</p> : null}
       {resultado ? (

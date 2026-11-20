@@ -24,7 +24,7 @@ import {
 import { ESPERA, clickButton, verifyPathAsync, verifyToastAsync } from '@/test/testHelpers';
 
 const DIALOGO_DE_CONSEJOS = 'Para que Sami lea bien tu foto';
-const BOTON_DE_LA_CAMARA = 'Mandarle una foto a Sami';
+const BOTON_DE_LA_CAMARA = 'Enviar una foto a Sami';
 
 let abrirSelector: ReturnType<typeof vi.spyOn>;
 let piezasAntes: (string | undefined)[];
@@ -104,12 +104,12 @@ export const cuandoSeAbreElChatMinimizado = () =>
 
 export const cuandoSeEscribeUnMensajeMuyCorto = async () => {
   await persona().type(campoDeLaConversacion(), 'a');
-  await clickButton(persona(), /Pensalo conmigo/);
+  await clickButton(persona(), /Enviar a Sami/);
 };
 
 export const cuandoSePideSumarGastos = async () => {
   await persona().type(campoDeLosAjustes(), 'sumá gastos');
-  await clickButton(persona(), /Ajustalo conmigo/);
+  await clickButton(persona(), /Ajustar con Sami/);
 };
 
 export const cuandoSeRenombraLaPiezaDeClientes = async () => {
@@ -210,7 +210,7 @@ export const cuandoSeVuelveAEntrarAlTaller = async () => {
 
 export const entoncesEmpiezaConElSaludoLosEjemplosYElLienzoVacio = () => {
   expect(screen.getByText('Hola, Ana Pérez.')).toBeVisible();
-  expect(screen.getByText('Contame qué hacés y cómo te organizás hoy.')).toBeVisible();
+  expect(screen.getByText('Escribí qué hacés y cómo te organizás hoy.')).toBeVisible();
   expect(screen.getByText('O probá con un ejemplo:')).toBeVisible();
   entoncesLaConversacionYElLienzoEstanVacios();
   expect(screen.queryByText('Tu idea es el punto de partida')).toBeNull();
@@ -234,7 +234,7 @@ export const entoncesSeCierraElPopUpSinAbrirElSelector = () => {
 
 export const entoncesElChatQuedaMinimizadoYElFocoVaAlBotonParaAbrirlo = async () => {
   expect(screen.getByText('Hola, Ana Pérez.')).not.toBeVisible();
-  expect(screen.getByText('TU IDEA VA A APARECER ACÁ')).toBeVisible();
+  expect(screen.getByText('TU IDEA VA A APARECER AQUÍ')).toBeVisible();
   const abrir = screen.getByRole('button', { name: 'Abrir el chat con Sami' });
   await waitFor(() => expect(abrir).toHaveFocus());
 };
@@ -246,7 +246,7 @@ export const entoncesSeVuelveALaConversacionSinPerderla = async () => {
 };
 
 export const entoncesPideUnPocoMasYNoArmaNingunaPropuesta = async () => {
-  await verifyToastAsync(/Contame un poquito más/);
+  await verifyToastAsync(/Necesito más detalles/);
   expect(borrador()).toBeNull();
 };
 

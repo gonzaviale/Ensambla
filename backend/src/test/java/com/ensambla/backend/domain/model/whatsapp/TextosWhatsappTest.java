@@ -152,7 +152,7 @@ class TextosWhatsappTest {
     void elMensajeDeDatosInvalidosNombraCadaCampo() {
         cuandoSeAvisanLosDatosInvalidos(Map.of("id-1", "Tiene que ser un número"), Map.of("id-1", "Monto"));
 
-        entoncesElTextoDice("Monto (tiene que ser un número)", "Mandame los datos de nuevo");
+        entoncesElTextoDice("Monto (tiene que ser un número)", "Enviame los datos de nuevo");
     }
 
     @Test

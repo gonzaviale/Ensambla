@@ -210,7 +210,7 @@ describe('objetivos que se autogestionan', () => {
   it.each([
     ['VENTAS_SEMANALES', 84000, { numero: '$84.000', unidad: 'por semana' }],
     ['SUBIR_PRECIO', 15100, { numero: '$15.100', unidad: '' }],
-    ['MEJORAR_MARGEN', 28, { numero: '28 %', unidad: 'de margen' }],
+    ['MEJORAR_MARGEN', 28, { numero: '28 %', unidad: 'de ganancia por venta' }],
   ] as const)('separa el número de su unidad en %s', (tipo, valor, partes) => {
     cuandoSeCalcula(() => partesDeMini(tipo, valor));
 

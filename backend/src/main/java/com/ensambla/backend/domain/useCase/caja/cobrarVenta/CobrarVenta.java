@@ -98,12 +98,12 @@ public class CobrarVenta {
     private Sistema obtenerSistema(NegocioId negocioId, CobrarVentaRequest request) {
         return sistemaRepository.findAllByNegocioId(negocioId).stream()
                 .filter(item -> item.id().equals(request.proyectoId())).findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("Sistema no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("No encontramos ese negocio"));
     }
 
     private void exigirInventarioRelacionado(Bloque inventario, Bloque ventas) {
         if (!inventario.getId().equals(campo(ventas, "product").getBloqueRelacionadoId())) {
-            throw new BusinessRuleException("La tabla de ventas debe usar el inventario elegido");
+            throw new BusinessRuleException("La sección de ventas debe usar el stock elegido");
         }
     }
 
@@ -156,7 +156,7 @@ public class CobrarVenta {
     private Registro obtenerProducto(Sistema sistema, Bloque inventario, RegistroId id) {
         return sistema.registrosPorBloque().getOrDefault(inventario.getId(), List.of()).stream()
                 .filter(item -> item.getId().equals(id)).findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("Artículo no encontrado en el inventario"));
+                .orElseThrow(() -> new ResourceNotFoundException("No encontramos el artículo en el stock"));
     }
 
     private void exigirPrecioYModoActuales(CobrarVentaRequest.LineaRequest entrada, BigDecimal precio, ModoVenta modo) {
@@ -258,7 +258,7 @@ public class CobrarVenta {
     private Bloque obtenerBloque(Sistema sistema, BloqueId id, TipoBloque tipo) {
         return sistema.proyecto().getBloques().stream()
                 .filter(bloque -> bloque.getId().equals(id) && bloque.getTipo() == tipo).findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("Tabla de caja no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("No encontramos la sección de caja"));
     }
 
     private String obtenerCliente(Sistema sistema, Bloque ventas, RegistroId clienteId) {
@@ -284,7 +284,7 @@ public class CobrarVenta {
 
     private Campo campo(Bloque bloque, String clave) {
         return bloque.getCampos().stream().filter(item -> clave.equals(item.getClave())).findFirst()
-                .orElseThrow(() -> new BusinessRuleException("Falta el campo " + clave + " en " + bloque.getNombre()));
+                .orElseThrow(() -> new BusinessRuleException("Falta el dato " + clave + " en " + bloque.getNombre()));
     }
 
     private Object valor(Bloque bloque, Registro fila, String clave) {
@@ -294,7 +294,7 @@ public class CobrarVenta {
 
     private BigDecimal numero(Object valor) {
         if (!(valor instanceof Number)) {
-            throw new BusinessRuleException("Revisá el precio y la cantidad del inventario");
+            throw new BusinessRuleException("Revisá el precio y la cantidad en el stock");
         }
         return new BigDecimal(valor.toString());
     }

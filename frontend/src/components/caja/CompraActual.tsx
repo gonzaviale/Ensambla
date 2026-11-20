@@ -47,8 +47,8 @@ export function CompraActual({
       {!lineas.length && (
         <div className="caja-vacio">
           <Icon name="orders" />
-          <h3>Tu próxima venta empieza acá</h3>
-          <p>Agregá productos para revisar la compra.</p>
+          <h3>Todavía no hay productos en esta venta</h3>
+          <p>Agregá productos para comenzar.</p>
         </div>
       )}
       <ul className="caja-lista">
@@ -176,7 +176,7 @@ export function CompraActual({
         </button>
         {pendiente && (
           <p role="status" className="caja-ayuda">
-            Guardando los cambios del inventario…
+            Guardando los cambios del stock…
           </p>
         )}
       </div>

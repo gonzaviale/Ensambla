@@ -25,7 +25,7 @@ export function ModalBienvenida() {
         </div>
         <span className="eyebrow">TU NEGOCIO, UN BLOQUE A LA VEZ.</span>
         <h2 id="modal-title">
-          ¡Hola, {nombre}!
+          Hola, {nombre}.
           <br />
           Bienvenido a Ensambla.
         </h2>
@@ -51,7 +51,7 @@ export function ModalBienvenida() {
             </span>
             <span>
               <strong>Explorar por mi cuenta</strong>
-              <small>Recorré las opciones. Sami sigue a mano.</small>
+              <small>Recorré las opciones. Sami está disponible si lo necesitás.</small>
             </span>
             <Icon name="arrow" />
           </button>

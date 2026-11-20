@@ -77,7 +77,7 @@ export const dadoQueSeAjustaConSamiUnAlmacenDeAna = async (
 };
 
 export const campoDeLaConversacion = () =>
-  screen.getByLabelText('Contame un poco de tu negocio') as HTMLTextAreaElement;
+  screen.getByLabelText('Describí tu negocio') as HTMLTextAreaElement;
 
 export const campoDeLosAjustes = () => screen.getByLabelText('¿Qué le falta? ¿Qué cambiarías?');
 
@@ -111,5 +111,5 @@ export const botonParaVolverAlInicio = () =>
   within(screen.getByRole('main')).getByRole('button', { name: /Inicio/ });
 
 export const entoncesLaConversacionYElLienzoEstanVacios = () => {
-  expect(screen.getByText('TU IDEA VA A APARECER ACÁ')).toBeVisible();
+  expect(screen.getByText('TU IDEA VA A APARECER AQUÍ')).toBeVisible();
 };

@@ -21,7 +21,7 @@ const TITULOS: Record<Vista, { titulo: ReactNode; texto: string }> = {
   precios: {
     titulo: (
       <>
-        Mirá cuánto se cobra en tu zona.
+        Compará los precios de tu zona.
         <br />
         Sin saber quién cobra qué.
       </>

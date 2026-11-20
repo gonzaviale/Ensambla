@@ -1,3 +1,4 @@
+import { InicialDelNegocio } from './InicialDelNegocio';
 import {
   colorDelNegocio,
   ESTADO_DEL_NEGOCIO,
@@ -59,6 +60,11 @@ export function ElegirNegocio({ estado, onElegir }: Props) {
               aria-describedby={detalleId}
               onClick={() => onElegir(negocio.id)}
             >
+              <InicialDelNegocio
+                nombre={negocio.nombre}
+                posicion={posicion}
+                className="elegir-negocio-inicial"
+              />
               <span className="elegir-negocio-fila">
                 <strong id={nombreId}>{negocio.nombre}</strong>
                 <span className="negocio-estado">{ESTADO_DEL_NEGOCIO[negocio.estado]}</span>

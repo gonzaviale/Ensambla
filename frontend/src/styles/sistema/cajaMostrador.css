@@ -280,10 +280,23 @@
   gap: 3px;
 }
 .caja-tarjeta-acciones .icon-btn {
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   background: #fff;
   border-color: #9db6c0;
+}
+.caja-tarjeta-acciones .caja-favorito {
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--ink);
+}
+.caja-tarjeta-acciones .caja-favorito[aria-pressed='true'] {
+  --relleno-de-estrella: var(--yellow);
+  color: var(--petrol);
+}
+.caja-tarjeta-acciones .caja-favorito .icon {
+  width: 22px;
+  height: 22px;
 }
 .caja-simbolo {
   margin-bottom: 4px;
@@ -296,7 +309,7 @@
   grid-template-columns: 36px 1fr;
   min-height: 88px;
   column-gap: 12px;
-  padding-right: 85px;
+  padding-right: 105px;
 }
 .caja-resultados .caja-simbolo {
   grid-row: 1/3;
@@ -599,11 +612,11 @@
   }
   .caja-elegir-producto > span:last-child {
     font-size: 12px;
-    padding-right: 38px;
+    padding-right: 44px;
   }
   .caja-tarjeta-acciones .icon-btn {
-    height: 38px;
-    width: 38px;
+    height: 44px;
+    width: 44px;
   }
   .caja-tarjeta-acciones {
     top: auto;
@@ -615,8 +628,8 @@
   }
   .caja-resultados .caja-elegir-producto {
     display: flex;
-    min-height: 100px;
-    padding: 14px 49px 14px 12px;
+    min-height: 108px;
+    padding: 14px 55px 14px 12px;
   }
   .caja-resultados .caja-tarjeta-acciones {
     flex-direction: column;

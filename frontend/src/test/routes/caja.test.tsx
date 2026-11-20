@@ -18,6 +18,13 @@ import {
   entoncesCantidadDeGaseosa,
   entoncesGaseosaRetirada,
 } from '@/test/caja/cantidadesCajaHelpers';
+import {
+  dadoLaCajaConUnFavoritoYUnoQueNoLoEs,
+  cuandoBuscaEnElStock,
+  entoncesElFavoritoSeMarcaComoElegido,
+  entoncesElQueNoEsFavoritoSePuedeAgregar,
+  entoncesNingunaTarjetaMuestraElIconoDeAgregar,
+} from '@/test/caja/favoritosCajaHelpers';
 
 async function abrir(escanear = false) {
   const usuario = setupUsuarioConSesion();
@@ -244,5 +251,25 @@ describe('caja integrada con el cliente HTTP', () => {
     await screen.findByRole('heading', { name: 'Venta guardada' }, ESPERA);
     expect(solicitudes).toHaveLength(2);
     expect(solicitudes[1]?.id).toBe(solicitudes[0]?.id);
+  });
+});
+
+describe('favoritos de la caja', () => {
+  it('marca con una estrella llena al producto que ya es favorito', async () => {
+    const user = await dadoLaCajaConUnFavoritoYUnoQueNoLoEs();
+    await cuandoBuscaEnElStock(user);
+    entoncesElFavoritoSeMarcaComoElegido('Coca-Cola');
+  });
+
+  it('ofrece agregar a favoritos al producto que todavía no lo es', async () => {
+    const user = await dadoLaCajaConUnFavoritoYUnoQueNoLoEs();
+    await cuandoBuscaEnElStock(user);
+    entoncesElQueNoEsFavoritoSePuedeAgregar('Yerba');
+  });
+
+  it('ya no muestra un «+» en las tarjetas de producto', async () => {
+    const user = await dadoLaCajaConUnFavoritoYUnoQueNoLoEs();
+    await cuandoBuscaEnElStock(user);
+    entoncesNingunaTarjetaMuestraElIconoDeAgregar();
   });
 });

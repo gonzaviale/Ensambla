@@ -48,7 +48,7 @@ describe('accesibilidad de las pantallas', () => {
   it('Mi zona', async () => {
     dadoUnUsuarioConSesion();
 
-    await cuandoSeAbreLaPantalla('/zona', { level: 1, name: /Mirá cuánto se cobra/ });
+    await cuandoSeAbreLaPantalla('/zona', { level: 1, name: /Compará los precios de tu zona/ });
 
     await entoncesNoHayViolaciones();
   });

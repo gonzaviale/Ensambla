@@ -17,6 +17,7 @@ import {
   type Orden,
 } from '@/lib/negocios/comparar';
 import { pesos } from '@/lib/sistema/panelDelNegocio';
+import { tonoDe, type ConceptoDeColor } from '@/lib/sistema/tonos';
 import type { ResumenConjunto } from '@/types/negocios';
 
 type Props = {
@@ -25,19 +26,37 @@ type Props = {
   ordenDeLaCuenta?: string[];
 };
 
-// Cada total con su ícono de línea y su color: petróleo lo que vendiste, coral lo que gastaste, naranja lo que te
-// queda y amarillo lo que te deben (el fiado).
-const TOTALES: ReadonlyArray<{
+type TotalDeLaCuenta = {
   clave: MetricaComparable;
   titulo: string;
-  color: string;
+  concepto: ConceptoDeColor;
   Icono: ComponentType<IconProps>;
-}> = [
-  { clave: 'vendiste', titulo: 'Vendiste', color: 'petrol', Icono: ShoppingBagOpenIcon },
-  { clave: 'gastos', titulo: 'Gastaste', color: 'coral', Icono: ReceiptIcon },
-  { clave: 'queda', titulo: 'Te queda', color: 'orange', Icono: WalletIcon },
-  { clave: 'teDeben', titulo: 'Te deben', color: 'yellow', Icono: HandCoinsIcon },
+};
+
+const TOTALES: ReadonlyArray<TotalDeLaCuenta> = [
+  { clave: 'vendiste', titulo: 'Vendiste', concepto: 'ventas', Icono: ShoppingBagOpenIcon },
+  { clave: 'gastos', titulo: 'Gastaste', concepto: 'gastos', Icono: ReceiptIcon },
+  { clave: 'queda', titulo: 'Te queda', concepto: 'ganancia', Icono: WalletIcon },
+  { clave: 'teDeben', titulo: 'Te deben', concepto: 'fiado', Icono: HandCoinsIcon },
 ];
+
+function TarjetaDeTotal({
+  total,
+  resumen,
+}: {
+  total: TotalDeLaCuenta;
+  resumen: ResumenConjunto['total'];
+}) {
+  const { clave, titulo, concepto, Icono } = total;
+  const quedaEnRojo = clave === 'queda' && resumen.queda < 0;
+  return (
+    <div className="comparar-total solido" data-tono={tonoDe(concepto)}>
+      <Icono aria-hidden size={26} weight="regular" className="comparar-total-icono" />
+      <dt>{titulo}</dt>
+      <dd data-negativo={quedaEnRojo || undefined}>{pesos(resumen[clave])}</dd>
+    </div>
+  );
+}
 
 const SENTIDO_ARIA = { desc: 'descending', asc: 'ascending' } as const;
 
@@ -65,14 +84,8 @@ export function CompararNegocios({ resumen, ordenDeLaCuenta }: Props) {
           <span>{total.negocios === 1 ? '1 negocio' : `${total.negocios} negocios`}</span>
         </div>
         <dl>
-          {TOTALES.map(({ clave, titulo, color, Icono }) => (
-            <div key={clave} className="comparar-total" data-color={color}>
-              <Icono aria-hidden size={26} weight="regular" className="comparar-total-icono" />
-              <dt>{titulo}</dt>
-              <dd data-negativo={(clave === 'queda' && total.queda < 0) || undefined}>
-                {pesos(total[clave])}
-              </dd>
-            </div>
+          {TOTALES.map((t) => (
+            <TarjetaDeTotal key={t.clave} total={t} resumen={total} />
           ))}
         </dl>
       </section>

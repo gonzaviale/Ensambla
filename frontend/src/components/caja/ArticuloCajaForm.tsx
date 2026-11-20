@@ -81,6 +81,7 @@ export function ArticuloCajaForm({
         titulo={
           soloPeso ? seleccion.nombre : seleccion.producto ? 'Editar artículo' : 'Agregar artículo'
         }
+        tono="naranja"
         onCerrar={() => void solicitarCierre()}
       >
         {seleccion.mensaje && <p className="caja-nota">{seleccion.mensaje}</p>}
@@ -191,14 +192,13 @@ export function ArticuloCajaForm({
               )}
               {seleccion.producto && modo !== modoVenta(seleccion.producto) && (
                 <p className="caja-ayuda">
-                  Cambiaste la forma de venta. Revisá las existencias en el inventario antes de
-                  volver a controlar stock: para peso, se cuentan en kilos.
+                  Cambiaste la forma de venta. Revisá las existencias en el stock antes de volver a
+                  controlar stock: para peso, se cuentan en kilos.
                 </p>
               )}
               {!seleccion.producto && (
                 <p className="caja-ayuda">
-                  Quedará guardado en tu inventario. El costo y el conteo de stock se completan
-                  aparte.
+                  Quedará guardado en tu stock. El costo y el conteo de stock se completan aparte.
                 </p>
               )}
               {adicionales.length > 0 && (

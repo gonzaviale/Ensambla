@@ -41,7 +41,8 @@ export function RecomendacionDeSami({ recorrido }: { recorrido: Recorrido }) {
         <div>
           <h2>{titulo(esLaMejor, recorrido)}</h2>
           <p>
-            Elegí una zona para ver por qué la recomiendo y qué tenés que tramitar para abrir ahí.
+            Elegí una zona para ver por qué la recomiendo y qué tenés que tramitar para abrir en esa
+            zona.
           </p>
         </div>
       </div>

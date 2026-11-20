@@ -1,6 +1,6 @@
 # Guía de lenguaje de Ensambla
 
-Actualizada: 2026-11-14
+Actualizada: 2026-11-19
 
 ## Para qué sirve
 
@@ -12,45 +12,31 @@ Todo texto que ve el usuario en Ensambla (app, avisos, Sami, mails y landing) si
 
 ## Tono: cómo hablamos
 
-Hablamos como un buen contador de barrio: cercano y claro, pero serio con la plata del otro.
+Hablamos como una **aplicación profesional, clara y cordial**. Voseo rioplatense, pero sin coloquialismos.
 
-1. **Vos, siempre.** Voseo rioplatense en todo: "cargá", "elegí", "tenés". Nunca "usted" ni "tú".
-2. **Corto.** Una idea por frase. Máximo dos líneas por párrafo. Si hace falta explicar más, va en un desplegable (por ejemplo, "Por qué de este aviso").
-3. **Primero el dato, después la explicación.** "Te quedan 3 Coca 500" antes que "Según lo que vendiste esta semana…".
-4. **Visual antes que texto.** Si un ícono, un número o un color lo dicen, no lo repitas en una oración.
-5. **Palabras del mostrador, no de la computadora.** "Productos", "ventas", "fiado"; no "registros", "campos" ni "sistema" (ver la tabla de abajo).
-6. **Respetuoso.** Nada de "che", "dale", "joya", diminutivos ni chistes. Tampoco retós: nunca culpamos al usuario ("no pusiste…", "te equivocaste").
-7. **Sin exagerar.** Pocos signos de exclamación (solo para festejar un logro), sin emojis en textos de la app, sin mayúsculas sostenidas.
-
-**Quién habla:**
-
-- **Ensambla** habla en plural cuando algo es nuestro: "No pudimos guardar tus cambios". Nunca en impersonal ("No se pudo", "Ocurrió un error").
-- **Sami** habla en primera persona, como alguien del equipo: "Encontré 5 productos con poco stock". Sugiere, no ordena: "Te conviene pedir 5" en vez de "Pedí 5". Cada negocio tiene su Sami; en el Inicio, Sami habla de todos tus negocios juntos ("Tu kiosco necesita atención hoy").
+1. **Voseo sí, siempre:** vos, tenés, querés, elegí, cargá, escribí. Nunca «tú», «tienes», «quieres» ni «usted».
+2. **Sin informalidad.** Nada de muletillas, exclamaciones, diminutivos, humor, jerga ni expresiones de charla.
+3. **Botones en infinitivo**, con verbo y objeto: «Guardar venta», «Agregar producto», «Crear sección». Los verbos en
+   voseo imperativo se reservan para consignas directas dentro de un texto («Elegí un producto»).
+4. **Textos de ayuda: neutros y directos.** Una idea por frase. Primero el dato, después la explicación.
+5. **Impersonal cuando es una descripción** («Se muestra cuánto falta para tu meta») y **segunda persona cuando se le
+   pide algo** («Elegí una fecha»).
+6. **Ensambla** habla en plural: «No pudimos guardar los cambios». **Sami** habla en primera persona singular, con
+   respeto y sin confianza excesiva: «Encontré 5 productos con poco stock», «¿En qué puedo ayudarte?».
+7. Sin emojis, sin mayúsculas sostenidas, un signo de exclamación solo para un logro real.
+8. Se mantiene el glosario de esta guía (negocio, sección, stock, aviso, fiado, ganancia…).
 
 ## Palabras: usar y evitar
 
-Las de la columna "Evitar" hoy aparecen en la app. Al tocar una pantalla, cambialas por la de "Usar".
+Revisar cada coincidencia en contexto: si es un texto que ve la persona, se reescribe; si es código o un comentario, se
+deja.
 
-| Evitar | Usar | Por qué |
-| --- | --- | --- |
-| sistema, proyecto, Mis cuadernos | negocio | Se tiene que entender que hablamos de su negocio |
-| registro | venta, compra, gasto, producto (lo que sea) | "Registro" no dice qué es |
-| campo | dato (o el nombre: precio, nombre, teléfono) | Palabra de formulario |
-| bloque, pieza, tabla, cuaderno (para hablar de Ventas, Stock…) | sección, o el nombre: Ventas, Stock | Las partes de un negocio se llaman secciones |
-| inventario | stock | Se dice así en el negocio |
-| margen, rentabilidad | ganancia, "cuánto te queda" | Más directo |
-| ingresos | lo que vendiste, ventas | "Ingresos" suena a contador |
-| cuentas por cobrar, deuda | fiado, "te deben" | Palabra del barrio |
-| alerta, notificación | aviso | Una sola palabra en toda la app |
-| Ingresá (un dato) | Escribí, Cargá | "Ingresar" se confunde con entrar a la cuenta |
-| Ingresá (a la cuenta), loguearse | Entrá a tu cuenta | |
-| Eliminar, Borrar | Quitar (de una lista), Borrar (para siempre) | Ver reglas de botones |
-| Ocurrió un error inesperado | No pudimos + qué cosa | Decir qué falló |
-| No se pudo… | No pudimos… | Ensambla se hace cargo |
-| Sincronizar, procesar, servidor | Guardar, revisar, "nuestra parte" | Jerga técnica |
-| Upload, dashboard, login, mail (en la app) | Subir, inicio, entrar, correo o mail | En castellano; "mail" se acepta |
-| JPG, PNG, WEBP, MB | foto, "más liviana" | Solo si no hay otra forma de explicarlo |
-| obligatorio (\*) | "Lo necesitamos para…" | Explica el motivo |
+- **Tono:** `dale`, `che`, `mano` (en «dar una mano»), `manito`, `joya`, `genial`, `bárbaro`, `tranqui`, `acá`, `ahí`,
+  `mirá`, `fijate`, `anotá`, `mandale`, `pasame`, `armalo`, `dejame`, `contame`, `decime`, `avisame`, `vamos a`,
+  `de una`, `un toque`, `¡listo`, `tranquilo`, `ni idea`, diminutivos (`ito`, `ita`) y toda exclamación que no sea un
+  logro.
+- **Glosario:** `inventario` (en pantalla, `Stock`), `registro`, `campo`, `bloque`, `pieza`, `tabla`, `cuaderno`
+  (cuando se habla del negocio), `alerta`, `notificación`, `Ingresá`, `Ocurrió un error`, `No se pudo`.
 
 ## Glosario de Ensambla
 
@@ -129,6 +115,43 @@ Estos nombres son fijos: se escriben siempre igual, con la misma mayúscula, en 
 | Horas | 24 horas, con "h" | 18:30 h |
 
 ## Antes y después
+
+### Tono profesional (2026-11-19)
+
+| Antes | Después |
+| --- | --- |
+| ¿En qué te doy una mano? | ¿En qué puedo ayudarte? |
+| Te ayudo a encontrar el próximo paso. | Elegí cómo querés continuar. |
+| Crear una sección conmigo | Crear una sección con Sami |
+| Encontrar una plantilla simple | Elegir una plantilla |
+| ¿Necesitás una mano? (botón) | Ayuda |
+| ¿Una mano con esto? | Consultar a Sami |
+| Acá ves cuánto te falta para llegar. En «Ver mi semana» están los mini-objetivos de Sami. | Aquí se muestra cuánto falta para llegar a tu meta. Los mini-objetivos de Sami están en «Ver mi semana». |
+| Cómo van tus objetivos | Seguimiento de tus objetivos |
+| Cómo viene tu negocio | Estado de tu negocio |
+| Los últimos 30 días, con lo que anotaste en tus secciones. | Últimos 30 días, según los datos de tus secciones. |
+| Vendiste / La mercadería te costó / Te queda | Ventas / Costo de mercadería / Ganancia |
+| Te quedan 20 de 20 objetivos con IA este mes | Objetivos con IA disponibles este mes: 20 de 20 |
+| Resumen de la semana listo | Resumen semanal disponible |
+| ¿Pensás abrir otro local? Sami te muestra en qué zonas conviene, con el mapa y las razones de cada una. | ¿Evaluás abrir otro local? Compará zonas con el mapa y los motivos de cada una. |
+| Tu próxima venta empieza acá | Todavía no hay productos en esta venta |
+| Agregá productos para revisar la compra. | Agregá productos para comenzar. |
+| Alineá las barras dentro del marco horizontal. | Alineá el código de barras dentro del marco. |
+| Mandale a Sami una foto de tu cuaderno | Enviá a Sami una foto de tu cuaderno |
+| Mandale lo que anotás | Enviá lo que anotás |
+| ¡Listo! Tu sistema está armado | Tu negocio quedó armado |
+| ¡Listo! «X» ya está armado. | «X» quedó armado. |
+| ¡Dale! Cuando quieras seguimos. | De acuerdo. Cuando quieras, continuamos. |
+| Vamos a pedir la cancelación a Mercado Pago. | Solicitaremos la cancelación a Mercado Pago. |
+| Vamos a buscar dónde abrir… | Buscaremos dónde abrir… |
+| Armalo con Sami | Crear con Sami |
+| Escanear Inventario | Escanear stock |
+| Tus favoritos aparecerán aquí | Todavía no hay favoritos |
+| Tocá Organizar para elegirlos o crear uno nuevo. | Usá «Organizar» para elegirlos o crear uno nuevo. |
+| Probá otro nombre o agregá un artículo. | Probá con otro nombre o agregá un artículo. |
+| Lo vamos a intentar de nuevo. | Reintentaremos en unos segundos. |
+
+### Palabras y reglas
 
 Casi todos son textos que hoy están en la app; el aviso largo de Sami y el "Sí / No" son ejemplos armados para mostrar la regla.
 

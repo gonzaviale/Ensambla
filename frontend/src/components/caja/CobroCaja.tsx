@@ -8,10 +8,15 @@ import { clientesCaja } from '@/lib/clientesCaja';
 import { Icon } from '@/components/sistema/Icon';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import type { MedioCaja, PagoCaja, SolicitudCobro } from '@/types/caja';
+import { tonoDe } from '@/lib/sistema/tonos';
+import { aspectoDelMedio, iconoDelMedio, nombreDelMedio } from '@/lib/caja/mediosDePago';
+import {
+  ESTADOS_DE_LA_VENTA,
+  aspectoDelEstado,
+  type EstadoDeLaVenta,
+} from '@/lib/caja/estadosDeLaVenta';
 
 const medios: MedioCaja[] = ['EFECTIVO', 'TRANSFERENCIA', 'TARJETA'];
-const nombre = (medio: MedioCaja) =>
-  medio === 'EFECTIVO' ? 'Efectivo' : medio === 'TARJETA' ? 'Tarjeta' : 'Transferencia';
 
 export function CobroCaja({
   total,
@@ -42,7 +47,7 @@ export function CobroCaja({
   const [dividido, setDividido] = useState(false);
   const [primeraParte, setPrimeraParte] = useState('');
   const [recibido, setRecibido] = useState('');
-  const [tipo, setTipo] = useState<'pagada' | 'parcial' | 'fiada'>('pagada');
+  const [tipo, setTipo] = useState<EstadoDeLaVenta>('pagada');
   const [importeParcial, setImporteParcial] = useState('');
   const [clienteId, setClienteId] = useState('');
   const [eligiendoCliente, setEligiendoCliente] = useState(false);
@@ -109,6 +114,7 @@ export function CobroCaja({
       <DialogoCaja
         titulo={incierta ? 'Verificar la venta' : 'Guardar el cobro'}
         clase="caja-dialogo-cobro"
+        tono={tonoDe('ventas')}
         onCerrar={() => void solicitarCierre()}
         bloqueado={bloqueado}
       >
@@ -128,24 +134,19 @@ export function CobroCaja({
           <fieldset disabled={bloqueado}>
             <legend className="sr-only">Cómo queda la venta</legend>
             <div className="caja-opciones">
-              {(
-                [
-                  ['pagada', 'Pagada'],
-                  ['parcial', 'A medias'],
-                  ['fiada', 'Fiada'],
-                ] as const
-              ).map(([valor, texto]) => (
+              {ESTADOS_DE_LA_VENTA.map((estado) => (
                 <button
-                  key={valor}
+                  key={estado.valor}
                   type="button"
-                  aria-pressed={tipo === valor}
+                  {...aspectoDelEstado(estado, tipo === estado.valor)}
+                  aria-pressed={tipo === estado.valor}
                   onClick={() => {
-                    setTipo(valor);
+                    setTipo(estado.valor);
                     setRecibido('');
                     setDividido(false);
                   }}
                 >
-                  {texto}
+                  {estado.texto}
                 </button>
               ))}
             </div>
@@ -196,6 +197,7 @@ export function CobroCaja({
                   <button
                     key={valor}
                     type="button"
+                    {...aspectoDelMedio(valor, medio === valor)}
                     aria-pressed={medio === valor}
                     onClick={() => {
                       setMedio(valor);
@@ -204,16 +206,8 @@ export function CobroCaja({
                       setRecibido('');
                     }}
                   >
-                    <Icon
-                      name={
-                        valor === 'EFECTIVO'
-                          ? 'wallet'
-                          : valor === 'TRANSFERENCIA'
-                            ? 'arrow'
-                            : 'orders'
-                      }
-                    />
-                    {nombre(valor)}
+                    <Icon name={iconoDelMedio(valor)} />
+                    {nombreDelMedio(valor)}
                   </button>
                 ))}
               </div>
@@ -235,9 +229,9 @@ export function CobroCaja({
             {dividido && tipo !== 'fiada' && (
               <>
                 <label>
-                  {nombre(medio)} ($)
+                  {nombreDelMedio(medio)} ($)
                   <input
-                    aria-label={'Importe en ' + nombre(medio).toLowerCase() + ' ($)'}
+                    aria-label={'Importe en ' + nombreDelMedio(medio).toLowerCase() + ' ($)'}
                     inputMode="decimal"
                     value={primeraParte}
                     disabled={bloqueado}
@@ -260,7 +254,7 @@ export function CobroCaja({
                       .filter((m) => m !== medio)
                       .map((valor) => (
                         <option key={valor} value={valor}>
-                          {nombre(valor)}
+                          {nombreDelMedio(valor)}
                         </option>
                       ))}
                   </select>
@@ -281,11 +275,11 @@ export function CobroCaja({
               </label>
             )}
           </div>
-          <div className="caja-cobro-estado" role="status">
+          <div className="caja-cobro-estado" role="status" data-valido={valido}>
             {dividido && tipo !== 'fiada' && (
               <span>
                 {restante > 0
-                  ? nombre(segundo) + ': ' + dineroCaja(restante)
+                  ? nombreDelMedio(segundo) + ': ' + dineroCaja(restante)
                   : 'Las dos partes deben ser mayores a cero.'}
               </span>
             )}

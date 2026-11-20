@@ -55,21 +55,21 @@ describe('el editor: una sola sección con todo a mano', () => {
     const { user } = await abrirEditor(sistema, 'usar');
     useSistemaStore.setState({ listo: true });
 
-    const cierre = await screen.findByRole('region', { name: /ya está armado/ });
-    expect(within(cierre).getByText(`¡Listo! «${sistema.name}» ya está armado.`)).toBeVisible();
+    const cierre = await screen.findByRole('region', { name: /quedó armado/ });
+    expect(within(cierre).getByText(`«${sistema.name}» quedó armado.`)).toBeVisible();
     expect(
       within(cierre).getByText(/Quedaron 3 tablas: .+ Ya podés empezar a usarlo\./),
     ).toBeVisible();
 
     await user.click(within(cierre).getByRole('button', { name: 'Cerrar aviso' }));
-    expect(screen.queryByRole('region', { name: /ya está armado/ })).toBeNull();
+    expect(screen.queryByRole('region', { name: /quedó armado/ })).toBeNull();
     expect(useSistemaStore.getState().listo).toBe(false);
   });
 
   it('desde el cierre se registra el primer dato en la primera tabla con registros', async () => {
     const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
     useSistemaStore.setState({ listo: true });
-    await screen.findByRole('region', { name: /ya está armado/ });
+    await screen.findByRole('region', { name: /quedó armado/ });
 
     await clickButton(user, 'Registrar mi primer dato');
 
@@ -79,19 +79,19 @@ describe('el editor: una sola sección con todo a mano', () => {
   it('desde el cierre, Personalizar pasa a editar y se va el cierre', async () => {
     const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
     useSistemaStore.setState({ listo: true });
-    await screen.findByRole('region', { name: /ya está armado/ });
+    await screen.findByRole('region', { name: /quedó armado/ });
 
     await clickButton(user, /Personalizar las tablas/);
 
     expect(await screen.findByText('Tus piezas')).toBeVisible();
-    expect(screen.queryByRole('region', { name: /ya está armado/ })).toBeNull();
+    expect(screen.queryByRole('region', { name: /quedó armado/ })).toBeNull();
     expect(useSistemaStore.getState().modo).toBe('build');
   });
 
   it('desde el cierre se le pide un ajuste a Sami', async () => {
     const { user, router, sistema } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
     useSistemaStore.setState({ listo: true });
-    await screen.findByRole('region', { name: /ya está armado/ });
+    await screen.findByRole('region', { name: /quedó armado/ });
 
     await clickButton(user, /Pedirle un ajuste a Sami/);
 

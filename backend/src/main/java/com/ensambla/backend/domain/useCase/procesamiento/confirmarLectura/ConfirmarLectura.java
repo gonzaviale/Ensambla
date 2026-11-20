@@ -151,7 +151,7 @@ public class ConfirmarLectura {
     private Campo campoExistente(Map<CampoId, Campo> existentes, CampoId campoId) {
         Campo campo = existentes.get(campoId);
         if (campo == null) {
-            throw new ResourceNotFoundException("El campo no existe");
+            throw new ResourceNotFoundException("Ese dato ya no existe en la sección");
         }
         return campo;
     }

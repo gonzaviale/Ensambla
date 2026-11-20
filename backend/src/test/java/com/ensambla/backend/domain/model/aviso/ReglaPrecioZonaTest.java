@@ -360,7 +360,7 @@ class ReglaPrecioZonaTest {
         assertThat(resultados).singleElement().satisfies(resultado -> {
             assertThat(resultado.detalle()).isEqualTo("Lo tenés a $800 y en tu zona se vende entre $1.000 y $1.300: "
                     + "$200 (20 %) menos que el mínimo. "
-                    + "Revisá tus costos y tu margen: puede que estés vendiendo más barato de lo necesario.");
+                    + "Revisá tus costos y tu ganancia: puede que estés vendiendo más barato de lo necesario.");
             assertThat(resultado.motivos()).containsExactly(
                     "En tu zona, 10 comercios lo venden entre $1.000 y $1.300.",
                     "Con tu costo de $700, te quedan $100 por unidad (14 % sobre el costo).");

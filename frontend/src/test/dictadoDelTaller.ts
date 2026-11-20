@@ -88,7 +88,7 @@ export const cuandoLaPersonaCortaElDictado = () => {
   act(() => reconocimiento().onerror?.({ error: 'aborted' }));
 };
 
-export const cuandoSeEnviaElMensaje = () => clickButton(laPersonaDelTaller(), /Pensalo conmigo/);
+export const cuandoSeEnviaElMensaje = () => clickButton(laPersonaDelTaller(), /Enviar a Sami/);
 
 export const cuandoSeSaleDeLaPantalla = () => {
   cleanup();
@@ -113,7 +113,7 @@ export const entoncesElBotonNoQuedaApretado = () => {
 
 export const entoncesLoDictadoLlegaAlCampoParaRevisarlo = () => {
   expect(campoDeLaConversacion()).toHaveValue('Tengo un kiosco. vendo golosinas y cigarrillos');
-  expect(screen.queryByText(/Pensalo conmigo/)).toBeVisible();
+  expect(screen.queryByText(/Enviar a Sami/)).toBeVisible();
 };
 
 export const entoncesDejaDeEscucharYConservaLoDictado = () => {

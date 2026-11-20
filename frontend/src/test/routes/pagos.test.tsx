@@ -352,9 +352,7 @@ async function entoncesSeEsperaElPagoYNoSePresentaComoCobrado() {
 function entoncesSePideConfirmacionYTodaviaNoSeCancelo() {
   const dialogo = screen.getByRole('dialog', { name: 'Cancelar renovación automática' });
   expect(within(dialogo).getByText(/período ya pagado/)).toBeVisible();
-  expect(
-    within(dialogo).getByText(/Tus negocios, secciones y registros se mantienen/),
-  ).toBeVisible();
+  expect(within(dialogo).getByText(/Tus negocios, secciones y datos se mantienen/)).toBeVisible();
   expect(cancelaciones).toBe(0);
 }
 

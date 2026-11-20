@@ -37,7 +37,7 @@ class ReglaStockBajoTest {
 
         entoncesHayUnAvisoConPrioridad((short) 3);
         entoncesElAvisoSeTitula("Te quedaste sin Yerba");
-        entoncesElAvisoDetalla("No te quedan unidades y tu mínimo es 5. Para no quedarte corto, pedí 10.");
+        entoncesElAvisoDetalla("No te quedan unidades y tu mínimo es 5. Te conviene pedir 10 para no quedarte sin stock.");
         entoncesElAvisoEsSobreElRegistro(YERBA);
     }
 
@@ -50,8 +50,8 @@ class ReglaStockBajoTest {
 
         entoncesHayUnAvisoConPrioridad((short) 2);
         entoncesElAvisoSeTitula("Yerba está por debajo del mínimo");
-        entoncesElAvisoDetalla("Te quedan 3 y tu mínimo es 5. Para no quedarte corto, pedí 7.");
-        entoncesLosMotivosSon("Definiste un mínimo de 5 y quedan 3.", "Para no quedarte corto, pedí 7.");
+        entoncesElAvisoDetalla("Te quedan 3 y tu mínimo es 5. Te conviene pedir 7 para no quedarte sin stock.");
+        entoncesLosMotivosSon("Definiste un mínimo de 5 y quedan 3.", "Te conviene pedir 7 para no quedarte sin stock.");
         entoncesElAvisoGuardaLaCantidadYElMinimo(new BigDecimal("3"), new BigDecimal("5"));
     }
 
@@ -62,7 +62,7 @@ class ReglaStockBajoTest {
 
         cuandoSeEvaluaLaRegla();
 
-        entoncesElAvisoDetalla("No te quedan unidades. Para no quedarte corto, pedí 10.");
+        entoncesElAvisoDetalla("No te quedan unidades. Te conviene pedir 10 para no quedarte sin stock.");
         entoncesElPrimerMotivoEs("No tiene un mínimo definido: te avisamos porque se agotó.");
         entoncesElAvisoGuardaElMinimo(BigDecimal.ZERO);
     }
@@ -74,7 +74,7 @@ class ReglaStockBajoTest {
 
         cuandoSeEvaluaLaRegla();
 
-        entoncesElAvisoDetalla("Te quedan 1,5 y tu mínimo es 1,5. Para no quedarte corto, pedí 1,5.");
+        entoncesElAvisoDetalla("Te quedan 1,5 y tu mínimo es 1,5. Te conviene pedir 1,5 para no quedarte sin stock.");
     }
 
     @Test

@@ -125,7 +125,7 @@ function PropuestaDelProyecto({ sami }: { sami: Sami }) {
 function LienzoVacio() {
   return (
     <div className="studio-empty">
-      <div className="empty-studio-label">TU PROPUESTA VA A APARECER ACÁ</div>
+      <div className="empty-studio-label">TU PROPUESTA VA A APARECER AQUÍ</div>
       <h2>Primero te escucho.</h2>
       <p>
         Si hace falta te hago alguna pregunta. Después ves la estructura armada y decidís si la
