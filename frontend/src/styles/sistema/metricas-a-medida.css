@@ -430,7 +430,7 @@
 .panel-negocio-metrica {
   display: grid;
   gap: 6px;
-  padding: 14px 22px;
+  padding: 18px 22px;
   border: 2px solid var(--color-solapa);
   border-radius: 20px;
   background: #fff;
@@ -535,7 +535,7 @@
     padding: 10px 12px 9px;
   }
   .panel-negocio-metrica {
-    padding: 16px 18px;
+    padding: 18px 18px;
   }
 }
 

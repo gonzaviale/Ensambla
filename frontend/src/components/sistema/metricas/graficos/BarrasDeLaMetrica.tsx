@@ -25,7 +25,7 @@ export function BarrasDeLaMetrica({ definicion, resultado, partes }: PropsDelGra
       <LienzoDelGrafico alto={ALTO}>
         <BarChart
           data={datos}
-          margin={{ top: 28, right: 8, bottom: 4, left: 8 }}
+          margin={{ top: 28, right: 8, bottom: 4, left: inclinado ? 48 : 8 }}
           barCategoryGap="22%"
         >
           <XAxis
@@ -35,7 +35,7 @@ export function BarrasDeLaMetrica({ definicion, resultado, partes }: PropsDelGra
             axisLine={{ stroke: '#e6c9a8', strokeWidth: 2 }}
             angle={inclinado ? -35 : 0}
             textAnchor={inclinado ? 'end' : 'middle'}
-            height={inclinado ? 64 : 30}
+            height={inclinado ? 72 : 30}
             tick={{ fill: COLOR_DEL_TEXTO, fontSize: 12, fontWeight: 700 }}
           />
           <YAxis hide domain={[0, 'auto']} />
@@ -45,10 +45,10 @@ export function BarrasDeLaMetrica({ definicion, resultado, partes }: PropsDelGra
               <Cell key={dato.etiqueta} fill={dato.color} />
             ))}
             <LabelList
-              dataKey="detalle"
+              dataKey={inclinado ? 'detalleCorto' : 'detalle'}
               position="top"
               fill={COLOR_DEL_TEXTO}
-              fontSize={12}
+              fontSize={inclinado ? 11 : 12}
               fontWeight={800}
             />
           </Bar>

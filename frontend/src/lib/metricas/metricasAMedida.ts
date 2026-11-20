@@ -48,7 +48,7 @@ export function etiquetaDeCalculo(fuente: FuenteDeMetrica, calculo: CalculoDeMet
   const filas = NOMBRE_DE_LAS_FILAS[fuente].varios;
   switch (calculo) {
     case 'SUMA':
-      return fuente === 'INVENTARIO' ? 'Plata parada (a costo)' : `Plata de ${filas}`;
+      return fuente === 'INVENTARIO' ? 'Valor del stock (a costo)' : `Total de ${filas}`;
     case 'PROMEDIO':
       return `Promedio por ${NOMBRE_DE_LAS_FILAS[fuente].uno}`;
     case 'CONTEO':
@@ -56,9 +56,9 @@ export function etiquetaDeCalculo(fuente: FuenteDeMetrica, calculo: CalculoDeMet
     case 'UNIDADES':
       return fuente === 'INVENTARIO' ? 'Unidades en stock' : 'Unidades vendidas';
     case 'GANANCIA':
-      return 'Ganancia (lo vendido menos lo que costó)';
+      return 'Ganancia';
     case 'COSTO':
-      return 'Lo que costó lo que vendiste';
+      return 'Costo de lo que vendiste';
   }
 }
 
@@ -148,7 +148,7 @@ const lasQueQuedaronAfuera = (cantidad: number) =>
     ? 'quedó afuera porque le falta un dato'
     : 'quedaron afuera porque les falta un dato';
 
-/** La receta en una frase corta, para la lista de sugeridas: «Plata de ventas · Por producto · Este mes». */
+/** La receta en una frase corta, para la lista de sugeridas: «Total de ventas · Por producto · Este mes». */
 export function resumenDeLaReceta(definicion: DefinicionDeMetrica) {
   return [
     definicion.soloFiado

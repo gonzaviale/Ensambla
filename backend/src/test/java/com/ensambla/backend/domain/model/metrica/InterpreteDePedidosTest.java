@@ -16,6 +16,8 @@ import static com.ensambla.backend.domain.model.metrica.AgrupacionMetrica.DIA_DE
 import static com.ensambla.backend.domain.model.metrica.AgrupacionMetrica.NINGUNA;
 import static com.ensambla.backend.domain.model.metrica.AgrupacionMetrica.PRODUCTO;
 import static com.ensambla.backend.domain.model.metrica.CalculoMetrica.CONTEO;
+import static com.ensambla.backend.domain.model.metrica.CalculoMetrica.COSTO;
+import static com.ensambla.backend.domain.model.metrica.CalculoMetrica.GANANCIA;
 import static com.ensambla.backend.domain.model.metrica.CalculoMetrica.PROMEDIO;
 import static com.ensambla.backend.domain.model.metrica.CalculoMetrica.SUMA;
 import static com.ensambla.backend.domain.model.metrica.CalculoMetrica.UNIDADES;
@@ -93,6 +95,25 @@ class InterpreteDePedidosTest {
                         unaReceta("Ventas de los últimos 7 días", VENTAS, SUMA, NINGUNA, SEMANA, false)));
     }
 
+    static Stream<Arguments> comoTipeaLaGente() {
+        return Stream.of(
+                arguments("ganancias que me dejaron mis clientes este mes",
+                        unaReceta("Ganancias que me dejaron mis clientes este mes", VENTAS, GANANCIA, CLIENTE, MES,
+                                false)),
+                arguments("cuánto me costó lo que vendí esta semana",
+                        unaReceta("Cuánto me costó lo que vendí esta semana", VENTAS, COSTO, NINGUNA, SEMANA, false)),
+                arguments("qué vendo más",
+                        unaReceta("Qué vendo más", VENTAS, UNIDADES, PRODUCTO, MES, false)),
+                arguments("cuánto vendí desde que abrí",
+                        unaReceta("Cuánto vendí desde que abrí", VENTAS, SUMA, NINGUNA, TODO, false)),
+                arguments("ventas de cada cliente",
+                        unaReceta("Ventas de cada cliente", VENTAS, SUMA, CLIENTE, MES, false)),
+                arguments("cuántas compras tuve hoy",
+                        unaReceta("Cuántas compras tuve hoy", GASTOS, CONTEO, NINGUNA, HOY, false)),
+                arguments("cuánto vendió el negocio en el mes",
+                        unaReceta("Cuánto vendió el negocio en el mes", VENTAS, SUMA, NINGUNA, MES, false)));
+    }
+
     static Stream<Arguments> loQueSeTomaPorDefecto() {
         return Stream.of(
                 arguments("cuanto vendi el finde", List.of(CALCULO, AGRUPACION, PERIODO)),
@@ -129,6 +150,17 @@ class InterpreteDePedidosTest {
     @MethodSource("otrasFormasDePedir")
     @DisplayName("Entiende otras formas de pedir: facturé, cobré, me deben, pagué, compras, qué me queda y top")
     void entiendeOtrasFormasDePedir(String pedido, DefinicionMetrica esperada) {
+        dadoElInterpreteDeLaAplicacion();
+
+        cuandoSePide(pedido);
+
+        entoncesArmaLaReceta(esperada);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("comoTipeaLaGente")
+    @DisplayName("Entiende cómo tipea la gente: dejaron, me costó, mis clientes, desde que abrí, cada cliente")
+    void entiendeComoTipeaLaGente(String pedido, DefinicionMetrica esperada) {
         dadoElInterpreteDeLaAplicacion();
 
         cuandoSePide(pedido);

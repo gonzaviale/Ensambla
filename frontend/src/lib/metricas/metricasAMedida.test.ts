@@ -48,19 +48,19 @@ describe('metricasAMedida', () => {
   });
 
   it('escribe los cálculos con las palabras de cada tabla', () => {
-    expect(etiquetaDeCalculo('VENTAS', 'SUMA')).toBe('Plata de ventas');
-    expect(etiquetaDeCalculo('INVENTARIO', 'SUMA')).toBe('Plata parada (a costo)');
+    expect(etiquetaDeCalculo('VENTAS', 'SUMA')).toBe('Total de ventas');
+    expect(etiquetaDeCalculo('INVENTARIO', 'SUMA')).toBe('Valor del stock (a costo)');
     expect(etiquetaDeCalculo('GASTOS', 'PROMEDIO')).toBe('Promedio por gasto');
     expect(etiquetaDeCalculo('VENTAS', 'CONTEO')).toBe('Cuántas ventas hay');
     expect(etiquetaDeCalculo('VENTAS', 'UNIDADES')).toBe('Unidades vendidas');
     expect(etiquetaDeCalculo('INVENTARIO', 'UNIDADES')).toBe('Unidades en stock');
-    expect(etiquetaDeCalculo('VENTAS', 'GANANCIA')).toBe('Ganancia (lo vendido menos lo que costó)');
-    expect(etiquetaDeCalculo('VENTAS', 'COSTO')).toBe('Lo que costó lo que vendiste');
+    expect(etiquetaDeCalculo('VENTAS', 'GANANCIA')).toBe('Ganancia');
+    expect(etiquetaDeCalculo('VENTAS', 'COSTO')).toBe('Costo de lo que vendiste');
   });
 
   it('resume la receta en una frase', () => {
     const base = { ...definicionInicial(), agrupar: 'PRODUCTO', periodo: 'SEMANA' } as const;
-    expect(resumenDeLaReceta(base)).toBe('Plata de ventas · Por producto · Esta semana');
+    expect(resumenDeLaReceta(base)).toBe('Total de ventas · Por producto · Esta semana');
     expect(resumenDeLaReceta({ ...base, soloFiado: true })).toContain('(fiado)');
   });
 

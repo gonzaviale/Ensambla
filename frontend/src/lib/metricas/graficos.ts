@@ -75,6 +75,7 @@ export type DatoDelGrafico = {
   corta: string;
   valor: number;
   detalle: string;
+  detalleCorto: string;
   porcentaje: number;
   color: string;
 };
@@ -83,6 +84,20 @@ const LARGO_DE_LA_ETIQUETA_CORTA = 11;
 
 const recortar = (etiqueta: string, largo: number) =>
   etiqueta.length > largo ? `${etiqueta.slice(0, largo - 1).trimEnd()}…` : etiqueta;
+
+const UN_MILLON = 1_000_000;
+const UN_MIL = 1_000;
+const unDecimal = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 });
+
+/** El valor en poco lugar para rotular muchas barras juntas: «$ 44 mil», «$ 1,2 M». El exacto queda en el detalle. */
+export function valorCorto(valor: number, formato: ResultadoDeMetrica['formato']): string {
+  if (formato !== 'MONEDA' || Math.abs(valor) < UN_MIL) return formatoDelValor(valor, formato);
+  const abreviado =
+    Math.abs(valor) >= UN_MILLON
+      ? `${unDecimal.format(valor / UN_MILLON)} M`
+      : `${unDecimal.format(valor / UN_MIL)} mil`;
+  return `$\u00a0${abreviado}`;
+}
 
 const colorDeLaParte = (lugar: number) =>
   COLORES_DE_LA_PALETA[lugar % COLORES_DE_LA_PALETA.length] ?? '#00506a';
@@ -100,6 +115,7 @@ export function datosDelGrafico(
     corta: etiquetaCorta(parte.etiqueta),
     valor: parte.valor,
     detalle: formatoDelValor(parte.valor, formato),
+    detalleCorto: valorCorto(parte.valor, formato),
     porcentaje: total > 0 ? Math.round((parte.valor / total) * 100) : 0,
     color: colorDeLaParte(lugar),
   }));

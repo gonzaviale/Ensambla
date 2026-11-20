@@ -24,6 +24,17 @@ const PEDIDOS_DE_UN_ALMACEN = [
   ['¿Cuánto vale mi mercadería?', 'INVENTARIO', 'SUMA', 'NINGUNA', 'TODO', false],
 ] as const;
 
+// Formas de tipear que el servidor también entiende (ver comoTipeaLaGente en InterpreteDePedidosTest).
+const COMO_TIPEA_LA_GENTE = [
+  ['ganancias que me dejaron mis clientes este mes', 'VENTAS', 'GANANCIA', 'CLIENTE', 'MES', false],
+  ['cuánto me costó lo que vendí esta semana', 'VENTAS', 'COSTO', 'NINGUNA', 'SEMANA', false],
+  ['qué vendo más', 'VENTAS', 'UNIDADES', 'PRODUCTO', 'MES', false],
+  ['cuánto vendí desde que abrí', 'VENTAS', 'SUMA', 'NINGUNA', 'TODO', false],
+  ['ventas de cada cliente', 'VENTAS', 'SUMA', 'CLIENTE', 'MES', false],
+  ['cuántas compras tuve hoy', 'GASTOS', 'CONTEO', 'NINGUNA', 'HOY', false],
+  ['cuánto vendió el negocio en el mes', 'VENTAS', 'SUMA', 'NINGUNA', 'MES', false],
+] as const;
+
 describe('el intérprete de pedidos de los mocks', () => {
   it('usa el mismo diccionario que el servidor', () => {
     entoncesLosDiccionariosSonIguales();
@@ -31,6 +42,15 @@ describe('el intérprete de pedidos de los mocks', () => {
 
   it.each(PEDIDOS_DE_UN_ALMACEN)(
     'entiende «%s» igual que el servidor',
+    (pedido, fuente, calculo, agrupar, periodo, soloFiado) => {
+      cuandoSePideAlMock(pedido);
+
+      entoncesArmaLaReceta({ fuente, calculo, agrupar, periodo, soloFiado });
+    },
+  );
+
+  it.each(COMO_TIPEA_LA_GENTE)(
+    'entiende «%s» aunque se tipee de otra forma',
     (pedido, fuente, calculo, agrupar, periodo, soloFiado) => {
       cuandoSePideAlMock(pedido);
 
