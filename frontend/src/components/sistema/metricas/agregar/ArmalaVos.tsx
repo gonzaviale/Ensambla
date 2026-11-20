@@ -5,7 +5,12 @@ import type { PropsDeLaPestana } from '@/components/sistema/metricas/agregar/tip
 import { VistaPrevia } from '@/components/sistema/metricas/agregar/VistaPrevia';
 import { useFuentesDelCuaderno, useVistaEnVivo } from '@/hooks/metricas/queries';
 import { ajustarALaFuente, definicionInicial } from '@/lib/metricas/metricasAMedida';
-import { PASO_DEL_NOMBRE, pasoConTarjetas } from '@/lib/metricas/pasosDeLaReceta';
+import {
+  PASO_DEL_NOMBRE,
+  hechosDespuesDeElegir,
+  pasoConTarjetas,
+  pasosSinContestar,
+} from '@/lib/metricas/pasosDeLaReceta';
 import {
   FUENTES_DE_METRICA,
   type DefinicionDeMetrica,
@@ -33,8 +38,8 @@ export function ArmalaVos(props: PropsDeLaPestana) {
 
 type PropsDelPasoAPaso = PropsDeLaPestana & { fuentes: FuenteDeMetrica[] };
 
-// Cinco pasos, uno a la vez: qué mirar, qué cuenta, cómo repartir, de cuándo y el nombre. Al tocar una tarjeta se
-// pasa al siguiente y la vista previa de abajo se actualiza sola.
+// Cinco solapas, una por pregunta. Nada viene elegido de antemano: la métrica sólo se puede guardar con todas
+// contestadas y con nombre, así nunca se arma una con datos que la persona no decidió.
 function PasoAPaso({ sistemaId, guardando, onAgregar, fuentes }: PropsDelPasoAPaso) {
   const receta = useRecetaPasoAPaso(fuentes);
   const guardarLaMia = (evento: FormEvent) => {
@@ -47,11 +52,14 @@ function PasoAPaso({ sistemaId, guardando, onAgregar, fuentes }: PropsDelPasoAPa
       <PasosHechos
         definicion={receta.definicion}
         fuentes={fuentes}
+        hechos={receta.hechos}
         paso={receta.paso}
         onIrAlPaso={receta.irAlPaso}
       />
       <PasoActual receta={receta} fuentes={fuentes} guardando={guardando} />
-      <VistaEnVivo sistemaId={sistemaId} definicion={receta.definicion} />
+      {receta.contestadasLasPreguntas && (
+        <VistaEnVivo sistemaId={sistemaId} definicion={receta.definicion} />
+      )}
     </form>
   );
 }
@@ -59,27 +67,30 @@ function PasoAPaso({ sistemaId, guardando, onAgregar, fuentes }: PropsDelPasoAPa
 const recetaInicialPara = (fuentes: FuenteDeMetrica[]) =>
   ajustarALaFuente(definicionInicial(), fuentes[0] ?? 'VENTAS');
 
-/** La receta que se va armando, en qué paso se está y si ya tiene nombre para guardarla. */
+/** La receta que se va armando, qué solapas ya se contestaron y si está lista para guardar. */
 function useRecetaPasoAPaso(fuentes: FuenteDeMetrica[]) {
   const [definicion, setDefinicion] = useState(() => recetaInicialPara(fuentes));
+  const [hechos, setHechos] = useState<number[]>([]);
   const [paso, setPaso] = useState(0);
-  const [sinNombre, setSinNombre] = useState(false);
   const nombre = definicion.nombre.trim();
+  const faltan = pasosSinContestar(hechos);
+  const sePuedeGuardar = faltan.length === 0 && nombre !== '';
   return {
     definicion,
+    hechos,
     paso,
+    faltan: nombre === '' ? [...faltan, 'Nombre'] : faltan,
+    sePuedeGuardar,
+    contestadasLasPreguntas: faltan.length === 0,
     irAlPaso: setPaso,
-    faltaElNombre: sinNombre && nombre === '',
     elegirEnElPaso: (nueva: DefinicionDeMetrica) => {
+      setHechos(hechosDespuesDeElegir(hechos, paso, nueva.fuente !== definicion.fuente));
       setDefinicion(nueva);
       setPaso(paso + 1);
     },
     cambiar: setDefinicion,
     nombrar: (nuevo: string) => setDefinicion({ ...definicion, nombre: nuevo }),
-    lista: () => {
-      setSinNombre(nombre === '');
-      return nombre === '' ? null : { ...definicion, nombre };
-    },
+    lista: () => (sePuedeGuardar ? { ...definicion, nombre } : null),
   };
 }
 
@@ -98,6 +109,7 @@ function PasoActual({ receta, fuentes, guardando }: PropsDelPasoActual) {
     <TarjetasDelPaso
       paso={pasoConTarjetas(receta.paso)}
       numero={receta.paso + 1}
+      hecho={receta.hechos.includes(receta.paso)}
       definicion={receta.definicion}
       fuentes={fuentes}
       onElegir={receta.elegirEnElPaso}
@@ -108,7 +120,7 @@ function PasoActual({ receta, fuentes, guardando }: PropsDelPasoActual) {
 
 function PasoDelNombre({ receta, guardando }: { receta: RecetaPasoAPaso; guardando: boolean }) {
   return (
-    <fieldset className="armala-vos-paso" data-color="amarillo">
+    <fieldset className="armala-vos-paso" data-color="petroleo">
       <legend>Paso 5 de 5 · Ponele un nombre</legend>
       <label>
         Nombre
@@ -117,15 +129,27 @@ function PasoDelNombre({ receta, guardando }: { receta: RecetaPasoAPaso; guardan
           value={receta.definicion.nombre}
           maxLength={80}
           placeholder="Por ejemplo: Ventas por día"
-          aria-invalid={receta.faltaElNombre}
           onChange={(evento) => receta.nombrar(evento.target.value)}
         />
       </label>
-      {receta.faltaElNombre && <span className="metrica-medida-error">Ponele un nombre.</span>}
-      <button type="submit" className="metricas-medida-agregar" disabled={guardando}>
+      <LoQueFalta faltan={receta.faltan} />
+      <button
+        type="submit"
+        className="metricas-medida-agregar"
+        disabled={guardando || !receta.sePuedeGuardar}
+      >
         Guardar métrica
       </button>
     </fieldset>
+  );
+}
+
+function LoQueFalta({ faltan }: { faltan: string[] }) {
+  if (faltan.length === 0) return null;
+  return (
+    <p className="armala-vos-falta" role="status">
+      Para guardarla te falta: {faltan.join(', ')}.
+    </p>
   );
 }
 

@@ -10,6 +10,7 @@ import type { DefinicionDeMetrica, FuenteDeMetrica } from '@/types/metricas';
 type Props = {
   paso: PasoDeLaReceta;
   numero: number;
+  hecho: boolean;
   definicion: DefinicionDeMetrica;
   fuentes: FuenteDeMetrica[];
   onElegir: (definicion: DefinicionDeMetrica) => void;
@@ -17,8 +18,16 @@ type Props = {
 };
 
 /** Una pregunta de la receta como tarjetas con ícono: la elegida queda marcada y al tocar otra se sigue. */
-export function TarjetasDelPaso({ paso, numero, definicion, fuentes, onElegir, onCambiar }: Props) {
-  const elegida = paso.elegida(definicion);
+export function TarjetasDelPaso({
+  paso,
+  numero,
+  hecho,
+  definicion,
+  fuentes,
+  onElegir,
+  onCambiar,
+}: Props) {
+  const elegida = hecho ? paso.elegida(definicion) : null;
   return (
     <fieldset className="armala-vos-paso" data-color={paso.color}>
       <legend>

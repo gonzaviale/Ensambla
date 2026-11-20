@@ -874,41 +874,88 @@
 }
 .armala-vos-pasos {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  gap: 6px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 .armala-vos-pasos button {
+  --color-solapa: var(--petrol);
   display: grid;
   justify-items: center;
+  align-content: start;
   gap: 2px;
   width: 100%;
-  padding: 6px 2px;
-  border: 2px solid var(--petrol);
-  border-radius: 10px;
+  min-height: 84px;
+  padding: 8px 4px;
+  border: 2px solid var(--color-solapa);
+  border-radius: 12px;
   background: #fff;
   color: var(--ink);
   font-size: 12px;
   line-height: 1.2;
 }
-.armala-vos-pasos button[aria-current='step'] {
-  background: var(--petrol);
+.armala-vos-pasos button[data-color='naranja'] {
+  --color-solapa: var(--orange);
+}
+.armala-vos-pasos button[data-color='celeste'] {
+  --color-solapa: var(--blue);
+}
+.armala-vos-pasos button[data-color='coral'] {
+  --color-solapa: var(--coral);
+}
+.armala-vos-pasos button[aria-selected='true'] {
+  background: var(--color-solapa);
   color: #fff;
 }
+.armala-vos-pasos button:disabled {
+  border-style: dashed;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
 .armala-vos-numero {
-  font-size: 15px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-solapa);
+  color: #fff;
+  font-size: 13px;
   font-weight: 800;
 }
+.armala-vos-numero .icon {
+  width: 14px;
+  height: 14px;
+}
+.armala-vos-pasos button[aria-selected='true'] .armala-vos-numero {
+  background: #fff;
+  color: var(--color-solapa);
+}
 .armala-vos-corto {
-  font-weight: 700;
+  font-weight: 800;
 }
 .armala-vos-elegido {
   overflow: hidden;
   max-width: 100%;
+  min-height: 1.2em;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.armala-vos-falta {
+  margin: 0;
+  color: var(--petrol);
+  font-weight: 700;
+}
+.armala-vos-paso[data-color='naranja'] {
+  --color-solapa: var(--orange);
+}
+.armala-vos-paso[data-color='celeste'] {
+  --color-solapa: var(--blue);
+}
+.armala-vos-paso[data-color='coral'] {
+  --color-solapa: var(--coral);
 }
 .armala-vos-paso {
   display: grid;
@@ -991,6 +1038,29 @@
   border-radius: 10px;
   background: #fff;
   color: var(--ink);
+}
+.panel-agregar-pedido-intro {
+  margin: 0;
+  color: var(--petrol);
+  font-weight: 700;
+}
+.panel-agregar-ejemplos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.panel-agregar-ejemplos button {
+  padding: 6px 12px;
+  border: 2px solid var(--orange);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+.panel-agregar-ejemplos button:hover {
+  background: var(--orange);
+  color: #fff;
 }
 .panel-agregar-pedido > .agregar-metrica-ver {
   justify-self: start;

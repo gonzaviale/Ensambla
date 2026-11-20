@@ -73,7 +73,7 @@ export const cuandoSeEligeLaTarjeta = async (
   );
 
 export const cuandoSeVaAlPaso = (usuario: UserEvent, paso: string) =>
-  usuario.click(screen.getByRole('button', { name: paso }));
+  usuario.click(screen.getByRole('tab', { name: paso }));
 
 export async function cuandoSeEligeDelMenu(usuario: UserEvent, metrica: string, opcion: string) {
   await usuario.click(await screen.findByRole('button', { name: `Opciones de ${metrica}` }));

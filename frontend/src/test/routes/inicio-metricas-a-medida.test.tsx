@@ -11,7 +11,6 @@ import {
   cuandoSeAgregaLaSugerida,
   cuandoSeEligeLaPestana,
   cuandoSeEligeLaTarjeta,
-  cuandoSeVaAlPaso,
   cuandoSeEligeVerlaComo,
   cuandoSeEligeDelMenu,
   cuandoSeRenombra,
@@ -184,15 +183,20 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
     await entoncesEstaAbiertaLaSolapa('Ventas por día');
   });
 
-  it('avisa si falta el nombre al guardar la propia', async () => {
+  it('no deja guardar la propia hasta contestar todas las solapas y ponerle nombre', async () => {
     const { usuario } = await dadoElInicioDelAlmacen();
     await cuandoSeAbreArmalaVos(usuario);
     await screen.findByRole('radiogroup', { name: '¿Qué querés mirar?' });
+    expect(screen.queryByRole('radio', { checked: true })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Paso 5: Nombre' })).toBeDisabled();
 
-    await cuandoSeVaAlPaso(usuario, 'Paso 5: Nombre');
-    await usuario.click(screen.getByRole('button', { name: 'Guardar métrica' }));
+    await cuandoSeEligeLaTarjeta(usuario, '¿Qué querés mirar?', 'Ventas');
+    await cuandoSeEligeLaTarjeta(usuario, '¿Qué cuenta querés hacer?', 'Plata de ventas');
+    await cuandoSeEligeLaTarjeta(usuario, '¿Cómo la querés repartir?', 'Por producto');
+    await cuandoSeEligeLaTarjeta(usuario, '¿De cuándo?', 'Esta semana');
 
-    expect(screen.getByText('Ponele un nombre.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Guardar métrica' })).toBeDisabled();
+    expect(screen.getByText('Para guardarla te falta: Nombre.')).toBeInTheDocument();
   });
 
   it('sólo ofrece armar de lo que el negocio cargó: sin gastos no ofrece gastos', async () => {
@@ -252,8 +256,10 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
   it('no deja guardar lo que ya muestra el panel de ventas y dice por qué', async () => {
     const { usuario } = await dadoElInicioDelAlmacen();
     await cuandoSeAbreArmalaVos(usuario);
-    await screen.findByRole('radiogroup', { name: '¿Qué querés mirar?' });
-    await cuandoSeVaAlPaso(usuario, 'Paso 5: Nombre');
+    await cuandoSeEligeLaTarjeta(usuario, '¿Qué querés mirar?', 'Ventas');
+    await cuandoSeEligeLaTarjeta(usuario, '¿Qué cuenta querés hacer?', 'Plata de ventas');
+    await cuandoSeEligeLaTarjeta(usuario, '¿Cómo la querés repartir?', 'Todo junto');
+    await cuandoSeEligeLaTarjeta(usuario, '¿De cuándo?', 'Este mes');
     await usuario.type(screen.getByLabelText('Nombre'), 'Total del mes');
     await usuario.click(screen.getByRole('button', { name: 'Guardar métrica' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Esa ya la tenés en el panel');

@@ -135,3 +135,27 @@ export const etiquetaElegida = (
 ) =>
   paso.opciones(definicion, fuentes).find((opcion) => opcion.valor === paso.elegida(definicion))
     ?.etiqueta ?? '';
+
+/** Las cinco solapas de «Armala vos», con el color de cada una; el nombre va en petróleo. */
+export const SOLAPAS_DE_LOS_PASOS: { corto: string; color: PasoDeLaReceta['color'] }[] = [
+  ...PASOS_CON_TARJETAS.map(({ corto, color }) => ({ corto, color })),
+  { corto: 'Nombre', color: 'petroleo' },
+];
+
+const LUGARES_CON_TARJETAS = PASOS_CON_TARJETAS.map((_, lugar) => lugar);
+
+/** Qué pasos quedan contestados al elegir en uno: si cambia lo que se mira, lo demás hay que volver a elegirlo. */
+export const hechosDespuesDeElegir = (hechos: number[], paso: number, cambioLaFuente: boolean) => [
+  ...new Set(cambioLaFuente ? [paso] : [...hechos, paso]),
+];
+
+/** Las preguntas con tarjetas sin contestar, con su nombre corto («Qué cuenta»). */
+export const pasosSinContestar = (hechos: number[]) =>
+  PASOS_CON_TARJETAS.filter((_, lugar) => !hechos.includes(lugar)).map(({ corto }) => corto);
+
+/** Se puede ir a un paso si ya se contestó lo que viene antes: las opciones dependen de qué se mira. */
+export const sePuedeIrAlPaso = (hechos: number[], lugar: number) => {
+  if (lugar === 0) return true;
+  if (lugar < PASO_DEL_NOMBRE) return hechos.includes(0);
+  return LUGARES_CON_TARJETAS.every((paso) => hechos.includes(paso));
+};

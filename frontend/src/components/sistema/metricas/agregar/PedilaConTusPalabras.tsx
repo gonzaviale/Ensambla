@@ -10,6 +10,7 @@ import type { PedidoInterpretado } from '@/types/metricas';
 
 const EJEMPLOS_DE_PEDIDOS = [
   'Cuánto vendí esta semana',
+  'Cuánto gané este mes',
   'Qué producto vendo más este mes',
   'Cuánto me deben por cliente',
   'En qué gasté más este mes',
@@ -22,6 +23,10 @@ export function PedilaConTusPalabras({ sistemaId, guardando, onAgregar }: PropsD
     usePedidoEnPalabras(sistemaId);
   return (
     <form className="panel-agregar-pedido" onSubmit={entender} noValidate>
+      <p className="panel-agregar-pedido-intro">
+        Contame qué querés ver, como se lo dirías a alguien del negocio. Yo lo traduzco y te muestro
+        cómo queda antes de guardarlo.
+      </p>
       <label>
         ¿Qué querés ver?
         <input
@@ -32,6 +37,7 @@ export function PedilaConTusPalabras({ sistemaId, guardando, onAgregar }: PropsD
           onChange={(evento) => setPedido(evento.target.value)}
         />
       </label>
+      <EjemplosParaProbar onElegir={setPedido} />
       <button type="submit" className="agregar-metrica-ver" disabled={entendiendo}>
         Ver qué entendí
       </button>
@@ -46,6 +52,18 @@ export function PedilaConTusPalabras({ sistemaId, guardando, onAgregar }: PropsD
         />
       )}
     </form>
+  );
+}
+
+function EjemplosParaProbar({ onElegir }: { onElegir: (pedido: string) => void }) {
+  return (
+    <div className="panel-agregar-ejemplos" role="group" aria-label="Pedidos de ejemplo">
+      {EJEMPLOS_DE_PEDIDOS.map((ejemplo) => (
+        <button key={ejemplo} type="button" onClick={() => onElegir(ejemplo)}>
+          {ejemplo}
+        </button>
+      ))}
+    </div>
   );
 }
 
