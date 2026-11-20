@@ -20,11 +20,12 @@ type Props = {
 /** Una solapa por pregunta, cada una con su nombre y lo que se eligió. Las que faltan contestar se ven sin tilde. */
 export function PasosHechos({ definicion, fuentes, hechos, paso, onIrAlPaso }: Props) {
   const elegidoEn = (lugar: number) => {
-    if (lugar === PASO_DEL_NOMBRE) return definicion.nombre.trim();
+    const pista = SOLAPAS_DE_LOS_PASOS[lugar]?.pista ?? '';
+    if (lugar === PASO_DEL_NOMBRE) return definicion.nombre.trim() || pista;
     const pasoConTarjetas = PASOS_CON_TARJETAS[lugar];
     return pasoConTarjetas && hechos.includes(lugar)
       ? etiquetaElegida(pasoConTarjetas, definicion, fuentes)
-      : '';
+      : pista;
   };
   const contestado = (lugar: number) =>
     lugar === PASO_DEL_NOMBRE ? definicion.nombre.trim() !== '' : hechos.includes(lugar);

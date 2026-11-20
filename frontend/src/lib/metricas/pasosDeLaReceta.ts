@@ -25,6 +25,8 @@ export type OpcionDelPaso = { valor: string; etiqueta: string; icono: NombreDeIc
 export type PasoDeLaReceta = {
   titulo: string;
   corto: string;
+  /** Una línea para la solapa mientras no se contestó, con ejemplos de lo que se puede elegir. */
+  pista: string;
   color: 'petroleo' | 'naranja' | 'celeste' | 'coral';
   opciones: (definicion: DefinicionDeMetrica, fuentes: FuenteDeMetrica[]) => OpcionDelPaso[];
   elegida: (definicion: DefinicionDeMetrica) => string;
@@ -63,7 +65,8 @@ const ICONO_DE_PERIODO: Record<PeriodoDeMetrica, NombreDeIcono> = {
 
 const QUE_MIRAR: PasoDeLaReceta = {
   titulo: '¿Qué querés mirar?',
-  corto: 'Qué mirar',
+  corto: 'Sobre qué',
+  pista: 'Ventas, gastos o stock',
   color: 'petroleo',
   opciones: (_, fuentes) =>
     fuentes.map((fuente) => ({
@@ -76,8 +79,9 @@ const QUE_MIRAR: PasoDeLaReceta = {
 };
 
 const QUE_CUENTA: PasoDeLaReceta = {
-  titulo: '¿Qué cuenta querés hacer?',
-  corto: 'Qué cuenta',
+  titulo: '¿Qué querés saber?',
+  corto: 'Qué saber',
+  pista: 'Total, promedio o cantidad',
   color: 'naranja',
   opciones: ({ fuente }) =>
     calculosDe(fuente).map((calculo) => ({
@@ -90,8 +94,9 @@ const QUE_CUENTA: PasoDeLaReceta = {
 };
 
 const COMO_REPARTIR: PasoDeLaReceta = {
-  titulo: '¿Cómo la querés repartir?',
-  corto: 'Cómo repartir',
+  titulo: '¿Cómo querés verla?',
+  corto: 'Cómo verla',
+  pista: 'Junta o por producto',
   color: 'celeste',
   opciones: ({ fuente }) =>
     agrupacionesDe(fuente).map((agrupar) => ({
@@ -105,7 +110,8 @@ const COMO_REPARTIR: PasoDeLaReceta = {
 
 const DE_CUANDO: PasoDeLaReceta = {
   titulo: '¿De cuándo?',
-  corto: 'De cuándo',
+  corto: 'Cuándo',
+  pista: 'Hoy, semana o mes',
   color: 'coral',
   opciones: ({ fuente }) =>
     periodosDe(fuente).map((periodo) => ({
@@ -137,9 +143,13 @@ export const etiquetaElegida = (
     ?.etiqueta ?? '';
 
 /** Las cinco solapas de «Armala vos», con el color de cada una; el nombre va en petróleo. */
-export const SOLAPAS_DE_LOS_PASOS: { corto: string; color: PasoDeLaReceta['color'] }[] = [
-  ...PASOS_CON_TARJETAS.map(({ corto, color }) => ({ corto, color })),
-  { corto: 'Nombre', color: 'petroleo' },
+export const SOLAPAS_DE_LOS_PASOS: {
+  corto: string;
+  pista: string;
+  color: PasoDeLaReceta['color'];
+}[] = [
+  ...PASOS_CON_TARJETAS.map(({ corto, pista, color }) => ({ corto, pista, color })),
+  { corto: 'Nombre', pista: 'Cómo la llamás', color: 'petroleo' },
 ];
 
 /** Qué pasos quedan contestados al elegir en uno: si cambia lo que se mira, lo demás hay que volver a elegirlo. */
@@ -147,7 +157,7 @@ export const hechosDespuesDeElegir = (hechos: number[], paso: number, cambioLaFu
   ...new Set(cambioLaFuente ? [paso] : [...hechos, paso]),
 ];
 
-/** Las preguntas con tarjetas sin contestar, con su nombre corto («Qué cuenta»). */
+/** Las preguntas con tarjetas sin contestar, con su nombre corto («Qué saber»). */
 export const pasosSinContestar = (hechos: number[]) =>
   PASOS_CON_TARJETAS.filter((_, lugar) => !hechos.includes(lugar)).map(({ corto }) => corto);
 

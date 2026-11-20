@@ -19,7 +19,7 @@ describe('Los pasos de «Armala vos»', () => {
   });
 
   it('dice qué preguntas faltan contestar', () => {
-    expect(pasosSinContestar([0, 2])).toEqual(['Qué cuenta', 'De cuándo']);
+    expect(pasosSinContestar([0, 2])).toEqual(['Qué saber', 'Cuándo']);
   });
 
   it('sin elegir qué mirar sólo se puede estar en el primer paso', () => {

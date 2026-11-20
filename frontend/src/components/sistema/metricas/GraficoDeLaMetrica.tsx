@@ -37,13 +37,19 @@ export function GraficoDeLaMetrica({ definicion, resultado, grafico }: Props) {
         </p>
         <NotaDelNumero definicion={definicion} resultado={resultado} />
       </div>
-      <div className="grafico-metrica-dibujo">
-        <Dibujo
-          definicion={definicion}
-          resultado={resultado}
-          partes={partesParaMostrar(definicion, resultado)}
-        />
-      </div>
+      {grafico !== 'NUMERO' && (
+        <div className="grafico-metrica-dibujo">
+          {sinPartes(grafico, resultado) ? (
+            <SinPartesParaDibujar />
+          ) : (
+            <Dibujo
+              definicion={definicion}
+              resultado={resultado}
+              partes={partesParaMostrar(definicion, resultado)}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -69,6 +75,19 @@ function MotivoSinNumero({ resultado }: { resultado: ResultadoDeMetrica }) {
   return (
     <p className="metrica-medida-motivo" role="status">
       {resultado.motivo ?? 'Todavía no se puede calcular.'}
+    </p>
+  );
+}
+
+// Una métrica repartida que dio número pero no tiene partes (por ejemplo, sin movimientos en el período) no dibuja un
+// gráfico vacío: lo dice.
+const sinPartes = (grafico: GraficoDeMetrica, resultado: ResultadoDeMetrica) =>
+  grafico !== 'NUMERO' && resultado.filas.length === 0;
+
+function SinPartesParaDibujar() {
+  return (
+    <p className="metrica-medida-motivo" role="status">
+      Todavía no hay datos para esta métrica en este período.
     </p>
   );
 }

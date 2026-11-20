@@ -550,6 +550,7 @@
 }
 .grafico-metrica[data-grafico='NUMERO'] {
   grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
 }
 .grafico-metrica-numero {
   display: grid;
@@ -1143,17 +1144,18 @@
   gap: 6px;
 }
 .panel-agregar-ejemplos button {
-  padding: 6px 12px;
-  border: 2px solid var(--orange);
-  border-radius: 999px;
+  padding: 5px 10px;
+  border: 2px dashed var(--yellow);
+  border-radius: 8px;
   background: #fff;
   color: var(--ink);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .panel-agregar-ejemplos button:hover {
-  background: var(--orange);
-  color: #fff;
+  border-style: solid;
+  background: #fff;
+  color: var(--ink);
 }
 .panel-agregar-pedido > .agregar-metrica-ver {
   justify-self: start;
@@ -1246,4 +1248,28 @@
   .grafico-dona-lista li {
     font-size: 12px;
   }
+}
+
+/* Entre «Tu negocio» y los avisos de rentabilidad hay menos aire que entre las demás secciones del Inicio. */
+.inicio .tu-negocio .tu-negocio-cuerpo {
+  margin-bottom: 6px;
+}
+
+/* «Ver qué entendí» es la acción principal: llena, a diferencia de los pedidos de ejemplo. */
+.panel-agregar-cuerpo .panel-agregar-pedido > .agregar-metrica-ver {
+  border-color: var(--coral);
+  background: var(--coral);
+  color: #fff;
+}
+.panel-agregar-cuerpo .panel-agregar-pedido > .agregar-metrica-ver:hover:not(:disabled) {
+  border-color: var(--coral);
+  background: var(--coral);
+  color: #fff;
+  filter: brightness(0.92);
+}
+
+/* En la vista previa de la ventana la tarjeta no reserva alto de más. */
+.vista-previa .grafico-metrica,
+.vista-previa .grafico-metrica-dibujo {
+  min-height: 0;
 }

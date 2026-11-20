@@ -1,4 +1,5 @@
-import { cloneElement, useEffect, useRef, useState, type ReactElement } from 'react';
+import { cloneElement, useContext, useEffect, useRef, useState, type ReactElement } from 'react';
+import { EscalaDelAlto } from '@/components/sistema/metricas/graficos/escalaDelAlto';
 
 type Medidas = { width: number; height: number };
 type Props = { alto: number; children: ReactElement<Partial<Medidas>> };
@@ -10,9 +11,10 @@ const ANCHO_INICIAL = 360;
 export function LienzoDelGrafico({ alto, children }: Props) {
   const lugar = useRef<HTMLDivElement>(null);
   const ancho = useAnchoDelLugar(lugar);
+  const altoFinal = Math.round(alto * useContext(EscalaDelAlto));
   return (
-    <div ref={lugar} className="lienzo-del-grafico" style={{ width: '100%', height: alto }}>
-      {cloneElement(children, { width: ancho, height: alto })}
+    <div ref={lugar} className="lienzo-del-grafico" style={{ width: '100%', height: altoFinal }}>
+      {cloneElement(children, { width: ancho, height: altoFinal })}
     </div>
   );
 }

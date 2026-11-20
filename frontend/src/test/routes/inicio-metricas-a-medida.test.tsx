@@ -172,8 +172,8 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
     await cuandoSeAbreArmalaVos(usuario);
 
     await cuandoSeEligeLaTarjeta(usuario, '¿Qué querés mirar?', 'Ventas');
-    await cuandoSeEligeLaTarjeta(usuario, '¿Qué cuenta querés hacer?', 'Plata de ventas');
-    await cuandoSeEligeLaTarjeta(usuario, '¿Cómo la querés repartir?', 'Por día de la semana');
+    await cuandoSeEligeLaTarjeta(usuario, '¿Qué querés saber?', 'Plata de ventas');
+    await cuandoSeEligeLaTarjeta(usuario, '¿Cómo querés verla?', 'Por día de la semana');
     await cuandoSeEligeLaTarjeta(usuario, '¿De cuándo?', 'Todo lo cargado');
     expect(await screen.findByLabelText('Así quedaría')).toBeInTheDocument();
 
@@ -190,8 +190,8 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
     expect(screen.getByRole('tab', { name: 'Paso 5: Nombre' })).toBeDisabled();
 
     await cuandoSeEligeLaTarjeta(usuario, '¿Qué querés mirar?', 'Ventas');
-    await cuandoSeEligeLaTarjeta(usuario, '¿Qué cuenta querés hacer?', 'Plata de ventas');
-    await cuandoSeEligeLaTarjeta(usuario, '¿Cómo la querés repartir?', 'Por producto');
+    await cuandoSeEligeLaTarjeta(usuario, '¿Qué querés saber?', 'Plata de ventas');
+    await cuandoSeEligeLaTarjeta(usuario, '¿Cómo querés verla?', 'Por producto');
     await cuandoSeEligeLaTarjeta(usuario, '¿De cuándo?', 'Esta semana');
 
     expect(screen.getByRole('button', { name: 'Guardar métrica' })).toBeDisabled();
@@ -256,8 +256,8 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
     const { usuario } = await dadoElInicioDelAlmacen();
     await cuandoSeAbreArmalaVos(usuario);
     await cuandoSeEligeLaTarjeta(usuario, '¿Qué querés mirar?', 'Ventas');
-    await cuandoSeEligeLaTarjeta(usuario, '¿Qué cuenta querés hacer?', 'Plata de ventas');
-    await cuandoSeEligeLaTarjeta(usuario, '¿Cómo la querés repartir?', 'Todo junto');
+    await cuandoSeEligeLaTarjeta(usuario, '¿Qué querés saber?', 'Plata de ventas');
+    await cuandoSeEligeLaTarjeta(usuario, '¿Cómo querés verla?', 'Todo junto');
     await cuandoSeEligeLaTarjeta(usuario, '¿De cuándo?', 'Este mes');
     await usuario.type(screen.getByLabelText('Nombre'), 'Total del mes');
     await usuario.click(screen.getByRole('button', { name: 'Guardar métrica' }));
