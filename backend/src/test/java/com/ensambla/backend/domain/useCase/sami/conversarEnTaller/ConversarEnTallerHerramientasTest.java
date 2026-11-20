@@ -98,7 +98,7 @@ class ConversarEnTallerHerramientasTest {
     @Test
     @DisplayName("Encuentra una pieza por su tipo aunque venga en mayúsculas")
     void encuentraUnaPiezaPorSuTipoAunqueVengaEnMayusculas() {
-        dadoLasLlamadas(llamada("quitar_pieza", "pieza", "CLIENTS"));
+        dadoUnaPiezaDePedidosQueSePideQuitarPorSuTipoEnMayusculas();
 
         cuandoSeValidanLasLlamadas();
 
@@ -108,11 +108,11 @@ class ConversarEnTallerHerramientasTest {
     @Test
     @DisplayName("Quita por tipo una pieza que se sumó en el mismo turno")
     void quitaPorTipoUnaPiezaQueSeSumoEnElMismoTurno() {
-        dadoQueSeSumaYSeQuitaLaPiezaDeVentasEnElMismoTurno();
+        dadoQueSeSumaYSeQuitaLaPiezaDePedidosEnElMismoTurno();
 
         cuandoSeValidanLasLlamadas();
 
-        entoncesSeQuitaLaPiezaDeVentasPorSuTipo();
+        entoncesSeQuitaLaPiezaDePedidosPorSuTipo();
     }
 
     @Test
@@ -189,9 +189,9 @@ class ConversarEnTallerHerramientasTest {
     }
 
     @Test
-    @DisplayName("No pasa de doce datos por pieza")
-    void noPasaDeDoceDatosPorPieza() {
-        dadoUnaPiezaConDoceDatosYSePideUnoMas();
+    @DisplayName("No pasa de dieciséis datos por pieza")
+    void noPasaDeDieciseisDatosPorPieza() {
+        dadoUnaPiezaConDieciseisDatosYSePideUnoMas();
 
         cuandoSeValidanLasLlamadas();
 
@@ -211,21 +211,51 @@ class ConversarEnTallerHerramientasTest {
     @Test
     @DisplayName("Quita un dato con la etiqueta exacta que tiene la pieza")
     void quitaUnDatoConLaEtiquetaExactaQueTieneLaPieza() {
-        dadoLasLlamadas(llamada("quitar_campo", "pieza", "e1", "campo", "precio"));
+        dadoUnaPiezaAMedidaConUnDatoPropio();
 
         cuandoSeValidanLasLlamadas();
 
-        entoncesSeAcepta(accion("quitar_campo", "pieza", "e1", "campo", "Precio"));
+        entoncesSeAcepta(accion("quitar_campo", "pieza", "e1", "campo", "Marca"));
     }
 
     @Test
-    @DisplayName("No quita un dato obligatorio del componente ni un vínculo")
+    @DisplayName("No quita un dato obligatorio ni fijo del componente ni un vínculo")
     void noQuitaUnDatoObligatorioDelComponenteNiUnVinculo() {
         dadoUnaVentaConVinculoYUnaAgendaYSePideQuitarSusDatos();
 
         cuandoSeValidanLasLlamadas();
 
         entoncesSoloSeQuitanLosDatosOpcionales();
+    }
+
+    @Test
+    @DisplayName("No quita la única pieza de Stock del negocio")
+    void noQuitaLaUnicaPiezaDeStockDelNegocio() {
+        dadoQueSePideQuitarLaUnicaPiezaDeStock();
+
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeDescartaTodo();
+    }
+
+    @Test
+    @DisplayName("Quita una pieza de Stock si hay otra del mismo tipo")
+    void quitaUnaPiezaDeStockSiHayOtraDelMismoTipo() {
+        dadoDosPiezasDeStockYSePideQuitarUna();
+
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeAcepta(accion("quitar_pieza", "pieza", "e2"));
+    }
+
+    @Test
+    @DisplayName("No quita un dato fijo del Stock")
+    void noQuitaUnDatoFijoDelStock() {
+        dadoQueSePideQuitarUnDatoFijoDelStock();
+
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeDescartaTodo();
     }
 
     @Test
@@ -365,14 +395,46 @@ class ConversarEnTallerHerramientasTest {
     }
 
     private void dadoQueSeQuitaLaMismaPiezaPorIdPorNombreYPorTipo() {
+        estado = new EstadoTaller("Pedidos", "mosaic", List.of(
+                new PiezaTaller("e1", "orders", "Pedidos", null, List.of(new CampoTaller("Nombre", "text"))),
+                new PiezaTaller("e2", "form", "Material", null, List.of(new CampoTaller("Nombre", "text")))));
         dadoLasLlamadas(
                 llamada("quitar_pieza", "pieza", "e1"),
-                llamada("quitar_pieza", "pieza", "CLIENTES"),
-                llamada("quitar_pieza", "pieza", "inventory"));
+                llamada("quitar_pieza", "pieza", "MATERIAL"),
+                llamada("quitar_pieza", "pieza", "orders"));
     }
 
-    private void dadoQueSeSumaYSeQuitaLaPiezaDeVentasEnElMismoTurno() {
-        dadoLasLlamadas(llamada("agregar_pieza", "tipo", "sales"), llamada("quitar_pieza", "pieza", "Ventas"));
+    private void dadoUnaPiezaDePedidosQueSePideQuitarPorSuTipoEnMayusculas() {
+        estado = new EstadoTaller("Pedidos", "mosaic", List.of(
+                new PiezaTaller("e1", "inventory", "Inventario", null, List.of(new CampoTaller("Producto", "text"))),
+                new PiezaTaller("e2", "orders", "Pedidos", null, List.of(new CampoTaller("Nombre", "text")))));
+        dadoLasLlamadas(llamada("quitar_pieza", "pieza", "ORDERS"));
+    }
+
+    private void dadoQueSeSumaYSeQuitaLaPiezaDePedidosEnElMismoTurno() {
+        dadoLasLlamadas(llamada("agregar_pieza", "tipo", "orders"), llamada("quitar_pieza", "pieza", "Pedidos"));
+    }
+
+    private void dadoQueSePideQuitarLaUnicaPiezaDeStock() {
+        dadoLasLlamadas(llamada("quitar_pieza", "pieza", "e1"));
+    }
+
+    private void dadoDosPiezasDeStockYSePideQuitarUna() {
+        estado = new EstadoTaller("Dos stocks", "mosaic", List.of(
+                new PiezaTaller("e1", "inventory", "Inventario", null, List.of(new CampoTaller("Producto", "text"))),
+                new PiezaTaller("e2", "inventory", "Depósito", null, List.of(new CampoTaller("Producto", "text")))));
+        dadoLasLlamadas(llamada("quitar_pieza", "pieza", "e2"));
+    }
+
+    private void dadoQueSePideQuitarUnDatoFijoDelStock() {
+        dadoLasLlamadas(llamada("quitar_campo", "pieza", "e1", "campo", "Precio"));
+    }
+
+    private void dadoUnaPiezaAMedidaConUnDatoPropio() {
+        estado = new EstadoTaller("A medida", "mosaic", List.of(
+                new PiezaTaller("e1", "form", "Material", null,
+                        List.of(new CampoTaller("Nombre", "text"), new CampoTaller("Marca", "text")))));
+        dadoLasLlamadas(llamada("quitar_campo", "pieza", "e1", "campo", "marca"));
     }
 
     private void dadoQueSePideRenombrarConDatosInvalidos() {
@@ -393,8 +455,8 @@ class ConversarEnTallerHerramientasTest {
                 llamada("agregar_campo", "pieza", "nada", "etiqueta", "Y", "tipo", "text"));
     }
 
-    private void dadoUnaPiezaConDoceDatosYSePideUnoMas() {
-        List<CampoTaller> campos = IntStream.rangeClosed(1, 12)
+    private void dadoUnaPiezaConDieciseisDatosYSePideUnoMas() {
+        List<CampoTaller> campos = IntStream.rangeClosed(1, 16)
                 .mapToObj(numero -> new CampoTaller("Dato " + numero, "text")).toList();
         estado = new EstadoTaller("Lleno", "mosaic", List.of(
                 new PiezaTaller("e9", "inventory", "Inventario", null, campos)));
@@ -466,7 +528,7 @@ class ConversarEnTallerHerramientasTest {
 
     private void dadoPiezasLlamadasQuienMeDebeYMaterial() {
         estado = new EstadoTaller("Velas", "mosaic", List.of(
-                new PiezaTaller("e7", "clients", "Quién me debe", null, List.of()),
+                new PiezaTaller("e7", "orders", "Quién me debe", null, List.of()),
                 new PiezaTaller("e8", "form", "Material", null, List.of())));
         dadoLasLlamadas(
                 llamada("quitar_pieza", "pieza", "QUIEN ME DEBE"),
@@ -506,10 +568,10 @@ class ConversarEnTallerHerramientasTest {
         entoncesSeAcepta(accion("quitar_pieza", "pieza", "e1"), accion("quitar_pieza", "pieza", "e2"));
     }
 
-    private void entoncesSeQuitaLaPiezaDeVentasPorSuTipo() {
+    private void entoncesSeQuitaLaPiezaDePedidosPorSuTipo() {
         assertThat(validacion.acciones()).extracting(AccionTaller::herramienta)
                 .containsExactly("agregar_pieza", "quitar_pieza");
-        assertThat(validacion.acciones().get(1).argumentos()).containsEntry("pieza", "sales");
+        assertThat(validacion.acciones().get(1).argumentos()).containsEntry("pieza", "orders");
     }
 
     private void entoncesLasOpcionesDelDatoSon(List<String> opciones) {
@@ -523,9 +585,7 @@ class ConversarEnTallerHerramientasTest {
     }
 
     private void entoncesSoloSeQuitanLosDatosOpcionales() {
-        entoncesSeAcepta(
-                accion("quitar_campo", "pieza", "e1", "campo", "Cliente"),
-                accion("quitar_campo", "pieza", "e2", "campo", "Cantidad"));
+        entoncesSeAcepta(accion("quitar_campo", "pieza", "e2", "campo", "Cantidad"));
     }
 
     private void entoncesLlegaUnaBotoneraConLasOpcionesSinRepetirYNingunaAccion() {

@@ -18,7 +18,7 @@ export type ComponenteParaSami = {
     tipo: string;
     obligatorio: boolean;
     opciones?: string[];
-    fija?: boolean;
+    fija: boolean;
   }[];
 };
 
@@ -44,7 +44,7 @@ export function catalogoParaSami(): CatalogoParaSami {
           tipo: campo.type,
           obligatorio: campo.required,
           ...(campo.options && { opciones: campo.options }),
-          ...(campo.system && { fija: true }),
+          fija: campo.system === true,
         })),
       };
     }),

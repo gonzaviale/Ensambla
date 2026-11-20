@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.infrastructure.repository.entity.BloqueEntity;
 import com.ensambla.backend.infrastructure.repository.entity.CampoEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IBloqueJpaRepository;
@@ -29,6 +30,7 @@ import static org.mockito.Mockito.when;
 class BloqueCampoRepositoryImplTest {
 
     private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    private static final ProyectoId PROYECTO_ID = ProyectoId.de("d0000000-0000-4000-8000-000000000001");
     private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
 
     @Mock
@@ -41,6 +43,7 @@ class BloqueCampoRepositoryImplTest {
     private CampoRepositoryImpl campoRepository;
     private Optional<Bloque> encontrado;
     private Bloque guardado;
+    private List<Bloque> bloques;
     private List<Campo> campos;
 
     @BeforeEach
@@ -78,6 +81,16 @@ class BloqueCampoRepositoryImplTest {
     }
 
     @Test
+    @DisplayName("Los bloques de un sistema se listan por proyecto y negocio y se mapean")
+    void losBloquesDeUnSistemaSeListanPorProyectoYNegocioYSeMapean() {
+        dadoQueElSistemaTieneLosBloquesStockYVentas();
+
+        cuandoSeListanLosBloquesDelSistema();
+
+        entoncesLosBloquesSonStockYVentas();
+    }
+
+    @Test
     @DisplayName("Los campos del bloque se devuelven mapeados y en el orden de la consulta")
     void losCamposDelBloqueSeDevuelvenMapeadosYEnElOrdenDeLaConsulta() {
         dadoQueElBloqueTieneUnCampoPrimeroYUnoSegundo();
@@ -95,6 +108,12 @@ class BloqueCampoRepositoryImplTest {
 
     private void dadoQueGuardarDevuelveElBloqueClientes() {
         when(bloqueJpa.save(any())).thenReturn(BloqueEntity.builder().id(BLOQUE_ID.valor()).nombre("Clientes").build());
+    }
+
+    private void dadoQueElSistemaTieneLosBloquesStockYVentas() {
+        when(bloqueJpa.findAllByProyectoIdAndNegocioIdOrderByPosicionAscIdAsc(PROYECTO_ID.valor(), NEGOCIO_ID.valor()))
+                .thenReturn(List.of(BloqueEntity.builder().nombre("Stock").build(),
+                        BloqueEntity.builder().nombre("Ventas").build()));
     }
 
     private void dadoQueElBloqueTieneUnCampoPrimeroYUnoSegundo() {
@@ -117,6 +136,10 @@ class BloqueCampoRepositoryImplTest {
         bloqueRepository.deleteByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID);
     }
 
+    private void cuandoSeListanLosBloquesDelSistema() {
+        bloques = bloqueRepository.findByProyectoIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID);
+    }
+
     private void cuandoSeListanLosCamposDelBloque() {
         campos = campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID);
     }
@@ -129,6 +152,10 @@ class BloqueCampoRepositoryImplTest {
     private void entoncesSeDevuelveElBloqueClientesGuardado() {
         assertThat(guardado.getId()).isEqualTo(BLOQUE_ID);
         assertThat(guardado.getNombre()).isEqualTo("Clientes");
+    }
+
+    private void entoncesLosBloquesSonStockYVentas() {
+        assertThat(bloques).extracting(Bloque::getNombre).containsExactly("Stock", "Ventas");
     }
 
     private void entoncesSeDelegoElBorradoDelBloqueConElFiltroDeNegocio() {

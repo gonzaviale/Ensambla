@@ -51,6 +51,16 @@ class ConversarEnTallerEdicionTest {
     }
 
     @Test
+    @DisplayName("No cambia el tipo de un dato fijo del Stock")
+    void noCambiaElTipoDeUnDatoFijoDelStock() {
+        dadoQueSePidePasarElPrecioATipoTexto();
+
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeDescartaTodo();
+    }
+
+    @Test
     @DisplayName("Puede cambiar sólo las mayúsculas de la etiqueta del mismo dato")
     void puedeCambiarSoloLasMayusculasDeLaEtiquetaDelMismoDato() {
         dadoQueSePideEscribirElPrecioEnMayusculas();
@@ -67,7 +77,7 @@ class ConversarEnTallerEdicionTest {
 
         cuandoSeValidanLasLlamadas();
 
-        entoncesSeAcepta(editada("pieza", "e1", "campo", "Precio", "tipo", "number"));
+        entoncesSeAcepta(editada("pieza", "e3", "campo", "Teléfono", "tipo", "text"));
     }
 
     @Test
@@ -241,11 +251,15 @@ class ConversarEnTallerEdicionTest {
     }
 
     private void dadoQueSePidePasarElPrecioATipoNumberEscritoEnMayusculas() {
-        dadoLasLlamadas(editar("pieza", "e1", "campo", "precio", "tipo", " NUMBER "));
+        dadoLasLlamadas(editar("pieza", "e3", "campo", "teléfono", "tipo", " TEXT "));
+    }
+
+    private void dadoQueSePidePasarElPrecioATipoTexto() {
+        dadoLasLlamadas(editar("pieza", "e1", "campo", "Precio", "tipo", "text"));
     }
 
     private void dadoQueSePidePasarLaCantidadAListaConOpcionesRepetidasYDeMas() {
-        dadoLasLlamadas(editar("pieza", "e1", "campo", "Cantidad", "tipo", "select",
+        dadoLasLlamadas(editar("pieza", "e3", "campo", "Teléfono", "tipo", "select",
                 "opciones", List.of("XS", "S", "XS", "M", "L", "XL", "XXL", "3XL")));
     }
 
@@ -313,12 +327,11 @@ class ConversarEnTallerEdicionTest {
 
     private void dadoVariasEdicionesEncadenadasDelPrecioEnElMismoTurno() {
         dadoLasLlamadas(
-                editar("pieza", "e1", "campo", "Precio", "etiqueta", "Costo", "posicion", 2),
-                editar("pieza", "e1", "campo", "Precio", "obligatorio", true),
-                editar("pieza", "e1", "campo", "costo", "tipo", "number"),
-                editar("pieza", "e1", "campo", "Costo", "tipo", "number"),
-                editar("pieza", "e1", "campo", "Cantidad", "posicion", 3),
-                llamada("quitar_campo", Map.of("pieza", "e1", "campo", "costo")));
+                editar("pieza", "e3", "campo", "Teléfono", "etiqueta", "Celular", "posicion", 3),
+                editar("pieza", "e3", "campo", "Teléfono", "obligatorio", true),
+                editar("pieza", "e3", "campo", "celular", "tipo", "text"),
+                editar("pieza", "e3", "campo", "Celular", "tipo", "text"),
+                llamada("quitar_campo", Map.of("pieza", "e3", "campo", "celular")));
     }
 
     private void dadoQueSeSumaUnaPiezaDeGastosYSeEditaUnDatoSuyoEnElMismoTurno() {
@@ -344,7 +357,7 @@ class ConversarEnTallerEdicionTest {
     }
 
     private void entoncesLaCantidadQuedaComoListaConLasPrimerasSeisOpcionesSinRepetir() {
-        entoncesSeAcepta(editada("pieza", "e1", "campo", "Cantidad", "tipo", "select",
+        entoncesSeAcepta(editada("pieza", "e3", "campo", "Teléfono", "tipo", "select",
                 "opciones", List.of("XS", "S", "M", "L", "XL", "XXL")));
     }
 
@@ -370,9 +383,9 @@ class ConversarEnTallerEdicionTest {
 
     private void entoncesLasEdicionesVenLosCambiosAnterioresDelTurno() {
         entoncesSeAcepta(
-                editada("pieza", "e1", "campo", "Precio", "etiqueta", "Costo", "posicion", 2),
-                editada("pieza", "e1", "campo", "Costo", "tipo", "number"),
-                new AccionTaller("quitar_campo", Map.of("pieza", "e1", "campo", "Costo")));
+                editada("pieza", "e3", "campo", "Teléfono", "etiqueta", "Celular", "posicion", 3),
+                editada("pieza", "e3", "campo", "Celular", "tipo", "text"),
+                new AccionTaller("quitar_campo", Map.of("pieza", "e3", "campo", "Celular")));
     }
 
     private void entoncesSeEditaElDatoDeLaPiezaNuevaDeGastos() {

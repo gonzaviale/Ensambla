@@ -23,7 +23,7 @@
   },
   {
     "name": "quitar_pieza",
-    "description": "Quita una pieza.",
+    "description": "Quita una pieza. No quita la última tabla de Stock, Ventas, Clientes ni Gastos.",
     "inputSchema": {
       "type": "object",
       "properties": {"pieza": {"type": "string"}}
@@ -62,7 +62,7 @@
   },
   {
     "name": "quitar_campo",
-    "description": "Quita un dato de una pieza.",
+    "description": "Quita un dato de una pieza. No quita los datos base de Stock, Ventas, Clientes ni Gastos.",
     "inputSchema": {
       "type": "object",
       "properties": {"pieza": {"type": "string"}, "campo": {"type": "string"}},
