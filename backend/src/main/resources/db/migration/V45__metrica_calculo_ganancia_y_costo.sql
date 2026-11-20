@@ -1,4 +1,4 @@
--- V40: dos cuentas nuevas para las métricas a medida: GANANCIA (lo vendido menos lo que costó) y COSTO (lo que costó
+-- V45: dos cuentas nuevas para las métricas a medida: GANANCIA (lo vendido menos lo que costó) y COSTO (lo que costó
 -- lo vendido). La columna ya es texto; sólo se amplía la lista de valores permitidos.
 
 ALTER TABLE metrica DROP CONSTRAINT metrica_calculo_check;

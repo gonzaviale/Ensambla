@@ -32,11 +32,11 @@ class ArchitectureTest {
     // Paquetes del dominio ya migrados a polimorfismo: se suman acá cuando un carril del plan de calidad los termina.
     private static final List<String> PAQUETES_SIN_SWITCH = List.of(
             "model/campo", "model/pago", "model/plan", "model/aviso", "model/bloque",
-            "useCase/campo", "useCase/aviso", "service/pago", "service/plan");
+            "useCase/campo", "useCase/aviso", "service/pago", "service/plan", "model/metrica", "useCase/metrica");
     // model/campo queda afuera hasta que Formula (parser) deje de usar else if.
     private static final List<String> PAQUETES_SIN_ELSE_IF = List.of(
             "model/pago", "model/plan", "model/aviso", "model/bloque",
-            "useCase/campo", "useCase/aviso", "service/pago", "service/plan");
+            "useCase/campo", "useCase/aviso", "service/pago", "service/plan", "model/metrica", "useCase/metrica");
     private static final Pattern UUID_REFERENCE = Pattern.compile("\\bUUID\\b");
     // Los value objects de id, su interfaz y las dos reglas que derivan UUID de un texto.
     private static final Pattern UUID_ALLOWED = Pattern.compile(

@@ -25,6 +25,21 @@ class FuenteMetricaTest {
         entoncesLaTabla(FuenteMetrica.INVENTARIO, false, true, false);
     }
 
+    @Test
+    @DisplayName("Sólo las ventas tienen el costo de lo vendido")
+    void soloLasVentasTienenElCostoDeLoVendido() {
+        entoncesTienenCostoDeLoVendido(FuenteMetrica.VENTAS);
+        entoncesNoTienenCostoDeLoVendido(FuenteMetrica.GASTOS, FuenteMetrica.INVENTARIO);
+    }
+
+    private static void entoncesTienenCostoDeLoVendido(FuenteMetrica fuente) {
+        assertThat(fuente.tieneCostoDeLoVendido()).isTrue();
+    }
+
+    private static void entoncesNoTienenCostoDeLoVendido(FuenteMetrica... fuentes) {
+        assertThat(fuentes).noneMatch(FuenteMetrica::tieneCostoDeLoVendido);
+    }
+
     private static void entoncesLaTabla(FuenteMetrica fuente, boolean tieneFecha, boolean tieneUnidades,
                                         boolean admiteFiado) {
         assertThat(fuente.tieneFecha()).isEqualTo(tieneFecha);

@@ -1,4 +1,4 @@
--- V34: las métricas a medida de un cuaderno (ENS-260). La persona guarda en la home las que le sugiere su rubro o las
+-- V43: las métricas a medida de un cuaderno (ENS-260). La persona guarda en la home las que le sugiere su rubro o las
 -- que arma ella. Lo que se guarda es la receta (qué tabla, qué cálculo, cómo repartir, qué período), nunca el número:
 -- el servidor lo calcula cada vez con los datos de hoy.
 

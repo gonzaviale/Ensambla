@@ -136,8 +136,8 @@ class InterpreteDePedidosTest {
     }
 
     @ParameterizedTest(name = "{0}")
-    @MethodSource("pedidosDeUnAlmacen")
     @DisplayName("Entiende los pedidos de todos los días de un almacén y arma la receta que piden")
+    @MethodSource("pedidosDeUnAlmacen")
     void entiendeLosPedidosDeTodosLosDias(String pedido, DefinicionMetrica esperada) {
         dadoElInterpreteDeLaAplicacion();
 
@@ -147,8 +147,8 @@ class InterpreteDePedidosTest {
     }
 
     @ParameterizedTest(name = "{0}")
-    @MethodSource("otrasFormasDePedir")
     @DisplayName("Entiende otras formas de pedir: facturé, cobré, me deben, pagué, compras, qué me queda y top")
+    @MethodSource("otrasFormasDePedir")
     void entiendeOtrasFormasDePedir(String pedido, DefinicionMetrica esperada) {
         dadoElInterpreteDeLaAplicacion();
 
@@ -158,8 +158,8 @@ class InterpreteDePedidosTest {
     }
 
     @ParameterizedTest(name = "{0}")
-    @MethodSource("comoTipeaLaGente")
     @DisplayName("Entiende cómo tipea la gente: dejaron, me costó, mis clientes, desde que abrí, cada cliente")
+    @MethodSource("comoTipeaLaGente")
     void entiendeComoTipeaLaGente(String pedido, DefinicionMetrica esperada) {
         dadoElInterpreteDeLaAplicacion();
 
@@ -169,8 +169,8 @@ class InterpreteDePedidosTest {
     }
 
     @ParameterizedTest(name = "{0}")
-    @MethodSource("loQueSeTomaPorDefecto")
     @DisplayName("Cuenta qué partes de la receta tomó por defecto porque el pedido no las decía")
+    @MethodSource("loQueSeTomaPorDefecto")
     void cuentaLoQueTomoPorDefecto(String pedido, List<ParteDeLaReceta> porDefecto) {
         dadoElInterpreteDeLaAplicacion();
 
@@ -190,8 +190,8 @@ class InterpreteDePedidosTest {
     }
 
     @ParameterizedTest(name = "{0}")
-    @MethodSource("loQueNoSeEntiende")
     @DisplayName("Avisa las palabras que no entendió, sin contar las vacías como «de» o «cuánto»")
+    @MethodSource("loQueNoSeEntiende")
     void avisaLasPalabrasQueNoEntendio(String pedido, List<String> noEntendidas) {
         dadoElInterpreteDeLaAplicacion();
 

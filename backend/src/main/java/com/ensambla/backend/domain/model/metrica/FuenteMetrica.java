@@ -30,6 +30,11 @@ public enum FuenteMetrica {
         public boolean admiteFiado() {
             return true;
         }
+
+        @Override
+        public boolean tieneCostoDeLoVendido() {
+            return true;
+        }
     },
 
     GASTOS("gastos", "importe", Set.of(NINGUNA, CATEGORIA, DIA_DE_LA_SEMANA)) {
@@ -103,6 +108,11 @@ public enum FuenteMetrica {
     }
 
     public boolean admiteFiado() {
+        return false;
+    }
+
+    /** Sólo una venta dice qué producto salió, así que sólo de ellas sale la ganancia o el costo de lo vendido. */
+    public boolean tieneCostoDeLoVendido() {
         return false;
     }
 

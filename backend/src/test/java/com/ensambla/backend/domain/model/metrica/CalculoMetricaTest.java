@@ -68,8 +68,7 @@ class CalculoMetricaTest {
     @Test
     @DisplayName("Dice por qué una cuenta no sirve para una tabla")
     void diceQuePorQueNoSirveParaUnaTabla() {
-        assertThat(CalculoMetrica.SUMA.motivoSiNoSirvePara(FuenteMetrica.GASTOS))
-                .isEqualTo("Esa cuenta no se puede hacer con gastos");
+        entoncesElMotivoPara(CalculoMetrica.SUMA, FuenteMetrica.GASTOS, "Esa cuenta no se puede hacer con gastos");
     }
 
     private static void entoncesElCalculo(CalculoMetrica calculo, FormatoMetrica formato, boolean usaImporte) {
@@ -83,5 +82,9 @@ class CalculoMetricaTest {
 
     private static void entoncesNoSirvePara(CalculoMetrica calculo, FuenteMetrica fuente) {
         assertThat(calculo.sirvePara(fuente)).isFalse();
+    }
+
+    private static void entoncesElMotivoPara(CalculoMetrica calculo, FuenteMetrica fuente, String motivo) {
+        assertThat(calculo.motivoSiNoSirvePara(fuente)).isEqualTo(motivo);
     }
 }

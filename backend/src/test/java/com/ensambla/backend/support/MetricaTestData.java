@@ -161,6 +161,12 @@ public final class MetricaTestData {
     }
 
     /** Una fila sugerida de las ventas del mes, todavía sin id, con este nombre y en este lugar del panel. */
+    public static MetricaEntity unaFilaDeGananciaEn(UUID negocioId, UUID proyectoId) {
+        MetricaEntity fila = unaFilaSugeridaEn(negocioId, proyectoId, "Ganancia", 0);
+        fila.setCalculo(CalculoMetrica.GANANCIA);
+        return fila;
+    }
+
     public static MetricaEntity unaFilaSugeridaEn(UUID negocioId, UUID proyectoId, String nombre, int orden) {
         return MetricaEntity.builder()
                 .negocioId(negocioId)

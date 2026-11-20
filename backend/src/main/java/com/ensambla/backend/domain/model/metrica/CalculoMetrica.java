@@ -90,7 +90,7 @@ public enum CalculoMetrica {
 
         @Override
         public boolean sirvePara(FuenteMetrica fuente) {
-            return fuente == FuenteMetrica.VENTAS;
+            return fuente.tieneCostoDeLoVendido();
         }
 
         @Override
@@ -118,7 +118,7 @@ public enum CalculoMetrica {
 
         @Override
         public boolean sirvePara(FuenteMetrica fuente) {
-            return fuente == FuenteMetrica.VENTAS;
+            return fuente.tieneCostoDeLoVendido();
         }
 
         @Override

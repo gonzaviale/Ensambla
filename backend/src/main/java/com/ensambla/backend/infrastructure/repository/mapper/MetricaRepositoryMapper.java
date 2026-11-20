@@ -17,13 +17,7 @@ public class MetricaRepositoryMapper {
                 .id(Identificador.opcional(source.getId(), MetricaId::de))
                 .negocioId(Identificador.opcional(source.getNegocioId(), NegocioId::de))
                 .proyectoId(Identificador.opcional(source.getProyectoId(), ProyectoId::de))
-                .definicion(new DefinicionMetrica(
-                        source.getNombre(),
-                        source.getFuente(),
-                        source.getCalculo(),
-                        source.getAgrupar(),
-                        source.getPeriodo(),
-                        source.isSoloFiado()))
+                .definicion(definicionDe(source))
                 .orden(source.getOrden())
                 .autoria(source.getAutoria())
                 .creadoEn(source.getCreadoEn())
@@ -48,5 +42,10 @@ public class MetricaRepositoryMapper {
                 .creadoEn(source.getCreadoEn())
                 .grafico(source.getGraficoElegido())
                 .build();
+    }
+
+    private static DefinicionMetrica definicionDe(MetricaEntity source) {
+        return new DefinicionMetrica(source.getNombre(), source.getFuente(), source.getCalculo(), source.getAgrupar(),
+                source.getPeriodo(), source.isSoloFiado());
     }
 }

@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static com.ensambla.backend.support.MetricaTestData.laFilaDeLoQueTeDebenEn;
+import static com.ensambla.backend.support.MetricaTestData.unaFilaDeGananciaEn;
 import static com.ensambla.backend.support.MetricaTestData.unaFilaSugeridaEn;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
@@ -146,13 +147,11 @@ class IMetricaJpaRepositoryTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("Guarda y relee una métrica de ganancia")
     void guardaYReleeUnaMetricaDeGanancia() {
-        MetricaEntity fila = unaFilaSugeridaEn(negocioA, cuadernoA, "Ganancia", 0);
-        fila.setCalculo(CalculoMetrica.GANANCIA);
-        dadaGuardada(fila);
+        dadaGuardada(unaFilaDeGananciaEn(negocioA, cuadernoA));
 
         cuandoSeBuscaEn(guardada.getId(), cuadernoA, negocioA);
 
-        assertThat(encontrada).get().extracting(MetricaEntity::getCalculo).isEqualTo(CalculoMetrica.GANANCIA);
+        entoncesSeReleeElCalculo(CalculoMetrica.GANANCIA);
     }
 
     @Test
@@ -200,6 +199,10 @@ class IMetricaJpaRepositoryTest extends PostgresDatosTestSupport {
 
     private void cuandoSeBorra(UUID id, UUID negocioId) {
         metricas.deleteByIdAndNegocioId(id, negocioId);
+    }
+
+    private void entoncesSeReleeElCalculo(CalculoMetrica calculo) {
+        assertThat(encontrada).get().extracting(MetricaEntity::getCalculo).isEqualTo(calculo);
     }
 
     private void entoncesSeReleeLoQueTeDeben() {

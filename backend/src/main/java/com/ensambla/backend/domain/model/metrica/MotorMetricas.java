@@ -24,6 +24,11 @@ public class MotorMetricas {
         if (delPeriodo.isEmpty()) {
             return sinValor(definicion, sinFilas(definicion), hoy, 0);
         }
+        return calcularConLasQueTienenElDato(definicion, delPeriodo, hoy);
+    }
+
+    private static ResultadoMetrica calcularConLasQueTienenElDato(DefinicionMetrica definicion,
+                                                                  List<LineaMetrica> delPeriodo, LocalDate hoy) {
         List<LineaMetrica> conElDato = lineasConElDato(delPeriodo, definicion.calculo());
         long sinDato = delPeriodo.size() - (long) conElDato.size();
         if (conElDato.isEmpty()) {
