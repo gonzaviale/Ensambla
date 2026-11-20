@@ -34,8 +34,8 @@ class ReportesCobrosCajaTest {
 
     @Test
     @DisplayName("El pago parcial cuenta como dinero recibido y sólo el saldo aparece en Te deben")
-    void armarShouldUseInitialPaymentAndOutstandingBalance() {
-        DatosDeProyecto datos = givenDatos(CobroCajaTestData.venta(), List.of());
+    void elPagoParcialCuentaComoDineroRecibidoYSoloElSaldoApareceEnTeDeben() {
+        DatosDeProyecto datos = dadoDatos(CobroCajaTestData.venta(), List.of());
 
         PanelNegocio panel = PanelNegocio.armar(datos, PERIODO, HOY);
         ResumenNegocio resumen = resumen(datos);
@@ -49,10 +49,10 @@ class ReportesCobrosCajaTest {
 
     @Test
     @DisplayName("Un cobro posterior reduce el saldo sin duplicar artículos ni la entrega inicial")
-    void armarShouldReduceDebtWithoutDuplicatingCashOrSales() {
+    void unCobroPosteriorReduceElSaldoSinDuplicarArticulosNiLaEntregaInicial() {
         CobroCaja cobro = CobroCajaTestData.cobro();
         VentaCaja venta = CobroCajaTestData.venta().conCobro(cobro.aplicaciones().getFirst().pagos());
-        DatosDeProyecto datos = givenDatos(venta, List.of(cobro));
+        DatosDeProyecto datos = dadoDatos(venta, List.of(cobro));
 
         PanelNegocio panel = PanelNegocio.armar(datos, PERIODO, HOY);
 
@@ -64,11 +64,11 @@ class ReportesCobrosCajaTest {
 
     @Test
     @DisplayName("Completar una deuda elimina el saldo aunque las filas originales sigan marcadas a fiado")
-    void armarShouldClearSettledDebt() {
+    void completarUnaDeudaEliminaElSaldoAunqueLasFilasOriginalesSiganMarcadasAFiado() {
         VentaCaja venta = CobroCajaTestData.venta().conCobro(List.of(
                 new PagoCaja(MedioPagoCaja.TRANSFERENCIA, new BigDecimal("1200"))));
 
-        ResumenNegocio resumen = resumen(givenDatos(venta, List.of()));
+        ResumenNegocio resumen = resumen(dadoDatos(venta, List.of()));
 
         assertThat(resumen.clientes().fiado()).isEqualByComparingTo("0");
         assertThat(resumen.clientes().ventasFiadas()).isZero();
@@ -76,8 +76,8 @@ class ReportesCobrosCajaTest {
 
     @Test
     @DisplayName("Un fiado sin entrega no genera entrada de dinero")
-    void armarShouldKeepUnpaidSalesOutOfCash() {
-        DatosDeProyecto datos = givenDatos(CobroCajaTestData.venta(CajaTestData.OPERACION, "0"), List.of());
+    void unFiadoSinEntregaNoGeneraEntradaDeDinero() {
+        DatosDeProyecto datos = dadoDatos(CobroCajaTestData.venta(CajaTestData.OPERACION, "0"), List.of());
 
         PanelNegocio panel = PanelNegocio.armar(datos, PERIODO, HOY);
 
@@ -87,8 +87,8 @@ class ReportesCobrosCajaTest {
 
     @Test
     @DisplayName("Una semana sólo con cobros de ventas anteriores tiene flujo aunque no haya ventas nuevas")
-    void armarShouldIncludeCollectionsInTheirOwnPeriod() {
-        DatosDeProyecto datos = givenDatos(CobroCajaTestData.venta(), List.of(CobroCajaTestData.cobro()));
+    void unaSemanaSoloConCobrosDeVentasAnterioresTieneFlujoAunqueNoHayaVentasNuevas() {
+        DatosDeProyecto datos = dadoDatos(CobroCajaTestData.venta(), List.of(CobroCajaTestData.cobro()));
 
         PanelNegocio panel = PanelNegocio.armar(datos, new PeriodoResumen(HOY, HOY), HOY);
 
@@ -100,8 +100,8 @@ class ReportesCobrosCajaTest {
 
     @Test
     @DisplayName("Un período sin ventas ni cobros reales conserva el panel vacío")
-    void armarShouldExcludeOutOfPeriodCollections() {
-        DatosDeProyecto datos = givenDatos(CobroCajaTestData.venta(), List.of(CobroCajaTestData.cobro()));
+    void unPeriodoSinVentasNiCobrosRealesConservaElPanelVacio() {
+        DatosDeProyecto datos = dadoDatos(CobroCajaTestData.venta(), List.of(CobroCajaTestData.cobro()));
 
         PanelNegocio panel = PanelNegocio.armar(datos, new PeriodoResumen(HOY.plusDays(1), HOY.plusDays(1)), HOY);
 
@@ -110,8 +110,8 @@ class ReportesCobrosCajaTest {
 
     @Test
     @DisplayName("Las anotaciones manuales a fiado siguen sumando su importe junto al saldo de Caja")
-    void armarShouldPreserveManualCreditSales() {
-        DatosDeProyecto originales = givenDatos(CobroCajaTestData.venta(), List.of());
+    void lasAnotacionesManualesAFiadoSiguenSumandoSuImporteJuntoAlSaldoDeCaja() {
+        DatosDeProyecto originales = dadoDatos(CobroCajaTestData.venta(), List.of());
         BloqueVentas ventas = originales.ventas().getFirst();
         Registro manual = ventas.registros().getFirst();
         manual.setOrigen("Carga manual");
@@ -124,8 +124,8 @@ class ReportesCobrosCajaTest {
 
     @Test
     @DisplayName("Una venta pagada de Caja no vuelve a sumar el importe desde sus filas de artículos")
-    void armarShouldCountPaidCheckoutOnce() {
-        DatosDeProyecto datos = givenDatos(CobroCajaTestData.venta(CajaTestData.OPERACION, "2000"), List.of());
+    void unaVentaPagadaDeCajaNoVuelveASumarElImporteDesdeSusFilasDeArticulos() {
+        DatosDeProyecto datos = dadoDatos(CobroCajaTestData.venta(CajaTestData.OPERACION, "2000"), List.of());
         BloqueVentas ventas = datos.ventas().getFirst();
         ventas.registros().forEach(fila -> CajaTestData.poner(ventas.bloque(), fila, "credit", false));
 
@@ -135,8 +135,8 @@ class ReportesCobrosCajaTest {
         assertThat(panel.metricas().teDeben()).isEqualByComparingTo("0");
     }
 
-    // --- arrange ---
-    private DatosDeProyecto givenDatos(VentaCaja venta, List<CobroCaja> cobros) {
+    // --- dado ---
+    private DatosDeProyecto dadoDatos(VentaCaja venta, List<CobroCaja> cobros) {
         Bloque bloque = CajaTestData.sistema().proyecto().getBloques().get(1);
         List<Campo> campos = new ArrayList<>(bloque.getCampos());
         campos.add(Campo.builder().id(CampoId.nuevo()).bloqueId(bloque.getId()).clave("credit")

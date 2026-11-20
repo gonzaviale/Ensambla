@@ -65,7 +65,9 @@ export const setupUsuarioConSesion = (
 // El objetivo de ejemplo de la demo, ya guardado en el servidor simulado para esa cuenta.
 export const setupObjetivoDeEjemplo = (email: string) => {
   const { id, texto, meta } = objetivoDeEjemplo();
-  guardarObjetivosDe(email, [{ id, texto, meta, creadoEn: '2026-10-01T12:00:00' }]);
+  guardarObjetivosDe(email, [
+    { id, texto, tipo: 'MONETARIO', meta, armadoConSami: false, creadoEn: '2026-10-01T12:00:00' },
+  ]);
 };
 
 export const setupUsuarioSinSesion = (datos: Partial<UsuarioMock> = {}) => sembrarUsuario(datos);
@@ -102,10 +104,13 @@ export const verifyPathAsync = async (
   await waitFor(() => expect(router.state.location.pathname).toBe(path), ESPERA);
 };
 
-/** El aviso breve de abajo (`#toast`); hay otros `status` en pantalla, como «Sami vio un cambio». */
+/** El aviso breve de abajo (`.toast`); hay otros `status` en pantalla, como «Sami vio un cambio». */
+export const avisoBreve = () =>
+  screen.getAllByRole('status').find((nodo) => nodo.classList.contains('toast'));
+
 export const verifyToastAsync = (texto: string | RegExp) =>
   waitFor(() => {
-    const toast = document.getElementById('toast');
+    const toast = avisoBreve();
     if (!toast) throw new Error('Falta el aviso breve');
     if (typeof texto === 'string') expect(toast).toHaveTextContent(texto);
     else expect(toast.textContent).toMatch(texto);

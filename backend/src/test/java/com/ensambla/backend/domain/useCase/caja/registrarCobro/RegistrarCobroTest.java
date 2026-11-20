@@ -13,26 +13,26 @@ import com.ensambla.backend.domain.repository.caja.CobroCajaRepository;
 import com.ensambla.backend.domain.repository.caja.VentaCajaRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
+import com.ensambla.backend.domain.useCase.caja.CobroCajaItem;
 import com.ensambla.backend.support.CajaTestData;
 import com.ensambla.backend.support.CobroCajaTestData;
 import com.ensambla.backend.support.TransaccionDirecta;
-import com.ensambla.backend.domain.useCase.caja.CobroCajaItem;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.ArgumentCaptor;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.ZoneOffset;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -53,6 +53,10 @@ class RegistrarCobroTest {
     private final Clock clock = Clock.fixed(CajaTestData.AHORA.plusDays(1).toInstant(), ZoneOffset.UTC);
     private RegistrarCobro registrar;
 
+    private CobroCajaItem respuesta;
+    private Throwable rechazo;
+    private VentaCaja segundaVenta;
+
     @BeforeEach
     void setUp() {
         registrar = new RegistrarCobro(negocios, uso, ventas, cobros, new TransaccionDirecta(), clock);
@@ -60,127 +64,224 @@ class RegistrarCobroTest {
 
     @Test
     @DisplayName("Un cobro reduce el saldo y se guarda con fecha propia bajo el bloqueo del negocio")
-    void executeShouldPersistCollectionAndNewBalance() {
-        givenVenta(CobroCajaTestData.venta());
-        when(cobros.save(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
+    void unCobroReduceElSaldoYSeGuardaConFechaPropiaBajoElBloqueoDelNegocio() {
+        dadoUnaVentaConDeuda(CobroCajaTestData.venta());
+        dadoQueGuardarUnCobroDevuelveElCobro();
 
-        var respuesta = registrar.execute(CobroCajaTestData.request());
+        cuandoSeRegistraElCobro();
 
-        ArgumentCaptor<VentaCaja> captor = ArgumentCaptor.forClass(VentaCaja.class);
-        verify(ventas).actualizarCobros(captor.capture(), eq(CajaTestData.AHORA.plusDays(1)));
-        assertThat(captor.getValue().saldo()).isEqualByComparingTo("600");
-        assertThat(respuesta).isEqualTo(CobroCajaItem.de(CobroCajaTestData.cobro()));
-        verify(uso).bloquearNegocio(CajaTestData.NEGOCIO);
+        entoncesLaVentaQuedaConSaldoDe("600");
+        entoncesSeDevuelveElCobroGuardado();
+        entoncesSeBloqueoElNegocio();
     }
 
     @Test
     @DisplayName("Reintentar el mismo cobro devuelve el movimiento guardado sin reducir otra vez la deuda")
-    void executeShouldReturnPreviousCollectionWhenRetried() {
-        givenUsuario();
-        when(cobros.findByIdAndNegocioId(CobroCajaTestData.COBRO, CajaTestData.NEGOCIO))
-                .thenReturn(Optional.of(CobroCajaTestData.cobro()));
+    void reintentarElMismoCobroDevuelveElMovimientoGuardadoSinReducirOtraVezLaDeuda() {
+        dadoUnCobroYaGuardado();
 
-        var respuesta = registrar.execute(CobroCajaTestData.request());
+        cuandoSeRegistraElCobro();
 
-        assertThat(respuesta.id()).isEqualTo(CobroCajaTestData.COBRO);
-        verify(ventas, never()).actualizarCobros(any(), any());
+        entoncesSeDevuelveElCobroOriginal();
+        entoncesNoSeReduceOtraVezLaDeuda();
     }
 
     @Test
     @DisplayName("Reutilizar el id de cobro con otro contenido responde conflicto")
-    void executeShouldRejectChangedRetry() {
-        givenUsuario();
-        CobroCaja base = CobroCajaTestData.cobro();
-        when(cobros.findByIdAndNegocioId(base.id(), base.negocioId())).thenReturn(Optional.of(new CobroCaja(
-                base.id(), base.negocioId(), base.proyectoId(), base.inventarioId(), base.clienteId(), base.clienteNombre(),
-                "otra huella", base.aplicaciones(), base.creadoEn())));
+    void reutilizarElIdDeCobroConOtroContenidoRespondeConflicto() {
+        dadoUnCobroGuardadoConOtraHuella();
 
-        assertThatThrownBy(() -> registrar.execute(CobroCajaTestData.request())).isInstanceOf(DuplicateResourceException.class);
+        cuandoSeIntentaRegistrarElCobro();
+
+        entoncesSeRechazaCon(DuplicateResourceException.class);
     }
 
     @Test
     @DisplayName("Una venta ajena responde como inexistente")
-    void executeShouldHideMissingSale() {
-        givenUsuario();
-        when(ventas.listarPorIds(any(), any())).thenReturn(List.of());
+    void unaVentaAjenaRespondeComoInexistente() {
+        dadoQueNoHayVentasConEsosIds();
 
-        assertThatThrownBy(() -> registrar.execute(CobroCajaTestData.request())).isInstanceOf(ResourceNotFoundException.class);
+        cuandoSeIntentaRegistrarElCobro();
+
+        entoncesSeRechazaCon(ResourceNotFoundException.class);
     }
 
     @Test
     @DisplayName("No aplica cobros a ventas de otro proyecto")
-    void executeShouldRejectWrongProject() {
-        givenVenta(ventaCon(ProyectoId.nuevo(), CajaTestData.INVENTARIO, CajaTestData.CLIENTE));
+    void noAplicaCobrosAVentasDeOtroProyecto() {
+        dadoUnaVentaConDeuda(ventaCon(ProyectoId.nuevo(), CajaTestData.INVENTARIO, CajaTestData.CLIENTE));
 
-        assertThatThrownBy(() -> registrar.execute(CobroCajaTestData.request())).isInstanceOf(ResourceNotFoundException.class);
+        cuandoSeIntentaRegistrarElCobro();
+
+        entoncesSeRechazaCon(ResourceNotFoundException.class);
     }
 
     @Test
     @DisplayName("No aplica cobros a ventas de otro inventario")
-    void executeShouldRejectWrongInventory() {
-        givenVenta(ventaCon(CajaTestData.PROYECTO, BloqueId.nuevo(), CajaTestData.CLIENTE));
+    void noAplicaCobrosAVentasDeOtroInventario() {
+        dadoUnaVentaConDeuda(ventaCon(CajaTestData.PROYECTO, BloqueId.nuevo(), CajaTestData.CLIENTE));
 
-        assertThatThrownBy(() -> registrar.execute(CobroCajaTestData.request())).isInstanceOf(ResourceNotFoundException.class);
+        cuandoSeIntentaRegistrarElCobro();
+
+        entoncesSeRechazaCon(ResourceNotFoundException.class);
     }
 
     @Test
     @DisplayName("No aplica una entrega de deuda a una venta anónima")
-    void executeShouldRejectAnonymousSale() {
-        givenVenta(ventaCon(CajaTestData.PROYECTO, CajaTestData.INVENTARIO, null));
+    void noAplicaUnaEntregaDeDeudaAUnaVentaAnonima() {
+        dadoUnaVentaConDeuda(ventaCon(CajaTestData.PROYECTO, CajaTestData.INVENTARIO, null));
 
-        assertThatThrownBy(() -> registrar.execute(CobroCajaTestData.request())).isInstanceOf(BusinessRuleException.class);
+        cuandoSeIntentaRegistrarElCobro();
+
+        entoncesSeRechazaCon(BusinessRuleException.class);
     }
 
     @Test
     @DisplayName("Rechaza una solicitud sin deudas seleccionadas")
-    void executeShouldRejectEmptyApplications() {
-        givenUsuario();
+    void rechazaUnaSolicitudSinDeudasSeleccionadas() {
+        dadoUnUsuarioDelNegocio();
 
-        assertThatThrownBy(() -> registrar.execute(new RegistrarCobroRequest(CajaTestData.USUARIO, CobroCajaTestData.COBRO,
-                CajaTestData.PROYECTO, CajaTestData.INVENTARIO, List.of()))).isInstanceOf(BusinessRuleException.class);
+        cuandoSeIntentaRegistrarUnCobroSinDeudas();
+
+        entoncesSeRechazaCon(BusinessRuleException.class);
     }
 
     @Test
     @DisplayName("No permite mezclar deudas de clientes distintos en un mismo cobro")
-    void executeShouldRejectDifferentCustomers() {
-        givenUsuario();
-        VentaCaja primera = CobroCajaTestData.venta();
-        VentaCaja segunda = segundaVenta(RegistroId.nuevo());
-        RegistrarCobroRequest request = solicitudDoble(segunda.id());
-        when(ventas.listarPorIds(any(), any())).thenReturn(List.of(primera, segunda));
+    void noPermiteMezclarDeudasDeClientesDistintosEnUnMismoCobro() {
+        dadoDosDeudasDeClientesDistintos();
 
-        assertThatThrownBy(() -> registrar.execute(request)).isInstanceOf(BusinessRuleException.class);
+        cuandoSeIntentaRegistrarUnCobroDeLasDosDeudas();
 
-        verify(cobros, never()).save(any());
+        entoncesSeRechazaCon(BusinessRuleException.class);
+        entoncesNoSeGuardaNingunCobro();
     }
 
     @Test
     @DisplayName("Un mismo pago puede reducir dos deudas del mismo cliente")
-    void executeShouldApplyOneCollectionToMultipleSales() {
-        givenUsuario();
-        VentaCaja primera = CobroCajaTestData.venta();
-        VentaCaja segunda = segundaVenta(CajaTestData.CLIENTE);
-        when(ventas.listarPorIds(any(), any())).thenReturn(List.of(primera, segunda));
+    void unMismoPagoPuedeReducirDosDeudasDelMismoCliente() {
+        dadoDosDeudasDelMismoCliente();
+
+        cuandoSeRegistraUnCobroDeLasDosDeudas();
+
+        entoncesElCobroSumaDoscientosEnDosAplicaciones();
+    }
+
+    // --- dado ---
+
+    private void dadoUnUsuarioDelNegocio() {
+        when(negocios.obtenerIdDelUsuario(CajaTestData.USUARIO)).thenReturn(CajaTestData.NEGOCIO);
+    }
+
+    private void dadoUnaVentaConDeuda(VentaCaja venta) {
+        dadoUnUsuarioDelNegocio();
+        when(ventas.listarPorIds(CajaTestData.NEGOCIO, List.of(CajaTestData.OPERACION))).thenReturn(List.of(venta));
+    }
+
+    private void dadoQueGuardarUnCobroDevuelveElCobro() {
         when(cobros.save(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
+    }
 
-        var respuesta = registrar.execute(solicitudDoble(segunda.id()));
+    private void dadoUnCobroYaGuardado() {
+        dadoUnUsuarioDelNegocio();
+        when(cobros.findByIdAndNegocioId(CobroCajaTestData.COBRO, CajaTestData.NEGOCIO))
+                .thenReturn(Optional.of(CobroCajaTestData.cobro()));
+    }
 
+    private void dadoUnCobroGuardadoConOtraHuella() {
+        dadoUnUsuarioDelNegocio();
+        CobroCaja base = CobroCajaTestData.cobro();
+        CobroCaja conOtraHuella = new CobroCaja(base.id(), base.negocioId(), base.proyectoId(), base.inventarioId(),
+                base.clienteId(), base.clienteNombre(), "otra huella", base.aplicaciones(), base.creadoEn());
+        when(cobros.findByIdAndNegocioId(base.id(), base.negocioId())).thenReturn(Optional.of(conOtraHuella));
+    }
+
+    private void dadoQueNoHayVentasConEsosIds() {
+        dadoUnUsuarioDelNegocio();
+        when(ventas.listarPorIds(any(), any())).thenReturn(List.of());
+    }
+
+    private void dadoDosDeudasDeClientesDistintos() {
+        dadoUnUsuarioDelNegocio();
+        segundaVenta = unaSegundaVenta(RegistroId.nuevo());
+        when(ventas.listarPorIds(any(), any())).thenReturn(List.of(CobroCajaTestData.venta(), segundaVenta));
+    }
+
+    private void dadoDosDeudasDelMismoCliente() {
+        dadoUnUsuarioDelNegocio();
+        segundaVenta = unaSegundaVenta(CajaTestData.CLIENTE);
+        when(ventas.listarPorIds(any(), any())).thenReturn(List.of(CobroCajaTestData.venta(), segundaVenta));
+        dadoQueGuardarUnCobroDevuelveElCobro();
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeRegistraElCobro() {
+        respuesta = registrar.execute(CobroCajaTestData.request());
+    }
+
+    private void cuandoSeIntentaRegistrarElCobro() {
+        rechazo = catchThrowable(() -> registrar.execute(CobroCajaTestData.request()));
+    }
+
+    private void cuandoSeIntentaRegistrarUnCobroSinDeudas() {
+        RegistrarCobroRequest sinDeudas = new RegistrarCobroRequest(CajaTestData.USUARIO, CobroCajaTestData.COBRO,
+                CajaTestData.PROYECTO, CajaTestData.INVENTARIO, List.of());
+        rechazo = catchThrowable(() -> registrar.execute(sinDeudas));
+    }
+
+    private void cuandoSeIntentaRegistrarUnCobroDeLasDosDeudas() {
+        rechazo = catchThrowable(() -> registrar.execute(unCobroDeLasDosDeudas()));
+    }
+
+    private void cuandoSeRegistraUnCobroDeLasDosDeudas() {
+        respuesta = registrar.execute(unCobroDeLasDosDeudas());
+    }
+
+    // --- entonces ---
+
+    private void entoncesLaVentaQuedaConSaldoDe(String saldo) {
+        ArgumentCaptor<VentaCaja> actualizada = ArgumentCaptor.forClass(VentaCaja.class);
+        verify(ventas).actualizarCobros(actualizada.capture(), eq(CajaTestData.AHORA.plusDays(1)));
+        assertThat(actualizada.getValue().saldo()).isEqualByComparingTo(saldo);
+    }
+
+    private void entoncesSeDevuelveElCobroGuardado() {
+        assertThat(respuesta).isEqualTo(CobroCajaItem.de(CobroCajaTestData.cobro()));
+    }
+
+    private void entoncesSeBloqueoElNegocio() {
+        verify(uso).bloquearNegocio(CajaTestData.NEGOCIO);
+    }
+
+    private void entoncesSeDevuelveElCobroOriginal() {
+        assertThat(respuesta.id()).isEqualTo(CobroCajaTestData.COBRO);
+    }
+
+    private void entoncesNoSeReduceOtraVezLaDeuda() {
+        verify(ventas, never()).actualizarCobros(any(), any());
+    }
+
+    private void entoncesSeRechazaCon(Class<? extends Throwable> tipo) {
+        assertThat(rechazo).isInstanceOf(tipo);
+    }
+
+    private void entoncesNoSeGuardaNingunCobro() {
+        verify(cobros, never()).save(any());
+    }
+
+    private void entoncesElCobroSumaDoscientosEnDosAplicaciones() {
         assertThat(respuesta.importe()).isEqualByComparingTo("200");
         assertThat(respuesta.aplicaciones()).hasSize(2);
     }
 
-    // --- arrange ---
-    private void givenUsuario() {
-        when(negocios.obtenerIdDelUsuario(CajaTestData.USUARIO)).thenReturn(CajaTestData.NEGOCIO);
+    // --- datos ---
+
+    private RegistrarCobroRequest unCobroDeLasDosDeudas() {
+        return solicitudDoble(segundaVenta.id());
     }
 
-    private void givenVenta(VentaCaja venta) {
-        givenUsuario();
-        when(ventas.listarPorIds(CajaTestData.NEGOCIO, List.of(CajaTestData.OPERACION))).thenReturn(List.of(venta));
-    }
-
-    // --- helpers ---
-    private VentaCaja segundaVenta(RegistroId clienteId) {
+    private VentaCaja unaSegundaVenta(RegistroId clienteId) {
         VentaCaja base = ventaCon(CajaTestData.PROYECTO, CajaTestData.INVENTARIO, clienteId);
         return new VentaCaja(VentaCajaId.nuevo(), base.negocioId(), base.proyectoId(), base.huella(), base.lineas(),
                 base.medio(), base.total(), base.recibido(), base.vuelto(), base.creadoEn(), base.pagos(),
@@ -196,7 +297,8 @@ class RegistrarCobroTest {
 
     private VentaCaja ventaCon(ProyectoId proyectoId, BloqueId inventarioId, RegistroId clienteId) {
         VentaCaja base = CobroCajaTestData.venta();
-        return new VentaCaja(base.id(), base.negocioId(), proyectoId, base.huella(), base.lineas(), base.medio(), base.total(),
-                base.recibido(), base.vuelto(), base.creadoEn(), base.pagos(), inventarioId, clienteId, base.clienteNombre());
+        return new VentaCaja(base.id(), base.negocioId(), proyectoId, base.huella(), base.lineas(), base.medio(),
+                base.total(), base.recibido(), base.vuelto(), base.creadoEn(), base.pagos(), inventarioId, clienteId,
+                base.clienteNombre());
     }
 }

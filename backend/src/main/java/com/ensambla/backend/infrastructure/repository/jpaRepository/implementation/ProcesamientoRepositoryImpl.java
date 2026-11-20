@@ -92,43 +92,66 @@ public class ProcesamientoRepositoryImpl implements ProcesamientoRepository {
 
     @Override
     public List<BloqueLectura> bloques(NegocioId negocioId) {
-        List<Map<String, Object>> bloques = jdbcTemplate.queryForList("""
+        List<Map<String, Object>> bloques = nombresDeLosBloques(negocioId);
+        Map<UUID, List<CampoConocido>> campos = camposConocidosPorBloque(negocioId);
+        return bloques.stream().map(bloque -> new BloqueLectura(BloqueId.de((UUID) bloque.get("id")),
+                (String) bloque.get("nombre"), campos.getOrDefault(bloque.get("id"), List.of()))).toList();
+    }
+
+    private List<Map<String, Object>> nombresDeLosBloques(NegocioId negocioId) {
+        return jdbcTemplate.queryForList("""
                 SELECT id, nombre FROM bloque WHERE negocio_id = :negocio ORDER BY id
                 """, Map.of("negocio", negocioId.valor()));
+    }
+
+    private Map<UUID, List<CampoConocido>> camposConocidosPorBloque(NegocioId negocioId) {
         Map<UUID, List<CampoConocido>> campos = new LinkedHashMap<>();
         jdbcTemplate.query("""
                 SELECT id, bloque_id, nombre, tipo, opciones, bloque_relacionado_id FROM campo
                 WHERE negocio_id = :negocio ORDER BY posicion, id
                 """, Map.of("negocio", negocioId.valor()), fila -> {
             UUID bloqueId = fila.getObject("bloque_id", UUID.class);
-            List<String> opciones = objectMapper.readValue(fila.getString("opciones"), new TypeReference<>() { });
-            campos.computeIfAbsent(bloqueId, id -> new ArrayList<>()).add(new CampoConocido(
-                    CampoId.de(fila.getObject("id", UUID.class)), fila.getString("nombre"),
-                    TipoCampo.valueOf(fila.getString("tipo")), opciones,
-                    Identificador.opcional(fila.getObject("bloque_relacionado_id", UUID.class), BloqueId::de)));
+            campos.computeIfAbsent(bloqueId, id -> new ArrayList<>()).add(campoConocido(fila));
         });
-        return bloques.stream().map(bloque -> new BloqueLectura(BloqueId.de((UUID) bloque.get("id")),
-                (String) bloque.get("nombre"), campos.getOrDefault(bloque.get("id"), List.of()))).toList();
+        return campos;
+    }
+
+    private CampoConocido campoConocido(ResultSet fila) throws SQLException {
+        List<String> opciones = objectMapper.readValue(fila.getString("opciones"), new TypeReference<>() { });
+        return new CampoConocido(
+                CampoId.de(fila.getObject("id", UUID.class)), fila.getString("nombre"),
+                TipoCampo.valueOf(fila.getString("tipo")), opciones,
+                Identificador.opcional(fila.getObject("bloque_relacionado_id", UUID.class), BloqueId::de));
     }
 
     @Override
     public List<TablaDisponible> tablas(NegocioId negocioId) {
-        Map<BloqueId, BloqueLectura> porId = new LinkedHashMap<>();
-        bloques(negocioId).stream()
-                .filter(bloque -> bloque.campos().stream().anyMatch(campo -> campo.tipo() != TipoCampo.FORMULA))
-                .forEach(bloque -> porId.put(bloque.id(), bloque));
+        Map<BloqueId, BloqueLectura> porId = bloquesConCamposEditables(negocioId);
         List<TablaDisponible> tablas = new ArrayList<>();
         jdbcTemplate.query("""
                 SELECT b.id, p.nombre AS proyecto, b.tipo FROM bloque b
                 JOIN proyecto p ON p.negocio_id = b.negocio_id AND p.id = b.proyecto_id
                 WHERE b.negocio_id = :negocio ORDER BY p.nombre, b.posicion, b.id
                 """, Map.of("negocio", negocioId.valor()), fila -> {
-            BloqueLectura bloque = porId.get(BloqueId.de(fila.getObject("id", UUID.class)));
-            if (bloque != null) {
-                tablas.add(new TablaDisponible(bloque, fila.getString("proyecto"), TipoBloque.valueOf(fila.getString("tipo"))));
-            }
+            agregarTabla(tablas, porId, fila);
         });
         return tablas;
+    }
+
+    private Map<BloqueId, BloqueLectura> bloquesConCamposEditables(NegocioId negocioId) {
+        Map<BloqueId, BloqueLectura> porId = new LinkedHashMap<>();
+        bloques(negocioId).stream()
+                .filter(bloque -> bloque.campos().stream().anyMatch(campo -> campo.tipo() != TipoCampo.FORMULA))
+                .forEach(bloque -> porId.put(bloque.id(), bloque));
+        return porId;
+    }
+
+    private void agregarTabla(List<TablaDisponible> tablas, Map<BloqueId, BloqueLectura> porId, ResultSet fila)
+            throws SQLException {
+        BloqueLectura bloque = porId.get(BloqueId.de(fila.getObject("id", UUID.class)));
+        if (bloque != null) {
+            tablas.add(new TablaDisponible(bloque, fila.getString("proyecto"), TipoBloque.valueOf(fila.getString("tipo"))));
+        }
     }
 
     @Override
@@ -136,29 +159,37 @@ public class ProcesamientoRepositoryImpl implements ProcesamientoRepository {
     public boolean reservar(LoteTrabajo lote, int paginas, int limite, OffsetDateTime ahora) {
         MapSqlParameterSource parametros = parametros(lote).addValue("paginas", paginas)
                 .addValue("limite", limite).addValue("fecha", ZonaNegocio.dia(ahora)).addValue("ahora", ahora);
+        boolean sePudoReservar = loteSinReservaPrevia(parametros) && reservarEnElConsumoDiario(parametros);
+        if (sePudoReservar) {
+            marcarLaReservaEnElLote(parametros);
+        }
+        return sePudoReservar;
+    }
+
+    private boolean loteSinReservaPrevia(MapSqlParameterSource parametros) {
         List<Integer> reserva = jdbcTemplate.query("""
                 SELECT paginas_reservadas FROM lote_subida
                 WHERE negocio_id = :negocio AND id = :lote AND reclamo_id = :token AND estado = 'PROCESANDO'
                 FOR UPDATE
                 """, parametros, (fila, indice) -> fila.getInt(1));
-        if (reserva.isEmpty() || reserva.getFirst() > 0) {
-            return false;
-        }
-        int modificadas = jdbcTemplate.update("""
+        return !reserva.isEmpty() && reserva.getFirst() <= 0;
+    }
+
+    private boolean reservarEnElConsumoDiario(MapSqlParameterSource parametros) {
+        return jdbcTemplate.update("""
                 INSERT INTO consumo_ia_diario (negocio_id, fecha, reservadas, creado_en, actualizado_en)
                 SELECT :negocio, :fecha, :paginas, :ahora, :ahora WHERE :paginas <= :limite
                 ON CONFLICT (negocio_id, fecha) DO UPDATE
                     SET reservadas = consumo_ia_diario.reservadas + EXCLUDED.reservadas, actualizado_en = :ahora
                     WHERE consumo_ia_diario.paginas + consumo_ia_diario.reservadas + EXCLUDED.reservadas <= :limite
-                """, parametros);
-        if (modificadas == 0) {
-            return false;
-        }
+                """, parametros) != 0;
+    }
+
+    private void marcarLaReservaEnElLote(MapSqlParameterSource parametros) {
         jdbcTemplate.update("""
                 UPDATE lote_subida SET paginas_reservadas = :paginas, dia_reserva = :fecha
                 WHERE negocio_id = :negocio AND id = :lote AND reclamo_id = :token
                 """, parametros);
-        return true;
     }
 
     @Override

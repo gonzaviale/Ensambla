@@ -32,84 +32,106 @@ class ObjetivoRepositoryImplTest {
     private final IObjetivoJpaRepository jpa = mock(IObjetivoJpaRepository.class);
     private final ObjetivoRepositoryImpl repository = new ObjetivoRepositoryImpl(jpa, new ObjetivoRepositoryMapper());
 
+    private List<Objetivo> objetivos;
+    private List<NegocioId> negocioIds;
+    private Optional<Objetivo> encontrado;
+    private Objetivo guardado;
+
     @Test
     @DisplayName("Lista los objetivos del negocio en el orden de la consulta y los mapea al dominio")
-    void findAllByNegocioIdShouldMapInOrder() {
-        when(jpa.findAllByNegocioIdOrderByCreadoEnAscIdAsc(NEGOCIO_ID.valor()))
-                .thenReturn(List.of(entity(OBJETIVO_ID.valor()), entity(OTRO_ID)));
+    void listaLosObjetivosDelNegocioEnElOrdenDeLaConsultaYLosMapeaAlDominio() {
+        dadoQueElNegocioTieneDosObjetivos();
 
-        List<Objetivo> result = repository.findAllByNegocioId(NEGOCIO_ID);
+        cuandoSeListanLosObjetivosDelNegocio();
 
-        assertThat(result).extracting(Objetivo::getId)
-                .extracting(id -> id.valor())
-                .containsExactly(OBJETIVO_ID.valor(), OTRO_ID);
-        assertThat(result.getFirst().getTexto()).isEqualTo(TEXTO);
+        entoncesSeListanLosDosObjetivosEnOrdenConSuTexto();
     }
 
     @Test
     @DisplayName("Devuelve una lista vacía cuando el negocio no tiene objetivos")
-    void findAllByNegocioIdShouldReturnEmpty() {
-        when(jpa.findAllByNegocioIdOrderByCreadoEnAscIdAsc(NEGOCIO_ID.valor())).thenReturn(List.of());
+    void devuelveUnaListaVaciaCuandoElNegocioNoTieneObjetivos() {
+        dadoQueElNegocioNoTieneObjetivos();
 
-        List<Objetivo> result = repository.findAllByNegocioId(NEGOCIO_ID);
+        cuandoSeListanLosObjetivosDelNegocio();
 
-        assertThat(result).isEmpty();
+        entoncesNoSeListaNingunObjetivo();
     }
 
     @Test
     @DisplayName("Pide los negocios con objetivos por página y los mapea a ids de negocio")
-    void findNegocioIdsConObjetivosShouldRequestThePageAndMapTheIds() {
-        when(jpa.findNegocioIdsConObjetivos(PageRequest.of(2, 50))).thenReturn(List.of(NEGOCIO_ID.valor()));
+    void pideLosNegociosConObjetivosPorPaginaYLosMapeaAIdsDeNegocio() {
+        dadoQueHayUnNegocioConObjetivosEnLaPaginaDos();
 
-        List<NegocioId> result = repository.findNegocioIdsConObjetivos(2, 50);
+        cuandoSeListanLosNegociosConObjetivosDeLaPaginaDos();
 
-        assertThat(result).containsExactly(NEGOCIO_ID);
+        entoncesSeListaElNegocioConObjetivos();
     }
 
     @Test
     @DisplayName("Busca por id y negocio con los UUID y mapea el resultado")
-    void findByIdAndNegocioIdShouldMapPresent() {
-        when(jpa.findByIdAndNegocioId(OBJETIVO_ID.valor(), NEGOCIO_ID.valor()))
-                .thenReturn(Optional.of(entity(OBJETIVO_ID.valor())));
+    void buscaPorIdYNegocioConLosUuidYMapeaElResultado() {
+        dadoQueExisteElObjetivo();
 
-        Optional<Objetivo> result = repository.findByIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID);
+        cuandoSeBuscaElObjetivoPorIdYNegocio();
 
-        assertThat(result).map(Objetivo::getId).contains(OBJETIVO_ID);
+        entoncesSeEncuentraElObjetivo();
     }
 
     @Test
     @DisplayName("Devuelve vacío cuando el objetivo no es del negocio")
-    void findByIdAndNegocioIdShouldReturnEmptyWhenAbsent() {
-        when(jpa.findByIdAndNegocioId(OBJETIVO_ID.valor(), NEGOCIO_ID.valor())).thenReturn(Optional.empty());
+    void devuelveVacioCuandoElObjetivoNoEsDelNegocio() {
+        dadoQueElObjetivoNoEsDelNegocio();
 
-        Optional<Objetivo> result = repository.findByIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID);
+        cuandoSeBuscaElObjetivoPorIdYNegocio();
 
-        assertThat(result).isEmpty();
+        entoncesNoSeEncuentraNingunObjetivo();
     }
 
     @Test
     @DisplayName("Guarda la entidad armada desde el dominio y devuelve lo persistido")
-    void saveShouldPersistAndReturnSaved() {
-        when(jpa.save(any(ObjetivoEntity.class))).thenReturn(entity(OBJETIVO_ID.valor()));
+    void guardaLaEntidadArmadaDesdeElDominioYDevuelveLoPersistido() {
+        dadoQueGuardarDevuelveElObjetivo();
 
-        Objetivo result = repository.save(Objetivo.nuevo(NEGOCIO_ID, TEXTO, META, AHORA));
+        cuandoSeGuardaUnObjetivoNuevo();
 
-        ArgumentCaptor<ObjetivoEntity> captor = ArgumentCaptor.forClass(ObjetivoEntity.class);
-        verify(jpa).save(captor.capture());
-        assertThat(captor.getValue().getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
-        assertThat(captor.getValue().getTexto()).isEqualTo(TEXTO);
-        assertThat(result.getId()).isEqualTo(OBJETIVO_ID);
+        entoncesSePersistioLaEntidadDelNegocioConSuTextoYSeDevuelveElObjetivo();
     }
 
     @Test
     @DisplayName("Borra pasando al JPA los UUID del objetivo y del negocio")
-    void deleteByIdAndNegocioIdShouldPassUuids() {
-        repository.deleteByIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID);
+    void borraPasandoAlJpaLosUuidDelObjetivoYDelNegocio() {
+        cuandoSeBorraElObjetivo();
 
-        verify(jpa).deleteByIdAndNegocioId(OBJETIVO_ID.valor(), NEGOCIO_ID.valor());
+        entoncesSeDelegoElBorradoConLosUuid();
     }
 
-    // --- helpers ---
+    // --- dado ---
+    private void dadoQueElNegocioTieneDosObjetivos() {
+        when(jpa.findAllByNegocioIdOrderByCreadoEnAscIdAsc(NEGOCIO_ID.valor()))
+                .thenReturn(List.of(entity(OBJETIVO_ID.valor()), entity(OTRO_ID)));
+    }
+
+    private void dadoQueElNegocioNoTieneObjetivos() {
+        when(jpa.findAllByNegocioIdOrderByCreadoEnAscIdAsc(NEGOCIO_ID.valor())).thenReturn(List.of());
+    }
+
+    private void dadoQueHayUnNegocioConObjetivosEnLaPaginaDos() {
+        when(jpa.findNegocioIdsConObjetivos(PageRequest.of(2, 50))).thenReturn(List.of(NEGOCIO_ID.valor()));
+    }
+
+    private void dadoQueExisteElObjetivo() {
+        when(jpa.findByIdAndNegocioId(OBJETIVO_ID.valor(), NEGOCIO_ID.valor()))
+                .thenReturn(Optional.of(entity(OBJETIVO_ID.valor())));
+    }
+
+    private void dadoQueElObjetivoNoEsDelNegocio() {
+        when(jpa.findByIdAndNegocioId(OBJETIVO_ID.valor(), NEGOCIO_ID.valor())).thenReturn(Optional.empty());
+    }
+
+    private void dadoQueGuardarDevuelveElObjetivo() {
+        when(jpa.save(any(ObjetivoEntity.class))).thenReturn(entity(OBJETIVO_ID.valor()));
+    }
+
     private ObjetivoEntity entity(UUID id) {
         return ObjetivoEntity.builder()
                 .id(id)
@@ -118,5 +140,62 @@ class ObjetivoRepositoryImplTest {
                 .meta(META)
                 .creadoEn(AHORA)
                 .build();
+    }
+
+    // --- cuando ---
+    private void cuandoSeListanLosObjetivosDelNegocio() {
+        objetivos = repository.findAllByNegocioId(NEGOCIO_ID);
+    }
+
+    private void cuandoSeListanLosNegociosConObjetivosDeLaPaginaDos() {
+        negocioIds = repository.findNegocioIdsConObjetivos(2, 50);
+    }
+
+    private void cuandoSeBuscaElObjetivoPorIdYNegocio() {
+        encontrado = repository.findByIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID);
+    }
+
+    private void cuandoSeGuardaUnObjetivoNuevo() {
+        guardado = repository.save(Objetivo.nuevo(NEGOCIO_ID, TEXTO, META, AHORA));
+    }
+
+    private void cuandoSeBorraElObjetivo() {
+        repository.deleteByIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID);
+    }
+
+    // --- entonces ---
+    private void entoncesSeListanLosDosObjetivosEnOrdenConSuTexto() {
+        assertThat(objetivos).extracting(Objetivo::getId)
+                .extracting(id -> id.valor())
+                .containsExactly(OBJETIVO_ID.valor(), OTRO_ID);
+        assertThat(objetivos.getFirst().getTexto()).isEqualTo(TEXTO);
+    }
+
+    private void entoncesNoSeListaNingunObjetivo() {
+        assertThat(objetivos).isEmpty();
+    }
+
+    private void entoncesSeListaElNegocioConObjetivos() {
+        assertThat(negocioIds).containsExactly(NEGOCIO_ID);
+    }
+
+    private void entoncesSeEncuentraElObjetivo() {
+        assertThat(encontrado).map(Objetivo::getId).contains(OBJETIVO_ID);
+    }
+
+    private void entoncesNoSeEncuentraNingunObjetivo() {
+        assertThat(encontrado).isEmpty();
+    }
+
+    private void entoncesSePersistioLaEntidadDelNegocioConSuTextoYSeDevuelveElObjetivo() {
+        ArgumentCaptor<ObjetivoEntity> captor = ArgumentCaptor.forClass(ObjetivoEntity.class);
+        verify(jpa).save(captor.capture());
+        assertThat(captor.getValue().getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
+        assertThat(captor.getValue().getTexto()).isEqualTo(TEXTO);
+        assertThat(guardado.getId()).isEqualTo(OBJETIVO_ID);
+    }
+
+    private void entoncesSeDelegoElBorradoConLosUuid() {
+        verify(jpa).deleteByIdAndNegocioId(OBJETIVO_ID.valor(), NEGOCIO_ID.valor());
     }
 }

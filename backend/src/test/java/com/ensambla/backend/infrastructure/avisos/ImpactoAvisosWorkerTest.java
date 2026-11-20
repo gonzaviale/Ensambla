@@ -11,7 +11,7 @@ class ImpactoAvisosWorkerTest {
 
     @Test
     @DisplayName("Cada ciclo mide el impacto de los avisos aplicados")
-    void medirShouldRunTheMeasurement() {
+    void cadaCicloMideElImpactoDeLosAvisosAplicados() {
         MedirImpactoAvisos useCase = mock(MedirImpactoAvisos.class);
 
         new ImpactoAvisosWorker(useCase).medir();

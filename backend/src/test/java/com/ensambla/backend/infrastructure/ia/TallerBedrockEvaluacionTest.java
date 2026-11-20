@@ -95,7 +95,7 @@ class TallerBedrockEvaluacionTest {
 
     @Test
     @DisplayName("Con Bedrock real, el taller acierta las acciones esperadas con pocos tokens")
-    void tallerShouldMeetAccuracyAndTokenGoals() throws Exception {
+    void conBedrockRealElTallerAciertaLasAccionesEsperadasConPocosTokens() throws Exception {
         List<Caso> casos = casos();
         List<String> fallos = new ArrayList<>();
         int aciertos = 0;

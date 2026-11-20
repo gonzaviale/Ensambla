@@ -61,24 +61,36 @@ export function useSamiProyecto(saludo: string) {
   const decir = (quien: MensajeDeSami['quien'], texto: string) =>
     setMensajes((actuales) => [...actuales, { quien, texto }]);
 
-  const recibir = (respuesta: RespuestaDeConversacion) => {
-    if (respuesta.tipo === 'PREGUNTA' && respuesta.pregunta) {
-      setPregunta(respuesta.pregunta);
-      decir('sami', respuesta.pregunta.texto);
-    } else if (respuesta.tipo === 'PROPUESTA' && respuesta.propuesta) {
-      setPregunta(null);
-      setPropuesta(respuesta.propuesta);
-      setQuitadas([]);
-      setNombre(respuesta.propuesta.plantilla);
-      decir('sami', textoDeLaPropuesta(respuesta.propuesta));
-    } else {
-      // El algoritmo no alcanzó y no hubo propuesta: se vuelve a empezar con una descripción más completa.
-      setPregunta(null);
-      setDescripcion('');
-      setRespuestas([]);
-      decir('sami', SIN_RESPUESTA);
-    }
+  const recibirPregunta = (nueva: PreguntaDeSami) => {
+    setPregunta(nueva);
+    decir('sami', nueva.texto);
   };
+
+  const recibirPropuesta = (nueva: PropuestaDeSami) => {
+    setPregunta(null);
+    setPropuesta(nueva);
+    setQuitadas([]);
+    setNombre(nueva.plantilla);
+    decir('sami', textoDeLaPropuesta(nueva));
+  };
+
+  // El algoritmo no alcanzó y no hubo propuesta: se vuelve a empezar con una descripción más completa.
+  const recibirSinRespuesta = () => {
+    setPregunta(null);
+    setDescripcion('');
+    setRespuestas([]);
+    decir('sami', SIN_RESPUESTA);
+  };
+
+  const receptores: Partial<
+    Record<RespuestaDeConversacion['tipo'], (r: RespuestaDeConversacion) => void>
+  > = {
+    PREGUNTA: (r) => (r.pregunta ? recibirPregunta(r.pregunta) : recibirSinRespuesta()),
+    PROPUESTA: (r) => (r.propuesta ? recibirPropuesta(r.propuesta) : recibirSinRespuesta()),
+  };
+
+  const recibir = (respuesta: RespuestaDeConversacion) =>
+    (receptores[respuesta.tipo] ?? recibirSinRespuesta)(respuesta);
 
   /** `true` si Sami contestó; si falla avisa, deshace lo que se había adelantado y devuelve `false`. */
   const consultar = async (texto: string, elegidas: RespuestaElegida[], alFallar: () => void) => {

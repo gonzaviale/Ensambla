@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.model.objetivo;
 
 import com.ensambla.backend.domain.model.aviso.Aviso;
+import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.model.aviso.ImpactoAviso;
 import com.ensambla.backend.domain.model.aviso.TipoAviso;
@@ -30,210 +31,462 @@ class ReglasReajusteTest {
     /** La semana que se cierra: la siguiente a la que empezó el mini-objetivo de prueba. */
     private static final LocalDate SEMANA = LocalDate.of(2026, 11, 16);
     private static final RegistroId OTRO_PRODUCTO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000002");
+
     /** Por debajo de la meta de prueba ($14.183). */
     private static final Optional<BigDecimal> SIN_LLEGAR = Optional.of(new BigDecimal("13000"));
     private static final Optional<BigDecimal> NADA = Optional.empty();
 
+    private MiniObjetivo mini = miniObjetivo();
+    private Optional<BigDecimal> alCierre = NADA;
+    private Optional<BigDecimal> dosAtras = NADA;
+    private boolean sinEfecto;
+    private Optional<MotivoReajuste> motivo;
+
+    private List<DecisionObjetivo> decisiones = List.of();
+    private Map<AvisoId, Aviso> avisos = Map.of();
+    private boolean decisionSinEfecto;
+
+    private List<MiniObjetivo> miniObjetivos = List.of();
+    private List<MiniObjetivo> usados;
+    private List<CandidatoMiniObjetivo> candidatos = List.of();
+    private List<MiniObjetivo> enCurso = List.of();
+    private List<MiniObjetivo> yaUsados = List.of();
+    private MotivoReajuste motivoDelReemplazo = MotivoReajuste.SIN_AVANCE;
+    private Optional<CandidatoMiniObjetivo> reemplazo;
+    private CandidatoMiniObjetivo esperado;
+
     @Test
     @DisplayName("Uno logrado que nadie siguió sube su meta")
-    void decidirShouldRaiseTheGoalOfAnAchievedMiniObjetivo() {
-        MiniObjetivo mini = conEstado(EstadoMiniObjetivo.LOGRADO);
+    void unoLogradoQueNadieSiguioSubeSuMeta() {
+        dadoUnMiniObjetivoConEstado(EstadoMiniObjetivo.LOGRADO);
 
-        assertThat(decidir(mini, NADA, NADA, false)).contains(MotivoReajuste.LOGRADO);
+        cuandoSeDecideElReajuste();
+
+        entoncesElMotivoEs(MotivoReajuste.LOGRADO);
     }
 
     @Test
     @DisplayName("Uno quitado que nadie reemplazó se cambia por otro")
-    void decidirShouldReplaceARemovedMiniObjetivo() {
-        MiniObjetivo mini = conEstado(EstadoMiniObjetivo.ABANDONADO);
+    void unoQuitadoQueNadieReemplazoSeCambiaPorOtro() {
+        dadoUnMiniObjetivoConEstado(EstadoMiniObjetivo.ABANDONADO);
 
-        assertThat(decidir(mini, NADA, NADA, false)).contains(MotivoReajuste.QUITADO);
+        cuandoSeDecideElReajuste();
+
+        entoncesElMotivoEs(MotivoReajuste.QUITADO);
     }
 
     @Test
     @DisplayName("Uno logrado o quitado que ya tiene quien lo siga no se toca")
-    void decidirShouldKeepAnAchievedMiniObjetivoAlreadyFollowed() {
-        MiniObjetivo mini = conEstado(EstadoMiniObjetivo.LOGRADO);
-        mini.setReemplazadoPor(OTRO_MINI_ID);
+    void unoLogradoOQuitadoQueYaTieneQuienLoSigaNoSeToca() {
+        dadoUnMiniObjetivoLogradoQueYaTieneQuienLoSiga();
 
-        assertThat(decidir(mini, NADA, NADA, false)).isEmpty();
+        cuandoSeDecideElReajuste();
+
+        entoncesNoSeReajusta();
     }
 
     @Test
     @DisplayName("Uno reemplazado no se toca")
-    void decidirShouldKeepAReplacedMiniObjetivo() {
-        assertThat(decidir(conEstado(EstadoMiniObjetivo.REEMPLAZADO), NADA, NADA, false)).isEmpty();
+    void unoReemplazadoNoSeToca() {
+        dadoUnMiniObjetivoConEstado(EstadoMiniObjetivo.REEMPLAZADO);
+
+        cuandoSeDecideElReajuste();
+
+        entoncesNoSeReajusta();
     }
 
     @Test
     @DisplayName("Uno de producto que ya no se puede medir se cambia")
-    void decidirShouldReplaceAProductMiniObjetivoThatCannotBeMeasured() {
-        assertThat(decidir(enCurso(), NADA, NADA, false)).contains(MotivoReajuste.PRODUCTO_FUERA);
+    void unoDeProductoQueYaNoSePuedeMedirSeCambia() {
+        cuandoSeDecideElReajuste();
+
+        entoncesElMotivoEs(MotivoReajuste.PRODUCTO_FUERA);
     }
 
     @Test
     @DisplayName("Uno del negocio que no se puede medir (sin costos para el margen) se mantiene")
-    void decidirShouldKeepABusinessMiniObjetivoThatCannotBeMeasured() {
-        MiniObjetivo mini = enCurso();
-        mini.setTipo(TipoMiniObjetivo.MEJORAR_MARGEN);
+    void unoDelNegocioQueNoSePuedeMedirSinCostosParaElMargenSeMantiene() {
+        dadoUnMiniObjetivoDeMejorarMargen();
 
-        assertThat(decidir(mini, NADA, NADA, false)).isEmpty();
+        cuandoSeDecideElReajuste();
+
+        entoncesNoSeReajusta();
     }
 
     @Test
     @DisplayName("Uno en curso que al domingo llega a su meta sube la meta")
-    void decidirShouldRaiseTheGoalWhenTheClosingValueMeetsIt() {
-        assertThat(decidir(enCurso(), Optional.of(new BigDecimal("15000")), NADA, true))
-                .contains(MotivoReajuste.LOGRADO);
+    void unoEnCursoQueAlDomingoLlegaASuMetaSubeLaMeta() {
+        dadoQueAlCierreSeLlegoALaMeta();
+
+        cuandoSeDecideElReajuste();
+
+        entoncesElMotivoEs(MotivoReajuste.LOGRADO);
     }
 
     @Test
     @DisplayName("Uno que empezó la misma semana que se cierra sólo puede subir su meta")
-    void decidirShouldKeepAMiniObjetivoThatStartedThisWeek() {
-        MiniObjetivo mini = enCurso();
-        mini.setSemanaInicio(SEMANA);
+    void unoQueEmpezoLaMismaSemanaQueSeCierraSoloPuedeSubirSuMeta() {
+        dadoUnMiniObjetivoQueEmpezoLaSemanaQueSeCierra();
 
-        assertThat(decidir(mini, SIN_LLEGAR, SIN_LLEGAR, true)).isEmpty();
+        cuandoSeDecideElReajuste();
+
+        entoncesNoSeReajusta();
     }
 
     @Test
     @DisplayName("Si una decisión vinculada no movió la venta, prueba otro camino")
-    void decidirShouldTryAnotherPathWhenADecisionHadNoEffect() {
-        assertThat(decidir(enCurso(), SIN_LLEGAR, NADA, true)).contains(MotivoReajuste.DECISION_SIN_EFECTO);
+    void siUnaDecisionVinculadaNoMovioLaVentaPruebaOtroCamino() {
+        dadoUnaDecisionVinculadaSinEfectoYSinLlegarALaMeta();
+
+        cuandoSeDecideElReajuste();
+
+        entoncesElMotivoEs(MotivoReajuste.DECISION_SIN_EFECTO);
     }
 
     @Test
     @DisplayName("Si no mejoró respecto de dos cierres atrás, se cambia por falta de avance")
-    void decidirShouldReplaceWhenItDidNotImproveInTwoCloses() {
-        assertThat(decidir(enCurso(), SIN_LLEGAR, SIN_LLEGAR, false)).contains(MotivoReajuste.SIN_AVANCE);
+    void siNoMejoroRespectoDeDosCierresAtrasSeCambiaPorFaltaDeAvance() {
+        dadoQueNoMejoroRespectoDeDosCierresAtras();
+
+        cuandoSeDecideElReajuste();
+
+        entoncesElMotivoEs(MotivoReajuste.SIN_AVANCE);
     }
 
     @Test
     @DisplayName("Si mejoró respecto de dos cierres atrás, se mantiene")
-    void decidirShouldKeepWhenItImprovedInTwoCloses() {
-        assertThat(decidir(enCurso(), SIN_LLEGAR, Optional.of(new BigDecimal("12000")), false)).isEmpty();
+    void siMejoroRespectoDeDosCierresAtrasSeMantiene() {
+        dadoQueMejoroRespectoDeDosCierresAtras();
+
+        cuandoSeDecideElReajuste();
+
+        entoncesNoSeReajusta();
     }
 
     @Test
     @DisplayName("En un tipo que baja, mejorar es bajar: si bajó, se mantiene")
-    void decidirShouldKeepADecreasingMiniObjetivoThatWentDown() {
-        MiniObjetivo mini = enCurso();
-        mini.setTipo(TipoMiniObjetivo.RECORTAR_GASTO);
-        mini.setMeta(new BigDecimal("36000"));
+    void enUnTipoQueBajaMejorarEsBajarSiBajoSeMantiene() {
+        dadoUnRecorteDeGastoQueBajoDe40000A38000();
 
-        assertThat(decidir(mini, Optional.of(new BigDecimal("38000")), Optional.of(new BigDecimal("40000")), false))
-                .isEmpty();
-        assertThat(decidir(mini, Optional.of(new BigDecimal("40000")), Optional.of(new BigDecimal("40000")), false))
-                .contains(MotivoReajuste.SIN_AVANCE);
+        cuandoSeDecideElReajuste();
+
+        entoncesNoSeReajusta();
+    }
+
+    @Test
+    @DisplayName("En un tipo que baja, si no bajó se cambia por falta de avance")
+    void enUnTipoQueBajaSiNoBajoSeCambiaPorFaltaDeAvance() {
+        dadoUnRecorteDeGastoQueSeQuedoEn40000();
+
+        cuandoSeDecideElReajuste();
+
+        entoncesElMotivoEs(MotivoReajuste.SIN_AVANCE);
     }
 
     @Test
     @DisplayName("Sin cierre de dos semanas atrás no hay con qué medir el avance: se mantiene")
-    void decidirShouldKeepWhenThereIsNoCloseTwoWeeksBefore() {
-        assertThat(decidir(enCurso(), SIN_LLEGAR, NADA, false)).isEmpty();
+    void sinCierreDeDosSemanasAtrasNoHayConQueMedirElAvanceSeMantiene() {
+        dadoUnCierreSinLlegarALaMetaYSinCierreDeDosSemanasAtras();
+
+        cuandoSeDecideElReajuste();
+
+        entoncesNoSeReajusta();
     }
 
     @Test
     @DisplayName("Una decisión de aplicar un aviso medida y sin subir las ventas no tuvo efecto")
-    void decisionSinEfectoShouldBeTrueWhenTheAppliedAvisoDidNotRaiseSales() {
-        Aviso aplicado = aplicadoCon(new ImpactoAviso(14, new BigDecimal("3.00"), new BigDecimal("2.00"),
-                new BigDecimal("150.00"), new BigDecimal("100.00")));
+    void unaDecisionDeAplicarUnAvisoMedidaYSinSubirLasVentasNoTuvoEfecto() {
+        dadoUnAvisoAplicadoCuyasVentasNoSubieron();
 
-        assertThat(ReglasReajuste.decisionSinEfecto(miniObjetivo(),
-                List.of(decision(TipoDecision.AVISO_APLICADO, AVISO_ID)), Map.of(AVISO_ID, aplicado))).isTrue();
+        cuandoSeConsultaSiLaDecisionTuvoEfecto();
+
+        entoncesLaDecisionNoTuvoEfecto();
     }
 
     @Test
-    @DisplayName("Una decisión que subió las ventas, que se sigue midiendo o de otro mini-objetivo no cuenta")
-    void decisionSinEfectoShouldBeFalseWhenSalesRoseOrItIsStillMeasuringOrUnlinked() {
-        Aviso subio = aplicadoCon(impacto());
-        Aviso midiendo = aviso(TipoAviso.ESTANCADO, EstadoAviso.APLICADO);
-        MiniObjetivo otro = miniObjetivo();
-        otro.setId(OTRO_MINI_ID);
+    @DisplayName("Una decisión que subió las ventas no cuenta como sin efecto")
+    void unaDecisionQueSubioLasVentasNoCuentaComoSinEfecto() {
+        dadoUnAvisoAplicadoCuyasVentasSubieron();
 
-        assertThat(ReglasReajuste.decisionSinEfecto(miniObjetivo(),
-                List.of(decision(TipoDecision.AVISO_APLICADO, AVISO_ID)), Map.of(AVISO_ID, subio))).isFalse();
-        assertThat(ReglasReajuste.decisionSinEfecto(miniObjetivo(),
-                List.of(decision(TipoDecision.AVISO_APLICADO, AVISO_ID)), Map.of(AVISO_ID, midiendo))).isFalse();
-        assertThat(ReglasReajuste.decisionSinEfecto(otro,
-                List.of(decision(TipoDecision.AVISO_APLICADO, AVISO_ID)), Map.of(AVISO_ID, subio))).isFalse();
+        cuandoSeConsultaSiLaDecisionTuvoEfecto();
+
+        entoncesLaDecisionNoCuentaComoSinEfecto();
+    }
+
+    @Test
+    @DisplayName("Una decisión que se sigue midiendo no cuenta como sin efecto")
+    void unaDecisionQueSeSigueMidiendoNoCuentaComoSinEfecto() {
+        dadoUnAvisoAplicadoQueSigueMidiendose();
+
+        cuandoSeConsultaSiLaDecisionTuvoEfecto();
+
+        entoncesLaDecisionNoCuentaComoSinEfecto();
+    }
+
+    @Test
+    @DisplayName("Una decisión de otro mini-objetivo no cuenta como sin efecto")
+    void unaDecisionDeOtroMiniObjetivoNoCuentaComoSinEfecto() {
+        dadoUnAvisoAplicadoCuyasVentasSubieronYOtroMiniObjetivo();
+
+        cuandoSeConsultaSiLaDecisionTuvoEfecto();
+
+        entoncesLaDecisionNoCuentaComoSinEfecto();
     }
 
     @Test
     @DisplayName("Una decisión sobre un paso, sin aviso, no se mide")
-    void decisionSinEfectoShouldBeFalseForAStepWithoutAviso() {
-        assertThat(ReglasReajuste.decisionSinEfecto(miniObjetivo(),
-                List.of(decision(TipoDecision.PASO_ACEPTADO, null)), Map.of())).isFalse();
+    void unaDecisionSobreUnPasoSinAvisoNoSeMide() {
+        dadoUnaDecisionSobreUnPasoSinAviso();
+
+        cuandoSeConsultaSiLaDecisionTuvoEfecto();
+
+        entoncesLaDecisionNoCuentaComoSinEfecto();
     }
 
     @Test
     @DisplayName("Los usados son los que siguen en curso y los que empezaron en las últimas cuatro semanas")
-    void usadosShouldBeTheOnesInProgressOrStartedInTheLastFourWeeks() {
-        MiniObjetivo viejoEnCurso = enCurso();
-        viejoEnCurso.setSemanaInicio(SEMANA.minusWeeks(10));
-        MiniObjetivo recienteLogrado = conEstado(EstadoMiniObjetivo.LOGRADO);
-        recienteLogrado.setSemanaInicio(SEMANA.minusWeeks(3));
-        MiniObjetivo viejoReemplazado = conEstado(EstadoMiniObjetivo.REEMPLAZADO);
-        viejoReemplazado.setSemanaInicio(SEMANA.minusWeeks(4));
+    void losUsadosSonLosQueSiguenEnCursoYLosQueEmpezaronEnLasUltimasCuatroSemanas() {
+        dadoUnoViejoEnCursoUnoRecienteLogradoYUnoViejoReemplazado();
 
-        assertThat(ReglasReajuste.usados(List.of(viejoEnCurso, recienteLogrado, viejoReemplazado), SEMANA))
-                .containsExactly(viejoEnCurso, recienteLogrado);
+        cuandoSePidenLosUsados();
+
+        entoncesLosUsadosSonElViejoEnCursoYElRecienteLogrado();
     }
 
     @Test
     @DisplayName("El reemplazo es el de mayor aporte que no es el mismo ni uno usado ni choca con otro en curso")
-    void reemplazoShouldBeTheBestCandidateNotUsedNorClashing() {
-        MiniObjetivo mini = enCurso();
-        CandidatoMiniObjetivo mismo = candidato();
-        CandidatoMiniObjetivo usado = candidatoDelNegocio(TipoMiniObjetivo.VENTAS_SEMANALES, "9000");
-        CandidatoMiniObjetivo chocaConOtro = candidatoDelNegocio(TipoMiniObjetivo.MEJORAR_MARGEN, "8000");
-        CandidatoMiniObjetivo libre = candidatoDelNegocio(TipoMiniObjetivo.RECORTAR_GASTO, "1000");
+    void elReemplazoEsElDeMayorAporteQueNoEsElMismoNiUnoUsadoNiChocaConOtroEnCurso() {
+        dadoCandidatosQueIncluyenAlMismoUnoUsadoUnoQueChocaYUnoLibre();
 
-        Optional<CandidatoMiniObjetivo> result = ReglasReajuste.reemplazo(
-                List.of(mismo, usado, chocaConOtro, libre), mini, MotivoReajuste.SIN_AVANCE,
-                List.of(mini, otroEnCurso(TipoMiniObjetivo.MEJORAR_MARGEN)),
-                List.of(otroEnCurso(TipoMiniObjetivo.VENTAS_SEMANALES)));
+        cuandoSePideElReemplazo();
 
-        assertThat(result).contains(libre);
+        entoncesElReemplazoEsElCandidatoLibre();
     }
 
     @Test
     @DisplayName("Para probar otro camino el reemplazo tiene que ser de otro tipo")
-    void reemplazoShouldBeOfAnotherTypeWhenTryingAnotherPath() {
-        MiniObjetivo mini = enCurso();
-        CandidatoMiniObjetivo mismoTipo = new CandidatoMiniObjetivo(TipoMiniObjetivo.SUBIR_PRECIO, OTRO_PRODUCTO_ID,
-                "Aceite", BigDecimal.ONE, BigDecimal.TEN, new BigDecimal("9000"), "Subile al aceite", "x", false);
-        CandidatoMiniObjetivo otroTipo = candidatoDelNegocio(TipoMiniObjetivo.RECORTAR_GASTO, "1000");
+    void paraProbarOtroCaminoElReemplazoTieneQueSerDeOtroTipo() {
+        dadoUnCandidatoDelMismoTipoYOtroDeOtroTipo();
+        dadoQueSeProbaraOtroCamino();
 
-        assertThat(ReglasReajuste.reemplazo(List.of(mismoTipo, otroTipo), mini, MotivoReajuste.DECISION_SIN_EFECTO,
-                List.of(mini), List.of())).contains(otroTipo);
-        assertThat(ReglasReajuste.reemplazo(List.of(mismoTipo, otroTipo), mini, MotivoReajuste.SIN_AVANCE,
-                List.of(mini), List.of())).contains(mismoTipo);
+        cuandoSePideElReemplazo();
+
+        entoncesElReemplazoEsElDeOtroTipo();
+    }
+
+    @Test
+    @DisplayName("Si no hace falta otro camino el reemplazo puede ser del mismo tipo")
+    void siNoHaceFaltaOtroCaminoElReemplazoPuedeSerDelMismoTipo() {
+        dadoUnCandidatoDelMismoTipoYOtroDeOtroTipo();
+
+        cuandoSePideElReemplazo();
+
+        entoncesElReemplazoEsElDelMismoTipo();
     }
 
     @Test
     @DisplayName("Sin candidatos posibles no hay reemplazo")
-    void reemplazoShouldBeEmptyWhenThereAreNoCandidates() {
-        assertThat(ReglasReajuste.reemplazo(List.of(candidato()), enCurso(), MotivoReajuste.SIN_AVANCE,
-                List.of(), List.of())).isEmpty();
+    void sinCandidatosPosiblesNoHayReemplazo() {
+        dadoUnSoloCandidatoYNingunMiniObjetivoEnCurso();
+
+        cuandoSePideElReemplazo();
+
+        entoncesNoHayReemplazo();
     }
 
-    // --- act ---
-    private static Optional<MotivoReajuste> decidir(
-            MiniObjetivo mini, Optional<BigDecimal> alCierre, Optional<BigDecimal> dosAtras, boolean sinEfecto) {
-        return ReglasReajuste.decidir(mini, alCierre, dosAtras, sinEfecto, SEMANA);
-    }
+    // --- dado ---
 
-    // --- helpers ---
-    private static MiniObjetivo enCurso() {
-        return miniObjetivo();
-    }
-
-    private static MiniObjetivo conEstado(EstadoMiniObjetivo estado) {
-        MiniObjetivo mini = miniObjetivo();
+    private void dadoUnMiniObjetivoConEstado(EstadoMiniObjetivo estado) {
+        mini = miniObjetivo();
         mini.setEstado(estado);
-        return mini;
     }
+
+    private void dadoUnMiniObjetivoLogradoQueYaTieneQuienLoSiga() {
+        dadoUnMiniObjetivoConEstado(EstadoMiniObjetivo.LOGRADO);
+        mini.setReemplazadoPor(OTRO_MINI_ID);
+    }
+
+    private void dadoUnMiniObjetivoDeMejorarMargen() {
+        mini.setTipo(TipoMiniObjetivo.MEJORAR_MARGEN);
+    }
+
+    private void dadoQueAlCierreSeLlegoALaMeta() {
+        alCierre = Optional.of(new BigDecimal("15000"));
+        sinEfecto = true;
+    }
+
+    private void dadoUnMiniObjetivoQueEmpezoLaSemanaQueSeCierra() {
+        mini.setSemanaInicio(SEMANA);
+        alCierre = SIN_LLEGAR;
+        dosAtras = SIN_LLEGAR;
+        sinEfecto = true;
+    }
+
+    private void dadoUnaDecisionVinculadaSinEfectoYSinLlegarALaMeta() {
+        alCierre = SIN_LLEGAR;
+        sinEfecto = true;
+    }
+
+    private void dadoQueNoMejoroRespectoDeDosCierresAtras() {
+        alCierre = SIN_LLEGAR;
+        dosAtras = SIN_LLEGAR;
+    }
+
+    private void dadoQueMejoroRespectoDeDosCierresAtras() {
+        alCierre = SIN_LLEGAR;
+        dosAtras = Optional.of(new BigDecimal("12000"));
+    }
+
+    private void dadoUnRecorteDeGastoQueBajoDe40000A38000() {
+        dadoUnRecorteDeGastoConMeta36000();
+        alCierre = Optional.of(new BigDecimal("38000"));
+        dosAtras = Optional.of(new BigDecimal("40000"));
+    }
+
+    private void dadoUnRecorteDeGastoQueSeQuedoEn40000() {
+        dadoUnRecorteDeGastoConMeta36000();
+        alCierre = Optional.of(new BigDecimal("40000"));
+        dosAtras = Optional.of(new BigDecimal("40000"));
+    }
+
+    private void dadoUnRecorteDeGastoConMeta36000() {
+        mini.setTipo(TipoMiniObjetivo.RECORTAR_GASTO);
+        mini.setMeta(new BigDecimal("36000"));
+    }
+
+    private void dadoUnCierreSinLlegarALaMetaYSinCierreDeDosSemanasAtras() {
+        alCierre = SIN_LLEGAR;
+        dosAtras = NADA;
+    }
+
+    private void dadoUnAvisoAplicadoCuyasVentasNoSubieron() {
+        dadoUnAvisoAplicadoConImpacto(new ImpactoAviso(14, new BigDecimal("3.00"), new BigDecimal("2.00"),
+                new BigDecimal("150.00"), new BigDecimal("100.00")));
+    }
+
+    private void dadoUnAvisoAplicadoCuyasVentasSubieron() {
+        dadoUnAvisoAplicadoConImpacto(impacto());
+    }
+
+    private void dadoUnAvisoAplicadoQueSigueMidiendose() {
+        decisiones = List.of(decision(TipoDecision.AVISO_APLICADO, AVISO_ID));
+        avisos = Map.of(AVISO_ID, aviso(TipoAviso.ESTANCADO, EstadoAviso.APLICADO));
+    }
+
+    private void dadoUnAvisoAplicadoCuyasVentasSubieronYOtroMiniObjetivo() {
+        dadoUnAvisoAplicadoCuyasVentasSubieron();
+        mini = miniObjetivo();
+        mini.setId(OTRO_MINI_ID);
+    }
+
+    private void dadoUnaDecisionSobreUnPasoSinAviso() {
+        decisiones = List.of(decision(TipoDecision.PASO_ACEPTADO, null));
+        avisos = Map.of();
+    }
+
+    private void dadoUnAvisoAplicadoConImpacto(ImpactoAviso impacto) {
+        Aviso aplicado = aviso(TipoAviso.ESTANCADO, EstadoAviso.APLICADO);
+        aplicado.registrarImpacto(impacto, AHORA);
+        decisiones = List.of(decision(TipoDecision.AVISO_APLICADO, AVISO_ID));
+        avisos = Map.of(AVISO_ID, aplicado);
+    }
+
+    private void dadoUnoViejoEnCursoUnoRecienteLogradoYUnoViejoReemplazado() {
+        MiniObjetivo viejoEnCurso = miniObjetivo();
+        viejoEnCurso.setSemanaInicio(SEMANA.minusWeeks(10));
+        MiniObjetivo recienteLogrado = miniObjetivo();
+        recienteLogrado.setEstado(EstadoMiniObjetivo.LOGRADO);
+        recienteLogrado.setSemanaInicio(SEMANA.minusWeeks(3));
+        MiniObjetivo viejoReemplazado = miniObjetivo();
+        viejoReemplazado.setEstado(EstadoMiniObjetivo.REEMPLAZADO);
+        viejoReemplazado.setSemanaInicio(SEMANA.minusWeeks(4));
+        miniObjetivos = List.of(viejoEnCurso, recienteLogrado, viejoReemplazado);
+    }
+
+    private void dadoCandidatosQueIncluyenAlMismoUnoUsadoUnoQueChocaYUnoLibre() {
+        esperado = candidatoDelNegocio(TipoMiniObjetivo.RECORTAR_GASTO, "1000");
+        candidatos = List.of(candidato(),
+                candidatoDelNegocio(TipoMiniObjetivo.VENTAS_SEMANALES, "9000"),
+                candidatoDelNegocio(TipoMiniObjetivo.MEJORAR_MARGEN, "8000"),
+                esperado);
+        enCurso = List.of(mini, otroEnCurso(TipoMiniObjetivo.MEJORAR_MARGEN));
+        yaUsados = List.of(otroEnCurso(TipoMiniObjetivo.VENTAS_SEMANALES));
+    }
+
+    private void dadoUnCandidatoDelMismoTipoYOtroDeOtroTipo() {
+        CandidatoMiniObjetivo mismoTipo = new CandidatoMiniObjetivo(TipoMiniObjetivo.SUBIR_PRECIO, OTRO_PRODUCTO_ID,
+                "Aceite", BigDecimal.ONE, BigDecimal.TEN, new BigDecimal("9000"), "Subile al aceite", "x", false);
+        CandidatoMiniObjetivo otroTipo = candidatoDelNegocio(TipoMiniObjetivo.RECORTAR_GASTO, "1000");
+        candidatos = List.of(mismoTipo, otroTipo);
+        enCurso = List.of(mini);
+    }
+
+    private void dadoQueSeProbaraOtroCamino() {
+        motivoDelReemplazo = MotivoReajuste.DECISION_SIN_EFECTO;
+    }
+
+    private void dadoUnSoloCandidatoYNingunMiniObjetivoEnCurso() {
+        candidatos = List.of(candidato());
+        enCurso = List.of();
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeDecideElReajuste() {
+        motivo = ReglasReajuste.decidir(mini, alCierre, dosAtras, sinEfecto, SEMANA);
+    }
+
+    private void cuandoSeConsultaSiLaDecisionTuvoEfecto() {
+        decisionSinEfecto = ReglasReajuste.decisionSinEfecto(mini, decisiones, avisos);
+    }
+
+    private void cuandoSePidenLosUsados() {
+        usados = ReglasReajuste.usados(miniObjetivos, SEMANA);
+    }
+
+    private void cuandoSePideElReemplazo() {
+        reemplazo = ReglasReajuste.reemplazo(candidatos, mini, motivoDelReemplazo, enCurso, yaUsados);
+    }
+
+    // --- entonces ---
+
+    private void entoncesElMotivoEs(MotivoReajuste esperadoMotivo) {
+        assertThat(motivo).contains(esperadoMotivo);
+    }
+
+    private void entoncesNoSeReajusta() {
+        assertThat(motivo).isEmpty();
+    }
+
+    private void entoncesLaDecisionNoTuvoEfecto() {
+        assertThat(decisionSinEfecto).isTrue();
+    }
+
+    private void entoncesLaDecisionNoCuentaComoSinEfecto() {
+        assertThat(decisionSinEfecto).isFalse();
+    }
+
+    private void entoncesLosUsadosSonElViejoEnCursoYElRecienteLogrado() {
+        assertThat(usados).containsExactly(miniObjetivos.get(0), miniObjetivos.get(1));
+    }
+
+    private void entoncesElReemplazoEsElCandidatoLibre() {
+        assertThat(reemplazo).contains(esperado);
+    }
+
+    private void entoncesElReemplazoEsElDeOtroTipo() {
+        assertThat(reemplazo).contains(candidatos.get(1));
+    }
+
+    private void entoncesElReemplazoEsElDelMismoTipo() {
+        assertThat(reemplazo).contains(candidatos.get(0));
+    }
+
+    private void entoncesNoHayReemplazo() {
+        assertThat(reemplazo).isEmpty();
+    }
+
+    // --- datos ---
 
     private static MiniObjetivo otroEnCurso(TipoMiniObjetivo tipo) {
         MiniObjetivo otro = miniObjetivo();
@@ -242,11 +495,5 @@ class ReglasReajusteTest {
         otro.setRegistroId(null);
         otro.setReferencia(null);
         return otro;
-    }
-
-    private static Aviso aplicadoCon(ImpactoAviso impacto) {
-        Aviso aplicado = aviso(TipoAviso.ESTANCADO, EstadoAviso.APLICADO);
-        aplicado.registrarImpacto(impacto, AHORA);
-        return aplicado;
     }
 }

@@ -15,7 +15,7 @@ class CierreSemanalObjetivosWorkerTest {
 
     @Test
     @DisplayName("El domingo corre el cierre semanal")
-    void cerrarShouldRunTheWeeklyClose() {
+    void elDomingoCorreElCierreSemanal() {
         worker.cerrar();
 
         verify(cerrarSemanasObjetivos).execute();
@@ -23,7 +23,7 @@ class CierreSemanalObjetivosWorkerTest {
 
     @Test
     @DisplayName("Al arrancar corre el cierre para recuperar las semanas pendientes")
-    void recuperarShouldRunTheWeeklyClose() {
+    void alArrancarCorreElCierreParaRecuperarLasSemanasPendientes() {
         worker.recuperar();
 
         verify(cerrarSemanasObjetivos).execute();

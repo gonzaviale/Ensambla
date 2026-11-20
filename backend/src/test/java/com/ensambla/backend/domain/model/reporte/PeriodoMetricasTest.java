@@ -13,7 +13,7 @@ class PeriodoMetricasTest {
 
     @Test
     @DisplayName("Hoy es sólo el día de hoy")
-    void hastaShouldReturnOnlyTodayForHoy() {
+    void hoyEsSoloElDiaDeHoy() {
         PeriodoResumen periodo = PeriodoMetricas.HOY.hasta(HOY);
 
         assertThat(periodo.desde()).isEqualTo(HOY);
@@ -22,7 +22,7 @@ class PeriodoMetricasTest {
 
     @Test
     @DisplayName("La semana son los últimos 7 días contando hoy")
-    void hastaShouldReturnTheLastSevenDaysForSemana() {
+    void laSemanaSonLosUltimos7DiasContandoHoy() {
         PeriodoResumen periodo = PeriodoMetricas.SEMANA.hasta(HOY);
 
         assertThat(periodo.desde()).isEqualTo(LocalDate.of(2026, 10, 13));
@@ -31,7 +31,7 @@ class PeriodoMetricasTest {
 
     @Test
     @DisplayName("El mes son los últimos 30 días contando hoy")
-    void hastaShouldReturnTheLastThirtyDaysForMes() {
+    void elMesSonLosUltimos30DiasContandoHoy() {
         PeriodoResumen periodo = PeriodoMetricas.MES.hasta(HOY);
 
         assertThat(periodo.desde()).isEqualTo(LocalDate.of(2026, 9, 20));

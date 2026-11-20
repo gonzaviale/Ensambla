@@ -32,7 +32,7 @@ class SamiBedrockRealTest {
 
     @Test
     @DisplayName("Con Bedrock real, Sami elige una plantilla existente y registra los tokens")
-    void proponerShouldReturnExistingTemplateWithRealBedrock() {
+    void conBedrockRealSamiEligeUnaPlantillaExistenteYRegistraLosTokens() {
         try (BedrockRuntimeClient bedrock = BedrockRuntimeClient.builder()
                 .region(Region.of(System.getenv().getOrDefault("SAMI_BEDROCK_REGION", "us-east-1")))
                 .credentialsProvider(ProfileCredentialsProvider.create(System.getenv("SAMI_BEDROCK_PERFIL")))

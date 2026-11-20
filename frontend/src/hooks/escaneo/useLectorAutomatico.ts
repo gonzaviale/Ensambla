@@ -10,8 +10,12 @@ export function useLectorAutomatico(habilitado: boolean, camara: Camara) {
   });
   useEffect(() => {
     const actualizar = () => {
-      if (!habilitado || document.visibilityState === 'hidden') actual.current.cerrar();
-      else if (!actual.current.abierta) actual.current.abrir();
+      const debeEstarAbierta = habilitado && document.visibilityState !== 'hidden';
+      if (!debeEstarAbierta) {
+        actual.current.cerrar();
+        return;
+      }
+      if (!actual.current.abierta) actual.current.abrir();
     };
     actualizar();
     document.addEventListener('visibilitychange', actualizar);

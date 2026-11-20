@@ -74,18 +74,24 @@ public record ConfirmacionLectura(
         }
         Set<String> vistas = new HashSet<>();
         Set<CampoId> camposUsados = new HashSet<>();
-        for (CampoConfirmado campo : campos) {
-            if (esVacio(campo.clave()) || !vistas.add(campo.clave())) {
-                throw new BusinessRuleException("Las columnas necesitan una clave distinta cada una");
-            }
-            if (campo.campoId() != null && !camposUsados.add(campo.campoId())) {
-                throw new BusinessRuleException("Dos columnas no pueden guardarse en el mismo campo de la tabla");
-            }
-            if (TipoCampo.RELACION.name().equals(campo.tipo()) && campo.campoId() == null) {
-                throw new BusinessRuleException(
-                        "Una conexión con otra tabla no se puede crear acá: elegí una columna de tu tabla");
-            }
+        campos.forEach(campo -> validarColumna(campo, vistas, camposUsados));
+    }
+
+    private void validarColumna(CampoConfirmado campo, Set<String> vistas, Set<CampoId> camposUsados) {
+        if (esVacio(campo.clave()) || !vistas.add(campo.clave())) {
+            throw new BusinessRuleException("Las columnas necesitan una clave distinta cada una");
         }
+        if (campo.campoId() != null && !camposUsados.add(campo.campoId())) {
+            throw new BusinessRuleException("Dos columnas no pueden guardarse en el mismo campo de la tabla");
+        }
+        if (esConexionNueva(campo)) {
+            throw new BusinessRuleException(
+                    "Una conexión con otra tabla no se puede crear acá: elegí una columna de tu tabla");
+        }
+    }
+
+    private static boolean esConexionNueva(CampoConfirmado campo) {
+        return TipoCampo.RELACION.name().equals(campo.tipo()) && campo.campoId() == null;
     }
 
     private static boolean esVacio(String texto) {

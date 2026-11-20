@@ -4,47 +4,62 @@ import type { AccionDeAviso, Aviso, GrupoDeAviso, TipoDeAviso } from './alertas'
 const PREFIJO = 'servidor:';
 const SISTEMA_SIN_NOMBRE = 'Tu negocio';
 
+type FabricaDeAccion = (accion: AccionDelServidor, avisoId: string) => AccionDeAviso;
+
+const sistemaDe = (accion: AccionDelServidor) => accion.proyectoId ?? '';
+const bloqueDe = (accion: AccionDelServidor) => accion.bloqueId ?? '';
+
+const editarRegistro: FabricaDeAccion = (accion, avisoId) => ({
+  tipo: 'servidor',
+  texto: accion.texto ?? 'Aplicar el cambio',
+  avisoId,
+  confirmacion: 'Listo, aplicamos el cambio.',
+  ...(accion.bloqueId
+    ? { sistemaId: sistemaDe(accion), bloqueId: bloqueDe(accion), filaId: accion.registroId }
+    : {}),
+});
+
+const crearRegistro: FabricaDeAccion = (accion, avisoId) => ({
+  tipo: 'servidor',
+  texto: accion.texto ?? 'Crear la fila',
+  avisoId,
+  confirmacion: 'Listo, lo creamos.',
+});
+
+const verZona: FabricaDeAccion = (accion) => ({
+  tipo: 'zona',
+  texto: accion.texto ?? 'Ver en Mi zona',
+  producto: accion.producto,
+});
+
+const registrar: FabricaDeAccion = (accion, avisoId) => ({
+  tipo: 'registrar',
+  texto: accion.texto ?? 'Cargar entrada',
+  sistemaId: sistemaDe(accion),
+  bloqueId: bloqueDe(accion),
+  avisoId,
+});
+
+const abrir: FabricaDeAccion = (accion) => ({
+  tipo: 'abrir',
+  texto: accion.texto ?? 'Ver producto',
+  sistemaId: sistemaDe(accion),
+  bloqueId: bloqueDe(accion),
+  filaId: accion.registroId,
+});
+
 // El aviso del servidor llega con ids del backend (proyecto, tabla, registro): el proyecto es el «sistema» de
 // la pantalla. Aplicar un cambio de datos lo hace el servidor; registrar y abrir sólo llevan a la tabla.
-function aAccion(accion: AccionDelServidor, avisoId: string): AccionDeAviso {
-  const sistemaId = accion.proyectoId ?? '';
-  const bloqueId = accion.bloqueId ?? '';
-  switch (accion.tipo) {
-    case 'EDITAR_REGISTRO':
-      return {
-        tipo: 'servidor',
-        texto: accion.texto ?? 'Aplicar el cambio',
-        avisoId,
-        confirmacion: 'Listo, aplicamos el cambio.',
-        ...(accion.bloqueId ? { sistemaId, bloqueId, filaId: accion.registroId } : {}),
-      };
-    case 'CREAR_REGISTRO':
-      return {
-        tipo: 'servidor',
-        texto: accion.texto ?? 'Crear la fila',
-        avisoId,
-        confirmacion: 'Listo, lo creamos.',
-      };
-    case 'VER_ZONA':
-      return { tipo: 'zona', texto: accion.texto ?? 'Ver en Mi zona', producto: accion.producto };
-    case 'REGISTRAR':
-      return {
-        tipo: 'registrar',
-        texto: accion.texto ?? 'Cargar entrada',
-        sistemaId,
-        bloqueId,
-        avisoId,
-      };
-    case 'ABRIR':
-      return {
-        tipo: 'abrir',
-        texto: accion.texto ?? 'Ver producto',
-        sistemaId,
-        bloqueId,
-        filaId: accion.registroId,
-      };
-  }
-}
+const FABRICAS_DE_ACCION: Record<AccionDelServidor['tipo'], FabricaDeAccion> = {
+  EDITAR_REGISTRO: editarRegistro,
+  CREAR_REGISTRO: crearRegistro,
+  VER_ZONA: verZona,
+  REGISTRAR: registrar,
+  ABRIR: abrir,
+};
+
+const aAccion: FabricaDeAccion = (accion, avisoId) =>
+  FABRICAS_DE_ACCION[accion.tipo](accion, avisoId);
 
 /** El aviso del servidor con la forma que ya saben mostrar el panel, la campana y las tarjetas. */
 export function aAvisoDeSami(

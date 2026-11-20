@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -27,6 +27,10 @@ class ProveedorIaAnthropicTest {
     private final List<AjustesIa> conexiones = new ArrayList<>();
     private AnthropicClient cliente;
     private ProveedorIaAnthropic proveedor;
+    private ClienteModeloVision vision;
+    private ClienteModeloTexto texto;
+    private ClienteModeloConHerramientas conHerramientas;
+    private Throwable rechazo;
 
     @BeforeEach
     void setUp() {
@@ -39,11 +43,64 @@ class ProveedorIaAnthropicTest {
 
     @Test
     @DisplayName("Arma las tres puertas con los clientes de la API de Anthropic, con un solo cliente por clave")
-    void proveedorShouldBuildTheThreeAnthropicClients() {
-        ClienteModeloVision vision = proveedor.vision(AJUSTES);
-        ClienteModeloTexto texto = proveedor.texto(AJUSTES, "claude-sonnet-4-6", 700);
-        ClienteModeloConHerramientas conHerramientas = proveedor.conHerramientas(AJUSTES, 900, HERRAMIENTAS);
+    void armaLasTresPuertasConLosClientesDeLaApiDeAnthropicConUnSoloClientePorClave() {
+        cuandoSeArmanLasTresPuertas();
 
+        entoncesSeArmanLosTresClientesDeAnthropicConUnaSolaConexion();
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"  "})
+    @DisplayName("Sin la clave no arranca y dice qué variable falta")
+    void sinLaClaveNoArrancaYDiceQueVariableFalta(String clave) {
+        cuandoSeIntentaArmarLaVisionConLaClave(clave);
+
+        entoncesSeRechazaPorqueFaltaLaClave();
+    }
+
+    @Test
+    @DisplayName("Al cerrar cierra los clientes que abrió")
+    void alCerrarCierraLosClientesQueAbrio() {
+        cuandoSeAbreUnTextoYSeCierraElProveedor();
+
+        entoncesSeCerroElCliente();
+    }
+
+    @Test
+    @DisplayName("Sin la función de prueba, conecta de verdad (sin llamar todavía a la red)")
+    void sinLaFuncionDePruebaConectaDeVerdadSinLlamarTodaviaALaRed() {
+        cuandoSeAbreUnProveedorReal();
+
+        entoncesElTextoEsDeAnthropic();
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeArmanLasTresPuertas() {
+        vision = proveedor.vision(AJUSTES);
+        texto = proveedor.texto(AJUSTES, "claude-sonnet-4-6", 700);
+        conHerramientas = proveedor.conHerramientas(AJUSTES, 900, HERRAMIENTAS);
+    }
+
+    private void cuandoSeIntentaArmarLaVisionConLaClave(String clave) {
+        rechazo = catchThrowable(() -> proveedor.vision(ajustes(clave)));
+    }
+
+    private void cuandoSeAbreUnTextoYSeCierraElProveedor() {
+        proveedor.texto(AJUSTES, "claude-haiku-4-5", 700);
+        proveedor.close();
+    }
+
+    private void cuandoSeAbreUnProveedorReal() {
+        try (ProveedorIaAnthropic real = new ProveedorIaAnthropic()) {
+            texto = real.texto(AJUSTES, "claude-haiku-4-5", 700);
+        }
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeArmanLosTresClientesDeAnthropicConUnaSolaConexion() {
         assertThat(proveedor.nombre()).isEqualTo("anthropic");
         assertThat(vision).isInstanceOf(ClienteModeloVisionAnthropic.class);
         assertThat(texto).isInstanceOf(ClienteModeloTextoAnthropic.class);
@@ -51,35 +108,20 @@ class ProveedorIaAnthropicTest {
         assertThat(conexiones).hasSize(1);
     }
 
-    @ParameterizedTest
-    @NullAndEmptySource
-    @ValueSource(strings = {"  "})
-    @DisplayName("Sin la clave no arranca y dice qué variable falta")
-    void proveedorShouldFailWithoutApiKey(String clave) {
-        assertThatThrownBy(() -> proveedor.vision(ajustes(clave)))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage(ProveedorIaAnthropic.FALTA_CLAVE);
+    private void entoncesSeRechazaPorqueFaltaLaClave() {
+        assertThat(rechazo).isInstanceOf(IllegalStateException.class).hasMessage(ProveedorIaAnthropic.FALTA_CLAVE);
     }
 
-    @Test
-    @DisplayName("Al cerrar cierra los clientes que abrió")
-    void closeShouldCloseOpenClients() {
-        proveedor.texto(AJUSTES, "claude-haiku-4-5", 700);
-
-        proveedor.close();
-
+    private void entoncesSeCerroElCliente() {
         verify(cliente).close();
     }
 
-    @Test
-    @DisplayName("Sin la función de prueba, conecta de verdad (sin llamar todavía a la red)")
-    void defaultConstructorShouldBuildRealClients() {
-        try (ProveedorIaAnthropic real = new ProveedorIaAnthropic()) {
-            assertThat(real.texto(AJUSTES, "claude-haiku-4-5", 700)).isInstanceOf(ClienteModeloTextoAnthropic.class);
-        }
+    private void entoncesElTextoEsDeAnthropic() {
+        assertThat(texto).isInstanceOf(ClienteModeloTextoAnthropic.class);
     }
 
-    // --- helpers ---
+    // --- datos ---
+
     private static AjustesIa ajustes(String clave) {
         return new AjustesIa("anthropic", clave, null, null, "claude-haiku-4-5", "claude-sonnet-4-6",
                 "claude-haiku-4-5", Duration.ofSeconds(30));

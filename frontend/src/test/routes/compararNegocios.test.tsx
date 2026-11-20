@@ -20,7 +20,7 @@ const ALMACEN = {
 };
 const KIOSCO = negocioDePrueba('20000000-0000-4000-8000-000000000002', 'Kiosco de la estación');
 
-const givenDosNegocios = () => {
+const dadoDosNegocios = () => {
   const usuario = setupUsuarioConSesion();
   setupNegocios(usuario.email, ALMACEN, KIOSCO);
 };
@@ -37,20 +37,22 @@ const filaDe = async (nombre: string) => {
 
 describe('comparar mis negocios', () => {
   it('muestra un negocio por cuaderno, con los totales y la nota de la zona', async () => {
-    givenDosNegocios();
+    dadoDosNegocios();
 
     renderApp('/negocios/comparar');
 
     expect(within(await tabla()).getByText('Almacén San Justo')).toBeVisible();
     expect(within(await tabla()).getByText('Kiosco de la estación')).toBeVisible();
-    expect(screen.getByRole('region', { name: 'Todos tus negocios juntos' })).toHaveTextContent('2 negocios');
+    expect(screen.getByRole('region', { name: 'Todos tus negocios juntos' })).toHaveTextContent(
+      '2 negocios',
+    );
     expect(screen.getByText(/últimos 30 días/)).toBeVisible();
     expect(screen.getByText(/entrando a cada negocio/)).toBeVisible();
     expect(document.title).toBe('Comparar mis negocios · Ensambla');
   });
 
   it('cada negocio trae los números de su propio cuaderno', async () => {
-    givenDosNegocios();
+    dadoDosNegocios();
 
     renderApp('/negocios/comparar');
 
@@ -59,7 +61,7 @@ describe('comparar mis negocios', () => {
   });
 
   it('si el panel de un negocio falla avisa y deja probar de nuevo', async () => {
-    givenDosNegocios();
+    dadoDosNegocios();
     setupServerError('get', '/negocio/panel', 500, 'Error interno');
 
     renderApp('/negocios/comparar');

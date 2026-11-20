@@ -1,25 +1,14 @@
-import { ContenidoPremium } from '@/components/planes/ContenidoPremium';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
-import { Btn } from '@/components/sistema/Btn';
+import { ContenidoPremium } from '@/components/planes/ContenidoPremium';
 import { Icon } from '@/components/sistema/Icon';
 import { PageFooter } from '@/components/sistema/PageFooter';
-import { ResumenFrenteALaZona } from '@/components/sistema/zona/ResumenFrenteALaZona';
-import { TarjetaDePrecio } from '@/components/sistema/zona/TarjetaDePrecio';
-import { varsDeColor } from '@/components/sistema/colores';
-import { parecido, pesos } from '@/lib/sistema/alertas';
-import { allBlocks, normalize } from '@/lib/sistema/core';
-import {
-  MINIMO_DE_COMERCIOS,
-  productosPropios,
-  propioDe,
-  type ProductoDeZona,
-  type Zona,
-} from '@/lib/sistema/zona';
-import { useAccionesDeAvisos } from '@/hooks/avisos/useAccionesDeAvisos';
+import { useInventarioPropio } from '@/hooks/zona/useInventarioPropio';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
-import { useZona, useZonaDeLoQueSeVende } from '@/hooks/zona/queries';
-import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
+import { useZona } from '@/hooks/zona/queries';
+import type { Zona } from '@/lib/sistema/zona';
+import { VistaDeLoQueSeVende } from './VistaDeLoQueSeVende';
+import { VistaDePrecios } from './VistaDePrecios';
 
 type Vista = 'precios' | 'cerca';
 
@@ -50,20 +39,38 @@ const TITULOS: Record<Vista, { titulo: ReactNode; texto: string }> = {
   },
 };
 
-const sinSuficientes = (zona: Zona) => zona.comercios < MINIMO_DE_COMERCIOS;
+type PropsDeVista = { zona: Zona };
 
-function SinDatosSuficientes({ zona }: { zona: Zona }) {
+function VistaDeLosPrecios({ zona }: PropsDeVista) {
+  const { propios } = useInventarioPropio();
   return (
-    <div className="empty">
-      <Icon name="users" />
-      <p>
-        {zona.comercios === 0
-          ? 'No encontramos comercios en esta zona.'
-          : zona.comercios === 1
-            ? 'Hay 1 comercio en esta zona.'
-            : `Hay ${zona.comercios} comercios en esta zona.`}{' '}
-        Hacen falta al menos {MINIMO_DE_COMERCIOS} para mostrar datos, así nadie queda identificado.
-      </p>
+    <>
+      <VistaDePrecios zona={zona} propios={propios} titulo={`Precios en ${zona.nombre}`} />
+      <ContenidoPremium acceso={zona.acceso} recurso="recomendaciones" compacto />
+    </>
+  );
+}
+
+const CONTENIDO_DE_LA_VISTA: Record<Vista, (props: PropsDeVista) => ReactNode> = {
+  precios: VistaDeLosPrecios,
+  cerca: VistaDeLoQueSeVende,
+};
+
+function SelectorDeVista({ vista, onElegir }: { vista: Vista; onElegir: (vista: Vista) => void }) {
+  return (
+    <div className="zona-vistas" role="tablist" aria-label="Qué querés ver">
+      {VISTAS.map(({ clave, etiqueta, icono }) => (
+        <button
+          key={clave}
+          type="button"
+          role="tab"
+          aria-selected={vista === clave}
+          className={vista === clave ? 'active' : ''}
+          onClick={() => onElegir(clave)}
+        >
+          <Icon name={icono} /> {etiqueta}
+        </button>
+      ))}
     </div>
   );
 }
@@ -73,10 +80,9 @@ function SinDatosSuficientes({ zona }: { zona: Zona }) {
 export function ZonaPage() {
   useTituloPagina('Mi zona');
   const zona = useZona();
-  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
   const [vista, setVista] = useState<Vista>('precios');
-  const propios = useMemo(() => productosPropios(sistemas), [sistemas]);
   const { titulo, texto } = TITULOS[vista];
+  const ContenidoDeLaVista = CONTENIDO_DE_LA_VISTA[vista];
 
   return (
     <main id="main" tabIndex={-1} className="page-wrap zona-page reveal">
@@ -89,220 +95,10 @@ export function ZonaPage() {
           <h1>{titulo}</h1>
           <p>{texto}</p>
         </div>
-        <div className="zona-vistas" role="tablist" aria-label="Qué querés ver">
-          {VISTAS.map(({ clave, etiqueta, icono }) => (
-            <button
-              key={clave}
-              type="button"
-              role="tab"
-              aria-selected={vista === clave}
-              className={vista === clave ? 'active' : ''}
-              onClick={() => setVista(clave)}
-            >
-              <Icon name={icono} /> {etiqueta}
-            </button>
-          ))}
-        </div>
+        <SelectorDeVista vista={vista} onElegir={setVista} />
       </div>
-      {vista === 'precios' && (
-        <>
-          <VistaDePrecios zona={zona} propios={propios} titulo={`Precios en ${zona.nombre}`} />
-          <ContenidoPremium acceso={zona.acceso} recurso="recomendaciones" compacto />
-        </>
-      )}
-      {vista === 'cerca' && <VistaDeLoQueSeVende zona={zona} />}
+      <ContenidoDeLaVista zona={zona} />
       <PageFooter />
     </main>
-  );
-}
-
-function VistaDePrecios({
-  zona,
-  propios,
-  titulo,
-}: {
-  zona: Zona;
-  propios: ReturnType<typeof productosPropios>;
-  titulo: string;
-}) {
-  const [consulta, setConsulta] = useState('');
-  if (sinSuficientes(zona)) return <SinDatosSuficientes zona={zona} />;
-
-  const buscado = normalize(consulta);
-  // Primero lo que tenés (para comparar de entrada) y después el resto, por nombre.
-  const productos = zona.productos
-    .filter((producto) => normalize(producto.nombre).includes(buscado))
-    .sort(
-      (a, b) =>
-        Number(Boolean(propioDe(b, propios))) - Number(Boolean(propioDe(a, propios))) ||
-        a.nombre.localeCompare(b.nombre, 'es'),
-    );
-
-  return (
-    <div className="zona-grid">
-      <section className="zona-panel">
-        <label className="searchbox zona-busca">
-          <Icon name="search" />
-          <input
-            className="input"
-            type="search"
-            placeholder="Buscá un producto. Ej.: yerba"
-            aria-label="Buscar un producto"
-            value={consulta}
-            onChange={(evento) => setConsulta(evento.target.value)}
-          />
-        </label>
-        <div className="row between">
-          <h2>{titulo}</h2>
-          <span className="tag outline">{productos.length}</span>
-        </div>
-        <div className="zona-lista">
-          {productos.length ? (
-            productos.map((producto) => (
-              <TarjetaDePrecio
-                key={producto.nombre}
-                producto={producto}
-                propio={propioDe(producto, propios)}
-              />
-            ))
-          ) : (
-            <div className="empty">
-              <Icon name="search" />
-              <p>No hay datos de ese producto en tu zona. Probá con otra palabra.</p>
-            </div>
-          )}
-        </div>
-      </section>
-      <aside className="zona-lateral">
-        <ResumenFrenteALaZona productos={zona.productos} propios={propios} zona={zona.nombre} />
-      </aside>
-    </div>
-  );
-}
-
-// `zona` es la de «Precios» (primero lo que ya tenés): sirve para el resumen lateral, que compara tus precios. La lista
-// sale de la zona de esta pestaña, que prioriza lo que todavía no tenés y gasta su propio cupo del plan gratuito.
-function VistaDeLoQueSeVende({ zona }: { zona: Zona }) {
-  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
-  const acciones = useAccionesDeAvisos();
-  const propios = useMemo(() => productosPropios(sistemas), [sistemas]);
-  const cerca = useZonaDeLoQueSeVende(!sinSuficientes(zona));
-  if (sinSuficientes(zona)) return <SinDatosSuficientes zona={zona} />;
-
-  // Los productos nuevos se suman al primer inventario que tenga la persona.
-  const destino = sistemas
-    .map((sistema) => ({
-      sistema,
-      inventario: allBlocks(sistema).find((bloque) => bloque.type === 'inventory'),
-    }))
-    .find((candidato) => candidato.inventario);
-  const nombres = sistemas.flatMap((sistema) =>
-    allBlocks(sistema)
-      .filter((bloque) => bloque.type === 'inventory')
-      .flatMap((bloque) => bloque.rows.map((fila) => String(fila.name ?? ''))),
-  );
-  const yaLoTiene = (producto: ProductoDeZona) =>
-    nombres.some((nombre) => parecido(nombre, producto.nombre) === 1);
-
-  const productos = [...(cerca.data?.productos ?? [])].sort(
-    (a, b) =>
-      b.ventas.comercios - a.ventas.comercios ||
-      b.ventas.unidadesPorSemana - a.ventas.unidadesPorSemana,
-  );
-
-  const sumar = (producto: ProductoDeZona) => {
-    if (!destino?.inventario) return;
-    const precio = Math.round(producto.precio.promedio / 10) * 10;
-    acciones.ejecutar({
-      tipo: 'crear',
-      texto: 'Sumar a mis productos',
-      sistemaId: destino.sistema.id,
-      bloqueId: destino.inventario.id,
-      valores: { name: producto.nombre, quantity: 0, price: precio, cost: '', minimum: 5 },
-      confirmacion: `Sumamos ${producto.nombre} a tu stock, a ${pesos(precio)}.`,
-    });
-  };
-
-  return (
-    <>
-      <div className="zona-grid">
-        <section className="zona-panel">
-          {!destino && (
-            <div className="info-box">
-              Para sumar productos a tu inventario necesitás una sección con un bloque de
-              Inventario.
-            </div>
-          )}
-          <div className="row between">
-            <h2>Lo más vendido en {zona.nombre}</h2>
-            <span className="tag outline">{productos.length}</span>
-          </div>
-          <div className="zona-lista">
-            {cerca.isPending && (
-              <div className="empty" role="status">
-                <Icon name="orders" />
-                <p>Buscando lo que se vende cerca…</p>
-              </div>
-            )}
-            {cerca.isError && (
-              <div className="empty" role="alert">
-                <Icon name="orders" />
-                <p>No pudimos traer lo que se vende cerca.</p>
-                <Btn cls="soft small" onClick={() => void cerca.refetch()}>
-                  Probar de nuevo
-                </Btn>
-              </div>
-            )}
-            {productos.map((producto) => {
-              const porcentaje = Math.round((producto.ventas.comercios / zona.comercios) * 100);
-              const lo = yaLoTiene(producto);
-              return (
-                <article
-                  key={producto.nombre}
-                  className="zona-tarjeta"
-                  style={varsDeColor(lo ? 'blue' : 'orange')}
-                >
-                  <div className="zona-tarjeta-cabeza">
-                    <div>
-                      <strong>{producto.nombre}</strong>
-                      <div className="zona-meta">
-                        Lo venden {producto.ventas.comercios} de {zona.comercios} comercios · unas{' '}
-                        {producto.ventas.unidadesPorSemana} unidades por semana cada uno
-                      </div>
-                    </div>
-                    <div className="zona-precio">
-                      {pesos(producto.precio.promedio)}
-                      <small>promedio</small>
-                    </div>
-                  </div>
-                  <div
-                    className="zona-barra"
-                    role="img"
-                    aria-label={`${porcentaje}% de los comercios de la zona lo venden`}
-                  >
-                    <i style={{ width: `${porcentaje}%` }} />
-                  </div>
-                  <div className="zona-acciones">
-                    {lo ? (
-                      <span className="zona-etiqueta justo">
-                        <Icon name="check-circle" /> Ya lo tenés
-                      </span>
-                    ) : (
-                      <Btn cls="soft small" disabled={!destino} onClick={() => sumar(producto)}>
-                        <Icon name="plus" /> Sumar a mis productos
-                      </Btn>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-        <aside className="zona-lateral">
-          <ResumenFrenteALaZona productos={zona.productos} propios={propios} zona={zona.nombre} />
-        </aside>
-      </div>
-      <ContenidoPremium acceso={cerca.data?.acceso} recurso="recomendaciones" compacto />
-    </>
   );
 }

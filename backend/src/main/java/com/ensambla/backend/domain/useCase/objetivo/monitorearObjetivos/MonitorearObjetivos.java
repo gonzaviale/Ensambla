@@ -36,17 +36,28 @@ public class MonitorearObjetivos {
         int pagina = 0;
         List<NegocioId> tanda;
         do {
-            tanda = objetivoRepository.findNegocioIdsConObjetivos(pagina++, tamanoTanda);
+            tanda = obtenerTanda(pagina++);
             tanda.forEach(this::monitorearNegocio);
         } while (tanda.size() == tamanoTanda);
     }
 
+    private List<NegocioId> obtenerTanda(int pagina) {
+        return objetivoRepository.findNegocioIdsConObjetivos(pagina, tamanoTanda);
+    }
+
     private void monitorearNegocio(NegocioId negocioId) {
         try {
-            OffsetDateTime ahora = OffsetDateTime.now(clock);
-            transaccionPort.ejecutar(() -> monitoreoObjetivosService.monitorear(negocioId, ahora));
+            monitorearEnTransaccion(negocioId, OffsetDateTime.now(clock));
         } catch (RuntimeException e) {
             log.warn("No se pudo monitorear los objetivos del negocio {}", negocioId, e);
         }
+    }
+
+    private void monitorearEnTransaccion(NegocioId negocioId, OffsetDateTime ahora) {
+        transaccionPort.ejecutar(() -> monitorear(negocioId, ahora));
+    }
+
+    private void monitorear(NegocioId negocioId, OffsetDateTime ahora) {
+        monitoreoObjetivosService.monitorear(negocioId, ahora);
     }
 }

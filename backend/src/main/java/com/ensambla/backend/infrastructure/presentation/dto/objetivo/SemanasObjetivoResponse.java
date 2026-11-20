@@ -1,5 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.dto.objetivo;
 
+import com.ensambla.backend.domain.model.objetivo.HizoManual;
+import com.ensambla.backend.domain.model.objetivo.MiniObjetivoId;
+import com.ensambla.backend.domain.model.objetivo.QuePaso;
 import com.ensambla.backend.domain.model.objetivo.TipoReajuste;
 
 import java.math.BigDecimal;
@@ -21,7 +24,12 @@ public record SemanasObjetivoResponse(LocalDate ultimoCierre, List<SemanaRespons
             DecisionesSemanaResponse decisiones,
             String queFunciono,
             boolean textoConIa,
-            List<ReajusteResponse> reajustes) {
+            List<ReajusteResponse> reajustes,
+            List<ManualSemanaResponse> manuales) {
+    }
+
+    /** @param hizo vacío si no respondió; entonces el mini-objetivo no se renovó */
+    public record ManualSemanaResponse(MiniObjetivoId miniObjetivoId, String titulo, HizoManual hizo, QuePaso quePaso) {
     }
 
     public record DecisionesSemanaResponse(int aplicadas, int descartadas, int aceptadas, int ignoradas) {
@@ -31,6 +39,7 @@ public record SemanasObjetivoResponse(LocalDate ultimoCierre, List<SemanaRespons
     public record ReajusteResponse(TipoReajuste tipo, String motivo, MiniReajusteResponse de, MiniReajusteResponse a) {
     }
 
+    /** @param meta vacía si el mini-objetivo es manual */
     public record MiniReajusteResponse(String titulo, BigDecimal meta) {
     }
 }

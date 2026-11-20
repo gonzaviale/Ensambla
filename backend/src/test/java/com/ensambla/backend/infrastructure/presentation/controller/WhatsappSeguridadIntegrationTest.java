@@ -86,14 +86,14 @@ class WhatsappSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        usuarioId = givenUsuario();
-        negocioId = givenNegocio(usuarioId);
-        sesion = givenSesion(usuarioId);
+        usuarioId = dadoUsuario();
+        negocioId = dadoNegocio(usuarioId);
+        sesion = dadoSesion(usuarioId);
     }
 
     @Test
     @DisplayName("Sin sesión no se puede pedir el código ni consultar la vinculación")
-    void vinculacionShouldRequireSession() throws Exception {
+    void sinSesionNoSePuedePedirElCodigoNiConsultarLaVinculacion() throws Exception {
         mockMvc.perform(post("/api/whatsapp/vinculacion/codigo")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/whatsapp/vinculacion")).andExpect(status().isUnauthorized());
         mockMvc.perform(delete("/api/whatsapp/vinculacion")).andExpect(status().isUnauthorized());
@@ -101,7 +101,7 @@ class WhatsappSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Vincular con el código del chat y cargar un texto lo guarda en el negocio del usuario")
-    void flowShouldLinkNumberAndStoreText() throws Exception {
+    void vincularConElCodigoDelChatYCargarUnTextoLoGuardaEnElNegocioDelUsuario() throws Exception {
         String codigo = pedirCodigo();
 
         webhook(mensaje("ID1", "VINCULAR " + codigo)).andExpect(status().isOk());
@@ -121,7 +121,7 @@ class WhatsappSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Una nota de voz de un número vinculado se guarda como audio")
-    void flowShouldStoreVoiceNote() throws Exception {
+    void unaNotaDeVozDeUnNumeroVinculadoSeGuardaComoAudio() throws Exception {
         webhook(mensaje("ID1", "VINCULAR " + pedirCodigo())).andExpect(status().isOk());
 
         webhook("{\"event\":\"messages.upsert\",\"data\":{\"key\":{\"remoteJid\":\"" + TELEFONO
@@ -136,7 +136,7 @@ class WhatsappSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Un número sin vincular no carga datos en ningún negocio y recibe el aviso")
-    void unlinkedNumberShouldNotStoreAnything() throws Exception {
+    void unNumeroSinVincularNoCargaDatosEnNingunNegocioYRecibeElAviso() throws Exception {
         webhook(mensaje("ID1", "gasté 5000 en harina")).andExpect(status().isOk());
 
         assertThat(mensajes.findAll()).isEmpty();
@@ -146,7 +146,7 @@ class WhatsappSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("El mismo mensaje entregado dos veces se guarda una sola vez")
-    void repeatedDeliveryShouldStoreOnce() throws Exception {
+    void elMismoMensajeEntregadoDosVecesSeGuardaUnaSolaVez() throws Exception {
         webhook(mensaje("ID1", "VINCULAR " + pedirCodigo())).andExpect(status().isOk());
 
         webhook(mensaje("ID2", "vendí 3 panes")).andExpect(status().isOk());
@@ -157,7 +157,7 @@ class WhatsappSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Un código usado no sirve de nuevo")
-    void usedCodeShouldNotWorkTwice() throws Exception {
+    void unCodigoUsadoNoSirveDeNuevo() throws Exception {
         String codigo = pedirCodigo();
         webhook(mensaje("ID1", "VINCULAR " + codigo)).andExpect(status().isOk());
         vinculos.deleteByUsuarioId(usuarioId);
@@ -169,7 +169,7 @@ class WhatsappSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Desvincular borra el número y el siguiente mensaje se rechaza")
-    void unlinkShouldStopAcceptingMessages() throws Exception {
+    void desvincularBorraElNumeroYElSiguienteMensajeSeRechaza() throws Exception {
         webhook(mensaje("ID1", "VINCULAR " + pedirCodigo())).andExpect(status().isOk());
 
         mockMvc.perform(delete("/api/whatsapp/vinculacion").session(sesion).header("X-CSRF-TOKEN", csrfToken))
@@ -182,7 +182,7 @@ class WhatsappSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("El webhook rechaza con 401 un token incorrecto, aunque no haya sesión ni CSRF")
-    void webhookShouldRejectWrongToken() throws Exception {
+    void elWebhookRechazaCon401UnTokenIncorrectoAunqueNoHayaSesionNiCSRF() throws Exception {
         mockMvc.perform(post("/api/whatsapp/webhook").header("X-Ensambla-Webhook-Token", "otro")
                         .contentType(MediaType.APPLICATION_JSON).content(mensaje("ID1", "hola")))
                 .andExpect(status().isUnauthorized());
@@ -211,7 +211,7 @@ class WhatsappSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
         return ((MensajeriaWhatsappSimulada) mensajeria).enviados();
     }
 
-    private UUID givenUsuario() {
+    private UUID dadoUsuario() {
         return usuarios.saveAndFlush(UsuarioEntity.builder()
                 .nombre("Persona")
                 .email(UUID.randomUUID() + "@example.com")
@@ -221,7 +221,7 @@ class WhatsappSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenNegocio(UUID duenioId) {
+    private UUID dadoNegocio(UUID duenioId) {
         return negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(duenioId)
@@ -230,7 +230,7 @@ class WhatsappSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private MockHttpSession givenSesion(UUID usuario) throws Exception {
+    private MockHttpSession dadoSesion(UUID usuario) throws Exception {
         MockHttpSession session = new MockHttpSession();
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setSession(session);

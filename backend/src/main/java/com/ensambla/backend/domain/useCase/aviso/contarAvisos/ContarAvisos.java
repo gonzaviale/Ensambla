@@ -17,8 +17,16 @@ public class ContarAvisos {
     private final AvisoRepository avisoRepository;
 
     public ContadorAvisos execute(UsuarioId usuarioId) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(usuarioId);
-        List<Aviso> pendientes = avisoRepository.findByNegocioIdAndEstado(negocioId, EstadoAviso.PENDIENTE);
+        NegocioId negocioId = obtenerNegocioDelUsuario(usuarioId);
+        List<Aviso> pendientes = obtenerPendientes(negocioId);
         return new ContadorAvisos(pendientes.size(), pendientes.stream().filter(Aviso::esUrgente).count());
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private List<Aviso> obtenerPendientes(NegocioId negocioId) {
+        return avisoRepository.findByNegocioIdAndEstado(negocioId, EstadoAviso.PENDIENTE);
     }
 }

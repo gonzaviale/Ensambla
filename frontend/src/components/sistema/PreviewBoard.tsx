@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 import { CATALOG } from '@/lib/sistema/catalogo';
-import { findBlock, totals } from '@/lib/sistema/core';
+import { comportamientoDe } from '@/lib/sistema/comportamiento';
+import { totals } from '@/lib/sistema/core';
 import type { Bloque, Campo, Sistema, Valor } from '@/lib/sistema/tipos';
 import { varsDeColor } from './colores';
 import { Icon } from './Icon';
@@ -22,12 +23,8 @@ const VACIO_POR_TIPO: Partial<Record<Bloque['type'], string>> = {
 };
 
 function valorDeVista(sistema: Sistema, campo: Campo, valor: Valor) {
-  if (campo.type === 'relation') {
-    const objetivo = findBlock(sistema, campo.target);
-    const clave = objetivo?.fields[0]?.key;
-    const fila = objetivo?.rows.find((item) => item.id === valor);
-    return <>{String((clave && fila?.[clave]) || '—')}</>;
-  }
+  const propio = comportamientoDe(campo.type).enVistaPrevia(campo, valor, sistema);
+  if (propio !== undefined) return <>{propio}</>;
   return <ValorDeCampo sistema={sistema} campo={campo} valor={valor} />;
 }
 

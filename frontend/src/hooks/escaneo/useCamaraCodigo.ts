@@ -17,6 +17,16 @@ import type { CamaraDelLector } from '@/types/escaneo';
 const PLAZO_INICIO_MS = 15_000;
 const AVISO_SIN_LECTURA_MS = 8_000;
 
+function mensajeDelFalloDeCamara(e: unknown): string {
+  if (e instanceof DOMException && e.name === 'NotAllowedError') {
+    return 'No se habilitó la cámara. Revisá el permiso del navegador o escribí el código a mano.';
+  }
+  if (e instanceof DOMException && e.name === 'NotReadableError') {
+    return 'La cámara no pudo iniciarse. Puede estar ocupada o desconectada. Elegí otra cámara o volvé a intentar.';
+  }
+  return e instanceof Error ? e.message : 'No pudimos iniciar la cámara.';
+}
+
 export function useCamaraCodigo(onCodigo: (codigo: string) => void, continua = false) {
   const video = useRef<HTMLVideoElement>(null);
   const callback = useRef(onCodigo);
@@ -88,6 +98,7 @@ export function useCamaraCodigo(onCodigo: (codigo: string) => void, continua = f
           { BarcodeFormat, DecodeHintType, NotFoundException, ChecksumException, FormatException },
         ] = await Promise.all([import('@zxing/browser'), import('@zxing/library')]);
         if (cancelado) return;
+        const noInterrumpenElLector = [NotFoundException, ChecksumException, FormatException];
         const previas = await listarCamarasDelLector();
         if (cancelado) return;
         setCamaras(previas);
@@ -206,14 +217,16 @@ export function useCamaraCodigo(onCodigo: (codigo: string) => void, continua = f
               setIniciando(false);
               setAbierta(false);
               callback.current(resultado.getText());
-            } else if (continua && errorDeLectura instanceof NotFoundException) {
+              return;
+            }
+            if (continua && errorDeLectura instanceof NotFoundException) {
               sinCodigoDesde ??= Date.now();
               if (Date.now() - sinCodigoDesde >= 600) codigoAnterior = '';
-            } else if (
+              return;
+            }
+            if (
               errorDeLectura &&
-              !(errorDeLectura instanceof NotFoundException) &&
-              !(errorDeLectura instanceof ChecksumException) &&
-              !(errorDeLectura instanceof FormatException)
+              !noInterrumpenElLector.some((clase) => errorDeLectura instanceof clase)
             ) {
               fallar('El lector se interrumpió. Volvé a abrir la cámara para continuar.', control);
             }
@@ -241,15 +254,7 @@ export function useCamaraCodigo(onCodigo: (codigo: string) => void, continua = f
           fallar('La cámara elegida no está disponible. Elegí otra cámara o la opción automática.');
           return;
         }
-        fallar(
-          e instanceof DOMException && e.name === 'NotAllowedError'
-            ? 'No se habilitó la cámara. Revisá el permiso del navegador o escribí el código a mano.'
-            : e instanceof DOMException && e.name === 'NotReadableError'
-              ? 'La cámara no pudo iniciarse. Puede estar ocupada o desconectada. Elegí otra cámara o volvé a intentar.'
-              : e instanceof Error
-                ? e.message
-                : 'No pudimos iniciar la cámara.',
-        );
+        fallar(mensajeDelFalloDeCamara(e));
       }
     };
     const alOcultar = () => {

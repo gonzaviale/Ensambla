@@ -49,32 +49,45 @@ public class DatosDeProyectoService {
 
     private DatosDeProyecto cargar(Proyecto proyecto, NegocioId negocioId,
                                    Function<Bloque, List<Registro>> registrosDe) {
-        BloqueId entradasId = proyecto.getBloques().stream()
-                .filter(bloque -> bloque.getTipo() == TipoBloque.ENTRADAS)
-                .map(Bloque::getId)
-                .findFirst()
-                .orElse(null);
         return new DatosDeProyecto(
                 proyecto.getNombre(),
-                delTipo(proyecto, TipoBloque.INVENTARIO).stream()
-                        .map(bloque -> new BloqueInventario(
-                                bloque, entradasId, camposPorClave(bloque), registrosDe.apply(bloque)))
-                        .toList(),
-                delTipo(proyecto, TipoBloque.VENTAS).stream()
-                        .map(bloque -> new BloqueVentas(
-                                bloque, camposPorClave(bloque), registrosDe.apply(bloque)))
-                        .toList(),
-                delTipo(proyecto, TipoBloque.GASTOS).stream()
-                        .map(bloque -> new BloqueGastos(
-                                bloque, camposPorClave(bloque), registrosDe.apply(bloque)))
-                        .toList(),
+                inventarios(proyecto, registrosDe),
+                ventas(proyecto, registrosDe),
+                gastos(proyecto, registrosDe),
                 nombresDeClientes(proyecto, registrosDe),
-                delTipo(proyecto, TipoBloque.ENTRADAS).stream()
-                        .map(bloque -> new BloqueEntradas(
-                                bloque, camposPorClave(bloque), registrosDe.apply(bloque)))
-                        .toList(),
+                entradas(proyecto, registrosDe),
                 ventaCajaRepository.listarPorProyecto(negocioId, proyecto.getId()),
                 cobroCajaRepository.listarPorProyecto(negocioId, proyecto.getId()));
+    }
+
+    private List<BloqueInventario> inventarios(Proyecto proyecto, Function<Bloque, List<Registro>> registrosDe) {
+        BloqueId entradasId = idDeLaTablaDeEntradas(proyecto);
+        return delTipo(proyecto, TipoBloque.INVENTARIO).stream()
+                .map(bloque -> new BloqueInventario(bloque, entradasId, camposPorClave(bloque),
+                        registrosDe.apply(bloque)))
+                .toList();
+    }
+
+    private List<BloqueVentas> ventas(Proyecto proyecto, Function<Bloque, List<Registro>> registrosDe) {
+        return delTipo(proyecto, TipoBloque.VENTAS).stream()
+                .map(bloque -> new BloqueVentas(bloque, camposPorClave(bloque), registrosDe.apply(bloque)))
+                .toList();
+    }
+
+    private List<BloqueGastos> gastos(Proyecto proyecto, Function<Bloque, List<Registro>> registrosDe) {
+        return delTipo(proyecto, TipoBloque.GASTOS).stream()
+                .map(bloque -> new BloqueGastos(bloque, camposPorClave(bloque), registrosDe.apply(bloque)))
+                .toList();
+    }
+
+    private List<BloqueEntradas> entradas(Proyecto proyecto, Function<Bloque, List<Registro>> registrosDe) {
+        return delTipo(proyecto, TipoBloque.ENTRADAS).stream()
+                .map(bloque -> new BloqueEntradas(bloque, camposPorClave(bloque), registrosDe.apply(bloque)))
+                .toList();
+    }
+
+    private static BloqueId idDeLaTablaDeEntradas(Proyecto proyecto) {
+        return delTipo(proyecto, TipoBloque.ENTRADAS).stream().map(Bloque::getId).findFirst().orElse(null);
     }
 
     /** El nombre (campo {@code name}) de cada fila de las tablas de clientes, por id de la fila. */

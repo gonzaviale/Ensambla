@@ -57,6 +57,10 @@ class ObtenerPasosTest {
     private AgregadoZonaRepository agregadoZonaRepository;
 
     private ObtenerPasos obtenerPasos;
+    private ObtenerPasosResponse respuesta;
+    private Sistema primero;
+    private Sistema segundo;
+    private Zona zona;
 
     @BeforeEach
     void setUp() {
@@ -72,20 +76,60 @@ class ObtenerPasosTest {
 
     @Test
     @DisplayName("Carga en lote todos los sistemas del negocio de la sesión y devuelve una lista vacía")
-    void executeShouldLoadEverySystemOfTheAuthenticatedBusiness() {
-        Sistema primero = mock(Sistema.class);
-        Sistema segundo = mock(Sistema.class);
-        DatosDeProyecto datosPrimero = datosVacios("Primero");
-        DatosDeProyecto datosSegundo = datosVacios("Segundo");
-        givenBusiness();
+    void cargaEnLoteTodosLosSistemasDelNegocioDeLaSesionYDevuelveUnaListaVacia() {
+        dadoUnNegocioConDosSistemasYSinZona();
+
+        cuandoSeObtienenLosPasos();
+
+        entoncesSeCarganLosDosSistemasSinConsultarLaZona();
+    }
+
+    @Test
+    @DisplayName("Usa los agregados de la zona del negocio cuando tiene una asignada")
+    void usaLosAgregadosDeLaZonaDelNegocioCuandoTieneUnaAsignada() {
+        dadoUnNegocioSinSistemasConUnaZonaAsignada();
+
+        cuandoSeObtienenLosPasos();
+
+        entoncesSeAnalizaLaZonaDelNegocio();
+    }
+
+    // --- dado ---
+
+    private void dadoUnNegocioConDosSistemasYSinZona() {
+        primero = mock(Sistema.class);
+        segundo = mock(Sistema.class);
+        dadoElNegocioDeLaSesion();
         when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(primero, segundo));
-        when(datosDeProyectoService.cargar(primero)).thenReturn(datosPrimero);
-        when(datosDeProyectoService.cargar(segundo)).thenReturn(datosSegundo);
+        when(datosDeProyectoService.cargar(primero)).thenReturn(datosVacios("Primero"));
+        when(datosDeProyectoService.cargar(segundo)).thenReturn(datosVacios("Segundo"));
         when(negocioRepository.findZonaIdById(NEGOCIO_ID)).thenReturn(Optional.empty());
+    }
 
-        ObtenerPasosResponse response = obtenerPasos.execute(new ObtenerPasosRequest(USUARIO_ID));
+    private void dadoUnNegocioSinSistemasConUnaZonaAsignada() {
+        zona = Zona.builder().id(ZONA_ID).nombre("San Justo").build();
+        AnalisisZona analisis = new AnalisisZona("San Justo", 8, List.of());
+        dadoElNegocioDeLaSesion();
+        when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
+        when(negocioRepository.findZonaIdById(NEGOCIO_ID)).thenReturn(Optional.of(ZONA_ID));
+        when(zonaRepository.findById(ZONA_ID)).thenReturn(Optional.of(zona));
+        when(agregadoZonaRepository.analizar(zona)).thenReturn(analisis);
+    }
 
-        assertThat(response.content()).isEmpty();
+    private void dadoElNegocioDeLaSesion() {
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeObtienenLosPasos() {
+        respuesta = obtenerPasos.execute(new ObtenerPasosRequest(USUARIO_ID));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeCarganLosDosSistemasSinConsultarLaZona() {
+        assertThat(respuesta.content()).isEmpty();
         verify(negocioRepository).obtenerIdDelUsuario(USUARIO_ID);
         verify(sistemaRepository).findAllByNegocioId(NEGOCIO_ID);
         verify(datosDeProyectoService).cargar(primero);
@@ -93,26 +137,12 @@ class ObtenerPasosTest {
         verifyNoInteractions(zonaRepository, agregadoZonaRepository);
     }
 
-    @Test
-    @DisplayName("Usa los agregados de la zona del negocio cuando tiene una asignada")
-    void executeShouldUseBusinessZoneAggregatesWhenAssigned() {
-        Zona zona = Zona.builder().id(ZONA_ID).nombre("San Justo").build();
-        AnalisisZona analisis = new AnalisisZona("San Justo", 8, List.of());
-        givenBusiness();
-        when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
-        when(negocioRepository.findZonaIdById(NEGOCIO_ID)).thenReturn(Optional.of(ZONA_ID));
-        when(zonaRepository.findById(ZONA_ID)).thenReturn(Optional.of(zona));
-        when(agregadoZonaRepository.analizar(zona)).thenReturn(analisis);
-
-        ObtenerPasosResponse response = obtenerPasos.execute(new ObtenerPasosRequest(USUARIO_ID));
-
-        assertThat(response.content()).isEmpty();
+    private void entoncesSeAnalizaLaZonaDelNegocio() {
+        assertThat(respuesta.content()).isEmpty();
         verify(agregadoZonaRepository).analizar(zona);
     }
 
-    private void givenBusiness() {
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-    }
+    // --- datos ---
 
     private static DatosDeProyecto datosVacios(String nombre) {
         return new DatosDeProyecto(nombre, List.of(), List.of(), List.of());

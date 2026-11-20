@@ -8,6 +8,8 @@ import com.ensambla.backend.infrastructure.presentation.dto.plan.PruebaResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.stream.IntStream;
+
 import static com.ensambla.backend.support.ConsultaPlanesTestData.AHORA;
 import static com.ensambla.backend.support.ConsultaPlanesTestData.consulta;
 import static com.ensambla.backend.support.PlanTestData.INSTANTE;
@@ -16,81 +18,131 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class PlanPresentationMapperTest {
 
-    private final PlanPresentationMapper mapper = new PlanPresentationMapper();
-    private ConsultarPlanesResponse consulta;
+    private final PlanPresentationMapper planPresentationMapper = new PlanPresentationMapper();
+    private ConsultarPlanesResponse origen;
     private PlanesResponse planes;
+    private IniciarPruebaRequest pedido;
+    private PruebaResponse prueba;
 
     @Test
-    @DisplayName("El contrato HTTP de planes conserva todos los campos de cada plan")
-    void elContratoDePlanesConservaLosCamposDeCadaPlan() {
-        dadaLaConsultaDePlanes(true);
+    @DisplayName("El contrato HTTP de planes conserva todos los campos e historial")
+    void elContratoHttpDePlanesConservaTodosLosCamposEHistorial() {
+        dadoUnaConsultaConHistorial();
 
-        cuandoSeRespondenLosPlanes();
+        cuandoSeMapeanLosPlanes();
 
         entoncesSeConservanLosPlanes();
-    }
-
-    @Test
-    @DisplayName("El contrato HTTP de planes conserva la suscripción, el uso y el historial de la prueba")
-    void elContratoDePlanesConservaLaSuscripcionElUsoYLaPrueba() {
-        dadaLaConsultaDePlanes(true);
-
-        cuandoSeRespondenLosPlanes();
-
-        entoncesSeConservanLaSuscripcionElUsoYLaPrueba();
+        entoncesSeConservanSuscripcionYUso();
+        entoncesSeConservaElHistorialDePrueba();
     }
 
     @Test
     @DisplayName("El contrato HTTP no inventa una prueba si no existe historial")
-    void elContratoNoInventaUnaPruebaSinHistorial() {
-        dadaLaConsultaDePlanes(false);
+    void elContratoHttpNoInventaUnaPruebaSiNoExisteHistorial() {
+        dadoUnaConsultaSinHistorial();
 
-        cuandoSeRespondenLosPlanes();
+        cuandoSeMapeanLosPlanes();
 
         entoncesNoHayPrueba();
     }
 
     @Test
     @DisplayName("El pedido recibe exclusivamente el identificador del usuario autenticado")
-    void elPedidoRecibeSoloElUsuarioAutenticado() {
-        entoncesElPedidoEsDe(new IniciarPruebaRequest(USUARIO_ID));
+    void elPedidoRecibeExclusivamenteElIdentificadorDelUsuarioAutenticado() {
+        cuandoSeArmaElPedido();
+
+        entoncesElPedidoTraeElUsuario();
     }
 
     @Test
     @DisplayName("La respuesta HTTP contiene fechas y cuotas de la prueba")
-    void laRespuestaContieneFechasYCuotasDeLaPrueba() {
-        entoncesLaPruebaSeRespondeComo(new PruebaPremiumResponse(INSTANTE, INSTANTE.plusDays(7), 2, 10),
-                new PruebaResponse(INSTANTE, INSTANTE.plusDays(7), 2, 10));
+    void laRespuestaHttpContieneFechasYCuotasDeLaPrueba() {
+        cuandoSeMapeaLaPrueba();
+
+        entoncesLaPruebaTraeFechasYCuotas();
     }
 
-    private void dadaLaConsultaDePlanes(boolean conPrueba) {
-        consulta = ConsultarPlanesResponse.de(consulta(conPrueba), AHORA);
+    // --- arrange ---
+    private void dadoUnaConsultaConHistorial() {
+        origen = ConsultarPlanesResponse.de(consulta(true), AHORA);
     }
 
-    private void cuandoSeRespondenLosPlanes() {
-        planes = mapper.toResponse(consulta);
+    private void dadoUnaConsultaSinHistorial() {
+        origen = ConsultarPlanesResponse.de(consulta(false), AHORA);
     }
 
+    // --- act ---
+    private void cuandoSeMapeanLosPlanes() {
+        planes = planPresentationMapper.toResponse(origen);
+    }
+
+    private void cuandoSeArmaElPedido() {
+        pedido = planPresentationMapper.toRequest(USUARIO_ID);
+    }
+
+    private void cuandoSeMapeaLaPrueba() {
+        prueba = planPresentationMapper.toResponse(new PruebaPremiumResponse(INSTANTE, INSTANTE.plusDays(7), 2, 10));
+    }
+
+    // --- assert ---
     private void entoncesSeConservanLosPlanes() {
-        assertThat(planes.consultadoEn()).isEqualTo(consulta.consultadoEn());
-        assertThat(planes.planes()).usingRecursiveComparison().isEqualTo(consulta.planes());
+        assertThat(planes.consultadoEn()).isEqualTo(origen.consultadoEn());
+        assertThat(planes.planes()).hasSize(2);
+        IntStream.range(0, origen.planes().size()).forEach(this::entoncesElPlanSeConserva);
     }
 
-    private void entoncesSeConservanLaSuscripcionElUsoYLaPrueba() {
-        assertThat(planes.suscripcion()).usingRecursiveComparison().isEqualTo(consulta.suscripcion());
-        assertThat(planes.uso()).usingRecursiveComparison().isEqualTo(consulta.uso());
-        assertThat(planes.prueba()).usingRecursiveComparison().isEqualTo(consulta.prueba());
+    private void entoncesElPlanSeConserva(int indice) {
+        var esperado = origen.planes().get(indice);
+        var actual = planes.planes().get(indice);
+        assertThat(actual.codigo()).isEqualTo(esperado.codigo());
+        assertThat(actual.nombre()).isEqualTo(esperado.nombre());
+        assertThat(actual.precioConfigurado()).isEqualTo(esperado.precioConfigurado());
+        assertThat(actual.limitesConfigurados()).isEqualTo(esperado.limitesConfigurados());
+        assertThat(actual.precioMensual()).isEqualTo(esperado.precioMensual());
+        assertThat(actual.moneda()).isEqualTo(esperado.moneda());
+        assertThat(actual.limiteProyectos()).isEqualTo(esperado.limiteProyectos());
+        assertThat(actual.limiteRegistros()).isEqualTo(esperado.limiteRegistros());
+        assertThat(actual.limitePaginasIaMensuales()).isEqualTo(esperado.limitePaginasIaMensuales());
+        assertThat(actual.limiteObjetivosIaMensuales()).isEqualTo(esperado.limiteObjetivosIaMensuales());
+        assertThat(actual.funciones()).isEqualTo(esperado.funciones());
+    }
+
+    private void entoncesSeConservanSuscripcionYUso() {
+        assertThat(planes.suscripcion().codigoPlanActual()).isEqualTo(origen.suscripcion().codigoPlanActual());
+        assertThat(planes.suscripcion().pruebaActiva()).isEqualTo(origen.suscripcion().pruebaActiva());
+        assertThat(planes.suscripcion().puedeIniciarPrueba()).isEqualTo(origen.suscripcion().puedeIniciarPrueba());
+        assertThat(planes.suscripcion().inicioEn()).isEqualTo(origen.suscripcion().inicioEn());
+        assertThat(planes.suscripcion().finEn()).isEqualTo(origen.suscripcion().finEn());
+        assertThat(planes.uso().proyectos()).isEqualTo(origen.uso().proyectos());
+        assertThat(planes.uso().registros()).isEqualTo(origen.uso().registros());
+        assertThat(planes.uso().paginasIa()).isEqualTo(origen.uso().paginasIa());
+        assertThat(planes.uso().limitePaginasIa()).isEqualTo(origen.uso().limitePaginasIa());
+        assertThat(planes.uso().periodoIa()).isEqualTo(origen.uso().periodoIa());
+        assertThat(planes.uso().objetivosIa()).isEqualTo(origen.uso().objetivosIa());
+        assertThat(planes.uso().limiteObjetivosIa()).isEqualTo(origen.uso().limiteObjetivosIa());
+        assertThat(planes.uso().inicioPeriodoIa()).isEqualTo(origen.uso().inicioPeriodoIa());
+        assertThat(planes.uso().finPeriodoIa()).isEqualTo(origen.uso().finPeriodoIa());
+    }
+
+    private void entoncesSeConservaElHistorialDePrueba() {
+        assertThat(planes.prueba().inicioEn()).isEqualTo(origen.prueba().inicioEn());
+        assertThat(planes.prueba().finEn()).isEqualTo(origen.prueba().finEn());
+        assertThat(planes.prueba().paginasIaUtilizadas()).isEqualTo(origen.prueba().paginasIaUtilizadas());
+        assertThat(planes.prueba().limitePaginasIa()).isEqualTo(origen.prueba().limitePaginasIa());
     }
 
     private void entoncesNoHayPrueba() {
         assertThat(planes.prueba()).isNull();
     }
 
-    private void entoncesElPedidoEsDe(IniciarPruebaRequest esperado) {
-        assertThat(mapper.toRequest(USUARIO_ID)).isEqualTo(esperado);
+    private void entoncesElPedidoTraeElUsuario() {
+        assertThat(pedido.usuarioId()).isEqualTo(USUARIO_ID);
     }
 
-    private void entoncesLaPruebaSeRespondeComo(PruebaPremiumResponse prueba, PruebaResponse esperada) {
-        assertThat(mapper.toResponse(prueba)).isEqualTo(esperada);
+    private void entoncesLaPruebaTraeFechasYCuotas() {
+        assertThat(prueba.inicioEn()).isEqualTo(INSTANTE);
+        assertThat(prueba.finEn()).isEqualTo(INSTANTE.plusDays(7));
+        assertThat(prueba.paginasIaUtilizadas()).isEqualTo(2);
+        assertThat(prueba.limitePaginasIa()).isEqualTo(10);
     }
 }

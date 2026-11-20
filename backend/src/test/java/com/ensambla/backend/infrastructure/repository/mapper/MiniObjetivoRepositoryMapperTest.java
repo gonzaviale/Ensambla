@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.repository.mapper;
 
 import com.ensambla.backend.domain.model.objetivo.EstadoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
+import com.ensambla.backend.domain.model.objetivo.ModoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.TipoMiniObjetivo;
 import com.ensambla.backend.infrastructure.repository.entity.MiniObjetivoEntity;
 import org.junit.jupiter.api.DisplayName;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import static com.ensambla.backend.support.MiniObjetivoTestData.APORTE;
 import static com.ensambla.backend.support.MiniObjetivoTestData.JUSTIFICACION;
+import static com.ensambla.backend.support.MiniObjetivoTestData.JUSTIFICACION_MANUAL;
 import static com.ensambla.backend.support.MiniObjetivoTestData.META_MINI;
 import static com.ensambla.backend.support.MiniObjetivoTestData.MINI_ID;
 import static com.ensambla.backend.support.MiniObjetivoTestData.OTRO_MINI_ID;
@@ -16,7 +18,9 @@ import static com.ensambla.backend.support.MiniObjetivoTestData.PRODUCTO;
 import static com.ensambla.backend.support.MiniObjetivoTestData.PRODUCTO_ID;
 import static com.ensambla.backend.support.MiniObjetivoTestData.SEMANA;
 import static com.ensambla.backend.support.MiniObjetivoTestData.TITULO;
+import static com.ensambla.backend.support.MiniObjetivoTestData.TITULO_MANUAL;
 import static com.ensambla.backend.support.MiniObjetivoTestData.VALOR_INICIAL;
+import static com.ensambla.backend.support.MiniObjetivoTestData.miniManual;
 import static com.ensambla.backend.support.MiniObjetivoTestData.miniObjetivo;
 import static com.ensambla.backend.support.ObjetivoTestData.AHORA;
 import static com.ensambla.backend.support.ObjetivoTestData.NEGOCIO_ID;
@@ -26,54 +30,77 @@ import static org.assertj.core.api.Assertions.assertThat;
 class MiniObjetivoRepositoryMapperTest {
 
     private final MiniObjetivoRepositoryMapper mapper = new MiniObjetivoRepositoryMapper();
+    private MiniObjetivoEntity entidad;
+    private MiniObjetivo mini;
 
     @Test
     @DisplayName("Mapea la entidad al dominio con todos sus campos")
-    void unMiniObjetivoGuardadoSePasaAlDominioConTodosSusDatos() {
-        MiniObjetivoEntity entidad = dadoUnaEntidadDeMiniObjetivoReemplazado();
+    void mapeaLaEntidadAlDominioConTodosSusCampos() {
+        dadoUnaEntidadCompleta();
 
-        MiniObjetivo mini = cuandoSePasaAlDominio(entidad);
+        cuandoSeLeeLaEntidad();
 
-        entoncesElMiniObjetivoTieneTodosLosDatosDeLaEntidadReemplazada(mini);
+        entoncesElDominioTraeTodosLosCampos();
     }
 
     @Test
     @DisplayName("Una entidad sin ids se mapea con ids nulos")
-    void unMiniObjetivoGuardadoSinIdsSePasaAlDominioConIdsNulos() {
-        MiniObjetivoEntity entidad = dadoUnaEntidadDeMiniObjetivoSinIds();
+    void unaEntidadSinIdsSeMapeaConIdsNulos() {
+        dadoUnaEntidadSinIds();
 
-        MiniObjetivo mini = cuandoSePasaAlDominio(entidad);
+        cuandoSeLeeLaEntidad();
 
-        entoncesElMiniObjetivoNoTieneIds(mini);
+        entoncesElDominioNoTieneIds();
     }
 
     @Test
     @DisplayName("Mapea el dominio a la entidad con todos sus campos")
-    void unMiniObjetivoDelDominioSePasaALaEntidadConTodosSusDatos() {
-        MiniObjetivo mini = dadoUnMiniObjetivoReemplazadoConTextoDeIa();
+    void mapeaElDominioALaEntidadConTodosSusCampos() {
+        dadoUnMiniConReemplazoYSinAvance();
 
-        MiniObjetivoEntity entidad = cuandoSePasaALaEntidad(mini);
+        cuandoSePasaElMiniALaEntidad();
 
-        entoncesLaEntidadTieneTodosLosDatosDelMiniObjetivoReemplazado(entidad);
+        entoncesLaEntidadTraeTodosLosCampos();
     }
 
     @Test
     @DisplayName("Un mini-objetivo sin producto ni reemplazo se mapea con esos ids nulos")
-    void unMiniObjetivoSinProductoNiReemplazoSePasaALaEntidadConEsosIdsNulos() {
-        MiniObjetivo mini = dadoUnMiniObjetivoSinProductoNiReemplazo();
+    void unMiniObjetivoSinProductoNiReemplazoSeMapeaConEsosIdsNulos() {
+        dadoUnMiniSinProductoNiReemplazo();
 
-        MiniObjetivoEntity entidad = cuandoSePasaALaEntidad(mini);
+        cuandoSePasaElMiniALaEntidad();
 
-        entoncesLaEntidadNoTieneProductoNiReemplazo(entidad);
+        entoncesLaEntidadNoTieneProductoNiReemplazo();
     }
 
-    // --- dado ---
-    private MiniObjetivoEntity dadoUnaEntidadDeMiniObjetivoReemplazado() {
-        return MiniObjetivoEntity.builder()
+    @Test
+    @DisplayName("Un mini-objetivo manual se mapea a la entidad sin métrica ni números")
+    void unMiniObjetivoManualSeMapeaALaEntidadSinMetricaNiNumeros() {
+        mini = miniManual();
+
+        cuandoSePasaElMiniALaEntidad();
+
+        entoncesLaEntidadManualNoTieneMetricaNiNumeros();
+    }
+
+    @Test
+    @DisplayName("Una entidad manual se mapea al dominio como manual")
+    void unaEntidadManualSeMapeaAlDominioComoManual() {
+        dadoUnaEntidadManual();
+
+        cuandoSeLeeLaEntidad();
+
+        entoncesElDominioEsManual();
+    }
+
+    // --- arrange ---
+    private void dadoUnaEntidadCompleta() {
+        entidad = MiniObjetivoEntity.builder()
                 .id(MINI_ID.valor())
                 .objetivoId(OBJETIVO_ID.valor())
                 .negocioId(NEGOCIO_ID.valor())
                 .posicion((short) 3)
+                .modo(ModoMiniObjetivo.MEDIDO)
                 .tipo(TipoMiniObjetivo.SUBIR_PRECIO)
                 .registroId(PRODUCTO_ID.valor())
                 .referencia(PRODUCTO)
@@ -93,41 +120,44 @@ class MiniObjetivoRepositoryMapperTest {
                 .build();
     }
 
-    private MiniObjetivoEntity dadoUnaEntidadDeMiniObjetivoSinIds() {
-        return MiniObjetivoEntity.builder().build();
+    private void dadoUnaEntidadSinIds() {
+        entidad = MiniObjetivoEntity.builder().build();
     }
 
-    private MiniObjetivo dadoUnMiniObjetivoReemplazadoConTextoDeIa() {
-        MiniObjetivo mini = miniObjetivo();
+    private void dadoUnMiniConReemplazoYSinAvance() {
+        mini = miniObjetivo();
         mini.setPosicion(2);
         mini.setTextoConIa(true);
         mini.setReemplazadoPor(OTRO_MINI_ID);
         mini.setSinAvanceDesde(SEMANA);
-        return mini;
     }
 
-    private MiniObjetivo dadoUnMiniObjetivoSinProductoNiReemplazo() {
-        MiniObjetivo mini = miniObjetivo();
+    private void dadoUnMiniSinProductoNiReemplazo() {
+        mini = miniObjetivo();
         mini.setRegistroId(null);
         mini.setReemplazadoPor(null);
-        return mini;
     }
 
-    // --- cuando ---
-    private MiniObjetivo cuandoSePasaAlDominio(MiniObjetivoEntity entidad) {
-        return mapper.toDomain(entidad);
+    private void dadoUnaEntidadManual() {
+        entidad = mapper.toEntity(miniManual());
     }
 
-    private MiniObjetivoEntity cuandoSePasaALaEntidad(MiniObjetivo mini) {
-        return mapper.toEntity(mini);
+    // --- act ---
+    private void cuandoSeLeeLaEntidad() {
+        mini = mapper.toDomain(entidad);
     }
 
-    // --- entonces ---
-    private void entoncesElMiniObjetivoTieneTodosLosDatosDeLaEntidadReemplazada(MiniObjetivo mini) {
+    private void cuandoSePasaElMiniALaEntidad() {
+        entidad = mapper.toEntity(mini);
+    }
+
+    // --- assert ---
+    private void entoncesElDominioTraeTodosLosCampos() {
         assertThat(mini.getId()).isEqualTo(MINI_ID);
         assertThat(mini.getObjetivoId()).isEqualTo(OBJETIVO_ID);
         assertThat(mini.getNegocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(mini.getPosicion()).isEqualTo(3);
+        assertThat(mini.getModo()).isEqualTo(ModoMiniObjetivo.MEDIDO);
         assertThat(mini.getTipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
         assertThat(mini.getRegistroId()).isEqualTo(PRODUCTO_ID);
         assertThat(mini.getReferencia()).isEqualTo(PRODUCTO);
@@ -146,7 +176,7 @@ class MiniObjetivoRepositoryMapperTest {
         assertThat(mini.getActualizadoEn()).isEqualTo(AHORA.plusDays(1));
     }
 
-    private void entoncesElMiniObjetivoNoTieneIds(MiniObjetivo mini) {
+    private void entoncesElDominioNoTieneIds() {
         assertThat(mini.getId()).isNull();
         assertThat(mini.getObjetivoId()).isNull();
         assertThat(mini.getNegocioId()).isNull();
@@ -154,7 +184,7 @@ class MiniObjetivoRepositoryMapperTest {
         assertThat(mini.getReemplazadoPor()).isNull();
     }
 
-    private void entoncesLaEntidadTieneTodosLosDatosDelMiniObjetivoReemplazado(MiniObjetivoEntity entidad) {
+    private void entoncesLaEntidadTraeTodosLosCampos() {
         assertThat(entidad.getId()).isEqualTo(MINI_ID.valor());
         assertThat(entidad.getObjetivoId()).isEqualTo(OBJETIVO_ID.valor());
         assertThat(entidad.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
@@ -177,8 +207,24 @@ class MiniObjetivoRepositoryMapperTest {
         assertThat(entidad.getActualizadoEn()).isEqualTo(AHORA);
     }
 
-    private void entoncesLaEntidadNoTieneProductoNiReemplazo(MiniObjetivoEntity entidad) {
+    private void entoncesLaEntidadNoTieneProductoNiReemplazo() {
         assertThat(entidad.getRegistroId()).isNull();
         assertThat(entidad.getReemplazadoPor()).isNull();
+    }
+
+    private void entoncesLaEntidadManualNoTieneMetricaNiNumeros() {
+        assertThat(entidad.getModo()).isEqualTo(ModoMiniObjetivo.MANUAL);
+        assertThat(entidad.getTipo()).isNull();
+        assertThat(entidad.getMeta()).isNull();
+        assertThat(entidad.getValorInicial()).isNull();
+        assertThat(entidad.getValorActual()).isNull();
+        assertThat(entidad.getAporteEstimado()).isNull();
+        assertThat(entidad.getTitulo()).isEqualTo(TITULO_MANUAL);
+    }
+
+    private void entoncesElDominioEsManual() {
+        assertThat(mini.esManual()).isTrue();
+        assertThat(mini.getTipo()).isNull();
+        assertThat(mini.getJustificacion()).isEqualTo(JUSTIFICACION_MANUAL);
     }
 }

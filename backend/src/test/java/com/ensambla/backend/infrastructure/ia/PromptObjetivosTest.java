@@ -16,22 +16,40 @@ class PromptObjetivosTest {
     private final PromptObjetivos prompt = new PromptObjetivos(
             new ClassPathResource("ia/prompt-objetivos.md"), new ClassPathResource("ia/esquema-objetivos.json"));
 
+    private PeticionModeloTexto peticion;
+
     @Test
     @DisplayName("El código de cada mini-objetivo es su lugar en la lista, empezando en m1")
-    void codigoShouldBeThePositionInTheList() {
-        assertThat(PromptObjetivos.codigo(0)).isEqualTo("m1");
-        assertThat(PromptObjetivos.codigo(2)).isEqualTo("m3");
+    void elCodigoDeCadaMiniObjetivoEsSuLugarEnLaListaEmpezandoEnM1() {
+        entoncesElCodigoDeLosLugaresCeroYDosEsM1YM3();
     }
 
     @Test
     @DisplayName("El pedido lleva las instrucciones, el esquema y cada candidato con sus números y su texto de reserva")
-    void peticionShouldCarryInstructionsSchemaAndEveryCandidate() {
-        PeticionModeloTexto result = prompt.peticion(List.of(
-                candidato(), candidatoDelNegocio(TipoMiniObjetivo.MEJORAR_MARGEN, "6180")));
+    void elPedidoLlevaLasInstruccionesElEsquemaYCadaCandidatoConSusNumerosYSuTextoDeReserva() {
+        cuandoSePideLaPeticionDeDosCandidatos();
 
-        assertThat(result.instrucciones()).contains("hasta 3", "NO calcules");
-        assertThat(result.esquemaJson()).contains("\"minis\"", "\"codigo\"");
-        assertThat(result.contexto()).contains(
+        entoncesLaPeticionLlevaInstruccionesEsquemaYCadaCandidato();
+    }
+
+    // --- cuando ---
+
+    private void cuandoSePideLaPeticionDeDosCandidatos() {
+        peticion = prompt.peticion(List.of(
+                candidato(), candidatoDelNegocio(TipoMiniObjetivo.MEJORAR_MARGEN, "6180")));
+    }
+
+    // --- entonces ---
+
+    private void entoncesElCodigoDeLosLugaresCeroYDosEsM1YM3() {
+        assertThat(PromptObjetivos.codigo(0)).isEqualTo("m1");
+        assertThat(PromptObjetivos.codigo(2)).isEqualTo("m3");
+    }
+
+    private void entoncesLaPeticionLlevaInstruccionesEsquemaYCadaCandidato() {
+        assertThat(peticion.instrucciones()).contains("hasta 3", "NO calcules");
+        assertThat(peticion.esquemaJson()).contains("\"minis\"", "\"codigo\"");
+        assertThat(peticion.contexto()).contains(
                 "m1: tipo SUBIR_PRECIO, sobre Yerba 1 kg. Hoy vale 12600.00 y la meta es 14183.00. "
                         + "Suma cerca de $6786.00 por mes. Texto de reserva: Subile $250 a Yerba 1 kg.",
                 "m2: tipo MEJORAR_MARGEN, sobre el negocio. Hoy vale 35.71 y la meta es 37.71. "

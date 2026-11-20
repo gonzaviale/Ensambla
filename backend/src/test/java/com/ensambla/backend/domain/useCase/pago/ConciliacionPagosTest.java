@@ -47,48 +47,81 @@ class ConciliacionPagosTest {
             new TransaccionDirecta()));
     private final Clock clock = Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC);
 
+    private RenovacionPremium primera;
+    private RenovacionPremium otra;
+    private RenovacionId segundo;
+
     @Test
     @DisplayName("La conciliación continúa con otros negocios cuando un proveedor falla y rota los intentos")
-    void executeShouldContinueAfterProviderFailure() {
-        RenovacionId segundo = RenovacionId.nuevo();
-        RenovacionPremium primera = givenRenovacion(RENOVACION_ID);
-        RenovacionPremium otra = givenRenovacion(segundo);
-        when(renovacionPremiumRepository.listarParaSincronizar()).thenReturn(List.of(RENOVACION_ID, segundo));
-        doThrow(new PasarelaPagoException()).when(renovacionPremiumService).sincronizar(RENOVACION_ID, AHORA);
-        doNothing().when(renovacionPremiumService).sincronizar(segundo, AHORA);
-        ConciliarPagos useCase = new ConciliarPagos(
-                renovacionPremiumService, renovacionPremiumRepository, new TransaccionDirecta(), clock);
+    void laConciliacionContinuaConOtrosNegociosCuandoUnProveedorFallaYRotaLosIntentos() {
+        dadoDosRenovacionesPendientesDondeLaPrimeraFallaEnLaPasarela();
 
-        new ConciliacionPagosWorker(useCase).conciliar();
+        cuandoCorreLaConciliacion();
 
-        verify(renovacionPremiumService).sincronizar(segundo, AHORA);
-        assertThat(primera.getSincronizadoEn()).isEqualTo(AHORA);
-        assertThat(otra.getSincronizadoEn()).isEqualTo(AHORA);
-        verify(renovacionPremiumRepository).save(primera);
-        verify(renovacionPremiumRepository).save(otra);
+        entoncesSeSincronizaLaSegundaIgual();
+        entoncesAmbasRenovacionesQuedanConsultadas();
     }
 
     @Test
     @DisplayName("Una notificación de un contrato desconocido no afecta al negocio de otra cuenta")
-    void executeShouldIgnoreUnknownNotification() {
-        when(pasarelaSuscripcionesPort.identificarContrato("payment", "123")).thenReturn("otro");
-        when(renovacionPremiumRepository.findByProveedorId("otro")).thenReturn(Optional.empty());
-        RecibirNotificacionPago useCase = new RecibirNotificacionPago(pasarelaSuscripcionesPort,
-                renovacionPremiumRepository, renovacionPremiumService, clock);
+    void unaNotificacionDeUnContratoDesconocidoNoAfectaAlNegocioDeOtraCuenta() {
+        dadoUnaNotificacionDeUnContratoQueNoEsDeNingunaRenovacion();
 
-        useCase.execute("payment", "123", "firma", "solicitud");
+        cuandoLlegaLaNotificacion();
 
-        verify(pasarelaSuscripcionesPort).validarNotificacion("firma", "solicitud", "123");
-        verify(renovacionPremiumService, never()).sincronizar(any(), any());
+        entoncesSeValidaLaFirmaPeroNoSeSincronizaNada();
     }
 
-    // --- arrange ---
-    private RenovacionPremium givenRenovacion(RenovacionId id) {
+    // --- dado ---
+    private void dadoDosRenovacionesPendientesDondeLaPrimeraFallaEnLaPasarela() {
+        segundo = RenovacionId.nuevo();
+        primera = dadoRenovacion(RENOVACION_ID);
+        otra = dadoRenovacion(segundo);
+        when(renovacionPremiumRepository.listarParaSincronizar()).thenReturn(List.of(RENOVACION_ID, segundo));
+        doThrow(new PasarelaPagoException()).when(renovacionPremiumService).sincronizar(RENOVACION_ID, AHORA);
+        doNothing().when(renovacionPremiumService).sincronizar(segundo, AHORA);
+    }
+
+    private void dadoUnaNotificacionDeUnContratoQueNoEsDeNingunaRenovacion() {
+        when(pasarelaSuscripcionesPort.identificarContrato("payment", "123")).thenReturn("otro");
+        when(renovacionPremiumRepository.findByProveedorId("otro")).thenReturn(Optional.empty());
+    }
+
+    private RenovacionPremium dadoRenovacion(RenovacionId id) {
         RenovacionPremium renovacion = renovacion();
         renovacion.setId(id);
         renovacion.setSincronizadoEn(null);
         when(renovacionPremiumRepository.findNegocioIdById(id)).thenReturn(Optional.of(NEGOCIO_ID));
         when(renovacionPremiumRepository.findById(id)).thenReturn(Optional.of(renovacion));
         return renovacion;
+    }
+
+    // --- cuando ---
+    private void cuandoCorreLaConciliacion() {
+        ConciliarPagos useCase = new ConciliarPagos(
+                renovacionPremiumService, renovacionPremiumRepository, new TransaccionDirecta(), clock);
+        new ConciliacionPagosWorker(useCase).conciliar();
+    }
+
+    private void cuandoLlegaLaNotificacion() {
+        new RecibirNotificacionPago(pasarelaSuscripcionesPort, renovacionPremiumRepository,
+                renovacionPremiumService, clock).execute("payment", "123", "firma", "solicitud");
+    }
+
+    // --- entonces ---
+    private void entoncesSeSincronizaLaSegundaIgual() {
+        verify(renovacionPremiumService).sincronizar(segundo, AHORA);
+    }
+
+    private void entoncesAmbasRenovacionesQuedanConsultadas() {
+        assertThat(primera.getSincronizadoEn()).isEqualTo(AHORA);
+        assertThat(otra.getSincronizadoEn()).isEqualTo(AHORA);
+        verify(renovacionPremiumRepository).save(primera);
+        verify(renovacionPremiumRepository).save(otra);
+    }
+
+    private void entoncesSeValidaLaFirmaPeroNoSeSincronizaNada() {
+        verify(pasarelaSuscripcionesPort).validarNotificacion("firma", "solicitud", "123");
+        verify(renovacionPremiumService, never()).sincronizar(any(), any());
     }
 }

@@ -61,6 +61,12 @@ public class ResumenSemanalEntity {
     @Builder.Default
     private List<Object> minis = List.of();
 
+    /** Lo respondido de cada manual: {@code [{"miniObjetivoId": "…", "titulo": "…", "hizo": null, "quePaso": null}]}. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(nullable = false, updatable = false)
+    @Builder.Default
+    private List<Object> manuales = List.of();
+
     @Column(name = "que_funciono", nullable = false, updatable = false, columnDefinition = "text")
     private String queFunciono;
 

@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.catalogo.CodigosInventario;
 import com.ensambla.backend.domain.model.caja.ProteccionCaja;
 import com.ensambla.backend.domain.model.sistema.Sistema;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
@@ -34,24 +35,29 @@ public class GuardarSistema {
     private final Clock clock;
 
     public SistemaItem execute(GuardarSistemaRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
         Sistema sistema = request.sistema().aSistema(negocioId, request.id(), OffsetDateTime.now(clock));
-        return SistemaItem.de(transaccionPort.ejecutar(() -> guardar(negocioId, sistema, request.leidoEn())));
+        return SistemaItem.de(guardarEnTransaccion(negocioId, sistema, request.leidoEn()));
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private Sistema guardarEnTransaccion(NegocioId negocioId, Sistema sistema, OffsetDateTime leidoEn) {
+        return transaccionPort.ejecutar(() -> guardar(negocioId, sistema, leidoEn));
     }
 
     /** Crea el sistema o lo reemplaza; si el id es de un proyecto de otro negocio responde como si no existiera. */
     private Sistema guardar(NegocioId negocioId, Sistema sistema, OffsetDateTime leidoEn) {
-        usoPlanRepository.bloquearNegocio(negocioId);
-        Optional<NegocioId> duenioActual = sistemaRepository.findNegocioIdByProyectoId(sistema.id());
+        bloquearNegocio(negocioId);
+        Optional<NegocioId> duenioActual = obtenerDuenioActual(sistema);
         validarDuenio(negocioId, duenioActual);
-        ProteccionCaja.validar(sistemaRepository.findAllByNegocioId(negocioId), sistema, leidoEn);
-        sistema.proyecto().getBloques().forEach(bloque -> CodigosInventario.validar(
-                bloque, sistema.registrosPorBloque().getOrDefault(bloque.getId(), List.of())));
-        if (duenioActual.isEmpty()) {
-            controlPlanService.validarAltaProyecto(negocioId, sistema.proyecto().getActualizadoEn());
-        }
+        validarProteccionDeCaja(negocioId, sistema, leidoEn);
+        validarCodigosDeInventario(sistema);
+        validarAltaDelProyecto(negocioId, sistema, duenioActual);
         validarRegistrosNuevos(negocioId, sistema);
-        sistemaRepository.guardar(sistema, leidoEn);
+        guardarSistema(sistema, leidoEn);
         return sistema;
     }
 
@@ -63,13 +69,55 @@ public class GuardarSistema {
                 });
     }
 
+    private void validarProteccionDeCaja(NegocioId negocioId, Sistema sistema, OffsetDateTime leidoEn) {
+        ProteccionCaja.validar(obtenerSistemasDelNegocio(negocioId), sistema, leidoEn);
+    }
+
+    private void validarCodigosDeInventario(Sistema sistema) {
+        sistema.proyecto().getBloques().forEach(bloque -> CodigosInventario.validar(
+                bloque, sistema.registrosPorBloque().getOrDefault(bloque.getId(), List.of())));
+    }
+
+    private void validarAltaDelProyecto(NegocioId negocioId, Sistema sistema, Optional<NegocioId> duenioActual) {
+        if (duenioActual.isEmpty()) {
+            validarCupoDeProyectos(negocioId, sistema);
+        }
+    }
+
     /** Sólo cuenta contra el plan lo que el reemplazo suma respecto de lo que ya había. */
     private void validarRegistrosNuevos(NegocioId negocioId, Sistema sistema) {
         long cantidad = sistema.registrosPorBloque().values().stream().mapToLong(List::size).sum();
-        long anteriores = usoPlanRepository.contarRegistrosProyecto(negocioId, sistema.id());
+        long anteriores = contarRegistrosAnteriores(negocioId, sistema);
         if (cantidad > anteriores) {
-            controlPlanService.validarAltaRegistros(
-                    negocioId, cantidad - anteriores, sistema.proyecto().getActualizadoEn());
+            validarCupoDeRegistros(negocioId, cantidad - anteriores, sistema);
         }
+    }
+
+    private void bloquearNegocio(NegocioId negocioId) {
+        usoPlanRepository.bloquearNegocio(negocioId);
+    }
+
+    private Optional<NegocioId> obtenerDuenioActual(Sistema sistema) {
+        return sistemaRepository.findNegocioIdByProyectoId(sistema.id());
+    }
+
+    private List<Sistema> obtenerSistemasDelNegocio(NegocioId negocioId) {
+        return sistemaRepository.findAllByNegocioId(negocioId);
+    }
+
+    private long contarRegistrosAnteriores(NegocioId negocioId, Sistema sistema) {
+        return usoPlanRepository.contarRegistrosProyecto(negocioId, sistema.id());
+    }
+
+    private void validarCupoDeProyectos(NegocioId negocioId, Sistema sistema) {
+        controlPlanService.validarAltaProyecto(negocioId, sistema.proyecto().getActualizadoEn());
+    }
+
+    private void validarCupoDeRegistros(NegocioId negocioId, long cantidad, Sistema sistema) {
+        controlPlanService.validarAltaRegistros(negocioId, cantidad, sistema.proyecto().getActualizadoEn());
+    }
+
+    private void guardarSistema(Sistema sistema, OffsetDateTime leidoEn) {
+        sistemaRepository.guardar(sistema, leidoEn);
     }
 }

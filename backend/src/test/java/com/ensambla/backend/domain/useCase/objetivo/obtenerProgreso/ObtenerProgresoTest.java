@@ -2,13 +2,13 @@ package com.ensambla.backend.domain.useCase.objetivo.obtenerProgreso;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.aviso.MetricasVentas;
+import com.ensambla.backend.domain.model.objetivo.ConteoDecisiones;
 import com.ensambla.backend.domain.model.objetivo.EstadoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.HitoObjetivo;
 import com.ensambla.backend.domain.model.objetivo.MedidorMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivoId;
 import com.ensambla.backend.domain.model.objetivo.Objetivo;
-import com.ensambla.backend.domain.model.objetivo.ConteoDecisiones;
 import com.ensambla.backend.domain.model.objetivo.ProgresoObjetivo;
 import com.ensambla.backend.domain.model.objetivo.ResumenSemanal;
 import com.ensambla.backend.domain.model.reporte.DatosDeProyecto;
@@ -32,6 +32,7 @@ import java.util.List;
 
 import static com.ensambla.backend.support.MiniObjetivoTestData.MINI_ID;
 import static com.ensambla.backend.support.MiniObjetivoTestData.OTRO_MINI_ID;
+import static com.ensambla.backend.support.MiniObjetivoTestData.miniManual;
 import static com.ensambla.backend.support.MiniObjetivoTestData.miniObjetivo;
 import static com.ensambla.backend.support.NegocioDePrueba.YERBA;
 import static com.ensambla.backend.support.NegocioDePrueba.almacen;
@@ -41,8 +42,9 @@ import static com.ensambla.backend.support.ObjetivoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.USUARIO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.objetivo;
+import static com.ensambla.backend.support.ObjetivoTestData.objetivoSinMeta;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -63,6 +65,8 @@ class ObtenerProgresoTest {
             mock(PropuestaMiniObjetivosService.class);
     private final ResumenSemanalRepository resumenSemanalRepository = mock(ResumenSemanalRepository.class);
     private ObtenerProgreso obtenerProgreso;
+    private ObtenerProgresoResponse progreso;
+    private Throwable error;
 
     @BeforeEach
     void setUp() {
@@ -74,21 +78,224 @@ class ObtenerProgresoTest {
                 propuestaMiniObjetivosService,
                 resumenSemanalRepository,
                 CLOCK);
+        dadoUnNegocioConUnObjetivoConVentas();
+    }
+
+    @Test
+    @DisplayName("Devuelve la meta del objetivo")
+    void devuelveLaMetaDelObjetivo() {
+        dadoFotos(foto(null, HOY, "-27000"));
+        dadoMinis();
+
+        cuandoSeObtieneElProgreso();
+
+        entoncesLaMetaEsLaDelObjetivo();
+    }
+
+    @Test
+    @DisplayName("Devuelve la serie semanal medida con la última foto de cada semana")
+    void devuelveLaSerieSemanalMedidaConLaUltimaFotoDeCadaSemana() {
+        dadoFotos(foto(null, HOY.minusDays(1), "-30000"), foto(null, HOY, "-27000"));
+        dadoMinis();
+
+        cuandoSeObtieneElProgreso();
+
+        entoncesLaSerieMedidaTieneLaUltimaFotoDeEstaSemana();
+    }
+
+    @Test
+    @DisplayName("Completa las semanas anteriores a la primera foto con el resultado calculado, marcadas como estimadas")
+    void completaLasSemanasAnterioresALaPrimeraFotoConElResultadoCalculadoMarcadas() {
+        dadoFotos(foto(null, HOY, "-27000"));
+        dadoMinis();
+
+        cuandoSeObtieneElProgreso();
+
+        entoncesLasSemanasAnterioresALaPrimeraFotoVanEstimadas();
+    }
+
+    @Test
+    @DisplayName("Una semana ya cerrada muestra el resultado de su cierre del domingo, igual que su resumen")
+    void unaSemanaYaCerradaMuestraElResultadoDeSuCierreDelDomingoIgualQueSuResumen() {
+        dadoFotos(foto(null, HOY, "-27000"));
+        dadoMinis();
+        dadoCierre(SEMANA_ANTERIOR, "-31000");
+
+        cuandoSeObtieneElProgreso();
+
+        entoncesLaSemanaAnteriorMuestraElResultadoDeSuCierre();
+    }
+
+    @Test
+    @DisplayName("Sin ninguna foto todo lo que se sabe del pasado va estimado")
+    void sinNingunaFotoTodoLoQueSeSabeDelPasadoVaEstimado() {
+        dadoFotos();
+        dadoMinis();
+
+        cuandoSeObtieneElProgreso();
+
+        entoncesTodasLasSemanasVanEstimadas();
+    }
+
+    @Test
+    @DisplayName("Sin ventas ni fotos la serie del objetivo está vacía")
+    void sinVentasNiFotosLaSerieDelObjetivoEstaVacia() {
+        dadoUnNegocioSinVentas();
+        dadoFotos();
+        dadoMinis();
+
+        cuandoSeObtieneElProgreso();
+
+        entoncesLaSerieDelObjetivoEstaVacia();
+    }
+
+    @Test
+    @DisplayName("Sin ventas ni fotos no hay series de mini-objetivos")
+    void sinVentasNiFotosNoHaySeriesDeMiniObjetivos() {
+        dadoUnNegocioSinVentas();
+        dadoFotos();
+        dadoMinis();
+
+        cuandoSeObtieneElProgreso();
+
+        entoncesNoHaySeriesDeMinis();
+    }
+
+    @Test
+    @DisplayName("Sólo traen serie los mini-objetivos en curso o logrados: los reemplazados o quitados no")
+    void soloTraenSerieLosMiniObjetivosEnCursoOLogradosLosReemplazadosOQuitadosNo() {
+        dadoFotos(foto(MINI_ID, HOY, "12000"), foto(OTRO_MINI_ID, HOY, "14500"), foto(null, HOY, "-27000"));
+        dadoMinis(miniObjetivo(), miniLogrado(), miniReemplazado());
+
+        cuandoSeObtieneElProgreso();
+
+        entoncesSoloTraenSerieLosMinisEnCursoOLogrados();
+    }
+
+    @Test
+    @DisplayName("Cada mini-objetivo trae las fotos de su propia serie")
+    void cadaMiniObjetivoTraeLasFotosDeSuPropiaSerie() {
+        dadoFotos(foto(MINI_ID, HOY, "12000"), foto(OTRO_MINI_ID, HOY, "14500"), foto(null, HOY, "-27000"));
+        dadoMinis(miniObjetivo(), miniLogrado());
+
+        cuandoSeObtieneElProgreso();
+
+        entoncesCadaMiniTraeSuPropiaSerie();
+    }
+
+    @Test
+    @DisplayName("Un mini-objetivo logrado trae el hito de logrado y uno en curso no trae hito")
+    void unMiniObjetivoLogradoTraeElHitoDeLogradoYUnoEnCursoNoTraeHito() {
+        dadoFotos(foto(MINI_ID, HOY, "12000"), foto(OTRO_MINI_ID, HOY, "14500"));
+        dadoMinis(miniObjetivo(), miniLogrado());
+
+        cuandoSeObtieneElProgreso();
+
+        entoncesSoloElMiniLogradoTraeHito();
+    }
+
+    @Test
+    @DisplayName("Un mini-objetivo manual no tiene serie: no se incluye entre los medidos")
+    void unMiniObjetivoManualNoTieneSerieNoSeIncluyeEntreLosMedidos() {
+        dadoFotos();
+        dadoMinis(miniObjetivo(), miniManual());
+
+        cuandoSeObtieneElProgreso();
+
+        entoncesSoloSeIncluyeElMiniMedido();
+    }
+
+    @Test
+    @DisplayName("Un objetivo sin meta en pesos devuelve la meta vacía")
+    void unObjetivoSinMetaEnPesosDevuelveLaMetaVacia() {
+        dadoUnObjetivoSinMeta();
+        dadoFotos();
+        dadoMinis();
+
+        cuandoSeObtieneElProgreso();
+
+        entoncesNoHayMetaNiHito();
+    }
+
+    @Test
+    @DisplayName("Un objetivo alcanzado trae el hito de alcanzado")
+    void unObjetivoAlcanzadoTraeElHitoDeAlcanzado() {
+        dadoUnObjetivoAlcanzado();
+        dadoFotos();
+        dadoMinis();
+
+        cuandoSeObtieneElProgreso();
+
+        entoncesElHitoEsObjetivoAlcanzado();
+    }
+
+    @Test
+    @DisplayName("Un objetivo de otro negocio responde como inexistente y no consulta sus fotos")
+    void unObjetivoDeOtroNegocioRespondeComoInexistenteYNoConsultaSusFotos() {
+        dadoUnObjetivoDeOtroNegocio();
+
+        cuandoSeObtieneElProgreso();
+
+        entoncesRespondeComoInexistenteSinConsultarSusFotos();
+    }
+
+    // --- arrange ---
+    private void dadoUnNegocioConUnObjetivoConVentas() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(objetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID)).thenReturn(objetivo());
         when(propuestaMiniObjetivosService.medidor(NEGOCIO_ID, HOY)).thenReturn(medidor(almacen()));
     }
 
-    @Test
-    @DisplayName("Devuelve la meta del objetivo y su serie semanal medida, con la última foto de cada semana")
-    void executeShouldReturnTheMeasuredWeeklySeriesOfTheObjetivo() {
-        givenFotos(foto(null, HOY.minusDays(1), "-30000"), foto(null, HOY, "-27000"));
-        givenMinis();
+    private void dadoUnNegocioSinVentas() {
+        DatosDeProyecto sinVentas = NegocioDePrueba.cuaderno("Almacén")
+                .producto(YERBA, "Yerba 1 kg", 40, 4200, 3300)
+                .build();
+        when(propuestaMiniObjetivosService.medidor(NEGOCIO_ID, HOY)).thenReturn(medidor(sinVentas));
+    }
 
-        ObtenerProgresoResponse result = whenObtener();
+    private void dadoFotos(ProgresoObjetivo... fotos) {
+        when(progresoObjetivoRepository.findAllByObjetivoId(OBJETIVO_ID)).thenReturn(List.of(fotos));
+    }
 
-        assertThat(result.meta()).isEqualTo(META);
-        assertThat(result.semanas()).filteredOn(punto -> !punto.estimado())
+    private void dadoCierre(LocalDate semana, String resultado) {
+        ResumenSemanal cierre = ResumenSemanal.de(objetivo(), semana, new BigDecimal(resultado),
+                new ConteoDecisiones(0, 0, 0, 0), List.of(), "", List.of(), List.of(), AHORA);
+        when(resumenSemanalRepository.findAllByObjetivoId(OBJETIVO_ID)).thenReturn(List.of(cierre));
+    }
+
+    private void dadoMinis(MiniObjetivo... minis) {
+        when(miniObjetivoRepository.findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID))
+                .thenReturn(List.of(minis));
+    }
+
+    private void dadoUnObjetivoSinMeta() {
+        when(objetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID)).thenReturn(objetivoSinMeta());
+    }
+
+    private void dadoUnObjetivoAlcanzado() {
+        Objetivo alcanzado = objetivo();
+        alcanzado.marcarAlcanzado(AHORA);
+        when(objetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID)).thenReturn(alcanzado);
+    }
+
+    private void dadoUnObjetivoDeOtroNegocio() {
+        when(objetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID))
+                .thenThrow(new ResourceNotFoundException("Objetivo no encontrado"));
+    }
+
+    // --- act ---
+    private void cuandoSeObtieneElProgreso() {
+        error = catchThrowable(() -> progreso =
+                obtenerProgreso.execute(new ObtenerProgresoRequest(USUARIO_ID, OBJETIVO_ID)));
+    }
+
+    // --- assert ---
+    private void entoncesLaMetaEsLaDelObjetivo() {
+        assertThat(progreso.meta()).isEqualTo(META);
+    }
+
+    private void entoncesLaSerieMedidaTieneLaUltimaFotoDeEstaSemana() {
+        assertThat(progreso.semanas()).filteredOn(punto -> !punto.estimado())
                 .singleElement()
                 .satisfies(punto -> {
                     assertThat(punto.semana()).isEqualTo(ESTA_SEMANA);
@@ -96,31 +303,16 @@ class ObtenerProgresoTest {
                 });
     }
 
-    @Test
-    @DisplayName("Completa las semanas anteriores a la primera foto con el resultado calculado, marcadas como estimadas")
-    void executeShouldCompleteThePreviousWeeksWithEstimates() {
-        givenFotos(foto(null, HOY, "-27000"));
-        givenMinis();
-
-        ObtenerProgresoResponse result = whenObtener();
-
-        assertThat(result.semanas()).hasSize(6);
-        assertThat(result.semanas()).extracting(PuntoSemanal::estimado)
+    private void entoncesLasSemanasAnterioresALaPrimeraFotoVanEstimadas() {
+        assertThat(progreso.semanas()).hasSize(6);
+        assertThat(progreso.semanas()).extracting(PuntoSemanal::estimado)
                 .containsExactly(true, true, true, true, true, false);
-        assertThat(result.semanas()).extracting(PuntoSemanal::semana).last().isEqualTo(ESTA_SEMANA);
-        assertThat(result.semanas().get(4).semana()).isEqualTo(SEMANA_ANTERIOR);
+        assertThat(progreso.semanas()).extracting(PuntoSemanal::semana).last().isEqualTo(ESTA_SEMANA);
+        assertThat(progreso.semanas().get(4).semana()).isEqualTo(SEMANA_ANTERIOR);
     }
 
-    @Test
-    @DisplayName("Una semana ya cerrada muestra el resultado de su cierre del domingo, igual que su resumen")
-    void executeShouldShowTheSundayCloseResultForAClosedWeek() {
-        givenFotos(foto(null, HOY, "-27000"));
-        givenMinis();
-        givenCierre(SEMANA_ANTERIOR, "-31000");
-
-        ObtenerProgresoResponse result = whenObtener();
-
-        assertThat(result.semanas()).filteredOn(punto -> punto.semana().equals(SEMANA_ANTERIOR))
+    private void entoncesLaSemanaAnteriorMuestraElResultadoDeSuCierre() {
+        assertThat(progreso.semanas()).filteredOn(punto -> punto.semana().equals(SEMANA_ANTERIOR))
                 .singleElement()
                 .satisfies(punto -> {
                     assertThat(punto.valor()).isEqualByComparingTo("-31000");
@@ -128,108 +320,72 @@ class ObtenerProgresoTest {
                 });
     }
 
-    @Test
-    @DisplayName("Sin ninguna foto todo lo que se sabe del pasado va estimado")
-    void executeShouldShowEverythingAsEstimatedWithoutPhotos() {
-        givenFotos();
-        givenMinis();
-
-        ObtenerProgresoResponse result = whenObtener();
-
-        assertThat(result.semanas()).hasSize(6).allMatch(PuntoSemanal::estimado);
+    private void entoncesTodasLasSemanasVanEstimadas() {
+        assertThat(progreso.semanas()).hasSize(6).allMatch(PuntoSemanal::estimado);
     }
 
-    @Test
-    @DisplayName("Sin ventas ni fotos la serie del objetivo está vacía")
-    void executeShouldReturnAnEmptySeriesWithoutSalesOrPhotos() {
-        DatosDeProyecto sinVentas = NegocioDePrueba.cuaderno("Almacén")
-                .producto(YERBA, "Yerba 1 kg", 40, 4200, 3300)
-                .build();
-        when(propuestaMiniObjetivosService.medidor(NEGOCIO_ID, HOY)).thenReturn(medidor(sinVentas));
-        givenFotos();
-        givenMinis();
-
-        ObtenerProgresoResponse result = whenObtener();
-
-        assertThat(result.semanas()).isEmpty();
-        assertThat(result.minis()).isEmpty();
+    private void entoncesLaSerieDelObjetivoEstaVacia() {
+        assertThat(progreso.semanas()).isEmpty();
     }
 
-    @Test
-    @DisplayName("Cada mini-objetivo en curso o logrado trae su propia serie y los reemplazados o quitados no")
-    void executeShouldReturnTheSeriesOfTheMiniObjetivosInProgressOrAchieved() {
-        MiniObjetivo logrado = miniObjetivo();
-        logrado.setId(OTRO_MINI_ID);
-        logrado.setEstado(EstadoMiniObjetivo.LOGRADO);
-        MiniObjetivo reemplazado = miniObjetivo();
-        reemplazado.setEstado(EstadoMiniObjetivo.REEMPLAZADO);
-        reemplazado.setId(MiniObjetivoId.nuevo());
-        givenFotos(foto(MINI_ID, HOY, "12000"), foto(OTRO_MINI_ID, HOY, "14500"), foto(null, HOY, "-27000"));
-        givenMinis(miniObjetivo(), logrado, reemplazado);
+    private void entoncesNoHaySeriesDeMinis() {
+        assertThat(progreso.minis()).isEmpty();
+    }
 
-        ObtenerProgresoResponse result = whenObtener();
+    private void entoncesSoloTraenSerieLosMinisEnCursoOLogrados() {
+        assertThat(progreso.minis()).extracting(mini -> mini.mini().id()).containsExactly(MINI_ID, OTRO_MINI_ID);
+    }
 
-        assertThat(result.minis()).extracting(mini -> mini.mini().id()).containsExactly(MINI_ID, OTRO_MINI_ID);
-        assertThat(result.minis().get(0).semanas()).singleElement().satisfies(punto -> {
+    private void entoncesCadaMiniTraeSuPropiaSerie() {
+        assertThat(progreso.minis().get(0).semanas()).singleElement().satisfies(punto -> {
             assertThat(punto.valor()).isEqualByComparingTo("12000");
             assertThat(punto.estimado()).isFalse();
         });
-        assertThat(result.minis().get(1).semanas()).singleElement()
+        assertThat(progreso.minis().get(1).semanas()).singleElement()
                 .satisfies(punto -> assertThat(punto.valor()).isEqualByComparingTo("14500"));
-        assertThat(result.minis().get(1).hito()).isEqualTo(HitoObjetivo.MINI_LOGRADO);
-        assertThat(result.minis().get(0).hito()).isNull();
     }
 
-    @Test
-    @DisplayName("Un objetivo alcanzado trae el hito de alcanzado")
-    void executeShouldReturnTheAchievedMilestoneWhenTheObjetivoWasAchieved() {
-        Objetivo alcanzado = objetivo();
-        alcanzado.marcarAlcanzado(AHORA);
-        when(objetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID)).thenReturn(alcanzado);
-        givenFotos();
-        givenMinis();
-
-        ObtenerProgresoResponse result = whenObtener();
-
-        assertThat(result.hito()).isEqualTo(HitoObjetivo.OBJETIVO_ALCANZADO);
+    private void entoncesSoloElMiniLogradoTraeHito() {
+        assertThat(progreso.minis().get(1).hito()).isEqualTo(HitoObjetivo.MINI_LOGRADO);
+        assertThat(progreso.minis().get(0).hito()).isNull();
     }
 
-    @Test
-    @DisplayName("Un objetivo de otro negocio responde como inexistente y no consulta sus fotos")
-    void executeShouldFailWhenTheObjetivoBelongsToAnotherBusiness() {
-        when(objetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID))
-                .thenThrow(new ResourceNotFoundException("Objetivo no encontrado"));
+    private void entoncesSoloSeIncluyeElMiniMedido() {
+        assertThat(progreso.minis()).extracting(mini -> mini.mini().id()).containsExactly(MINI_ID);
+    }
 
-        assertThatThrownBy(this::whenObtener)
+    private void entoncesNoHayMetaNiHito() {
+        assertThat(progreso.meta()).isNull();
+        assertThat(progreso.hito()).isNull();
+    }
+
+    private void entoncesElHitoEsObjetivoAlcanzado() {
+        assertThat(progreso.hito()).isEqualTo(HitoObjetivo.OBJETIVO_ALCANZADO);
+    }
+
+    private void entoncesRespondeComoInexistenteSinConsultarSusFotos() {
+        assertThat(error)
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Objetivo no encontrado");
         verifyNoInteractions(progresoObjetivoRepository, miniObjetivoRepository, propuestaMiniObjetivosService);
     }
 
-    // --- arrange ---
-    private void givenFotos(ProgresoObjetivo... fotos) {
-        when(progresoObjetivoRepository.findAllByObjetivoId(OBJETIVO_ID)).thenReturn(List.of(fotos));
-    }
-
-    private void givenCierre(LocalDate semana, String resultado) {
-        ResumenSemanal cierre = ResumenSemanal.de(objetivo(), semana, new BigDecimal(resultado),
-                new ConteoDecisiones(0, 0, 0, 0), List.of(), "", List.of(), AHORA);
-        when(resumenSemanalRepository.findAllByObjetivoId(OBJETIVO_ID)).thenReturn(List.of(cierre));
-    }
-
-    private void givenMinis(MiniObjetivo... minis) {
-        when(miniObjetivoRepository.findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID))
-                .thenReturn(List.of(minis));
-    }
-
-    // --- act ---
-    private ObtenerProgresoResponse whenObtener() {
-        return obtenerProgreso.execute(new ObtenerProgresoRequest(USUARIO_ID, OBJETIVO_ID));
-    }
-
     // --- helpers ---
-    private static ProgresoObjetivo foto(
-            MiniObjetivoId miniObjetivoId, LocalDate dia, String valor) {
+    private static MiniObjetivo miniLogrado() {
+        MiniObjetivo logrado = miniObjetivo();
+        logrado.setId(OTRO_MINI_ID);
+        logrado.setEstado(EstadoMiniObjetivo.LOGRADO);
+        return logrado;
+    }
+
+    private static MiniObjetivo miniReemplazado() {
+        MiniObjetivo reemplazado = miniObjetivo();
+        reemplazado.setEstado(EstadoMiniObjetivo.REEMPLAZADO);
+        reemplazado.setId(MiniObjetivoId.nuevo());
+        return reemplazado;
+    }
+
+    private static ProgresoObjetivo foto(MiniObjetivoId miniObjetivoId, LocalDate dia, String valor) {
         return ProgresoObjetivo.de(OBJETIVO_ID, miniObjetivoId, dia, new BigDecimal(valor), AHORA);
     }
 

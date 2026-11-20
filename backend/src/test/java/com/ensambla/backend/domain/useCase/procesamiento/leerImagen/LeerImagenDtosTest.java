@@ -17,66 +17,118 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.assertj.core.api.Assertions.tuple;
 
 class LeerImagenDtosTest {
 
     private static final double UMBRAL_CONFIANZA = 0.8;
 
+    private ImagenCuaderno imagen;
+    private BloqueDeImagen bloque;
+    private LeerImagenItem item;
+    private Throwable rechazo;
+
     @Test
     @DisplayName("Arma la imagen con el tipo detectado")
-    void deShouldBuildTheImage() {
-        LeerImagenRequest request = request(ImagenTestData.png(), campo("importe", "Monto", "NUMERO"));
+    void armaLaImagenConElTipoDetectado() {
+        LeerImagenRequest pedido = unPedido(ImagenTestData.png(), unCampo("importe", "Monto", "NUMERO"));
 
-        ImagenCuaderno imagen = request.aImagenCuaderno();
+        cuandoSeArmaLaImagen(pedido);
 
-        assertThat(imagen.contenido()).isEqualTo(request.contenido());
-        assertThat(imagen.tipoContenido()).isEqualTo("image/png");
+        entoncesLaImagenEsUnPngConElContenidoDelPedido(pedido);
     }
 
     @Test
     @DisplayName("No arma una imagen inválida")
-    void deShouldRejectAnInvalidImage() {
-        LeerImagenRequest request = request(new byte[]{1, 2, 3}, campo("importe", "Monto", "NUMERO"));
+    void noArmaUnaImagenInvalida() {
+        cuandoSeIntentaArmarLaImagen(unPedido(new byte[]{1, 2, 3}, unCampo("importe", "Monto", "NUMERO")));
 
-        assertThatThrownBy(() -> request.aImagenCuaderno()).isInstanceOf(BusinessRuleException.class);
+        entoncesSeRechazaPorReglaDeNegocio();
     }
 
     @Test
     @DisplayName("Arma el bloque con el tipo de cada campo y sus opciones")
-    void deShouldBuildTheBlockWithFieldTypes() {
-        LeerImagenRequest request = request(ImagenTestData.jpeg(), campo("importe", "Monto", "NUMERO"),
-                new CampoItem("estado", "Estado", "OPCION", List.of("Pagó", "Debe")));
+    void armaElBloqueConElTipoDeCadaCampoYSusOpciones() {
+        cuandoSeArmaElBloque(unPedido(ImagenTestData.jpeg(), unCampo("importe", "Monto", "NUMERO"),
+                new CampoItem("estado", "Estado", "OPCION", List.of("Pagó", "Debe"))));
 
-        BloqueDeImagen bloque = request.aBloqueDeImagen();
+        entoncesElBloqueTieneLosCamposConSuTipoYSusOpciones();
+    }
 
+    @Test
+    @DisplayName("No arma un bloque sin campos")
+    void noArmaUnBloqueSinCampos() {
+        cuandoSeIntentaArmarElBloque(unPedido(ImagenTestData.jpeg()));
+
+        entoncesSeRechazaPorFaltaDeDatos();
+    }
+
+    @Test
+    @DisplayName("Marca como dudoso el dato que no llega al umbral de confianza y devuelve las columnas nuevas")
+    void marcaComoDudosoElDatoQueNoLlegaAlUmbralDeConfianzaYDevuelveLasColumnasNuevas() {
+        cuandoSeArmaElItemDeUnaLecturaConUnDatoDudoso();
+
+        entoncesElDatoDudosoVaMarcadoYSeDevuelvenLasColumnasNuevasYLosAvisos();
+    }
+
+    // --- dado ---
+    private LeerImagenRequest unPedido(byte[] contenido, CampoItem... campos) {
+        return new LeerImagenRequest(UsuarioId.nuevo(), contenido, "Ventas", List.of(campos), true);
+    }
+
+    private CampoItem unCampo(String clave, String nombre, String tipo) {
+        return new CampoItem(clave, nombre, tipo, null);
+    }
+
+    // --- cuando ---
+    private void cuandoSeArmaLaImagen(LeerImagenRequest pedido) {
+        imagen = pedido.aImagenCuaderno();
+    }
+
+    private void cuandoSeIntentaArmarLaImagen(LeerImagenRequest pedido) {
+        rechazo = catchThrowable(() -> cuandoSeArmaLaImagen(pedido));
+    }
+
+    private void cuandoSeArmaElBloque(LeerImagenRequest pedido) {
+        bloque = pedido.aBloqueDeImagen();
+    }
+
+    private void cuandoSeIntentaArmarElBloque(LeerImagenRequest pedido) {
+        rechazo = catchThrowable(() -> cuandoSeArmaElBloque(pedido));
+    }
+
+    private void cuandoSeArmaElItemDeUnaLecturaConUnDatoDudoso() {
+        LecturaImagen lectura = new LecturaImagen(
+                List.of(Map.of("importe", new DatoLeido("1500", 0.95), "cliente", new DatoLeido("Ana", 0.3)),
+                        Map.of("importe", new DatoLeido(null, 0.8))),
+                List.of(new CampoPropuesto("telefono", "Teléfono", TipoCampo.TEXTO, List.of("A"))),
+                List.of("Página torcida"));
+        item = LeerImagenItem.de(lectura, UMBRAL_CONFIANZA);
+    }
+
+    // --- entonces ---
+    private void entoncesLaImagenEsUnPngConElContenidoDelPedido(LeerImagenRequest pedido) {
+        assertThat(imagen.contenido()).isEqualTo(pedido.contenido());
+        assertThat(imagen.tipoContenido()).isEqualTo("image/png");
+    }
+
+    private void entoncesSeRechazaPorReglaDeNegocio() {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class);
+    }
+
+    private void entoncesElBloqueTieneLosCamposConSuTipoYSusOpciones() {
         assertThat(bloque.nombre()).isEqualTo("Ventas");
         assertThat(bloque.campos()).extracting("clave", "nombre", "tipo", "opciones").containsExactly(
                 tuple("importe", "Monto", TipoCampo.NUMERO, List.of()),
                 tuple("estado", "Estado", TipoCampo.OPCION, List.of("Pagó", "Debe")));
     }
 
-    @Test
-    @DisplayName("No arma un bloque sin campos")
-    void deShouldRejectABlockWithoutFields() {
-        LeerImagenRequest request = request(ImagenTestData.jpeg());
-
-        assertThatThrownBy(() -> request.aBloqueDeImagen())
-                .isInstanceOf(BusinessRuleException.class).hasMessageContaining("no tiene datos");
+    private void entoncesSeRechazaPorFaltaDeDatos() {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class).hasMessageContaining("no tiene datos");
     }
 
-    @Test
-    @DisplayName("Marca como dudoso el dato que no llega al umbral de confianza y devuelve las columnas nuevas")
-    void deShouldFlagLowConfidenceValuesAndListNewColumns() {
-        LecturaImagen lectura = new LecturaImagen(
-                List.of(Map.of("importe", new DatoLeido("1500", 0.95), "cliente", new DatoLeido("Ana", 0.3)),
-                        Map.of("importe", new DatoLeido(null, 0.8))),
-                List.of(new CampoPropuesto("telefono", "Teléfono", TipoCampo.TEXTO, List.of("A"))),
-                List.of("Página torcida"));
-
-        LeerImagenItem item = LeerImagenItem.de(lectura, UMBRAL_CONFIANZA);
-
+    private void entoncesElDatoDudosoVaMarcadoYSeDevuelvenLasColumnasNuevasYLosAvisos() {
         assertThat(item.filas()).hasSize(2);
         assertThat(item.filas().get(0).get("importe")).isEqualTo(new LeerImagenItem.DatoItem("1500", false));
         assertThat(item.filas().get(0).get("cliente")).isEqualTo(new LeerImagenItem.DatoItem("Ana", true));
@@ -84,14 +136,5 @@ class LeerImagenDtosTest {
         assertThat(item.camposNuevos()).containsExactly(
                 new LeerImagenItem.CampoItem("telefono", "Teléfono", "TEXTO", List.of("A")));
         assertThat(item.advertencias()).containsExactly("Página torcida");
-    }
-
-    // --- arrange ---
-    private LeerImagenRequest request(byte[] contenido, CampoItem... campos) {
-        return new LeerImagenRequest(UsuarioId.nuevo(), contenido, "Ventas", List.of(campos), true);
-    }
-
-    private CampoItem campo(String clave, String nombre, String tipo) {
-        return new CampoItem(clave, nombre, tipo, null);
     }
 }

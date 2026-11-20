@@ -23,6 +23,7 @@ import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.domain.service.reporte.ContextoDeResumenService;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
 import com.ensambla.backend.domain.service.reporte.ReporteService;
 import com.ensambla.backend.domain.useCase.reporte.GenerarReporteRequest;
@@ -150,6 +151,11 @@ class ReporteUseCaseConfigTest {
         when(avisoRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
     }
 
+    private ContextoDeResumenService contextoDeResumen() {
+        return config.contextoDeResumenService(negocioRepository, mock(ZonaRepository.class),
+                mock(AgregadoZonaRepository.class), avisoRepository);
+    }
+
     private void cuandoSeGeneraElReporte() {
         reporte = config.generarReporte(negocioRepository, mock(ControlPlanService.class), Clock.systemUTC(),
                 bloqueRepository, campoRepository, reporteService).execute(unPedidoDeReporte());
@@ -165,8 +171,7 @@ class ReporteUseCaseConfigTest {
     private void cuandoSeExportaElResumen() {
         GeneradorResumenPdfPort generador = resumen -> new byte[] {7};
         resumenExportado = config.exportarResumenNegocio(negocioRepository, mock(ControlPlanService.class),
-                        proyectoRepository, datosDeProyecto(), mock(ZonaRepository.class),
-                        mock(AgregadoZonaRepository.class), avisoRepository, generador, Clock.systemUTC())
+                        proyectoRepository, datosDeProyecto(), contextoDeResumen(), generador, Clock.systemUTC())
                 .execute(new ExportarResumenRequest(USUARIO_ID, PROYECTO_ID, null, null));
     }
 
@@ -177,7 +182,7 @@ class ReporteUseCaseConfigTest {
 
     private void cuandoSeObtienenLasMetricasDelMes() {
         metricas = config.obtenerMetricas(negocioRepository, proyectoRepository, datosDeProyecto(),
-                        mock(ZonaRepository.class), mock(AgregadoZonaRepository.class), avisoRepository, Clock.systemUTC())
+                        contextoDeResumen(), Clock.systemUTC())
                 .execute(new ObtenerMetricasRequest(USUARIO_ID, PROYECTO_ID, PeriodoMetricas.MES));
     }
 

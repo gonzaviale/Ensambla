@@ -4,6 +4,8 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.objetivo.DecisionObjetivo;
 import com.ensambla.backend.domain.model.objetivo.EfectoDecision;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
+import com.ensambla.backend.domain.model.objetivo.ObjetivoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.objetivo.DecisionObjetivoRepository;
@@ -35,13 +37,32 @@ public class RegistrarDecisionPaso {
     private final Clock clock;
 
     public DecisionItem execute(RegistrarDecisionPasoRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        objetivoRepository.obtener(negocioId, request.objetivoId());
-        MiniObjetivo mini = miniObjetivoRepository.obtener(negocioId, request.objetivoId(), request.miniObjetivoId());
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+        exigirObjetivoDelNegocio(negocioId, request.objetivoId());
+        MiniObjetivo mini = obtenerMiniObjetivo(negocioId, request);
         mini.exigirEnCurso();
-        OffsetDateTime ahora = OffsetDateTime.now(clock);
-        DecisionObjetivo decision = transaccionPort.ejecutar(() -> decisionObjetivoRepository.save(
-                DecisionObjetivo.dePaso(mini, request.decision(), ahora)));
+        DecisionObjetivo decision = anotarEnTransaccion(mini, request, OffsetDateTime.now(clock));
         return DecisionItem.de(decision, EfectoDecision.SIN_MEDICION);
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private void exigirObjetivoDelNegocio(NegocioId negocioId, ObjetivoId objetivoId) {
+        objetivoRepository.obtener(negocioId, objetivoId);
+    }
+
+    private MiniObjetivo obtenerMiniObjetivo(NegocioId negocioId, RegistrarDecisionPasoRequest request) {
+        return miniObjetivoRepository.obtener(negocioId, request.objetivoId(), request.miniObjetivoId());
+    }
+
+    private DecisionObjetivo anotarEnTransaccion(MiniObjetivo mini, RegistrarDecisionPasoRequest request,
+                                                 OffsetDateTime ahora) {
+        return transaccionPort.ejecutar(() -> guardarDecision(DecisionObjetivo.dePaso(mini, request.decision(), ahora)));
+    }
+
+    private DecisionObjetivo guardarDecision(DecisionObjetivo decision) {
+        return decisionObjetivoRepository.save(decision);
     }
 }

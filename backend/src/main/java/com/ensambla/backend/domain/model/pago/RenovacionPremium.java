@@ -82,6 +82,16 @@ public class RenovacionPremium {
         return Optional.ofNullable(ESTADOS_LOCALES.get(estadoDelProveedor)).orElseThrow(PasarelaPagoException::new);
     }
 
+    /** La cancelación se pide acá y se aplica en la pasarela al sincronizar. */
+    public void solicitarCancelacion(OffsetDateTime ahora) {
+        this.cancelacionSolicitada = true;
+        this.actualizadoEn = ahora;
+    }
+
+    public void registrarConsulta(OffsetDateTime ahora) {
+        this.sincronizadoEn = ahora;
+    }
+
     public boolean estaCancelada() {
         return ESTADO_CANCELADA.equals(estado);
     }

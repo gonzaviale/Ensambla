@@ -11,12 +11,12 @@ import { renderApp } from '@/test/renderApp';
 import { ESPERA, setupUsuarioConSesion } from '@/test/testHelpers';
 import type { SolicitudCobro } from '@/types/caja';
 import {
-  whenAgregaDosGaseosas,
-  whenRestaUnaGaseosa,
-  whenQuitaLaGaseosa,
-  whenDeshaceElCambio,
-  thenCantidadDeGaseosa,
-  thenGaseosaRetirada,
+  cuandoAgregaDosGaseosas,
+  cuandoRestaUnaGaseosa,
+  cuandoQuitaLaGaseosa,
+  cuandoDeshaceElCambio,
+  entoncesCantidadDeGaseosa,
+  entoncesGaseosaRetirada,
 } from '@/test/caja/cantidadesCajaHelpers';
 
 async function abrir(escanear = false) {
@@ -165,14 +165,14 @@ describe('caja integrada con el cliente HTTP', () => {
   });
   it('permite corregir las unidades y recuperar el artículo quitado', async () => {
     const { user } = await abrir();
-    await whenAgregaDosGaseosas(user);
-    thenCantidadDeGaseosa('2');
-    await whenRestaUnaGaseosa(user);
-    thenCantidadDeGaseosa('1');
-    await whenQuitaLaGaseosa(user);
-    thenGaseosaRetirada();
-    await whenDeshaceElCambio(user);
-    thenCantidadDeGaseosa('1');
+    await cuandoAgregaDosGaseosas(user);
+    entoncesCantidadDeGaseosa('2');
+    await cuandoRestaUnaGaseosa(user);
+    entoncesCantidadDeGaseosa('1');
+    await cuandoQuitaLaGaseosa(user);
+    entoncesGaseosaRetirada();
+    await cuandoDeshaceElCambio(user);
+    entoncesCantidadDeGaseosa('1');
   });
 
   it('toma gramos para un favorito por kilo y permite corregir el peso final', async () => {

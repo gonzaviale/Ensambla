@@ -21,14 +21,41 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ListarCandidatosResponseTest {
 
+    private ListarCandidatosResponse respuesta;
+
     @Test
     @DisplayName("Copia todos los datos de cada candidato, en el mismo orden, y le suma su sentido")
-    void deShouldCopyEveryFieldInOrder() {
-        ListarCandidatosResponse result = ListarCandidatosResponse.de(
-                List.of(candidato(), candidatoDelNegocio(TipoMiniObjetivo.RECORTAR_GASTO, "4000")));
+    void copiaTodosLosDatosDeCadaCandidatoEnElMismoOrdenYLeSumaSuSentido() {
+        cuandoSeArmaLaRespuestaDeUnCandidatoQueSubeYOtroQueBaja();
 
-        assertThat(result.content()).hasSize(2);
-        CandidatoItem primero = result.content().getFirst();
+        entoncesCopiaTodosLosDatosDelPrimerCandidato();
+        entoncesElSegundoCandidatoBaja();
+    }
+
+    @Test
+    @DisplayName("Sin candidatos devuelve una lista vacía")
+    void sinCandidatosDevuelveUnaListaVacia() {
+        cuandoSeArmaLaRespuestaSinCandidatos();
+
+        entoncesLaRespuestaEstaVacia();
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeArmaLaRespuestaDeUnCandidatoQueSubeYOtroQueBaja() {
+        respuesta = ListarCandidatosResponse.de(
+                List.of(candidato(), candidatoDelNegocio(TipoMiniObjetivo.RECORTAR_GASTO, "4000")));
+    }
+
+    private void cuandoSeArmaLaRespuestaSinCandidatos() {
+        respuesta = ListarCandidatosResponse.de(List.of());
+    }
+
+    // --- entonces ---
+
+    private void entoncesCopiaTodosLosDatosDelPrimerCandidato() {
+        assertThat(respuesta.content()).hasSize(2);
+        CandidatoItem primero = respuesta.content().getFirst();
         assertThat(primero.tipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
         assertThat(primero.sentido()).isEqualTo(SentidoMiniObjetivo.SUBE);
         assertThat(primero.titulo()).isEqualTo(TITULO);
@@ -38,12 +65,13 @@ class ListarCandidatosResponseTest {
         assertThat(primero.valorInicial()).isEqualTo(VALOR_INICIAL);
         assertThat(primero.meta()).isEqualTo(META_MINI);
         assertThat(primero.aporteEstimado()).isEqualTo(APORTE);
-        assertThat(result.content().get(1).sentido()).isEqualTo(SentidoMiniObjetivo.BAJA);
     }
 
-    @Test
-    @DisplayName("Sin candidatos devuelve una lista vacía")
-    void deShouldReturnAnEmptyListWhenThereAreNoCandidates() {
-        assertThat(ListarCandidatosResponse.de(List.of()).content()).isEmpty();
+    private void entoncesElSegundoCandidatoBaja() {
+        assertThat(respuesta.content().get(1).sentido()).isEqualTo(SentidoMiniObjetivo.BAJA);
+    }
+
+    private void entoncesLaRespuestaEstaVacia() {
+        assertThat(respuesta.content()).isEmpty();
     }
 }

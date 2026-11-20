@@ -26,6 +26,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -39,12 +41,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     private static final OffsetDateTime INICIO = OffsetDateTime.parse("2026-10-29T12:30:00Z");
+    private static final String RESTRICCION_DE_PRUEBA = "ck_ens96_rollback";
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -78,6 +80,11 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
 
     private UsuarioId usuarioId;
     private NegocioId negocioId;
+    private LoteTrabajo lote;
+    private List<Boolean> resultados;
+    private boolean resultado;
+    private Throwable rechazo;
+    private boolean restriccionAgregada;
 
     @BeforeEach
     void setUp() {
@@ -92,143 +99,284 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
 
     @AfterEach
     void tearDown() {
+        if (restriccionAgregada) {
+            jdbcTemplate.execute("ALTER TABLE suscripcion DROP CONSTRAINT " + RESTRICCION_DE_PRUEBA);
+        }
         jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId.valor());
         jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", usuarioId.valor());
     }
 
     @Test
     @DisplayName("Dos inicios simultáneos crean una única prueba sin extender el plazo")
-    void iniciarShouldSerializeRepeatedRequests() throws Exception {
-        List<Boolean> result = concurrently(() -> iniciar(INICIO), () -> iniciar(INICIO.plusHours(1)));
+    void dosIniciosSimultaneosCreanUnaUnicaPruebaSinExtenderElPlazo() throws Exception {
+        cuandoSeIniciaLaPruebaDosVecesAlaVez();
 
-        assertThat(result).containsExactlyInAnyOrder(true, false);
-        PruebaPremium prueba = pruebaPremiumRepository.findByNegocioId(negocioId).orElseThrow();
-        assertThat(prueba.finEn()).isEqualTo(prueba.inicioEn().plusDays(7));
-        assertThat(prueba.paginasIa()).isZero();
-        assertThat(suscripcionRepository.findByNegocioId(negocioId).orElseThrow().getEstado())
-                .isEqualTo(EstadoSuscripcion.PRUEBA);
+        entoncesSoloUnInicioTieneEfectoYElPlazoSigueEnSieteDias();
     }
 
     @Test
     @DisplayName("El consumo anterior del mismo día no reduce las diez páginas de prueba")
-    void iniciarShouldNotChargeEarlierFreeUsage() {
-        givenConsumoAnterior(10);
-        pruebaPremiumService.iniciar(negocioId, INICIO);
+    void elConsumoAnteriorDelMismoDiaNoReduceLasDiezPaginasDePrueba() {
+        dadoUnConsumoAnteriorDelMismoDia(10);
+        dadoUnaPruebaIniciada();
 
-        consumoIaInmediatoService.registrar(negocioId, INICIO.plusSeconds(1));
+        cuandoSeRegistraUnaLecturaInmediata(INICIO.plusSeconds(1));
 
-        assertThat(prueba().paginasIa()).isEqualTo(1);
-        assertThat(jdbcTemplate.queryForObject("SELECT sum(paginas) FROM consumo_ia_diario WHERE negocio_id = ?",
-                Long.class, negocioId.valor())).isEqualTo(11);
+        entoncesLaPruebaCobroUnaPaginaYElDiaSumaOnce();
     }
 
     @Test
     @DisplayName("El mes nuevo no renueva las diez páginas totales de la prueba")
-    void registrarShouldKeepTrialQuotaAcrossMonthBoundary() {
-        pruebaPremiumService.iniciar(negocioId, INICIO);
-        givenPaginasPrueba(9);
-        consumoIaInmediatoService.registrar(negocioId, INICIO.plusDays(3));
+    void elMesNuevoNoRenuevaLasDiezPaginasTotalesDeLaPrueba() {
+        dadoUnaPruebaIniciada();
+        dadoQueLaPruebaUso(9);
+        dadoUnaLecturaInmediataRegistrada(INICIO.plusDays(3));
 
-        assertThatThrownBy(() -> consumoIaInmediatoService.registrar(negocioId, INICIO.plusDays(4)))
-                .isInstanceOf(RestriccionPlanException.class).extracting("codigo").isEqualTo("LIMITE_IA_PRUEBA");
+        cuandoSeIntentaRegistrarUnaLecturaInmediata(INICIO.plusDays(4));
 
-        assertThat(prueba().paginasIa()).isEqualTo(10);
+        entoncesSeRechazaPor("LIMITE_IA_PRUEBA");
+        entoncesLaPruebaUsoPaginas(10);
     }
 
     @Test
     @DisplayName("Lectura inmediata y reserva simultáneas comparten las últimas páginas de prueba")
-    void reservarShouldSerializeQueuedAndImmediateTrialUsage() throws Exception {
-        pruebaPremiumService.iniciar(negocioId, INICIO);
-        givenPaginasPrueba(8);
-        LoteTrabajo lote = givenLote();
+    void lecturaInmediataYReservaSimultaneasComparteanLasUltimasPaginasDePrueba() throws Exception {
+        dadoUnaPruebaIniciada();
+        dadoQueLaPruebaUso(8);
+        dadoUnLoteProcesandose();
 
-        List<Boolean> result = concurrently(() -> reservar(lote, 2, 100, INICIO),
-                () -> registrar(INICIO));
+        cuandoSeReservaYSeRegistraAlaVez();
 
-        assertThat(result).containsExactlyInAnyOrder(true, false);
-        assertThat(prueba().paginasIa()).isBetween(9, 10);
+        entoncesSoloUnaDeLasDosTieneEfectoYLaPruebaUsaNueveODiez();
     }
 
     @Test
     @DisplayName("Dos lecturas inmediatas simultáneas no admiten una undécima página")
-    void registrarShouldEnforceTrialQuotaConcurrently() throws Exception {
-        pruebaPremiumService.iniciar(negocioId, INICIO);
-        givenPaginasPrueba(9);
+    void dosLecturasInmediatasSimultaneasNoAdmitenUnaUndecimaPagina() throws Exception {
+        dadoUnaPruebaIniciada();
+        dadoQueLaPruebaUso(9);
 
-        List<Boolean> result = concurrently(() -> registrar(INICIO), () -> registrar(INICIO));
+        cuandoSeRegistranDosLecturasInmediatasAlaVez();
 
-        assertThat(result).containsExactlyInAnyOrder(true, false);
-        assertThat(prueba().paginasIa()).isEqualTo(10);
+        entoncesSoloUnaTieneEfectoYLaPruebaUsaDiezPaginas();
     }
 
     @Test
     @DisplayName("Una reserva rechazada por el límite diario no consume páginas de prueba")
-    void reservarShouldNotChargeRejectedReservation() {
-        pruebaPremiumService.iniciar(negocioId, INICIO);
+    void unaReservaRechazadaPorElLimiteDiarioNoConsumePaginasDePrueba() {
+        dadoUnaPruebaIniciada();
+        dadoUnLoteProcesandose();
 
-        boolean result = reservar(givenLote(), 2, 1, INICIO);
+        cuandoSeReservanDosPaginasConLimiteDiarioDeUna();
 
-        assertThat(result).isFalse();
-        assertThat(prueba().paginasIa()).isZero();
+        entoncesLaReservaSeRechazaSinCobrarLaPrueba();
     }
 
     @Test
     @DisplayName("Una reserva duplicada del mismo reclamo no vuelve a cobrar la prueba")
-    void reservarShouldNotChargeSameClaimTwice() {
-        pruebaPremiumService.iniciar(negocioId, INICIO);
-        LoteTrabajo lote = givenLote();
-        assertThat(reservar(lote, 2, 100, INICIO)).isTrue();
+    void unaReservaDuplicadaDelMismoReclamoNoVuelveACobrarLaPrueba() {
+        dadoUnaPruebaIniciada();
+        dadoUnLoteProcesandose();
+        dadoUnaReservaDeDosPaginas();
 
-        boolean result = reservar(lote, 2, 100, INICIO);
+        cuandoSeRepiteLaReservaDelMismoReclamo();
 
-        assertThat(result).isFalse();
-        assertThat(prueba().paginasIa()).isEqualTo(2);
+        entoncesLaReservaRepetidaSeRechazaYLaPruebaSigueEnDos();
     }
 
     @Test
     @DisplayName("Finalizar tarde un timeout conserva el cargo original sin duplicarlo")
-    void finalizarShouldKeepChargeAfterTrialExpiry() {
-        pruebaPremiumService.iniciar(negocioId, INICIO);
-        LoteTrabajo lote = givenLote();
-        assertThat(reservar(lote, 2, 100, INICIO.plusDays(6))).isTrue();
-        pruebaPremiumService.vencer(negocioId, INICIO.plusDays(7));
+    void finalizarTardeUnTimeoutConservaElCargoOriginalSinDuplicarlo() {
+        dadoUnaPruebaIniciada();
+        dadoUnLoteProcesandose();
+        dadoUnaReservaDeDosPaginasAlSextoDia();
+        dadoQueLaPruebaVencio();
 
-        procesamientoRepository.finalizar(lote, new ResultadoIntento(null, "Timeout", false),
-                null, INICIO.plusDays(8), null);
+        cuandoSeFinalizaElLoteConTimeoutTarde();
 
-        assertThat(prueba().paginasIa()).isEqualTo(2);
-        assertThat(suscripcionRepository.findByNegocioId(negocioId).orElseThrow().getEstado())
-                .isEqualTo(EstadoSuscripcion.ACTIVA);
+        entoncesSeConservaElCargoYLaSuscripcionQuedaActiva();
+    }
+
+    @ParameterizedTest
+    @EnumSource(FuncionPlan.class)
+    @DisplayName("La vigencia se comprueba al operar aunque todavía no haya ejecutado el job")
+    void laVigenciaSeCompruebaAlOperarAunqueTodaviaNoHayaEjecutadoElJob(FuncionPlan funcion) {
+        dadoUnaPruebaIniciada();
+
+        cuandoSeValidaLaFuncion(funcion, INICIO.plusDays(7).minusNanos(1));
+
+        entoncesLaFuncionEstaPermitida();
     }
 
     @Test
-    @DisplayName("La vigencia se comprueba al operar aunque todavía no haya ejecutado el job")
-    void validarFuncionShouldRejectTrialAtExactExpiryWithoutJob() {
-        pruebaPremiumService.iniciar(negocioId, INICIO);
-        for (FuncionPlan funcion : FuncionPlan.values()) {
-            assertThatCode(() -> controlPlanService.validarFuncion(
-                    negocioId, funcion, INICIO.plusDays(7).minusNanos(1))).doesNotThrowAnyException();
-        }
+    @DisplayName("La prueba no permite funciones premium justo al vencer aunque el job no haya corrido")
+    void laPruebaNoPermiteFuncionesPremiumJustoAlVencerAunqueElJobNoHayaCorrido() {
+        dadoUnaPruebaIniciada();
 
-        assertThatThrownBy(() -> controlPlanService.validarFuncion(
-                negocioId, FuncionPlan.RECETAS_COSTOS, INICIO.plusDays(7)))
-                .isInstanceOf(RestriccionPlanException.class);
+        cuandoSeValidaLaFuncion(FuncionPlan.RECETAS_COSTOS, INICIO.plusDays(7));
+
+        entoncesSeRechazaLaFuncionPorRestriccionDePlan();
     }
 
     @Test
     @DisplayName("Al agotar IA siguen disponibles las otras funciones premium hasta vencer")
-    void validarFuncionShouldKeepPremiumAfterAiQuotaExhaustion() {
-        pruebaPremiumService.iniciar(negocioId, INICIO);
-        givenPaginasPrueba(10);
+    void alAgotarIaSiguenDisponiblesLasOtrasFuncionesPremiumHastaVencer() {
+        dadoUnaPruebaIniciada();
+        dadoQueLaPruebaUso(10);
 
-        assertThatCode(() -> controlPlanService.validarFuncion(
-                negocioId, FuncionPlan.RECETAS_COSTOS, INICIO.plusDays(1))).doesNotThrowAnyException();
+        cuandoSeValidaLaFuncion(FuncionPlan.RECETAS_COSTOS, INICIO.plusDays(1));
+
+        entoncesLaFuncionEstaPermitida();
     }
 
     @Test
     @DisplayName("El job vence pruebas de forma repetible y conserva sistemas y filas por encima del gratuito")
-    void executeShouldExpireTrialAndPreserveData() {
+    void elJobVencePruebasDeFormaRepetibleYConservaSistemasYFilasPorEncimaDelGratuito() {
+        dadoUnaPruebaIniciada();
+        dadoDosSistemasYMilUnaFilas();
+
+        cuandoElJobVenceLaPruebaDosVeces();
+
+        entoncesLaSuscripcionVuelveAlGratuito();
+        entoncesSeConservanLosSistemasYLasFilas();
+        entoncesNoSePuedeCrearUnTercerSistemaNiRepetirLaPrueba();
+    }
+
+    @Test
+    @DisplayName("Un premium activado después de seleccionar el vencimiento se conserva")
+    void unPremiumActivadoDespuesDeSeleccionarElVencimientoSeConserva() {
+        dadoUnaPruebaIniciada();
+        dadoQueElNegocioPagoPremiumDespuesDeSeleccionarElVencimiento();
+
+        cuandoElJobVenceLaPrueba();
+
+        entoncesElPremiumPagoSeConserva();
+    }
+
+    @Test
+    @DisplayName("La consulta de prueba no devuelve el historial de otro negocio")
+    void laConsultaDePruebaNoDevuelveElHistorialDeOtroNegocio() {
+        dadoUnaPruebaIniciada();
+
+        entoncesOtroNegocioNoTieneHistorialDePrueba();
+    }
+
+    @Test
+    @DisplayName("La base rechaza contadores mayores a diez")
+    void laBaseRechazaContadoresMayoresADiez() {
+        dadoUnaPruebaIniciada();
+
+        cuandoSeIntentaGuardarQueLaPruebaUso(11);
+
+        entoncesLaBaseRechazaElDato();
+    }
+
+    @Test
+    @DisplayName("La base rechaza una segunda prueba del mismo negocio")
+    void laBaseRechazaUnaSegundaPruebaDelMismoNegocio() {
+        dadoUnaPruebaIniciada();
+
+        cuandoSeIntentaInsertarUnaSegundaPrueba();
+
+        entoncesLaBaseRechazaElDato();
+    }
+
+    @Test
+    @DisplayName("La base rechaza pruebas con una duración distinta de siete días")
+    void laBaseRechazaPruebasConUnaDuracionDistintaDeSieteDias() {
+        dadoUnaPruebaIniciada();
+
+        cuandoSeIntentaExtenderLaPruebaAOchoDias();
+
+        entoncesLaBaseRechazaElDato();
+    }
+
+    @Test
+    @DisplayName("Una suscripción en prueba no puede carecer de fecha de fin")
+    void unaSuscripcionEnPruebaNoPuedeCarecerDeFechaDeFin() {
+        dadoUnaPruebaIniciada();
+
+        cuandoSeIntentaQuitarElFinDeLaSuscripcion();
+
+        entoncesLaBaseRechazaElDato();
+    }
+
+    @Test
+    @DisplayName("La eliminación del negocio elimina su prueba sin dejar filas huérfanas")
+    void laEliminacionDelNegocioEliminaSuPruebaSinDejarFilasHuerfanas() {
+        dadoUnaPruebaIniciada();
+
+        cuandoSeEliminaElNegocio();
+
+        entoncesLaPruebaDesaparece();
+    }
+
+    @Test
+    @DisplayName("Si falla la activación se revierte también el historial que permitiría perder la prueba")
+    void siFallaLaActivacionSeRevierteTambienElHistorialQuePermitiriaPerderLaPrueba() {
+        dadoQueLaBaseRechazaLaSuscripcionEnPrueba();
+
+        cuandoSeIntentaIniciarLaPrueba();
+
+        entoncesSeRevierteElHistorialYLaSuscripcionSigueActiva();
+    }
+
+    @Test
+    @DisplayName("Rechazar una lectura inmediata por cuota diaria no descuenta la prueba")
+    void rechazarUnaLecturaInmediataPorCuotaDiariaNoDescuentaLaPrueba() {
+        dadoUnaPruebaIniciada();
+        dadoUnConsumoAnteriorDelMismoDia(100);
+
+        cuandoSeIntentaRegistrarUnaLecturaInmediata(INICIO);
+
+        entoncesSeRechazaPor("LIMITE_IA_DIARIO");
+        entoncesLaPruebaUsoPaginas(0);
+    }
+
+    // --- dado ---
+
+    private void dadoUnaPruebaIniciada() {
         pruebaPremiumService.iniciar(negocioId, INICIO);
+    }
+
+    private void dadoUnConsumoAnteriorDelMismoDia(int paginas) {
+        jdbcTemplate.update("INSERT INTO consumo_ia_diario (negocio_id, fecha, paginas) VALUES (?, ?, ?)",
+                negocioId.valor(), INICIO.toLocalDate(), paginas);
+    }
+
+    private void dadoQueLaPruebaUso(int paginas) {
+        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = ? WHERE negocio_id = ?", paginas,
+                negocioId.valor());
+    }
+
+    private void dadoUnaLecturaInmediataRegistrada(OffsetDateTime instante) {
+        consumoIaInmediatoService.registrar(negocioId, instante);
+    }
+
+    private void dadoUnLoteProcesandose() {
+        LoteId loteId = LoteId.nuevo();
+        UUID token = UUID.randomUUID();
+        jdbcTemplate.update("""
+                INSERT INTO lote_subida (id, negocio_id, estado, intentos, reclamo_id, reclamo_hasta)
+                VALUES (?, ?, 'PROCESANDO', 1, ?, ?)
+                """, loteId.valor(), negocioId.valor(), token, INICIO.plusDays(7));
+        lote = new LoteTrabajo(loteId, negocioId, null, ReclamoId.de(token), 1);
+    }
+
+    private void dadoUnaReservaDeDosPaginas() {
+        resultado = reservar(lote, 2, 100, INICIO);
+        assertThat(resultado).isTrue();
+    }
+
+    private void dadoUnaReservaDeDosPaginasAlSextoDia() {
+        assertThat(reservar(lote, 2, 100, INICIO.plusDays(6))).isTrue();
+    }
+
+    private void dadoQueLaPruebaVencio() {
+        pruebaPremiumService.vencer(negocioId, INICIO.plusDays(7));
+    }
+
+    private void dadoDosSistemasYMilUnaFilas() {
         ProyectoId proyectoId = proyectosDePrueba.crear(negocioId, "Primero", null, INICIO).getId();
         proyectosDePrueba.crear(negocioId, "Segundo", null, INICIO);
         BloqueId bloqueId = BloqueId.nuevo();
@@ -238,145 +386,204 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
                 INSERT INTO registro (negocio_id, bloque_id, valores)
                 SELECT ?, ?, '{}'::jsonb FROM generate_series(1, 1001)
                 """, negocioId.valor(), bloqueId.valor());
-        pruebaPremiumService.vencer(negocioId, INICIO.plusDays(7));
-        pruebaPremiumService.vencer(negocioId, INICIO.plusDays(7));
+    }
 
+    private void dadoQueElNegocioPagoPremiumDespuesDeSeleccionarElVencimiento() {
+        assertThat(pruebaPremiumRepository.findNegociosVencidos(INICIO.plusDays(7))).contains(negocioId);
+        jdbcTemplate.update("UPDATE suscripcion SET estado = 'ACTIVA', fin_en = ? WHERE negocio_id = ?",
+                INICIO.plusMonths(1), negocioId.valor());
+    }
+
+    private void dadoQueLaBaseRechazaLaSuscripcionEnPrueba() {
+        jdbcTemplate.execute("ALTER TABLE suscripcion ADD CONSTRAINT " + RESTRICCION_DE_PRUEBA + " "
+                + "CHECK (negocio_id <> '" + negocioId.valor() + "'::uuid OR estado <> 'PRUEBA')");
+        restriccionAgregada = true;
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeIniciaLaPruebaDosVecesAlaVez() throws Exception {
+        resultados = concurrentemente(() -> iniciar(INICIO), () -> iniciar(INICIO.plusHours(1)));
+    }
+
+    private void cuandoSeRegistraUnaLecturaInmediata(OffsetDateTime instante) {
+        consumoIaInmediatoService.registrar(negocioId, instante);
+    }
+
+    private void cuandoSeIntentaRegistrarUnaLecturaInmediata(OffsetDateTime instante) {
+        rechazo = catchThrowable(() -> consumoIaInmediatoService.registrar(negocioId, instante));
+    }
+
+    private void cuandoSeReservaYSeRegistraAlaVez() throws Exception {
+        resultados = concurrentemente(() -> reservar(lote, 2, 100, INICIO), () -> registrar(INICIO));
+    }
+
+    private void cuandoSeRegistranDosLecturasInmediatasAlaVez() throws Exception {
+        resultados = concurrentemente(() -> registrar(INICIO), () -> registrar(INICIO));
+    }
+
+    private void cuandoSeReservanDosPaginasConLimiteDiarioDeUna() {
+        resultado = reservar(lote, 2, 1, INICIO);
+    }
+
+    private void cuandoSeRepiteLaReservaDelMismoReclamo() {
+        resultado = reservar(lote, 2, 100, INICIO);
+    }
+
+    private void cuandoSeFinalizaElLoteConTimeoutTarde() {
+        procesamientoRepository.finalizar(lote, new ResultadoIntento(null, "Timeout", false),
+                null, INICIO.plusDays(8), null);
+    }
+
+    private void cuandoSeValidaLaFuncion(FuncionPlan funcion, OffsetDateTime instante) {
+        rechazo = catchThrowable(() -> controlPlanService.validarFuncion(negocioId, funcion, instante));
+    }
+
+    private void cuandoElJobVenceLaPrueba() {
+        pruebaPremiumService.vencer(negocioId, INICIO.plusDays(7));
+    }
+
+    private void cuandoElJobVenceLaPruebaDosVeces() {
+        cuandoElJobVenceLaPrueba();
+        cuandoElJobVenceLaPrueba();
+    }
+
+    private void cuandoSeIntentaGuardarQueLaPruebaUso(int paginas) {
+        rechazo = catchThrowable(() -> dadoQueLaPruebaUso(paginas));
+    }
+
+    private void cuandoSeIntentaInsertarUnaSegundaPrueba() {
+        rechazo = catchThrowable(() -> jdbcTemplate.update("""
+                INSERT INTO prueba_premium (negocio_id, inicio_en, fin_en) VALUES (?, ?, ?)
+                """, negocioId.valor(), INICIO, INICIO.plusDays(7)));
+    }
+
+    private void cuandoSeIntentaExtenderLaPruebaAOchoDias() {
+        rechazo = catchThrowable(() -> jdbcTemplate.update(
+                "UPDATE prueba_premium SET fin_en = ? WHERE negocio_id = ?", INICIO.plusDays(8), negocioId.valor()));
+    }
+
+    private void cuandoSeIntentaQuitarElFinDeLaSuscripcion() {
+        rechazo = catchThrowable(() -> jdbcTemplate.update(
+                "UPDATE suscripcion SET fin_en = NULL WHERE negocio_id = ?", negocioId.valor()));
+    }
+
+    private void cuandoSeEliminaElNegocio() {
+        jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId.valor());
+    }
+
+    private void cuandoSeIntentaIniciarLaPrueba() {
+        rechazo = catchThrowable(() -> pruebaPremiumService.iniciar(negocioId, INICIO));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSoloUnInicioTieneEfectoYElPlazoSigueEnSieteDias() {
+        assertThat(resultados).containsExactlyInAnyOrder(true, false);
+        PruebaPremium prueba = prueba();
+        assertThat(prueba.finEn()).isEqualTo(prueba.inicioEn().plusDays(7));
+        assertThat(prueba.paginasIa()).isZero();
+        assertThat(suscripcionRepository.findByNegocioId(negocioId).orElseThrow().getEstado())
+                .isEqualTo(EstadoSuscripcion.PRUEBA);
+    }
+
+    private void entoncesLaPruebaCobroUnaPaginaYElDiaSumaOnce() {
+        assertThat(prueba().paginasIa()).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("SELECT sum(paginas) FROM consumo_ia_diario WHERE negocio_id = ?",
+                Long.class, negocioId.valor())).isEqualTo(11);
+    }
+
+    private void entoncesSeRechazaPor(String codigo) {
+        assertThat(rechazo).isInstanceOf(RestriccionPlanException.class).extracting("codigo").isEqualTo(codigo);
+    }
+
+    private void entoncesLaPruebaUsoPaginas(int paginas) {
+        assertThat(prueba().paginasIa()).isEqualTo(paginas);
+    }
+
+    private void entoncesSoloUnaDeLasDosTieneEfectoYLaPruebaUsaNueveODiez() {
+        assertThat(resultados).containsExactlyInAnyOrder(true, false);
+        assertThat(prueba().paginasIa()).isBetween(9, 10);
+    }
+
+    private void entoncesSoloUnaTieneEfectoYLaPruebaUsaDiezPaginas() {
+        assertThat(resultados).containsExactlyInAnyOrder(true, false);
+        assertThat(prueba().paginasIa()).isEqualTo(10);
+    }
+
+    private void entoncesLaReservaSeRechazaSinCobrarLaPrueba() {
+        assertThat(resultado).isFalse();
+        assertThat(prueba().paginasIa()).isZero();
+    }
+
+    private void entoncesLaReservaRepetidaSeRechazaYLaPruebaSigueEnDos() {
+        assertThat(resultado).isFalse();
+        assertThat(prueba().paginasIa()).isEqualTo(2);
+    }
+
+    private void entoncesSeConservaElCargoYLaSuscripcionQuedaActiva() {
+        assertThat(prueba().paginasIa()).isEqualTo(2);
         assertThat(suscripcionRepository.findByNegocioId(negocioId).orElseThrow().getEstado())
                 .isEqualTo(EstadoSuscripcion.ACTIVA);
+    }
+
+    private void entoncesLaFuncionEstaPermitida() {
+        assertThat(rechazo).isNull();
+    }
+
+    private void entoncesSeRechazaLaFuncionPorRestriccionDePlan() {
+        assertThat(rechazo).isInstanceOf(RestriccionPlanException.class);
+    }
+
+    private void entoncesLaSuscripcionVuelveAlGratuito() {
+        assertThat(suscripcionRepository.findByNegocioId(negocioId).orElseThrow().getEstado())
+                .isEqualTo(EstadoSuscripcion.ACTIVA);
+    }
+
+    private void entoncesSeConservanLosSistemasYLasFilas() {
         assertThat(proyectoRepository.findAllByNegocioId(negocioId)).hasSize(2);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM registro WHERE negocio_id = ?",
                 Long.class, negocioId.valor())).isEqualTo(1001);
-        assertThatThrownBy(() -> proyectosDePrueba.crear(negocioId, "Tercero", null, INICIO.plusDays(7)))
+    }
+
+    private void entoncesNoSePuedeCrearUnTercerSistemaNiRepetirLaPrueba() {
+        assertThat(catchThrowable(() -> proyectosDePrueba.crear(negocioId, "Tercero", null, INICIO.plusDays(7))))
                 .isInstanceOf(RestriccionPlanException.class);
-        assertThatThrownBy(() -> pruebaPremiumService.iniciar(negocioId, INICIO.plusDays(8)))
+        assertThat(catchThrowable(() -> pruebaPremiumService.iniciar(negocioId, INICIO.plusDays(8))))
                 .isInstanceOf(RestriccionPlanException.class).extracting("codigo").isEqualTo("PRUEBA_UTILIZADA");
         assertThat(prueba().inicioEn()).isEqualTo(INICIO);
     }
 
-    @Test
-    @DisplayName("Un premium activado después de seleccionar el vencimiento se conserva")
-    void vencerShouldPreservePaidPremiumAfterTrial() {
-        pruebaPremiumService.iniciar(negocioId, INICIO);
-        assertThat(pruebaPremiumRepository.findNegociosVencidos(INICIO.plusDays(7))).contains(negocioId);
-        jdbcTemplate.update("UPDATE suscripcion SET estado = 'ACTIVA', fin_en = ? WHERE negocio_id = ?",
-                INICIO.plusMonths(1), negocioId.valor());
-
-        pruebaPremiumService.vencer(negocioId, INICIO.plusDays(7));
-
-        assertThatCode(() -> controlPlanService.validarFuncion(
-                negocioId, FuncionPlan.RECETAS_COSTOS, INICIO.plusDays(8))).doesNotThrowAnyException();
+    private void entoncesElPremiumPagoSeConserva() {
+        assertThat(catchThrowable(() -> controlPlanService.validarFuncion(
+                negocioId, FuncionPlan.RECETAS_COSTOS, INICIO.plusDays(8)))).isNull();
         assertThat(pruebaPremiumRepository.findNegociosVencidos(INICIO.plusDays(7))).doesNotContain(negocioId);
     }
 
-    @Test
-    @DisplayName("La consulta de prueba no devuelve el historial de otro negocio")
-    void findByNegocioIdShouldIsolateTrialHistory() {
-        pruebaPremiumService.iniciar(negocioId, INICIO);
-
+    private void entoncesOtroNegocioNoTieneHistorialDePrueba() {
         assertThat(pruebaPremiumRepository.findByNegocioId(NegocioId.nuevo())).isEmpty();
     }
 
-    @Test
-    @DisplayName("La base rechaza contadores mayores a diez")
-    void updateShouldRejectExceededTrialQuota() {
-        pruebaPremiumService.iniciar(negocioId, INICIO);
-
-        assertThatThrownBy(() -> givenPaginasPrueba(11)).isInstanceOf(DataIntegrityViolationException.class);
+    private void entoncesLaBaseRechazaElDato() {
+        assertThat(rechazo).isInstanceOf(DataIntegrityViolationException.class);
     }
 
-    @Test
-    @DisplayName("La base rechaza una segunda prueba del mismo negocio")
-    void saveShouldRejectDuplicateTrialHistory() {
-        pruebaPremiumService.iniciar(negocioId, INICIO);
-
-        assertThatThrownBy(() -> jdbcTemplate.update("""
-                INSERT INTO prueba_premium (negocio_id, inicio_en, fin_en) VALUES (?, ?, ?)
-                """, negocioId.valor(), INICIO, INICIO.plusDays(7)))
-                .isInstanceOf(DataIntegrityViolationException.class);
-    }
-
-    @Test
-    @DisplayName("La base rechaza pruebas con una duración distinta de siete días")
-    void updateShouldRejectInvalidTrialDuration() {
-        pruebaPremiumService.iniciar(negocioId, INICIO);
-
-        assertThatThrownBy(() -> jdbcTemplate.update("UPDATE prueba_premium SET fin_en = ? WHERE negocio_id = ?",
-                INICIO.plusDays(8), negocioId.valor())).isInstanceOf(DataIntegrityViolationException.class);
-    }
-
-    @Test
-    @DisplayName("Una suscripción en prueba no puede carecer de fecha de fin")
-    void updateShouldRejectTrialWithoutEnd() {
-        pruebaPremiumService.iniciar(negocioId, INICIO);
-
-        assertThatThrownBy(() -> jdbcTemplate.update("UPDATE suscripcion SET fin_en = NULL WHERE negocio_id = ?",
-                negocioId.valor())).isInstanceOf(DataIntegrityViolationException.class);
-    }
-
-    @Test
-    @DisplayName("La eliminación del negocio elimina su prueba sin dejar filas huérfanas")
-    void deleteShouldCascadeTrialHistory() {
-        pruebaPremiumService.iniciar(negocioId, INICIO);
-
-        jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId.valor());
-
+    private void entoncesLaPruebaDesaparece() {
         assertThat(pruebaPremiumRepository.findByNegocioId(negocioId)).isEmpty();
     }
 
-    @Test
-    @DisplayName("Si falla la activación se revierte también el historial que permitiría perder la prueba")
-    void iniciarShouldRollbackHistoryWhenSubscriptionUpdateFails() {
-        jdbcTemplate.execute("ALTER TABLE suscripcion ADD CONSTRAINT ck_ens96_rollback "
-                + "CHECK (negocio_id <> '" + negocioId.valor() + "'::uuid OR estado <> 'PRUEBA')");
-        try {
-            assertThatThrownBy(() -> pruebaPremiumService.iniciar(negocioId, INICIO))
-                    .isInstanceOf(DataIntegrityViolationException.class);
-
-            assertThat(pruebaPremiumRepository.findByNegocioId(negocioId)).isEmpty();
-            assertThat(suscripcionRepository.findByNegocioId(negocioId).orElseThrow().getEstado())
-                    .isEqualTo(EstadoSuscripcion.ACTIVA);
-        } finally {
-            jdbcTemplate.execute("ALTER TABLE suscripcion DROP CONSTRAINT ck_ens96_rollback");
-        }
+    private void entoncesSeRevierteElHistorialYLaSuscripcionSigueActiva() {
+        assertThat(rechazo).isInstanceOf(DataIntegrityViolationException.class);
+        assertThat(pruebaPremiumRepository.findByNegocioId(negocioId)).isEmpty();
+        assertThat(suscripcionRepository.findByNegocioId(negocioId).orElseThrow().getEstado())
+                .isEqualTo(EstadoSuscripcion.ACTIVA);
     }
 
-    @Test
-    @DisplayName("Rechazar una lectura inmediata por cuota diaria no descuenta la prueba")
-    void registrarShouldNotChargeTrialWhenDailyLimitIsReached() {
-        pruebaPremiumService.iniciar(negocioId, INICIO);
-        givenConsumoAnterior(100);
+    // --- datos ---
 
-        assertThatThrownBy(() -> consumoIaInmediatoService.registrar(negocioId, INICIO))
-                .isInstanceOf(RestriccionPlanException.class).extracting("codigo").isEqualTo("LIMITE_IA_DIARIO");
-
-        assertThat(prueba().paginasIa()).isZero();
-    }
-
-    // --- arrange ---
-    private void givenConsumoAnterior(int paginas) {
-        jdbcTemplate.update("INSERT INTO consumo_ia_diario (negocio_id, fecha, paginas) VALUES (?, ?, ?)",
-                negocioId.valor(), INICIO.toLocalDate(), paginas);
-    }
-
-    private void givenPaginasPrueba(int paginas) {
-        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = ? WHERE negocio_id = ?", paginas,
-                negocioId.valor());
-    }
-
-    private LoteTrabajo givenLote() {
-        LoteId loteId = LoteId.nuevo();
-        UUID token = UUID.randomUUID();
-        jdbcTemplate.update("""
-                INSERT INTO lote_subida (id, negocio_id, estado, intentos, reclamo_id, reclamo_hasta)
-                VALUES (?, ?, 'PROCESANDO', 1, ?, ?)
-                """, loteId.valor(), negocioId.valor(), token, INICIO.plusDays(7));
-        return new LoteTrabajo(loteId, negocioId, null, ReclamoId.de(token), 1);
-    }
-
-    // --- act ---
-    private boolean reservar(LoteTrabajo lote, int paginas, int limiteDiario, OffsetDateTime ahora) {
-        return controlPlanService.reservarPaginasIa(lote.negocioId(), paginas, ahora,
-                () -> procesamientoRepository.reservar(lote, paginas, limiteDiario, ahora));
+    private boolean reservar(LoteTrabajo loteAReservar, int paginas, int limiteDiario, OffsetDateTime ahora) {
+        return controlPlanService.reservarPaginasIa(loteAReservar.negocioId(), paginas, ahora,
+                () -> procesamientoRepository.reservar(loteAReservar, paginas, limiteDiario, ahora));
     }
 
     private boolean iniciar(OffsetDateTime ahora) {
@@ -393,8 +600,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
         return pruebaPremiumRepository.findByNegocioId(negocioId).orElseThrow();
     }
 
-    // --- helpers ---
-    private List<Boolean> concurrently(Callable<Boolean> primera, Callable<Boolean> segunda) throws Exception {
+    private List<Boolean> concurrentemente(Callable<Boolean> primera, Callable<Boolean> segunda) throws Exception {
         CountDownLatch listas = new CountDownLatch(2);
         CountDownLatch salida = new CountDownLatch(1);
         try (var executor = Executors.newFixedThreadPool(2)) {

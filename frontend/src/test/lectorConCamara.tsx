@@ -110,12 +110,12 @@ function mostrarCamaraSimulada(stream: MediaStream, video: HTMLVideoElement) {
 
 type UsuarioLector = ReturnType<typeof userEvent.setup>;
 
-export function givenLectorConCamaraQueFalla(nombreError: string) {
+export function dadoLectorConCamaraQueFalla(nombreError: string) {
   errorDeCamara = nombreError;
   render(<EscenarioLectorCamara />);
   return userEvent.setup();
 }
-export async function whenSeEligeLaCamaraOcupada(user: UsuarioLector) {
+export async function cuandoSeEligeLaCamaraOcupada(user: UsuarioLector) {
   await user.click(screen.getByRole('button', { name: 'Escanear producto' }));
   await user.click(screen.getByRole('button', { name: 'Ajustes del lector' }));
   const selector = await screen.findByRole('combobox', { name: 'Cámara del lector' });
@@ -124,20 +124,20 @@ export async function whenSeEligeLaCamaraOcupada(user: UsuarioLector) {
   expect(await screen.findByRole('alert')).toHaveTextContent(/cámara/i);
   await user.click(screen.getByRole('button', { name: 'Ajustes del lector' }));
 }
-export function thenSePuedeCorregirLaCamara() {
+export function entoncesSePuedeCorregirLaCamara() {
   const selector = screen.getByRole('combobox', { name: 'Cámara del lector' });
   expect(selector).toBeEnabled();
   expect(selector).toHaveValue('ocupada');
   expect(screen.getByRole('button', { name: 'Reiniciar lector' })).toBeEnabled();
 }
-export async function whenSeEligeLaCamaraDisponible(user: UsuarioLector) {
+export async function cuandoSeEligeLaCamaraDisponible(user: UsuarioLector) {
   await user.selectOptions(
     screen.getByRole('combobox', { name: 'Cámara del lector' }),
     'disponible',
   );
   await waitFor(() => expect(decodificar).toHaveBeenCalledTimes(2));
 }
-export function thenElLectorUsaLaCamaraDisponible() {
+export function entoncesElLectorUsaLaCamaraDisponible() {
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   expect(screen.getByLabelText('Vista previa del lector')).toBeInTheDocument();
   expect(pedirCamara).toHaveBeenLastCalledWith(
@@ -159,12 +159,12 @@ export const almacenamientosDelLector = [
     recordada: { id: 'ocupada', nombre: 'Cámara virtual' },
   },
 ];
-export function givenLectorConCamaraRecordada(preparar: () => void) {
+export function dadoLectorConCamaraRecordada(preparar: () => void) {
   recordarCamaraElegida({ id: 'ocupada', nombre: 'Cámara virtual' });
   preparar();
-  return givenLectorConCamaraQueFalla('NotReadableError');
+  return dadoLectorConCamaraQueFalla('NotReadableError');
 }
-export async function whenSeVuelveALaSeleccionAutomatica(user: UsuarioLector) {
+export async function cuandoSeVuelveALaSeleccionAutomatica(user: UsuarioLector) {
   await user.click(screen.getByRole('button', { name: 'Escanear producto' }));
   await screen.findByRole('alert');
   await user.click(screen.getByRole('button', { name: 'Ajustes del lector' }));
@@ -173,7 +173,9 @@ export async function whenSeVuelveALaSeleccionAutomatica(user: UsuarioLector) {
   await user.selectOptions(selector, '');
   await waitFor(() => expect(decodificar).toHaveBeenCalledOnce());
 }
-export function thenLaCamaraAutomaticaFunciona(recordada: ReturnType<typeof leerCamaraElegida>) {
+export function entoncesLaCamaraAutomaticaFunciona(
+  recordada: ReturnType<typeof leerCamaraElegida>,
+) {
   expect(leerCamaraElegida()).toEqual(recordada);
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   expect(pedirCamara).toHaveBeenLastCalledWith(

@@ -18,76 +18,155 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class IConsultasPorNegocioJpaRepositoryTest extends PostgresDatosTestSupport {
 
+    private NegocioEntity negocio;
+    private Optional<NegocioEntity> negocioEncontrado;
+    private Optional<String> emailEncontrado;
+    private Optional<String> emailDeNegocioInexistente;
+    private UUID usuarioSinNegocio;
+    private UUID negocioA;
+    private UUID negocioB;
+    private UUID bloqueId;
+    private Optional<BloqueEntity> bloquePropio;
+    private Optional<BloqueEntity> bloqueAjeno;
+    private List<CampoEntity> camposPropios;
+    private List<CampoEntity> camposAjenos;
+
     @Test
     @DisplayName("Encuentra el negocio por el id de su dueño")
-    void findFirstByDuenioIdShouldReturnNegocioOfTheOwner() {
-        NegocioEntity negocio = givenNegocio("dueña@example.com");
+    void encuentraElNegocioPorElIdDeSuDuenio() {
+        dadoUnNegocioConDuenia();
 
-        Optional<NegocioEntity> result = negocios.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(negocio.getDuenioId());
+        cuandoSeBuscaElNegocioDelDuenio();
 
-        assertThat(result).map(NegocioEntity::getId).contains(negocio.getId());
+        entoncesSeEncuentraElNegocio();
     }
 
     @Test
     @DisplayName("Encuentra el email del dueño del negocio y nada si el negocio no existe")
-    void findEmailDuenioByIdShouldReturnOwnerEmail() {
-        NegocioEntity negocio = givenNegocio("dueña@example.com");
+    void encuentraElEmailDelDuenioDelNegocioYNadaSiElNegocioNoExiste() {
+        dadoUnNegocioConDuenia();
 
-        assertThat(negocios.findEmailDuenioById(negocio.getId())).contains("dueña@example.com");
-        assertThat(negocios.findEmailDuenioById(UUID.randomUUID())).isEmpty();
+        cuandoSeBuscaElEmailDelDuenioDelNegocioYDeUnoInexistente();
+
+        entoncesSoloSeEncuentraElEmailDelNegocioExistente();
     }
 
     @Test
     @DisplayName("No devuelve negocio para un usuario que no es dueño de ninguno")
-    void findFirstByDuenioIdShouldReturnEmptyWhenUsuarioOwnsNothing() {
-        UUID usuarioSinNegocio = givenUsuario("sin-negocio@example.com");
+    void noDevuelveNegocioParaUnUsuarioQueNoEsDuenioDeNinguno() {
+        dadoUnUsuarioSinNegocio();
 
-        assertThat(negocios.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(usuarioSinNegocio)).isEmpty();
+        cuandoSeBuscaElNegocioDelUsuarioSinNegocio();
+
+        entoncesNoSeEncuentraNingunNegocio();
     }
 
     @Test
     @DisplayName("Con más de un negocio devuelve el más antiguo")
-    void findFirstByDuenioIdShouldReturnOldestWhenOwnerHasSeveral() {
-        NegocioEntity primero = givenNegocio("dueña@example.com");
-        negocios.saveAndFlush(NegocioEntity.builder()
-                .nombre("Segundo negocio")
-                .duenioId(primero.getDuenioId())
-                .creadoEn(AHORA.plusDays(1))
-                .actualizadoEn(AHORA.plusDays(1))
-                .build());
+    void conMasDeUnNegocioDevuelveElMasAntiguo() {
+        dadoUnaDuenaConDosNegociosElSegundoMasNuevo();
 
-        Optional<NegocioEntity> result = negocios.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(primero.getDuenioId());
+        cuandoSeBuscaElNegocioDelDuenio();
 
-        assertThat(result).map(NegocioEntity::getId).contains(primero.getId());
+        entoncesSeEncuentraElNegocio();
     }
 
     @Test
     @DisplayName("Encuentra el bloque sólo dentro de su negocio")
-    void findByIdAndNegocioIdShouldRespectNegocioForBloques() {
-        UUID negocioA = givenNegocio("a@example.com").getId();
-        UUID negocioB = givenNegocio("b@example.com").getId();
-        UUID bloqueId = givenBloque(NegocioId.de(negocioA), "Productos");
+    void encuentraElBloqueSoloDentroDeSuNegocio() {
+        dadoUnBloqueDelNegocioA();
 
-        Optional<BloqueEntity> propio = bloques.findByIdAndNegocioId(bloqueId, negocioA);
-        Optional<BloqueEntity> ajeno = bloques.findByIdAndNegocioId(bloqueId, negocioB);
+        cuandoSeBuscaElBloqueEnSuNegocioYEnOtro();
 
-        assertThat(propio).isPresent();
-        assertThat(ajeno).isEmpty();
+        entoncesSoloSeEncuentraElBloqueEnSuNegocio();
     }
 
     @Test
     @DisplayName("Lista los campos del bloque por posición y no mezcla los de otro negocio")
-    void findByBloqueIdAndNegocioIdShouldListCamposByPosicionScopedToNegocio() {
-        UUID negocioA = givenNegocio("a@example.com").getId();
-        UUID negocioB = givenNegocio("b@example.com").getId();
-        UUID bloqueId = givenBloque(NegocioId.de(negocioA), "Productos");
+    void listaLosCamposDelBloquePorPosicionYNoMezclaLosDeOtroNegocio() {
+        dadoUnBloqueDelNegocioAConDosCamposDesordenados();
+
+        cuandoSeListanLosCamposDelBloqueEnSuNegocioYEnOtro();
+
+        entoncesLosCamposVienenPorPosicionYNoSeMezclanConOtroNegocio();
+    }
+
+    // --- dado ---
+    private void dadoUnNegocioConDuenia() {
+        negocio = givenNegocio("dueña@example.com");
+    }
+
+    private void dadoUnUsuarioSinNegocio() {
+        usuarioSinNegocio = givenUsuario("sin-negocio@example.com");
+    }
+
+    private void dadoUnaDuenaConDosNegociosElSegundoMasNuevo() {
+        negocio = givenNegocio("dueña@example.com");
+        negocios.saveAndFlush(NegocioEntity.builder()
+                .nombre("Segundo negocio")
+                .duenioId(negocio.getDuenioId())
+                .creadoEn(AHORA.plusDays(1))
+                .actualizadoEn(AHORA.plusDays(1))
+                .build());
+    }
+
+    private void dadoUnBloqueDelNegocioA() {
+        negocioA = givenNegocio("a@example.com").getId();
+        negocioB = givenNegocio("b@example.com").getId();
+        bloqueId = givenBloque(NegocioId.de(negocioA), "Productos");
+    }
+
+    private void dadoUnBloqueDelNegocioAConDosCamposDesordenados() {
+        dadoUnBloqueDelNegocioA();
         givenCampo(NegocioId.de(negocioA), BloqueId.de(bloqueId), "Segundo", TipoCampo.NUMERO, 1);
         givenCampo(NegocioId.de(negocioA), BloqueId.de(bloqueId), "Primero", TipoCampo.TEXTO, 0);
+    }
 
-        List<CampoEntity> propios = campos.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(bloqueId, negocioA);
-        List<CampoEntity> ajenos = campos.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(bloqueId, negocioB);
+    // --- cuando ---
+    private void cuandoSeBuscaElNegocioDelDuenio() {
+        negocioEncontrado = negocios.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(negocio.getDuenioId());
+    }
 
-        assertThat(propios).extracting(CampoEntity::getNombre).containsExactly("Primero", "Segundo");
-        assertThat(ajenos).isEmpty();
+    private void cuandoSeBuscaElNegocioDelUsuarioSinNegocio() {
+        negocioEncontrado = negocios.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(usuarioSinNegocio);
+    }
+
+    private void cuandoSeBuscaElEmailDelDuenioDelNegocioYDeUnoInexistente() {
+        emailEncontrado = negocios.findEmailDuenioById(negocio.getId());
+        emailDeNegocioInexistente = negocios.findEmailDuenioById(UUID.randomUUID());
+    }
+
+    private void cuandoSeBuscaElBloqueEnSuNegocioYEnOtro() {
+        bloquePropio = bloques.findByIdAndNegocioId(bloqueId, negocioA);
+        bloqueAjeno = bloques.findByIdAndNegocioId(bloqueId, negocioB);
+    }
+
+    private void cuandoSeListanLosCamposDelBloqueEnSuNegocioYEnOtro() {
+        camposPropios = campos.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(bloqueId, negocioA);
+        camposAjenos = campos.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(bloqueId, negocioB);
+    }
+
+    // --- entonces ---
+    private void entoncesSeEncuentraElNegocio() {
+        assertThat(negocioEncontrado).map(NegocioEntity::getId).contains(negocio.getId());
+    }
+
+    private void entoncesNoSeEncuentraNingunNegocio() {
+        assertThat(negocioEncontrado).isEmpty();
+    }
+
+    private void entoncesSoloSeEncuentraElEmailDelNegocioExistente() {
+        assertThat(emailEncontrado).contains("dueña@example.com");
+        assertThat(emailDeNegocioInexistente).isEmpty();
+    }
+
+    private void entoncesSoloSeEncuentraElBloqueEnSuNegocio() {
+        assertThat(bloquePropio).isPresent();
+        assertThat(bloqueAjeno).isEmpty();
+    }
+
+    private void entoncesLosCamposVienenPorPosicionYNoSeMezclanConOtroNegocio() {
+        assertThat(camposPropios).extracting(CampoEntity::getNombre).containsExactly("Primero", "Segundo");
+        assertThat(camposAjenos).isEmpty();
     }
 }

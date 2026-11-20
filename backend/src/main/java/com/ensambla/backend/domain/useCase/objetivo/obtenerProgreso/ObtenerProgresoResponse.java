@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * Cómo viene un objetivo y cada uno de sus mini-objetivos en curso o logrados, semana por semana.
  *
- * @param meta    el resultado mensual que busca el objetivo
+ * @param meta    el resultado mensual que busca el objetivo; vacío si no es monetario
  * @param hito    {@code OBJETIVO_ALCANZADO} si ya llegó a la meta; vacío si no
  * @param semanas el resultado del negocio al final de cada semana, de la más vieja a la más nueva
  * @param minis   los mini-objetivos en curso y logrados, con su propia serie

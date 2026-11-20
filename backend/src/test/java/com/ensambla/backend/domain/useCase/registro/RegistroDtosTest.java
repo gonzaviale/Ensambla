@@ -29,72 +29,57 @@ class RegistroDtosTest {
     private static final OffsetDateTime CREADO = OffsetDateTime.parse("2026-10-09T12:00:00Z");
     private static final OffsetDateTime ACTUALIZADO = OffsetDateTime.parse("2026-10-10T12:00:00Z");
 
+    private RegistroItem item;
+    private ListarRegistrosResponse listado;
+
     @Test
     @DisplayName("Crear devuelve el registro con todos sus datos")
-    void crearToResponseShouldMapEveryField() {
-        CrearRegistroResponse response = CrearRegistroResponse.de(registro());
+    void crearDevuelveElRegistroConTodosSusDatos() {
+        cuandoSeArmaLaRespuestaDeCrear();
 
-        thenItemHasEveryField(response.registro());
+        entoncesElItemTieneTodosSusDatos();
     }
 
     @Test
     @DisplayName("Obtener devuelve el registro con todos sus datos")
-    void obtenerToResponseShouldMapEveryField() {
-        ObtenerRegistroResponse response = ObtenerRegistroResponse.de(registro());
+    void obtenerDevuelveElRegistroConTodosSusDatos() {
+        cuandoSeArmaLaRespuestaDeObtener();
 
-        thenItemHasEveryField(response.registro());
+        entoncesElItemTieneTodosSusDatos();
     }
 
     @Test
     @DisplayName("Editar devuelve el registro con todos sus datos")
-    void editarToResponseShouldMapEveryField() {
-        EditarRegistroResponse response = EditarRegistroResponse.de(registro());
+    void editarDevuelveElRegistroConTodosSusDatos() {
+        cuandoSeArmaLaRespuestaDeEditar();
 
-        thenItemHasEveryField(response.registro());
+        entoncesElItemTieneTodosSusDatos();
     }
 
     @Test
     @DisplayName("Listar devuelve los registros en orden con los datos de la página")
-    void listarToResponseShouldMapContentAndPageData() {
-        Registro segundo = Registro.builder().id(RegistroId.nuevo()).bloqueId(BLOQUE_ID).build();
-        Pagina<Registro> pagina = new Pagina<>(List.of(registro(), segundo), 2, 20, 45);
+    void listarDevuelveLosRegistrosEnOrdenConLosDatosDeLaPagina() {
+        Registro segundo = dadoOtroRegistroDelMismoBloque();
 
-        TotalesRegistros totales = new TotalesRegistros(45, Map.of(CAMPO_ID, new BigDecimal("1500.50")));
+        cuandoSeArmaLaRespuestaDeListarLaPaginaDos(segundo);
 
-        ListarRegistrosResponse response = ListarRegistrosResponse.de(pagina, totales);
-
-        assertThat(response.contenido()).extracting(RegistroItem::id).containsExactly(REGISTRO_ID, segundo.getId());
-        assertThat(response.pagina()).isEqualTo(2);
-        assertThat(response.tamanio()).isEqualTo(20);
-        assertThat(response.totalElementos()).isEqualTo(45);
-        assertThat(response.totalPaginas()).isEqualTo(3);
-        assertThat(response.totales().cantidad()).isEqualTo(45);
-        assertThat(response.totales().sumas()).containsOnly(entry(CAMPO_ID, new BigDecimal("1500.50")));
+        entoncesSeListanLosDosRegistrosConLosDatosDeLaPagina(segundo);
     }
 
     @Test
     @DisplayName("Listar devuelve una página vacía cuando no hay registros")
-    void listarToResponseShouldReturnEmptyContent() {
-        ListarRegistrosResponse response = ListarRegistrosResponse.de(
-                new Pagina<>(List.of(), 0, 20, 0), new TotalesRegistros(0, Map.of()));
+    void listarDevuelveUnaPaginaVaciaCuandoNoHayRegistros() {
+        cuandoSeArmaLaRespuestaDeListarSinRegistros();
 
-        assertThat(response.contenido()).isEmpty();
-        assertThat(response.totales().cantidad()).isZero();
-        assertThat(response.totales().sumas()).isEmpty();
-        assertThat(response.totalPaginas()).isEqualTo(1);
+        entoncesLaPaginaEstaVaciaConUnaSolaPagina();
     }
 
-    // --- assert ---
-    private void thenItemHasEveryField(RegistroItem item) {
-        assertThat(item.id()).isEqualTo(REGISTRO_ID);
-        assertThat(item.bloqueId()).isEqualTo(BLOQUE_ID);
-        assertThat(item.valores()).containsEntry("campo", "dato");
-        assertThat(item.creadoEn()).isEqualTo(CREADO);
-        assertThat(item.actualizadoEn()).isEqualTo(ACTUALIZADO);
+    // --- dado ---
+    private Registro dadoOtroRegistroDelMismoBloque() {
+        return Registro.builder().id(RegistroId.nuevo()).bloqueId(BLOQUE_ID).build();
     }
 
-    // --- helpers ---
-    private Registro registro() {
+    private static Registro unRegistro() {
         return Registro.builder()
                 .id(REGISTRO_ID)
                 .bloqueId(BLOQUE_ID)
@@ -102,5 +87,54 @@ class RegistroDtosTest {
                 .creadoEn(CREADO)
                 .actualizadoEn(ACTUALIZADO)
                 .build();
+    }
+
+    // --- cuando ---
+    private void cuandoSeArmaLaRespuestaDeCrear() {
+        item = CrearRegistroResponse.de(unRegistro()).registro();
+    }
+
+    private void cuandoSeArmaLaRespuestaDeObtener() {
+        item = ObtenerRegistroResponse.de(unRegistro()).registro();
+    }
+
+    private void cuandoSeArmaLaRespuestaDeEditar() {
+        item = EditarRegistroResponse.de(unRegistro()).registro();
+    }
+
+    private void cuandoSeArmaLaRespuestaDeListarLaPaginaDos(Registro segundo) {
+        Pagina<Registro> pagina = new Pagina<>(List.of(unRegistro(), segundo), 2, 20, 45);
+        TotalesRegistros totales = new TotalesRegistros(45, Map.of(CAMPO_ID, new BigDecimal("1500.50")));
+        listado = ListarRegistrosResponse.de(pagina, totales);
+    }
+
+    private void cuandoSeArmaLaRespuestaDeListarSinRegistros() {
+        listado = ListarRegistrosResponse.de(new Pagina<>(List.of(), 0, 20, 0), new TotalesRegistros(0, Map.of()));
+    }
+
+    // --- entonces ---
+    private void entoncesElItemTieneTodosSusDatos() {
+        assertThat(item.id()).isEqualTo(REGISTRO_ID);
+        assertThat(item.bloqueId()).isEqualTo(BLOQUE_ID);
+        assertThat(item.valores()).containsEntry("campo", "dato");
+        assertThat(item.creadoEn()).isEqualTo(CREADO);
+        assertThat(item.actualizadoEn()).isEqualTo(ACTUALIZADO);
+    }
+
+    private void entoncesSeListanLosDosRegistrosConLosDatosDeLaPagina(Registro segundo) {
+        assertThat(listado.contenido()).extracting(RegistroItem::id).containsExactly(REGISTRO_ID, segundo.getId());
+        assertThat(listado.pagina()).isEqualTo(2);
+        assertThat(listado.tamanio()).isEqualTo(20);
+        assertThat(listado.totalElementos()).isEqualTo(45);
+        assertThat(listado.totalPaginas()).isEqualTo(3);
+        assertThat(listado.totales().cantidad()).isEqualTo(45);
+        assertThat(listado.totales().sumas()).containsOnly(entry(CAMPO_ID, new BigDecimal("1500.50")));
+    }
+
+    private void entoncesLaPaginaEstaVaciaConUnaSolaPagina() {
+        assertThat(listado.contenido()).isEmpty();
+        assertThat(listado.totales().cantidad()).isZero();
+        assertThat(listado.totales().sumas()).isEmpty();
+        assertThat(listado.totalPaginas()).isEqualTo(1);
     }
 }

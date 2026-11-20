@@ -4,6 +4,8 @@ import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.objetivo.DecisionObjetivo;
+import com.ensambla.backend.domain.model.objetivo.ObjetivoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.objetivo.DecisionObjetivoRepository;
@@ -32,11 +34,22 @@ public class ListarDecisiones {
     private final AvisoRepository avisoRepository;
 
     public ListarDecisionesResponse execute(ListarDecisionesRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        objetivoRepository.obtener(negocioId, request.objetivoId());
-        List<DecisionObjetivo> decisiones =
-                decisionObjetivoRepository.findAllByObjetivoIdAndNegocioId(request.objetivoId(), negocioId);
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+        exigirObjetivoDelNegocio(negocioId, request.objetivoId());
+        List<DecisionObjetivo> decisiones = obtenerDecisiones(negocioId, request.objetivoId());
         return ListarDecisionesResponse.de(decisiones, avisosDe(decisiones, negocioId));
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private void exigirObjetivoDelNegocio(NegocioId negocioId, ObjetivoId objetivoId) {
+        objetivoRepository.obtener(negocioId, objetivoId);
+    }
+
+    private List<DecisionObjetivo> obtenerDecisiones(NegocioId negocioId, ObjetivoId objetivoId) {
+        return decisionObjetivoRepository.findAllByObjetivoIdAndNegocioId(objetivoId, negocioId);
     }
 
     private Map<AvisoId, Aviso> avisosDe(List<DecisionObjetivo> decisiones, NegocioId negocioId) {
@@ -44,7 +57,11 @@ public class ListarDecisiones {
         if (ids.isEmpty()) {
             return Map.of();
         }
-        return avisoRepository.findAllByIdsAndNegocioId(ids, negocioId).stream()
+        return obtenerAvisos(ids, negocioId).stream()
                 .collect(Collectors.toMap(Aviso::getId, Function.identity()));
+    }
+
+    private List<Aviso> obtenerAvisos(List<AvisoId> ids, NegocioId negocioId) {
+        return avisoRepository.findAllByIdsAndNegocioId(ids, negocioId);
     }
 }

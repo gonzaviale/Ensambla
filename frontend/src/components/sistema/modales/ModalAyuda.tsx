@@ -40,9 +40,16 @@ export function ModalAyuda({ respuesta }: { respuesta?: string }) {
   const { irATaller, irAPlantillas } = useNavegacion();
 
   const elegir = (clave: string) => {
-    if (clave === 'guide') void irATaller();
-    else if (clave === 'templates') void irAPlantillas();
-    else abrirModal({ tipo: 'ayuda', respuesta: clave });
+    const salidas: Record<string, (() => unknown) | undefined> = {
+      guide: irATaller,
+      templates: irAPlantillas,
+    };
+    const irA = salidas[clave];
+    if (irA) {
+      void irA();
+      return;
+    }
+    abrirModal({ tipo: 'ayuda', respuesta: clave });
   };
 
   return (

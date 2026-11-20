@@ -15,7 +15,8 @@ import static com.ensambla.backend.support.ObjetivoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.USUARIO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.objetivo;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
@@ -32,42 +33,61 @@ class EliminarObjetivoTest {
             objetivoRepository,
             new TransaccionDirecta());
 
+    private Throwable rechazo;
+
     @BeforeEach
-    void givenNegocioDeLaSesion() {
+    void dadoElNegocioDeLaSesion() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @Test
     @DisplayName("Borra el objetivo filtrando por el negocio de la sesión")
-    void executeShouldDeleteForSessionNegocio() {
-        givenObjetivoDelNegocio();
+    void borraElObjetivoFiltrandoPorElNegocioDeLaSesion() {
+        dadoUnObjetivoDelNegocio();
 
-        whenEliminar();
+        cuandoSeElimina();
 
-        verify(objetivoRepository).deleteByIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID);
+        entoncesSeBorraElObjetivoDelNegocio();
     }
 
     @Test
     @DisplayName("Un objetivo ajeno o inexistente responde 404 y no se borra nada")
-    void executeShouldNotDeleteWhenObjetivoIsNotOwned() {
-        givenNingunObjetivoDelNegocio();
+    void unObjetivoAjenoOInexistenteRespondeNoEncontradoYNoSeBorraNada() {
+        dadoNingunObjetivoDelNegocio();
 
-        assertThatThrownBy(this::whenEliminar).isInstanceOf(ResourceNotFoundException.class);
+        cuandoSeIntentaEliminar();
 
-        verify(objetivoRepository, never()).deleteByIdAndNegocioId(any(), any());
+        entoncesSeRechazaComoInexistenteSinBorrar();
     }
 
-    // --- arrange ---
-    private void givenObjetivoDelNegocio() {
+    // --- dado ---
+
+    private void dadoUnObjetivoDelNegocio() {
         when(objetivoRepository.findByIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID)).thenReturn(Optional.of(objetivo()));
     }
 
-    private void givenNingunObjetivoDelNegocio() {
+    private void dadoNingunObjetivoDelNegocio() {
         when(objetivoRepository.findByIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
     }
 
-    // --- act ---
-    private void whenEliminar() {
+    // --- cuando ---
+
+    private void cuandoSeElimina() {
         eliminarObjetivo.execute(new EliminarObjetivoRequest(USUARIO_ID, OBJETIVO_ID));
+    }
+
+    private void cuandoSeIntentaEliminar() {
+        rechazo = catchThrowable(this::cuandoSeElimina);
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeBorraElObjetivoDelNegocio() {
+        verify(objetivoRepository).deleteByIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID);
+    }
+
+    private void entoncesSeRechazaComoInexistenteSinBorrar() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class);
+        verify(objetivoRepository, never()).deleteByIdAndNegocioId(any(), any());
     }
 }

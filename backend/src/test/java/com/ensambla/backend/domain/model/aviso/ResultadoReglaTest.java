@@ -8,92 +8,208 @@ import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ResultadoReglaTest {
 
-    private static final RegistroId REGISTRO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
+    private static final RegistroId MENOR = RegistroId.de("d0000000-0000-4000-8000-000000000001");
+    private static final RegistroId MAYOR = RegistroId.de("d0000000-0000-4000-8000-000000000002");
+
+    private String entidad;
+    private String otraEntidad;
+    private Optional<RegistroId> registro;
+    private String huella;
+    private String otraHuella;
 
     @Test
     @DisplayName("La entidad de un registro lleva el prefijo registro")
-    void entidadDeRegistroShouldUsePrefix() {
-        assertThat(ResultadoRegla.entidadDeRegistro(REGISTRO_ID)).isEqualTo("registro:" + REGISTRO_ID);
+    void laEntidadDeUnRegistroLlevaElPrefijoRegistro() {
+        cuandoSeArmaLaEntidadDelRegistro();
+
+        entoncesLaEntidadEs("registro:" + MENOR);
     }
 
     @Test
     @DisplayName("La entidad de un combo es la misma sin importar el orden de los productos")
-    void entidadDeComboShouldNotDependOnOrder() {
-        RegistroId mayor = RegistroId.de("d0000000-0000-4000-8000-000000000002");
-        String esperada = "combo:" + REGISTRO_ID + ":" + mayor;
+    void laEntidadDeUnComboEsLaMismaSinImportarElOrdenDeLosProductos() {
+        cuandoSeArmaLaEntidadDelComboEnAmbosOrdenes();
 
-        assertThat(ResultadoRegla.entidadDeCombo(REGISTRO_ID, mayor)).isEqualTo(esperada);
-        assertThat(ResultadoRegla.entidadDeCombo(mayor, REGISTRO_ID)).isEqualTo(esperada);
+        entoncesAmbasEntidadesSon("combo:" + MENOR + ":" + MAYOR);
     }
 
     @Test
-    @DisplayName("La entidad de un producto de la zona es su nombre sin tildes ni mayúsculas, y no apunta a un registro")
-    void entidadDeZonaShouldUseTheNormalizedName() {
-        assertThat(ResultadoRegla.entidadDeZona("Café La Virginia 250 g"))
-                .isEqualTo(ResultadoRegla.entidadDeZona("CAFE LA VIRGINIA 250 G"));
-        assertThat(ResultadoRegla.entidadDeZona("Café")).startsWith("zona:");
-        assertThat(ResultadoRegla.registroDe(ResultadoRegla.entidadDeZona("Café"))).isEmpty();
+    @DisplayName("La entidad de un producto de la zona es su nombre sin tildes ni mayúsculas")
+    void laEntidadDeUnProductoDeLaZonaEsSuNombreSinTildesNiMayusculas() {
+        cuandoSeArmaLaEntidadDeZonaDeDosEscrituras("Café La Virginia 250 g", "CAFE LA VIRGINIA 250 G");
+
+        entoncesAmbasEntidadesCoinciden();
+    }
+
+    @Test
+    @DisplayName("La entidad de un producto de la zona no apunta a un registro")
+    void laEntidadDeUnProductoDeLaZonaNoApuntaAUnRegistro() {
+        cuandoSeArmaLaEntidadDeZona("Café");
+
+        entoncesLaEntidadEmpiezaCon("zona:");
+        entoncesNoApuntaAUnRegistro();
     }
 
     @Test
     @DisplayName("La entidad de un combo no apunta a un producto solo")
-    void registroDeShouldBeEmptyForComboEntity() {
-        RegistroId mayor = RegistroId.de("d0000000-0000-4000-8000-000000000002");
+    void laEntidadDeUnComboNoApuntaAUnProductoSolo() {
+        cuandoSeArmaLaEntidadDelComboEnAmbosOrdenes();
 
-        assertThat(ResultadoRegla.registroDe(ResultadoRegla.entidadDeCombo(REGISTRO_ID, mayor))).isEmpty();
+        entoncesNoApuntaAUnRegistro();
     }
 
     @Test
     @DisplayName("Del texto de una entidad de registro se recupera el registro")
-    void registroDeShouldReadTheRegistroOfAnEntity() {
-        assertThat(ResultadoRegla.registroDe("registro:" + REGISTRO_ID)).contains(REGISTRO_ID);
+    void delTextoDeUnaEntidadDeRegistroSeRecuperaElRegistro() {
+        cuandoSeLeeElRegistroDe("registro:" + MENOR);
+
+        entoncesSeRecuperaElRegistro();
     }
 
     @Test
-    @DisplayName("Una entidad que no es un registro, o con un id inválido, no tiene registro")
-    void registroDeShouldBeEmptyWhenTheEntityIsNotARegistro() {
-        assertThat(ResultadoRegla.registroDe(null)).isEmpty();
-        assertThat(ResultadoRegla.registroDe("zona:yerba")).isEmpty();
-        assertThat(ResultadoRegla.registroDe("registro:no-es-un-uuid")).isEmpty();
+    @DisplayName("Una entidad ausente no tiene registro")
+    void unaEntidadAusenteNoTieneRegistro() {
+        cuandoSeLeeElRegistroDe(null);
+
+        entoncesNoHayRegistro();
+    }
+
+    @Test
+    @DisplayName("Una entidad que no es un registro no tiene registro")
+    void unaEntidadQueNoEsUnRegistroNoTieneRegistro() {
+        cuandoSeLeeElRegistroDe("zona:yerba");
+
+        entoncesNoHayRegistro();
+    }
+
+    @Test
+    @DisplayName("Una entidad de registro con un id inválido no tiene registro")
+    void unaEntidadDeRegistroConUnIdInvalidoNoTieneRegistro() {
+        cuandoSeLeeElRegistroDe("registro:no-es-un-uuid");
+
+        entoncesNoHayRegistro();
     }
 
     @Test
     @DisplayName("La huella empieza con el tipo y la entidad")
-    void huellaParaShouldStartWithTipoAndEntidad() {
-        ResultadoRegla resultado = givenResultado(Map.of("cantidad", BigDecimal.TWO));
+    void laHuellaEmpiezaConElTipoYLaEntidad() {
+        cuandoSeCalculaLaHuellaDeStockConCantidad(BigDecimal.TWO);
 
-        assertThat(resultado.huellaPara(TipoAviso.STOCK)).startsWith("STOCK:registro:1:");
+        entoncesLaHuellaEmpiezaCon("STOCK:registro:1:");
     }
 
     @Test
     @DisplayName("La huella no depende del orden de los datos ni de ceros decimales")
-    void huellaParaShouldIgnoreOrderAndTrailingZeros() {
+    void laHuellaNoDependeDelOrdenDeLosDatosNiDeCerosDecimales() {
+        cuandoSeCalculaLaHuellaDeLosMismosDatosEnOtroOrdenYConCerosDeMas();
+
+        entoncesLasHuellasCoinciden();
+    }
+
+    @Test
+    @DisplayName("La huella cambia cuando cambian los datos de origen")
+    void laHuellaCambiaCuandoCambianLosDatosDeOrigen() {
+        cuandoSeCalculaLaHuellaConCantidadesDistintas();
+
+        entoncesLasHuellasDifieren();
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeArmaLaEntidadDelRegistro() {
+        entidad = ResultadoRegla.entidadDeRegistro(MENOR);
+    }
+
+    private void cuandoSeArmaLaEntidadDelComboEnAmbosOrdenes() {
+        entidad = ResultadoRegla.entidadDeCombo(MENOR, MAYOR);
+        otraEntidad = ResultadoRegla.entidadDeCombo(MAYOR, MENOR);
+    }
+
+    private void cuandoSeArmaLaEntidadDeZona(String nombre) {
+        entidad = ResultadoRegla.entidadDeZona(nombre);
+    }
+
+    private void cuandoSeArmaLaEntidadDeZonaDeDosEscrituras(String nombre, String otroNombre) {
+        entidad = ResultadoRegla.entidadDeZona(nombre);
+        otraEntidad = ResultadoRegla.entidadDeZona(otroNombre);
+    }
+
+    private void cuandoSeLeeElRegistroDe(String texto) {
+        registro = ResultadoRegla.registroDe(texto);
+    }
+
+    private void cuandoSeCalculaLaHuellaDeStockConCantidad(BigDecimal cantidad) {
+        huella = unResultado(Map.of("cantidad", cantidad)).huellaPara(TipoAviso.STOCK);
+    }
+
+    private void cuandoSeCalculaLaHuellaDeLosMismosDatosEnOtroOrdenYConCerosDeMas() {
         Map<String, Object> uno = new LinkedHashMap<>();
         uno.put("cantidad", new BigDecimal("2.0"));
         uno.put("minimo", 5);
         Map<String, Object> otro = new LinkedHashMap<>();
         otro.put("minimo", 5);
         otro.put("cantidad", new BigDecimal("2"));
-
-        assertThat(givenResultado(uno).huellaPara(TipoAviso.STOCK))
-                .isEqualTo(givenResultado(otro).huellaPara(TipoAviso.STOCK));
+        huella = unResultado(uno).huellaPara(TipoAviso.STOCK);
+        otraHuella = unResultado(otro).huellaPara(TipoAviso.STOCK);
     }
 
-    @Test
-    @DisplayName("La huella cambia cuando cambian los datos de origen")
-    void huellaParaShouldChangeWhenDatosChange() {
-        ResultadoRegla antes = givenResultado(Map.of("cantidad", new BigDecimal("2")));
-        ResultadoRegla despues = givenResultado(Map.of("cantidad", new BigDecimal("1")));
-
-        assertThat(antes.huellaPara(TipoAviso.STOCK)).isNotEqualTo(despues.huellaPara(TipoAviso.STOCK));
+    private void cuandoSeCalculaLaHuellaConCantidadesDistintas() {
+        huella = unResultado(Map.of("cantidad", new BigDecimal("2"))).huellaPara(TipoAviso.STOCK);
+        otraHuella = unResultado(Map.of("cantidad", new BigDecimal("1"))).huellaPara(TipoAviso.STOCK);
     }
 
-    private static ResultadoRegla givenResultado(Map<String, Object> datos) {
+    // --- entonces ---
+
+    private void entoncesLaEntidadEs(String esperada) {
+        assertThat(entidad).isEqualTo(esperada);
+    }
+
+    private void entoncesLaEntidadEmpiezaCon(String prefijo) {
+        assertThat(entidad).startsWith(prefijo);
+    }
+
+    private void entoncesAmbasEntidadesSon(String esperada) {
+        assertThat(entidad).isEqualTo(esperada);
+        assertThat(otraEntidad).isEqualTo(esperada);
+    }
+
+    private void entoncesAmbasEntidadesCoinciden() {
+        assertThat(entidad).isEqualTo(otraEntidad);
+    }
+
+    private void entoncesNoApuntaAUnRegistro() {
+        assertThat(ResultadoRegla.registroDe(entidad)).isEmpty();
+    }
+
+    private void entoncesSeRecuperaElRegistro() {
+        assertThat(registro).contains(MENOR);
+    }
+
+    private void entoncesNoHayRegistro() {
+        assertThat(registro).isEmpty();
+    }
+
+    private void entoncesLaHuellaEmpiezaCon(String prefijo) {
+        assertThat(huella).startsWith(prefijo);
+    }
+
+    private void entoncesLasHuellasCoinciden() {
+        assertThat(huella).isEqualTo(otraHuella);
+    }
+
+    private void entoncesLasHuellasDifieren() {
+        assertThat(huella).isNotEqualTo(otraHuella);
+    }
+
+    // --- datos ---
+
+    private static ResultadoRegla unResultado(Map<String, Object> datos) {
         return new ResultadoRegla(null, "registro:1", (short) 2, "titulo", "detalle", datos, List.of(), List.of());
     }
 }

@@ -28,11 +28,29 @@ class MedirObjetivosTest {
 
     @Test
     @DisplayName("Mide en el momento los objetivos del negocio de la sesión")
-    void executeShouldMonitorSessionNegocioNow() {
+    void mideEnElMomentoLosObjetivosDelNegocioDeLaSesion() {
+        dadoElNegocioDeLaSesion();
+
+        cuandoSeMidenLosObjetivos();
+
+        entoncesSeMonitoreaElNegocioAhora();
+    }
+
+    // --- dado ---
+
+    private void dadoElNegocioDeLaSesion() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+    }
 
+    // --- cuando ---
+
+    private void cuandoSeMidenLosObjetivos() {
         medirObjetivos.execute(new MedirObjetivosRequest(USUARIO_ID));
+    }
 
+    // --- entonces ---
+
+    private void entoncesSeMonitoreaElNegocioAhora() {
         verify(monitoreoObjetivosService).monitorear(NEGOCIO_ID, OffsetDateTime.now(CLOCK));
     }
 }

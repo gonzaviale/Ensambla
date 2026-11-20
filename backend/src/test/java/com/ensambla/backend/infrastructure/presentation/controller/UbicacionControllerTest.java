@@ -22,6 +22,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import org.springframework.test.web.servlet.ResultActions;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -36,6 +37,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class UbicacionControllerTest {
+
+    private ResultActions resultado;
 
     private static final String CONSULTA = "Varela 1903, San Justo";
     private static final BuscarDireccionesRequest REQUEST = new BuscarDireccionesRequest(CONSULTA);
@@ -59,46 +62,32 @@ class UbicacionControllerTest {
 
     @Test
     @DisplayName("La búsqueda devuelve opciones completas y prohíbe la caché del navegador")
-    void buscarShouldReturnDirectionsWithoutBrowserCache() throws Exception {
-        when(buscarDirecciones.execute(REQUEST)).thenReturn(new BuscarDireccionesResponse(List.of(
-                new DireccionItem(CONSULTA, new BigDecimal("-34.67"), new BigDecimal("-58.56"), "San Justo"))));
+    void laBusquedaDevuelveOpcionesCompletasYProhibeLaCacheDelNavegador() throws Exception {
+        dadoElEscenarioDeLaBusquedaDevuelveOpcionesCompletasYProhibeLaCacheDelNavegador();
 
-        mockMvc.perform(post("/api/ubicacion/direcciones").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"consulta\":\"" + CONSULTA + "\"}"))
-                .andExpect(status().isOk())
-                .andExpect(header().string("Cache-Control", "no-store"))
-                .andExpect(jsonPath("$.resultados[0].direccion").value(CONSULTA))
-                .andExpect(jsonPath("$.resultados[0].latitud").value(-34.67))
-                .andExpect(jsonPath("$.resultados[0].longitud").value(-58.56))
-                .andExpect(jsonPath("$.resultados[0].localidad").value("San Justo"));
+        cuandoSeEjecutaLaBusquedaDevuelveOpcionesCompletasYProhibeLaCacheDelNavegador();
 
-        verify(buscarDirecciones).execute(REQUEST);
+        entoncesSeVerificaLaBusquedaDevuelveOpcionesCompletasYProhibeLaCacheDelNavegador();
     }
 
     @Test
     @DisplayName("La localidad del punto se devuelve sin caché del navegador")
-    void resolverLocalidadShouldReturnLocalitiesWithoutBrowserCache() throws Exception {
-        when(resolverLocalidad.execute(PUNTO)).thenReturn(
-                new ResolverLocalidadResponse("San Justo", List.of("San Justo", "Villa Luzuriaga")));
+    void laLocalidadDelPuntoSeDevuelveSinCacheDelNavegador() throws Exception {
+        dadoElEscenarioDeLaLocalidadDelPuntoSeDevuelveSinCacheDelNavegador();
 
-        mockMvc.perform(post("/api/ubicacion/localidad").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"latitud\":-34.6701,\"longitud\":-58.5625}"))
-                .andExpect(status().isOk())
-                .andExpect(header().string("Cache-Control", "no-store"))
-                .andExpect(jsonPath("$.localidad").value("San Justo"))
-                .andExpect(jsonPath("$.localidades[1]").value("Villa Luzuriaga"));
+        cuandoSeEjecutaLaLocalidadDelPuntoSeDevuelveSinCacheDelNavegador();
+
+        entoncesSeVerificaLaLocalidadDelPuntoSeDevuelveSinCacheDelNavegador();
     }
 
     @Test
     @DisplayName("Un punto sin localidad reconocida responde localidad nula y lista vacía")
-    void resolverLocalidadShouldReturnEmptyLocalities() throws Exception {
-        when(resolverLocalidad.execute(PUNTO)).thenReturn(new ResolverLocalidadResponse(null, List.of()));
+    void unPuntoSinLocalidadReconocidaRespondeLocalidadNulaYListaVacia() throws Exception {
+        dadoElEscenarioDeUnPuntoSinLocalidadReconocidaRespondeLocalidadNulaYListaVacia();
 
-        mockMvc.perform(post("/api/ubicacion/localidad").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"latitud\":-34.6701,\"longitud\":-58.5625}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.localidad").isEmpty())
-                .andExpect(jsonPath("$.localidades").isEmpty());
+        cuandoSeEjecutaUnPuntoSinLocalidadReconocidaRespondeLocalidadNulaYListaVacia();
+
+        entoncesSeVerificaUnPuntoSinLocalidadReconocidaRespondeLocalidadNulaYListaVacia();
     }
 
     @ParameterizedTest
@@ -108,75 +97,216 @@ class UbicacionControllerTest {
             "{\"latitud\":0,\"longitud\":181}", "{\"latitud\":0,\"longitud\":-181}"
     })
     @DisplayName("Un punto inválido no llega al caso de uso")
-    void resolverLocalidadShouldRejectInvalidPoint(String body) throws Exception {
-        mockMvc.perform(post("/api/ubicacion/localidad").contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isBadRequest());
+    void unPuntoInvalidoNoLlegaAlCasoDeUso(String body) throws Exception {
+        cuandoSeResuelveLaLocalidadDelPunto(body);
 
-        verifyNoInteractions(resolverLocalidad);
+        entoncesSeRechazaElPuntoSinLlegarAlCasoDeUso();
     }
 
     @Test
     @DisplayName("El proveedor caído al resolver la localidad responde 503")
-    void resolverLocalidadShouldReturn503WhenProviderUnavailable() throws Exception {
-        when(resolverLocalidad.execute(PUNTO)).thenThrow(new ServicioUbicacionException("Sin servicio"));
+    void elProveedorCaidoAlResolverLaLocalidadResponde503() throws Exception {
+        dadoElEscenarioDeElProveedorCaidoAlResolverLaLocalidadResponde503();
 
-        mockMvc.perform(post("/api/ubicacion/localidad").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"latitud\":-34.6701,\"longitud\":-58.5625}"))
-                .andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("$.message").value("Sin servicio"));
+        cuandoSeEjecutaElProveedorCaidoAlResolverLaLocalidadResponde503();
+
+        entoncesSeVerificaElProveedorCaidoAlResolverLaLocalidadResponde503();
     }
 
     @Test
     @DisplayName("La búsqueda sin coincidencias responde con una lista vacía")
-    void buscarShouldReturnEmptyResults() throws Exception {
-        when(buscarDirecciones.execute(REQUEST)).thenReturn(new BuscarDireccionesResponse(List.of()));
+    void laBusquedaSinCoincidenciasRespondeConUnaListaVacia() throws Exception {
+        dadoElEscenarioDeLaBusquedaSinCoincidenciasRespondeConUnaListaVacia();
 
-        mockMvc.perform(post("/api/ubicacion/direcciones").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"consulta\":\"" + CONSULTA + "\"}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.resultados").isEmpty());
+        cuandoSeEjecutaLaBusquedaSinCoincidenciasRespondeConUnaListaVacia();
+
+        entoncesSeVerificaLaBusquedaSinCoincidenciasRespondeConUnaListaVacia();
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"{}", "{\"consulta\":null}", "{\"consulta\":\"    \"}", "{\"consulta\":\"abcd\"}"})
     @DisplayName("Una dirección inválida no llega al caso de uso")
-    void buscarShouldRejectInvalidBody(String body) throws Exception {
-        mockMvc.perform(post("/api/ubicacion/direcciones").contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.consulta").exists());
+    void unaDireccionInvalidaNoLlegaAlCasoDeUso(String body) throws Exception {
+        cuandoSeBuscanLasDireccionesCon(body);
 
-        verifyNoInteractions(buscarDirecciones);
+        entoncesSeRechazaLaConsultaSinLlegarAlCasoDeUso();
     }
 
     @Test
     @DisplayName("El proveedor caído responde 503 con el formato de error de la aplicación")
-    void buscarShouldReturn503WhenProviderUnavailable() throws Exception {
-        when(buscarDirecciones.execute(REQUEST)).thenThrow(new ServicioUbicacionException("Sin servicio"));
+    void elProveedorCaidoResponde503ConElFormatoDeErrorDeLaAplicacion() throws Exception {
+        dadoElEscenarioDeElProveedorCaidoResponde503ConElFormatoDeErrorDeLaAplicacion();
 
-        mockMvc.perform(post("/api/ubicacion/direcciones").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"consulta\":\"" + CONSULTA + "\"}"))
-                .andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("$.message").value("Sin servicio"))
-                .andExpect(jsonPath("$.traceId").isNotEmpty());
+        cuandoSeEjecutaElProveedorCaidoResponde503ConElFormatoDeErrorDeLaAplicacion();
+
+        entoncesSeVerificaElProveedorCaidoResponde503ConElFormatoDeErrorDeLaAplicacion();
     }
 
     @Test
     @DisplayName("El catálogo devuelve código estable y nombre legible")
-    void listarRubrosShouldReturnCatalog() throws Exception {
-        when(listarRubros.execute()).thenReturn(new ListarRubrosResponse(List.of(
-                new RubroItem("ALMACEN", "Almacén"), new RubroItem("OTRO", "Otro"))));
+    void elCatalogoDevuelveCodigoEstableYNombreLegible() throws Exception {
+        dadoElEscenarioDeElCatalogoDevuelveCodigoEstableYNombreLegible();
 
-        mockMvc.perform(get("/api/ubicacion/rubros"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.rubros[0].codigo").value("ALMACEN"))
-                .andExpect(jsonPath("$.rubros[0].nombre").value("Almacén"))
-                .andExpect(jsonPath("$.rubros[1].codigo").value("OTRO"));
+        cuandoSeEjecutaElCatalogoDevuelveCodigoEstableYNombreLegible();
+
+        entoncesSeVerificaElCatalogoDevuelveCodigoEstableYNombreLegible();
     }
 
     @Test
     @DisplayName("El listado respeta un catálogo vacío")
-    void listarRubrosShouldReturnEmptyCatalog() throws Exception {
-        when(listarRubros.execute()).thenReturn(new ListarRubrosResponse(List.of()));
+    void elListadoRespetaUnCatalogoVacio() throws Exception {
+        dadoElEscenarioDeElListadoRespetaUnCatalogoVacio();
 
-        mockMvc.perform(get("/api/ubicacion/rubros"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.rubros").isEmpty());
+        cuandoSeEjecutaElListadoRespetaUnCatalogoVacio();
+
+        entoncesSeVerificaElListadoRespetaUnCatalogoVacio();
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeLaBusquedaDevuelveOpcionesCompletasYProhibeLaCacheDelNavegador() throws Exception {
+        when(buscarDirecciones.execute(REQUEST)).thenReturn(new BuscarDireccionesResponse(List.of(
+                        new DireccionItem(CONSULTA, new BigDecimal("-34.67"), new BigDecimal("-58.56"), "San Justo"))));
+    }
+
+    private void dadoElEscenarioDeLaLocalidadDelPuntoSeDevuelveSinCacheDelNavegador() throws Exception {
+        when(resolverLocalidad.execute(PUNTO)).thenReturn(
+                        new ResolverLocalidadResponse("San Justo", List.of("San Justo", "Villa Luzuriaga")));
+    }
+
+    private void dadoElEscenarioDeUnPuntoSinLocalidadReconocidaRespondeLocalidadNulaYListaVacia() throws Exception {
+        when(resolverLocalidad.execute(PUNTO)).thenReturn(new ResolverLocalidadResponse(null, List.of()));
+    }
+
+    private void dadoElEscenarioDeElProveedorCaidoAlResolverLaLocalidadResponde503() throws Exception {
+        when(resolverLocalidad.execute(PUNTO)).thenThrow(new ServicioUbicacionException("Sin servicio"));
+    }
+
+    private void dadoElEscenarioDeLaBusquedaSinCoincidenciasRespondeConUnaListaVacia() throws Exception {
+        when(buscarDirecciones.execute(REQUEST)).thenReturn(new BuscarDireccionesResponse(List.of()));
+    }
+
+    private void dadoElEscenarioDeElProveedorCaidoResponde503ConElFormatoDeErrorDeLaAplicacion() throws Exception {
+        when(buscarDirecciones.execute(REQUEST)).thenThrow(new ServicioUbicacionException("Sin servicio"));
+    }
+
+    private void dadoElEscenarioDeElCatalogoDevuelveCodigoEstableYNombreLegible() throws Exception {
+        when(listarRubros.execute()).thenReturn(new ListarRubrosResponse(List.of(
+                        new RubroItem("ALMACEN", "Almacén"), new RubroItem("OTRO", "Otro"))));
+    }
+
+    private void dadoElEscenarioDeElListadoRespetaUnCatalogoVacio() throws Exception {
+        when(listarRubros.execute()).thenReturn(new ListarRubrosResponse(List.of()));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeResuelveLaLocalidadDelPunto(String body) throws Exception {
+        resultado = mockMvc.perform(post("/api/ubicacion/localidad")
+                .contentType(MediaType.APPLICATION_JSON).content(body));
+    }
+
+    private void cuandoSeBuscanLasDireccionesCon(String body) throws Exception {
+        resultado = mockMvc.perform(post("/api/ubicacion/direcciones")
+                .contentType(MediaType.APPLICATION_JSON).content(body));
+    }
+
+    private void cuandoSeEjecutaLaBusquedaDevuelveOpcionesCompletasYProhibeLaCacheDelNavegador() throws Exception {
+        resultado = mockMvc.perform(post("/api/ubicacion/direcciones").contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"consulta\":\"" + CONSULTA + "\"}"));
+    }
+
+    private void cuandoSeEjecutaLaLocalidadDelPuntoSeDevuelveSinCacheDelNavegador() throws Exception {
+        resultado = mockMvc.perform(post("/api/ubicacion/localidad").contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"latitud\":-34.6701,\"longitud\":-58.5625}"));
+    }
+
+    private void cuandoSeEjecutaUnPuntoSinLocalidadReconocidaRespondeLocalidadNulaYListaVacia() throws Exception {
+        resultado = mockMvc.perform(post("/api/ubicacion/localidad").contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"latitud\":-34.6701,\"longitud\":-58.5625}"));
+    }
+
+    private void cuandoSeEjecutaElProveedorCaidoAlResolverLaLocalidadResponde503() throws Exception {
+        resultado = mockMvc.perform(post("/api/ubicacion/localidad").contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"latitud\":-34.6701,\"longitud\":-58.5625}"));
+    }
+
+    private void cuandoSeEjecutaLaBusquedaSinCoincidenciasRespondeConUnaListaVacia() throws Exception {
+        resultado = mockMvc.perform(post("/api/ubicacion/direcciones").contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"consulta\":\"" + CONSULTA + "\"}"));
+    }
+
+    private void cuandoSeEjecutaElProveedorCaidoResponde503ConElFormatoDeErrorDeLaAplicacion() throws Exception {
+        resultado = mockMvc.perform(post("/api/ubicacion/direcciones").contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"consulta\":\"" + CONSULTA + "\"}"));
+    }
+
+    private void cuandoSeEjecutaElCatalogoDevuelveCodigoEstableYNombreLegible() throws Exception {
+        resultado = mockMvc.perform(get("/api/ubicacion/rubros"));
+    }
+
+    private void cuandoSeEjecutaElListadoRespetaUnCatalogoVacio() throws Exception {
+        resultado = mockMvc.perform(get("/api/ubicacion/rubros"));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeRechazaElPuntoSinLlegarAlCasoDeUso() throws Exception {
+        resultado.andExpect(status().isBadRequest());
+        verifyNoInteractions(resolverLocalidad);
+    }
+
+    private void entoncesSeRechazaLaConsultaSinLlegarAlCasoDeUso() throws Exception {
+        resultado.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.consulta").exists());
+        verifyNoInteractions(buscarDirecciones);
+    }
+
+    private void entoncesSeVerificaLaBusquedaDevuelveOpcionesCompletasYProhibeLaCacheDelNavegador() throws Exception {
+        resultado.andExpect(status().isOk())
+                        .andExpect(header().string("Cache-Control", "no-store"))
+                        .andExpect(jsonPath("$.resultados[0].direccion").value(CONSULTA))
+                        .andExpect(jsonPath("$.resultados[0].latitud").value(-34.67))
+                        .andExpect(jsonPath("$.resultados[0].longitud").value(-58.56))
+                        .andExpect(jsonPath("$.resultados[0].localidad").value("San Justo"));
+        verify(buscarDirecciones).execute(REQUEST);
+    }
+
+    private void entoncesSeVerificaLaLocalidadDelPuntoSeDevuelveSinCacheDelNavegador() throws Exception {
+        resultado.andExpect(status().isOk())
+                        .andExpect(header().string("Cache-Control", "no-store"))
+                        .andExpect(jsonPath("$.localidad").value("San Justo"))
+                        .andExpect(jsonPath("$.localidades[1]").value("Villa Luzuriaga"));
+    }
+
+    private void entoncesSeVerificaUnPuntoSinLocalidadReconocidaRespondeLocalidadNulaYListaVacia() throws Exception {
+        resultado.andExpect(status().isOk())
+                        .andExpect(jsonPath("$.localidad").isEmpty())
+                        .andExpect(jsonPath("$.localidades").isEmpty());
+    }
+
+    private void entoncesSeVerificaElProveedorCaidoAlResolverLaLocalidadResponde503() throws Exception {
+        resultado.andExpect(status().isServiceUnavailable())
+                        .andExpect(jsonPath("$.message").value("Sin servicio"));
+    }
+
+    private void entoncesSeVerificaLaBusquedaSinCoincidenciasRespondeConUnaListaVacia() throws Exception {
+        resultado.andExpect(status().isOk()).andExpect(jsonPath("$.resultados").isEmpty());
+    }
+
+    private void entoncesSeVerificaElProveedorCaidoResponde503ConElFormatoDeErrorDeLaAplicacion() throws Exception {
+        resultado.andExpect(status().isServiceUnavailable())
+                        .andExpect(jsonPath("$.message").value("Sin servicio"))
+                        .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
+
+    private void entoncesSeVerificaElCatalogoDevuelveCodigoEstableYNombreLegible() throws Exception {
+        resultado.andExpect(status().isOk())
+                        .andExpect(jsonPath("$.rubros[0].codigo").value("ALMACEN"))
+                        .andExpect(jsonPath("$.rubros[0].nombre").value("Almacén"))
+                        .andExpect(jsonPath("$.rubros[1].codigo").value("OTRO"));
+    }
+
+    private void entoncesSeVerificaElListadoRespetaUnCatalogoVacio() throws Exception {
+        resultado.andExpect(status().isOk()).andExpect(jsonPath("$.rubros").isEmpty());
     }
 }

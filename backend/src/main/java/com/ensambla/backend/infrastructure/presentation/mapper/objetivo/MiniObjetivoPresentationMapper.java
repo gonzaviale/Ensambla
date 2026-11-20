@@ -54,6 +54,7 @@ public class MiniObjetivoPresentationMapper {
         return new MiniObjetivoResponse(
                 item.id(),
                 item.posicion(),
+                item.modo(),
                 item.tipo(),
                 item.sentido(),
                 item.estado(),

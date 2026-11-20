@@ -4,6 +4,7 @@ import {
   map,
   marker,
   tileLayer,
+  type LatLng,
   type LeafletMouseEvent,
   type Map,
   type Marker,
@@ -18,6 +19,47 @@ const MARCADOR_DEL_COMERCIO: TextosDelMarcador = {
   titulo: 'Ubicación de tu comercio',
   alternativo: 'Punto de tu comercio: arrastrá para ajustarlo',
 };
+
+type Coordenada = [number, number];
+
+const coordenadasDe = (punto: Punto): Coordenada => [punto.latitud, punto.longitud];
+
+const puntoDe = (posicion: LatLng): Punto => {
+  const { lat, lng } = posicion.wrap();
+  return { latitud: lat, longitud: lng };
+};
+
+function crearMapa(contenedor: HTMLDivElement, centro: Coordenada, alFallar: () => void): Map {
+  const instancia = map(contenedor, { scrollWheelZoom: false, zoomControl: true }).setView(
+    centro,
+    cartografia.zoomInicial,
+  );
+  tileLayer(cartografia.url, {
+    attribution: cartografia.atribucion,
+    maxZoom: cartografia.zoomMaximo,
+    // No se descargan mosaicos fuera de la vista ni se anticipa su carga.
+    keepBuffer: 0,
+    updateWhenIdle: true,
+  })
+    .addTo(instancia)
+    .on('tileerror', alFallar);
+  return instancia;
+}
+
+function crearMarcador(centro: Coordenada, textos: TextosDelMarcador): Marker {
+  return marker(centro, {
+    draggable: true,
+    autoPan: true,
+    title: textos.titulo,
+    alt: textos.alternativo,
+    icon: divIcon({
+      className: 'ubicacion-pin',
+      html: '<span></span>',
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+    }),
+  });
+}
 
 export function useMapaUbicacion(
   punto: Punto,
@@ -38,39 +80,11 @@ export function useMapaUbicacion(
 
   useEffect(() => {
     if (!contenedor.current) return;
-    const centro: [number, number] = [inicio.current.latitud, inicio.current.longitud];
-    const instancia = map(contenedor.current, {
-      scrollWheelZoom: false,
-      zoomControl: true,
-    }).setView(centro, cartografia.zoomInicial);
-    const capa = tileLayer(cartografia.url, {
-      attribution: cartografia.atribucion,
-      maxZoom: cartografia.zoomMaximo,
-      // No se descargan mosaicos fuera de la vista ni se anticipa su carga.
-      keepBuffer: 0,
-      updateWhenIdle: true,
-    }).addTo(instancia);
-    capa.on('tileerror', () => setError(true));
-    const marcador = marker(centro, {
-      draggable: true,
-      autoPan: true,
-      title: textos.current.titulo,
-      alt: textos.current.alternativo,
-      icon: divIcon({
-        className: 'ubicacion-pin',
-        html: '<span></span>',
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
-      }),
-    }).addTo(instancia);
-    marcador.on('dragend', () => {
-      const posicion = marcador.getLatLng().wrap();
-      mover.current({ latitud: posicion.lat, longitud: posicion.lng });
-    });
-    instancia.on('click', (evento: LeafletMouseEvent) => {
-      const posicion = evento.latlng.wrap();
-      mover.current({ latitud: posicion.lat, longitud: posicion.lng });
-    });
+    const centro = coordenadasDe(inicio.current);
+    const instancia = crearMapa(contenedor.current, centro, () => setError(true));
+    const marcador = crearMarcador(centro, textos.current).addTo(instancia);
+    marcador.on('dragend', () => mover.current(puntoDe(marcador.getLatLng())));
+    instancia.on('click', (evento: LeafletMouseEvent) => mover.current(puntoDe(evento.latlng)));
     mapa.current = instancia;
     pin.current = marcador;
     return () => {
@@ -81,7 +95,7 @@ export function useMapaUbicacion(
   }, []);
 
   useEffect(() => {
-    const centro: [number, number] = [punto.latitud, punto.longitud];
+    const centro = coordenadasDe({ latitud: punto.latitud, longitud: punto.longitud });
     pin.current?.setLatLng(centro);
     mapa.current?.panTo(centro, { animate: false });
   }, [punto.latitud, punto.longitud]);

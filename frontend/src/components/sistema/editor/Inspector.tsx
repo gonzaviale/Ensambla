@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
-import { COLORS, FIELD_TYPES, NOMBRES_DE_COLOR } from '@/lib/sistema/catalogo';
-import type { Ancho, Bloque, Color, Sistema, TipoCampo } from '@/lib/sistema/tipos';
+import { COLORS, NOMBRES_DE_COLOR } from '@/lib/sistema/catalogo';
+import type { Ancho, Bloque, Color, Sistema } from '@/lib/sistema/tipos';
 import {
   cambiarAncho,
   cambiarColor,
@@ -8,9 +7,10 @@ import {
   cambiarSeccionDelBloque,
 } from '@/stores/accionesDelEditor';
 import { useSistemaStore } from '@/stores/sistemaStore';
-import { Btn } from '../Btn';
 import { Icon } from '../Icon';
 import { IconBtn } from '../IconBtn';
+import { PanelDelBloque } from './PanelesDelInspector';
+import { TextoAlSalir } from './TextoAlSalir';
 
 const ANCHOS: [Ancho, string][] = [
   ['full', 'Toda la fila'],
@@ -19,63 +19,9 @@ const ANCHOS: [Ancho, string][] = [
   ['third', 'Un tercio de la fila'],
 ];
 
-const INSIGNIAS: Record<TipoCampo, string> = {
-  text: 'Aa',
-  textarea: '¶',
-  number: '#',
-  currency: '$',
-  date: '◷',
-  time: '◷',
-  select: '≡',
-  email: '@',
-  tel: '☎',
-  checkbox: '✓',
-  relation: '↗',
-};
-
-// Un texto que se guarda al salir del campo («change» en el mockup), no con cada tecla.
-function TextoAlSalir({
-  valor,
-  alGuardar,
-  area = false,
-  ...resto
-}: {
-  valor: string;
-  alGuardar: (valor: string) => void;
-  area?: boolean;
-  id: string;
-  maxLength: number;
-  'data-tour'?: string;
-}) {
-  const [escrito, setEscrito] = useState(valor);
-  useEffect(() => setEscrito(valor), [valor]);
-  const salir = () => {
-    const limpio = escrito.trim();
-    if (limpio === valor) return;
-    alGuardar(limpio);
-  };
-  return area ? (
-    <textarea
-      {...resto}
-      value={escrito}
-      onChange={(e) => setEscrito(e.target.value)}
-      onBlur={salir}
-    />
-  ) : (
-    <input
-      {...resto}
-      className="input"
-      value={escrito}
-      onChange={(e) => setEscrito(e.target.value)}
-      onBlur={salir}
-    />
-  );
-}
-
 // El panel que se despliega a la derecha en Construir con los ajustes del bloque elegido; la X lo cierra.
 export function Inspector({ bloque, sistema }: { bloque: Bloque; sistema: Sistema }) {
   const seleccionar = useSistemaStore((estado) => estado.seleccionar);
-  const abrirModal = useSistemaStore((estado) => estado.abrirModal);
 
   const seccionDelBloque = sistema.sections.find((seccion) =>
     seccion.blocks.some((otro) => otro.id === bloque.id),
@@ -162,59 +108,7 @@ export function Inspector({ bloque, sistema }: { bloque: Bloque; sistema: Sistem
           ))}
         </select>
       </div>
-      {bloque.type === 'note' ? (
-        <div className="field">
-          <label htmlFor="note-content">Tu nota</label>
-          <TextoAlSalir
-            area
-            id="note-content"
-            maxLength={3000}
-            valor={bloque.content}
-            alGuardar={(valor) => cambiarDatoDelBloque(bloque.id, 'content', valor)}
-          />
-        </div>
-      ) : bloque.type === 'summary' ? (
-        <p className="inspector-hint">
-          Estos indicadores toman los registros de todos los bloques de la sección y se actualizan
-          cuando cargás datos.
-        </p>
-      ) : (
-        <>
-          <div className="inspector-section-label">
-            Campos de tus registros<span className="tag outline">{bloque.fields.length}</span>
-          </div>
-          {bloque.fields.map((campo) => (
-            <button
-              key={campo.key}
-              type="button"
-              className="field-item"
-              onClick={() => abrirModal({ tipo: 'campo', bloqueId: bloque.id, clave: campo.key })}
-            >
-              <span className="field-type-badge" data-tipo={campo.type}>
-                {INSIGNIAS[campo.type]}
-              </span>
-              <span>
-                <strong>
-                  {campo.label}
-                  {campo.required ? ' *' : ''}
-                </strong>
-                <small>{FIELD_TYPES[campo.type]}</small>
-              </span>
-              <Icon name="edit" />
-            </button>
-          ))}
-          <Btn
-            cls="secondary small full"
-            onClick={() => abrirModal({ tipo: 'campo', bloqueId: bloque.id })}
-          >
-            <Icon name="plus" /> Agregar campo
-          </Btn>
-          <p className="inspector-hint">
-            Cambiá los nombres sin perder datos. Los vínculos conectan registros de distintos
-            bloques.
-          </p>
-        </>
-      )}
+      <PanelDelBloque bloque={bloque} />
     </aside>
   );
 }

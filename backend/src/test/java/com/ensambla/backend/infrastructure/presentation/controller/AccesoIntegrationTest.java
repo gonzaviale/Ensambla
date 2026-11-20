@@ -31,7 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
@@ -66,9 +66,15 @@ class AccesoIntegrationTest extends PostgresRepositoryTestSupport {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    private Csrf csrf;
+    private Cookie cookie;
+    private ResultActions respuesta;
+    private MvcResult resultado;
+    private Throwable fallo;
+
     @BeforeEach
     @AfterEach
-    void cleanAccounts() {
+    void limpiarLasCuentas() {
         negocioJpaRepository.deleteAll();
         usuarioJpaRepository.deleteAll();
         jdbcTemplate.update("DELETE FROM spring_session");
@@ -76,39 +82,32 @@ class AccesoIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Registro válido responde 201 y persiste un negocio y un hash sin abrir sesión")
-    void registrarShouldCreateUsuarioAndNegocioAtomically() throws Exception {
-        Csrf csrf = givenCsrf(null);
+    void registroValidoResponde201YPersisteUnNegocioYUnHashSinAbrirSesion() throws Exception {
+        dadoUnTokenCsrfSinSesion();
 
-        ResultActions result = registrar(csrf, REGISTRO);
+        cuandoSeRegistraUnaCuenta(REGISTRO);
 
-        thenRegisteredWithHash(result);
-        mockMvc.perform(get("/api/auth/me").cookie(csrf.cookie())).andExpect(status().isUnauthorized());
+        entoncesSeRegistraConElNegocioYElHash();
+        entoncesNoSeAbreSesion();
     }
 
     @Test
     @DisplayName("Email repetido con distinta capitalización responde 409 sin crear otro negocio")
-    void registrarShouldRejectDuplicateEmail() throws Exception {
-        Csrf csrf = givenCsrf(null);
-        registrar(csrf, REGISTRO).andExpect(status().isCreated());
+    void emailRepetidoConDistintaCapitalizacionResponde409SinCrearOtroNegocio() throws Exception {
+        dadoUnaCuentaRegistrada();
 
-        ResultActions result = registrar(csrf, REGISTRO);
+        cuandoSeRegistraUnaCuenta(REGISTRO);
 
-        result.andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message").value("Ya existe una cuenta con ese email"));
-        assertThat(usuarioJpaRepository.count()).isEqualTo(1);
-        assertThat(negocioJpaRepository.count()).isEqualTo(1);
+        entoncesResponde409PorElEmailRepetido();
+        entoncesExisteUnaSolaCuentaConSuNegocio();
     }
 
     @Test
     @DisplayName("Si falla la creación del negocio revierte el usuario en PostgreSQL")
-    void registrarShouldRollbackUsuarioWhenNegocioFails() {
-        RegistrarUsuarioRequest invalid = new RegistrarUsuarioRequest("Brian", "", EMAIL, CONTRASENIA);
+    void siFallaLaCreacionDelNegocioRevierteElUsuarioEnPostgresql() {
+        cuandoSeRegistraUnaCuentaSinNombreDeNegocio();
 
-        assertThatThrownBy(() -> registrarUsuario.execute(invalid))
-                .isInstanceOf(DataIntegrityViolationException.class);
-
-        assertThat(usuarioJpaRepository.findByEmail(EMAIL)).isEmpty();
-        assertThat(negocioJpaRepository.count()).isZero();
+        entoncesSeRevierteElUsuario();
     }
 
     @ParameterizedTest
@@ -119,227 +118,338 @@ class AccesoIntegrationTest extends PostgresRepositoryTestSupport {
             "{\"nombre\":\"Brian\",\"nombreNegocio\":\"Negocio\",\"email\":\"a@b.com\",\"contrasenia\":\"corta\"}"
     })
     @DisplayName("Registro inválido responde 400 sin persistir datos")
-    void registrarShouldRejectInvalidBody(String body) throws Exception {
-        Csrf csrf = givenCsrf(null);
+    void registroInvalidoResponde400SinPersistirDatos(String cuerpo) throws Exception {
+        dadoUnTokenCsrfSinSesion();
 
-        ResultActions result = registrar(csrf, body);
+        cuandoSeRegistraUnaCuenta(cuerpo);
 
-        result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors").isMap());
-        assertThat(usuarioJpaRepository.count()).isZero();
-        assertThat(negocioJpaRepository.count()).isZero();
+        entoncesSeRechazaElRegistroSinPersistirNada();
     }
 
     @Test
     @DisplayName("Contraseña Unicode de más de 72 bytes devuelve validación de campo")
-    void registrarShouldRejectOversizedUnicodePassword() throws Exception {
-        Csrf csrf = givenCsrf(null);
-        String body = REGISTRO.replace(CONTRASENIA, "ñ".repeat(37));
+    void contraseniaUnicodeDeMasDe72BytesDevuelveValidacionDeCampo() throws Exception {
+        dadoUnTokenCsrfSinSesion();
 
-        ResultActions result = registrar(csrf, body);
+        cuandoSeRegistraUnaCuenta(REGISTRO.replace(CONTRASENIA, "ñ".repeat(37)));
 
-        result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.contrasenia").exists());
-        assertThat(usuarioJpaRepository.count()).isZero();
+        entoncesSeRechazaLaContraseniaSinPersistirNada();
     }
 
     @Test
     @DisplayName("Login correcto rota la cookie, persiste la sesión y expone solo identidad pública")
-    void loginShouldRotateCookieAndPersistIdentity() throws Exception {
-        Csrf csrf = givenRegisteredAccount();
+    void loginCorrectoRotaLaCookiePersisteLaSesionYExponeSoloIdentidadPublica() throws Exception {
+        dadoUnaCuentaRegistrada();
 
-        MvcResult result = login(csrf, LOGIN).andExpect(status().isOk()).andReturn();
+        cuandoSeIniciaSesion(LOGIN);
 
-        Cookie cookie = result.getResponse().getCookie("ENSAMBLA_SESSION");
-        assertThat(cookie).isNotNull();
-        assertThat(cookie.getValue()).isNotEqualTo(csrf.cookie().getValue());
-        assertThat(result.getResponse().getHeaders("Set-Cookie").toString())
-                .contains("HttpOnly").contains("SameSite=Lax");
-        mockMvc.perform(get("/api/auth/me").cookie(cookie))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nombre").value("Brian"))
-                .andExpect(jsonPath("$.email").value(EMAIL))
-                .andExpect(jsonPath("$.hashContrasenia").doesNotExist())
-                .andExpect(header().string("Cache-Control", "no-store"));
-        Long timeout = jdbcTemplate.queryForObject(
-                "SELECT max_inactive_interval FROM spring_session WHERE session_id = ?", Long.class,
-                decodeSessionId(cookie));
-        assertThat(timeout).isEqualTo(7200);
+        entoncesSeRotaLaCookieDeSesion();
+        entoncesLaSesionExponeSoloLaIdentidadPublica();
+        entoncesLaSesionPersistidaDuraDosHoras();
     }
 
     @Test
     @DisplayName("Contraseña incorrecta devuelve 401 sin abrir sesión")
-    void loginShouldRejectWrongPassword() throws Exception {
-        Csrf csrf = givenRegisteredAccount();
+    void contraseniaIncorrectaDevuelve401SinAbrirSesion() throws Exception {
+        dadoUnaCuentaRegistrada();
 
-        ResultActions result = login(csrf, LOGIN.replace(CONTRASENIA, "incorrecta"));
+        cuandoSeIniciaSesion(LOGIN.replace(CONTRASENIA, "incorrecta"));
 
-        result.andExpect(status().isUnauthorized());
-        mockMvc.perform(get("/api/auth/me").cookie(csrf.cookie())).andExpect(status().isUnauthorized());
+        entoncesSeRechazaElLoginSinAbrirSesion();
     }
 
     @Test
     @DisplayName("Email desconocido devuelve 401")
-    void loginShouldRejectUnknownEmail() throws Exception {
-        Csrf csrf = givenCsrf(null);
+    void emailDesconocidoDevuelve401() throws Exception {
+        dadoUnTokenCsrfSinSesion();
 
-        ResultActions result = login(csrf, LOGIN);
+        cuandoSeIniciaSesion(LOGIN);
 
-        result.andExpect(status().isUnauthorized());
+        entoncesNoAutoriza();
     }
 
     @Test
     @DisplayName("Un usuario suspendido no puede iniciar sesión")
-    void loginShouldRejectSuspendedUsuario() throws Exception {
-        Csrf csrf = givenRegisteredAccount();
-        givenSuspendedUsuario();
+    void unUsuarioSuspendidoNoPuedeIniciarSesion() throws Exception {
+        dadoUnaCuentaRegistrada();
+        dadoUnUsuarioSuspendido();
 
-        ResultActions result = login(csrf, LOGIN);
+        cuandoSeIniciaSesion(LOGIN);
 
-        result.andExpect(status().isUnauthorized());
+        entoncesNoAutoriza();
     }
 
     @Test
     @DisplayName("Logout elimina la sesión JDBC y una cookie anterior ya no autentica")
-    void logoutShouldInvalidatePreviousCookie() throws Exception {
-        Cookie cookie = givenLogin();
-        Csrf csrf = givenCsrf(cookie);
+    void logoutEliminaLaSesionJdbcYUnaCookieAnteriorYaNoAutentica() throws Exception {
+        dadoUnaSesionIniciada();
 
-        ResultActions result = mockMvc.perform(post("/api/auth/logout")
-                .cookie(cookie).header("X-CSRF-TOKEN", csrf.token()));
+        cuandoSeCierraLaSesion();
 
-        result.andExpect(status().isNoContent()).andExpect(header().string("Cache-Control", "no-store"));
-        assertThat(jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM spring_session WHERE session_id = ?", Long.class, decodeSessionId(cookie)))
-                .isZero();
-        mockMvc.perform(get("/api/auth/me").cookie(cookie)).andExpect(status().isUnauthorized());
-        mockMvc.perform(get("/api/proyectos").cookie(cookie)).andExpect(status().isUnauthorized());
+        entoncesSeEliminaLaSesionPersistida();
+        entoncesLaCookieAnteriorYaNoAutentica();
     }
 
     @Test
     @DisplayName("Una sesión vencida responde 401")
-    void meShouldRejectExpiredSession() throws Exception {
-        Cookie cookie = givenLogin();
-        jdbcTemplate.update("UPDATE spring_session SET last_access_time = 0, expiry_time = 0 WHERE session_id = ?",
-                decodeSessionId(cookie));
+    void unaSesionVencidaResponde401() throws Exception {
+        dadoUnaSesionIniciada();
+        dadoQueLaSesionVencio();
 
-        ResultActions result = mockMvc.perform(get("/api/auth/me").cookie(cookie));
+        cuandoSeConsultaLaSesionActual();
 
-        result.andExpect(status().isUnauthorized());
+        entoncesNoAutoriza();
     }
 
     @Test
     @DisplayName("Suspender la cuenta invalida la sesión que ya estaba abierta")
-    void meShouldInvalidateSuspendedUsuarioSession() throws Exception {
-        Cookie cookie = givenLogin();
-        givenSuspendedUsuario();
+    void suspenderLaCuentaInvalidaLaSesionQueYaEstabaAbierta() throws Exception {
+        dadoUnaSesionIniciada();
+        dadoUnUsuarioSuspendido();
 
-        ResultActions result = mockMvc.perform(get("/api/auth/me").cookie(cookie));
+        cuandoSeConsultaLaSesionActual();
 
-        result.andExpect(status().isUnauthorized());
+        entoncesNoAutoriza();
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"/api/auth/me", "/api/proyectos", "/api/bloques", "/api/campos", "/api/registros"})
     @DisplayName("Todo endpoint privado sin sesión responde 401")
-    void privateEndpointShouldReturn401WithoutSession(String path) throws Exception {
-        ResultActions result = mockMvc.perform(get(path));
+    void todoEndpointPrivadoSinSesionResponde401(String ruta) throws Exception {
+        cuandoSeConsultaSinSesion(ruta);
 
-        result.andExpect(status().isUnauthorized()).andExpect(jsonPath("$.status").value(401));
+        entoncesNoAutorizaConEstado401();
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"POST", "PUT", "PATCH", "DELETE"})
     @DisplayName("También las escrituras privadas sin sesión responden 401 antes de CSRF")
-    void privateWriteShouldReturn401WithoutSession(String method) throws Exception {
-        ResultActions result = mockMvc.perform(request(HttpMethod.valueOf(method), "/api/proyectos"));
+    void tambienLasEscriturasPrivadasSinSesionResponden401AntesDeCsrf(String metodo) throws Exception {
+        cuandoSeEscribeSinSesion(metodo);
 
-        result.andExpect(status().isUnauthorized());
+        entoncesNoAutoriza();
     }
 
     @Test
     @DisplayName("Una escritura con sesión pero sin CSRF devuelve 403")
-    void privateWriteShouldRequireCsrfWhenAuthenticated() throws Exception {
-        Cookie cookie = givenLogin();
+    void unaEscrituraConSesionPeroSinCsrfDevuelve403() throws Exception {
+        dadoUnaSesionIniciada();
 
-        ResultActions result = mockMvc.perform(post("/api/proyectos").cookie(cookie));
+        cuandoSeEscribeConSesionSinCsrf();
 
-        result.andExpect(status().isForbidden());
+        entoncesSeProhibe();
     }
 
     @Test
     @DisplayName("Logout sin sesión es idempotente si el CSRF es válido")
-    void logoutShouldBeIdempotent() throws Exception {
-        Csrf csrf = givenCsrf(null);
+    void logoutSinSesionEsIdempotenteSiElCsrfEsValido() throws Exception {
+        dadoUnTokenCsrfSinSesion();
 
-        ResultActions result = mockMvc.perform(post("/api/auth/logout")
+        cuandoSeCierraLaSesionSinHaberlaAbierto();
+
+        entoncesSeCierraSinContenido();
+    }
+
+    // --- dado ---
+
+    private void dadoUnTokenCsrfSinSesion() throws Exception {
+        csrf = pedirTokenCsrf(null);
+    }
+
+    private void dadoUnaCuentaRegistrada() throws Exception {
+        dadoUnTokenCsrfSinSesion();
+        cuandoSeRegistraUnaCuenta(REGISTRO);
+        respuesta.andExpect(status().isCreated());
+    }
+
+    private void dadoUnaSesionIniciada() throws Exception {
+        dadoUnaCuentaRegistrada();
+        cuandoSeIniciaSesion(LOGIN);
+        cookie = resultado.getResponse().getCookie("ENSAMBLA_SESSION");
+    }
+
+    private void dadoUnUsuarioSuspendido() {
+        UsuarioEntity entidad = usuarioJpaRepository.findByEmail(EMAIL).orElseThrow();
+        entidad.setEstado(EstadoUsuario.SUSPENDIDO);
+        usuarioJpaRepository.saveAndFlush(entidad);
+    }
+
+    private void dadoQueLaSesionVencio() {
+        jdbcTemplate.update("UPDATE spring_session SET last_access_time = 0, expiry_time = 0 WHERE session_id = ?",
+                idDeSesion(cookie));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeRegistraUnaCuenta(String cuerpo) throws Exception {
+        respuesta = mockMvc.perform(post("/api/auth/register").cookie(csrf.cookie())
+                .header("X-CSRF-TOKEN", csrf.token()).contentType(MediaType.APPLICATION_JSON).content(cuerpo));
+    }
+
+    private void cuandoSeRegistraUnaCuentaSinNombreDeNegocio() {
+        RegistrarUsuarioRequest invalido = new RegistrarUsuarioRequest("Brian", "", EMAIL, CONTRASENIA);
+        fallo = catchThrowable(() -> registrarUsuario.execute(invalido));
+    }
+
+    private void cuandoSeIniciaSesion(String cuerpo) throws Exception {
+        respuesta = mockMvc.perform(post("/api/auth/login").cookie(csrf.cookie())
+                .header("X-CSRF-TOKEN", csrf.token()).contentType(MediaType.APPLICATION_JSON).content(cuerpo));
+        resultado = respuesta.andReturn();
+    }
+
+    private void cuandoSeCierraLaSesion() throws Exception {
+        Csrf csrfConSesion = pedirTokenCsrf(cookie);
+        respuesta = mockMvc.perform(post("/api/auth/logout")
+                .cookie(cookie).header("X-CSRF-TOKEN", csrfConSesion.token()));
+    }
+
+    private void cuandoSeCierraLaSesionSinHaberlaAbierto() throws Exception {
+        respuesta = mockMvc.perform(post("/api/auth/logout")
                 .cookie(csrf.cookie()).header("X-CSRF-TOKEN", csrf.token()));
-
-        result.andExpect(status().isNoContent());
     }
 
-    // --- arrange ---
-    private Csrf givenCsrf(Cookie cookie) throws Exception {
-        var builder = get("/api/auth/csrf");
-        if (cookie != null) {
-            builder.cookie(cookie);
-        }
-        MvcResult result = mockMvc.perform(builder).andExpect(status().isOk()).andReturn();
-        Cookie responseCookie = result.getResponse().getCookie("ENSAMBLA_SESSION");
-        String token = JsonPath.read(result.getResponse().getContentAsString(), "$.token");
-        return new Csrf(responseCookie == null ? cookie : responseCookie, token);
+    private void cuandoSeConsultaLaSesionActual() throws Exception {
+        respuesta = mockMvc.perform(get("/api/auth/me").cookie(cookie));
     }
 
-    private Csrf givenRegisteredAccount() throws Exception {
-        Csrf csrf = givenCsrf(null);
-        registrar(csrf, REGISTRO).andExpect(status().isCreated());
-        return csrf;
+    private void cuandoSeConsultaSinSesion(String ruta) throws Exception {
+        respuesta = mockMvc.perform(get(ruta));
     }
 
-    private Cookie givenLogin() throws Exception {
-        return login(givenRegisteredAccount(), LOGIN).andExpect(status().isOk())
-                .andReturn().getResponse().getCookie("ENSAMBLA_SESSION");
+    private void cuandoSeEscribeSinSesion(String metodo) throws Exception {
+        respuesta = mockMvc.perform(request(HttpMethod.valueOf(metodo), "/api/proyectos"));
     }
 
-    private void givenSuspendedUsuario() {
-        UsuarioEntity entity = usuarioJpaRepository.findByEmail(EMAIL).orElseThrow();
-        entity.setEstado(EstadoUsuario.SUSPENDIDO);
-        usuarioJpaRepository.saveAndFlush(entity);
+    private void cuandoSeEscribeConSesionSinCsrf() throws Exception {
+        respuesta = mockMvc.perform(post("/api/proyectos").cookie(cookie));
     }
 
-    // --- act ---
-    private ResultActions registrar(Csrf csrf, String body) throws Exception {
-        return mockMvc.perform(post("/api/auth/register").cookie(csrf.cookie())
-                .header("X-CSRF-TOKEN", csrf.token()).contentType(MediaType.APPLICATION_JSON).content(body));
-    }
+    // --- entonces ---
 
-    private ResultActions login(Csrf csrf, String body) throws Exception {
-        return mockMvc.perform(post("/api/auth/login").cookie(csrf.cookie())
-                .header("X-CSRF-TOKEN", csrf.token()).contentType(MediaType.APPLICATION_JSON).content(body));
-    }
-
-    // --- assert ---
-    private void thenRegisteredWithHash(ResultActions result) throws Exception {
-        result.andExpect(status().isCreated())
+    private void entoncesSeRegistraConElNegocioYElHash() throws Exception {
+        respuesta.andExpect(status().isCreated())
                 .andExpect(jsonPath("$.email").value(EMAIL))
                 .andExpect(jsonPath("$.contrasenia").doesNotExist())
                 .andExpect(jsonPath("$.hashContrasenia").doesNotExist());
-        UsuarioEntity entity = usuarioJpaRepository.findByEmail(EMAIL).orElseThrow();
-        assertThat(passwordEncoder.matches(CONTRASENIA, entity.getHashContrasenia())).isTrue();
-        assertThat(entity.getHashContrasenia()).startsWith("{bcrypt}").doesNotContain(CONTRASENIA);
-        assertThat(entity.getNombre()).isEqualTo("Brian");
-        assertThat(entity.getEstado()).isEqualTo(EstadoUsuario.ACTIVO);
-        assertThat(entity.getCreadoEn()).isNotNull();
-        assertThat(entity.getActualizadoEn()).isEqualTo(entity.getCreadoEn());
+        UsuarioEntity entidad = usuarioJpaRepository.findByEmail(EMAIL).orElseThrow();
+        assertThat(passwordEncoder.matches(CONTRASENIA, entidad.getHashContrasenia())).isTrue();
+        assertThat(entidad.getHashContrasenia()).startsWith("{bcrypt}").doesNotContain(CONTRASENIA);
+        assertThat(entidad.getNombre()).isEqualTo("Brian");
+        assertThat(entidad.getEstado()).isEqualTo(EstadoUsuario.ACTIVO);
+        assertThat(entidad.getCreadoEn()).isNotNull();
+        assertThat(entidad.getActualizadoEn()).isEqualTo(entidad.getCreadoEn());
         var negocios = negocioJpaRepository.findAll();
         assertThat(negocios).hasSize(1);
         assertThat(negocios.getFirst().getNombre()).isEqualTo("Mi negocio");
-        assertThat(negocios.getFirst().getDuenioId()).isEqualTo(entity.getId());
+        assertThat(negocios.getFirst().getDuenioId()).isEqualTo(entidad.getId());
     }
 
-    private String decodeSessionId(Cookie cookie) {
-        return new String(Base64.getDecoder().decode(cookie.getValue()), StandardCharsets.UTF_8);
+    private void entoncesNoSeAbreSesion() throws Exception {
+        mockMvc.perform(get("/api/auth/me").cookie(csrf.cookie())).andExpect(status().isUnauthorized());
+    }
+
+    private void entoncesResponde409PorElEmailRepetido() throws Exception {
+        respuesta.andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Ya existe una cuenta con ese email"));
+    }
+
+    private void entoncesExisteUnaSolaCuentaConSuNegocio() {
+        assertThat(usuarioJpaRepository.count()).isEqualTo(1);
+        assertThat(negocioJpaRepository.count()).isEqualTo(1);
+    }
+
+    private void entoncesSeRevierteElUsuario() {
+        assertThat(fallo).isInstanceOf(DataIntegrityViolationException.class);
+        assertThat(usuarioJpaRepository.findByEmail(EMAIL)).isEmpty();
+        assertThat(negocioJpaRepository.count()).isZero();
+    }
+
+    private void entoncesSeRechazaElRegistroSinPersistirNada() throws Exception {
+        respuesta.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors").isMap());
+        assertThat(usuarioJpaRepository.count()).isZero();
+        assertThat(negocioJpaRepository.count()).isZero();
+    }
+
+    private void entoncesSeRechazaLaContraseniaSinPersistirNada() throws Exception {
+        respuesta.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.contrasenia").exists());
+        assertThat(usuarioJpaRepository.count()).isZero();
+    }
+
+    private void entoncesSeRotaLaCookieDeSesion() throws Exception {
+        respuesta.andExpect(status().isOk());
+        Cookie nueva = resultado.getResponse().getCookie("ENSAMBLA_SESSION");
+        assertThat(nueva).isNotNull();
+        assertThat(nueva.getValue()).isNotEqualTo(csrf.cookie().getValue());
+        assertThat(resultado.getResponse().getHeaders("Set-Cookie").toString())
+                .contains("HttpOnly").contains("SameSite=Lax");
+    }
+
+    private void entoncesLaSesionExponeSoloLaIdentidadPublica() throws Exception {
+        mockMvc.perform(get("/api/auth/me").cookie(resultado.getResponse().getCookie("ENSAMBLA_SESSION")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombre").value("Brian"))
+                .andExpect(jsonPath("$.email").value(EMAIL))
+                .andExpect(jsonPath("$.hashContrasenia").doesNotExist())
+                .andExpect(header().string("Cache-Control", "no-store"));
+    }
+
+    private void entoncesLaSesionPersistidaDuraDosHoras() {
+        Long duracion = jdbcTemplate.queryForObject(
+                "SELECT max_inactive_interval FROM spring_session WHERE session_id = ?", Long.class,
+                idDeSesion(resultado.getResponse().getCookie("ENSAMBLA_SESSION")));
+        assertThat(duracion).isEqualTo(7200);
+    }
+
+    private void entoncesSeRechazaElLoginSinAbrirSesion() throws Exception {
+        respuesta.andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/auth/me").cookie(csrf.cookie())).andExpect(status().isUnauthorized());
+    }
+
+    private void entoncesNoAutoriza() throws Exception {
+        respuesta.andExpect(status().isUnauthorized());
+    }
+
+    private void entoncesNoAutorizaConEstado401() throws Exception {
+        respuesta.andExpect(status().isUnauthorized()).andExpect(jsonPath("$.status").value(401));
+    }
+
+    private void entoncesSeEliminaLaSesionPersistida() throws Exception {
+        respuesta.andExpect(status().isNoContent()).andExpect(header().string("Cache-Control", "no-store"));
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM spring_session WHERE session_id = ?", Long.class, idDeSesion(cookie)))
+                .isZero();
+    }
+
+    private void entoncesLaCookieAnteriorYaNoAutentica() throws Exception {
+        mockMvc.perform(get("/api/auth/me").cookie(cookie)).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/proyectos").cookie(cookie)).andExpect(status().isUnauthorized());
+    }
+
+    private void entoncesSeProhibe() throws Exception {
+        respuesta.andExpect(status().isForbidden());
+    }
+
+    private void entoncesSeCierraSinContenido() throws Exception {
+        respuesta.andExpect(status().isNoContent());
+    }
+
+    // --- datos ---
+
+    private Csrf pedirTokenCsrf(Cookie cookieExistente) throws Exception {
+        var pedido = get("/api/auth/csrf");
+        if (cookieExistente != null) {
+            pedido.cookie(cookieExistente);
+        }
+        MvcResult respuestaCsrf = mockMvc.perform(pedido).andExpect(status().isOk()).andReturn();
+        Cookie cookieNueva = respuestaCsrf.getResponse().getCookie("ENSAMBLA_SESSION");
+        String token = JsonPath.read(respuestaCsrf.getResponse().getContentAsString(), "$.token");
+        return new Csrf(cookieNueva == null ? cookieExistente : cookieNueva, token);
+    }
+
+    private String idDeSesion(Cookie cookieDeSesion) {
+        return new String(Base64.getDecoder().decode(cookieDeSesion.getValue()), StandardCharsets.UTF_8);
     }
 
     private record Csrf(Cookie cookie, String token) {
     }
 }
-

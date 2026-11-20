@@ -48,9 +48,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -87,6 +86,11 @@ class InventarioCasosDeUsoTest {
     private ListarMovimientos listarMovimientos;
     private ConsultarStock consultarStock;
 
+    private RegistrarMovimientoResponse respuestaDeRegistro;
+    private List<MovimientoItem> movimientosListados;
+    private ConsultarStockResponse respuestaDeStock;
+    private Throwable rechazo;
+
     @BeforeEach
     void setUp() {
         registrarMovimiento = new RegistrarMovimiento(negocioRepository, bloqueRepository, campoRepository,
@@ -100,166 +104,269 @@ class InventarioCasosDeUsoTest {
 
     @Test
     @DisplayName("Registrar guarda el movimiento del producto del bloque y devuelve el stock resultante")
-    void registrarShouldSaveMovimientoAndReturnResultingStock() {
-        givenBloqueConProducto(BLOQUE_ID);
-        givenSaveReturnsArgument();
-        givenStock("12");
+    void registrarGuardaElMovimientoDelProductoYDevuelveElStockResultante() {
+        dadoUnProductoDelBloqueConStockDe("12");
 
-        RegistrarMovimientoResponse response = registrarMovimiento.execute(new RegistrarMovimientoRequest(
-                USUARIO_ID, BLOQUE_ID, PRODUCTO_ID, "ENTRADA", new BigDecimal("2"), null, " Compra "));
+        cuandoSeRegistra("ENTRADA", "2", " Compra ");
 
-        ArgumentCaptor<MovimientoStock> guardado = ArgumentCaptor.forClass(MovimientoStock.class);
-        verify(movimientoStockRepository).save(guardado.capture());
-        assertThat(guardado.getValue().getNegocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(guardado.getValue().getFecha()).isEqualTo(LocalDate.parse("2026-10-13"));
-        assertThat(guardado.getValue().getNota()).isEqualTo("Compra");
-        assertThat(response.movimiento().producto()).isEqualTo("Harina");
-        assertThat(response.movimiento().tipo()).isEqualTo("ENTRADA");
-        assertThat(response.stockActual()).isEqualByComparingTo("12");
+        entoncesSeGuardoElMovimientoDelNegocioConNota("Compra");
+        entoncesLaRespuestaMuestraLaEntradaDeHarinaConStockDe("12");
     }
 
     @Test
     @DisplayName("Registrar rechaza un movimiento inválido antes de buscar nada")
-    void registrarShouldRejectInvalidMovimientoFirst() {
-        RegistrarMovimientoRequest invalido = new RegistrarMovimientoRequest(
-                USUARIO_ID, BLOQUE_ID, null, "ENTRADA", BigDecimal.ONE, null, null);
+    void registrarRechazaUnMovimientoInvalidoAntesDeBuscarNada() {
+        cuandoSeRegistraUnMovimientoSinProducto();
 
-        assertThatThrownBy(() -> registrarMovimiento.execute(invalido))
-                .isInstanceOf(RegistroInvalidoException.class);
-        verifyNoInteractions(bloqueRepository, registroRepository, movimientoStockRepository);
+        entoncesSeRechazaComoRegistroInvalido();
+        entoncesNoSeBuscoNada();
     }
 
     @Test
     @DisplayName("Registrar responde 'no existe' si el producto es de otro bloque")
-    void registrarShouldRejectProductOfAnotherBloque() {
-        givenBloqueConProducto(OTRO_BLOQUE_ID);
-        RegistrarMovimientoRequest request = new RegistrarMovimientoRequest(
-                USUARIO_ID, BLOQUE_ID, PRODUCTO_ID, "ENTRADA", BigDecimal.ONE, null, null);
+    void registrarRespondeNoExisteSiElProductoEsDeOtroBloque() {
+        dadoUnProductoQueEsDeOtroBloque();
 
-        assertThatThrownBy(() -> registrarMovimiento.execute(request))
-                .isInstanceOf(ResourceNotFoundException.class);
-        verify(movimientoStockRepository, never()).save(any());
+        cuandoSeRegistra("ENTRADA", "1", null);
+
+        entoncesNoSeEncuentraElProducto();
+        entoncesNoSeGuardaNingunMovimiento();
     }
 
     @Test
     @DisplayName("Listar devuelve los movimientos con el nombre de su producto")
-    void listarShouldReturnMovimientosNamedAfterTheirProduct() {
-        Bloque bloque = Bloque.builder().id(BLOQUE_ID).build();
-        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque);
-        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(givenCampos());
-        when(movimientoStockRepository.findRecientes(BLOQUE_ID, NEGOCIO_ID, PRODUCTO_ID, 100)).thenReturn(List.of(
-                MovimientoStock.builder().registroId(PRODUCTO_ID).tipo(TipoMovimiento.SALIDA)
-                        .cantidad(BigDecimal.ONE).build()));
+    void listarDevuelveLosMovimientosConElNombreDeSuProducto() {
+        dadoUnaSalidaRegistradaDeHarina();
+
+        cuandoSeListanLosMovimientosDelProducto();
+
+        entoncesSeListaUnaSalidaDeHarina();
+    }
+
+    @Test
+    @DisplayName("Stock consulta una página de productos con la misma búsqueda que el listado y su stock")
+    void stockConsultaUnaPaginaDeProductosConLaBusquedaDelListadoYSuStock() {
+        dadoUnaPaginaConHarinaYStockDe("4");
+
+        cuandoSeConsultaElStockBuscando("har");
+
+        entoncesSeBuscoPorTextoEnElNegocio("har");
+        entoncesLaPaginaMuestraHarinaConStockDe("4");
+    }
+
+    @Test
+    @DisplayName("Registrar una entrada la guarda sin consultar el stock antes")
+    void registrarUnaEntradaLaGuardaSinConsultarElStockAntes() {
+        dadoUnProductoDelBloqueConStockDe("7");
+
+        cuandoSeRegistra("ENTRADA", "5", null);
+
+        entoncesSeGuardaElMovimientoYDespuesSeConsultaElStock();
+    }
+
+    @Test
+    @DisplayName("Registrar una salida menor o igual al stock la guarda")
+    void registrarUnaSalidaMenorOIgualAlStockLaGuarda() {
+        dadoUnProductoDelBloqueConStockDe("5");
+
+        cuandoSeRegistra("SALIDA", "5", null);
+
+        entoncesLaRespuestaEsUnMovimientoDeTipo("SALIDA");
+    }
+
+    @Test
+    @DisplayName("Registrar una salida mayor al stock la rechaza y avisa cuánto queda")
+    void registrarUnaSalidaMayorAlStockLaRechazaYAvisaCuantoQueda() {
+        dadoUnProductoConStockSinCamposDe("2.500");
+
+        cuandoSeRegistra("SALIDA", "3", null);
+
+        entoncesSeRechazaPorFaltaDeStockQuedando("2.5");
+        entoncesNoSeGuardaNingunMovimiento();
+    }
+
+    @Test
+    @DisplayName("Registrar la salida de un producto sin movimientos la rechaza: no hay stock")
+    void registrarLaSalidaDeUnProductoSinMovimientosLaRechazaPorqueNoHayStock() {
+        dadoUnProductoSinMovimientos();
+
+        cuandoSeRegistra("SALIDA", "1", null);
+
+        entoncesSeRechazaPorFaltaDeStockQuedando("0");
+    }
+
+    // --- dado ---
+
+    private void dadoUnProductoDelBloqueConStockDe(String stock) {
+        dadoElBloqueConSuProducto();
+        dadoQueElBloqueTieneSusCampos();
+        dadoQueGuardarDevuelveElMovimiento();
+        dadoElStock(stock);
+    }
+
+    private void dadoUnProductoQueEsDeOtroBloque() {
+        dadoElBloqueConSuProducto(OTRO_BLOQUE_ID);
+    }
+
+    private void dadoUnProductoConStockSinCamposDe(String stock) {
+        dadoElBloqueConSuProducto();
+        dadoElStock(stock);
+    }
+
+    private void dadoUnProductoSinMovimientos() {
+        dadoElBloqueConSuProducto();
+        when(movimientoStockRepository.stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID)).thenReturn(Map.of());
+    }
+
+    private void dadoUnaSalidaRegistradaDeHarina() {
+        dadoElBloqueConSusCampos();
+        when(movimientoStockRepository.findRecientes(BLOQUE_ID, NEGOCIO_ID, PRODUCTO_ID, 100))
+                .thenReturn(List.of(unaSalidaDeHarina()));
         when(registroRepository.findAllByIdsAndBloque(List.of(PRODUCTO_ID), BLOQUE_ID, NEGOCIO_ID))
-                .thenReturn(List.of(givenProducto(BLOQUE_ID)));
+                .thenReturn(List.of(unProductoDelBloque(BLOQUE_ID)));
+    }
 
-        List<MovimientoItem> response = listarMovimientos.execute(
+    private void dadoUnaPaginaConHarinaYStockDe(String stock) {
+        dadoElBloqueConSusCampos();
+        when(registroRepository.buscar(any()))
+                .thenReturn(new Pagina<>(List.of(unProductoDelBloque(BLOQUE_ID)), 0, 20, 1));
+        dadoElStock(stock);
+    }
+
+    private void dadoElBloqueConSuProducto() {
+        dadoElBloqueConSuProducto(BLOQUE_ID);
+    }
+
+    private void dadoElBloqueConSuProducto(BloqueId bloqueDelProducto) {
+        dadoQueExisteElBloque();
+        when(registroRepository.obtener(PRODUCTO_ID, NEGOCIO_ID)).thenReturn(unProductoDelBloque(bloqueDelProducto));
+    }
+
+    private void dadoElBloqueConSusCampos() {
+        dadoQueExisteElBloque();
+        dadoQueElBloqueTieneSusCampos();
+    }
+
+    private void dadoQueExisteElBloque() {
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
+    }
+
+    private void dadoQueElBloqueTieneSusCampos() {
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(unosCampos());
+    }
+
+    private void dadoQueGuardarDevuelveElMovimiento() {
+        when(movimientoStockRepository.save(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
+    }
+
+    private void dadoElStock(String stock) {
+        when(movimientoStockRepository.stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID))
+                .thenReturn(Map.of(PRODUCTO_ID, new BigDecimal(stock)));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeRegistra(String tipo, String cantidad, String nota) {
+        rechazo = catchThrowable(() -> respuestaDeRegistro = registrarMovimiento.execute(
+                new RegistrarMovimientoRequest(
+                        USUARIO_ID, BLOQUE_ID, PRODUCTO_ID, tipo, new BigDecimal(cantidad), null, nota)));
+    }
+
+    private void cuandoSeRegistraUnMovimientoSinProducto() {
+        rechazo = catchThrowable(() -> registrarMovimiento.execute(new RegistrarMovimientoRequest(
+                USUARIO_ID, BLOQUE_ID, null, "ENTRADA", BigDecimal.ONE, null, null)));
+    }
+
+    private void cuandoSeListanLosMovimientosDelProducto() {
+        movimientosListados = listarMovimientos.execute(
                 new ListarMovimientosRequest(USUARIO_ID, BLOQUE_ID, PRODUCTO_ID));
+    }
 
-        assertThat(response).singleElement().satisfies(item -> {
+    private void cuandoSeConsultaElStockBuscando(String texto) {
+        respuestaDeStock = consultarStock.execute(new ConsultarStockRequest(USUARIO_ID, BLOQUE_ID, texto, 0, 20));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeGuardoElMovimientoDelNegocioConNota(String nota) {
+        MovimientoStock guardado = elMovimientoGuardado();
+        assertThat(guardado.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(guardado.getFecha()).isEqualTo(LocalDate.parse("2026-10-13"));
+        assertThat(guardado.getNota()).isEqualTo(nota);
+    }
+
+    private void entoncesLaRespuestaMuestraLaEntradaDeHarinaConStockDe(String stock) {
+        assertThat(respuestaDeRegistro.movimiento().producto()).isEqualTo("Harina");
+        assertThat(respuestaDeRegistro.movimiento().tipo()).isEqualTo("ENTRADA");
+        assertThat(respuestaDeRegistro.stockActual()).isEqualByComparingTo(stock);
+    }
+
+    private void entoncesLaRespuestaEsUnMovimientoDeTipo(String tipo) {
+        assertThat(respuestaDeRegistro.movimiento().tipo()).isEqualTo(tipo);
+    }
+
+    private void entoncesSeRechazaComoRegistroInvalido() {
+        assertThat(rechazo).isInstanceOf(RegistroInvalidoException.class);
+    }
+
+    private void entoncesNoSeBuscoNada() {
+        verifyNoInteractions(bloqueRepository, registroRepository, movimientoStockRepository);
+    }
+
+    private void entoncesNoSeEncuentraElProducto() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    private void entoncesNoSeGuardaNingunMovimiento() {
+        verify(movimientoStockRepository, never()).save(any());
+    }
+
+    private void entoncesSeListaUnaSalidaDeHarina() {
+        assertThat(movimientosListados).singleElement().satisfies(item -> {
             assertThat(item.producto()).isEqualTo("Harina");
             assertThat(item.tipo()).isEqualTo("SALIDA");
         });
     }
 
-    @Test
-    @DisplayName("Stock consulta una página de productos con la misma búsqueda que el listado y su stock")
-    void stockShouldPairThePageOfProductsWithTheirStock() {
-        Bloque bloque = Bloque.builder().id(BLOQUE_ID).build();
-        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque);
-        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(givenCampos());
-        when(registroRepository.buscar(any())).thenReturn(new Pagina<>(List.of(givenProducto(BLOQUE_ID)), 0, 20, 1));
-        givenStock("4");
-
-        ConsultarStockResponse response = consultarStock.execute(
-                new ConsultarStockRequest(USUARIO_ID, BLOQUE_ID, "har", 0, 20));
-
+    private void entoncesSeBuscoPorTextoEnElNegocio(String texto) {
         ArgumentCaptor<ConsultaRegistros> consulta = ArgumentCaptor.forClass(ConsultaRegistros.class);
         verify(registroRepository).buscar(consulta.capture());
-        assertThat(consulta.getValue().texto()).isEqualTo("har");
+        assertThat(consulta.getValue().texto()).isEqualTo(texto);
         assertThat(consulta.getValue().negocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(response.contenido()).singleElement().satisfies(item -> {
+    }
+
+    private void entoncesLaPaginaMuestraHarinaConStockDe(String stock) {
+        assertThat(respuestaDeStock.contenido()).singleElement().satisfies(item -> {
             assertThat(item.producto()).isEqualTo("Harina");
-            assertThat(item.stock()).isEqualByComparingTo("4");
+            assertThat(item.stock()).isEqualByComparingTo(stock);
         });
     }
 
-    @Test
-    @DisplayName("Registrar una entrada la guarda sin consultar el stock antes")
-    void registrarShouldSaveEntradaWithoutCheckingStockFirst() {
-        givenBloqueConProducto(BLOQUE_ID);
-        givenSaveReturnsArgument();
-        givenStock("7");
-
-        registrarMovimiento.execute(new RegistrarMovimientoRequest(
-                USUARIO_ID, BLOQUE_ID, PRODUCTO_ID, "ENTRADA", new BigDecimal("5"), null, null));
-
+    private void entoncesSeGuardaElMovimientoYDespuesSeConsultaElStock() {
         InOrder orden = inOrder(movimientoStockRepository);
         orden.verify(movimientoStockRepository).save(any());
         orden.verify(movimientoStockRepository).stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID);
     }
 
-    @Test
-    @DisplayName("Registrar una salida menor o igual al stock la guarda")
-    void registrarShouldSaveSalidaWhenStockIsEnough() {
-        givenBloqueConProducto(BLOQUE_ID);
-        givenSaveReturnsArgument();
-        givenStock("5");
-
-        RegistrarMovimientoResponse response = registrarMovimiento.execute(new RegistrarMovimientoRequest(
-                USUARIO_ID, BLOQUE_ID, PRODUCTO_ID, "SALIDA", new BigDecimal("5"), null, null));
-
-        assertThat(response.movimiento().tipo()).isEqualTo("SALIDA");
+    private void entoncesSeRechazaPorFaltaDeStockQuedando(String cantidad) {
+        assertThat(rechazo).isInstanceOfSatisfying(RegistroInvalidoException.class, e -> assertThat(e.getErrores())
+                .containsEntry("cantidad", "No hay stock suficiente: quedan " + cantidad));
     }
 
-    @Test
-    @DisplayName("Registrar una salida mayor al stock la rechaza y avisa cuánto queda")
-    void registrarShouldRejectSalidaThatLeavesNegativeStock() {
-        givenProductoDelBloque();
-        givenStock("2.500");
+    // --- datos ---
 
-        assertThatThrownBy(() -> registrarMovimiento.execute(new RegistrarMovimientoRequest(
-                USUARIO_ID, BLOQUE_ID, PRODUCTO_ID, "SALIDA", new BigDecimal("3"), null, null)))
-                .isInstanceOfSatisfying(RegistroInvalidoException.class, e -> assertThat(e.getErrores())
-                        .containsEntry("cantidad", "No hay stock suficiente: quedan 2.5"));
-        verify(movimientoStockRepository, never()).save(any());
+    private MovimientoStock elMovimientoGuardado() {
+        ArgumentCaptor<MovimientoStock> guardado = ArgumentCaptor.forClass(MovimientoStock.class);
+        verify(movimientoStockRepository).save(guardado.capture());
+        return guardado.getValue();
     }
 
-    @Test
-    @DisplayName("Registrar la salida de un producto sin movimientos la rechaza: no hay stock")
-    void registrarShouldRejectSalidaOfProductWithoutMovements() {
-        givenProductoDelBloque();
-        when(movimientoStockRepository.stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID)).thenReturn(Map.of());
-
-        assertThatThrownBy(() -> registrarMovimiento.execute(new RegistrarMovimientoRequest(
-                USUARIO_ID, BLOQUE_ID, PRODUCTO_ID, "SALIDA", BigDecimal.ONE, null, null)))
-                .isInstanceOfSatisfying(RegistroInvalidoException.class, e -> assertThat(e.getErrores())
-                        .containsEntry("cantidad", "No hay stock suficiente: quedan 0"));
+    private static MovimientoStock unaSalidaDeHarina() {
+        return MovimientoStock.builder().registroId(PRODUCTO_ID).tipo(TipoMovimiento.SALIDA)
+                .cantidad(BigDecimal.ONE).build();
     }
 
-    private void givenStock(String stock) {
-        when(movimientoStockRepository.stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID))
-                .thenReturn(Map.of(PRODUCTO_ID, new BigDecimal(stock)));
-    }
-
-    private void givenSaveReturnsArgument() {
-        when(movimientoStockRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-    }
-
-    private void givenProductoDelBloque() {
-        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
-        when(registroRepository.obtener(PRODUCTO_ID, NEGOCIO_ID)).thenReturn(givenProducto(BLOQUE_ID));
-    }
-
-    private void givenBloqueConProducto(BloqueId bloqueDelProducto) {
-        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
-        when(registroRepository.obtener(PRODUCTO_ID, NEGOCIO_ID)).thenReturn(givenProducto(bloqueDelProducto));
-        if (bloqueDelProducto.equals(BLOQUE_ID)) {
-            when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(givenCampos());
-        }
-    }
-
-    private static Registro givenProducto(BloqueId bloqueId) {
+    private static Registro unProductoDelBloque(BloqueId bloqueId) {
         return Registro.builder()
                 .id(PRODUCTO_ID)
                 .bloqueId(bloqueId)
@@ -267,7 +374,7 @@ class InventarioCasosDeUsoTest {
                 .build();
     }
 
-    private static List<Campo> givenCampos() {
+    private static List<Campo> unosCampos() {
         return List.of(Campo.builder().id(CAMPO_NOMBRE_ID).tipo(TipoCampo.TEXTO).posicion((short) 0).build());
     }
 }

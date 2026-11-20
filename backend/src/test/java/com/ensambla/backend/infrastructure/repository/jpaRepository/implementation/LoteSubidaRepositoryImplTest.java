@@ -38,132 +38,175 @@ class LoteSubidaRepositoryImplTest {
     private final LoteSubidaRepositoryImpl loteSubidaRepositoryImpl = new LoteSubidaRepositoryImpl(
             loteSubidaJpaRepository, fotoCuadernoJpaRepository, loteSubidaRepositoryMapper);
 
+    private LoteSubida guardado;
+    private boolean confirmado;
+    private Optional<FotoCuaderno> foto;
+    private Optional<LoteSubida> encontrado;
+
     @Test
     @DisplayName("Guarda el lote y después sus fotos apuntando al id que le dio la base")
-    void saveConFotosShouldLinkFotosToSavedLote() {
-        givenLoteSaved();
-        givenFotosSaved();
+    void guardaElLoteYDespuesSusFotosApuntandoAlIdQueLeDioLaBase() {
+        dadoQueSeGuardanElLoteYSusFotos();
 
-        LoteSubida result = loteSubidaRepositoryImpl.saveConFotos(LoteTestData.lote(List.of(fotoSinLote())));
+        cuandoSeGuardaElLoteConUnaFotoSinLote();
 
-        assertThat(result.getId()).isEqualTo(LOTE_ID);
-        assertThat(result.getFotos()).extracting("id").containsExactly(FOTO_ID);
-        assertThat(thenSavedFotos()).extracting(FotoCuadernoEntity::getLoteId).containsExactly(LOTE_ID.valor());
+        entoncesLasFotosQuedanVinculadasAlLoteGuardado();
     }
 
     @Test
     @DisplayName("Confirma el lote cuando la sentencia condicional cambió una fila")
-    void confirmarShouldReturnTrueWhenOneRowChanged() {
-        givenEstadoChanges(1);
+    void confirmaElLoteCuandoLaSentenciaCondicionalCambioUnaFila() {
+        dadoQueLaSentenciaCambiaFilas(1);
 
-        boolean result = loteSubidaRepositoryImpl.confirmar(LOTE_ID, NEGOCIO_ID, BLOQUE_ID, AHORA);
+        cuandoSeConfirmaElLote();
 
-        assertThat(result).isTrue();
-        verify(loteSubidaJpaRepository)
-                .cambiarEstado(LOTE_ID.valor(), NEGOCIO_ID.valor(), EstadoLote.LISTO, EstadoLote.CONFIRMADO,
-                BLOQUE_ID.valor(), AHORA);
+        entoncesElLoteQuedaConfirmadoConLaSentenciaCondicional();
     }
 
     @Test
     @DisplayName("No confirma cuando el lote ya no estaba listo o es de otro negocio")
-    void confirmarShouldReturnFalseWhenNoRowChanged() {
-        givenEstadoChanges(0);
+    void noConfirmaCuandoElLoteYaNoEstabaListoOEsDeOtroNegocio() {
+        dadoQueLaSentenciaCambiaFilas(0);
 
-        boolean result = loteSubidaRepositoryImpl.confirmar(LOTE_ID, NEGOCIO_ID, BLOQUE_ID, AHORA);
+        cuandoSeConfirmaElLote();
 
-        assertThat(result).isFalse();
+        entoncesElLoteNoQuedaConfirmado();
     }
 
     @Test
     @DisplayName("Trae una foto del negocio por su id")
-    void findFotoByIdAndNegocioIdShouldMapFoto() {
+    void traeUnaFotoDelNegocioPorSuId() {
         when(fotoCuadernoJpaRepository.findByIdAndNegocioId(FOTO_ID.valor(), NEGOCIO_ID.valor()))
                 .thenReturn(Optional.of(loteSubidaRepositoryMapper.toEntity(LoteTestData.foto())));
 
-        Optional<FotoCuaderno> result = loteSubidaRepositoryImpl.findFotoByIdAndNegocioId(FOTO_ID, NEGOCIO_ID);
+        cuandoSeBuscaLaFotoPorIdYNegocio();
 
-        assertThat(result).map(FotoCuaderno::getId).contains(FOTO_ID);
+        entoncesSeEncuentraLaFoto();
     }
 
     @Test
     @DisplayName("Una foto de otro negocio no se encuentra")
-    void findFotoByIdAndNegocioIdShouldReturnEmptyWhenFotoIsForeign() {
+    void unaFotoDeOtroNegocioNoSeEncuentra() {
         when(fotoCuadernoJpaRepository.findByIdAndNegocioId(FOTO_ID.valor(), NEGOCIO_ID.valor()))
                 .thenReturn(Optional.empty());
 
-        assertThat(loteSubidaRepositoryImpl.findFotoByIdAndNegocioId(FOTO_ID, NEGOCIO_ID)).isEmpty();
+        cuandoSeBuscaLaFotoPorIdYNegocio();
+
+        entoncesNoSeEncuentraNingunaFoto();
     }
 
     @Test
     @DisplayName("Trae el lote del negocio con sus fotos ordenadas")
-    void findByIdAndNegocioIdShouldLoadFotos() {
-        givenLoteFound();
-        givenFotosFound();
+    void traeElLoteDelNegocioConSusFotosOrdenadas() {
+        dadoQueExisteElLoteConUnaFoto();
 
-        Optional<LoteSubida> result = loteSubidaRepositoryImpl.findByIdAndNegocioId(LOTE_ID, NEGOCIO_ID);
+        cuandoSeBuscaElLotePorIdYNegocio();
 
-        assertThat(result).isPresent();
-        assertThat(result.get().getFotos()).extracting("id").containsExactly(FOTO_ID);
+        entoncesSeEncuentraElLoteConSuFoto();
     }
 
     @Test
     @DisplayName("No busca fotos cuando el lote no es del negocio")
-    void findByIdAndNegocioIdShouldReturnEmptyWhenLoteMissing() {
-        givenLoteMissing();
+    void noBuscaFotosCuandoElLoteNoEsDelNegocio() {
+        dadoQueElLoteNoExiste();
 
-        Optional<LoteSubida> result = loteSubidaRepositoryImpl.findByIdAndNegocioId(LOTE_ID, NEGOCIO_ID);
+        cuandoSeBuscaElLotePorIdYNegocio();
 
-        assertThat(result).isEmpty();
-        verifyNoInteractions(fotoCuadernoJpaRepository);
+        entoncesNoSeEncuentraElLoteNiSeBuscanFotos();
     }
 
-    // --- arrange ---
-    private void givenLoteSaved() {
+    // --- dado ---
+    private void dadoQueSeGuardanElLoteYSusFotos() {
         when(loteSubidaJpaRepository.saveAndFlush(any())).thenReturn(loteEntity());
-    }
-
-    private void givenFotosSaved() {
         when(fotoCuadernoJpaRepository.saveAllAndFlush(anyList()))
                 .thenReturn(List.of(loteSubidaRepositoryMapper.toEntity(LoteTestData.foto())));
     }
 
-    private void givenEstadoChanges(int filas) {
+    private void dadoQueLaSentenciaCambiaFilas(int filas) {
         when(loteSubidaJpaRepository.cambiarEstado(any(), any(), any(), any(), any(), any())).thenReturn(filas);
     }
 
-    private void givenLoteFound() {
+    private void dadoQueExisteElLoteConUnaFoto() {
         when(loteSubidaJpaRepository.findByIdAndNegocioId(LOTE_ID.valor(), NEGOCIO_ID.valor()))
                 .thenReturn(Optional.of(loteEntity()));
-    }
-
-    private void givenFotosFound() {
         when(fotoCuadernoJpaRepository
                 .findAllByLoteIdAndNegocioIdOrderByPosicionAsc(LOTE_ID.valor(), NEGOCIO_ID.valor()))
                 .thenReturn(List.of(loteSubidaRepositoryMapper.toEntity(LoteTestData.foto())));
     }
 
-    private void givenLoteMissing() {
+    private void dadoQueElLoteNoExiste() {
         when(loteSubidaJpaRepository.findByIdAndNegocioId(LOTE_ID.valor(), NEGOCIO_ID.valor()))
                 .thenReturn(Optional.empty());
     }
 
-    // --- assert ---
-    @SuppressWarnings("unchecked")
-    private List<FotoCuadernoEntity> thenSavedFotos() {
-        ArgumentCaptor<List<FotoCuadernoEntity>> fotos = ArgumentCaptor.forClass(List.class);
-        verify(fotoCuadernoJpaRepository).saveAllAndFlush(fotos.capture());
-        return fotos.getValue();
-    }
-
-    // --- helpers ---
     private LoteSubidaEntity loteEntity() {
         return loteSubidaRepositoryMapper.toEntity(LoteTestData.lote(List.of()));
     }
 
     private FotoCuaderno fotoSinLote() {
-        FotoCuaderno foto = LoteTestData.foto();
-        foto.setId(null);
-        foto.setLoteId(null);
-        return foto;
+        FotoCuaderno unaFoto = LoteTestData.foto();
+        unaFoto.setId(null);
+        unaFoto.setLoteId(null);
+        return unaFoto;
+    }
+
+    // --- cuando ---
+    private void cuandoSeGuardaElLoteConUnaFotoSinLote() {
+        guardado = loteSubidaRepositoryImpl.saveConFotos(LoteTestData.lote(List.of(fotoSinLote())));
+    }
+
+    private void cuandoSeConfirmaElLote() {
+        confirmado = loteSubidaRepositoryImpl.confirmar(LOTE_ID, NEGOCIO_ID, BLOQUE_ID, AHORA);
+    }
+
+    private void cuandoSeBuscaLaFotoPorIdYNegocio() {
+        foto = loteSubidaRepositoryImpl.findFotoByIdAndNegocioId(FOTO_ID, NEGOCIO_ID);
+    }
+
+    private void cuandoSeBuscaElLotePorIdYNegocio() {
+        encontrado = loteSubidaRepositoryImpl.findByIdAndNegocioId(LOTE_ID, NEGOCIO_ID);
+    }
+
+    // --- entonces ---
+    @SuppressWarnings("unchecked")
+    private List<FotoCuadernoEntity> fotosGuardadas() {
+        ArgumentCaptor<List<FotoCuadernoEntity>> fotos = ArgumentCaptor.forClass(List.class);
+        verify(fotoCuadernoJpaRepository).saveAllAndFlush(fotos.capture());
+        return fotos.getValue();
+    }
+
+    private void entoncesLasFotosQuedanVinculadasAlLoteGuardado() {
+        assertThat(guardado.getId()).isEqualTo(LOTE_ID);
+        assertThat(guardado.getFotos()).extracting("id").containsExactly(FOTO_ID);
+        assertThat(fotosGuardadas()).extracting(FotoCuadernoEntity::getLoteId).containsExactly(LOTE_ID.valor());
+    }
+
+    private void entoncesElLoteQuedaConfirmadoConLaSentenciaCondicional() {
+        assertThat(confirmado).isTrue();
+        verify(loteSubidaJpaRepository)
+                .cambiarEstado(LOTE_ID.valor(), NEGOCIO_ID.valor(), EstadoLote.LISTO, EstadoLote.CONFIRMADO,
+                        BLOQUE_ID.valor(), AHORA);
+    }
+
+    private void entoncesElLoteNoQuedaConfirmado() {
+        assertThat(confirmado).isFalse();
+    }
+
+    private void entoncesSeEncuentraLaFoto() {
+        assertThat(foto).map(FotoCuaderno::getId).contains(FOTO_ID);
+    }
+
+    private void entoncesNoSeEncuentraNingunaFoto() {
+        assertThat(foto).isEmpty();
+    }
+
+    private void entoncesSeEncuentraElLoteConSuFoto() {
+        assertThat(encontrado).isPresent();
+        assertThat(encontrado.get().getFotos()).extracting("id").containsExactly(FOTO_ID);
+    }
+
+    private void entoncesNoSeEncuentraElLoteNiSeBuscanFotos() {
+        assertThat(encontrado).isEmpty();
+        verifyNoInteractions(fotoCuadernoJpaRepository);
     }
 }

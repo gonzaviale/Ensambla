@@ -42,6 +42,26 @@ export abstract class ComportamientoDeCampo {
     return this.estaVacio(valor) ? '' : this.describir(campo, valor, sistema);
   }
 
+  /** Cómo se ve el valor en una tabla. */
+  enTabla(campo: Campo, valor: Valor, sistema: Sistema | undefined): string {
+    return this.textoPlano(campo, valor, sistema);
+  }
+
+  /** Lo que dice el valor en una vista previa chica; `undefined` si no tiene una forma propia. */
+  enVistaPrevia(_campo: Campo, _valor: Valor, _sistema: Sistema | undefined): string | undefined {
+    return undefined;
+  }
+
+  /** Lo que se agrega al título de la columna de este tipo. */
+  marcaDeColumna(): string {
+    return '';
+  }
+
+  /** Si el campo de este tipo ocupa todo el ancho del formulario. */
+  ocupaTodoElAncho(): boolean {
+    return false;
+  }
+
   protected errorDeTipo(_campo: Campo, _valor: Valor, _sistema: Sistema): string | undefined {
     return undefined;
   }

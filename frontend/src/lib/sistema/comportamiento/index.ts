@@ -5,8 +5,13 @@ import {
   ComportamientoDeEmail,
   ComportamientoDeHora,
   ComportamientoDeTexto,
+  ComportamientoDeTextoLargo,
 } from './ComportamientoDeTexto';
-import { ComportamientoDeSiNo, ComportamientoNumerico } from './ComportamientoNumerico';
+import {
+  ComportamientoDeMoneda,
+  ComportamientoDeSiNo,
+  ComportamientoNumerico,
+} from './ComportamientoNumerico';
 import { ComportamientoDeRelacion, ComportamientoDeSeleccion } from './ComportamientosDeVinculo';
 
 const texto = new ComportamientoDeTexto();
@@ -14,10 +19,10 @@ const numerico = new ComportamientoNumerico();
 
 const REGISTRO: Record<TipoCampo, ComportamientoDeCampo> = {
   text: texto,
-  textarea: texto,
+  textarea: new ComportamientoDeTextoLargo(),
   tel: texto,
   number: numerico,
-  currency: numerico,
+  currency: new ComportamientoDeMoneda(),
   date: new ComportamientoDeFecha(),
   time: new ComportamientoDeHora(),
   email: new ComportamientoDeEmail(),

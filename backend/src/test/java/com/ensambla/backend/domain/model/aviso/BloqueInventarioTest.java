@@ -12,30 +12,60 @@ class BloqueInventarioTest {
 
     private static final RegistroId REGISTRO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
 
+    private Registro registro;
+    private BloqueInventario inventario;
+    private Object valor;
+
     @Test
     @DisplayName("Devuelve el valor que el registro cargó para la clave")
-    void valorDeShouldReturnValueOfRegistro() {
-        Registro registro = AvisoTestData.registro(REGISTRO_ID.valor(), "Yerba", 4, null);
-        BloqueInventario inventario = AvisoTestData.inventario(null, registro);
+    void devuelveElValorQueElRegistroCargoParaLaClave() {
+        dadoUnInventarioConUnRegistroDeYerbaConCuatroUnidades();
 
-        assertThat(inventario.valorDe(registro, "quantity")).isEqualTo(4);
+        cuandoSeConsultaElValorDe("quantity");
+
+        entoncesElValorEs(4);
     }
 
     @Test
     @DisplayName("Devuelve null cuando el registro no cargó el dato")
-    void valorDeShouldReturnNullWhenRegistroHasNoValue() {
-        Registro registro = AvisoTestData.registro(REGISTRO_ID.valor(), "Yerba", 4, null);
-        BloqueInventario inventario = AvisoTestData.inventario(null, registro);
+    void devuelveNullCuandoElRegistroNoCargoElDato() {
+        dadoUnInventarioConUnRegistroDeYerbaConCuatroUnidades();
 
-        assertThat(inventario.valorDe(registro, "minimum")).isNull();
+        cuandoSeConsultaElValorDe("minimum");
+
+        entoncesNoHayValor();
     }
 
     @Test
     @DisplayName("Devuelve null cuando la tabla no tiene un campo con esa clave")
-    void valorDeShouldReturnNullWhenTablaHasNoCampoWithClave() {
-        Registro registro = AvisoTestData.registro(REGISTRO_ID.valor(), "Yerba", 4, null);
-        BloqueInventario inventario = AvisoTestData.inventario(null, registro);
+    void devuelveNullCuandoLaTablaNoTieneUnCampoConEsaClave() {
+        dadoUnInventarioConUnRegistroDeYerbaConCuatroUnidades();
 
-        assertThat(inventario.valorDe(registro, "price")).isNull();
+        cuandoSeConsultaElValorDe("price");
+
+        entoncesNoHayValor();
+    }
+
+    // --- dado ---
+
+    private void dadoUnInventarioConUnRegistroDeYerbaConCuatroUnidades() {
+        registro = AvisoTestData.registro(REGISTRO_ID.valor(), "Yerba", 4, null);
+        inventario = AvisoTestData.inventario(null, registro);
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeConsultaElValorDe(String clave) {
+        valor = inventario.valorDe(registro, clave);
+    }
+
+    // --- entonces ---
+
+    private void entoncesElValorEs(Object esperado) {
+        assertThat(valor).isEqualTo(esperado);
+    }
+
+    private void entoncesNoHayValor() {
+        assertThat(valor).isNull();
     }
 }

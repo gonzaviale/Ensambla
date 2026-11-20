@@ -7,75 +7,194 @@ import {
   renombrarSeccionesEn,
   sumarBloque,
 } from '@/lib/sistema/secciones';
+import type { Bloque, Seccion, Sistema } from '@/lib/sistema/tipos';
 
-const conDosSecciones = () => {
-  const sistema = makeSystem('Mi sección', ['clients']);
-  const primera = sistema.sections[0];
-  if (!primera) throw new Error('Falta la primera pestaña');
-  const segunda = armarSeccion('Ventas', 'empty');
-  sistema.sections.push(segunda);
-  return { sistema, primera, segunda };
-};
+let sistema: Sistema;
+let primera: Seccion;
+let segunda: Seccion;
+let creado: Bloque | undefined;
+let receptora: string | undefined;
+let idsDeLosBloques: string[];
 
 describe('pestañas y bloques de un sistema', () => {
-  it('sumarBloque agrega la pieza al final de la pestaña, con ejemplos si se piden', () => {
-    const { sistema, segunda } = conDosSecciones();
+  it('sumarBloque agrega la pieza al final de la pestaña', () => {
+    dadoUnSistemaConDosSecciones();
 
-    const creado = sumarBloque(sistema, 'inventory', segunda.id, { conEjemplos: true });
+    cuandoSeSumaUnInventarioConEjemplosALaSegunda();
 
-    expect(creado?.type).toBe('inventory');
-    expect(sistema.sections[1]?.blocks.at(-1)?.id).toBe(creado?.id);
-    expect(creado?.rows.some((fila) => fila.__example)).toBe(true);
+    entoncesLaPiezaQuedaAlFinalDeLaSegunda();
+  });
+
+  it('sumarBloque trae ejemplos si se piden', () => {
+    dadoUnSistemaConDosSecciones();
+
+    cuandoSeSumaUnInventarioConEjemplosALaSegunda();
+
+    entoncesLaPiezaTraeFilasDeEjemplo();
   });
 
   it('sumarBloque no hace nada si la pestaña no existe', () => {
-    const { sistema } = conDosSecciones();
+    dadoUnSistemaConDosSecciones();
 
-    expect(sumarBloque(sistema, 'inventory', 'no-existe')).toBeUndefined();
+    cuandoSeSumaUnInventarioAUnaPestanaQueNoExiste();
+
+    entoncesNoSeCreoNingunaPieza();
   });
 
-  it('armarSeccion usa el nombre pedido y, sin nombre, el del preset', () => {
-    expect(armarSeccion('Ventas', 'empty').name).toBe('Ventas');
-    expect(armarSeccion('', 'empty').name).toBe('Nueva pestaña');
-    expect(armarSeccion('Ventas', 'empty').blocks).toEqual([]);
+  it('armarSeccion usa el nombre pedido', () => {
+    cuandoSeArmaLaSeccion('Ventas');
+
+    entoncesLaSeccionSeLlama('Ventas');
+  });
+
+  it('armarSeccion, sin nombre, usa el del preset', () => {
+    cuandoSeArmaLaSeccion('');
+
+    entoncesLaSeccionSeLlama('Nueva pestaña');
+  });
+
+  it('armarSeccion arranca sin bloques', () => {
+    cuandoSeArmaLaSeccion('Ventas');
+
+    entoncesLaSeccionNoTieneBloques();
   });
 
   it('renombrarSeccionesEn ignora nombres vacíos', () => {
-    const { sistema, primera, segunda } = conDosSecciones();
+    dadoUnSistemaConDosSecciones();
 
-    renombrarSeccionesEn(sistema, [
-      [primera.id, 'Stock'],
-      [segunda.id, ''],
-    ]);
+    cuandoSeRenombranLasSeccionesConUnNombreVacio();
 
-    expect(sistema.sections.map((seccion) => seccion.name)).toEqual(['Stock', 'Ventas']);
+    entoncesLosNombresSon('Stock', 'Ventas');
   });
 
-  it('moverSeccionEn cambia el orden y no se pasa de los extremos', () => {
-    const { sistema, primera, segunda } = conDosSecciones();
+  it('moverSeccionEn no se pasa del extremo de arriba', () => {
+    dadoUnSistemaConDosSecciones();
 
-    moverSeccionEn(sistema, primera.id, 'arriba');
-    expect(sistema.sections.map((seccion) => seccion.id)).toEqual([primera.id, segunda.id]);
+    cuandoSeMueveLaPrimeraHacia('arriba');
 
-    moverSeccionEn(sistema, primera.id, 'abajo');
-    expect(sistema.sections.map((seccion) => seccion.id)).toEqual([segunda.id, primera.id]);
+    entoncesElOrdenEs('primera', 'segunda');
   });
 
-  it('quitarSeccionDe pasa los bloques a otra pestaña y conserva sus datos', () => {
-    const { sistema, primera, segunda } = conDosSecciones();
-    const bloques = primera.blocks.map((bloque) => bloque.id);
+  it('moverSeccionEn cambia el orden hacia abajo', () => {
+    dadoUnSistemaConDosSecciones();
 
-    const receptora = quitarSeccionDe(sistema, primera.id);
+    cuandoSeMueveLaPrimeraHacia('abajo');
 
-    expect(receptora).toBe(segunda.id);
-    expect(sistema.sections).toHaveLength(1);
-    expect(sistema.sections[0]?.blocks.map((bloque) => bloque.id)).toEqual(bloques);
+    entoncesElOrdenEs('segunda', 'primera');
+  });
+
+  it('quitarSeccionDe pasa los bloques a otra pestaña', () => {
+    dadoUnSistemaConDosSecciones();
+
+    cuandoSeQuitaLaPrimeraSeccion();
+
+    entoncesLaSegundaRecibeLosBloquesDeLaPrimera();
+  });
+
+  it('quitarSeccionDe deja una sola pestaña', () => {
+    dadoUnSistemaConDosSecciones();
+
+    cuandoSeQuitaLaPrimeraSeccion();
+
+    entoncesQuedaUnaSolaSeccion();
   });
 
   it('no deja quitar la única pestaña', () => {
-    const sistema = makeSystem('Mi sección', ['clients']);
+    dadoUnSistemaConUnaSolaSeccion();
 
-    expect(quitarSeccionDe(sistema, sistema.sections[0]?.id ?? '')).toBeUndefined();
-    expect(sistema.sections).toHaveLength(1);
+    cuandoSeQuitaLaUnicaSeccion();
+
+    entoncesSigueHabiendoUnaSolaSeccionYNadieRecibeNada();
   });
 });
+
+function dadoUnSistemaConDosSecciones() {
+  sistema = makeSystem('Mi sección', ['clients']);
+  const inicial = sistema.sections[0];
+  if (!inicial) throw new Error('Falta la primera pestaña');
+  primera = inicial;
+  segunda = armarSeccion('Ventas', 'empty');
+  sistema.sections.push(segunda);
+  idsDeLosBloques = primera.blocks.map((bloque) => bloque.id);
+}
+
+function dadoUnSistemaConUnaSolaSeccion() {
+  sistema = makeSystem('Mi sección', ['clients']);
+}
+
+function cuandoSeSumaUnInventarioConEjemplosALaSegunda() {
+  creado = sumarBloque(sistema, 'inventory', segunda.id, { conEjemplos: true });
+}
+
+function cuandoSeSumaUnInventarioAUnaPestanaQueNoExiste() {
+  creado = sumarBloque(sistema, 'inventory', 'no-existe');
+}
+
+let seccionArmada: Seccion;
+
+function cuandoSeArmaLaSeccion(nombre: string) {
+  seccionArmada = armarSeccion(nombre, 'empty');
+}
+
+function cuandoSeRenombranLasSeccionesConUnNombreVacio() {
+  renombrarSeccionesEn(sistema, [
+    [primera.id, 'Stock'],
+    [segunda.id, ''],
+  ]);
+}
+
+function cuandoSeMueveLaPrimeraHacia(sentido: 'arriba' | 'abajo') {
+  moverSeccionEn(sistema, primera.id, sentido);
+}
+
+function cuandoSeQuitaLaPrimeraSeccion() {
+  receptora = quitarSeccionDe(sistema, primera.id);
+}
+
+function cuandoSeQuitaLaUnicaSeccion() {
+  receptora = quitarSeccionDe(sistema, sistema.sections[0]?.id ?? '');
+}
+
+function entoncesLaPiezaQuedaAlFinalDeLaSegunda() {
+  expect(creado?.type).toBe('inventory');
+  expect(sistema.sections[1]?.blocks.at(-1)?.id).toBe(creado?.id);
+}
+
+function entoncesLaPiezaTraeFilasDeEjemplo() {
+  expect(creado?.rows.some((fila) => fila.__example)).toBe(true);
+}
+
+function entoncesNoSeCreoNingunaPieza() {
+  expect(creado).toBeUndefined();
+}
+
+function entoncesLaSeccionSeLlama(nombre: string) {
+  expect(seccionArmada.name).toBe(nombre);
+}
+
+function entoncesLaSeccionNoTieneBloques() {
+  expect(seccionArmada.blocks).toEqual([]);
+}
+
+function entoncesLosNombresSon(...nombres: string[]) {
+  expect(sistema.sections.map((seccion) => seccion.name)).toEqual(nombres);
+}
+
+function entoncesElOrdenEs(...orden: ('primera' | 'segunda')[]) {
+  const ids = { primera: primera.id, segunda: segunda.id };
+  expect(sistema.sections.map((seccion) => seccion.id)).toEqual(orden.map((clave) => ids[clave]));
+}
+
+function entoncesLaSegundaRecibeLosBloquesDeLaPrimera() {
+  expect(receptora).toBe(segunda.id);
+  expect(sistema.sections[0]?.blocks.map((bloque) => bloque.id)).toEqual(idsDeLosBloques);
+}
+
+function entoncesQuedaUnaSolaSeccion() {
+  expect(sistema.sections).toHaveLength(1);
+}
+
+function entoncesSigueHabiendoUnaSolaSeccionYNadieRecibeNada() {
+  expect(receptora).toBeUndefined();
+  expect(sistema.sections).toHaveLength(1);
+}

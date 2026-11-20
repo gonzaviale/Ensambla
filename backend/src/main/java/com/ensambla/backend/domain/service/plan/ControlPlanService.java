@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.AccesoIa;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
+import com.ensambla.backend.domain.model.plan.CuotaObjetivosIa;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.FuncionPlan;
 import com.ensambla.backend.domain.model.plan.Plan;
@@ -76,6 +77,22 @@ public class ControlPlanService {
     public void validarPaginasIa(NegocioId negocioId, int cantidad, OffsetDateTime ahora) {
         exigirIa(negocioId);
         conNegocioBloqueado(negocioId, () -> exigirCupoDePaginasIa(negocioId, cantidad, ahora));
+    }
+
+    /** Los objetivos con IA de este mes (calendario argentino) y los que permite el plan vigente. */
+    public CuotaObjetivosIa cuotaObjetivosIa(NegocioId negocioId, OffsetDateTime ahora) {
+        return new CuotaObjetivosIa(
+                objetivosIaDelMes(negocioId, ahora), planVigente(negocioId, ahora).getLimiteObjetivosIaMensuales());
+    }
+
+    /**
+     * Bloquea el negocio y comprueba que le quede cuota para un objetivo con IA más. Se llama dentro de la
+     * transacción que guarda el objetivo, así dos altas simultáneas no pasan el límite.
+     *
+     * @throws RestriccionPlanException si se agotó la cuota mensual
+     */
+    public void validarObjetivoIa(NegocioId negocioId, OffsetDateTime ahora) {
+        conNegocioBloqueado(negocioId, () -> exigirCupoDeObjetivosIa(negocioId, ahora));
     }
 
     public void validarFuncion(NegocioId negocioId, FuncionPlan funcion, OffsetDateTime ahora) {
@@ -148,6 +165,17 @@ public class ControlPlanService {
         plan.validarProyectos(usoPlanRepository.contarProyectos(negocioId));
     }
 
+    private void exigirCupoDeObjetivosIa(NegocioId negocioId, OffsetDateTime ahora) {
+        Plan plan = planVigente(negocioId, ahora);
+        plan.validarObjetivosIa(objetivosIaDelMes(negocioId, ahora));
+    }
+
+    private long objetivosIaDelMes(NegocioId negocioId, OffsetDateTime ahora) {
+        LocalDate primerDia = ZonaNegocio.primerDiaDelMes(ahora);
+        return usoPlanRepository.objetivosIaEnPeriodo(negocioId, ZonaNegocio.inicioDelDia(primerDia),
+                ZonaNegocio.inicioDelDia(primerDia.plusMonths(1)));
+    }
+
     private void exigirCupoDeRegistros(NegocioId negocioId, long cantidad, OffsetDateTime ahora) {
         Plan plan = planVigente(negocioId, ahora);
         plan.validarRegistros(usoPlanRepository.contarRegistros(negocioId), cantidad);
@@ -212,7 +240,7 @@ public class ControlPlanService {
     }
 
     private boolean esPremium(NegocioId negocioId, OffsetDateTime ahora) {
-        return planVigente(negocioId, ahora).getCodigo() == CodigoPlan.PREMIUM;
+        return planVigente(negocioId, ahora).esPremium();
     }
 
     private Suscripcion suscripcionDe(NegocioId negocioId) {

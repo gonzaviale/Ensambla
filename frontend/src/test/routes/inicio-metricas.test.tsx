@@ -13,12 +13,12 @@ import { ESPERA, setupUsuarioConSesion, verifyHeadingPresentAsync } from '@/test
 
 const almacen = (nombre: string): Sistema => ({ ...crearAlmacenCargado(hoy()), name: nombre });
 
-const givenNegocioSinVentas = (): Sistema => ({
+const dadoNegocioSinVentas = (): Sistema => ({
   ...makeTemplate('shop', {}, true),
   name: 'Kiosco nuevo',
 });
 
-const whenAbreInicio = async (sistemas: Sistema[]) => {
+const cuandoAbreInicio = async (sistemas: Sistema[]) => {
   const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
   estado.sistemas.set(usuario.email, sistemas);
   const router = renderApp('/inicio');
@@ -37,7 +37,7 @@ const sinVentas = {
 };
 
 /** Una sola venta, hoy: sin semana anterior ni otro día con qué compararla. */
-const givenUnaSolaVentaHoy = () => {
+const dadoUnaSolaVentaHoy = () => {
   const venta = { ...sinVentas, ingresos: 1500, unidades: 1, cantidad: 1 };
   server.use(
     http.get('/api/proyectos/:sistemaId/resumen/inicio', () =>
@@ -57,14 +57,14 @@ const givenUnaSolaVentaHoy = () => {
   );
 };
 
-const givenSinAvisoEconomico = () =>
+const dadoSinAvisoEconomico = () =>
   server.use(
     http.get('/api/proyectos/:sistemaId/resumen/aviso-economico', () =>
       HttpResponse.json({ aviso: null }),
     ),
   );
 
-const givenAvisoSinCostos = () =>
+const dadoAvisoSinCostos = () =>
   server.use(
     http.get('/api/proyectos/:sistemaId/resumen/aviso-economico', () =>
       HttpResponse.json({
@@ -84,12 +84,12 @@ const givenAvisoSinCostos = () =>
     ),
   );
 
-const thenTarjetas = async () =>
+const entoncesTarjetas = async () =>
   within(
     await screen.findByRole('region', { name: 'Avisos de rentabilidad' }, ESPERA),
   ).getAllByRole('article', { name: 'Aviso económico' });
 
-const thenNoHayCarrusel = async () => {
+const entoncesNoHayCarrusel = async () => {
   await screen.findByRole('region', { name: 'Tu flujo de caja' }, ESPERA);
   expect(screen.queryByRole('region', { name: 'Avisos de rentabilidad' })).toBeNull();
 };
@@ -98,9 +98,9 @@ describe('inicio: sin tablero ni decisiones', () => {
   beforeEach(() => window.localStorage.clear());
 
   it('con una sección cargada no muestra «Cómo te va» ni «Para decidir hoy»', async () => {
-    await whenAbreInicio([almacen('Almacén de barrio')]);
+    await cuandoAbreInicio([almacen('Almacén de barrio')]);
 
-    await thenTarjetas();
+    await entoncesTarjetas();
     expect(screen.queryByText('Cómo te va')).toBeNull();
     expect(screen.queryByText('Para decidir hoy')).toBeNull();
   });
@@ -110,7 +110,7 @@ describe('inicio: métricas', () => {
   beforeEach(() => window.localStorage.clear());
 
   it('dentro de «Tu negocio» muestra lo vendido, sin elegir sección', async () => {
-    await whenAbreInicio([almacen('Almacén de barrio')]);
+    await cuandoAbreInicio([almacen('Almacén de barrio')]);
 
     const negocio = within(screen.getByRole('region', { name: 'Tu negocio' }));
     const metricas = await negocio.findByRole('region', { name: 'Tus métricas' }, ESPERA);
@@ -122,7 +122,7 @@ describe('inicio: métricas', () => {
   });
 
   it('con un negocio sin ventas muestra qué se va a ver', async () => {
-    await whenAbreInicio([givenNegocioSinVentas()]);
+    await cuandoAbreInicio([dadoNegocioSinVentas()]);
 
     const negocio = within(await screen.findByRole('region', { name: 'Tu negocio' }, ESPERA));
     expect(
@@ -131,7 +131,7 @@ describe('inicio: métricas', () => {
   });
 
   it('sin ventas, «Cargar mis primeras ventas» lleva al negocio para anotarlas', async () => {
-    const user = await whenAbreInicio([givenNegocioSinVentas()]);
+    const user = await cuandoAbreInicio([dadoNegocioSinVentas()]);
 
     await user.click(
       await screen.findByRole('button', { name: 'Cargar mis primeras ventas' }, ESPERA),
@@ -148,9 +148,9 @@ describe('inicio: carrusel de rentabilidad', () => {
   beforeEach(() => window.localStorage.clear());
 
   it('con dos semanas de ventas aparece debajo de «Tu negocio»', async () => {
-    await whenAbreInicio([almacen('Almacén de barrio')]);
+    await cuandoAbreInicio([almacen('Almacén de barrio')]);
 
-    await thenTarjetas();
+    await entoncesTarjetas();
     const negocio = screen.getByRole('region', { name: 'Tu negocio' });
     const carrusel = screen.getByRole('region', { name: 'Avisos de rentabilidad' });
     expect(
@@ -159,16 +159,16 @@ describe('inicio: carrusel de rentabilidad', () => {
   });
 
   it('con una sola venta en un solo día no aparece', async () => {
-    givenUnaSolaVentaHoy();
-    await whenAbreInicio([almacen('Almacén de barrio')]);
+    dadoUnaSolaVentaHoy();
+    await cuandoAbreInicio([almacen('Almacén de barrio')]);
 
-    await thenNoHayCarrusel();
+    await entoncesNoHayCarrusel();
   });
 
   it('parte el aviso en tarjetas cortas: ventas, ganancia y productos', async () => {
-    const user = await whenAbreInicio([almacen('Almacén de barrio')]);
+    const user = await cuandoAbreInicio([almacen('Almacén de barrio')]);
 
-    const [ventas, ganancia, productos] = await thenTarjetas();
+    const [ventas, ganancia, productos] = await entoncesTarjetas();
     expect(within(ventas as HTMLElement).getByText('Ventas')).toBeVisible();
     expect(within(ventas as HTMLElement).getByText('+12 %')).toBeVisible();
     expect(within(ganancia as HTMLElement).getByText('Ganancia')).toBeVisible();
@@ -191,32 +191,32 @@ describe('inicio: carrusel de rentabilidad', () => {
   });
 
   it('no manda a ninguna otra pantalla ni abre ventanas solas', async () => {
-    await whenAbreInicio([almacen('Almacén de barrio')]);
-    await thenTarjetas();
+    await cuandoAbreInicio([almacen('Almacén de barrio')]);
+    await entoncesTarjetas();
 
     expect(screen.queryByRole('button', { name: 'Entender por qué' })).toBeNull();
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('sin costos cargados lo dice en la tarjeta de ganancia', async () => {
-    givenAvisoSinCostos();
-    await whenAbreInicio([almacen('Almacén de barrio')]);
+    dadoAvisoSinCostos();
+    await cuandoAbreInicio([almacen('Almacén de barrio')]);
 
-    const [ventas, costos] = await thenTarjetas();
+    const [ventas, costos] = await entoncesTarjetas();
     expect(within(ventas as HTMLElement).getByText('+20 %')).toBeVisible();
     expect(within(costos as HTMLElement).getByText('Sin costos')).toBeVisible();
   });
 
   it('sin una semana anterior para comparar no aparece', async () => {
-    givenSinAvisoEconomico();
-    await whenAbreInicio([almacen('Almacén de barrio')]);
+    dadoSinAvisoEconomico();
+    await cuandoAbreInicio([almacen('Almacén de barrio')]);
 
-    await thenNoHayCarrusel();
+    await entoncesNoHayCarrusel();
   });
 
   it('las tarjetas no se pueden descartar y sólo la de productos se toca', async () => {
-    await whenAbreInicio([almacen('Almacén de barrio')]);
-    const tarjetas = await thenTarjetas();
+    await cuandoAbreInicio([almacen('Almacén de barrio')]);
+    const tarjetas = await entoncesTarjetas();
 
     expect(screen.queryByRole('button', { name: 'Descartar aviso' })).toBeNull();
     const tocables = tarjetas.filter((tarjeta) => within(tarjeta).queryByRole('button'));
@@ -226,8 +226,8 @@ describe('inicio: carrusel de rentabilidad', () => {
   });
 
   it('con varias secciones muestra solo las tarjetas de una', async () => {
-    await whenAbreInicio([almacen('Almacén de barrio'), almacen('Kiosco del centro')]);
+    await cuandoAbreInicio([almacen('Almacén de barrio'), almacen('Kiosco del centro')]);
 
-    expect(await thenTarjetas()).toHaveLength(3);
+    expect(await entoncesTarjetas()).toHaveLength(3);
   });
 });

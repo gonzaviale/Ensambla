@@ -34,6 +34,8 @@ import static org.mockito.Mockito.when;
 
 class ObtenerAvisoEconomicoTest {
 
+    private ObtenerAvisoEconomicoResponse response;
+
     private static final UsuarioId USUARIO_ID = UsuarioId.de("b9000000-0000-4000-8000-000000000001");
     private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
     private static final ProyectoId PROYECTO_ID = ProyectoId.de("c0000000-0000-4000-8000-000000000001");
@@ -60,48 +62,34 @@ class ObtenerAvisoEconomicoTest {
 
     @Test
     @DisplayName("Compara los últimos 7 días, en hora argentina, con los 7 anteriores")
-    void executeShouldCompareThisWeekWithThePreviousOne() {
-        givenVentas(
-                venta(3, 3400, "2026-10-19"),
-                venta(1, 3400, "2026-10-13"),
-                venta(2, 3400, "2026-10-12"),
-                venta(1, 3400, "2026-10-06"),
-                venta(9, 3400, "2026-10-05"),
-                venta(9, 3400, "2026-10-20"));
+    void comparaLosUltimos7DiasEnHoraArgentinaConLos7Anteriores() {
+        dadoElEscenarioDeComparaLosUltimos7DiasEnHoraArgentinaConLos7Anteriores();
 
-        ObtenerAvisoEconomicoResponse response = whenObtener();
+        cuandoSeEjecutaComparaLosUltimos7DiasEnHoraArgentinaConLos7Anteriores();
 
-        assertThat(response.aviso().prioridad()).isEqualTo("BAJA");
-        assertThat(response.aviso().tendencia()).isEqualTo("MEJORA");
-        assertThat(response.aviso().categoria()).isEqualTo("Rentabilidad");
-        assertThat(response.aviso().titulo()).isEqualTo("Las ventas subieron 33 % y la ganancia subió 33 %");
-        assertThat(response.aviso().explicacion()).startsWith("Tu negocio está mejorando");
-        assertThat(response.aviso().variacionVentas()).isEqualByComparingTo("33");
-        assertThat(response.aviso().variacionResultadoBruto()).isEqualByComparingTo("33");
-        assertThat(response.aviso().productos()).containsExactly("Yerba Nobleza Gaucha");
-        assertThat(response.aviso().confianza()).isEqualTo("ALTA");
+        entoncesSeVerificaComparaLosUltimos7DiasEnHoraArgentinaConLos7Anteriores();
     }
 
     @Test
     @DisplayName("No devuelve aviso si la semana anterior no tuvo ventas")
-    void executeShouldReturnNoNoticeWhenThePreviousWeekHasNoSales() {
-        givenVentas(venta(3, 3400, "2026-10-19"));
+    void noDevuelveAvisoSiLaSemanaAnteriorNoTuvoVentas() {
+        dadoElEscenarioDeNoDevuelveAvisoSiLaSemanaAnteriorNoTuvoVentas();
 
-        ObtenerAvisoEconomicoResponse response = whenObtener();
+        cuandoSeEjecutaNoDevuelveAvisoSiLaSemanaAnteriorNoTuvoVentas();
 
-        assertThat(response.aviso()).isNull();
+        entoncesSeVerificaNoDevuelveAvisoSiLaSemanaAnteriorNoTuvoVentas();
     }
 
-    // --- arrange ---
-    private void givenVentas(Registro... ventas) {
+    // --- dado ---
+    private void dadoVentas(Registro... ventas) {
         BloqueVentas bloque = new BloqueVentas(AvisoTestData.bloqueVentas(),
                 AvisoTestData.camposPorClave(AvisoTestData.bloqueVentas()), List.of(ventas));
         when(datosDeProyectoService.cargar(proyecto, NEGOCIO_ID)).thenReturn(new DatosDeProyecto(
                 "Almacén de prueba", List.of(AvisoTestData.inventarioConPrecios(yerba())), List.of(bloque), List.of()));
     }
 
-    // --- act ---
-    private ObtenerAvisoEconomicoResponse whenObtener() {
+    // --- cuando ---
+    private ObtenerAvisoEconomicoResponse cuandoObtener() {
         return obtenerAvisoEconomico.execute(new ObtenerAvisoEconomicoRequest(USUARIO_ID, PROYECTO_ID));
     }
 
@@ -124,5 +112,49 @@ class ObtenerAvisoEconomicoTest {
         valores.put(AvisoTestData.CAMPO_FECHA_ID.toString(), fecha);
         return Registro.builder().id(RegistroId.nuevo()).negocioId(AvisoTestData.NEGOCIO_ID)
                 .bloqueId(AvisoTestData.VENTAS_ID).valores(valores).build();
+    }
+
+    // --- dado ---
+
+    private void dadoElEscenarioDeComparaLosUltimos7DiasEnHoraArgentinaConLos7Anteriores() {
+        dadoVentas(
+                        venta(3, 3400, "2026-10-19"),
+                        venta(1, 3400, "2026-10-13"),
+                        venta(2, 3400, "2026-10-12"),
+                        venta(1, 3400, "2026-10-06"),
+                        venta(9, 3400, "2026-10-05"),
+                        venta(9, 3400, "2026-10-20"));
+    }
+
+    private void dadoElEscenarioDeNoDevuelveAvisoSiLaSemanaAnteriorNoTuvoVentas() {
+        dadoVentas(venta(3, 3400, "2026-10-19"));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaComparaLosUltimos7DiasEnHoraArgentinaConLos7Anteriores() {
+        response = cuandoObtener();
+    }
+
+    private void cuandoSeEjecutaNoDevuelveAvisoSiLaSemanaAnteriorNoTuvoVentas() {
+        response = cuandoObtener();
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaComparaLosUltimos7DiasEnHoraArgentinaConLos7Anteriores() {
+        assertThat(response.aviso().prioridad()).isEqualTo("BAJA");
+        assertThat(response.aviso().tendencia()).isEqualTo("MEJORA");
+        assertThat(response.aviso().categoria()).isEqualTo("Rentabilidad");
+        assertThat(response.aviso().titulo()).isEqualTo("Las ventas subieron 33 % y la ganancia subió 33 %");
+        assertThat(response.aviso().explicacion()).startsWith("Tu negocio está mejorando");
+        assertThat(response.aviso().variacionVentas()).isEqualByComparingTo("33");
+        assertThat(response.aviso().variacionResultadoBruto()).isEqualByComparingTo("33");
+        assertThat(response.aviso().productos()).containsExactly("Yerba Nobleza Gaucha");
+        assertThat(response.aviso().confianza()).isEqualTo("ALTA");
+    }
+
+    private void entoncesSeVerificaNoDevuelveAvisoSiLaSemanaAnteriorNoTuvoVentas() {
+        assertThat(response.aviso()).isNull();
     }
 }

@@ -31,243 +31,304 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class GlobalExceptionHandlerTest {
 
-    private static final String PATH = "/api/proyectos";
-    private static final String SECRET = "password-secreto";
-    private static final String CAUSE_SECRET = "secreto";
-    private static final String BUSINESS_MESSAGE = "Regla incumplida";
+    private static final String RUTA = "/api/proyectos";
+    private static final String SECRETO = "password-secreto";
+    private static final String SECRETO_DE_LA_CAUSA = "secreto";
+    private static final String MENSAJE_DE_NEGOCIO = "Regla incumplida";
 
     private GlobalExceptionHandler handler;
-    private MockHttpServletRequest request;
+    private MockHttpServletRequest pedido;
+    private ResponseEntity<ErrorResponse> respuesta;
+    private ResourceNotFoundException noEncontrado;
+    private DuplicateResourceException duplicado;
 
     @BeforeEach
     void setUp() {
         handler = new GlobalExceptionHandler();
-        request = new MockHttpServletRequest("GET", PATH);
+        pedido = new MockHttpServletRequest("GET", RUTA);
     }
 
     @Test
     @DisplayName("Responde 404 con el mensaje de la excepción cuando no se encuentra el recurso")
-    void handleNotFoundShouldReturnNotFoundWithMessage() {
-        ResourceNotFoundException exception = new ResourceNotFoundException("ruta", "id", "x");
+    void respondeNoEncontradoConElMensajeDeLaExcepcion() {
+        dadoUnRecursoNoEncontrado();
 
-        ResponseEntity<ErrorResponse> response = handler.handleNotFound(exception, request);
+        cuandoSeManejaElRecursoNoEncontrado();
 
-        thenResponseHasStatusAndMessage(response, 404, exception.getMessage());
+        entoncesLaRespuestaTieneEstadoYMensaje(404, noEncontrado.getMessage());
     }
 
     @Test
     @DisplayName("Responde 409 con el mensaje de la excepción cuando el recurso está duplicado")
-    void handleDuplicateShouldReturnConflictWithMessage() {
-        DuplicateResourceException exception = new DuplicateResourceException("ruta", "slug", "x");
+    void respondeConflictoConElMensajeDeLaExcepcionCuandoElRecursoEstaDuplicado() {
+        dadoUnRecursoDuplicado();
 
-        ResponseEntity<ErrorResponse> response = handler.handleDuplicate(exception, request);
+        cuandoSeManejaElRecursoDuplicado();
 
-        thenResponseHasStatusAndMessage(response, 409, exception.getMessage());
+        entoncesLaRespuestaTieneEstadoYMensaje(409, duplicado.getMessage());
     }
 
     @Test
     @DisplayName("Responde 502 con el mensaje cuando la IA no puede leer la foto")
-    void handleLecturaCuadernoShouldReturnBadGatewayWithMessage() {
-        LecturaCuadernoException exception = new LecturaCuadernoException("No pudimos leer el cuaderno");
+    void respondeBadGatewayConElMensajeCuandoLaIaNoPuedeLeerLaFoto() {
+        cuandoLaIaNoPuedeLeerElCuaderno();
 
-        ResponseEntity<ErrorResponse> response = handler.handleLecturaCuaderno(exception, request);
-
-        thenResponseHasStatusAndMessage(response, 502, "No pudimos leer el cuaderno");
+        entoncesLaRespuestaTieneEstadoYMensaje(502, "No pudimos leer el cuaderno");
     }
 
     @Test
     @DisplayName("Responde 400 con el mensaje de la regla de negocio incumplida")
-    void handleBusinessRuleShouldReturnBadRequestWithMessage() {
-        BusinessRuleException exception = new BusinessRuleException(BUSINESS_MESSAGE);
+    void respondeBadRequestConElMensajeDeLaReglaDeNegocioIncumplida() {
+        cuandoSeIncumpleUnaReglaDeNegocio();
 
-        ResponseEntity<ErrorResponse> response = handler.handleBusinessRule(exception, request);
-
-        thenResponseHasStatusAndMessage(response, 400, BUSINESS_MESSAGE);
+        entoncesLaRespuestaTieneEstadoYMensaje(400, MENSAJE_DE_NEGOCIO);
     }
 
     @Test
     @DisplayName("Responde 400 con el mensaje de cada campo cuando un registro no es válido")
-    void handleRegistroInvalidoShouldReturnBadRequestWithErrorPerField() {
-        RegistroInvalidoException exception = new RegistroInvalidoException(
-                Map.of("campo-1", "Este dato es obligatorio"));
+    void respondeBadRequestConElErrorDeCadaCampoCuandoUnRegistroNoEsValido() {
+        cuandoUnRegistroNoEsValido();
 
-        ResponseEntity<ErrorResponse> response = handler.handleRegistroInvalido(exception, request);
-
-        thenResponseIsBadRequestWithError(response, "campo-1", "Este dato es obligatorio");
-        assertThat(response.getBody().getMessage()).isEqualTo("Revisá los datos marcados");
+        entoncesLaRespuestaEsBadRequestConElError("campo-1", "Este dato es obligatorio");
+        entoncesElMensajeEs("Revisá los datos marcados");
     }
 
     @Test
     @DisplayName("Responde 400 con el mensaje de cada dato cuando la configuración de un campo no es válida")
-    void handleCampoInvalidoShouldReturnBadRequestWithErrorPerDato() {
-        CampoInvalidoException exception = new CampoInvalidoException(
-                Map.of("opciones", "Agregá al menos una opción"));
+    void respondeBadRequestConElErrorDeCadaDatoCuandoLaConfiguracionDeUnCampoNoEsValida() {
+        cuandoLaConfiguracionDeUnCampoNoEsValida();
 
-        ResponseEntity<ErrorResponse> response = handler.handleCampoInvalido(exception, request);
-
-        thenResponseIsBadRequestWithError(response, "opciones", "Agregá al menos una opción");
-        assertThat(response.getBody().getMessage()).isEqualTo("Revisá la configuración del campo");
+        entoncesLaRespuestaEsBadRequestConElError("opciones", "Agregá al menos una opción");
+        entoncesElMensajeEs("Revisá la configuración del campo");
     }
 
     @Test
     @DisplayName("Incluye la ruta, la fecha y un identificador de traza UUID en la respuesta")
-    void handleNotFoundShouldIncludePathTimestampAndTraceId() {
-        ResourceNotFoundException exception = new ResourceNotFoundException("ruta", "id", "x");
+    void incluyeLaRutaLaFechaYUnIdentificadorDeTrazaEnLaRespuesta() {
+        dadoUnRecursoNoEncontrado();
 
-        ResponseEntity<ErrorResponse> response = handler.handleNotFound(exception, request);
+        cuandoSeManejaElRecursoNoEncontrado();
 
-        thenResponseHasPathTimestampAndTraceId(response);
+        entoncesLaRespuestaTieneRutaFechaYTraza();
     }
 
     @Test
     @DisplayName("Responde 400 con el error por campo cuando falla la validación de un campo")
-    void handleValidationExceptionsShouldMapFieldErrorByFieldName() {
-        MethodArgumentNotValidException exception = validationExceptionWith(
-                new FieldError("query", "size", "Debe ser positivo"));
+    void respondeBadRequestConElErrorPorCampoCuandoFallaLaValidacionDeUnCampo() {
+        cuandoFallaLaValidacionDeUnCampo();
 
-        ResponseEntity<ErrorResponse> response = handler.handleValidationExceptions(exception, request);
-
-        thenResponseIsBadRequestWithError(response, "size", "Debe ser positivo");
+        entoncesLaRespuestaEsBadRequestConElError("size", "Debe ser positivo");
     }
 
     @Test
     @DisplayName("Responde 400 con el error por nombre de objeto cuando falla la validación del objeto")
-    void handleValidationExceptionsShouldMapObjectErrorByObjectName() {
-        MethodArgumentNotValidException exception = validationExceptionWith(
-                new ObjectError("query", "Combinación inválida"));
+    void respondeBadRequestConElErrorPorNombreDeObjetoCuandoFallaLaValidacionDelObjeto() {
+        cuandoFallaLaValidacionDelObjeto();
 
-        ResponseEntity<ErrorResponse> response = handler.handleValidationExceptions(exception, request);
-
-        thenResponseIsBadRequestWithError(response, "query", "Combinación inválida");
+        entoncesLaRespuestaEsBadRequestConElError("query", "Combinación inválida");
     }
 
     @Test
     @DisplayName("Responde 400 identificando el parámetro cuando el tipo es inválido")
-    void handleTypeMismatchShouldReturnBadRequestWithParameterName() {
-        MethodArgumentTypeMismatchException exception = typeMismatchOnRutaId();
+    void respondeBadRequestIdentificandoElParametroCuandoElTipoEsInvalido() {
+        cuandoElTipoDelParametroEsInvalido();
 
-        ResponseEntity<ErrorResponse> response = handler.handleTypeMismatch(exception, request);
-
-        thenResponseIsBadRequestWithError(response, "rutaId", "El valor no tiene el formato esperado");
+        entoncesLaRespuestaEsBadRequestConElError("rutaId", "El valor no tiene el formato esperado");
     }
 
     @Test
     @DisplayName("No expone la causa del error cuando el tipo del parámetro es inválido")
-    void handleTypeMismatchShouldNotExposeCause() {
-        MethodArgumentTypeMismatchException exception = typeMismatchOnRutaId();
+    void noExponeLaCausaDelErrorCuandoElTipoDelParametroEsInvalido() {
+        cuandoElTipoDelParametroEsInvalido();
 
-        ResponseEntity<ErrorResponse> response = handler.handleTypeMismatch(exception, request);
-
-        thenMessageDoesNotContain(response, CAUSE_SECRET);
+        entoncesElMensajeNoContiene(SECRETO_DE_LA_CAUSA);
     }
 
     @Test
     @DisplayName("Responde 400 identificando el parámetro obligatorio que falta")
-    void handleMissingParameterShouldReturnBadRequestWithParameterName() {
-        MissingServletRequestParameterException exception =
-                new MissingServletRequestParameterException("nodoId", "UUID");
+    void respondeBadRequestIdentificandoElParametroObligatorioQueFalta() {
+        cuandoFaltaUnParametroObligatorio();
 
-        ResponseEntity<ErrorResponse> response = handler.handleMissingParameter(exception, request);
-
-        thenResponseIsBadRequestWithError(response, "nodoId", "El parámetro es obligatorio");
+        entoncesLaRespuestaEsBadRequestConElError("nodoId", "El parámetro es obligatorio");
     }
 
     @Test
     @DisplayName("Responde 409 sin exponer detalles de la base cuando se viola la integridad de datos")
-    void handleDataIntegrityShouldReturnConflictWithoutDatabaseDetails() {
-        DataIntegrityViolationException exception = new DataIntegrityViolationException(SECRET);
+    void respondeConflictoSinExponerDetallesDeLaBaseCuandoSeViolaLaIntegridadDeDatos() {
+        cuandoSeViolaLaIntegridadDeDatos();
 
-        ResponseEntity<ErrorResponse> response = handler.handleDataIntegrity(exception, request);
-
-        thenResponseHasStatusWithoutSecret(response, 409);
+        entoncesLaRespuestaTieneEstadoYNoExponeElSecreto(409);
     }
 
     @Test
     @DisplayName("Responde 500 sin exponer detalles cuando ocurre un error no controlado")
-    void handleGenericShouldReturnInternalServerErrorWithoutDetails() {
-        IllegalStateException exception = new IllegalStateException(SECRET);
+    void respondeErrorInternoSinExponerDetallesCuandoOcurreUnErrorNoControlado() {
+        cuandoOcurreUnErrorNoControlado();
 
-        ResponseEntity<ErrorResponse> response = handler.handleGeneric(exception, request);
-
-        thenResponseHasStatusWithoutSecret(response, 500);
+        entoncesLaRespuestaTieneEstadoYNoExponeElSecreto(500);
     }
 
     @Test
     @DisplayName("Responde 401 sin caché cuando las credenciales son inválidas")
-    void handleCredentialsShouldReturnUnauthorizedWithoutCache() {
-        ResponseEntity<ErrorResponse> response = handler.handleCredentials(new CredencialesInvalidasException(), request);
+    void respondeNoAutorizadoSinCacheCuandoLasCredencialesSonInvalidas() {
+        cuandoLasCredencialesSonInvalidas();
 
-        thenResponseHasStatusAndMessage(response, 401, "No se pudo autenticar el acceso");
-        assertThat(response.getHeaders().getCacheControl()).isEqualTo("no-store");
+        entoncesLaRespuestaTieneEstadoYMensaje(401, "No se pudo autenticar el acceso");
+        entoncesLaRespuestaNoSeGuardaEnCache();
     }
 
     @Test
     @DisplayName("Responde 400 genérico cuando el cuerpo JSON no se puede leer")
-    void handleUnreadableShouldReturnBadRequestWithoutDetails() {
-        HttpMessageNotReadableException exception =
-                new HttpMessageNotReadableException(SECRET, new MockHttpInputMessage(new byte[0]));
+    void respondeBadRequestGenericoCuandoElCuerpoJsonNoSePuedeLeer() {
+        cuandoElCuerpoJsonNoSePuedeLeer();
 
-        ResponseEntity<ErrorResponse> response = handler.handleUnreadable(exception, request);
-
-        thenResponseHasStatusWithoutSecret(response, 400);
+        entoncesLaRespuestaTieneEstadoYNoExponeElSecreto(400);
     }
 
     @Test
     @DisplayName("Responde 400 identificando el archivo obligatorio que falta en un pedido multipart")
-    void handleMissingPartShouldReturnBadRequestWithPartName() {
-        MissingServletRequestPartException exception = new MissingServletRequestPartException("fotos");
+    void respondeBadRequestIdentificandoElArchivoObligatorioQueFaltaEnUnPedidoMultipart() {
+        cuandoFaltaUnArchivoObligatorio();
 
-        ResponseEntity<ErrorResponse> response = handler.handleMissingPart(exception, request);
-
-        thenResponseIsBadRequestWithError(response, "fotos", "El parámetro es obligatorio");
+        entoncesLaRespuestaEsBadRequestConElError("fotos", "El parámetro es obligatorio");
     }
 
     @Test
     @DisplayName("Responde 400 con los límites de tamaño cuando el archivo subido es demasiado grande")
-    void handleMaxUploadSizeShouldReturnBadRequestWithLimits() {
-        MaxUploadSizeExceededException exception = new MaxUploadSizeExceededException(10L * 1024 * 1024);
+    void respondeBadRequestConLosLimitesDeTamanioCuandoElArchivoSubidoEsDemasiadoGrande() {
+        cuandoElArchivoSubidoEsDemasiadoGrande();
 
-        ResponseEntity<ErrorResponse> response = handler.handleMaxUploadSize(exception, request);
-
-        thenResponseHasStatusAndMessage(response, 400, "Cada foto puede pesar hasta 10 MB y el lote hasta 100 MB");
+        entoncesLaRespuestaTieneEstadoYMensaje(400, "Cada foto puede pesar hasta 10 MB y el lote hasta 100 MB");
     }
 
-    // --- arrange ---
-    private MethodArgumentNotValidException validationExceptionWith(ObjectError error) {
+    // --- dado ---
+
+    private void dadoUnRecursoNoEncontrado() {
+        noEncontrado = new ResourceNotFoundException("ruta", "id", "x");
+    }
+
+    private void dadoUnRecursoDuplicado() {
+        duplicado = new DuplicateResourceException("ruta", "slug", "x");
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeManejaElRecursoNoEncontrado() {
+        respuesta = handler.handleNotFound(noEncontrado, pedido);
+    }
+
+    private void cuandoSeManejaElRecursoDuplicado() {
+        respuesta = handler.handleDuplicate(duplicado, pedido);
+    }
+
+    private void cuandoLaIaNoPuedeLeerElCuaderno() {
+        respuesta = handler.handleLecturaCuaderno(new LecturaCuadernoException("No pudimos leer el cuaderno"), pedido);
+    }
+
+    private void cuandoSeIncumpleUnaReglaDeNegocio() {
+        respuesta = handler.handleBusinessRule(new BusinessRuleException(MENSAJE_DE_NEGOCIO), pedido);
+    }
+
+    private void cuandoUnRegistroNoEsValido() {
+        respuesta = handler.handleRegistroInvalido(
+                new RegistroInvalidoException(Map.of("campo-1", "Este dato es obligatorio")), pedido);
+    }
+
+    private void cuandoLaConfiguracionDeUnCampoNoEsValida() {
+        respuesta = handler.handleCampoInvalido(
+                new CampoInvalidoException(Map.of("opciones", "Agregá al menos una opción")), pedido);
+    }
+
+    private void cuandoFallaLaValidacionDeUnCampo() {
+        respuesta = handler.handleValidationExceptions(
+                unaValidacionFallidaCon(new FieldError("query", "size", "Debe ser positivo")), pedido);
+    }
+
+    private void cuandoFallaLaValidacionDelObjeto() {
+        respuesta = handler.handleValidationExceptions(
+                unaValidacionFallidaCon(new ObjectError("query", "Combinación inválida")), pedido);
+    }
+
+    private void cuandoElTipoDelParametroEsInvalido() {
+        respuesta = handler.handleTypeMismatch(unTipoInvalidoEnRutaId(), pedido);
+    }
+
+    private void cuandoFaltaUnParametroObligatorio() {
+        respuesta = handler.handleMissingParameter(
+                new MissingServletRequestParameterException("nodoId", "UUID"), pedido);
+    }
+
+    private void cuandoSeViolaLaIntegridadDeDatos() {
+        respuesta = handler.handleDataIntegrity(new DataIntegrityViolationException(SECRETO), pedido);
+    }
+
+    private void cuandoOcurreUnErrorNoControlado() {
+        respuesta = handler.handleGeneric(new IllegalStateException(SECRETO), pedido);
+    }
+
+    private void cuandoLasCredencialesSonInvalidas() {
+        respuesta = handler.handleCredentials(new CredencialesInvalidasException(), pedido);
+    }
+
+    private void cuandoElCuerpoJsonNoSePuedeLeer() {
+        respuesta = handler.handleUnreadable(
+                new HttpMessageNotReadableException(SECRETO, new MockHttpInputMessage(new byte[0])), pedido);
+    }
+
+    private void cuandoFaltaUnArchivoObligatorio() {
+        respuesta = handler.handleMissingPart(new MissingServletRequestPartException("fotos"), pedido);
+    }
+
+    private void cuandoElArchivoSubidoEsDemasiadoGrande() {
+        respuesta = handler.handleMaxUploadSize(new MaxUploadSizeExceededException(10L * 1024 * 1024), pedido);
+    }
+
+    // --- entonces ---
+
+    private void entoncesLaRespuestaTieneEstadoYMensaje(int estado, String mensaje) {
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(estado);
+        entoncesElMensajeEs(mensaje);
+    }
+
+    private void entoncesElMensajeEs(String mensaje) {
+        assertThat(respuesta.getBody().getMessage()).isEqualTo(mensaje);
+    }
+
+    private void entoncesElMensajeNoContiene(String secreto) {
+        assertThat(respuesta.getBody().getMessage()).doesNotContain(secreto);
+    }
+
+    private void entoncesLaRespuestaTieneRutaFechaYTraza() {
+        ErrorResponse cuerpo = respuesta.getBody();
+        assertThat(cuerpo.getPath()).isEqualTo(RUTA);
+        assertThat(cuerpo.getTimestamp()).isNotNull();
+        assertThat(UUID.fromString(cuerpo.getTraceId())).isNotNull();
+    }
+
+    private void entoncesLaRespuestaEsBadRequestConElError(String clave, String detalle) {
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(400);
+        assertThat(respuesta.getBody().getErrors()).containsEntry(clave, detalle);
+    }
+
+    private void entoncesLaRespuestaTieneEstadoYNoExponeElSecreto(int estado) {
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(estado);
+        entoncesElMensajeNoContiene(SECRETO);
+    }
+
+    private void entoncesLaRespuestaNoSeGuardaEnCache() {
+        assertThat(respuesta.getHeaders().getCacheControl()).isEqualTo("no-store");
+    }
+
+    // --- datos ---
+
+    private MethodArgumentNotValidException unaValidacionFallidaCon(ObjectError error) {
         BeanPropertyBindingResult binding = new BeanPropertyBindingResult(new Object(), "query");
         binding.addError(error);
         return new MethodArgumentNotValidException(null, binding);
     }
 
-    private MethodArgumentTypeMismatchException typeMismatchOnRutaId() {
+    private MethodArgumentTypeMismatchException unTipoInvalidoEnRutaId() {
         return new MethodArgumentTypeMismatchException(
-                "texto", UUID.class, "rutaId", null, new IllegalArgumentException(CAUSE_SECRET));
-    }
-
-    // --- assert ---
-    private void thenResponseHasStatusAndMessage(ResponseEntity<ErrorResponse> response, int status, String message) {
-        assertThat(response.getStatusCode().value()).isEqualTo(status);
-        assertThat(response.getBody().getMessage()).isEqualTo(message);
-    }
-
-    private void thenResponseHasPathTimestampAndTraceId(ResponseEntity<ErrorResponse> response) {
-        ErrorResponse body = response.getBody();
-        assertThat(body.getPath()).isEqualTo(PATH);
-        assertThat(body.getTimestamp()).isNotNull();
-        assertThat(UUID.fromString(body.getTraceId())).isNotNull();
-    }
-
-    private void thenResponseIsBadRequestWithError(ResponseEntity<ErrorResponse> response, String key, String detail) {
-        assertThat(response.getStatusCode().value()).isEqualTo(400);
-        assertThat(response.getBody().getErrors()).containsEntry(key, detail);
-    }
-
-    private void thenMessageDoesNotContain(ResponseEntity<ErrorResponse> response, String secret) {
-        assertThat(response.getBody().getMessage()).doesNotContain(secret);
-    }
-
-    private void thenResponseHasStatusWithoutSecret(ResponseEntity<ErrorResponse> response, int status) {
-        assertThat(response.getStatusCode().value()).isEqualTo(status);
-        thenMessageDoesNotContain(response, SECRET);
+                "texto", UUID.class, "rutaId", null, new IllegalArgumentException(SECRETO_DE_LA_CAUSA));
     }
 }

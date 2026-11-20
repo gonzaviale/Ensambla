@@ -79,6 +79,11 @@ public class Aviso {
         return estado == EstadoAviso.PENDIENTE;
     }
 
+    /** Un aviso pendiente o vencido vuelve a valer si el motor lo detecta de nuevo; uno que la persona resolvió, no. */
+    public boolean sePuedeReactivar() {
+        return estaPendiente() || estado == EstadoAviso.VENCIDO;
+    }
+
     public boolean esUrgente() {
         return prioridad >= PRIORIDAD_URGENTE;
     }

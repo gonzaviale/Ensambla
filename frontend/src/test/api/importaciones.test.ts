@@ -7,6 +7,15 @@ import { server } from '@/mocks/node';
 import { setupServerError, setupUsuarioConSesion } from '@/test/testHelpers';
 import type { PedidoDeLectura } from '@/types/importacion';
 
+type Lectura = Awaited<ReturnType<typeof pedirLectura>>;
+type PedidoEnviado = { nombre: string; destinoExistente: boolean; campos: { key: string }[] };
+
+let pedido: PedidoDeLectura;
+let lectura: Lectura;
+let error: unknown;
+let nombreDeLaImagen = '';
+let pedidoEnviado: PedidoEnviado | null = null;
+
 const pedidoDe = (destinoExistente: boolean): PedidoDeLectura => {
   const bloque = makeBlock('sales');
   return {
@@ -25,76 +34,128 @@ const textoDe = async (parte: FormDataEntryValue | null) =>
   typeof parte === 'string' ? parte : ((await parte?.text()) ?? 'null');
 
 describe('API de importaciones', () => {
-  it('manda la foto y el bloque de destino en un multipart', async () => {
-    setupUsuarioConSesion();
-    let imagen = '';
-    let enviado: { nombre: string; destinoExistente: boolean; campos: { key: string }[] } | null =
-      null;
-    server.use(
-      http.post('/api/importaciones/lectura', async ({ request }) => {
-        const cuerpo = await request.formData();
-        imagen = (cuerpo.get('imagen') as File).name;
-        enviado = JSON.parse(await textoDe(cuerpo.get('pedido')));
-        return HttpResponse.json({ filas: [{ monto: 1500 }], descripcion: '' });
-      }),
-    );
-    const pedido = pedidoDe(true);
+  it('manda la foto en un multipart', async () => {
+    dadoUnServidorQueRecuerdaLoQueRecibe();
 
-    const lectura = await pedirLectura(pedido, foto());
+    await cuandoSePideLaLecturaDeUnaFoto();
 
-    expect(lectura.filas).toEqual([{ monto: 1500 }]);
-    expect(lectura.camposNuevos).toEqual([]);
-    expect(lectura.dudas).toEqual([]);
-    expect(imagen).toBe('sistema.jpg');
-    expect(enviado).toMatchObject({ nombre: 'Mis ventas', destinoExistente: true });
-    expect((enviado as unknown as { campos: { key: string }[] }).campos.map((c) => c.key)).toEqual(
-      pedido.campos.map((campo) => campo.key),
-    );
+    entoncesElServidorRecibioLaImagen('sistema.jpg');
+  });
+
+  it('manda el bloque de destino con sus campos', async () => {
+    dadoUnServidorQueRecuerdaLoQueRecibe();
+
+    await cuandoSePideLaLecturaDeUnaFoto();
+
+    entoncesElServidorRecibioElBloqueDeDestino();
+  });
+
+  it('devuelve las filas leídas sin columnas nuevas ni dudas', async () => {
+    dadoUnServidorQueRecuerdaLoQueRecibe();
+
+    await cuandoSePideLaLecturaDeUnaFoto();
+
+    entoncesLaLecturaTraeLaFilaDe1500SinNovedades();
   });
 
   it('una imagen sin nombre (la que sale de achicar una foto) se manda como foto.jpg', async () => {
-    setupUsuarioConSesion();
-    let nombre = '';
-    let destinoExistente: boolean | null = null;
-    server.use(
-      http.post('/api/importaciones/lectura', async ({ request }) => {
-        const cuerpo = await request.formData();
-        nombre = (cuerpo.get('imagen') as File).name;
-        destinoExistente = JSON.parse(await textoDe(cuerpo.get('pedido'))).destinoExistente;
-        return HttpResponse.json({ filas: [], descripcion: '' });
-      }),
-    );
+    dadoUnServidorQueRecuerdaLoQueRecibe();
 
-    await pedirLectura({ ...pedidoDe(false), destinoExistente: undefined }, new Blob(['x']));
+    await cuandoSePideLaLecturaDeUnaImagenSinNombre();
 
-    expect(nombre).toBe('foto.jpg');
-    expect(destinoExistente).toBe(false);
+    entoncesElServidorRecibioLaImagen('foto.jpg');
+    entoncesElPedidoIndicaQueNoHayDestinoExistente();
   });
 
   it('en la simulación devuelve registros, columnas nuevas y dudas de ejemplo', async () => {
-    setupUsuarioConSesion();
+    dadoUnUsuarioConSesion();
 
-    const lectura = await pedirLectura(pedidoDe(true), foto());
+    await cuandoSePideLaLecturaDeUnaFoto();
 
-    expect(lectura.filas.length).toBeGreaterThan(0);
-    expect(lectura.camposNuevos.length).toBeGreaterThan(0);
-    expect(lectura.dudas.length).toBeGreaterThan(0);
+    entoncesLaLecturaTraeRegistrosColumnasNuevasYDudas();
   });
 
   it('propaga el mensaje del servidor cuando la foto no se puede leer', async () => {
-    setupUsuarioConSesion();
-    setupServerError(
-      'post',
-      '/importaciones/lectura',
-      400,
-      'La estructura leída no es compatible con el bloque de destino',
-    );
+    dadoQueElServidorNoPuedeLeerLaFoto();
 
-    const error = await pedirLectura(pedidoDe(true), foto()).catch((e: unknown) => e);
+    await cuandoSeIntentaLeerLaFoto();
 
-    expect(error).toBeInstanceOf(ApiError);
-    expect((error as ApiError).message).toBe(
-      'La estructura leída no es compatible con el bloque de destino',
-    );
+    entoncesSePropagaElMensaje('La estructura leída no es compatible con el bloque de destino');
   });
 });
+
+function dadoUnUsuarioConSesion() {
+  setupUsuarioConSesion();
+}
+
+function dadoUnServidorQueRecuerdaLoQueRecibe() {
+  setupUsuarioConSesion();
+  nombreDeLaImagen = '';
+  pedidoEnviado = null;
+  server.use(
+    http.post('/api/importaciones/lectura', async ({ request }) => {
+      const cuerpo = await request.formData();
+      nombreDeLaImagen = (cuerpo.get('imagen') as File).name;
+      pedidoEnviado = JSON.parse(await textoDe(cuerpo.get('pedido')));
+      return HttpResponse.json({ filas: [{ monto: 1500 }], descripcion: '' });
+    }),
+  );
+}
+
+function dadoQueElServidorNoPuedeLeerLaFoto() {
+  setupUsuarioConSesion();
+  setupServerError(
+    'post',
+    '/importaciones/lectura',
+    400,
+    'La estructura leída no es compatible con el bloque de destino',
+  );
+}
+
+async function cuandoSePideLaLecturaDeUnaFoto() {
+  pedido = pedidoDe(true);
+  lectura = await pedirLectura(pedido, foto());
+}
+
+async function cuandoSePideLaLecturaDeUnaImagenSinNombre() {
+  lectura = await pedirLectura(
+    { ...pedidoDe(false), destinoExistente: undefined },
+    new Blob(['x']),
+  );
+}
+
+async function cuandoSeIntentaLeerLaFoto() {
+  error = await pedirLectura(pedidoDe(true), foto()).catch((e: unknown) => e);
+}
+
+function entoncesElServidorRecibioLaImagen(nombre: string) {
+  expect(nombreDeLaImagen).toBe(nombre);
+}
+
+function entoncesElServidorRecibioElBloqueDeDestino() {
+  expect(pedidoEnviado).toMatchObject({ nombre: 'Mis ventas', destinoExistente: true });
+  expect(pedidoEnviado?.campos.map((campo) => campo.key)).toEqual(
+    pedido.campos.map((campo) => campo.key),
+  );
+}
+
+function entoncesElPedidoIndicaQueNoHayDestinoExistente() {
+  expect(pedidoEnviado?.destinoExistente).toBe(false);
+}
+
+function entoncesLaLecturaTraeLaFilaDe1500SinNovedades() {
+  expect(lectura.filas).toEqual([{ monto: 1500 }]);
+  expect(lectura.camposNuevos).toEqual([]);
+  expect(lectura.dudas).toEqual([]);
+}
+
+function entoncesLaLecturaTraeRegistrosColumnasNuevasYDudas() {
+  expect(lectura.filas.length).toBeGreaterThan(0);
+  expect(lectura.camposNuevos.length).toBeGreaterThan(0);
+  expect(lectura.dudas.length).toBeGreaterThan(0);
+}
+
+function entoncesSePropagaElMensaje(mensaje: string) {
+  expect(error).toBeInstanceOf(ApiError);
+  expect((error as ApiError).message).toBe(mensaje);
+}

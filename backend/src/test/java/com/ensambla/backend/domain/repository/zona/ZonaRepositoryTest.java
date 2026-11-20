@@ -22,37 +22,74 @@ class ZonaRepositoryTest {
 
     private final ZonaRepository zonaRepository = mock(ZonaRepository.class, CALLS_REAL_METHODS);
 
+    private Zona sanJusto;
+    private Optional<Zona> resuelta;
+
     @Test
     @DisplayName("Resuelve la zona entre todas las conocidas")
-    void resolverShouldChooseAmongAllZones() {
-        Zona sanJusto = givenZona("San Justo", "-34.670300", "-58.562800", 1500);
-        Zona caba = givenZona("CABA", "-34.603700", "-58.381600", 1500);
-        when(zonaRepository.findAll()).thenReturn(List.of(caba, sanJusto));
+    void resuelveLaZonaEntreTodasLasConocidas() {
+        dadoQueSeConocenSanJustoYCaba();
 
-        Optional<Zona> result = zonaRepository.resolver(LATITUD, LONGITUD);
+        cuandoSeResuelveLaZonaDelPunto();
 
-        assertThat(result).containsSame(sanJusto);
+        entoncesSeResuelveSanJusto();
     }
 
     @Test
     @DisplayName("Obtiene la zona por id")
-    void findByIdSiTieneShouldReturnZoneById() {
-        Zona zona = givenZona("San Justo", "-34.670300", "-58.562800", 1500);
-        when(zonaRepository.findById(zona.getId())).thenReturn(Optional.of(zona));
+    void obtieneLaZonaPorId() {
+        dadoQueSeConoceSanJusto();
 
-        assertThat(zonaRepository.findByIdSiTiene(zona.getId())).containsSame(zona);
+        cuandoSeBuscaLaZonaPorId(sanJusto.getId());
+
+        entoncesSeResuelveSanJusto();
     }
 
     @Test
     @DisplayName("Sin zona asignada no consulta nada")
-    void findByIdSiTieneShouldReturnEmptyForNullId() {
-        assertThat(zonaRepository.findByIdSiTiene(null)).isEmpty();
+    void sinZonaAsignadaNoConsultaNada() {
+        cuandoSeBuscaLaZonaPorId(null);
 
+        entoncesNoSeResuelveNingunaZona();
+    }
+
+    // --- dado ---
+
+    private void dadoQueSeConocenSanJustoYCaba() {
+        sanJusto = unaZona("San Justo", "-34.670300", "-58.562800", 1500);
+        Zona caba = unaZona("CABA", "-34.603700", "-58.381600", 1500);
+        when(zonaRepository.findAll()).thenReturn(List.of(caba, sanJusto));
+    }
+
+    private void dadoQueSeConoceSanJusto() {
+        sanJusto = unaZona("San Justo", "-34.670300", "-58.562800", 1500);
+        when(zonaRepository.findById(sanJusto.getId())).thenReturn(Optional.of(sanJusto));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeResuelveLaZonaDelPunto() {
+        resuelta = zonaRepository.resolver(LATITUD, LONGITUD);
+    }
+
+    private void cuandoSeBuscaLaZonaPorId(ZonaId id) {
+        resuelta = zonaRepository.findByIdSiTiene(id);
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeResuelveSanJusto() {
+        assertThat(resuelta).containsSame(sanJusto);
+    }
+
+    private void entoncesNoSeResuelveNingunaZona() {
+        assertThat(resuelta).isEmpty();
         verify(zonaRepository).findByIdSiTiene(null);
     }
 
-    // --- arrange ---
-    private Zona givenZona(String nombre, String latitud, String longitud, int radioMetros) {
+    // --- datos ---
+
+    private Zona unaZona(String nombre, String latitud, String longitud, int radioMetros) {
         return Zona.builder().id(ZonaId.nuevo()).nombre(nombre).latitud(new BigDecimal(latitud))
                 .longitud(new BigDecimal(longitud)).radioMetros(radioMetros).build();
     }

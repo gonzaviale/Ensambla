@@ -24,7 +24,7 @@ function crearNegocio(nombre: string, producto: string) {
   return sistema;
 }
 
-export function givenDosNegociosConCaja() {
+export function dadoDosNegociosConCaja() {
   const usuario = setupUsuarioConSesion();
   const almacen = crearNegocio(ALMACEN, 'Gaseosa del almacén');
   const kiosco = crearNegocio(KIOSCO, 'Alfajor del kiosco');
@@ -32,15 +32,15 @@ export function givenDosNegociosConCaja() {
   return { almacen, kiosco };
 }
 
-export const givenNegocioRecordado = (id: string) => guardarNegocioActivo(id);
+export const dadoNegocioRecordado = (id: string) => guardarNegocioActivo(id);
 
-export async function whenEntraDesdeInicio() {
+export async function cuandoEntraDesdeInicio() {
   renderApp('/inicio');
   await screen.findByRole('heading', { name: /En qué puedo/ }, ESPERA);
-  await whenAbreCaja();
+  await cuandoAbreCaja();
 }
 
-export async function whenAbreCaja() {
+export async function cuandoAbreCaja() {
   await userEvent.setup().click(screen.getByRole('button', { name: 'Caja' }));
   await screen.findByRole('heading', { name: 'Caja', level: 1 }, ESPERA);
 }
@@ -49,12 +49,12 @@ async function mostrarFavoritos() {
   await userEvent.setup().click(await screen.findByRole('tab', { name: 'Favoritos' }, ESPERA));
 }
 
-export async function whenAgregaGaseosa() {
+export async function cuandoAgregaGaseosa() {
   await mostrarFavoritos();
   await userEvent.setup().click(screen.getByRole('button', { name: GASEOSA }));
 }
 
-export async function whenEligeNegocio(nombre: string) {
+export async function cuandoEligeNegocio(nombre: string) {
   const user = userEvent.setup();
   await user.click(screen.getByRole('button', { name: /Negocio activo:/ }));
   await user.click(
@@ -63,7 +63,7 @@ export async function whenEligeNegocio(nombre: string) {
   await screen.findByRole('heading', { name: /En qué puedo/ }, ESPERA);
 }
 
-export function thenNavegacionConservaCajaYNegocios() {
+export function entoncesNavegacionConservaCajaYNegocios() {
   const menu = within(screen.getByRole('navigation', { name: 'Principal' }));
   expect(
     menu
@@ -78,14 +78,14 @@ export function thenNavegacionConservaCajaYNegocios() {
   ).toBeVisible();
 }
 
-export async function thenSoloVeProductosDelKiosco() {
+export async function entoncesSoloVeProductosDelKiosco() {
   await mostrarFavoritos();
   expect(await screen.findByRole('button', { name: ALFAJOR }, ESPERA)).toBeVisible();
   expect(screen.queryByRole('button', { name: GASEOSA })).toBeNull();
   expect(screen.queryByLabelText('Cantidad de Gaseosa del almacén')).toBeNull();
 }
 
-export function thenRecuperaCompraDelAlmacen() {
+export function entoncesRecuperaCompraDelAlmacen() {
   expect(screen.getByLabelText('Cantidad de Gaseosa del almacén')).toHaveValue('1');
   expect(screen.queryByLabelText('Cantidad de Alfajor del kiosco')).toBeNull();
 }

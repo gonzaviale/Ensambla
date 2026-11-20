@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'vitest';
 import {
   ORDEN_INICIAL,
   ordenar,
@@ -6,6 +6,7 @@ import {
   textoDelPeriodo,
   valorDeMetrica,
 } from '@/lib/negocios/comparar';
+import { cuandoSeCalcula, entoncesElResultadoEs } from '@/test/calculo';
 import type { ResumenDeNegocio } from '@/types/negocios';
 
 const negocio = (id: string, datos: Partial<ResumenDeNegocio> = {}): ResumenDeNegocio => ({
@@ -36,72 +37,101 @@ const ids = (negocios: ResumenDeNegocio[]) => negocios.map((item) => item.id);
 
 describe('ordenar', () => {
   it('arranca por lo vendido, de mayor a menor', () => {
-    expect(ids(ordenar([KIOSCO, FERIA, ALMACEN], ORDEN_INICIAL))).toEqual([
-      'almacen',
-      'kiosco',
-      'feria',
-    ]);
+    cuandoSeCalcula(() => ids(ordenar([KIOSCO, FERIA, ALMACEN], ORDEN_INICIAL)));
+
+    entoncesElResultadoEs(['almacen', 'kiosco', 'feria']);
   });
 
-  it('ordena por la métrica elegida en los dos sentidos', () => {
-    expect(ids(ordenar([ALMACEN, KIOSCO, FERIA], { metrica: 'queda', sentido: 'asc' }))).toEqual([
-      'kiosco',
-      'almacen',
-      'feria',
-    ]);
+  it('ordena por la métrica elegida de menor a mayor', () => {
+    cuandoSeCalcula(() =>
+      ids(ordenar([ALMACEN, KIOSCO, FERIA], { metrica: 'queda', sentido: 'asc' })),
+    );
+
+    entoncesElResultadoEs(['kiosco', 'almacen', 'feria']);
   });
 
-  it('deja al final lo que no tiene valor, en cualquier sentido', () => {
-    expect(ids(ordenar([FERIA, KIOSCO], { metrica: 'vendiste', sentido: 'desc' }))).toEqual([
-      'kiosco',
-      'feria',
-    ]);
-    expect(ids(ordenar([FERIA, KIOSCO], { metrica: 'vendiste', sentido: 'asc' }))).toEqual([
-      'kiosco',
-      'feria',
-    ]);
+  it('deja al final lo que no tiene valor de mayor a menor', () => {
+    cuandoSeCalcula(() => ids(ordenar([FERIA, KIOSCO], { metrica: 'vendiste', sentido: 'desc' })));
+
+    entoncesElResultadoEs(['kiosco', 'feria']);
   });
 
-  it('en un empate conserva el orden del servidor y no toca la lista original', () => {
-    const lista = [negocio('primero'), negocio('segundo')];
+  it('deja al final lo que no tiene valor de menor a mayor', () => {
+    cuandoSeCalcula(() => ids(ordenar([FERIA, KIOSCO], { metrica: 'vendiste', sentido: 'asc' })));
 
-    expect(ids(ordenar(lista, ORDEN_INICIAL))).toEqual(['primero', 'segundo']);
-    expect(
-      ids(ordenar([FERIA, negocio('otra-sin-datos', { vendiste: null })], ORDEN_INICIAL)),
-    ).toEqual(['feria', 'otra-sin-datos']);
-    expect(lista[0]?.id).toBe('primero');
+    entoncesElResultadoEs(['kiosco', 'feria']);
+  });
+
+  it('en un empate conserva el orden del servidor', () => {
+    cuandoSeCalcula(() => ids(ordenar([negocio('primero'), negocio('segundo')], ORDEN_INICIAL)));
+
+    entoncesElResultadoEs(['primero', 'segundo']);
+  });
+
+  it('entre dos sin valor conserva el orden del servidor', () => {
+    const otraSinDatos = negocio('otra-sin-datos', { vendiste: null });
+
+    cuandoSeCalcula(() => ids(ordenar([FERIA, otraSinDatos], ORDEN_INICIAL)));
+
+    entoncesElResultadoEs(['feria', 'otra-sin-datos']);
+  });
+
+  it('no toca la lista original', () => {
+    const lista = [negocio('segundo', { vendiste: 1 }), negocio('primero', { vendiste: 9 })];
+
+    cuandoSeCalcula(() => {
+      ordenar(lista, ORDEN_INICIAL);
+      return ids(lista);
+    });
+
+    entoncesElResultadoEs(['segundo', 'primero']);
   });
 });
 
 describe('siguienteOrden', () => {
-  it('la misma columna da vuelta el sentido y otra arranca de mayor a menor', () => {
-    expect(siguienteOrden(ORDEN_INICIAL, 'vendiste')).toEqual({
-      metrica: 'vendiste',
-      sentido: 'asc',
-    });
-    expect(siguienteOrden({ metrica: 'vendiste', sentido: 'asc' }, 'vendiste')).toEqual({
-      metrica: 'vendiste',
-      sentido: 'desc',
-    });
-    expect(siguienteOrden({ metrica: 'vendiste', sentido: 'asc' }, 'gastos')).toEqual({
-      metrica: 'gastos',
-      sentido: 'desc',
-    });
+  it('la misma columna da vuelta el sentido', () => {
+    cuandoSeCalcula(() => siguienteOrden(ORDEN_INICIAL, 'vendiste'));
+
+    entoncesElResultadoEs({ metrica: 'vendiste', sentido: 'asc' });
+  });
+
+  it('la misma columna en ascendente vuelve a descendente', () => {
+    cuandoSeCalcula(() => siguienteOrden({ metrica: 'vendiste', sentido: 'asc' }, 'vendiste'));
+
+    entoncesElResultadoEs({ metrica: 'vendiste', sentido: 'desc' });
+  });
+
+  it('otra columna arranca de mayor a menor', () => {
+    cuandoSeCalcula(() => siguienteOrden({ metrica: 'vendiste', sentido: 'asc' }, 'gastos'));
+
+    entoncesElResultadoEs({ metrica: 'gastos', sentido: 'desc' });
   });
 });
 
 describe('valorDeMetrica', () => {
-  it('muestra los importes en pesos y lo que falta como raya', () => {
-    expect(valorDeMetrica(KIOSCO, 'vendiste')).toBe('$280.000');
-    expect(valorDeMetrica(KIOSCO, 'queda')).toBe('-$72.000');
-    expect(valorDeMetrica(FERIA, 'gastos')).toBe('—');
+  it('muestra los importes en pesos', () => {
+    cuandoSeCalcula(() => valorDeMetrica(KIOSCO, 'vendiste'));
+
+    entoncesElResultadoEs('$280.000');
+  });
+
+  it('muestra los importes negativos con el signo adelante', () => {
+    cuandoSeCalcula(() => valorDeMetrica(KIOSCO, 'queda'));
+
+    entoncesElResultadoEs('-$72.000');
+  });
+
+  it('muestra lo que falta como raya', () => {
+    cuandoSeCalcula(() => valorDeMetrica(FERIA, 'gastos'));
+
+    entoncesElResultadoEs('—');
   });
 });
 
 describe('textoDelPeriodo', () => {
   it('dice desde qué día hasta qué día, sin correrse por la zona horaria', () => {
-    expect(textoDelPeriodo('2026-10-15', '2026-11-13')).toBe(
-      'Del 15 de octubre al 13 de noviembre',
-    );
+    cuandoSeCalcula(() => textoDelPeriodo('2026-10-15', '2026-11-13'));
+
+    entoncesElResultadoEs('Del 15 de octubre al 13 de noviembre');
   });
 });

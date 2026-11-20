@@ -19,12 +19,12 @@ const USUARIO = { email: 'dos-negocios@example.com', contrasenia: 'una-contrasen
 const ALMACEN = negocioDePrueba('10000000-0000-4000-8000-000000000001', 'Almacén San Justo');
 const KIOSCO = negocioDePrueba('20000000-0000-4000-8000-000000000002', 'Kiosco de la estación');
 
-const givenNegocios = (...negocios: Sistema[]) => {
+const dadoNegocios = (...negocios: Sistema[]) => {
   setupUsuarioSinSesion(USUARIO);
   setupNegocios(USUARIO.email, ...negocios);
 };
 
-const whenIniciaSesion = async (ruta = '/login') => {
+const cuandoIniciaSesion = async (ruta = '/login') => {
   const router = renderApp(ruta);
   const user = userEvent.setup();
   await screen.findByRole('heading', { name: 'Ingresá a tu cuenta' }, ESPERA);
@@ -38,18 +38,18 @@ const popUp = () => screen.findByRole('dialog', { name: '¿Con qué negocio trab
 
 describe('elegir con qué negocio trabajar al iniciar sesión', () => {
   it('con un solo negocio entra directo, sin preguntar', async () => {
-    givenNegocios(ALMACEN);
+    dadoNegocios(ALMACEN);
 
-    const { router } = await whenIniciaSesion();
+    const { router } = await cuandoIniciaSesion();
 
     await verifyPathAsync(router, '/inicio');
     expect(screen.queryByRole('dialog', { name: '¿Con qué negocio trabajás hoy?' })).toBeNull();
   });
 
   it('con más de uno pregunta antes de entrar y recuerda el elegido', async () => {
-    givenNegocios(ALMACEN, KIOSCO);
+    dadoNegocios(ALMACEN, KIOSCO);
 
-    const { router, user } = await whenIniciaSesion();
+    const { router, user } = await cuandoIniciaSesion();
     const dialogo = await popUp();
     expect(dialogo).toHaveTextContent('Tenés 2 negocios');
     expect(router.state.location.pathname).toBe('/elegir-negocio');
@@ -65,10 +65,10 @@ describe('elegir con qué negocio trabajar al iniciar sesión', () => {
   });
 
   it('señala el último negocio que se usó en este navegador', async () => {
-    givenNegocios(ALMACEN, KIOSCO);
+    dadoNegocios(ALMACEN, KIOSCO);
     guardarNegocioActivo(KIOSCO.id);
 
-    await whenIniciaSesion();
+    await cuandoIniciaSesion();
     const dialogo = await popUp();
 
     expect(
@@ -80,9 +80,9 @@ describe('elegir con qué negocio trabajar al iniciar sesión', () => {
   });
 
   it('«Seguir con…» entra con el último que se usó, sin cambiar de negocio', async () => {
-    givenNegocios(ALMACEN, KIOSCO);
+    dadoNegocios(ALMACEN, KIOSCO);
 
-    const { router, user } = await whenIniciaSesion();
+    const { router, user } = await cuandoIniciaSesion();
     const dialogo = await popUp();
     await user.click(within(dialogo).getByRole('button', { name: 'Seguir con Almacén San Justo' }));
 
@@ -93,8 +93,8 @@ describe('elegir con qué negocio trabajar al iniciar sesión', () => {
   });
 
   it('Esc no hace nada: hay que elegir un negocio', async () => {
-    givenNegocios(ALMACEN, KIOSCO);
-    const { router, user } = await whenIniciaSesion();
+    dadoNegocios(ALMACEN, KIOSCO);
+    const { router, user } = await cuandoIniciaSesion();
     await popUp();
 
     await user.keyboard('{Escape}');
@@ -104,9 +104,9 @@ describe('elegir con qué negocio trabajar al iniciar sesión', () => {
   });
 
   it('después de elegir va a donde se quería ir antes de ingresar', async () => {
-    givenNegocios(ALMACEN, KIOSCO);
+    dadoNegocios(ALMACEN, KIOSCO);
 
-    const { router, user } = await whenIniciaSesion('/login?redirect=%2Fplanes');
+    const { router, user } = await cuandoIniciaSesion('/login?redirect=%2Fplanes');
     const dialogo = await popUp();
     await user.click(within(dialogo).getByRole('button', { name: 'Seguir con Almacén San Justo' }));
 
@@ -114,10 +114,10 @@ describe('elegir con qué negocio trabajar al iniciar sesión', () => {
   });
 
   it('si no llegan los cuadernos de la cuenta no pregunta nada', async () => {
-    givenNegocios(ALMACEN, KIOSCO);
+    dadoNegocios(ALMACEN, KIOSCO);
     setupServerError('get', '/sistemas', 500, 'Error interno');
 
-    const { router } = await whenIniciaSesion();
+    const { router } = await cuandoIniciaSesion();
 
     await verifyPathAsync(router, '/inicio');
     expect(screen.queryByRole('dialog', { name: '¿Con qué negocio trabajás hoy?' })).toBeNull();

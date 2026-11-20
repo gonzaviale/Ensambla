@@ -3,9 +3,11 @@ package com.ensambla.backend.domain.useCase.reporte.obtenerPanelNegocio;
 import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.reporte.DatosDeProyecto;
 import com.ensambla.backend.domain.model.reporte.PanelNegocio;
 import com.ensambla.backend.domain.model.reporte.PeriodoResumen;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
@@ -31,11 +33,23 @@ public class ObtenerPanelNegocio {
     private final Clock clock;
 
     public ObtenerPanelNegocioResponse execute(ObtenerPanelNegocioRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        Proyecto proyecto = proyectoRepository.obtener(negocioId, request.proyectoId());
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+        Proyecto proyecto = obtenerProyecto(negocioId, request.proyectoId());
         LocalDate hoy = ZonaNegocio.dia(OffsetDateTime.now(clock));
         PeriodoResumen periodo = PeriodoResumen.ultimosDias(request.dias(), hoy);
-        DatosDeProyecto datos = datosDeProyectoService.cargar(proyecto, negocioId);
+        DatosDeProyecto datos = cargarDatos(proyecto, negocioId);
         return ObtenerPanelNegocioResponse.de(PanelNegocio.armar(datos, periodo, hoy));
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private Proyecto obtenerProyecto(NegocioId negocioId, ProyectoId proyectoId) {
+        return proyectoRepository.obtener(negocioId, proyectoId);
+    }
+
+    private DatosDeProyecto cargarDatos(Proyecto proyecto, NegocioId negocioId) {
+        return datosDeProyectoService.cargar(proyecto, negocioId);
     }
 }

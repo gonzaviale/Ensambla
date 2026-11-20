@@ -83,8 +83,11 @@ export function SistemaPage() {
   useEffect(() => {
     if (!existe) return;
     const estado = useSistemaStore.getState();
-    if (estado.activeId !== sistemaId) estado.abrirSistema(sistemaId, 'build');
-    else if (estado.modo !== 'build') estado.cambiarModo('build');
+    if (estado.activeId !== sistemaId) {
+      estado.abrirSistema(sistemaId, 'build');
+      return;
+    }
+    if (estado.modo !== 'build') estado.cambiarModo('build');
   }, [existe, sistemaId]);
 
   // Un sistema que ya no existe lleva al inicio, como el mockup.

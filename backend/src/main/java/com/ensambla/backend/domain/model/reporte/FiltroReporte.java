@@ -5,7 +5,6 @@ import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.CampoId;
-import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 
 import java.time.Instant;
@@ -44,39 +43,63 @@ public record FiltroReporte(
             LocalDate hasta,
             CampoId campoId,
             String valor) {
-        if (desde != null && hasta != null && desde.isAfter(hasta)) {
-            throw new BusinessRuleException("La fecha desde no puede ser posterior a la fecha hasta");
-        }
+        exigirQueLasFechasEstenEnOrden(desde, hasta);
         return new FiltroReporte(
-                negocioId,
-                bloqueId,
-                texto == null || texto.isBlank() ? null : texto.strip(),
-                desde == null ? null : desde.atStartOfDay(ZONA).toInstant(),
-                hasta == null ? null : hasta.plusDays(1).atStartOfDay(ZONA).toInstant(),
-                campoId,
-                campoId == null ? null : valorDe(campos, campoId, valor));
+                negocioId, bloqueId, textoLimpio(texto), comienzoDe(desde), finDe(hasta), campoId,
+                valorDelFiltro(campos, campoId, valor));
     }
 
     public boolean filtraPorColumna() {
         return campoId != null;
     }
 
+    private static void exigirQueLasFechasEstenEnOrden(LocalDate desde, LocalDate hasta) {
+        if (desde != null && hasta != null && desde.isAfter(hasta)) {
+            throw new BusinessRuleException("La fecha desde no puede ser posterior a la fecha hasta");
+        }
+    }
+
+    private static String textoLimpio(String texto) {
+        return texto == null || texto.isBlank() ? null : texto.strip();
+    }
+
+    private static Instant comienzoDe(LocalDate dia) {
+        return dia == null ? null : dia.atStartOfDay(ZONA).toInstant();
+    }
+
+    /** El hasta es inclusive: el filtro termina donde empieza el día siguiente. */
+    private static Instant finDe(LocalDate dia) {
+        return dia == null ? null : comienzoDe(dia.plusDays(1));
+    }
+
+    private static String valorDelFiltro(List<Campo> campos, CampoId campoId, String valor) {
+        return campoId == null ? null : valorDe(campos, campoId, valor);
+    }
+
     private static String valorDe(List<Campo> campos, CampoId campoId, String valor) {
-        Campo campo = campos.stream()
+        Campo campo = campoFiltrable(campos, campoId);
+        exigirUnValor(valor);
+        exigirQueSeaUnValorDe(campo, valor);
+        return valor;
+    }
+
+    private static Campo campoFiltrable(List<Campo> campos, CampoId campoId) {
+        return campos.stream()
                 .filter(candidato -> candidato.getId().equals(campoId))
-                .filter(candidato -> candidato.getTipo() == TipoCampo.OPCION
-                        || candidato.getTipo() == TipoCampo.SI_NO)
+                .filter(Campo::admiteFiltroPorValor)
                 .findFirst()
                 .orElseThrow(() -> new BusinessRuleException("No se puede filtrar por ese campo"));
+    }
+
+    private static void exigirUnValor(String valor) {
         if (valor == null || valor.isBlank()) {
             throw new BusinessRuleException("Elegí el valor por el que filtrar");
         }
-        boolean valido = campo.getTipo() == TipoCampo.SI_NO
-                ? "true".equals(valor) || "false".equals(valor)
-                : campo.getOpciones().contains(valor);
-        if (!valido) {
+    }
+
+    private static void exigirQueSeaUnValorDe(Campo campo, String valor) {
+        if (!campo.admiteFiltrarPor(valor)) {
             throw new BusinessRuleException("Elegí un valor de la columna «" + campo.getNombre() + "»");
         }
-        return valor;
     }
 }

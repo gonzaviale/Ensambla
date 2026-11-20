@@ -55,8 +55,8 @@ class ObtenerPanelNegocioTest {
 
     @Test
     @DisplayName("Sin días mira los últimos 30 hasta hoy en hora argentina")
-    void executeShouldUseTheLastThirtyDaysByDefault() {
-        ObtenerPanelNegocioResponse response = whenObtener(null);
+    void sinDiasMiraLosUltimos30HastaHoyEnHoraArgentina() {
+        ObtenerPanelNegocioResponse response = cuandoObtener(null);
 
         assertThat(response.desde()).isEqualTo(LocalDate.of(2026, 9, 20));
         assertThat(response.hasta()).isEqualTo(LocalDate.of(2026, 10, 19));
@@ -65,8 +65,8 @@ class ObtenerPanelNegocioTest {
 
     @Test
     @DisplayName("Mira los últimos días que pidió la persona")
-    void executeShouldUseTheRequestedDays() {
-        ObtenerPanelNegocioResponse response = whenObtener(7);
+    void miraLosUltimosDiasQuePidioLaPersona() {
+        ObtenerPanelNegocioResponse response = cuandoObtener(7);
 
         assertThat(response.desde()).isEqualTo(LocalDate.of(2026, 10, 13));
         assertThat(response.dias()).isEqualTo(7);
@@ -74,8 +74,8 @@ class ObtenerPanelNegocioTest {
 
     @Test
     @DisplayName("Un sistema sin ventas responde vacío, sin métricas ni semanas")
-    void executeShouldRespondEmptyWhenThereAreNoSales() {
-        ObtenerPanelNegocioResponse response = whenObtener(null);
+    void unSistemaSinVentasRespondeVacioSinMetricasNiSemanas() {
+        ObtenerPanelNegocioResponse response = cuandoObtener(null);
 
         assertThat(response.hayDatos()).isFalse();
         assertThat(response.metricas()).isNull();
@@ -84,7 +84,7 @@ class ObtenerPanelNegocioTest {
 
     @Test
     @DisplayName("Un sistema de otro negocio responde como inexistente")
-    void executeShouldNotFindForeignProject() {
+    void unSistemaDeOtroNegocioRespondeComoInexistente() {
         when(proyectoRepository.obtener(NEGOCIO_ID, OTRO_PROYECTO_ID))
                 .thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
 
@@ -96,13 +96,13 @@ class ObtenerPanelNegocioTest {
 
     @Test
     @DisplayName("Rechaza una cantidad de días inválida sin cargar los datos")
-    void executeShouldRejectInvalidDays() {
-        assertThatThrownBy(() -> whenObtener(0)).isInstanceOf(BusinessRuleException.class);
-        assertThatThrownBy(() -> whenObtener(367)).isInstanceOf(BusinessRuleException.class);
+    void rechazaUnaCantidadDeDiasInvalidaSinCargarLosDatos() {
+        assertThatThrownBy(() -> cuandoObtener(0)).isInstanceOf(BusinessRuleException.class);
+        assertThatThrownBy(() -> cuandoObtener(367)).isInstanceOf(BusinessRuleException.class);
         verify(datosDeProyectoService, never()).cargar(any(), any());
     }
 
-    private ObtenerPanelNegocioResponse whenObtener(Integer dias) {
+    private ObtenerPanelNegocioResponse cuandoObtener(Integer dias) {
         return obtenerPanelNegocio.execute(new ObtenerPanelNegocioRequest(USUARIO_ID, PROYECTO_ID, dias));
     }
 }

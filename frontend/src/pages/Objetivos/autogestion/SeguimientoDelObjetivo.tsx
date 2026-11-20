@@ -5,6 +5,7 @@ import {
   useDecisionesObjetivo,
   useMiniObjetivos,
   useProgresoObjetivo,
+  useRespuestasPendientes,
   useSemanasObjetivo,
 } from '@/hooks/objetivos/queries';
 import {
@@ -17,11 +18,15 @@ import {
   todasLasDecisiones,
   cuantoCubren,
 } from '@/lib/objetivosAutogestion';
+import { armarResumenDelDomingo } from '@/lib/resumenDelDomingo';
 import { hoy } from '@/lib/sistema/formato';
+import { AvanceDeLasSemanas } from './AvanceDeLasSemanas';
 import { GraficoSemanal } from './GraficoSemanal';
 import { HistorialReajustes } from './HistorialReajustes';
+import { MiniManualCard } from './MiniManualCard';
 import { MiniObjetivoCard } from './MiniObjetivoCard';
 import { RecorridoDeLaSemana } from './RecorridoDeLaSemana';
+import { ResumenDelDomingo } from './ResumenDelDomingo';
 import { ResumenListo } from './ResumenListo';
 
 // Lo que Sami hace solo con un objetivo: los 3 mini-objetivos, cómo fue cada semana y qué cambió los domingos.
@@ -39,6 +44,7 @@ export function SeguimientoDelObjetivo({
   const decisiones = useDecisionesObjetivo(objetivoId);
   const semanas = useSemanasObjetivo(objetivoId);
   const decidir = useDecidirPaso(objetivoId);
+  const { pendientes } = useRespuestasPendientes();
   // Los minis que la persona dejó para después y restauró: vuelve a ver los botones hasta que decida otra vez.
   const [restaurados, setRestaurados] = useState<ReadonlySet<string>>(new Set());
   const [resumenOculto, setResumenOculto] = useState(false);
@@ -72,6 +78,24 @@ export function SeguimientoDelObjetivo({
     });
 
   const cuanto = minis.data ? cuantoCubren(minis.data.minis, teFaltan) : null;
+  const sinResponder = pendientes.filter((pendiente) => pendiente.objetivoId === objetivoId);
+  const resumenDelDomingo =
+    ultimaSemana && minis.data
+      ? armarResumenDelDomingo({
+          semana: ultimaSemana,
+          decisiones: lista,
+          minis: minis.data.minis,
+          // Lo que quedó sin contar de la semana que cerró; lo de esta semana todavía se puede responder.
+          sinResponder: sinResponder
+            .filter((pendiente) => pendiente.miniObjetivo.semanaInicio <= ultimaSemana.semana)
+            .map((pendiente) => pendiente.miniObjetivo.titulo),
+        })
+      : null;
+  // Sin meta en pesos no hay resultado contra el que comparar: el gráfico sólo es de los objetivos con meta.
+  const progresoConMeta =
+    progreso.data && progreso.data.meta !== null
+      ? { ...progreso.data, meta: progreso.data.meta }
+      : null;
 
   if (minis.isPending) {
     return (
@@ -104,7 +128,7 @@ export function SeguimientoDelObjetivo({
 
       <section aria-labelledby="minis-titulo">
         <h2 id="minis-titulo" className="objetivos-subtitulo">
-          Tus 3 mini-objetivos
+          Tus mini-objetivos
         </h2>
         {minis.data.faltanDatos === 'OBJETIVO_ALCANZADO' ? (
           <p className="objetivos-pasos-vacio">
@@ -124,25 +148,36 @@ export function SeguimientoDelObjetivo({
               </p>
             )}
             <div className="mini-objetivos">
-              {minis.data.minis.map((mini) => (
-                <MiniObjetivoCard
-                  key={mini.id}
-                  mini={mini}
-                  decidido={
-                    restaurados.has(mini.id)
-                      ? undefined
-                      : decisionDeLaSemana(lista, mini.id, estaSemana)
-                  }
-                  ocupado={ocupado}
-                  onDecidir={(tipo) =>
-                    decidir.mutate(
-                      { miniId: mini.id, tipo },
-                      { onSuccess: () => conRestaurado(mini.id, false) },
-                    )
-                  }
-                  onRestaurar={() => conRestaurado(mini.id, true)}
-                />
-              ))}
+              {minis.data.minis.map((mini) =>
+                mini.modo === 'MANUAL' ? (
+                  <MiniManualCard
+                    key={mini.id}
+                    mini={mini}
+                    objetivoId={objetivoId}
+                    pendiente={sinResponder.some(
+                      (pendiente) => pendiente.miniObjetivo.id === mini.id,
+                    )}
+                  />
+                ) : (
+                  <MiniObjetivoCard
+                    key={mini.id}
+                    mini={mini}
+                    decidido={
+                      restaurados.has(mini.id)
+                        ? undefined
+                        : decisionDeLaSemana(lista, mini.id, estaSemana)
+                    }
+                    ocupado={ocupado}
+                    onDecidir={(tipo) =>
+                      decidir.mutate(
+                        { miniId: mini.id, tipo },
+                        { onSuccess: () => conRestaurado(mini.id, false) },
+                      )
+                    }
+                    onRestaurar={() => conRestaurado(mini.id, true)}
+                  />
+                ),
+              )}
             </div>
           </>
         )}
@@ -164,6 +199,9 @@ export function SeguimientoDelObjetivo({
         </h2>
         <div className="objetivos-semana-layout">
           <div className="objetivos-semana-grafico">
+            {ultimaSemana && resumenDelDomingo && (
+              <ResumenDelDomingo lunes={ultimaSemana.semana} resumen={resumenDelDomingo} />
+            )}
             {ultimaSemana && (
               <article className="objetivos-que-funciono">
                 <p className="objetivos-etiqueta">
@@ -172,8 +210,10 @@ export function SeguimientoDelObjetivo({
                 <p>{ultimaSemana.queFunciono}</p>
               </article>
             )}
-            {progreso.data ? (
-              <GraficoSemanal progreso={progreso.data} decisiones={lista} />
+            {progresoConMeta ? (
+              <GraficoSemanal progreso={progresoConMeta} decisiones={lista} />
+            ) : progreso.data ? (
+              <AvanceDeLasSemanas semanas={semanas.data?.semanas ?? []} />
             ) : progreso.isPending ? (
               <p role="status">Cargando el gráfico…</p>
             ) : (
@@ -185,6 +225,8 @@ export function SeguimientoDelObjetivo({
               <h3>Lo que pasó</h3>
               <div
                 id="recorrido-semanas"
+                role="region"
+                aria-label="Recorrido de las semanas"
                 ref={recorrido}
                 className={`recorrido-scroll ${verTodasLasSemanas ? 'abierto' : ''}`.trim()}
                 tabIndex={verTodasLasSemanas ? 0 : undefined}

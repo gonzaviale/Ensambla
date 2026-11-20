@@ -14,6 +14,14 @@ function limite(valor: number | null, configurado: boolean) {
   return valor === null ? 'Sin límite' : valor.toLocaleString('es-AR');
 }
 
+type FilaDeLimite = { icono: NombreDeIcono; titulo: string; valor: string };
+
+function filaDeObjetivosConIa(plan: Plan): FilaDeLimite[] {
+  if (plan.limiteObjetivosIaMensuales === undefined) return [];
+  const valor = limite(plan.limiteObjetivosIaMensuales, plan.limitesConfigurados);
+  return [{ icono: 'chart', titulo: 'Objetivos con IA por mes', valor }];
+}
+
 function precio(plan: Plan) {
   if (plan.codigo === 'GRATUITO') return 'Sin costo';
   if (!plan.precioConfigurado || plan.precioMensual === null || !plan.moneda)
@@ -44,7 +52,7 @@ export function TarjetaPlan({
   const premium = plan.codigo === 'PREMIUM';
   const avisos = premium ? 'Sin límite' : AVISOS_Y_RECOMENDACIONES_GRATUITOS;
   const color = premium ? 'petrol' : 'blue';
-  const limites: { icono: NombreDeIcono; titulo: string; valor: string }[] = [
+  const limites: FilaDeLimite[] = [
     {
       icono: 'folder',
       titulo: 'Negocios',
@@ -60,6 +68,7 @@ export function TarjetaPlan({
       titulo: 'Análisis de foto por mes',
       valor: limite(plan.limitePaginasIaMensuales, plan.limitesConfigurados),
     },
+    ...filaDeObjetivosConIa(plan),
     { icono: 'bell', titulo: 'Avisos por mes', valor: avisos },
     { icono: 'ubicacion', titulo: 'Recomendaciones de zona por mes', valor: avisos },
   ];

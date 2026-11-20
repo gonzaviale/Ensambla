@@ -20,6 +20,9 @@ class ConversarEnTallerRubroTest {
     private static final EstadoTaller SIN_NOMBRE = new EstadoTaller(null, "mosaic", List.of());
 
     private TallerDePrueba taller;
+    private EstadoTaller estado = SIN_NOMBRE;
+    private List<MensajeTaller> historial = List.of();
+    private Optional<KitRubro> kit;
 
     @BeforeEach
     void setUp() {
@@ -28,83 +31,123 @@ class ConversarEnTallerRubroTest {
 
     @Test
     @DisplayName("Reconoce el rubro en el mensaje aunque venga en plural, con mayúsculas o con tildes")
-    void executeShouldFindKitInMessage() {
-        Optional<KitRubro> kit = detectar("Vendo VELAS y anoto quién me debe");
+    void reconoceElRubroEnElMensajeAunqueVengaEnPluralConMayusculasOConTildes() {
+        cuandoSeDetectaElRubroDe("Vendo VELAS y anoto quién me debe");
 
-        thenKitIs(kit, "velas");
+        entoncesElKitEs("velas");
     }
 
     @Test
     @DisplayName("Reconoce términos de varias palabras")
-    void executeShouldFindMultiWordTerms() {
-        Optional<KitRubro> kit = detectar("tengo un taller mecánico");
+    void reconoceTerminosDeVariasPalabras() {
+        cuandoSeDetectaElRubroDe("tengo un taller mecánico");
 
-        thenKitIs(kit, "taller-mecanico");
+        entoncesElKitEs("taller-mecanico");
     }
 
     @Test
     @DisplayName("Sin términos de ningún rubro no elige kit")
-    void executeShouldReturnEmptyWithoutTerms() {
-        Optional<KitRubro> kit = detectar("llevo los arreglos de bicis");
+    void sinTerminosDeNingunRubroNoEligeKit() {
+        cuandoSeDetectaElRubroDe("llevo los arreglos de bicis");
 
-        assertThat(kit).isEmpty();
+        entoncesNoSeEligeNingunKit();
     }
 
     @Test
-    @DisplayName("Si el mensaje no lo dice, usa la charla reciente y el nombre del sistema")
-    void executeShouldUseHistoryAndSystemName() {
-        Optional<KitRubro> porCharla = taller.rubro("sí, dale", SIN_NOMBRE,
-                List.of(new MensajeTaller("you", "tengo una peluquería")));
-        Optional<KitRubro> porNombre = taller.rubro("sumá gastos",
-                new EstadoTaller("Ferretería Don Luis", "mosaic", List.of()), List.of());
+    @DisplayName("Si el mensaje no lo dice, usa la charla reciente")
+    void siElMensajeNoLoDiceUsaLaCharlaReciente() {
+        dadoUnaCharlaPreviaDondeDiceQueTieneUnaPeluqueria();
 
-        thenKitIs(porCharla, "peluqueria");
-        thenKitIs(porNombre, "ferreteria");
+        cuandoSeDetectaElRubroDe("sí, dale");
+
+        entoncesElKitEs("peluqueria");
+    }
+
+    @Test
+    @DisplayName("Si el mensaje no lo dice, usa el nombre del sistema")
+    void siElMensajeNoLoDiceUsaElNombreDelSistema() {
+        dadoUnSistemaLlamado("Ferretería Don Luis");
+
+        cuandoSeDetectaElRubroDe("sumá gastos");
+
+        entoncesElKitEs("ferreteria");
     }
 
     @Test
     @DisplayName("Lo que dice el mensaje pesa más que la charla anterior")
-    void executeShouldPreferTheMessageOverHistory() {
-        Optional<KitRubro> kit = taller.rubro("en realidad tengo una panadería", SIN_NOMBRE,
-                List.of(new MensajeTaller("you", "vendo velas")));
+    void loQueDiceElMensajePesaMasQueLaCharlaAnterior() {
+        dadoUnaCharlaPreviaDondeDiceQueVendeVelas();
 
-        thenKitIs(kit, "panaderia");
+        cuandoSeDetectaElRubroDe("en realidad tengo una panadería");
+
+        entoncesElKitEs("panaderia");
     }
 
     @Test
     @DisplayName("Un término de varias palabras le gana a uno suelto de otro rubro")
-    void executeShouldPreferLongerTerms() {
-        Optional<KitRubro> kit = detectar("vendo frutos secos en mi almacén");
+    void unTerminoDeVariasPalabrasLeGanaAUnoSueltoDeOtroRubro() {
+        cuandoSeDetectaElRubroDe("vendo frutos secos en mi almacén");
 
-        thenKitIs(kit, "dietetica");
+        entoncesElKitEs("dietetica");
     }
 
     @Test
     @DisplayName("Ante un empate gana el kit que figura primero")
-    void executeShouldBreakTiesByOrder() {
-        Optional<KitRubro> kit = detectar("kiosco y ferretería");
+    void anteUnEmpateGanaElKitQueFiguraPrimero() {
+        cuandoSeDetectaElRubroDe("kiosco y ferretería");
 
-        thenKitIs(kit, "almacen");
+        entoncesElKitEs("almacen");
     }
 
     @Test
-    @DisplayName("Sin kits o con un mensaje vacío no elige nada")
-    void executeShouldReturnEmptyWithoutKitsOrMessage() {
-        Optional<KitRubro> sinKits = new TallerDePrueba(new KitsRubro(List.of()))
-                .rubro("vendo velas", SIN_NOMBRE, List.of());
-        Optional<KitRubro> sinMensaje = taller.rubro(null, SIN_NOMBRE, List.of());
+    @DisplayName("Sin kits no elige nada")
+    void sinKitsNoEligeNada() {
+        dadoUnTallerSinKits();
 
-        assertThat(sinKits).isEmpty();
-        assertThat(sinMensaje).isEmpty();
+        cuandoSeDetectaElRubroDe("vendo velas");
+
+        entoncesNoSeEligeNingunKit();
     }
 
-    // --- act ---
-    private Optional<KitRubro> detectar(String mensaje) {
-        return taller.rubro(mensaje, SIN_NOMBRE, List.of());
+    @Test
+    @DisplayName("Con un mensaje vacío no elige nada")
+    void conUnMensajeVacioNoEligeNada() {
+        cuandoSeDetectaElRubroDe(null);
+
+        entoncesNoSeEligeNingunKit();
     }
 
-    // --- assert ---
-    private void thenKitIs(Optional<KitRubro> kit, String id) {
+    // --- dado ---
+
+    private void dadoUnaCharlaPreviaDondeDiceQueTieneUnaPeluqueria() {
+        historial = List.of(new MensajeTaller("you", "tengo una peluquería"));
+    }
+
+    private void dadoUnaCharlaPreviaDondeDiceQueVendeVelas() {
+        historial = List.of(new MensajeTaller("you", "vendo velas"));
+    }
+
+    private void dadoUnSistemaLlamado(String nombre) {
+        estado = new EstadoTaller(nombre, "mosaic", List.of());
+    }
+
+    private void dadoUnTallerSinKits() {
+        taller = new TallerDePrueba(new KitsRubro(List.of()));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeDetectaElRubroDe(String mensaje) {
+        kit = taller.rubro(mensaje, estado, historial);
+    }
+
+    // --- entonces ---
+
+    private void entoncesElKitEs(String id) {
         assertThat(kit).map(KitRubro::id).contains(id);
+    }
+
+    private void entoncesNoSeEligeNingunKit() {
+        assertThat(kit).isEmpty();
     }
 }

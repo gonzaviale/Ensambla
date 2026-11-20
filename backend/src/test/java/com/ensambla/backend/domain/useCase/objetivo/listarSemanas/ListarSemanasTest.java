@@ -15,7 +15,7 @@ import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.USUARIO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.objetivo;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -27,6 +27,9 @@ class ListarSemanasTest {
     private final ResumenSemanalRepository resumenSemanalRepository = mock(ResumenSemanalRepository.class);
     private ListarSemanas listarSemanas;
 
+    private ListarSemanasResponse respuesta;
+    private Throwable rechazo;
+
     @BeforeEach
     void setUp() {
         listarSemanas = new ListarSemanas(negocioRepository, objetivoRepository, resumenSemanalRepository);
@@ -35,24 +38,55 @@ class ListarSemanasTest {
 
     @Test
     @DisplayName("Devuelve los resúmenes del objetivo del negocio de la sesión")
-    void executeShouldReturnTheSummariesOfTheObjetivo() {
-        when(objetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID)).thenReturn(objetivo());
-        when(resumenSemanalRepository.findAllByObjetivoId(OBJETIVO_ID)).thenReturn(List.of());
+    void devuelveLosResumenesDelObjetivoDelNegocioDeLaSesion() {
+        dadoUnObjetivoSinSemanasCerradas();
 
-        ListarSemanasResponse result = listarSemanas.execute(new ListarSemanasRequest(USUARIO_ID, OBJETIVO_ID));
+        cuandoSeListanLasSemanas();
 
-        assertThat(result.ultimoCierre()).isNull();
-        assertThat(result.semanas()).isEmpty();
+        entoncesNoHayUltimoCierreNiSemanas();
     }
 
     @Test
     @DisplayName("Un objetivo ajeno responde como inexistente y no se leen sus resúmenes")
-    void executeShouldThrowWhenTheObjetivoIsNotOfTheBusiness() {
+    void unObjetivoAjenoRespondeComoInexistenteYNoSeLeenSusResumenes() {
+        dadoUnObjetivoAjeno();
+
+        cuandoSeIntentaListarLasSemanas();
+
+        entoncesSeRechazaComoInexistenteSinLeerResumenes();
+    }
+
+    // --- dado ---
+
+    private void dadoUnObjetivoSinSemanasCerradas() {
+        when(objetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID)).thenReturn(objetivo());
+        when(resumenSemanalRepository.findAllByObjetivoId(OBJETIVO_ID)).thenReturn(List.of());
+    }
+
+    private void dadoUnObjetivoAjeno() {
         when(objetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID))
                 .thenThrow(new ResourceNotFoundException("Objetivo no encontrado"));
+    }
 
-        assertThatThrownBy(() -> listarSemanas.execute(new ListarSemanasRequest(USUARIO_ID, OBJETIVO_ID)))
-                .isInstanceOf(ResourceNotFoundException.class);
+    // --- cuando ---
+
+    private void cuandoSeListanLasSemanas() {
+        respuesta = listarSemanas.execute(new ListarSemanasRequest(USUARIO_ID, OBJETIVO_ID));
+    }
+
+    private void cuandoSeIntentaListarLasSemanas() {
+        rechazo = catchThrowable(this::cuandoSeListanLasSemanas);
+    }
+
+    // --- entonces ---
+
+    private void entoncesNoHayUltimoCierreNiSemanas() {
+        assertThat(respuesta.ultimoCierre()).isNull();
+        assertThat(respuesta.semanas()).isEmpty();
+    }
+
+    private void entoncesSeRechazaComoInexistenteSinLeerResumenes() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class);
         verifyNoInteractions(resumenSemanalRepository);
     }
 }

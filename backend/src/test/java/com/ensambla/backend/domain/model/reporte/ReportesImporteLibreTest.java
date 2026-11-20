@@ -22,55 +22,55 @@ class ReportesImporteLibreTest {
 
     @Test
     @DisplayName("Inicio suma una venta libre pagada una sola vez sin inventar producto ni costo")
-    void armarShouldIncludePaidFreeAmountOnce() {
-        DatosDeProyecto datos = givenImportePagado();
+    void inicioSumaUnaVentaLibrePagadaUnaSolaVezSinInventarProductoNiCosto() {
+        DatosDeProyecto datos = dadoImportePagado();
 
-        PanelNegocio panel = whenSeConsultaPanel(datos);
-        ResumenNegocio resumen = whenSeConsultaResumen(datos);
+        PanelNegocio panel = cuandoSeConsultaPanel(datos);
+        ResumenNegocio resumen = cuandoSeConsultaResumen(datos);
 
-        thenCuentaImporteSinProducto(panel, resumen);
+        entoncesCuentaImporteSinProducto(panel, resumen);
     }
 
     @Test
     @DisplayName("Un importe libre parcial separa lo vendido, lo cobrado y lo pendiente")
-    void armarShouldSeparatePartialFreeSaleFromCashAndDebt() {
-        DatosDeProyecto datos = givenImporteParcial();
+    void unImporteLibreParcialSeparaLoVendidoLoCobradoYLoPendiente() {
+        DatosDeProyecto datos = dadoImporteParcial();
 
-        PanelNegocio panel = whenSeConsultaPanel(datos);
+        PanelNegocio panel = cuandoSeConsultaPanel(datos);
 
-        thenConservaEntregaYSaldo(panel);
+        entoncesConservaEntregaYSaldo(panel);
     }
 
     @Test
     @DisplayName("Un negocio con solo un importe libre fiado muestra venta y deuda sin dinero recibido")
-    void armarShouldShowUnpaidFreeSaleWithoutCash() {
-        DatosDeProyecto datos = givenImporteFiado();
+    void unNegocioConSoloUnImporteLibreFiadoMuestraVentaYDeudaSinDineroRecibido() {
+        DatosDeProyecto datos = dadoImporteFiado();
 
-        PanelNegocio panel = whenSeConsultaPanel(datos);
+        PanelNegocio panel = cuandoSeConsultaPanel(datos);
 
-        thenMuestraFiadoSinCobro(panel);
+        entoncesMuestraFiadoSinCobro(panel);
     }
 
     @Test
     @DisplayName("Un importe libre respeta el período de su venta original")
-    void armarShouldExcludeFreeAmountOutsidePeriod() {
-        DatosDeProyecto datos = givenImporteFiado();
+    void unImporteLibreRespetaElPeriodoDeSuVentaOriginal() {
+        DatosDeProyecto datos = dadoImporteFiado();
 
-        PanelNegocio panel = whenSeConsultaOtroDia(datos);
+        PanelNegocio panel = cuandoSeConsultaOtroDia(datos);
 
-        thenNoMuestraVentasAjenasAlPeriodo(panel);
+        entoncesNoMuestraVentasAjenasAlPeriodo(panel);
     }
 
-    private DatosDeProyecto givenImportePagado() {
+    private DatosDeProyecto dadoImportePagado() {
         return datosConPagos(List.of(new PagoCaja(MedioPagoCaja.TRANSFERENCIA, new BigDecimal("2500"))), null, null);
     }
 
-    private DatosDeProyecto givenImporteParcial() {
+    private DatosDeProyecto dadoImporteParcial() {
         return datosConPagos(List.of(new PagoCaja(MedioPagoCaja.TRANSFERENCIA, new BigDecimal("500"))),
                 CajaTestData.CLIENTE, "Ana López");
     }
 
-    private DatosDeProyecto givenImporteFiado() {
+    private DatosDeProyecto dadoImporteFiado() {
         return datosConPagos(List.of(), CajaTestData.CLIENTE, "Ana López");
     }
 
@@ -82,20 +82,20 @@ class ReportesImporteLibreTest {
         return new DatosDeProyecto("Caja", List.of(), List.of(), List.of(), Map.of(), List.of(), List.of(venta), List.of());
     }
 
-    private PanelNegocio whenSeConsultaPanel(DatosDeProyecto datos) {
+    private PanelNegocio cuandoSeConsultaPanel(DatosDeProyecto datos) {
         return PanelNegocio.armar(datos, PERIODO, HOY);
     }
 
-    private PanelNegocio whenSeConsultaOtroDia(DatosDeProyecto datos) {
+    private PanelNegocio cuandoSeConsultaOtroDia(DatosDeProyecto datos) {
         LocalDate manana = HOY.plusDays(1);
         return PanelNegocio.armar(datos, new PeriodoResumen(manana, manana), manana);
     }
 
-    private ResumenNegocio whenSeConsultaResumen(DatosDeProyecto datos) {
+    private ResumenNegocio cuandoSeConsultaResumen(DatosDeProyecto datos) {
         return ResumenNegocio.armar("Negocio", datos, AnalisisZona.sinZona(), List.of(), PERIODO, HOY);
     }
 
-    private void thenCuentaImporteSinProducto(PanelNegocio panel, ResumenNegocio resumen) {
+    private void entoncesCuentaImporteSinProducto(PanelNegocio panel, ResumenNegocio resumen) {
         assertThat(panel.metricas().vendiste()).isEqualByComparingTo("2500");
         assertThat(panel.metricas().queda()).isEqualByComparingTo("2500");
         assertThat(panel.metricas().teDeben()).isEqualByComparingTo("0");
@@ -107,20 +107,20 @@ class ReportesImporteLibreTest {
         assertThat(resumen.ventas().gananciaEstimada()).isNull();
     }
 
-    private void thenConservaEntregaYSaldo(PanelNegocio panel) {
+    private void entoncesConservaEntregaYSaldo(PanelNegocio panel) {
         assertThat(panel.metricas().vendiste()).isEqualByComparingTo("2500");
         assertThat(panel.metricas().queda()).isEqualByComparingTo("500");
         assertThat(panel.metricas().teDeben()).isEqualByComparingTo("2000");
     }
 
-    private void thenMuestraFiadoSinCobro(PanelNegocio panel) {
+    private void entoncesMuestraFiadoSinCobro(PanelNegocio panel) {
         assertThat(panel.vacio()).isFalse();
         assertThat(panel.metricas().vendiste()).isEqualByComparingTo("2500");
         assertThat(panel.metricas().queda()).isEqualByComparingTo("0");
         assertThat(panel.metricas().teDeben()).isEqualByComparingTo("2500");
     }
 
-    private void thenNoMuestraVentasAjenasAlPeriodo(PanelNegocio panel) {
+    private void entoncesNoMuestraVentasAjenasAlPeriodo(PanelNegocio panel) {
         assertThat(panel.vacio()).isTrue();
     }
 }

@@ -16,7 +16,7 @@ import java.util.List;
 import static com.ensambla.backend.support.MiniObjetivoTestData.candidato;
 import static com.ensambla.backend.support.MiniObjetivoTestData.candidatoDelNegocio;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class RedaccionObjetivosIaAdapterTest {
 
@@ -25,76 +25,67 @@ class RedaccionObjetivosIaAdapterTest {
     private final PromptObjetivos prompt = new PromptObjetivos(
             new ClassPathResource("ia/prompt-objetivos.md"), new ClassPathResource("ia/esquema-objetivos.json"));
     private final List<PeticionModeloTexto> pedidos = new ArrayList<>();
-    private final List<CandidatoMiniObjetivo> candidatos = List.of(
+
+    private List<CandidatoMiniObjetivo> candidatos = List.of(
             candidato(), candidatoDelNegocio(TipoMiniObjetivo.MEJORAR_MARGEN, "6180"));
+    private String respuestaDelModelo;
+    private RedaccionObjetivosIa redaccion;
+    private Throwable rechazo;
 
     @Test
     @DisplayName("Devuelve un texto por candidato, en su orden, sin espacios en los extremos, y lo que gastó el modelo")
-    void redactarShouldReturnOneTextPerCandidateInOrder() {
-        RedaccionObjetivosIa result = adapterQueResponde("""
+    void devuelveUnTextoPorCandidatoEnSuOrdenSinEspaciosEnLosExtremosYLoQueGastoElModelo() {
+        dadoQueElModeloResponde("""
                 {"minis":[
                   {"codigo":"m2","titulo":" Dos puntos más ","justificacion":"Razón del margen"},
-                  {"codigo":"m1","titulo":"Subile $250","justificacion":" Razón de la yerba "}]}""")
-                .redactar(candidatos);
+                  {"codigo":"m1","titulo":"Subile $250","justificacion":" Razón de la yerba "}]}""");
 
-        assertThat(result.textos()).hasSize(2);
-        assertThat(result.textos().get(0).titulo()).isEqualTo("Subile $250");
-        assertThat(result.textos().get(0).justificacion()).isEqualTo("Razón de la yerba");
-        assertThat(result.textos().get(1).titulo()).isEqualTo("Dos puntos más");
-        assertThat(result.consumo().proveedor()).isEqualTo("simulado");
-        assertThat(result.consumo().modelo()).isEqualTo("modelo");
-        assertThat(result.consumo().tokensEntrada()).isEqualTo(120);
-        assertThat(result.consumo().tokensSalida()).isEqualTo(45);
+        cuandoSeRedacta();
+
+        entoncesHayUnTextoPorCandidatoEnSuOrdenConElConsumo();
     }
 
     @Test
     @DisplayName("Le pide el texto de cada candidato por su código y con los números ya calculados")
-    void redactarShouldAskTheModelWithShortCodes() {
-        adapterQueResponde(respuestaValida()).redactar(candidatos);
+    void lePideElTextoDeCadaCandidatoPorSuCodigoYConLosNumerosYaCalculados() {
+        dadoQueElModeloResponde(respuestaValida());
 
-        assertThat(pedidos).singleElement().satisfies(pedido -> {
-            assertThat(pedido.contexto())
-                    .contains("m1: tipo SUBIR_PRECIO, sobre Yerba 1 kg", "m2: tipo MEJORAR_MARGEN");
-            assertThat(pedido.esquemaJson()).contains("minis");
-            assertThat(pedido.instrucciones()).contains("NO calcules");
-        });
+        cuandoSeRedacta();
+
+        entoncesElPedidoUsaCodigosCortosYNoPideCalcular();
     }
 
     @Test
     @DisplayName("Un texto con el largo máximo permitido sirve")
-    void redactarShouldAcceptATitleWithTheMaximumLength() {
-        String titulo = "x".repeat(RedaccionObjetivosIaAdapter.LARGO_MAXIMO_TITULO);
-        String justificacion = "y".repeat(RedaccionObjetivosIaAdapter.LARGO_MAXIMO_JUSTIFICACION);
+    void unTextoConElLargoMaximoPermitidoSirve() {
+        dadoUnCandidatoYUnTextoConElLargoMaximoPermitido();
 
-        RedaccionObjetivosIa result = adapterQueResponde("""
-                {"minis":[{"codigo":"m1","titulo":"%s","justificacion":"%s"}]}""".formatted(titulo, justificacion))
-                .redactar(List.of(candidato()));
+        cuandoSeRedacta();
 
-        assertThat(result.textos()).singleElement().satisfies(texto -> {
-            assertThat(texto.titulo()).isEqualTo(titulo);
-            assertThat(texto.justificacion()).isEqualTo(justificacion);
-        });
+        entoncesSeAceptanLosTextosConElLargoMaximo();
     }
 
     @Test
     @DisplayName("Un título más largo que el permitido no sirve")
-    void redactarShouldRejectATitleThatIsTooLong() {
-        assertThatThrownBy(() -> adapterQueResponde("""
-                {"minis":[{"codigo":"m1","titulo":"%s","justificacion":"Razón"}]}""".formatted(TEXTO_LARGO_81))
-                .redactar(List.of(candidato())))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("La IA no redactó un texto válido para cada mini-objetivo");
+    void unTituloMasLargoQueElPermitidoNoSirve() {
+        dadoUnCandidatoYUnaRespuesta("""
+                {"minis":[{"codigo":"m1","titulo":"%s","justificacion":"Razón"}]}""".formatted(TEXTO_LARGO_81));
+
+        cuandoSeIntentaRedactar();
+
+        entoncesSeRechazaConElMensaje("La IA no redactó un texto válido para cada mini-objetivo");
     }
 
     @Test
     @DisplayName("Una justificación más larga que la permitida no sirve")
-    void redactarShouldRejectAJustificationThatIsTooLong() {
+    void unaJustificacionMasLargaQueLaPermitidaNoSirve() {
         String larga = "y".repeat(RedaccionObjetivosIaAdapter.LARGO_MAXIMO_JUSTIFICACION + 1);
+        dadoUnCandidatoYUnaRespuesta("""
+                {"minis":[{"codigo":"m1","titulo":"Título","justificacion":"%s"}]}""".formatted(larga));
 
-        assertThatThrownBy(() -> adapterQueResponde("""
-                {"minis":[{"codigo":"m1","titulo":"Título","justificacion":"%s"}]}""".formatted(larga))
-                .redactar(List.of(candidato())))
-                .isInstanceOf(IllegalStateException.class);
+        cuandoSeIntentaRedactar();
+
+        entoncesSeRechazaPorUnTextoInvalido();
     }
 
     @ParameterizedTest
@@ -105,18 +96,22 @@ class RedaccionObjetivosIaAdapterTest {
             "{\"minis\":[{\"codigo\":\"m1\",\"titulo\":\"Título\"}]}",
             "{\"minis\":[{\"titulo\":\"Sin código\",\"justificacion\":\"Razón\"}]}"})
     @DisplayName("Un texto vacío, que falta o sin código con el que ubicarlo no sirve")
-    void redactarShouldRejectAMissingOrBlankText(String json) {
-        assertThatThrownBy(() -> adapterQueResponde(json).redactar(List.of(candidato())))
-                .isInstanceOf(IllegalStateException.class);
+    void unTextoVacioQueFaltaOSinCodigoConElQueUbicarloNoSirve(String json) {
+        dadoUnCandidatoYUnaRespuesta(json);
+
+        cuandoSeIntentaRedactar();
+
+        entoncesSeRechazaPorUnTextoInvalido();
     }
 
     @Test
     @DisplayName("Si falta el texto de algún candidato no sirve la respuesta entera")
-    void redactarShouldRejectAResponseThatMissesACandidate() {
-        assertThatThrownBy(() -> adapterQueResponde(respuestaValida()).redactar(List.of(
-                candidato(), candidatoDelNegocio(TipoMiniObjetivo.MEJORAR_MARGEN, "6180"),
-                candidatoDelNegocio(TipoMiniObjetivo.VENTAS_SEMANALES, "5000"))))
-                .isInstanceOf(IllegalStateException.class);
+    void siFaltaElTextoDeAlgunCandidatoNoSirveLaRespuestaEntera() {
+        dadoTresCandidatosYUnaRespuestaDeDos();
+
+        cuandoSeIntentaRedactar();
+
+        entoncesSeRechazaPorUnTextoInvalido();
     }
 
     @ParameterizedTest
@@ -127,30 +122,111 @@ class RedaccionObjetivosIaAdapterTest {
             "{\"minis\":[{\"codigo\":\"m1\",\"titulo\":\"A\",\"justificacion\":\"B\"},"
                     + "{\"codigo\":\"m1\",\"titulo\":\"C\",\"justificacion\":\"D\"}]}"})
     @DisplayName("Una respuesta ilegible, sin lista de textos o con un código repetido no sirve")
-    void redactarShouldRejectAnUnreadableResponse(String json) {
-        assertThatThrownBy(() -> adapterQueResponde(json).redactar(List.of(candidato())))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("La IA devolvió una redacción ilegible");
+    void unaRespuestaIlegibleSinListaDeTextosOConUnCodigoRepetidoNoSirve(String json) {
+        dadoUnCandidatoYUnaRespuesta(json);
+
+        cuandoSeIntentaRedactar();
+
+        entoncesSeRechazaConElMensaje("La IA devolvió una redacción ilegible");
     }
 
     @Test
     @DisplayName("Si el modelo no responde deja pasar su error")
-    void redactarShouldLetTheModelErrorThrough() {
+    void siElModeloNoRespondeDejaPasarSuError() {
+        cuandoSeIntentaRedactarConUnModeloSinConexion();
+
+        entoncesSeDejaPasarElErrorDelModelo();
+    }
+
+    // --- dado ---
+
+    private void dadoQueElModeloResponde(String json) {
+        respuestaDelModelo = json;
+    }
+
+    private void dadoUnCandidatoYUnaRespuesta(String json) {
+        candidatos = List.of(candidato());
+        respuestaDelModelo = json;
+    }
+
+    private void dadoUnCandidatoYUnTextoConElLargoMaximoPermitido() {
+        String titulo = "x".repeat(RedaccionObjetivosIaAdapter.LARGO_MAXIMO_TITULO);
+        String justificacion = "y".repeat(RedaccionObjetivosIaAdapter.LARGO_MAXIMO_JUSTIFICACION);
+        dadoUnCandidatoYUnaRespuesta("""
+                {"minis":[{"codigo":"m1","titulo":"%s","justificacion":"%s"}]}""".formatted(titulo, justificacion));
+    }
+
+    private void dadoTresCandidatosYUnaRespuestaDeDos() {
+        candidatos = List.of(candidato(), candidatoDelNegocio(TipoMiniObjetivo.MEJORAR_MARGEN, "6180"),
+                candidatoDelNegocio(TipoMiniObjetivo.VENTAS_SEMANALES, "5000"));
+        respuestaDelModelo = respuestaValida();
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeRedacta() {
+        redaccion = adapterQueResponde().redactar(candidatos);
+    }
+
+    private void cuandoSeIntentaRedactar() {
+        rechazo = catchThrowable(this::cuandoSeRedacta);
+    }
+
+    private void cuandoSeIntentaRedactarConUnModeloSinConexion() {
         RedaccionObjetivosIaAdapter adapter = new RedaccionObjetivosIaAdapter(
                 peticion -> {
                     throw new IllegalArgumentException("sin conexión");
                 }, prompt, JsonMapper.builder().build());
-
-        assertThatThrownBy(() -> adapter.redactar(List.of(candidato())))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("sin conexión");
+        rechazo = catchThrowable(() -> adapter.redactar(List.of(candidato())));
     }
 
-    // --- helpers ---
-    private RedaccionObjetivosIaAdapter adapterQueResponde(String json) {
+    // --- entonces ---
+
+    private void entoncesHayUnTextoPorCandidatoEnSuOrdenConElConsumo() {
+        assertThat(redaccion.textos()).hasSize(2);
+        assertThat(redaccion.textos().get(0).titulo()).isEqualTo("Subile $250");
+        assertThat(redaccion.textos().get(0).justificacion()).isEqualTo("Razón de la yerba");
+        assertThat(redaccion.textos().get(1).titulo()).isEqualTo("Dos puntos más");
+        assertThat(redaccion.consumo().proveedor()).isEqualTo("simulado");
+        assertThat(redaccion.consumo().modelo()).isEqualTo("modelo");
+        assertThat(redaccion.consumo().tokensEntrada()).isEqualTo(120);
+        assertThat(redaccion.consumo().tokensSalida()).isEqualTo(45);
+    }
+
+    private void entoncesElPedidoUsaCodigosCortosYNoPideCalcular() {
+        assertThat(pedidos).singleElement().satisfies(pedido -> {
+            assertThat(pedido.contexto())
+                    .contains("m1: tipo SUBIR_PRECIO, sobre Yerba 1 kg", "m2: tipo MEJORAR_MARGEN");
+            assertThat(pedido.esquemaJson()).contains("minis");
+            assertThat(pedido.instrucciones()).contains("NO calcules");
+        });
+    }
+
+    private void entoncesSeAceptanLosTextosConElLargoMaximo() {
+        assertThat(redaccion.textos()).singleElement().satisfies(texto -> {
+            assertThat(texto.titulo()).hasSize(RedaccionObjetivosIaAdapter.LARGO_MAXIMO_TITULO);
+            assertThat(texto.justificacion()).hasSize(RedaccionObjetivosIaAdapter.LARGO_MAXIMO_JUSTIFICACION);
+        });
+    }
+
+    private void entoncesSeRechazaConElMensaje(String mensaje) {
+        assertThat(rechazo).isInstanceOf(IllegalStateException.class).hasMessage(mensaje);
+    }
+
+    private void entoncesSeRechazaPorUnTextoInvalido() {
+        assertThat(rechazo).isInstanceOf(IllegalStateException.class);
+    }
+
+    private void entoncesSeDejaPasarElErrorDelModelo() {
+        assertThat(rechazo).isInstanceOf(IllegalArgumentException.class).hasMessage("sin conexión");
+    }
+
+    // --- datos ---
+
+    private RedaccionObjetivosIaAdapter adapterQueResponde() {
         return new RedaccionObjetivosIaAdapter(peticion -> {
             pedidos.add(peticion);
-            return new RespuestaModeloTexto(json, "simulado", "modelo", 120, 45);
+            return new RespuestaModeloTexto(respuestaDelModelo, "simulado", "modelo", 120, 45);
         }, prompt, JsonMapper.builder().build());
     }
 

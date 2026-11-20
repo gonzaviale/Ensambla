@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { expect, vi } from 'vitest';
 import { CierreCajaForm } from '@/components/caja/CierreCajaForm';
 
-export function givenCierreConEfectivo(efectivo = 1000) {
+export function dadoCierreConEfectivo(efectivo = 1000) {
   const confirmar = vi.fn();
   render(
     <CierreCajaForm
@@ -27,26 +27,26 @@ export function givenCierreConEfectivo(efectivo = 1000) {
   );
   return { user: userEvent.setup(), confirmar };
 }
-export async function whenSeCuentaEfectivo(
+export async function cuandoSeCuentaEfectivo(
   user: ReturnType<typeof userEvent.setup>,
   contado: string,
 ) {
   await user.type(screen.getByLabelText('Efectivo contado al cerrar ($)'), contado);
 }
-export async function whenSeExplicaDiferencia(user: ReturnType<typeof userEvent.setup>) {
+export async function cuandoSeExplicaDiferencia(user: ReturnType<typeof userEvent.setup>) {
   await user.type(
     screen.getByLabelText('Motivo de la diferencia (lo necesitamos para cerrar)'),
     'Retiro pendiente de guardar',
   );
   await user.click(screen.getByRole('button', { name: 'Guardar cierre' }));
 }
-export function thenNoSePuedeGuardarCierre() {
+export function entoncesNoSePuedeGuardarCierre() {
   expect(screen.getByRole('button', { name: 'Guardar cierre' })).toBeDisabled();
 }
-export function thenSePuedeGuardarCierre() {
+export function entoncesSePuedeGuardarCierre() {
   expect(screen.getByRole('button', { name: 'Guardar cierre' })).toBeEnabled();
 }
-export function thenSeGuardaRecuentoCero(confirmar: ReturnType<typeof vi.fn>) {
+export function entoncesSeGuardaRecuentoCero(confirmar: ReturnType<typeof vi.fn>) {
   expect(confirmar).toHaveBeenCalledWith(
     expect.objectContaining({ contado: 0, nota: 'Retiro pendiente de guardar' }),
   );

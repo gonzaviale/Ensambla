@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plantilla.PlantillaId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.useCase.proyecto.ProyectoItem;
 import com.ensambla.backend.domain.useCase.sami.ColumnaSamiItem;
 import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSami;
 import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSamiRequest;
@@ -29,7 +30,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 /** Sami contra la base real: las plantillas que nombra el diccionario existen y el proyecto se crea entero o no se crea. */
 class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
@@ -53,6 +54,12 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     private UsuarioId usuarioId;
     private NegocioId negocioId;
+    private ConversarConSamiResponse respuesta;
+    private ConversarConSamiResponse pregunta;
+    private ConversarEnTallerResponse respuestaDelTaller;
+    private List<String> nombresDePlantillas;
+    private ProyectoItem proyecto;
+    private Throwable rechazo;
 
     @BeforeEach
     void setUp() {
@@ -73,83 +80,150 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("«Vendo velas y anoto quién me debe» propone la plantilla Ventas de la base con saldo pendiente")
-    void conversarShouldProposeSeededVentasTemplate() {
-        ConversarConSamiResponse response = conversarConSami.execute(
-                new ConversarConSamiRequest(usuarioId, "Vendo velas y anoto quién me debe", List.of()));
+    void vendoVelasYAnotoQuienMeDebeProponeLaPlantillaVentasDeLaBaseConSaldoPendiente() {
+        cuandoSeConversaCon("Vendo velas y anoto quién me debe");
 
-        assertThat(response.tipo()).isEqualTo("PROPUESTA");
-        assertThat(response.propuesta().plantillaId()).isEqualTo(VENTAS_ID);
-        assertThat(response.propuesta().columnas()).extracting("nombre").containsExactly("Saldo pendiente");
+        entoncesSeProponeLaPlantillaVentasConSaldoPendiente();
     }
 
     @Test
     @DisplayName("Cada plantilla que nombra el diccionario existe en la base")
-    void everyDictionaryTemplateShouldExistInTheDatabase() {
-        List<String> nombres = jdbcTemplate.queryForList("SELECT nombre FROM plantilla WHERE activa", String.class);
+    void cadaPlantillaQueNombraElDiccionarioExisteEnLaBase() {
+        cuandoSeListanLasPlantillasActivas();
 
-        assertThat(nombres).contains("Ventas", "Inventario", "Pedidos", "Clientes", "Gastos");
+        entoncesEstanLasPlantillasDelDiccionario();
     }
 
     @Test
     @DisplayName("Con un texto ambiguo pregunta y, tras responder, propone la plantilla elegida")
-    void conversarShouldAskThenProposeAfterAnswer() {
-        String texto = "quiero un stock y llevar los pedidos";
+    void conUnTextoAmbiguoPreguntaYTrasResponderProponeLaPlantillaElegida() {
+        cuandoSeConversaConUnTextoAmbiguoYSeResponde("quiero un stock y llevar los pedidos", "pedidos");
 
-        ConversarConSamiResponse pregunta = conversarConSami.execute(
-                new ConversarConSamiRequest(usuarioId, texto, List.of()));
-        ConversarConSamiResponse propuesta = conversarConSami.execute(new ConversarConSamiRequest(
-                usuarioId, texto, List.of(new RespuestaSamiItem(pregunta.pregunta().id(), "pedidos"))));
-
-        assertThat(pregunta.tipo()).isEqualTo("PREGUNTA");
-        assertThat(propuesta.tipo()).isEqualTo("PROPUESTA");
-        assertThat(propuesta.propuesta().plantilla()).isEqualTo("Pedidos");
+        entoncesPreguntoYDespuesProponeLaPlantillaDePedidos();
     }
 
     @Test
     @DisplayName("Con «otra cosa» consulta a la IA, que reserva y registra el consumo del negocio")
-    void conversarShouldFallBackToAiAndRecordConsumption() {
-        ConversarConSamiResponse response = conversarConSami.execute(new ConversarConSamiRequest(
-                usuarioId, "quiero ordenar mi negocio", List.of(new RespuestaSamiItem("principal", "otra"))));
+    void conOtraCosaConsultaALaIaQueReservaYRegistraElConsumoDelNegocio() {
+        cuandoSeEligeOtraCosa();
 
-        assertThat(response.propuesta().origen()).isEqualTo("IA");
-        assertThat(jdbcTemplate.queryForObject(
-                "SELECT consultas FROM consumo_sami_diario WHERE negocio_id = ?", Integer.class, negocioId.valor()))
-                .isEqualTo(1);
+        entoncesLaPropuestaVieneDeLaIaYSeRegistraUnaConsulta();
     }
 
     @Test
     @DisplayName("Un turno del taller pasa por la IA simulada, valida las herramientas y registra la consulta")
-    void tallerShouldRunATurnAndRecordTheConsultation() {
-        ConversarEnTallerResponse response = conversarEnTaller.execute(new ConversarEnTallerRequest(
-                usuarioId, "sumá los gastos",
-                new EstadoTallerItem("Mi almacén", "mosaic", List.of()),
-                List.of(new MensajeTallerItem("sami", "Hola")), null));
+    void unTurnoDelTallerPasaPorLaIaSimuladaValidaLasHerramientasYRegistraLaConsulta() {
+        cuandoSeLePideAlTallerSumarLosGastos();
 
-        assertThat(response.acciones()).extracting("herramienta").containsExactly("agregar_pieza");
-        assertThat(response.acciones().getFirst().argumentos()).containsEntry("tipo", "expenses");
-        assertThat(jdbcTemplate.queryForObject(
-                "SELECT consultas FROM consumo_sami_diario WHERE negocio_id = ?", Integer.class, negocioId.valor()))
-                .isEqualTo(1);
+        entoncesElTallerAgregaLaPiezaDeGastosYRegistraLaConsulta();
     }
 
     @Test
     @DisplayName("Un turno del taller que no se entiende devuelve una botonera para elegir")
-    void tallerShouldAskWithOptionsWhenItDoesNotUnderstand() {
-        ConversarEnTallerResponse response = conversarEnTaller.execute(new ConversarEnTallerRequest(
-                usuarioId, "ayuda", new EstadoTallerItem("", "mosaic", List.of()), List.of(), null));
+    void unTurnoDelTallerQueNoSeEntiendeDevuelveUnaBotoneraParaElegir() {
+        cuandoSeLePideAlTallerAlgoIncomprensible();
 
-        assertThat(response.preguntas().getFirst().opciones()).hasSizeBetween(2, 6);
-        assertThat(response.acciones()).isEmpty();
+        entoncesElTallerOfreceOpcionesSinAcciones();
     }
 
     @Test
     @DisplayName("Crea el proyecto con los bloques de la plantilla más las columnas aceptadas")
-    void crearProyectoShouldPersistTemplateAndExtraColumns() {
-        var proyecto = crearProyectoDesdeSami.execute(new CrearProyectoDesdeSamiRequest(
+    void creaElProyectoConLosBloquesDeLaPlantillaMasLasColumnasAceptadas() {
+        cuandoSeCreaElProyectoDeVentasConDosColumnasExtra();
+
+        entoncesElProyectoTieneLosCamposDeLaPlantillaYLasColumnas();
+    }
+
+    @Test
+    @DisplayName("Si una columna falla no queda ningún proyecto del negocio")
+    void siUnaColumnaFallaNoQuedaNingunProyectoDelNegocio() {
+        cuandoSeIntentaCrearElProyectoConUnaColumnaSinNombre();
+
+        entoncesNoQuedaNingunProyectoDelNegocio();
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeConversaCon(String texto) {
+        respuesta = conversarConSami.execute(new ConversarConSamiRequest(usuarioId, texto, List.of()));
+    }
+
+    private void cuandoSeListanLasPlantillasActivas() {
+        nombresDePlantillas = jdbcTemplate.queryForList("SELECT nombre FROM plantilla WHERE activa", String.class);
+    }
+
+    private void cuandoSeConversaConUnTextoAmbiguoYSeResponde(String texto, String eleccion) {
+        pregunta = conversarConSami.execute(new ConversarConSamiRequest(usuarioId, texto, List.of()));
+        respuesta = conversarConSami.execute(new ConversarConSamiRequest(
+                usuarioId, texto, List.of(new RespuestaSamiItem(pregunta.pregunta().id(), eleccion))));
+    }
+
+    private void cuandoSeEligeOtraCosa() {
+        respuesta = conversarConSami.execute(new ConversarConSamiRequest(
+                usuarioId, "quiero ordenar mi negocio", List.of(new RespuestaSamiItem("principal", "otra"))));
+    }
+
+    private void cuandoSeLePideAlTallerSumarLosGastos() {
+        respuestaDelTaller = conversarEnTaller.execute(new ConversarEnTallerRequest(
+                usuarioId, "sumá los gastos",
+                new EstadoTallerItem("Mi almacén", "mosaic", List.of()),
+                List.of(new MensajeTallerItem("sami", "Hola")), null));
+    }
+
+    private void cuandoSeLePideAlTallerAlgoIncomprensible() {
+        respuestaDelTaller = conversarEnTaller.execute(new ConversarEnTallerRequest(
+                usuarioId, "ayuda", new EstadoTallerItem("", "mosaic", List.of()), List.of(), null));
+    }
+
+    private void cuandoSeCreaElProyectoDeVentasConDosColumnasExtra() {
+        proyecto = crearProyectoDesdeSami.execute(new CrearProyectoDesdeSamiRequest(
                 usuarioId, VENTAS_ID, "Velas de Ana", List.of(
                 new ColumnaSamiItem("Saldo pendiente", "NUMERO", null),
                 new ColumnaSamiItem("Forma de pago", "OPCION", List.of("Efectivo", "Tarjeta")))));
+    }
 
+    private void cuandoSeIntentaCrearElProyectoConUnaColumnaSinNombre() {
+        rechazo = catchThrowable(() -> crearProyectoDesdeSami.execute(new CrearProyectoDesdeSamiRequest(
+                usuarioId, VENTAS_ID, null, List.of(
+                new ColumnaSamiItem("Saldo pendiente", "NUMERO", null),
+                new ColumnaSamiItem(" ", "TEXTO", null)))));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeProponeLaPlantillaVentasConSaldoPendiente() {
+        assertThat(respuesta.tipo()).isEqualTo("PROPUESTA");
+        assertThat(respuesta.propuesta().plantillaId()).isEqualTo(VENTAS_ID);
+        assertThat(respuesta.propuesta().columnas()).extracting("nombre").containsExactly("Saldo pendiente");
+    }
+
+    private void entoncesEstanLasPlantillasDelDiccionario() {
+        assertThat(nombresDePlantillas).contains("Ventas", "Inventario", "Pedidos", "Clientes", "Gastos");
+    }
+
+    private void entoncesPreguntoYDespuesProponeLaPlantillaDePedidos() {
+        assertThat(pregunta.tipo()).isEqualTo("PREGUNTA");
+        assertThat(respuesta.tipo()).isEqualTo("PROPUESTA");
+        assertThat(respuesta.propuesta().plantilla()).isEqualTo("Pedidos");
+    }
+
+    private void entoncesLaPropuestaVieneDeLaIaYSeRegistraUnaConsulta() {
+        assertThat(respuesta.propuesta().origen()).isEqualTo("IA");
+        assertThat(consultasDelNegocio()).isEqualTo(1);
+    }
+
+    private void entoncesElTallerAgregaLaPiezaDeGastosYRegistraLaConsulta() {
+        assertThat(respuestaDelTaller.acciones()).extracting("herramienta").containsExactly("agregar_pieza");
+        assertThat(respuestaDelTaller.acciones().getFirst().argumentos()).containsEntry("tipo", "expenses");
+        assertThat(consultasDelNegocio()).isEqualTo(1);
+    }
+
+    private void entoncesElTallerOfreceOpcionesSinAcciones() {
+        assertThat(respuestaDelTaller.preguntas().getFirst().opciones()).hasSizeBetween(2, 6);
+        assertThat(respuestaDelTaller.acciones()).isEmpty();
+    }
+
+    private void entoncesElProyectoTieneLosCamposDeLaPlantillaYLasColumnas() {
         assertThat(proyecto.nombre()).isEqualTo("Velas de Ana");
         List<String> campos = jdbcTemplate.queryForList("""
                 SELECT c.nombre FROM campo c JOIN bloque b ON b.id = c.bloque_id
@@ -159,16 +233,16 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
                 "Fecha", "Producto", "Cantidad", "Monto", "Cliente", "Saldo pendiente", "Forma de pago");
     }
 
-    @Test
-    @DisplayName("Si una columna falla no queda ningún proyecto del negocio")
-    void crearProyectoShouldCreateNothingWhenAColumnFails() {
-        assertThatThrownBy(() -> crearProyectoDesdeSami.execute(new CrearProyectoDesdeSamiRequest(
-                usuarioId, VENTAS_ID, null, List.of(
-                new ColumnaSamiItem("Saldo pendiente", "NUMERO", null),
-                new ColumnaSamiItem(" ", "TEXTO", null)))))
-                .isInstanceOf(CampoInvalidoException.class);
-
+    private void entoncesNoQuedaNingunProyectoDelNegocio() {
+        assertThat(rechazo).isInstanceOf(CampoInvalidoException.class);
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM proyecto WHERE negocio_id = ?", Integer.class, negocioId.valor())).isZero();
+    }
+
+    // --- datos ---
+
+    private Integer consultasDelNegocio() {
+        return jdbcTemplate.queryForObject(
+                "SELECT consultas FROM consumo_sami_diario WHERE negocio_id = ?", Integer.class, negocioId.valor());
     }
 }

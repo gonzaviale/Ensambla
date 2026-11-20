@@ -12,13 +12,13 @@ const cuadernoLlamado = (nombre: string) => {
   return sistema;
 };
 
-const givenNegocios = (email: string, nombres: string[]) => {
+const dadoNegocios = (email: string, nombres: string[]) => {
   if (nombres.length) estado.sistemas.set(email, nombres.map(cuadernoLlamado));
 };
 
-const whenAbreInicio = async (nombres: string[] = []) => {
+const cuandoAbreInicio = async (nombres: string[] = []) => {
   const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
-  givenNegocios(usuario.email, nombres);
+  dadoNegocios(usuario.email, nombres);
   const router = renderApp('/inicio');
   await verifyHeadingPresentAsync(/En qué puedo/);
   return { router, user: userEvent.setup() };
@@ -29,14 +29,14 @@ const bloqueDeTuNegocio = async () =>
 
 describe('inicio · tu negocio', () => {
   it('sin negocios no muestra el bloque: la bienvenida invita a crear el primero', async () => {
-    await whenAbreInicio();
+    await cuandoAbreInicio();
 
     expect(screen.queryByRole('region', { name: /Kiosco|Almacén/ })).toBeNull();
     expect(screen.getByRole('button', { name: /Crear con Sami/ })).toBeVisible();
   });
 
   it('muestra el bloque del negocio activo; sus tablas se abren desde «Mi negocio»', async () => {
-    await whenAbreInicio(['Kiosco Centro']);
+    await cuandoAbreInicio(['Kiosco Centro']);
 
     const bloque = await bloqueDeTuNegocio();
 
@@ -46,7 +46,7 @@ describe('inicio · tu negocio', () => {
   });
 
   it('con varios negocios sólo muestra el activo, que es el primero hasta que se elige otro', async () => {
-    await whenAbreInicio(['Kiosco Centro', 'Almacén Norte']);
+    await cuandoAbreInicio(['Kiosco Centro', 'Almacén Norte']);
 
     await bloqueDeTuNegocio();
 
@@ -55,7 +55,7 @@ describe('inicio · tu negocio', () => {
   });
 
   it('«Mi negocio», en la barra, abre las tablas del negocio', async () => {
-    const { router, user } = await whenAbreInicio(['Kiosco Centro']);
+    const { router, user } = await cuandoAbreInicio(['Kiosco Centro']);
     await bloqueDeTuNegocio();
 
     await user.click(screen.getByRole('button', { name: 'Mi negocio' }));
@@ -64,7 +64,7 @@ describe('inicio · tu negocio', () => {
   });
 
   it('no ofrece crear secciones ni agregar negocios: eso queda en el selector de arriba', async () => {
-    await whenAbreInicio(['Kiosco Centro']);
+    await cuandoAbreInicio(['Kiosco Centro']);
     const bloque = await bloqueDeTuNegocio();
 
     expect(bloque.queryByRole('button', { name: 'Crear una sección' })).toBeNull();
