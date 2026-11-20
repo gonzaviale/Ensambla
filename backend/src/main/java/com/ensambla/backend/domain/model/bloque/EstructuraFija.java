@@ -46,6 +46,17 @@ public final class EstructuraFija {
         return new Sistema(proyecto, sistema.secciones(), registrosConLosDe(nuevos, sistema));
     }
 
+    /** Si la columna es una de las fijas de su tipo de sección: no se puede quitar ni cambiar de tipo de dato. */
+    public static boolean esColumnaFija(Bloque bloque, Campo campo) {
+        return bloque.getTipo().columnasFijas().stream().anyMatch(columna -> columna.esLaDe(campo));
+    }
+
+    /** Si la sección se puede quitar: no lo es la última de un tipo obligatorio. */
+    public static boolean sePuedeQuitar(Bloque bloque, List<Bloque> bloques) {
+        return !bloque.getTipo().esObligatorioEnElNegocio() || bloques.stream()
+                .anyMatch(otro -> !otro.getId().equals(bloque.getId()) && otro.getTipo() == bloque.getTipo());
+    }
+
     private static List<TipoBloque> tiposObligatoriosQueFaltanEn(List<Bloque> bloques) {
         return TipoBloque.obligatorios().stream()
                 .filter(tipo -> bloques.stream().noneMatch(bloque -> bloque.getTipo() == tipo))

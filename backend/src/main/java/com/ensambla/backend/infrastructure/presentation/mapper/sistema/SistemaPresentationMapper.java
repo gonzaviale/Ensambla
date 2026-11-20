@@ -73,13 +73,15 @@ public class SistemaPresentationMapper {
                 bloque.rows(),
                 bloque.content(),
                 bloque.startRow(),
-                bloque.stockDirection());
+                bloque.stockDirection(),
+                bloque.removable(),
+                bloque.typeLocked());
     }
 
     private CampoWebResponse toResponse(CampoItem campo) {
         return new CampoWebResponse(
                 campo.key(), campo.label(), campo.type(), campo.required(), campo.options(), campo.min(),
-                campo.target());
+                campo.target(), campo.system());
     }
 
     private SistemaItem toItem(SistemaWebRequest request) {
