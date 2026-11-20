@@ -6,7 +6,6 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
-import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;
 import com.ensambla.backend.infrastructure.repository.entity.BloqueEntity;
 import com.ensambla.backend.infrastructure.repository.entity.CampoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
@@ -18,25 +17,18 @@ import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.I
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IProyectoJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IUsuarioJpaRepository;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
+import com.ensambla.backend.support.SesionHttpDePrueba;
 import jakarta.servlet.Filter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.mock.web.MockHttpSession;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.security.web.csrf.DefaultCsrfToken;
-import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
 import java.util.UUID;
@@ -77,158 +69,257 @@ class BloqueSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     private MockMvc mockMvc;
     private NegocioId negocioId;
-    private MockHttpSession sesion;
-    private String csrfToken;
+    private SesionHttpDePrueba sesion;
+    private ProyectoId proyectoId;
+    private UUID bloqueId;
+    private UUID otroBloqueId;
+    private UUID negocioAjenoId;
+    private ResultActions respuesta;
 
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        UsuarioId usuarioId = UsuarioId.de(givenUsuario());
-        negocioId = NegocioId.de(givenNegocio(usuarioId));
-        sesion = givenSesion(usuarioId);
+        UsuarioId usuarioId = UsuarioId.de(crearUsuario());
+        negocioId = NegocioId.de(crearNegocio(usuarioId));
+        sesion = SesionHttpDePrueba.autenticada(mockMvc, usuarioId.toString());
     }
 
     @Test
     @DisplayName("Crear agrega el bloque al final del proyecto propio y lo deja guardado")
-    void crearShouldPersistBloqueAtTheEnd() throws Exception {
-        ProyectoId proyectoId = ProyectoId.de(givenProyecto(negocioId));
-        givenBloque(negocioId, proyectoId, "Productos", 0);
+    void crearAgregaElBloqueAlFinalDelProyectoPropioYLoDejaGuardado() throws Exception {
+        dadoUnProyectoPropioConElBloque("Productos");
 
-        mockMvc.perform(post("/api/proyectos/{id}/bloques", proyectoId).session(sesion)
-                        .header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json").content("{\"nombre\":\" Clientes \"}"))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.nombre").value("Clientes"))
-                .andExpect(jsonPath("$.posicion").value(1));
+        cuandoSeCreaUnBloque(proyectoId.valor(), " Clientes ");
 
-        assertThat(bloques.findAllByProyectoIdAndNegocioIdOrderByPosicionAscIdAsc(proyectoId.valor(),
-                negocioId.valor()))
-                .extracting(BloqueEntity::getNombre)
-                .containsExactly("Productos", "Clientes");
+        entoncesSeCreaElBloqueAlFinal();
+        entoncesElProyectoGuardaLosBloquesEnOrden("Productos", "Clientes");
     }
 
     @Test
     @DisplayName("Crear con un nombre que ya existe en el proyecto devuelve 409")
-    void crearShouldRejectRepeatedName() throws Exception {
-        ProyectoId proyectoId = ProyectoId.de(givenProyecto(negocioId));
-        givenBloque(negocioId, proyectoId, "Productos", 0);
+    void crearConUnNombreQueYaExisteEnElProyectoDevuelve409() throws Exception {
+        dadoUnProyectoPropioConElBloque("Productos");
 
-        mockMvc.perform(post("/api/proyectos/{id}/bloques", proyectoId).session(sesion)
-                        .header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json").content("{\"nombre\":\"productos\"}"))
-                .andExpect(status().isConflict());
+        cuandoSeCreaUnBloque(proyectoId.valor(), "productos");
+
+        entoncesRespondeConflicto();
     }
 
     @Test
     @DisplayName("Crear en un proyecto ajeno devuelve 404 y no guarda nada")
-    void crearShouldHideForeignProyecto() throws Exception {
-        UUID ajenoNegocioId = givenNegocio(UsuarioId.de(givenUsuario()));
-        UUID ajenoProyectoId = givenProyecto(NegocioId.de(ajenoNegocioId));
+    void crearEnUnProyectoAjenoDevuelve404YNoGuardaNada() throws Exception {
+        dadoUnProyectoAjeno();
 
-        mockMvc.perform(post("/api/proyectos/{id}/bloques", ajenoProyectoId).session(sesion)
-                        .header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json").content("{\"nombre\":\"Intruso\"}"))
-                .andExpect(status().isNotFound());
+        cuandoSeCreaUnBloque(proyectoId.valor(), "Intruso");
 
-        assertThat(bloques.findAllByProyectoIdAndNegocioIdOrderByPosicionAscIdAsc(ajenoProyectoId, ajenoNegocioId))
-                .isEmpty();
+        entoncesRespondeNoEncontrado();
+        entoncesElProyectoAjenoNoTieneBloques();
     }
 
     @Test
     @DisplayName("Listar los bloques de un proyecto ajeno devuelve 404")
-    void listarShouldHideForeignProyecto() throws Exception {
-        UUID ajenoNegocioId = givenNegocio(UsuarioId.de(givenUsuario()));
-        UUID ajenoProyectoId = givenProyecto(NegocioId.de(ajenoNegocioId));
-        givenBloque(NegocioId.de(ajenoNegocioId), ProyectoId.de(ajenoProyectoId), "Secreto", 0);
+    void listarLosBloquesDeUnProyectoAjenoDevuelve404() throws Exception {
+        dadoUnProyectoAjenoConElBloque("Secreto");
 
-        mockMvc.perform(get("/api/proyectos/{id}/bloques", ajenoProyectoId).session(sesion))
-                .andExpect(status().isNotFound());
+        cuandoSeListanLosBloquesDelProyecto();
+
+        entoncesRespondeNoEncontrado();
     }
 
     @Test
     @DisplayName("Un PATCH a un bloque ajeno responde 404 y conserva el nombre")
-    void renombrarShouldNotModifyForeignBloque() throws Exception {
-        UUID ajenoNegocioId = givenNegocio(UsuarioId.de(givenUsuario()));
-        UUID ajenoBloqueId = givenBloque(NegocioId
-                .de(ajenoNegocioId),
-                ProyectoId.de(givenProyecto(NegocioId.de(ajenoNegocioId))), "Ajeno", 0);
+    void unPatchAUnBloqueAjenoResponde404YConservaElNombre() throws Exception {
+        dadoUnProyectoAjenoConElBloque("Ajeno");
 
-        mockMvc.perform(patch("/api/bloques/{id}", ajenoBloqueId).session(sesion)
-                        .header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json").content("{\"nombre\":\"Cambio\"}"))
-                .andExpect(status().isNotFound());
+        cuandoSeRenombraElBloque("Cambio");
 
-        assertThat(bloques.findByIdAndNegocioId(ajenoBloqueId, ajenoNegocioId).orElseThrow().getNombre())
-                .isEqualTo("Ajeno");
+        entoncesRespondeNoEncontrado();
+        entoncesElBloqueAjenoConservaElNombre("Ajeno");
     }
 
     @Test
     @DisplayName("Un DELETE a un bloque ajeno responde 404 y conserva el bloque")
-    void eliminarShouldNotDeleteForeignBloque() throws Exception {
-        UUID ajenoNegocioId = givenNegocio(UsuarioId
-            .de(givenUsuario()));
-        UUID ajenoBloqueId = givenBloque(NegocioId.de(ajenoNegocioId),
-                ProyectoId.de(givenProyecto(NegocioId.de(ajenoNegocioId))), "Ajeno", 0);
+    void unDeleteAUnBloqueAjenoResponde404YConservaElBloque() throws Exception {
+        dadoUnProyectoAjenoConElBloque("Ajeno");
 
-        mockMvc.perform(delete("/api/bloques/{id}", ajenoBloqueId).session(sesion)
-                        .header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isNotFound());
+        cuandoSeEliminaElBloque();
 
-        assertThat(bloques.findByIdAndNegocioId(ajenoBloqueId, ajenoNegocioId)).isPresent();
+        entoncesRespondeNoEncontrado();
+        entoncesElBloqueAjenoSigueExistiendo();
     }
 
     @Test
     @DisplayName("Un DELETE a una tabla que otra tabla usa en una conexión responde 400 y conserva la tabla")
-    void eliminarShouldRejectBloqueUsedByConexion() throws Exception {
-        ProyectoId proyectoId = ProyectoId.de(givenProyecto(negocioId));
-        UUID clientes = givenBloque(negocioId, proyectoId, "Clientes", 0);
-        UUID pedidos = givenBloque(negocioId, proyectoId, "Pedidos", 1);
-        givenConexion(BloqueId.de(pedidos), "Cliente", clientes);
+    void unDeleteAUnaTablaQueOtraTablaUsaEnUnaConexionResponde400YConservaLaTabla() throws Exception {
+        dadoUnaTablaDeClientesUsadaPorLaTablaDePedidos();
 
-        mockMvc.perform(delete("/api/bloques/{id}", clientes).session(sesion)
-                        .header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message")
-                        .value("La tabla «Clientes» se usa en la columna «Cliente» de «Pedidos»"));
+        cuandoSeEliminaElBloque();
 
-        assertThat(bloques.findByIdAndNegocioId(clientes, negocioId.valor())).isPresent();
+        entoncesSeRechazaPorqueLaTablaSeUsaEnUnaConexion();
+        entoncesLaTablaPropiaSigueExistiendo();
     }
 
     @Test
     @DisplayName("Un DELETE a una tabla que sólo se conecta consigo misma la borra")
-    void eliminarShouldDeleteBloqueWithSelfConexion() throws Exception {
-        UUID clientes = givenBloque(negocioId, ProyectoId.de(givenProyecto(negocioId)), "Clientes", 0);
-        givenConexion(BloqueId.de(clientes), "Recomendado por", clientes);
+    void unDeleteAUnaTablaQueSoloSeConectaConsigoMismaLaBorra() throws Exception {
+        dadoUnaTablaConectadaConsigoMisma();
 
-        mockMvc.perform(delete("/api/bloques/{id}", clientes).session(sesion)
-                        .header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isNoContent());
+        cuandoSeEliminaElBloque();
 
-        assertThat(bloques.findByIdAndNegocioId(clientes, negocioId.valor())).isEmpty();
+        entoncesSeEliminaLaTablaPropia();
     }
 
     @Test
     @DisplayName("Crear un bloque sin CSRF devuelve 403")
-    void crearShouldRequireCsrf() throws Exception {
-        ProyectoId proyectoId = ProyectoId.de(givenProyecto(negocioId));
+    void crearUnBloqueSinCsrfDevuelve403() throws Exception {
+        dadoUnProyectoPropio();
 
-        mockMvc.perform(post("/api/proyectos/{id}/bloques", proyectoId).session(sesion)
-                        .contentType("application/json").content("{\"nombre\":\"Clientes\"}"))
-                .andExpect(status().isForbidden());
+        cuandoSeCreaUnBloqueSinCsrf();
 
-        assertThat(bloques.findAllByProyectoIdAndNegocioIdOrderByPosicionAscIdAsc(proyectoId.valor(),
-                negocioId.valor())).isEmpty();
+        entoncesSeProhibeSinGuardarBloques();
     }
 
     @Test
     @DisplayName("Listar bloques exige una sesión válida")
-    void listarShouldRequireSession() throws Exception {
-        mockMvc.perform(get("/api/proyectos/{id}/bloques", UUID.randomUUID()).session(givenSesionSinUsuario()))
-                .andExpect(status().isUnauthorized());
+    void listarBloquesExigeUnaSesionValida() throws Exception {
+        cuandoSeListanLosBloquesSinSesion();
+
+        entoncesNoAutoriza();
     }
 
-    // --- arrange ---
-    private UUID givenUsuario() {
+    // --- dado ---
+
+    private void dadoUnProyectoPropio() {
+        proyectoId = ProyectoId.de(crearProyecto(negocioId));
+    }
+
+    private void dadoUnProyectoPropioConElBloque(String nombre) {
+        dadoUnProyectoPropio();
+        bloqueId = crearBloque(negocioId, proyectoId, nombre, 0);
+    }
+
+    private void dadoUnProyectoAjeno() {
+        negocioAjenoId = crearNegocio(UsuarioId.de(crearUsuario()));
+        proyectoId = ProyectoId.de(crearProyecto(NegocioId.de(negocioAjenoId)));
+    }
+
+    private void dadoUnProyectoAjenoConElBloque(String nombre) {
+        dadoUnProyectoAjeno();
+        bloqueId = crearBloque(NegocioId.de(negocioAjenoId), proyectoId, nombre, 0);
+    }
+
+    private void dadoUnaTablaDeClientesUsadaPorLaTablaDePedidos() {
+        dadoUnProyectoPropio();
+        bloqueId = crearBloque(negocioId, proyectoId, "Clientes", 0);
+        otroBloqueId = crearBloque(negocioId, proyectoId, "Pedidos", 1);
+        crearConexion(BloqueId.de(otroBloqueId), "Cliente", bloqueId);
+    }
+
+    private void dadoUnaTablaConectadaConsigoMisma() {
+        dadoUnProyectoPropio();
+        bloqueId = crearBloque(negocioId, proyectoId, "Clientes", 0);
+        crearConexion(BloqueId.de(bloqueId), "Recomendado por", bloqueId);
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeCreaUnBloque(UUID proyecto, String nombre) throws Exception {
+        respuesta = mockMvc.perform(post("/api/proyectos/{id}/bloques", proyecto).session(sesion.sesion())
+                .header("X-CSRF-TOKEN", sesion.tokenCsrf())
+                .contentType("application/json").content("{\"nombre\":\"" + nombre + "\"}"));
+    }
+
+    private void cuandoSeCreaUnBloqueSinCsrf() throws Exception {
+        respuesta = mockMvc.perform(post("/api/proyectos/{id}/bloques", proyectoId).session(sesion.sesion())
+                .contentType("application/json").content("{\"nombre\":\"Clientes\"}"));
+    }
+
+    private void cuandoSeListanLosBloquesDelProyecto() throws Exception {
+        respuesta = mockMvc.perform(get("/api/proyectos/{id}/bloques", proyectoId).session(sesion.sesion()));
+    }
+
+    private void cuandoSeListanLosBloquesSinSesion() throws Exception {
+        SesionHttpDePrueba sinUsuario = SesionHttpDePrueba.anonima(mockMvc);
+        respuesta = mockMvc.perform(get("/api/proyectos/{id}/bloques", UUID.randomUUID())
+                .session(sinUsuario.sesion()));
+    }
+
+    private void cuandoSeRenombraElBloque(String nombre) throws Exception {
+        respuesta = mockMvc.perform(patch("/api/bloques/{id}", bloqueId).session(sesion.sesion())
+                .header("X-CSRF-TOKEN", sesion.tokenCsrf())
+                .contentType("application/json").content("{\"nombre\":\"" + nombre + "\"}"));
+    }
+
+    private void cuandoSeEliminaElBloque() throws Exception {
+        respuesta = mockMvc.perform(delete("/api/bloques/{id}", bloqueId).session(sesion.sesion())
+                .header("X-CSRF-TOKEN", sesion.tokenCsrf()));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeCreaElBloqueAlFinal() throws Exception {
+        respuesta.andExpect(status().isCreated())
+                .andExpect(jsonPath("$.nombre").value("Clientes"))
+                .andExpect(jsonPath("$.posicion").value(1));
+    }
+
+    private void entoncesElProyectoGuardaLosBloquesEnOrden(String primero, String segundo) {
+        assertThat(bloques.findAllByProyectoIdAndNegocioIdOrderByPosicionAscIdAsc(proyectoId.valor(),
+                negocioId.valor()))
+                .extracting(BloqueEntity::getNombre)
+                .containsExactly(primero, segundo);
+    }
+
+    private void entoncesRespondeConflicto() throws Exception {
+        respuesta.andExpect(status().isConflict());
+    }
+
+    private void entoncesRespondeNoEncontrado() throws Exception {
+        respuesta.andExpect(status().isNotFound());
+    }
+
+    private void entoncesElProyectoAjenoNoTieneBloques() {
+        assertThat(bloques.findAllByProyectoIdAndNegocioIdOrderByPosicionAscIdAsc(proyectoId.valor(), negocioAjenoId))
+                .isEmpty();
+    }
+
+    private void entoncesElBloqueAjenoConservaElNombre(String nombre) {
+        assertThat(bloques.findByIdAndNegocioId(bloqueId, negocioAjenoId).orElseThrow().getNombre())
+                .isEqualTo(nombre);
+    }
+
+    private void entoncesElBloqueAjenoSigueExistiendo() {
+        assertThat(bloques.findByIdAndNegocioId(bloqueId, negocioAjenoId)).isPresent();
+    }
+
+    private void entoncesSeRechazaPorqueLaTablaSeUsaEnUnaConexion() throws Exception {
+        respuesta.andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message")
+                        .value("La tabla «Clientes» se usa en la columna «Cliente» de «Pedidos»"));
+    }
+
+    private void entoncesLaTablaPropiaSigueExistiendo() {
+        assertThat(bloques.findByIdAndNegocioId(bloqueId, negocioId.valor())).isPresent();
+    }
+
+    private void entoncesSeEliminaLaTablaPropia() throws Exception {
+        respuesta.andExpect(status().isNoContent());
+        assertThat(bloques.findByIdAndNegocioId(bloqueId, negocioId.valor())).isEmpty();
+    }
+
+    private void entoncesSeProhibeSinGuardarBloques() throws Exception {
+        respuesta.andExpect(status().isForbidden());
+        assertThat(bloques.findAllByProyectoIdAndNegocioIdOrderByPosicionAscIdAsc(proyectoId.valor(),
+                negocioId.valor())).isEmpty();
+    }
+
+    private void entoncesNoAutoriza() throws Exception {
+        respuesta.andExpect(status().isUnauthorized());
+    }
+
+    // --- datos ---
+
+    private UUID crearUsuario() {
         return usuarios.saveAndFlush(UsuarioEntity.builder()
                 .nombre("Persona")
                 .email(UUID.randomUUID() + "@example.com")
@@ -238,7 +329,7 @@ class BloqueSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenNegocio(UsuarioId usuarioId) {
+    private UUID crearNegocio(UsuarioId usuarioId) {
         return negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(usuarioId.valor())
@@ -247,19 +338,19 @@ class BloqueSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenProyecto(NegocioId negocioId) {
+    private UUID crearProyecto(NegocioId negocio) {
         return proyectos.saveAndFlush(ProyectoEntity.builder()
-                .negocioId(negocioId.valor())
+                .negocioId(negocio.valor())
                 .nombre("Inventario")
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId();
     }
 
-    private UUID givenBloque(NegocioId negocioId, ProyectoId proyectoId, String nombre, int posicion) {
+    private UUID crearBloque(NegocioId negocio, ProyectoId proyecto, String nombre, int posicion) {
         return bloques.saveAndFlush(BloqueEntity.builder()
-                .negocioId(negocioId.valor())
-                .proyectoId(proyectoId.valor())
+                .negocioId(negocio.valor())
+                .proyectoId(proyecto.valor())
                 .nombre(nombre)
                 .posicion((short) posicion)
                 .creadoEn(AHORA)
@@ -267,10 +358,10 @@ class BloqueSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private void givenConexion(BloqueId bloqueId, String nombre, UUID relacionadoId) {
+    private void crearConexion(BloqueId bloque, String nombre, UUID relacionadoId) {
         campos.saveAndFlush(CampoEntity.builder()
                 .negocioId(negocioId.valor())
-                .bloqueId(bloqueId.valor())
+                .bloqueId(bloque.valor())
                 .nombre(nombre)
                 .tipo(TipoCampo.RELACION)
                 .obligatorio(false)
@@ -280,26 +371,5 @@ class BloqueSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build());
-    }
-
-    private MockHttpSession givenSesion(UsuarioId usuarioId) throws Exception {
-        MockHttpSession session = givenSesionSinUsuario();
-        var securityContext = SecurityContextHolder.createEmptyContext();
-        securityContext.setAuthentication(
-                UsernamePasswordAuthenticationToken.authenticated(usuarioId.toString(), null, List.of()));
-        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, securityContext);
-        return session;
-    }
-
-    private MockHttpSession givenSesionSinUsuario() throws Exception {
-        MockHttpSession session = new MockHttpSession();
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setSession(session);
-        new HttpSessionCsrfTokenRepository().saveToken(
-                new DefaultCsrfToken("X-CSRF-TOKEN", "_csrf", "token"), request, new MockHttpServletResponse());
-        String body = mockMvc.perform(get("/api/auth/csrf").session(session))
-                .andReturn().getResponse().getContentAsString();
-        csrfToken = JsonMapper.builder().build().readValue(body, CsrfResponse.class).token();
-        return session;
     }
 }

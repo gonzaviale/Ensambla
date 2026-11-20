@@ -28,7 +28,8 @@ public class PlanPresentationMapper {
                 new PlanesResponse.SuscripcionResponse(suscripcion.codigoPlanActual(), suscripcion.pruebaActiva(),
                         suscripcion.puedeIniciarPrueba(), suscripcion.inicioEn(), suscripcion.finEn()),
                 new PlanesResponse.UsoResponse(uso.proyectos(), uso.registros(), uso.paginasIa(),
-                        uso.limitePaginasIa(), uso.periodoIa(), uso.inicioPeriodoIa(), uso.finPeriodoIa()),
+                        uso.limitePaginasIa(), uso.periodoIa(), uso.inicioPeriodoIa(), uso.finPeriodoIa(),
+                        uso.objetivosIa(), uso.limiteObjetivosIa()),
                 response.prueba() == null ? null : toResponse(response.prueba()));
     }
 
@@ -36,6 +37,6 @@ public class PlanPresentationMapper {
         return new PlanesResponse.PlanResponse(plan.codigo(), plan.nombre(), plan.precioConfigurado(),
                 plan.limitesConfigurados(), plan.precioMensual(), plan.moneda(), plan.limiteProyectos(),
                 plan.limiteRegistros(),
-                plan.limitePaginasIaMensuales(), plan.funciones());
+                plan.limitePaginasIaMensuales(), plan.limiteObjetivosIaMensuales(), plan.funciones());
     }
 }

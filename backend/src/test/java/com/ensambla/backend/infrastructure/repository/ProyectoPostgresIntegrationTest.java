@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.repository;
 
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.plantilla.Plantilla;
 import com.ensambla.backend.domain.model.plantilla.PlantillaId;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
@@ -21,6 +22,7 @@ import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import com.ensambla.backend.support.ProyectosDePrueba;
 import com.ensambla.backend.support.SuscripcionesDePrueba;
 import jakarta.persistence.EntityManager;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +38,7 @@ import java.util.UUID;
 
 import static com.ensambla.backend.support.ProyectoTestData.AHORA;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 @Transactional
 class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
@@ -82,93 +84,110 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Autowired
     private PlatformTransactionManager transactionManager;
 
+    private UUID negocioId;
+    private UUID negocioAjenoId;
+    private UUID plantillaInvalidaId;
+    private UUID usuarioDelRollbackId;
+    private Map<String, Object> estructuraOriginal;
+    private Proyecto primero;
+    private Proyecto segundo;
+    private Proyecto proyecto;
+    private Proyecto ajeno;
+    private UUID registroId;
+    private List<Plantilla> sembradas;
+    private Throwable rechazo;
+
+    @AfterEach
+    void limpiarLoCreadoFueraDeLaTransaccion() {
+        if (plantillaInvalidaId == null) {
+            return;
+        }
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+            negocios.deleteById(negocioId);
+            negocios.flush();
+            usuarios.deleteById(usuarioDelRollbackId);
+            plantillas.deleteById(plantillaInvalidaId);
+        });
+    }
+
     @Test
     @DisplayName("V3 carga las tres plantillas con descripción y estructura")
-    void migrationShouldSeedTemplates() {
-        var result = plantillaRepository.findAllActivas();
+    void v3CargaLasTresPlantillasConDescripcionYEstructura() {
+        cuandoSeListanLasPlantillasActivas();
 
-        assertThat(result).extracting("nombre").contains("Clientes", "Inventario", "Pedidos");
-        assertThat(plantillaRepository.obtenerParaProyecto(PlantillaId.de(INVENTARIO_ID)).estructura().bloques())
-                .hasSize(1);
-        assertThat(plantillas.findById(INVENTARIO_ID).orElseThrow().getDescripcion()).isNotBlank();
+        entoncesEstanLasPlantillasConDescripcionYEstructura();
     }
 
     @Test
     @DisplayName("Copiar dos veces persiste árboles independientes sin alterar la plantilla")
-    void crearDesdePlantillaShouldPersistIndependentTrees() {
-        UUID negocioId = givenNegocio();
-        var plantilla = plantillaRepository.obtenerParaProyecto(PlantillaId.de(INVENTARIO_ID));
-        Map<String, Object> original = Map.copyOf(plantillas.findById(INVENTARIO_ID).orElseThrow().getEstructura());
+    void copiarDosVecesPersisteArbolesIndependientesSinAlterarLaPlantilla() {
+        dadoUnNegocioPropio();
 
-        Proyecto primero = proyectosDePrueba.crearDesdePlantilla(NegocioId.de(negocioId), plantilla, AHORA);
-        Proyecto segundo = proyectosDePrueba.crearDesdePlantilla(NegocioId.de(negocioId), plantilla, AHORA);
-        entityManager.flush();
-        entityManager.clear();
+        cuandoSeCopiaDosVecesLaPlantillaDeInventario();
 
-        Proyecto recargado = proyectoRepository.obtener(NegocioId.de(negocioId), primero.getId());
-        assertThat(recargado.getBloques()).hasSize(1);
-        var bloque = recargado.getBloques().getFirst();
-        assertThat(bloque.getId()).isNotEqualTo(segundo.getBloques().getFirst().getId());
-        assertThat(bloque.getCampos()).hasSize(3);
-        assertThat(bloque.getCampos().getFirst().getId())
-                .isNotEqualTo(segundo.getBloques().getFirst().getCampos().getFirst().getId());
-        assertThat(bloque.getCampos().get(1).getValorInicial()).isEqualTo("0");
-        assertThat(bloque.getCampos().get(2).getOpciones()).containsExactly("Insumos", "Terminados");
-        assertThat(plantillas.findById(INVENTARIO_ID).orElseThrow().getEstructura()).isEqualTo(original);
+        entoncesLosArbolesSonIndependientesYLaPlantillaNoCambio();
     }
 
     @Test
     @DisplayName("Eliminar un proyecto borra sus bloques, campos y registros en cascada")
-    void eliminarShouldCascadeThroughWholeGraph() {
-        UUID negocioId = givenNegocio();
-        Proyecto proyecto = proyectosDePrueba.crearDesdePlantilla(
-                NegocioId.de(negocioId), plantillaRepository.obtenerParaProyecto(PlantillaId.de(INVENTARIO_ID)), AHORA);
+    void eliminarUnProyectoBorraSusBloquesCamposYRegistrosEnCascada() {
+        dadoUnProyectoConUnRegistro();
+
+        cuandoSeEliminaElProyecto();
+
+        entoncesSeBorraTodoElGrafoMenosLaPlantilla();
+    }
+
+    @Test
+    @DisplayName("Las consultas y el borrado no atraviesan el límite de negocio")
+    void lasConsultasYElBorradoNoAtraviesanElLimiteDeNegocio() {
+        dadoUnProyectoDeOtroNegocio();
+
+        cuandoUnNegocioIntentaBorrarElProyectoAjeno();
+
+        entoncesElProyectoAjenoSigueIntactoYInvisibleParaElNegocioPropio();
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    @DisplayName("Si falla un campo al copiar se revierte también la creación del proyecto")
+    void siFallaUnCampoAlCopiarSeRevierteTambienLaCreacionDelProyecto() {
+        dadoUnaPlantillaConUnCampoDeOpcionSinOpciones();
+
+        cuandoSeIntentaCopiarLaPlantillaInvalida();
+
+        entoncesNoQuedaNingunProyectoDelNegocio();
+    }
+
+    // --- dado ---
+
+    private void dadoUnNegocioPropio() {
+        negocioId = crearNegocio();
+    }
+
+    private void dadoUnProyectoConUnRegistro() {
+        dadoUnNegocioPropio();
+        proyecto = copiarInventarioPara(negocioId);
         var bloque = proyecto.getBloques().getFirst();
-        UUID registroId = registros.saveAndFlush(RegistroEntity.builder()
+        registroId = registros.saveAndFlush(RegistroEntity.builder()
                 .negocioId(negocioId)
                 .bloqueId(bloque.getId().valor())
                 .valores(Map.of(bloque.getCampos().getFirst().getId().toString(), "Producto"))
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId();
-
-        proyectoRepository.deleteByIdAndNegocioId(proyecto.getId(), NegocioId.de(negocioId));
-        entityManager.flush();
-        entityManager.clear();
-
-        assertThat(proyectos.existsById(proyecto.getId().valor())).isFalse();
-        assertThat(bloques.existsById(bloque.getId().valor())).isFalse();
-        assertThat(campos.existsById(bloque.getCampos().getFirst().getId().valor())).isFalse();
-        assertThat(registros.existsById(registroId)).isFalse();
-        assertThat(plantillas.existsById(INVENTARIO_ID)).isTrue();
     }
 
-    @Test
-    @DisplayName("Las consultas y el borrado no atraviesan el límite de negocio")
-    void repositoryShouldIsolateNegocios() {
-        UUID propioId = givenNegocio();
-        UUID ajenoId = givenNegocio();
-        Proyecto ajeno = proyectosDePrueba.crearDesdePlantilla(
-                NegocioId.de(ajenoId), plantillaRepository.obtenerParaProyecto(PlantillaId.de(INVENTARIO_ID)), AHORA);
-
-        proyectos.deleteByIdAndNegocioId(ajeno.getId().valor(), propioId);
-
-        assertThat(proyectos.findByIdAndNegocioId(ajeno.getId().valor(), propioId)).isEmpty();
-        assertThat(proyectoRepository.findAllByNegocioId(NegocioId.de(propioId))).isEmpty();
-        assertThat(proyectos.findByIdAndNegocioId(ajeno.getId().valor(), ajenoId)).isPresent();
-        assertThat(bloques.findAllByProyectoIdAndNegocioIdOrderByPosicionAscIdAsc(ajeno.getId().valor(), propioId))
-                .isEmpty();
-        assertThat(campos.findAllByBloqueIdInAndNegocioIdOrderByPosicionAscIdAsc(
-                List.of(ajeno.getBloques().getFirst().getId().valor()), propioId)).isEmpty();
+    private void dadoUnProyectoDeOtroNegocio() {
+        dadoUnNegocioPropio();
+        negocioAjenoId = crearNegocio();
+        ajeno = copiarInventarioPara(negocioAjenoId);
     }
 
-    @Test
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    @DisplayName("Si falla un campo al copiar se revierte también la creación del proyecto")
-    void crearDesdePlantillaShouldRollbackWholeGraph() {
-        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
-        UUID negocioId = transaction.execute(status -> givenNegocio());
-        UUID plantillaId = transaction.execute(status -> plantillas.saveAndFlush(PlantillaEntity.builder()
+    private void dadoUnaPlantillaConUnCampoDeOpcionSinOpciones() {
+        TransactionTemplate transaccion = new TransactionTemplate(transactionManager);
+        negocioId = transaccion.execute(status -> crearNegocio());
+        plantillaInvalidaId = transaccion.execute(status -> plantillas.saveAndFlush(PlantillaEntity.builder()
                 .nombre("Inválida " + UUID.randomUUID())
                 .descripcion("Para probar rollback")
                 .activa(true)
@@ -178,27 +197,93 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId());
-        UUID usuarioId = negocios.findById(negocioId).orElseThrow().getDuenioId();
-
-        try {
-            assertThatThrownBy(() -> proyectosDePrueba.crearDesdePlantilla(
-                    NegocioId.de(negocioId), plantillaRepository.obtenerParaProyecto(PlantillaId.de(plantillaId)),
-                            AHORA))
-                    .isInstanceOf(DataIntegrityViolationException.class);
-
-            assertThat(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(negocioId)).isEmpty();
-        } finally {
-            transaction.executeWithoutResult(status -> {
-                negocios.deleteById(negocioId);
-                negocios.flush();
-                usuarios.deleteById(usuarioId);
-                plantillas.deleteById(plantillaId);
-            });
-        }
+        usuarioDelRollbackId = negocios.findById(negocioId).orElseThrow().getDuenioId();
     }
 
-    // --- arrange ---
-    private UUID givenNegocio() {
+    // --- cuando ---
+
+    private void cuandoSeListanLasPlantillasActivas() {
+        sembradas = plantillaRepository.findAllActivas();
+    }
+
+    private void cuandoSeCopiaDosVecesLaPlantillaDeInventario() {
+        estructuraOriginal = Map.copyOf(plantillas.findById(INVENTARIO_ID).orElseThrow().getEstructura());
+        primero = copiarInventarioPara(negocioId);
+        segundo = copiarInventarioPara(negocioId);
+        entityManager.flush();
+        entityManager.clear();
+    }
+
+    private void cuandoSeEliminaElProyecto() {
+        proyectoRepository.deleteByIdAndNegocioId(proyecto.getId(), NegocioId.de(negocioId));
+        entityManager.flush();
+        entityManager.clear();
+    }
+
+    private void cuandoUnNegocioIntentaBorrarElProyectoAjeno() {
+        proyectos.deleteByIdAndNegocioId(ajeno.getId().valor(), negocioId);
+    }
+
+    private void cuandoSeIntentaCopiarLaPlantillaInvalida() {
+        rechazo = catchThrowable(() -> proyectosDePrueba.crearDesdePlantilla(
+                NegocioId.de(negocioId), plantillaRepository.obtenerParaProyecto(PlantillaId.de(plantillaInvalidaId)),
+                AHORA));
+    }
+
+    // --- entonces ---
+
+    private void entoncesEstanLasPlantillasConDescripcionYEstructura() {
+        assertThat(sembradas).extracting("nombre").contains("Clientes", "Inventario", "Pedidos");
+        assertThat(plantillaRepository.obtenerParaProyecto(PlantillaId.de(INVENTARIO_ID)).estructura().bloques())
+                .hasSize(1);
+        assertThat(plantillas.findById(INVENTARIO_ID).orElseThrow().getDescripcion()).isNotBlank();
+    }
+
+    private void entoncesLosArbolesSonIndependientesYLaPlantillaNoCambio() {
+        Proyecto recargado = proyectoRepository.obtener(NegocioId.de(negocioId), primero.getId());
+        assertThat(recargado.getBloques()).hasSize(1);
+        var bloque = recargado.getBloques().getFirst();
+        assertThat(bloque.getId()).isNotEqualTo(segundo.getBloques().getFirst().getId());
+        assertThat(bloque.getCampos()).hasSize(3);
+        assertThat(bloque.getCampos().getFirst().getId())
+                .isNotEqualTo(segundo.getBloques().getFirst().getCampos().getFirst().getId());
+        assertThat(bloque.getCampos().get(1).getValorInicial()).isEqualTo("0");
+        assertThat(bloque.getCampos().get(2).getOpciones()).containsExactly("Insumos", "Terminados");
+        assertThat(plantillas.findById(INVENTARIO_ID).orElseThrow().getEstructura()).isEqualTo(estructuraOriginal);
+    }
+
+    private void entoncesSeBorraTodoElGrafoMenosLaPlantilla() {
+        var bloque = proyecto.getBloques().getFirst();
+        assertThat(proyectos.existsById(proyecto.getId().valor())).isFalse();
+        assertThat(bloques.existsById(bloque.getId().valor())).isFalse();
+        assertThat(campos.existsById(bloque.getCampos().getFirst().getId().valor())).isFalse();
+        assertThat(registros.existsById(registroId)).isFalse();
+        assertThat(plantillas.existsById(INVENTARIO_ID)).isTrue();
+    }
+
+    private void entoncesElProyectoAjenoSigueIntactoYInvisibleParaElNegocioPropio() {
+        assertThat(proyectos.findByIdAndNegocioId(ajeno.getId().valor(), negocioId)).isEmpty();
+        assertThat(proyectoRepository.findAllByNegocioId(NegocioId.de(negocioId))).isEmpty();
+        assertThat(proyectos.findByIdAndNegocioId(ajeno.getId().valor(), negocioAjenoId)).isPresent();
+        assertThat(bloques.findAllByProyectoIdAndNegocioIdOrderByPosicionAscIdAsc(ajeno.getId().valor(), negocioId))
+                .isEmpty();
+        assertThat(campos.findAllByBloqueIdInAndNegocioIdOrderByPosicionAscIdAsc(
+                List.of(ajeno.getBloques().getFirst().getId().valor()), negocioId)).isEmpty();
+    }
+
+    private void entoncesNoQuedaNingunProyectoDelNegocio() {
+        assertThat(rechazo).isInstanceOf(DataIntegrityViolationException.class);
+        assertThat(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(negocioId)).isEmpty();
+    }
+
+    // --- datos ---
+
+    private Proyecto copiarInventarioPara(UUID negocio) {
+        return proyectosDePrueba.crearDesdePlantilla(NegocioId.de(negocio),
+                plantillaRepository.obtenerParaProyecto(PlantillaId.de(INVENTARIO_ID)), AHORA);
+    }
+
+    private UUID crearNegocio() {
         UUID usuarioId = usuarios.saveAndFlush(UsuarioEntity.builder()
                 .nombre("Persona")
                 .email(UUID.randomUUID() + "@example.com")
@@ -216,4 +301,3 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         return creadoId;
     }
 }
-

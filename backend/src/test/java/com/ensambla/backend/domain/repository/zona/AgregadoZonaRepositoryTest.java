@@ -22,17 +22,37 @@ class AgregadoZonaRepositoryTest {
     private final AgregadoZonaRepository agregadoZonaRepository = mock(AgregadoZonaRepository.class,
             CALLS_REAL_METHODS);
 
+    private AgregadoZonaProducto yerba;
+    private AnalisisZona analisis;
+
     @Test
     @DisplayName("Analizar arma el nombre, la cantidad de comercios y los productos agregados de la zona")
-    void analizarShouldBuildZoneAnalysis() {
-        AgregadoZonaProducto yerba = new AgregadoZonaProducto("Yerba 1kg", 8, 6, new BigDecimal("2800.00"),
+    void analizarArmaElNombreLaCantidadDeComerciosYLosProductosAgregadosDeLaZona() {
+        dadoUnaZonaConDiezComerciosQueComparten();
+
+        cuandoSeAnalizaLaZona();
+
+        entoncesElAnalisisTrae("San Justo - UNLaM", 10);
+    }
+
+    // --- dado ---
+
+    private void dadoUnaZonaConDiezComerciosQueComparten() {
+        yerba = new AgregadoZonaProducto("Yerba 1kg", 8, 6, new BigDecimal("2800.00"),
                 new BigDecimal("3100.00"), new BigDecimal("3400.00"), new BigDecimal("12.50"));
         when(agregadoZonaRepository.contarComerciosQueComparten(ZONA_ID)).thenReturn(10L);
         when(agregadoZonaRepository.findByZonaId(ZONA_ID)).thenReturn(List.of(yerba));
+    }
 
-        AnalisisZona result = agregadoZonaRepository.analizar(
-                Zona.builder().id(ZONA_ID).nombre("San Justo - UNLaM").build());
+    // --- cuando ---
 
-        assertThat(result).isEqualTo(new AnalisisZona("San Justo - UNLaM", 10, List.of(yerba)));
+    private void cuandoSeAnalizaLaZona() {
+        analisis = agregadoZonaRepository.analizar(Zona.builder().id(ZONA_ID).nombre("San Justo - UNLaM").build());
+    }
+
+    // --- entonces ---
+
+    private void entoncesElAnalisisTrae(String nombre, long comercios) {
+        assertThat(analisis).isEqualTo(new AnalisisZona(nombre, comercios, List.of(yerba)));
     }
 }

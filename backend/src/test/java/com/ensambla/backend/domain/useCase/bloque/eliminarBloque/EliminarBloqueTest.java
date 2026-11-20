@@ -1,10 +1,11 @@
 package com.ensambla.backend.domain.useCase.bloque.eliminarBloque;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
-import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
@@ -17,9 +18,15 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Optional;
 
+import static com.ensambla.backend.support.BloquesDePrueba.BLOQUE_ID;
+import static com.ensambla.backend.support.BloquesDePrueba.OTRO_BLOQUE_ID;
+import static com.ensambla.backend.support.BloquesDePrueba.unBloqueDelNegocio;
+import static com.ensambla.backend.support.BloquesDePrueba.unaConexionDesde;
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
+import static com.ensambla.backend.support.ProyectoTestData.PROYECTO_ID;
 import static com.ensambla.backend.support.ProyectoTestData.USUARIO_ID;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
@@ -29,59 +36,140 @@ import static org.mockito.Mockito.when;
 
 class EliminarBloqueTest {
 
-    private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
-    private static final BloqueId OTRO_BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
-    private static final EliminarBloqueRequest REQUEST = new EliminarBloqueRequest(USUARIO_ID, BLOQUE_ID);
-
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final BloqueRepository bloqueRepository = mock(BloqueRepository.class, CALLS_REAL_METHODS);
     private final CampoRepository campoRepository = mock(CampoRepository.class);
     private final EliminarBloque eliminarBloque = new BloqueUseCaseConfig().eliminarBloque(
             negocioRepository, bloqueRepository, campoRepository, new TransaccionDirecta());
 
+    private Throwable rechazo;
+
     @BeforeEach
-    void givenNegocio() {
+    void dadoUnNegocioDelUsuario() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @Test
     @DisplayName("Elimina el bloque del negocio de la sesión filtrando por su negocio")
-    void executeShouldDeleteBloqueOfSessionNegocio() {
-        givenBloque(BLOQUE_ID, "Clientes");
+    void eliminaElBloqueDelNegocioDeLaSesionFiltrandoPorSuNegocio() {
+        dadoUnBloqueLlamado(BLOQUE_ID, "Clientes");
 
-        eliminarBloque.execute(REQUEST);
+        cuandoSeEliminaElBloque();
 
-        verify(campoRepository).findRelacionesHacia(BLOQUE_ID, NEGOCIO_ID);
-        verify(bloqueRepository).deleteByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID);
+        entoncesSeBuscaronLasConexionesHaciaElBloque();
+        entoncesSeBorraElBloqueDelNegocio();
     }
 
     @Test
     @DisplayName("Rechaza borrar una tabla que otra tabla usa en una conexión")
-    void executeShouldRejectWhenOtherBloqueReferencesIt() {
-        givenBloque(BLOQUE_ID, "Clientes");
-        givenBloque(OTRO_BLOQUE_ID, "Pedidos");
-        Campo conexion = Campo.builder().bloqueId(OTRO_BLOQUE_ID).negocioId(NEGOCIO_ID).nombre("Cliente").build();
-        when(campoRepository.findRelacionesHacia(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of(conexion));
+    void rechazaBorrarUnaTablaQueOtraTablaUsaEnUnaConexion() {
+        dadoUnBloqueLlamado(BLOQUE_ID, "Clientes");
+        dadoUnBloqueLlamado(OTRO_BLOQUE_ID, "Pedidos");
+        dadoUnaConexionHaciaElBloqueDesdeLaColumnaClienteDePedidos();
 
-        assertThatThrownBy(() -> eliminarBloque.execute(REQUEST))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("La tabla «Clientes» se usa en la columna «Cliente» de «Pedidos»");
-        verify(bloqueRepository, never()).deleteByIdAndNegocioId(any(), any());
+        cuandoSeIntentaEliminarElBloque();
+
+        entoncesSeRechazaPorque("La tabla «Clientes» se usa en la columna «Cliente» de «Pedidos»");
+        entoncesNoSeBorraNingunBloque();
+    }
+
+    @Test
+    @DisplayName("Rechaza borrar la única sección de Stock del negocio")
+    void rechazaBorrarLaUnicaSeccionDeStockDelNegocio() {
+        dadoUnaSeccionDeStockUnicaEnElSistema();
+
+        cuandoSeIntentaEliminarElBloque();
+
+        entoncesSeProtegeLaEstructuraPorque(
+                "No se puede quitar la sección «Stock»: Ensambla la necesita para funcionar.");
+        entoncesNoSeBorraNingunBloque();
+    }
+
+    @Test
+    @DisplayName("Borra una sección de Stock si el sistema tiene otra")
+    void borraUnaSeccionDeStockSiElSistemaTieneOtra() {
+        dadoDosSeccionesDeStockEnElSistema();
+
+        cuandoSeEliminaElBloque();
+
+        entoncesSeBorraElBloqueDelNegocio();
     }
 
     @Test
     @DisplayName("Un bloque ajeno propaga el 404 y no borra nada")
-    void executeShouldNotDeleteForeignBloque() {
-        when(bloqueRepository.findByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+    void unBloqueAjenoPropagaElNoEncontradoYNoBorraNada() {
+        dadoUnBloqueAjeno();
 
-        assertThatThrownBy(() -> eliminarBloque.execute(REQUEST))
-                .isInstanceOf(ResourceNotFoundException.class);
-        verify(bloqueRepository, never()).deleteByIdAndNegocioId(any(), any());
+        cuandoSeIntentaEliminarElBloque();
+
+        entoncesSeRechazaPorqueElBloqueNoExiste();
+        entoncesNoSeBorraNingunBloque();
     }
 
-    // --- arrange ---
-    private void givenBloque(BloqueId bloqueId, String nombre) {
-        when(bloqueRepository.findByIdAndNegocioId(bloqueId, NEGOCIO_ID)).thenReturn(Optional.of(
-                Bloque.builder().id(bloqueId).negocioId(NEGOCIO_ID).nombre(nombre).build()));
+    // --- dado ---
+    private void dadoUnBloqueLlamado(BloqueId bloqueId, String nombre) {
+        when(bloqueRepository.findByIdAndNegocioId(bloqueId, NEGOCIO_ID))
+                .thenReturn(Optional.of(unBloqueDelNegocio(bloqueId, nombre)));
+    }
+
+    private void dadoUnaConexionHaciaElBloqueDesdeLaColumnaClienteDePedidos() {
+        when(campoRepository.findRelacionesHacia(BLOQUE_ID, NEGOCIO_ID))
+                .thenReturn(List.of(unaConexionDesde(OTRO_BLOQUE_ID, "Cliente")));
+    }
+
+    private void dadoUnaSeccionDeStockUnicaEnElSistema() {
+        Bloque stock = unaSeccionDeStock(BLOQUE_ID);
+        when(bloqueRepository.findByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Optional.of(stock));
+        when(bloqueRepository.findByProyectoIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID)).thenReturn(List.of(stock));
+    }
+
+    private void dadoDosSeccionesDeStockEnElSistema() {
+        Bloque stock = unaSeccionDeStock(BLOQUE_ID);
+        when(bloqueRepository.findByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Optional.of(stock));
+        when(bloqueRepository.findByProyectoIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID))
+                .thenReturn(List.of(stock, unaSeccionDeStock(OTRO_BLOQUE_ID)));
+    }
+
+    private Bloque unaSeccionDeStock(BloqueId bloqueId) {
+        return Bloque.builder().id(bloqueId).negocioId(NEGOCIO_ID).proyectoId(PROYECTO_ID).nombre("Stock")
+                .tipo(TipoBloque.INVENTARIO).build();
+    }
+
+    private void dadoUnBloqueAjeno() {
+        when(bloqueRepository.findByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+    }
+
+    // --- cuando ---
+    private void cuandoSeEliminaElBloque() {
+        eliminarBloque.execute(new EliminarBloqueRequest(USUARIO_ID, BLOQUE_ID));
+    }
+
+    private void cuandoSeIntentaEliminarElBloque() {
+        rechazo = catchThrowable(this::cuandoSeEliminaElBloque);
+    }
+
+    // --- entonces ---
+    private void entoncesSeBuscaronLasConexionesHaciaElBloque() {
+        verify(campoRepository).findRelacionesHacia(BLOQUE_ID, NEGOCIO_ID);
+    }
+
+    private void entoncesSeBorraElBloqueDelNegocio() {
+        verify(bloqueRepository).deleteByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID);
+    }
+
+    private void entoncesSeRechazaPorque(String motivo) {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class).hasMessage(motivo);
+    }
+
+    private void entoncesSeProtegeLaEstructuraPorque(String motivo) {
+        assertThat(rechazo).isInstanceOf(DuplicateResourceException.class).hasMessage(motivo);
+    }
+
+    private void entoncesSeRechazaPorqueElBloqueNoExiste() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    private void entoncesNoSeBorraNingunBloque() {
+        verify(bloqueRepository, never()).deleteByIdAndNegocioId(any(), any());
     }
 }

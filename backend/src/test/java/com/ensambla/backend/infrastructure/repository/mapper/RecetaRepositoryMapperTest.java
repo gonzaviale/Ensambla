@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RecetaRepositoryMapperTest {
@@ -30,8 +31,18 @@ class RecetaRepositoryMapperTest {
 
     @Test
     @DisplayName("Pasa del modelo a la entidad y de vuelta, con las cantidades como texto y sin perder decimales")
-    void shouldRoundTripEveryFieldKeepingDecimals() {
-        Receta receta = Receta.builder()
+    void unaRecetaSeGuardaYSeLeeConLasCantidadesComoTextoSinPerderDecimales() {
+        Receta receta = dadoUnaRecetaConHarinaYAzucar();
+
+        RecetaEntity entidad = cuandoSeGuardaLaReceta(receta);
+
+        entoncesLasCantidadesQuedanComoTextoSinPerderDecimales(entidad);
+        entoncesAlLeerlaDeNuevoSeRecuperaLaMismaReceta(entidad, receta);
+    }
+
+    // --- dado ---
+    private Receta dadoUnaRecetaConHarinaYAzucar() {
+        return Receta.builder()
                 .id(ID)
                 .negocioId(NEGOCIO_ID)
                 .productoId(PRODUCTO_ID)
@@ -42,13 +53,21 @@ class RecetaRepositoryMapperTest {
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build();
+    }
 
-        RecetaEntity entity = mapper.toEntity(receta);
-        Receta result = mapper.toDomain(entity);
+    // --- cuando ---
+    private RecetaEntity cuandoSeGuardaLaReceta(Receta receta) {
+        return mapper.toEntity(receta);
+    }
 
-        assertThat(entity.getLineas().get(0)).containsEntry("cantidad", "0.125").containsEntry("unidad", "kg");
-        assertThat(entity.getLineas().get(1)).containsEntry("unidad", null);
-        assertThat(result).usingRecursiveComparison()
+    // --- entonces ---
+    private void entoncesLasCantidadesQuedanComoTextoSinPerderDecimales(RecetaEntity entidad) {
+        assertThat(entidad.getLineas().get(0)).containsEntry("cantidad", "0.125").containsEntry("unidad", "kg");
+        assertThat(entidad.getLineas().get(1)).containsEntry("unidad", null);
+    }
+
+    private void entoncesAlLeerlaDeNuevoSeRecuperaLaMismaReceta(RecetaEntity entidad, Receta receta) {
+        assertThat(mapper.toDomain(entidad)).usingRecursiveComparison()
                 .withEqualsForFieldsMatchingRegexes(IdsDePrueba::mismoValor, IdsDePrueba.CAMPOS_DE_ID)
                 .isEqualTo(receta);
     }

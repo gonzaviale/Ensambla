@@ -10,25 +10,58 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class AccesoIaPropertiesTest {
 
+    private AccesoIa acceso;
+
     @Test
     @DisplayName("Arma el acceso con los emails configurados")
-    void accesoShouldCarryRestrictionAndEmails() {
-        AccesoIa acceso = new AccesoIaProperties(true, List.of("a@example.com", "B@example.com")).acceso();
+    void armaElAccesoConLosEmailsConfigurados() {
+        cuandoSeArmaElAccesoRestringidoDeDosEmails();
 
-        assertThat(acceso.restringido()).isTrue();
-        assertThat(acceso.emails()).containsExactlyInAnyOrder("a@example.com", "b@example.com");
+        entoncesElAccesoEstaRestringidoYGuardaLosEmailsEnMinusculas();
     }
 
     @Test
     @DisplayName("Sin lista configurada nadie queda habilitado")
-    void accesoShouldHaveNoEmailsWhenListIsMissing() {
-        assertThat(new AccesoIaProperties(true, null).acceso().emails()).isEmpty();
+    void sinListaConfiguradaNadieQuedaHabilitado() {
+        cuandoSeArmaElAccesoRestringidoSinLista();
+
+        entoncesNadieQuedaHabilitado();
     }
 
     @Test
     @DisplayName("Expone el acceso como bean de la configuración de IA")
-    void accesoIaBeanShouldComeFromProperties() {
-        assertThat(new IaConfig().accesoIa(new AccesoIaProperties(false, List.of())))
-                .isEqualTo(AccesoIa.LIBRE);
+    void exponeElAccesoComoBeanDeLaConfiguracionDeIa() {
+        cuandoSeExponeElAccesoLibreComoBean();
+
+        entoncesElAccesoEsLibre();
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeArmaElAccesoRestringidoDeDosEmails() {
+        acceso = new AccesoIaProperties(true, List.of("a@example.com", "B@example.com")).acceso();
+    }
+
+    private void cuandoSeArmaElAccesoRestringidoSinLista() {
+        acceso = new AccesoIaProperties(true, null).acceso();
+    }
+
+    private void cuandoSeExponeElAccesoLibreComoBean() {
+        acceso = new IaConfig().accesoIa(new AccesoIaProperties(false, List.of()));
+    }
+
+    // --- entonces ---
+
+    private void entoncesElAccesoEstaRestringidoYGuardaLosEmailsEnMinusculas() {
+        assertThat(acceso.restringido()).isTrue();
+        assertThat(acceso.emails()).containsExactlyInAnyOrder("a@example.com", "b@example.com");
+    }
+
+    private void entoncesNadieQuedaHabilitado() {
+        assertThat(acceso.emails()).isEmpty();
+    }
+
+    private void entoncesElAccesoEsLibre() {
+        assertThat(acceso).isEqualTo(AccesoIa.LIBRE);
     }
 }

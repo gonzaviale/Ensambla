@@ -22,105 +22,196 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ConversarEnTallerDtosTest {
 
+    private EstadoTallerItem estadoItem;
+    private EstadoTaller estado;
+    private ConversarEnTallerRequest pedido;
+    private ConversarEnTallerResponse respuesta;
+    private List<MensajeTaller> historial;
+    private ImagenTaller imagen;
+
     @Test
     @DisplayName("Convierte el estado del DTO al del dominio con sus piezas y campos")
-    void deShouldMapPiecesAndFields() {
-        EstadoTallerItem item = new EstadoTallerItem("Mi almacén", "mosaic", List.of(new PiezaTallerItem(
-                "e1", "inventory", "Inventario", "General", List.of(new CampoTallerItem("Producto", "text")))));
+    void convierteElEstadoDelDtoAlDelDominioConSusPiezasYCampos() {
+        dadoUnEstadoConUnaPiezaDeInventarioConUnCampo();
 
-        EstadoTaller result = item.aEstadoTaller();
+        cuandoSeConvierteElEstado();
 
-        assertThat(result).isEqualTo(new EstadoTaller("Mi almacén", "mosaic", List.of(new PiezaTaller(
-                "e1", "inventory", "Inventario", "General", List.of(new CampoTaller("Producto", "text"))))));
+        entoncesElEstadoDelDominioTieneLaPiezaConSuCampo();
     }
 
     @Test
-    @DisplayName("Convierte los registros de cada pieza; sin lista o sin datos quedan vacíos")
-    void deShouldMapRecordsAndDefaultMissingOnes() {
-        EstadoTallerItem item = new EstadoTallerItem("S", "mosaic", List.of(
-                new PiezaTallerItem("e1", "sales", "Ventas", null, List.of(), List.of(
-                        new RegistroTallerItem("r1", Map.of("Producto", "Vela")),
-                        new RegistroTallerItem("r2", null))),
-                new PiezaTallerItem("e2", "clients", "Clientes", null, List.of(), null)));
+    @DisplayName("Convierte los registros de cada pieza")
+    void convierteLosRegistrosDeCadaPieza() {
+        dadoUnaPiezaConDosRegistrosYOtraSinLista();
 
-        EstadoTaller result = item.aEstadoTaller();
+        cuandoSeConvierteElEstado();
 
-        assertThat(result.piezas().getFirst().registros()).containsExactly(
-                new RegistroTaller("r1", Map.of("Producto", "Vela")), new RegistroTaller("r2", Map.of()));
-        assertThat(result.piezas().getLast().registros()).isEmpty();
+        entoncesLosRegistrosSeConviertenYLosFaltantesQuedanVacios();
     }
 
     @Test
     @DisplayName("Convierte los nombres existentes de una pieza; sin lista quedan vacíos")
-    void deShouldMapExistingNames() {
-        EstadoTallerItem item = new EstadoTallerItem("S", "mosaic", List.of(
-                new PiezaTallerItem("e1", "clients", "Clientes", null, List.of(), List.of(), List.of("Ana", "Vero")),
-                new PiezaTallerItem("e2", "inventory", "Stock", null, List.of(), List.of(), null)));
+    void convierteLosNombresExistentesDeUnaPiezaSinListaQuedanVacios() {
+        dadoUnaPiezaConNombresExistentesYOtraSinLista();
 
-        EstadoTaller result = item.aEstadoTaller();
+        cuandoSeConvierteElEstado();
 
-        assertThat(result.piezas().getFirst().nombres()).containsExactly("Ana", "Vero");
-        assertThat(result.piezas().getLast().nombres()).isEmpty();
+        entoncesLosNombresSeConviertenYLosFaltantesQuedanVacios();
     }
 
     @Test
     @DisplayName("Convierte el historial de mensajes")
-    void deShouldMapMessages() {
-        List<MensajeTaller> result = conHistorial(List.of(new MensajeTallerItem("sami", "Hola"))).historialTaller();
+    void convierteElHistorialDeMensajes() {
+        dadoUnPedidoConUnMensajeDeSamiEnElHistorial();
 
-        assertThat(result).containsExactly(new MensajeTaller("sami", "Hola"));
+        cuandoSeConvierteElHistorial();
+
+        entoncesElHistorialTieneElMensajeDeSami();
     }
 
     @Test
     @DisplayName("Arma la respuesta con el texto, las acciones y la botonera")
-    void deShouldMapTextActionsAndOptions() {
-        RespuestaTaller respuesta = new RespuestaTaller(
-                "Listo",
-                List.of(new AccionTaller("agregar_pieza", Map.of("tipo", "expenses"))),
-                List.of(new OpcionesTaller("Seguir", "¿Seguimos?", List.of("Sí", "No"))));
+    void armaLaRespuestaConElTextoLasAccionesYLaBotonera() {
+        cuandoSeArmaLaRespuestaConUnaAccionYUnaBotonera();
 
-        ConversarEnTallerResponse result = ConversarEnTallerResponse.de(respuesta);
-
-        assertThat(result.respuesta()).isEqualTo("Listo");
-        assertThat(result.acciones()).extracting("herramienta").containsExactly("agregar_pieza");
-        assertThat(result.acciones().getFirst().argumentos()).containsEntry("tipo", "expenses");
-        assertThat(result.preguntas()).hasSize(1);
-        assertThat(result.preguntas().getFirst().tema()).isEqualTo("Seguir");
-        assertThat(result.preguntas().getFirst().pregunta()).isEqualTo("¿Seguimos?");
-        assertThat(result.preguntas().getFirst().opciones()).containsExactly("Sí", "No");
+        entoncesLaRespuestaTraeElTextoLasAccionesYLaBotonera();
     }
 
     @Test
     @DisplayName("Sin botonera la respuesta no lleva opciones")
-    void deShouldLeaveOptionsNullWhenThereAreNone() {
-        ConversarEnTallerResponse result =
-                ConversarEnTallerResponse.de(new RespuestaTaller("Hola", List.of(), List.of()));
+    void sinBotoneraLaRespuestaNoLlevaOpciones() {
+        cuandoSeArmaLaRespuestaSinAccionesNiBotonera();
 
-        assertThat(result.preguntas()).isEmpty();
-        assertThat(result.acciones()).isEmpty();
+        entoncesLaRespuestaNoLlevaOpcionesNiAcciones();
     }
 
     @Test
     @DisplayName("Convierte la foto adjunta con su tipo y sus bytes")
-    void deShouldMapTypeAndBytes() {
-        ImagenTaller result = conImagen(new ImagenTallerItem("image/webp", new byte[]{7, 8})).imagenTaller();
+    void convierteLaFotoAdjuntaConSuTipoYSusBytes() {
+        dadoUnPedidoConUnaFotoWebp();
 
-        assertThat(result.tipo()).isEqualTo("image/webp");
-        assertThat(result.datos()).containsExactly(7, 8);
+        cuandoSeConvierteLaFoto();
+
+        entoncesLaFotoTraeSuTipoYSusBytes();
     }
 
     @Test
     @DisplayName("Sin foto adjunta no hay imagen")
-    void deShouldReturnNullWithoutImage() {
-        assertThat(conImagen(null).imagenTaller()).isNull();
+    void sinFotoAdjuntaNoHayImagen() {
+        dadoUnPedidoSinFoto();
+
+        cuandoSeConvierteLaFoto();
+
+        entoncesNoHayImagen();
     }
 
-    // --- helpers ---
+    // --- dado ---
+
+    private void dadoUnEstadoConUnaPiezaDeInventarioConUnCampo() {
+        estadoItem = new EstadoTallerItem("Mi almacén", "mosaic", List.of(new PiezaTallerItem(
+                "e1", "inventory", "Inventario", "General", List.of(new CampoTallerItem("Producto", "text")))));
+    }
+
+    private void dadoUnaPiezaConDosRegistrosYOtraSinLista() {
+        estadoItem = new EstadoTallerItem("S", "mosaic", List.of(
+                new PiezaTallerItem("e1", "sales", "Ventas", null, List.of(), List.of(
+                        new RegistroTallerItem("r1", Map.of("Producto", "Vela")),
+                        new RegistroTallerItem("r2", null))),
+                new PiezaTallerItem("e2", "clients", "Clientes", null, List.of(), null)));
+    }
+
+    private void dadoUnaPiezaConNombresExistentesYOtraSinLista() {
+        estadoItem = new EstadoTallerItem("S", "mosaic", List.of(
+                new PiezaTallerItem("e1", "clients", "Clientes", null, List.of(), List.of(), List.of("Ana", "Vero")),
+                new PiezaTallerItem("e2", "inventory", "Stock", null, List.of(), List.of(), null)));
+    }
+
+    private void dadoUnPedidoConUnMensajeDeSamiEnElHistorial() {
+        pedido = new ConversarEnTallerRequest(null, null, null, List.of(new MensajeTallerItem("sami", "Hola")), null);
+    }
+
+    private void dadoUnPedidoConUnaFotoWebp() {
+        pedido = conImagen(new ImagenTallerItem("image/webp", new byte[]{7, 8}));
+    }
+
+    private void dadoUnPedidoSinFoto() {
+        pedido = conImagen(null);
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeConvierteElEstado() {
+        estado = estadoItem.aEstadoTaller();
+    }
+
+    private void cuandoSeConvierteElHistorial() {
+        historial = pedido.historialTaller();
+    }
+
+    private void cuandoSeConvierteLaFoto() {
+        imagen = pedido.imagenTaller();
+    }
+
+    private void cuandoSeArmaLaRespuestaConUnaAccionYUnaBotonera() {
+        respuesta = ConversarEnTallerResponse.de(new RespuestaTaller(
+                "Listo",
+                List.of(new AccionTaller("agregar_pieza", Map.of("tipo", "expenses"))),
+                List.of(new OpcionesTaller("Seguir", "¿Seguimos?", List.of("Sí", "No")))));
+    }
+
+    private void cuandoSeArmaLaRespuestaSinAccionesNiBotonera() {
+        respuesta = ConversarEnTallerResponse.de(new RespuestaTaller("Hola", List.of(), List.of()));
+    }
+
+    // --- entonces ---
+
+    private void entoncesElEstadoDelDominioTieneLaPiezaConSuCampo() {
+        assertThat(estado).isEqualTo(new EstadoTaller("Mi almacén", "mosaic", List.of(new PiezaTaller(
+                "e1", "inventory", "Inventario", "General", List.of(new CampoTaller("Producto", "text"))))));
+    }
+
+    private void entoncesLosRegistrosSeConviertenYLosFaltantesQuedanVacios() {
+        assertThat(estado.piezas().getFirst().registros()).containsExactly(
+                new RegistroTaller("r1", Map.of("Producto", "Vela")), new RegistroTaller("r2", Map.of()));
+        assertThat(estado.piezas().getLast().registros()).isEmpty();
+    }
+
+    private void entoncesLosNombresSeConviertenYLosFaltantesQuedanVacios() {
+        assertThat(estado.piezas().getFirst().nombres()).containsExactly("Ana", "Vero");
+        assertThat(estado.piezas().getLast().nombres()).isEmpty();
+    }
+
+    private void entoncesElHistorialTieneElMensajeDeSami() {
+        assertThat(historial).containsExactly(new MensajeTaller("sami", "Hola"));
+    }
+
+    private void entoncesLaRespuestaTraeElTextoLasAccionesYLaBotonera() {
+        assertThat(respuesta.respuesta()).isEqualTo("Listo");
+        assertThat(respuesta.acciones()).extracting("herramienta").containsExactly("agregar_pieza");
+        assertThat(respuesta.acciones().getFirst().argumentos()).containsEntry("tipo", "expenses");
+        assertThat(respuesta.preguntas()).hasSize(1);
+        assertThat(respuesta.preguntas().getFirst().tema()).isEqualTo("Seguir");
+        assertThat(respuesta.preguntas().getFirst().pregunta()).isEqualTo("¿Seguimos?");
+        assertThat(respuesta.preguntas().getFirst().opciones()).containsExactly("Sí", "No");
+    }
+
+    private void entoncesLaRespuestaNoLlevaOpcionesNiAcciones() {
+        assertThat(respuesta.preguntas()).isEmpty();
+        assertThat(respuesta.acciones()).isEmpty();
+    }
+
+    private void entoncesLaFotoTraeSuTipoYSusBytes() {
+        assertThat(imagen.tipo()).isEqualTo("image/webp");
+        assertThat(imagen.datos()).containsExactly(7, 8);
+    }
+
+    private void entoncesNoHayImagen() {
+        assertThat(imagen).isNull();
+    }
+
+    // --- datos ---
+
     private static ConversarEnTallerRequest conImagen(ImagenTallerItem imagen) {
         return new ConversarEnTallerRequest(null, null, null, List.of(), imagen);
-    }
-
-    private static ConversarEnTallerRequest conHistorial(List<MensajeTallerItem> historial) {
-        return new ConversarEnTallerRequest(null, null, null, historial, null);
     }
 }

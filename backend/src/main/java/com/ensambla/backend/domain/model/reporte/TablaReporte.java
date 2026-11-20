@@ -1,15 +1,13 @@
 package com.ensambla.backend.domain.model.reporte;
 
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 /**
  * Un reporte listo para descargar: una hoja con encabezados, filas y una fila final de totales. Cada valor es un
@@ -19,8 +17,6 @@ import java.util.Map;
 public record TablaReporte(String hoja, List<String> encabezados, List<List<Object>> filas, List<Object> totales) {
 
     static final String ENCABEZADO_CARGA = "Cargado";
-
-    static final String FILA_ELIMINADA = "Fila eliminada";
 
     /**
      * Una columna por campo (en el orden dado) más la fecha de carga, y al final una fila de totales.
@@ -49,13 +45,7 @@ public record TablaReporte(String hoja, List<String> encabezados, List<List<Obje
         if (valor == null) {
             return null;
         }
-        return switch (campo.getTipo()) {
-            case NUMERO, MONEDA, FORMULA -> new BigDecimal(valor.toString());
-            case FECHA -> LocalDate.parse(valor.toString());
-            case SI_NO -> Boolean.TRUE.equals(valor) ? "Sí" : "No";
-            case RELACION -> etiquetas.getOrDefault(RegistroId.de(valor.toString()), FILA_ELIMINADA);
-            case TEXTO, OPCION, TEXTO_LARGO, EMAIL, TELEFONO, HORA -> valor.toString();
-        };
+        return campo.celdaDeReporte(valor, etiquetas::get);
     }
 
     /**
@@ -63,19 +53,21 @@ public record TablaReporte(String hoja, List<String> encabezados, List<List<Obje
      * numérica o, si todas lo son, en la de la fecha de carga.
      */
     private static List<Object> totales(List<Campo> campos, ReporteRegistros reporte) {
-        List<Object> totales = new ArrayList<>();
-        int indiceEtiqueta = campos.size();
-        for (int indice = 0; indice < campos.size(); indice++) {
-            Campo campo = campos.get(indice);
-            boolean numerico = campo.getTipo() == TipoCampo.NUMERO;
-            totales.add(numerico ? reporte.totales().sumas().get(campo.getId()) : null);
-            if (!numerico && indiceEtiqueta == campos.size()) {
-                indiceEtiqueta = indice;
-            }
-        }
+        List<Object> totales = new ArrayList<>(campos.stream().map(campo -> sumaDe(campo, reporte)).toList());
         totales.add(null);
-        totales.set(indiceEtiqueta, etiquetaDeTotal(reporte.totales().cantidad()));
+        totales.set(columnaDeLaEtiqueta(campos), etiquetaDeTotal(reporte.totales().cantidad()));
         return totales;
+    }
+
+    private static Object sumaDe(Campo campo, ReporteRegistros reporte) {
+        return campo.sumaEnElReporte() ? reporte.totales().sumas().get(campo.getId()) : null;
+    }
+
+    private static int columnaDeLaEtiqueta(List<Campo> campos) {
+        return IntStream.range(0, campos.size())
+                .filter(indice -> !campos.get(indice).sumaEnElReporte())
+                .findFirst()
+                .orElse(campos.size());
     }
 
     private static String etiquetaDeTotal(long cantidad) {

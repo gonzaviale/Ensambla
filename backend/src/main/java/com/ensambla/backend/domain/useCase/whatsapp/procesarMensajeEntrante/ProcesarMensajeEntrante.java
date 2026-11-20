@@ -52,12 +52,24 @@ public class ProcesarMensajeEntrante {
             vincular(entrante, codigo.get());
             return;
         }
-        Optional<VinculoWhatsapp> vinculo = vinculoRepository.findByTelefono(entrante.telefono());
+        Optional<VinculoWhatsapp> vinculo = vinculoDelTelefono(entrante.telefono());
         if (vinculo.isEmpty()) {
-            mensajeria.enviarTexto(entrante.telefono(), TextosWhatsapp.NO_VINCULADO);
+            avisarQueNoEstaVinculado(entrante.telefono());
             return;
         }
-        transaccionPort.ejecutar(() -> encolar(vinculo.get(), entrante));
+        encolarEnTransaccion(vinculo.get(), entrante);
+    }
+
+    private Optional<VinculoWhatsapp> vinculoDelTelefono(String telefono) {
+        return vinculoRepository.findByTelefono(telefono);
+    }
+
+    private void avisarQueNoEstaVinculado(String telefono) {
+        mensajeria.enviarTexto(telefono, TextosWhatsapp.NO_VINCULADO);
+    }
+
+    private void encolarEnTransaccion(VinculoWhatsapp vinculo, MensajeEntrante entrante) {
+        transaccionPort.ejecutar(() -> encolar(vinculo, entrante));
     }
 
     private void vincular(MensajeEntrante entrante, String textoCodigo) {
@@ -74,13 +86,17 @@ public class ProcesarMensajeEntrante {
 
     /** Vincula el teléfono con el negocio del usuario que generó el código; si ya tenía un número, lo reemplaza. */
     private void canjear(String textoCodigo, TelefonoWhatsapp telefono, OffsetDateTime ahora) {
-        CodigoVinculacion codigo = codigoRepository.findByCodigo(textoCodigo.trim().toUpperCase(Locale.ROOT))
-                .orElseThrow(() -> new BusinessRuleException("El código de vinculación no existe"));
+        CodigoVinculacion codigo = codigoExistente(textoCodigo);
         codigo.usar(ahora);
         UsuarioId usuarioId = codigo.getUsuarioId();
         NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(usuarioId);
         vinculacionService.vincular(usuarioId, negocioId, telefono, ahora);
         codigoRepository.save(codigo);
+    }
+
+    private CodigoVinculacion codigoExistente(String textoCodigo) {
+        return codigoRepository.findByCodigo(textoCodigo.trim().toUpperCase(Locale.ROOT))
+                .orElseThrow(() -> new BusinessRuleException("El código de vinculación no existe"));
     }
 
     /** Guarda el mensaje en el negocio del vínculo; si ya estaba (el proveedor reintentó el webhook) no hace nada. */

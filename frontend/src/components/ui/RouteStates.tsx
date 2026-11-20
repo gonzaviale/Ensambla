@@ -3,7 +3,7 @@ import { ApiError } from '@/api';
 import { EmptyState, ErrorState, buttonClasses } from '@/components/ui';
 import { MapTrifoldIcon } from '@phosphor-icons/react';
 
-const MENSAJE_GENERICO = 'Ocurrió un error inesperado. Probá de nuevo en unos minutos.';
+const MENSAJE_GENERICO = 'No pudimos cargar esta pantalla. Probá de nuevo en un rato.';
 
 export function RouteError({ error, reset }: ErrorComponentProps) {
   const router = useRouter();

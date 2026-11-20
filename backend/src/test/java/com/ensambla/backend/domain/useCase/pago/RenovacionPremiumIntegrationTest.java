@@ -162,7 +162,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("El primer cobro conserva los días restantes de prueba y todavía no inicia tiempo pago")
-    void contratarShouldPreserveTrialUntilFirstApprovedPayment() throws Exception {
+    void elPrimerCobroConservaLosDiasRestantesDePruebaYTodaviaNoIniciaTiempoPago() throws Exception {
         var prueba = pruebaPremiumService.iniciar(negocioId, AHORA.minusDays(3));
 
         mockMvc.perform(post("/api/planes/renovacion").session(sesion).header("X-CSRF-TOKEN", csrf))
@@ -181,8 +181,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Autorizar la suscripción no habilita Premium sin pago aprobado")
-    void actualizarShouldNotGrantPremiumForAuthorizationOnly() throws Exception {
-        givenContrato();
+    void autorizarLaSuscripcionNoHabilitaPremiumSinPagoAprobado() throws Exception {
+        dadoContrato();
         RenovacionPremium renovacion = renovacion();
         remotos.put(renovacion.getProveedorId(), contrato(renovacion, "authorized", AHORA.plusSeconds(1)));
 
@@ -195,10 +195,10 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Un pago aprobado concede sólo su período de treinta días y un duplicado no lo extiende")
-    void actualizarShouldApplyApprovedInvoiceOnce() throws Exception {
-        givenContrato();
+    void unPagoAprobadoConcedeSoloSuPeriodoDeTreintaDiasYUnDuplicadoNoLoExtiende() throws Exception {
+        dadoContrato();
         RenovacionPremium renovacion = renovacion();
-        givenPago(pago(renovacion, UUID.randomUUID().toString(), "approved", AHORA, AHORA));
+        dadoPago(pago(renovacion, UUID.randomUUID().toString(), "approved", AHORA, AHORA));
 
         sincronizar(renovacion.getId());
         sincronizar(renovacion.getId());
@@ -212,10 +212,10 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
     @ParameterizedTest
     @ValueSource(strings = {"pending", "rejected", "cancelled"})
     @DisplayName("Un pago pendiente, rechazado o cancelado no habilita Premium")
-    void actualizarShouldNotGrantAccessForUnpaidInvoice(String estado) throws Exception {
-        givenContrato();
+    void unPagoPendienteRechazadoOCanceladoNoHabilitaPremium(String estado) throws Exception {
+        dadoContrato();
         RenovacionPremium renovacion = renovacion();
-        givenPago(pago(renovacion, UUID.randomUUID().toString(), estado, AHORA, AHORA));
+        dadoPago(pago(renovacion, UUID.randomUUID().toString(), estado, AHORA, AHORA));
 
         sincronizar(renovacion.getId());
 
@@ -225,12 +225,12 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
     @ParameterizedTest
     @ValueSource(strings = {"pending", "rejected"})
     @DisplayName("Un siguiente cobro pendiente o rechazado conserva los días del período ya pagado")
-    void actualizarShouldPreservePaidPeriodWhenRenewalIsUnpaid(String estado) throws Exception {
-        givenContrato();
+    void unSiguienteCobroPendienteORechazadoConservaLosDiasDelPeriodoYaPagado(String estado) throws Exception {
+        dadoContrato();
         RenovacionPremium renovacion = renovacion();
         aplicarPago(renovacion,
                 pago(renovacion, facturaId("primera"), "approved", AHORA, AHORA), AHORA);
-        givenPago(pago(renovacion, facturaId("segunda"), estado, AHORA.plusDays(30), AHORA.plusDays(29)));
+        dadoPago(pago(renovacion, facturaId("segunda"), estado, AHORA.plusDays(30), AHORA.plusDays(29)));
         when(clock.instant()).thenReturn(AHORA.plusDays(29).toInstant());
 
         sincronizar(renovacion.getId());
@@ -243,14 +243,14 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Al vencer el período pagado una renovación rechazada vuelve a Gratuito y conserva los datos")
-    void actualizarShouldExpireAccessWhenNextInvoiceIsRejected() throws Exception {
-        givenContrato();
+    void alVencerElPeriodoPagadoUnaRenovacionRechazadaVuelveAGratuitoYConservaLosDatos() throws Exception {
+        dadoContrato();
         RenovacionPremium renovacion = renovacion();
         aplicarPago(renovacion,
                 pago(renovacion, facturaId("primera"), "approved", AHORA, AHORA), AHORA);
         jdbcTemplate.update("INSERT INTO proyecto(negocio_id,nombre) VALUES (?,'Conservado tras rechazo')",
                 negocioId.valor());
-        givenPago(pago(renovacion, facturaId("segunda"), "rejected", AHORA.plusDays(30), AHORA.plusDays(30)));
+        dadoPago(pago(renovacion, facturaId("segunda"), "rejected", AHORA.plusDays(30), AHORA.plusDays(30)));
         when(clock.instant()).thenReturn(AHORA.plusDays(30).toInstant());
 
         sincronizar(renovacion.getId());
@@ -264,8 +264,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Reembolsar un período futuro conserva el período actual ya pagado")
-    void aplicarPagoShouldKeepCurrentPeriodWhenFutureInvoiceIsRefunded() throws Exception {
-        givenContrato();
+    void reembolsarUnPeriodoFuturoConservaElPeriodoActualYaPagado() throws Exception {
+        dadoContrato();
         RenovacionPremium renovacion = renovacion();
         aplicarPago(renovacion,
                 pago(renovacion, facturaId("primera"), "approved", AHORA, AHORA), AHORA);
@@ -286,8 +286,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Reembolsar una factura anterior no elimina el período renovado de otra factura aprobada")
-    void aplicarPagoShouldKeepRenewedPeriodWhenEarlierInvoiceIsRefunded() throws Exception {
-        givenContrato();
+    void reembolsarUnaFacturaAnteriorNoEliminaElPeriodoRenovadoDeOtraFacturaAprobada() throws Exception {
+        dadoContrato();
         RenovacionPremium renovacion = renovacion();
         aplicarPago(renovacion,
                 pago(renovacion, facturaId("primera"), "approved", AHORA, AHORA), AHORA);
@@ -306,8 +306,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Un reembolso completo retira sólo ese período y una entrega vieja no lo restaura")
-    void actualizarShouldRevokeRefundedPeriodAndIgnoreOlderApproval() throws Exception {
-        givenContrato();
+    void unReembolsoCompletoRetiraSoloEsePeriodoYUnaEntregaViejaNoLoRestaura() throws Exception {
+        dadoContrato();
         RenovacionPremium renovacion = renovacion();
         String factura = UUID.randomUUID().toString();
         aplicarPago(renovacion,
@@ -323,8 +323,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Cancelar desde Planes conserva el período ya pagado y confirma la baja con el proveedor")
-    void cancelarShouldPreservePaidPeriod() throws Exception {
-        givenContrato();
+    void cancelarDesdePlanesConservaElPeriodoYaPagadoYConfirmaLaBajaConElProveedor() throws Exception {
+        dadoContrato();
         RenovacionPremium renovacion = renovacion();
         aplicarPago(renovacion,
                 pago(renovacion, UUID.randomUUID().toString(), "approved", AHORA, AHORA), AHORA);
@@ -339,9 +339,9 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Cancelar durante la prueba no elimina los días gratuitos restantes")
-    void cancelarShouldPreserveTrial() throws Exception {
+    void cancelarDuranteLaPruebaNoEliminaLosDiasGratuitosRestantes() throws Exception {
         pruebaPremiumService.iniciar(negocioId, AHORA.minusDays(3));
-        givenContrato();
+        dadoContrato();
 
         mockMvc.perform(post("/api/planes/renovacion/cancelar").session(sesion).header("X-CSRF-TOKEN", csrf))
                 .andExpect(status().isOk());
@@ -352,8 +352,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Una falla al cancelar conserva la intención y la conciliación recupera la baja")
-    void cancelarShouldRetryPendingCancellation() throws Exception {
-        givenContrato();
+    void unaFallaAlCancelarConservaLaIntencionYLaConciliacionRecuperaLaBaja() throws Exception {
+        dadoContrato();
         doThrow(new PasarelaPagoException()).doAnswer(invocacion -> {
             RenovacionPremium renovacion = renovacion();
             remotos.put(renovacion.getProveedorId(), contrato(renovacion, "cancelled", AHORA.plusSeconds(1)));
@@ -370,7 +370,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Una respuesta de creación perdida se recupera por referencia sin crear otro contrato")
-    void contratarShouldRecoverUncertainCreationWithoutDuplicate() throws Exception {
+    void unaRespuestaDeCreacionPerdidaSeRecuperaPorReferenciaSinCrearOtroContrato() throws Exception {
         doAnswer(invocacion -> {
             RenovacionPremium renovacion = invocacion.getArgument(0);
             ContratoRemoto remoto = contrato(renovacion, "pending", AHORA);
@@ -380,7 +380,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
         mockMvc.perform(post("/api/planes/renovacion").session(sesion).header("X-CSRF-TOKEN", csrf))
                 .andExpect(status().isBadGateway());
-        givenContrato();
+        dadoContrato();
 
         verify(pasarelaSuscripcionesPort, times(1)).crear(any(), anyString());
         assertThat(renovacion().getProveedorId()).isNotBlank();
@@ -388,7 +388,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Dos preparaciones concurrentes comparten un único contrato abierto")
-    void contratarShouldSerializeConcurrentRequests() throws Exception {
+    void dosPreparacionesConcurrentesCompartenUnUnicoContratoAbierto() throws Exception {
         try (var executor = Executors.newFixedThreadPool(2)) {
             var primera = executor.submit(() -> contratarPremium.execute(usuarioId));
             var segunda = executor.submit(() -> contratarPremium.execute(usuarioId));
@@ -404,8 +404,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("La consulta usa la sesión e ignora negocio e importe enviados por el navegador")
-    void consultarShouldIsolateBusinessAndDisableHttpCache() throws Exception {
-        givenContrato();
+    void laConsultaUsaLaSesionEIgnoraNegocioEImporteEnviadosPorElNavegador() throws Exception {
+        dadoContrato();
 
         mockMvc.perform(get("/api/planes/renovacion").session(sesion).param("negocioId", UUID.randomUUID().toString()))
                 .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
@@ -416,14 +416,14 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
     @ValueSource(strings = {"/api/planes/renovacion", "/api/planes/renovacion/cancelar",
             "/api/planes/renovacion/actualizar"})
     @DisplayName("Las escrituras de pago exigen sesión y CSRF")
-    void pagosShouldRequireSessionAndCsrf(String ruta) throws Exception {
+    void lasEscriturasDePagoExigenSesionYCsrf(String ruta) throws Exception {
         mockMvc.perform(post(ruta)).andExpect(status().isUnauthorized());
         mockMvc.perform(post(ruta).session(sesion)).andExpect(status().isForbidden());
     }
 
     @Test
     @DisplayName("La configuración incompleta no crea contratos ni habilita el cobro")
-    void contratarShouldNotPersistWhenDisabled() throws Exception {
+    void laConfiguracionIncompletaNoCreaContratosNiHabilitaElCobro() throws Exception {
         when(pasarelaSuscripcionesPort.disponible()).thenReturn(false);
 
         mockMvc.perform(post("/api/planes/renovacion").session(sesion).header("X-CSRF-TOKEN", csrf))
@@ -436,8 +436,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Una renovación cancelada no revive por una lectura posterior de autorización")
-    void actualizarShouldKeepCancellationTerminal() throws Exception {
-        givenContrato();
+    void unaRenovacionCanceladaNoRevivePorUnaLecturaPosteriorDeAutorizacion() throws Exception {
+        dadoContrato();
         RenovacionPremium renovacion = renovacion();
         renovacionPremiumService.actualizarContrato(renovacion.getId(),
                 contrato(renovacion, "cancelled", AHORA.plusSeconds(2)), AHORA);
@@ -450,8 +450,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Al vencer el período pago vuelve al gratuito sin borrar sus proyectos")
-    void recalcularShouldExpirePaidPeriodWithoutDataLoss() throws Exception {
-        givenContrato();
+    void alVencerElPeriodoPagoVuelveAlGratuitoSinBorrarSusProyectos() throws Exception {
+        dadoContrato();
         RenovacionPremium renovacion = renovacion();
         aplicarPago(renovacion,
                 pago(renovacion, UUID.randomUUID().toString(), "approved", AHORA, AHORA), AHORA);
@@ -464,15 +464,15 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
                 Integer.class, negocioId.valor())).isOne();
     }
 
-    private void givenContrato() throws Exception {
+    private void dadoContrato() throws Exception {
         mockMvc.perform(post("/api/planes/renovacion").session(sesion).header("X-CSRF-TOKEN", csrf))
                 .andExpect(status().isOk());
     }
 
     @Test
     @DisplayName("Una contratación abierta impide iniciar después una prueba con cobro anticipado")
-    void iniciarPruebaShouldRejectWhilePaymentAgreementIsOpen() throws Exception {
-        givenContrato();
+    void unaContratacionAbiertaImpideIniciarDespuesUnaPruebaConCobroAnticipado() throws Exception {
+        dadoContrato();
 
         mockMvc.perform(get("/api/planes").session(sesion)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.suscripcion.puedeIniciarPrueba").value(false));
@@ -485,8 +485,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Después de cancelar una contratación sin pagos todavía puede iniciar su única prueba")
-    void iniciarPruebaShouldAllowAfterUnpaidContractCancellation() throws Exception {
-        givenContrato();
+    void despuesDeCancelarUnaContratacionSinPagosTodaviaPuedeIniciarSuUnicaPrueba() throws Exception {
+        dadoContrato();
         mockMvc.perform(post("/api/planes/renovacion/cancelar").session(sesion).header("X-CSRF-TOKEN", csrf))
                 .andExpect(status().isOk());
 
@@ -501,13 +501,13 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Una contratación nueva se elige antes que el historial cancelado aunque compartan hora")
-    void consultarShouldPreferOpenContractWithEqualCreationTimestamp() throws Exception {
-        givenContrato();
+    void unaContratacionNuevaSeEligeAntesQueElHistorialCanceladoAunqueCompartanHora() throws Exception {
+        dadoContrato();
         UUID anterior = renovacion().getId().valor();
         mockMvc.perform(post("/api/planes/renovacion/cancelar").session(sesion).header("X-CSRF-TOKEN", csrf))
                 .andExpect(status().isOk());
 
-        givenContrato();
+        dadoContrato();
 
         assertThat(renovacion().getId()).isNotEqualTo(anterior);
         assertThat(renovacion().getEstado()).isEqualTo("PENDIENTE");
@@ -515,8 +515,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("La conciliación rota los contratos consultados incluso si no recibieron eventos")
-    void conciliarShouldPersistFairReconciliationOrder() throws Exception {
-        givenContrato();
+    void laConciliacionRotaLosContratosConsultadosInclusoSiNoRecibieronEventos() throws Exception {
+        dadoContrato();
         RenovacionPremium renovacion = renovacion();
 
         when(pasarelaSuscripcionesPort.consultar(anyString())).thenAnswer(invocacion -> Optional
@@ -530,8 +530,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Cancelar dos veces no vuelve a solicitar una baja ya confirmada")
-    void cancelarShouldNotResendConfirmedCancellation() throws Exception {
-        givenContrato();
+    void cancelarDosVecesNoVuelveASolicitarUnaBajaYaConfirmada() throws Exception {
+        dadoContrato();
         mockMvc.perform(post("/api/planes/renovacion/cancelar").session(sesion).header("X-CSRF-TOKEN", csrf))
                 .andExpect(status().isOk());
 
@@ -543,8 +543,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Cada factura cubre su ciclo y una aprobación anticipada no extiende el período actual")
-    void aplicarPagoShouldKeepInvoicePeriodsIndependent() throws Exception {
-        givenContrato();
+    void cadaFacturaCubreSuCicloYUnaAprobacionAnticipadaNoExtiendeElPeriodoActual() throws Exception {
+        dadoContrato();
         RenovacionPremium renovacion = renovacion();
         aplicarPago(renovacion,
                 pago(renovacion, UUID.randomUUID().toString(), "approved", AHORA, AHORA), AHORA);
@@ -559,12 +559,12 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Un webhook válido concilia un contrato conocido sin requerir sesión ni CSRF")
-    void notificarShouldReconcileKnownContractWithoutUserSession() throws Exception {
-        givenContrato();
+    void unWebhookValidoConciliaUnContratoConocidoSinRequerirSesionNiCSRF() throws Exception {
+        dadoContrato();
         RenovacionPremium renovacion = renovacion();
         when(pasarelaSuscripcionesPort.identificarContrato("subscription_preapproval", "mp-evento"))
                 .thenReturn(renovacion.getProveedorId());
-        givenPago(pago(renovacion, UUID.randomUUID().toString(), "approved", AHORA, AHORA));
+        dadoPago(pago(renovacion, UUID.randomUUID().toString(), "approved", AHORA, AHORA));
 
         mockMvc.perform(post("/api/pagos/mercadopago").param("type", "subscription_preapproval")
                         .param("data.id", "mp-evento").header("x-signature", "firma")
@@ -576,7 +576,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Un webhook no autenticado por firma devuelve 401 y no cambia el plan")
-    void notificarShouldRejectInvalidSignature() throws Exception {
+    void unWebhookNoAutenticadoPorFirmaDevuelve401YNoCambiaElPlan() throws Exception {
         doThrow(new NotificacionPagoInvalidaException()).when(pasarelaSuscripcionesPort)
                 .validarNotificacion(null, null, "123");
 
@@ -589,8 +589,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
     @ParameterizedTest
     @ValueSource(strings = {"subscription_authorized_payment", "payment"})
     @DisplayName("El aviso firmado de la segunda factura renueva una sola vez aunque llegue dos días tarde")
-    void notificarShouldRenewOnceWhenSecondApprovedInvoiceArrivesLate(String tipo) throws Exception {
-        String recursoId = givenSecondInvoiceWithRealSignatureValidation(tipo, "approved", AHORA.plusDays(32));
+    void elAvisoFirmadoDeLaSegundaFacturaRenuevaUnaSolaVezAunqueLlegueDosDiasTarde(String tipo) throws Exception {
+        String recursoId = dadoSecondInvoiceWithRealSignatureValidation(tipo, "approved", AHORA.plusDays(32));
 
         notificarSegundaFactura(tipo, recursoId);
         notificarSegundaFactura(tipo, recursoId);
@@ -606,8 +606,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
     @ParameterizedTest
     @ValueSource(strings = {"pending", "rejected"})
     @DisplayName("El aviso firmado de una segunda factura sin cobrar no renueva al vencer el primer período")
-    void notificarShouldReturnToFreeWhenSecondInvoiceRemainsUnpaid(String estado) throws Exception {
-        String recursoId = givenSecondInvoiceWithRealSignatureValidation(
+    void elAvisoFirmadoDeUnaSegundaFacturaSinCobrarNoRenuevaAlVencerElPrimerPeriodo(String estado) throws Exception {
+        String recursoId = dadoSecondInvoiceWithRealSignatureValidation(
                 "subscription_authorized_payment", estado, AHORA.plusDays(30));
 
         notificarSegundaFactura("subscription_authorized_payment", recursoId);
@@ -619,21 +619,21 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
                 String.class, facturaId("segunda-firmada"))).isEqualTo(estado);
     }
 
-    // --- act ---
+    // --- cuando ---
     private void sincronizar(RenovacionId id) {
         renovacionPremiumService.sincronizar(id, OffsetDateTime.now(clock));
     }
 
-    // --- arrange ---
+    // --- dado ---
 
-    private String givenSecondInvoiceWithRealSignatureValidation(String tipo, String estado,
+    private String dadoSecondInvoiceWithRealSignatureValidation(String tipo, String estado,
                                                                  OffsetDateTime instante) throws Exception {
-        givenContrato();
+        dadoContrato();
         RenovacionPremium renovacion = renovacion();
         aplicarPago(renovacion,
                 pago(renovacion, facturaId("primera-firmada"), "approved", AHORA, AHORA), AHORA);
         remotos.put(renovacion.getProveedorId(), contrato(renovacion, "authorized", AHORA.plusDays(30)));
-        givenPago(pago(renovacion, facturaId("segunda-firmada"), estado, AHORA.plusDays(30), AHORA.plusDays(30)));
+        dadoPago(pago(renovacion, facturaId("segunda-firmada"), estado, AHORA.plusDays(30), AHORA.plusDays(30)));
         when(clock.instant()).thenReturn(instante.toInstant());
         String recursoId = facturaId("segunda-firmada");
         when(pasarelaSuscripcionesPort.identificarContrato(tipo, recursoId)).thenReturn(renovacion.getProveedorId());
@@ -648,7 +648,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
         return recursoId;
     }
 
-    // --- act ---
+    // --- cuando ---
 
     private void notificarSegundaFactura(String tipo, String recursoId) throws Exception {
         String tiempo = Long.toString(clock.instant().getEpochSecond());
@@ -665,7 +665,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     /** Aplica el pago como lo hace la sincronización: la pasarela lo informa y se recalcula en {@code ahora}. */
     private void aplicarPago(RenovacionPremium renovacion, PagoRemoto pago, OffsetDateTime ahora) {
-        givenPago(pago);
+        dadoPago(pago);
         when(clock.instant()).thenReturn(ahora.toInstant());
         sincronizar(renovacion.getId());
     }
@@ -685,7 +685,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
         return negocioId + "-" + nombre;
     }
 
-    private void givenPago(PagoRemoto pago) {
+    private void dadoPago(PagoRemoto pago) {
         when(pasarelaSuscripcionesPort.listarPagos(pago.contratoId())).thenReturn(List.of(pago));
     }
 

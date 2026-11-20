@@ -30,7 +30,7 @@ import static com.ensambla.backend.support.PlanTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.PlanTestData.plan;
 import static com.ensambla.backend.support.PlanTestData.suscripcion;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.inOrder;
@@ -56,25 +56,161 @@ class IniciarPruebaTest {
             Clock.fixed(INSTANTE.toInstant(), ZoneOffset.UTC));
 
     @BeforeEach
-    void givenNegocioDelUsuario() {
+    void dadoNegocioDelUsuario() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
+    private Suscripcion suscripcion;
+    private Plan premium;
+    private PruebaPremiumResponse respuesta;
+    private Throwable error;
+
     @Test
     @DisplayName("Bloquea el negocio y activa siete días premium con el reloj del servidor")
-    void executeShouldActivateTrialUnderBusinessLock() {
-        Suscripcion suscripcion = givenSuscripcion();
-        Plan premium = givenPremium();
-        givenSaveDevuelveLaPrueba();
+    void bloqueaElNegocioYActivaSieteDiasPremiumConElRelojDelServidor() {
+        dadoUnNegocioConPlanGratuitoQuePuedeIniciarLaPrueba();
 
-        PruebaPremiumResponse result = iniciar();
+        cuandoIniciaLaPrueba();
 
-        assertThat(result).isEqualTo(PruebaPremiumResponse.de(PruebaPremium.nueva(NEGOCIO_ID, INSTANTE)));
+        entoncesSeDevuelveLaPruebaDeSieteDias();
+        entoncesLaSuscripcionPasaAPremiumEnPrueba();
+        entoncesSeBloqueaConsultaYGuardaEnEseOrden();
+    }
+
+    @Test
+    @DisplayName("Un negocio no puede reiniciar una prueba usada aunque su suscripción cambie")
+    void unNegocioNoPuedeReiniciarUnaPruebaUsadaAunqueSuSuscripcionCambie() {
+        dadoUnNegocioQueYaUsoLaPrueba();
+
+        cuandoIntentaIniciarLaPrueba();
+
+        entoncesSeRechazaConElCodigo("PRUEBA_UTILIZADA");
+        entoncesNoSeGuardaNingunaPrueba();
+        entoncesNoSeConsultaElCatalogo();
+    }
+
+    @Test
+    @DisplayName("No inicia la prueba con una contratación premium en curso")
+    void noIniciaLaPruebaConUnaContratacionPremiumEnCurso() {
+        dadoUnNegocioConUnaContratacionPremiumEnCurso();
+
+        cuandoIntentaIniciarLaPrueba();
+
+        entoncesSeRechazaConElCodigo("RENOVACION_EN_CURSO");
+        entoncesNoSeGuardaNingunaPrueba();
+    }
+
+    @Test
+    @DisplayName("Un premium pagado vigente no es reemplazado por una prueba")
+    void unPremiumPagadoVigenteNoEsReemplazadoPorUnaPrueba() {
+        dadoUnNegocioConPremiumPagadoVigente();
+
+        cuandoIntentaIniciarLaPrueba();
+
+        entoncesSeRechazaConElCodigo("PREMIUM_ACTIVO");
+    }
+
+    @Test
+    @DisplayName("Un premium vencido que nunca usó prueba puede iniciarla")
+    void unPremiumVencidoQueNuncaUsoPruebaPuedeIniciarla() {
+        dadoUnNegocioConPremiumVencidoQueNuncaUsoPrueba();
+
+        cuandoIniciaLaPrueba();
+
+        entoncesLaPruebaEmpiezaSinPaginasUsadas();
+    }
+
+    @Test
+    @DisplayName("Falla sin suscripción y no consulta el catálogo")
+    void fallaSinSuscripcionYNoConsultaElCatalogo() {
+        cuandoIntentaIniciarLaPrueba();
+
+        entoncesSeRechazaPorqueNoExiste("Suscripción no encontrada");
+        entoncesNoSeConsultaElCatalogo();
+    }
+
+    @Test
+    @DisplayName("No inicia la prueba si falta premium en el catálogo")
+    void noIniciaLaPruebaSiFaltaPremiumEnElCatalogo() {
+        dadoSuscripcion();
+
+        cuandoIntentaIniciarLaPrueba();
+
+        entoncesSeRechazaPorqueNoExiste("Plan no encontrado");
+        entoncesNoSeGuardaNingunaPrueba();
+    }
+
+    // --- dado ---
+    private void dadoUnNegocioConPlanGratuitoQuePuedeIniciarLaPrueba() {
+        suscripcion = dadoSuscripcion();
+        premium = dadoPremium();
+        dadoSaveDevuelveLaPrueba();
+    }
+
+    private void dadoUnNegocioQueYaUsoLaPrueba() {
+        dadoSuscripcion();
+        when(pruebaPremiumRepository.findByNegocioId(NEGOCIO_ID))
+                .thenReturn(Optional.of(PruebaPremium.nueva(NEGOCIO_ID, INSTANTE)));
+    }
+
+    private void dadoUnNegocioConUnaContratacionPremiumEnCurso() {
+        dadoSuscripcion();
+        when(renovacionPremiumRepository.existeAbierta(NEGOCIO_ID)).thenReturn(true);
+    }
+
+    private void dadoUnNegocioConPremiumPagadoVigente() {
+        suscripcion = dadoSuscripcion();
+        premium = dadoPremium();
+        suscripcion.setPlanId(premium.getId());
+    }
+
+    private void dadoUnNegocioConPremiumVencidoQueNuncaUsoPrueba() {
+        dadoUnNegocioConPremiumPagadoVigente();
+        suscripcion.setFinEn(INSTANTE);
+        dadoSaveDevuelveLaPrueba();
+    }
+
+    private Suscripcion dadoSuscripcion() {
+        Suscripcion dada = suscripcion();
+        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(dada));
+        return dada;
+    }
+
+    private Plan dadoPremium() {
+        Plan dado = plan();
+        dado.setId(PlanId.nuevo());
+        dado.setCodigo(CodigoPlan.PREMIUM);
+        when(planRepository.findByCodigo(CodigoPlan.PREMIUM)).thenReturn(Optional.of(dado));
+        return dado;
+    }
+
+    private void dadoSaveDevuelveLaPrueba() {
+        when(pruebaPremiumRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    // --- cuando ---
+    private void cuandoIniciaLaPrueba() {
+        respuesta = iniciarPrueba.execute(new IniciarPruebaRequest(USUARIO_ID));
+    }
+
+    private void cuandoIntentaIniciarLaPrueba() {
+        error = catchThrowable(this::cuandoIniciaLaPrueba);
+    }
+
+    // --- entonces ---
+    private void entoncesSeDevuelveLaPruebaDeSieteDias() {
+        assertThat(respuesta).isEqualTo(PruebaPremiumResponse.de(PruebaPremium.nueva(NEGOCIO_ID, INSTANTE)));
+    }
+
+    private void entoncesLaSuscripcionPasaAPremiumEnPrueba() {
         assertThat(suscripcion.getEstado()).isEqualTo(EstadoSuscripcion.PRUEBA);
         assertThat(suscripcion.getPlanId()).isEqualTo(premium.getId());
         assertThat(suscripcion.getInicioEn()).isEqualTo(INSTANTE);
         assertThat(suscripcion.getFinEn()).isEqualTo(INSTANTE.plusDays(7));
         assertThat(suscripcion.getActualizadoEn()).isEqualTo(INSTANTE);
+    }
+
+    private void entoncesSeBloqueaConsultaYGuardaEnEseOrden() {
         var orden = inOrder(usoPlanRepository, suscripcionRepository, pruebaPremiumRepository);
         orden.verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
         orden.verify(suscripcionRepository).findByNegocioId(NEGOCIO_ID);
@@ -83,98 +219,23 @@ class IniciarPruebaTest {
         orden.verify(suscripcionRepository).save(suscripcion);
     }
 
-    @Test
-    @DisplayName("Un negocio no puede reiniciar una prueba usada aunque su suscripción cambie")
-    void executeShouldRejectUsedTrial() {
-        givenSuscripcion();
-        when(pruebaPremiumRepository.findByNegocioId(NEGOCIO_ID))
-                .thenReturn(Optional.of(PruebaPremium.nueva(NEGOCIO_ID, INSTANTE)));
-
-        assertThatThrownBy(this::iniciar)
-                .isInstanceOf(RestriccionPlanException.class).extracting("codigo").isEqualTo("PRUEBA_UTILIZADA");
-
-        verifyNoInteractions(planRepository);
-        verify(pruebaPremiumRepository, never()).save(any());
+    private void entoncesSeRechazaConElCodigo(String codigo) {
+        assertThat(error).isInstanceOf(RestriccionPlanException.class).extracting("codigo").isEqualTo(codigo);
     }
 
-    @Test
-    @DisplayName("No inicia la prueba con una contratación premium en curso")
-    void executeShouldRejectOpenRenewal() {
-        givenSuscripcion();
-        when(renovacionPremiumRepository.existeAbierta(NEGOCIO_ID)).thenReturn(true);
-
-        assertThatThrownBy(this::iniciar)
-                .isInstanceOf(RestriccionPlanException.class).extracting("codigo").isEqualTo("RENOVACION_EN_CURSO");
-
-        verify(pruebaPremiumRepository, never()).save(any());
+    private void entoncesSeRechazaPorqueNoExiste(String mensaje) {
+        assertThat(error).isInstanceOf(ResourceNotFoundException.class).hasMessage(mensaje);
     }
 
-    @Test
-    @DisplayName("Un premium pagado vigente no es reemplazado por una prueba")
-    void executeShouldRejectActivePremium() {
-        Suscripcion suscripcion = givenSuscripcion();
-        Plan premium = givenPremium();
-        suscripcion.setPlanId(premium.getId());
-
-        assertThatThrownBy(this::iniciar)
-                .isInstanceOf(RestriccionPlanException.class).extracting("codigo").isEqualTo("PREMIUM_ACTIVO");
-    }
-
-    @Test
-    @DisplayName("Un premium vencido que nunca usó prueba puede iniciarla")
-    void executeShouldAllowExpiredSubscription() {
-        Suscripcion suscripcion = givenSuscripcion();
-        Plan premium = givenPremium();
-        suscripcion.setPlanId(premium.getId());
-        suscripcion.setFinEn(INSTANTE);
-        givenSaveDevuelveLaPrueba();
-
-        PruebaPremiumResponse result = iniciar();
-
-        assertThat(result.paginasIaUtilizadas()).isZero();
-    }
-
-    @Test
-    @DisplayName("Falla sin suscripción y no consulta el catálogo")
-    void executeShouldRejectMissingSubscription() {
-        assertThatThrownBy(this::iniciar)
-                .isInstanceOf(ResourceNotFoundException.class).hasMessage("Suscripción no encontrada");
-
+    private void entoncesNoSeConsultaElCatalogo() {
         verifyNoInteractions(planRepository);
     }
 
-    @Test
-    @DisplayName("No inicia la prueba si falta premium en el catálogo")
-    void executeShouldRejectMissingPremium() {
-        givenSuscripcion();
-
-        assertThatThrownBy(this::iniciar)
-                .isInstanceOf(ResourceNotFoundException.class).hasMessage("Plan no encontrado");
-
+    private void entoncesNoSeGuardaNingunaPrueba() {
         verify(pruebaPremiumRepository, never()).save(any());
     }
 
-    // --- arrange ---
-    private Suscripcion givenSuscripcion() {
-        Suscripcion suscripcion = suscripcion();
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
-        return suscripcion;
-    }
-
-    private Plan givenPremium() {
-        Plan premium = plan();
-        premium.setId(PlanId.nuevo());
-        premium.setCodigo(CodigoPlan.PREMIUM);
-        when(planRepository.findByCodigo(CodigoPlan.PREMIUM)).thenReturn(Optional.of(premium));
-        return premium;
-    }
-
-    private void givenSaveDevuelveLaPrueba() {
-        when(pruebaPremiumRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-    }
-
-    // --- act ---
-    private PruebaPremiumResponse iniciar() {
-        return iniciarPrueba.execute(new IniciarPruebaRequest(USUARIO_ID));
+    private void entoncesLaPruebaEmpiezaSinPaginasUsadas() {
+        assertThat(respuesta.paginasIaUtilizadas()).isZero();
     }
 }

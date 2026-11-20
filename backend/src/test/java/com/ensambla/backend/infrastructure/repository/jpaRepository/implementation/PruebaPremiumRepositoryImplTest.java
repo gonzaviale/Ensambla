@@ -25,58 +25,103 @@ class PruebaPremiumRepositoryImplTest {
     private final PruebaPremiumRepositoryImpl pruebaPremiumRepository = new PruebaPremiumRepositoryImpl(
             pruebaPremiumJpaRepository, new PruebaPremiumRepositoryMapper());
 
+    private Optional<PruebaPremium> encontrada;
+    private PruebaPremium guardada;
+    private List<NegocioId> vencidos;
+
     @Test
     @DisplayName("Recupera la prueba exclusivamente por el negocio solicitado")
-    void findByNegocioIdShouldMapStoredTrial() {
-        when(pruebaPremiumJpaRepository.findById(NEGOCIO_ID.valor())).thenReturn(Optional.of(givenEntity()));
+    void recuperaLaPruebaExclusivamentePorElNegocioSolicitado() {
+        dadoQueElNegocioTieneUnaPrueba();
 
-        Optional<PruebaPremium> result = pruebaPremiumRepository.findByNegocioId(NEGOCIO_ID);
+        cuandoSeBuscaLaPruebaDelNegocio();
 
-        assertThat(result).contains(new PruebaPremium(NEGOCIO_ID, INSTANTE, INSTANTE.plusDays(7), 4));
-        verify(pruebaPremiumJpaRepository).findById(NEGOCIO_ID.valor());
+        entoncesSeEncuentraLaPruebaDeSieteDias();
     }
 
     @Test
     @DisplayName("Un negocio sin historial devuelve un resultado vacío")
-    void findByNegocioIdShouldReturnEmptyWhenMissing() {
-        when(pruebaPremiumJpaRepository.findById(NEGOCIO_ID.valor())).thenReturn(Optional.empty());
+    void unNegocioSinHistorialDevuelveUnResultadoVacio() {
+        dadoQueElNegocioNoTienePrueba();
 
-        Optional<PruebaPremium> result = pruebaPremiumRepository.findByNegocioId(NEGOCIO_ID);
+        cuandoSeBuscaLaPruebaDelNegocio();
 
-        assertThat(result).isEmpty();
+        entoncesNoSeEncuentraNingunaPrueba();
     }
 
     @Test
     @DisplayName("Guarda el período y su contador sin reemplazarlos por fechas actuales")
-    void saveShouldMapStoredTrial() {
-        when(pruebaPremiumJpaRepository.saveAndFlush(any())).thenReturn(givenEntity());
+    void guardaElPeriodoYSuContadorSinReemplazarlosPorFechasActuales() {
+        dadoQueGuardarDevuelveLaPrueba();
 
-        PruebaPremium result = pruebaPremiumRepository.save(
-                new PruebaPremium(NEGOCIO_ID, INSTANTE, INSTANTE.plusDays(7), 4));
+        cuandoSeGuardaLaPrueba();
 
-        assertThat(result.negocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(result.inicioEn()).isEqualTo(INSTANTE);
-        assertThat(result.finEn()).isEqualTo(INSTANTE.plusDays(7));
-        assertThat(result.paginasIa()).isEqualTo(4);
+        entoncesSeConservanElPeriodoYElContador();
     }
 
     @Test
     @DisplayName("Delega la búsqueda de candidatos vencidos al instante solicitado")
-    void findNegociosVencidosShouldDelegateInstant() {
+    void delegaLaBusquedaDeCandidatosVencidosAlInstanteSolicitado() {
         when(pruebaPremiumJpaRepository.findNegociosVencidos(INSTANTE)).thenReturn(List.of(NEGOCIO_ID.valor()));
 
-        List<NegocioId> result = pruebaPremiumRepository.findNegociosVencidos(INSTANTE);
+        cuandoSeBuscanLosNegociosVencidos();
 
-        assertThat(result).containsExactly(NEGOCIO_ID);
+        entoncesSeListaElNegocioVencido();
     }
 
-    // --- arrange ---
-    private PruebaPremiumEntity givenEntity() {
+    // --- dado ---
+    private void dadoQueElNegocioTieneUnaPrueba() {
+        when(pruebaPremiumJpaRepository.findById(NEGOCIO_ID.valor())).thenReturn(Optional.of(unaEntidad()));
+    }
+
+    private void dadoQueElNegocioNoTienePrueba() {
+        when(pruebaPremiumJpaRepository.findById(NEGOCIO_ID.valor())).thenReturn(Optional.empty());
+    }
+
+    private void dadoQueGuardarDevuelveLaPrueba() {
+        when(pruebaPremiumJpaRepository.saveAndFlush(any())).thenReturn(unaEntidad());
+    }
+
+    private PruebaPremiumEntity unaEntidad() {
         return PruebaPremiumEntity.builder()
                 .negocioId(NEGOCIO_ID.valor())
                 .inicioEn(INSTANTE)
                 .finEn(INSTANTE.plusDays(7))
                 .paginasIa(4)
                 .build();
+    }
+
+    // --- cuando ---
+    private void cuandoSeBuscaLaPruebaDelNegocio() {
+        encontrada = pruebaPremiumRepository.findByNegocioId(NEGOCIO_ID);
+    }
+
+    private void cuandoSeGuardaLaPrueba() {
+        guardada = pruebaPremiumRepository.save(new PruebaPremium(NEGOCIO_ID, INSTANTE, INSTANTE.plusDays(7), 4));
+    }
+
+    private void cuandoSeBuscanLosNegociosVencidos() {
+        vencidos = pruebaPremiumRepository.findNegociosVencidos(INSTANTE);
+    }
+
+    // --- entonces ---
+    private void entoncesSeEncuentraLaPruebaDeSieteDias() {
+        assertThat(encontrada).contains(new PruebaPremium(NEGOCIO_ID, INSTANTE, INSTANTE.plusDays(7), 4));
+        verify(pruebaPremiumJpaRepository).findById(NEGOCIO_ID.valor());
+    }
+
+    private void entoncesNoSeEncuentraNingunaPrueba() {
+        assertThat(encontrada).isEmpty();
+    }
+
+    private void entoncesSeConservanElPeriodoYElContador() {
+        assertThat(guardada.negocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(guardada.inicioEn()).isEqualTo(INSTANTE);
+        assertThat(guardada.finEn()).isEqualTo(INSTANTE.plusDays(7));
+        assertThat(guardada.paginasIa()).isEqualTo(4);
+    }
+
+    private void entoncesSeListaElNegocioVencido() {
+        assertThat(vencidos).containsExactly(NEGOCIO_ID);
     }
 }

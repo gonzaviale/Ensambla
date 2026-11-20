@@ -27,115 +27,105 @@ class CampoPresentationMapperTest {
     private static final OffsetDateTime ACTUALIZADO = OffsetDateTime.parse("2026-10-10T12:00:00Z");
     private static final BloqueId RELACIONADO_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
     private static final List<String> TALLES = List.of("Chico", "Grande");
-    private static final CampoWebRequest BODY = new CampoWebRequest("Talle", "OPCION", true, "Chico", TALLES, null, null);
+    private static final CampoWebRequest TALLE = new CampoWebRequest("Talle", "OPCION", true, "Chico", TALLES, null, null);
+    private static final CampoWebRequest CLIENTE =
+            new CampoWebRequest("Cliente", "RELACION", false, null, null, RELACIONADO_ID, null);
 
-    private final CampoPresentationMapper campoPresentationMapper = new CampoPresentationMapper();
+    private final CampoPresentationMapper mapper = new CampoPresentationMapper();
 
     @Test
     @DisplayName("Arma el pedido de listar con el usuario y el bloque")
-    void toListarRequestShouldCarryUsuarioAndBloque() {
-        ListarCamposRequest result = campoPresentationMapper.toListarRequest(USUARIO_ID, BLOQUE_ID);
-
-        assertThat(result).isEqualTo(new ListarCamposRequest(USUARIO_ID, BLOQUE_ID));
+    void armaElPedidoDeListar() {
+        entoncesElPedidoEs(mapper.toListarRequest(USUARIO_ID, BLOQUE_ID), new ListarCamposRequest(USUARIO_ID, BLOQUE_ID));
     }
 
     @Test
     @DisplayName("Arma el pedido de crear con toda la configuración del body")
-    void toCrearRequestShouldCarryConfiguracion() {
-        CrearCampoRequest result = campoPresentationMapper.toCrearRequest(USUARIO_ID, BLOQUE_ID, BODY);
-
-        assertThat(result).isEqualTo(
+    void armaElPedidoDeCrearConTodaLaConfiguracion() {
+        entoncesElPedidoEs(mapper.toCrearRequest(USUARIO_ID, BLOQUE_ID, TALLE),
                 new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Talle", "OPCION", true, "Chico", TALLES, null, null));
     }
 
     @Test
     @DisplayName("Arma el pedido de editar con el campo y toda la configuración del body")
-    void toEditarRequestShouldCarryCampoAndConfiguracion() {
-        EditarCampoRequest result = campoPresentationMapper.toEditarRequest(USUARIO_ID, CAMPO_ID, BODY);
-
-        assertThat(result).isEqualTo(
+    void armaElPedidoDeEditarConTodaLaConfiguracion() {
+        entoncesElPedidoEs(mapper.toEditarRequest(USUARIO_ID, CAMPO_ID, TALLE),
                 new EditarCampoRequest(USUARIO_ID, CAMPO_ID, "Talle", "OPCION", true, "Chico", TALLES, null, null));
     }
 
     @Test
     @DisplayName("Pasa la tabla conectada de un campo de conexión al pedido de crear")
-    void toCrearRequestShouldCarryBloqueRelacionado() {
-        CampoWebRequest body = new CampoWebRequest("Cliente", "RELACION", false, null, null, RELACIONADO_ID, null);
-
-        CrearCampoRequest result = campoPresentationMapper.toCrearRequest(USUARIO_ID, BLOQUE_ID, body);
-
-        assertThat(result.bloqueRelacionadoId()).isEqualTo(RELACIONADO_ID);
+    void pasaLaTablaConectadaAlPedidoDeCrear() {
+        entoncesConectaConLaTabla(mapper.toCrearRequest(USUARIO_ID, BLOQUE_ID, CLIENTE).bloqueRelacionadoId());
     }
 
     @Test
     @DisplayName("Pasa la tabla conectada de un campo de conexión al pedido de editar")
-    void toEditarRequestShouldCarryBloqueRelacionado() {
-        CampoWebRequest body = new CampoWebRequest("Cliente", "RELACION", false, null, null, RELACIONADO_ID, null);
-
-        EditarCampoRequest result = campoPresentationMapper.toEditarRequest(USUARIO_ID, CAMPO_ID, body);
-
-        assertThat(result.bloqueRelacionadoId()).isEqualTo(RELACIONADO_ID);
+    void pasaLaTablaConectadaAlPedidoDeEditar() {
+        entoncesConectaConLaTabla(mapper.toEditarRequest(USUARIO_ID, CAMPO_ID, CLIENTE).bloqueRelacionadoId());
     }
 
     @Test
     @DisplayName("Pasa a la respuesta la tabla con la que se conecta el campo")
-    void toResponseShouldMapBloqueRelacionado() {
-        CampoItem item = new CampoItem(
-                CAMPO_ID, BLOQUE_ID, "Cliente", "RELACION", false, null, List.of(), RELACIONADO_ID, null, (short) 2, CREADO,
-                ACTUALIZADO);
+    void pasaALaRespuestaLaTablaConectada() {
+        CampoResponse respuesta = mapper.toResponse(unCampoDeConexion());
 
-        CampoResponse result = campoPresentationMapper.toResponse(item);
-
-        assertThat(result.bloqueRelacionadoId()).isEqualTo(RELACIONADO_ID);
-        assertThat(result.tipo()).isEqualTo("RELACION");
+        entoncesConectaConLaTabla(respuesta.bloqueRelacionadoId());
+        entoncesEsDeTipo(respuesta, "RELACION");
     }
 
     @Test
     @DisplayName("Arma el pedido de eliminar con el usuario y el campo")
-    void toEliminarRequestShouldCarryUsuarioAndCampo() {
-        EliminarCampoRequest result = campoPresentationMapper.toEliminarRequest(USUARIO_ID, CAMPO_ID);
-
-        assertThat(result).isEqualTo(new EliminarCampoRequest(USUARIO_ID, CAMPO_ID));
+    void armaElPedidoDeEliminar() {
+        entoncesElPedidoEs(mapper.toEliminarRequest(USUARIO_ID, CAMPO_ID), new EliminarCampoRequest(USUARIO_ID, CAMPO_ID));
     }
 
     @Test
     @DisplayName("Pasa todos los datos del campo a la respuesta HTTP")
-    void toResponseShouldMapEveryField() {
-        CampoResponse result = campoPresentationMapper.toResponse(givenItem("Talle"));
-
-        assertThat(result.id()).isEqualTo(CAMPO_ID);
-        assertThat(result.bloqueId()).isEqualTo(BLOQUE_ID);
-        assertThat(result.nombre()).isEqualTo("Talle");
-        assertThat(result.tipo()).isEqualTo("OPCION");
-        assertThat(result.obligatorio()).isTrue();
-        assertThat(result.valorInicial()).isEqualTo("Chico");
-        assertThat(result.opciones()).containsExactly("Chico", "Grande");
-        assertThat(result.bloqueRelacionadoId()).isNull();
-        assertThat(result.posicion()).isEqualTo((short) 1);
-        assertThat(result.creadoEn()).isEqualTo(CREADO);
-        assertThat(result.actualizadoEn()).isEqualTo(ACTUALIZADO);
+    void pasaTodosLosDatosDelCampoALaRespuesta() {
+        entoncesElCampoSeRespondeComo(unCampoDeTalle("Talle"), new CampoResponse(CAMPO_ID, BLOQUE_ID, "Talle", "OPCION",
+                true, "Chico", TALLES, null, null, (short) 1, CREADO, ACTUALIZADO));
     }
 
     @Test
     @DisplayName("Una lista conserva el orden de los campos")
-    void toResponseListShouldKeepOrder() {
-        List<CampoResponse> result = campoPresentationMapper.toResponse(
-                List.of(givenItem("Primero"), givenItem("Segundo")));
-
-        assertThat(result).extracting(CampoResponse::nombre).containsExactly("Primero", "Segundo");
+    void unaListaConservaElOrdenDeLosCampos() {
+        entoncesLaListaTieneLosNombres(List.of(unCampoDeTalle("Primero"), unCampoDeTalle("Segundo")), "Primero", "Segundo");
     }
 
     @Test
     @DisplayName("Una lista vacía queda vacía")
-    void toResponseListShouldReturnEmptyList() {
-        List<CampoResponse> result = campoPresentationMapper.toResponse(List.<CampoItem>of());
-
-        assertThat(result).isEmpty();
+    void unaListaVaciaQuedaVacia() {
+        entoncesLaListaTieneLosNombres(List.of());
     }
 
-    // --- helpers ---
-    private CampoItem givenItem(String nombre) {
-        return new CampoItem(
-                CAMPO_ID, BLOQUE_ID, nombre, "OPCION", true, "Chico", TALLES, null, null, (short) 1, CREADO, ACTUALIZADO);
+    private static CampoItem unCampoDeTalle(String nombre) {
+        return new CampoItem(CAMPO_ID, BLOQUE_ID, nombre, "OPCION", true, "Chico", TALLES, null, null, (short) 1, CREADO,
+                ACTUALIZADO);
+    }
+
+    private static CampoItem unCampoDeConexion() {
+        return new CampoItem(CAMPO_ID, BLOQUE_ID, "Cliente", "RELACION", false, null, List.of(), RELACIONADO_ID, null,
+                (short) 2, CREADO, ACTUALIZADO);
+    }
+
+    private static void entoncesElPedidoEs(Object armado, Object esperado) {
+        assertThat(armado).isEqualTo(esperado);
+    }
+
+    private static void entoncesConectaConLaTabla(BloqueId bloqueRelacionado) {
+        assertThat(bloqueRelacionado).isEqualTo(RELACIONADO_ID);
+    }
+
+    private static void entoncesEsDeTipo(CampoResponse campo, String tipo) {
+        assertThat(campo.tipo()).isEqualTo(tipo);
+    }
+
+    private void entoncesElCampoSeRespondeComo(CampoItem campo, CampoResponse esperada) {
+        assertThat(mapper.toResponse(campo)).isEqualTo(esperada);
+    }
+
+    private void entoncesLaListaTieneLosNombres(List<CampoItem> campos, String... nombres) {
+        assertThat(mapper.toResponse(campos)).extracting(CampoResponse::nombre).containsExactly(nombres);
     }
 }

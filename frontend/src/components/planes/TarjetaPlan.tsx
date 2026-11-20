@@ -1,6 +1,8 @@
 import { Btn } from '@/components/sistema/Btn';
 import { GestionRenovacion } from './GestionRenovacion';
 import { Icon } from '@/components/sistema/Icon';
+import type { NombreDeIcono } from '@/lib/sistema/iconos';
+import { textoDeNegocios } from '@/lib/planes/negocios';
 import type { Plan } from '@/types/planes';
 
 const FUNCIONES = [['REPORTES_FILTRADOS', 'Resúmenes en PDF']] as const;
@@ -12,14 +14,20 @@ function limite(valor: number | null, configurado: boolean) {
   return valor === null ? 'Sin límite' : valor.toLocaleString('es-AR');
 }
 
+type FilaDeLimite = { icono: NombreDeIcono; titulo: string; valor: string };
+
+function filaDeObjetivosConIa(plan: Plan): FilaDeLimite[] {
+  if (plan.limiteObjetivosIaMensuales === undefined) return [];
+  const valor = limite(plan.limiteObjetivosIaMensuales, plan.limitesConfigurados);
+  return [{ icono: 'chart', titulo: 'Objetivos con IA por mes', valor }];
+}
+
 function precio(plan: Plan) {
   if (plan.codigo === 'GRATUITO') return 'Sin costo';
   if (!plan.precioConfigurado || plan.precioMensual === null || !plan.moneda)
     return 'Precio por definir';
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: plan.moneda,
-  }).format(plan.precioMensual);
+  const importe = plan.precioMensual.toLocaleString('es-AR', { maximumFractionDigits: 0 });
+  return plan.moneda === 'ARS' ? `$${importe}` : `${importe} ${plan.moneda}`;
 }
 
 type TarjetaPlanProps = {
@@ -42,9 +50,33 @@ export function TarjetaPlan({
   onIniciar,
 }: TarjetaPlanProps) {
   const premium = plan.codigo === 'PREMIUM';
+  const avisos = premium ? 'Sin límite' : AVISOS_Y_RECOMENDACIONES_GRATUITOS;
+  const color = premium ? 'petrol' : 'blue';
+  const limites: FilaDeLimite[] = [
+    {
+      icono: 'folder',
+      titulo: 'Negocios',
+      valor: plan.limitesConfigurados ? textoDeNegocios(plan.limiteProyectos) : 'Por definir',
+    },
+    {
+      icono: 'note',
+      titulo: 'Datos guardados en total',
+      valor: limite(plan.limiteRegistros, plan.limitesConfigurados),
+    },
+    {
+      icono: 'camera',
+      titulo: 'Análisis de foto por mes',
+      valor: limite(plan.limitePaginasIaMensuales, plan.limitesConfigurados),
+    },
+    ...filaDeObjetivosConIa(plan),
+    { icono: 'bell', titulo: 'Avisos por mes', valor: avisos },
+    { icono: 'ubicacion', titulo: 'Recomendaciones de zona por mes', valor: avisos },
+  ];
   return (
     <article
       className={`plan-card ${premium ? 'plan-card-premium' : ''}`}
+      data-color={color}
+      data-actual={actual ? 'true' : undefined}
       aria-label={`Plan ${plan.nombre}`}
     >
       <div className="plan-card-top">
@@ -53,6 +85,8 @@ export function TarjetaPlan({
         </span>
         {actual ? (
           <span className="plan-label">{pruebaActiva ? 'En prueba' : 'Tu plan'}</span>
+        ) : premium ? (
+          <span className="plan-destacado">El más completo</span>
         ) : null}
       </div>
       <h2>{plan.nombre}</h2>
@@ -61,35 +95,28 @@ export function TarjetaPlan({
           ? 'Más espacio para tus datos. Más herramientas para decidir.'
           : 'Lo esencial para empezar a organizar tu negocio.'}
       </p>
-      <p className="plan-price">{precio(plan)}</p>
-      <p className="plan-price-detail">
-        {premium
-          ? plan.precioConfigurado
-            ? 'Cada 30 días · renovación automática'
-            : 'La contratación estará disponible próximamente.'
-          : 'Para tu negocio, sin vencimiento.'}
-      </p>
+      {premium ? (
+        <>
+          <p className="plan-price">{precio(plan)}</p>
+          <p className="plan-price-detail">
+            {plan.precioConfigurado
+              ? 'Cada 30 días · renovación automática'
+              : 'La contratación estará disponible próximamente.'}
+          </p>
+        </>
+      ) : null}
       <dl className="plan-limits">
-        <div>
-          <dt>Cuadernos</dt>
-          <dd>{limite(plan.limiteProyectos, plan.limitesConfigurados)}</dd>
-        </div>
-        <div>
-          <dt>Registros en total</dt>
-          <dd>{limite(plan.limiteRegistros, plan.limitesConfigurados)}</dd>
-        </div>
-        <div>
-          <dt>Análisis de foto por mes</dt>
-          <dd>{limite(plan.limitePaginasIaMensuales, plan.limitesConfigurados)}</dd>
-        </div>
-        <div>
-          <dt>Avisos por mes</dt>
-          <dd>{premium ? 'Sin límite' : AVISOS_Y_RECOMENDACIONES_GRATUITOS}</dd>
-        </div>
-        <div>
-          <dt>Recomendaciones de zona por mes</dt>
-          <dd>{premium ? 'Sin límite' : AVISOS_Y_RECOMENDACIONES_GRATUITOS}</dd>
-        </div>
+        {limites.map((fila) => (
+          <div key={fila.titulo}>
+            <dt>
+              <span className="plan-limit-icono">
+                <Icon name={fila.icono} />
+              </span>
+              {fila.titulo}
+            </dt>
+            <dd>{fila.valor}</dd>
+          </div>
+        ))}
       </dl>
       <ul className="plan-features">
         <li>
@@ -128,11 +155,7 @@ export function TarjetaPlan({
           </p>
           <GestionRenovacion />
         </div>
-      ) : (
-        <p className="plan-card-bottom plan-free-note">
-          Si pasás de Premium a Gratuito, conservás todos tus datos.
-        </p>
-      )}
+      ) : null}
     </article>
   );
 }

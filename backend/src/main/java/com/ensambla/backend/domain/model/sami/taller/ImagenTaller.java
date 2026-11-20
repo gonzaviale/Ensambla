@@ -25,9 +25,7 @@ public record ImagenTaller(String tipo, byte[] datos) {
     public static final String ILEGIBLE = "No pudimos abrir la foto. Probá adjuntarla de nuevo.";
 
     public ImagenTaller {
-        if (tipo == null || !TIPOS.contains(tipo)) {
-            throw new BusinessRuleException(TIPO_INVALIDO);
-        }
+        exigirTipoAdmitido(tipo);
         if (datos == null || datos.length == 0) {
             throw new BusinessRuleException(ILEGIBLE);
         }
@@ -41,18 +39,30 @@ public record ImagenTaller(String tipo, byte[] datos) {
      * entrega el navegador al leer un archivo.
      */
     public static ImagenTaller desdeBase64(String tipo, String base64) {
-        if (tipo == null || !TIPOS.contains(tipo)) {
-            throw new BusinessRuleException(TIPO_INVALIDO);
-        }
+        exigirTipoAdmitido(tipo);
         if (base64 == null) {
             throw new BusinessRuleException(ILEGIBLE);
         }
-        String datos = base64.substring(base64.indexOf(',') + 1).strip();
+        return new ImagenTaller(tipo, decodificar(sinEncabezadoDeDataUrl(base64)));
+    }
+
+    private static void exigirTipoAdmitido(String tipo) {
+        if (tipo == null || !TIPOS.contains(tipo)) {
+            throw new BusinessRuleException(TIPO_INVALIDO);
+        }
+    }
+
+    private static String sinEncabezadoDeDataUrl(String base64) {
+        return base64.substring(base64.indexOf(',') + 1).strip();
+    }
+
+    /** Un base64 más largo que el máximo se rechaza sin decodificarlo, para no gastar memoria en una foto enorme. */
+    private static byte[] decodificar(String datos) {
         if (datos.length() > MAX_LARGO_BASE64) {
             throw new BusinessRuleException(MUY_GRANDE);
         }
         try {
-            return new ImagenTaller(tipo, Base64.getDecoder().decode(datos));
+            return Base64.getDecoder().decode(datos);
         } catch (IllegalArgumentException e) {
             throw new BusinessRuleException(ILEGIBLE);
         }

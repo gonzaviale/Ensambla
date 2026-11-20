@@ -7,14 +7,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ConsumoIaSamiTest {
 
+    private ConsumoIaSami total;
+
     @Test
     @DisplayName("Sumar dos consumos junta los modelos y los tokens")
-    void sumarShouldJoinModelsAndAddTokens() {
-        ConsumoIaSami primero = new ConsumoIaSami("bedrock", "haiku", 100, 20);
-        ConsumoIaSami segundo = new ConsumoIaSami("bedrock", "sonnet", 150, 30);
+    void sumarDosConsumosJuntaLosModelosYLosTokens() {
+        cuandoSeSuman(new ConsumoIaSami("bedrock", "haiku", 100, 20), new ConsumoIaSami("bedrock", "sonnet", 150, 30));
 
-        ConsumoIaSami result = primero.sumar(segundo);
+        entoncesElTotalEs(new ConsumoIaSami("bedrock", "haiku + sonnet", 250, 50));
+    }
 
-        assertThat(result).isEqualTo(new ConsumoIaSami("bedrock", "haiku + sonnet", 250, 50));
+    private void cuandoSeSuman(ConsumoIaSami primero, ConsumoIaSami segundo) {
+        total = primero.sumar(segundo);
+    }
+
+    private void entoncesElTotalEs(ConsumoIaSami esperado) {
+        assertThat(total).isEqualTo(esperado);
     }
 }

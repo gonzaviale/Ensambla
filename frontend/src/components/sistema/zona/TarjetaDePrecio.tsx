@@ -28,6 +28,7 @@ export function TarjetaDePrecio({
   return (
     <article
       className={`zona-tarjeta ${propio ? 'mio' : ''}`.trim()}
+      data-posicion={posicion}
       style={varsDeColor(posicion ? COLOR_DE_POSICION[posicion] : 'blue')}
     >
       <div className="zona-tarjeta-cabeza">

@@ -1,0 +1,198 @@
+/* T-213 · Las métricas del Inicio (la tarjeta de ventas dentro de «Tu negocio»). El resto del Inicio sigue el
+   formato de dev. Se carga después de armonia.css. */
+
+.inicio {
+  --panel-suave: var(--c-estructura);
+}
+
+/* Las métricas: tarjeta blanca, número grande, gráfico bajo. */
+.inicio .tablero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  margin-bottom: 32px;
+}
+.inicio .tablero-ventas {
+  /* La columna del texto nunca baja del ancho de los tres botones del período: el gráfico cede, no el selector. */
+  grid-template-columns: minmax(min-content, 1fr) minmax(0, 1.4fr);
+  align-items: center;
+  gap: 16px 32px;
+  padding: 18px 22px;
+  border: 2px solid var(--c-estructura);
+  border-radius: 20px;
+  background: #fff;
+  color: var(--c-estructura);
+  box-shadow: var(--sombra-reposo);
+}
+.inicio .tablero-ventas-texto {
+  gap: 6px;
+}
+.inicio .tablero-ventas h3 {
+  margin: 4px 0 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--c-estructura);
+}
+.inicio .tablero-ventas-monto {
+  font-size: clamp(32px, 4.5vw, 44px);
+  color: var(--c-estructura);
+}
+.inicio .tablero-ventas-comparacion,
+.inicio .tablero-ventas-comparacion[data-sube='true'] {
+  padding: 4px 10px;
+  background: var(--c-celeste);
+  color: var(--c-estructura);
+  font-size: 14px;
+}
+.inicio .tablero-ventas-comparacion .icon {
+  color: var(--c-estructura);
+}
+.inicio .tablero-ventas-dato {
+  font-size: 14px;
+  color: var(--c-estructura);
+}
+.inicio .tablero-ventas-nota {
+  font-size: 13px;
+  color: var(--c-estructura);
+}
+.inicio .tablero-ventas .selector-periodo button[aria-pressed='true'] {
+  background: var(--c-accion);
+  color: #fff;
+}
+/* El gráfico baja de alto para no comerse la pantalla; se sigue leyendo día por día. */
+.inicio .tablero-ventas .grafico-barras-area {
+  height: 120px;
+  padding-bottom: 32px;
+}
+/* El día va en dos líneas («mar» y «10»): en la columna angosta del gráfico, una sola línea se pisaba con la vecina. */
+.inicio .tablero-ventas .grafico-barra-etiqueta {
+  width: min-content;
+  text-align: center;
+  line-height: 1.2;
+  white-space: normal;
+}
+.inicio .tablero-ventas .grafico-barra-relleno {
+  background: var(--c-estructura);
+  opacity: 0.85;
+}
+.inicio .tablero-ventas .grafico-barra[data-destacada='true'] .grafico-barra-relleno {
+  background: var(--c-accion);
+  opacity: 1;
+}
+.inicio .tablero-ventas .grafico-barra-etiqueta {
+  color: var(--c-estructura);
+}
+.inicio .tablero-ventas .grafico-barra-detalle {
+  background: var(--c-estructura);
+  color: #fff;
+}
+.inicio .tablero-aviso {
+  padding: 14px 18px;
+  font-size: 15px;
+}
+.inicio .tablero-cargando > span:not(.sr-only) {
+  height: 70px;
+}
+.inicio .tablero-cargando .tablero-cargando-principal {
+  height: 170px;
+}
+/* Las tarjetas de ventas y ganancia frente a la semana pasada, pegadas a la tarjeta de ventas. Dentro de la grilla
+   tienen que poder achicarse: si no, el gráfico y la pista del carrusel estiran la sección más allá de la pantalla. */
+.inicio .tablero > *,
+.inicio .tablero-cuerpo > *,
+.inicio .tablero-ventas > * {
+  min-width: 0;
+}
+.inicio .tablero-cuerpo {
+  grid-template-columns: minmax(0, 1fr);
+}
+.inicio .tablero .inicio-carrusel {
+  min-width: 0;
+  margin: 0;
+}
+@media (max-width: 900px) {
+  .inicio .tablero-ventas {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 16px 18px;
+  }
+}
+
+/* «Tu negocio» con sus métricas: a la izquierda la tarjeta de ventas, a la derecha el cuaderno. En el celular, una
+   columna con el cuaderno primero. */
+.inicio .tu-negocio-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 24px 32px;
+  margin-bottom: 64px; /* El mismo espacio que separa las secciones del inicio (.inicio-bloque). */
+}
+.inicio .tu-negocio-cuerpo .tablero {
+  margin-bottom: 0;
+}
+/* Del mismo alto: la tarjeta de ventas y el cuaderno llegan hasta abajo. */
+.inicio .tu-negocio-cuerpo .tablero,
+.inicio .tu-negocio-cuerpo .tablero-cuerpo,
+.inicio .tu-negocio-cuerpo .tablero-ventas {
+  height: 100%;
+}
+.inicio .tu-negocio-cuerpo .inicio-sistema {
+  height: 100%;
+}
+.inicio .tu-negocio-cuerpo .sistemas-grilla {
+  grid-template-columns: auto;
+}
+@media (max-width: 760px) {
+  .inicio .tu-negocio-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+    margin-bottom: 48px;
+  }
+  .inicio .tu-negocio-cuerpo .sistemas-grilla {
+    order: -1;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .inicio .tu-negocio-cuerpo .inicio-sistema {
+    width: 100%;
+    height: auto;
+  }
+}
+
+/* El nombre del negocio y, en la misma línea, el rubro y las tablas en chico. En el celular baja si no entra. */
+
+/* Sin ventas todavía: la misma tarjeta blanca de las ventas, con un ícono de línea, qué se va a ver y el atajo. */
+.inicio .tablero-vacio {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 8px;
+  height: 100%;
+  min-height: 200px;
+  padding: 22px 24px;
+  border: 2px solid var(--c-estructura);
+  border-radius: 20px;
+  background: #fff;
+  color: var(--c-estructura);
+  box-shadow: var(--sombra-reposo);
+}
+.inicio .tablero-vacio-icono {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1.5px solid var(--c-estructura);
+  border-radius: 12px;
+}
+.inicio .tablero-vacio-icono .icon {
+  width: 22px;
+  height: 22px;
+}
+.inicio .tablero-vacio h3 {
+  margin: 4px 0 0;
+  font-size: 20px;
+  line-height: 1.2;
+  color: var(--c-estructura);
+}
+.inicio .tablero-vacio p {
+  margin: 0 0 6px;
+  font-size: 15px;
+  color: var(--c-estructura);
+}

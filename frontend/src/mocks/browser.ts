@@ -3,6 +3,7 @@ import { env } from '@/config/env';
 import type { Sistema } from '@/lib/sistema/tipos';
 import type { Preferencias } from '@/types/preferencias';
 import type { ConfiguracionNegocio } from '@/types/negocio';
+import type { ObjetivoDelServidor } from '@/types/objetivos';
 import { pruebaPremiumSchema, type PruebaPremium } from '@/types/planes';
 import { handlersPara } from './handlers';
 import { sembrarDemoCargada } from './db/demoCargada';
@@ -17,6 +18,7 @@ type Guardado = {
   negocios: Record<string, ConfiguracionNegocio>;
   pruebasPremium: Record<string, PruebaPremium>;
   contenidosDesbloqueados?: Record<string, string[]>;
+  objetivos?: Record<string, ObjetivoDelServidor[]>;
 };
 
 // La API simulada vive en memoria: en el navegador se copia a localStorage para que los sistemas y las
@@ -31,6 +33,7 @@ function restaurar() {
       Object.entries(guardado.contenidosDesbloqueados ?? {}),
     );
     estado.preferencias = new Map(Object.entries(guardado.preferencias ?? {}));
+    estado.objetivos = new Map(Object.entries(guardado.objetivos ?? {}));
     estado.negocios = new Map(Object.entries(guardado.negocios ?? {}));
     estado.pruebasPremium = new Map(
       Object.entries(guardado.pruebasPremium ?? {}).flatMap(([email, valor]) => {
@@ -48,6 +51,7 @@ function conservar() {
     const guardado: Guardado = {
       sistemas: Object.fromEntries(estado.sistemas),
       preferencias: Object.fromEntries(estado.preferencias),
+      objetivos: Object.fromEntries(estado.objetivos),
       negocios: Object.fromEntries(estado.negocios),
       pruebasPremium: Object.fromEntries(estado.pruebasPremium),
       contenidosDesbloqueados: Object.fromEntries(estado.contenidosDesbloqueados),
@@ -68,7 +72,9 @@ if (env.mocks === 'completo') {
     email: 'demo@ensambla.local',
     contrasenia: 'EnsamblaDemo2026!',
   });
-  if (env.demoCargada) sembrarDemoCargada('demo@ensambla.local');
+  if (env.demoCargada) {
+    sembrarDemoCargada('demo@ensambla.local');
+  }
 }
 
 const handlers = handlersPara(env.mocks);

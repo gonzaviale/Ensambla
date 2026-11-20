@@ -53,7 +53,7 @@ public class Aviso {
 
     private List<Object> motivos;
 
-    private List<Object> acciones;
+    private List<AccionDeAviso> acciones;
 
     @Builder.Default
     private EstadoAviso estado = EstadoAviso.PENDIENTE;
@@ -77,6 +77,11 @@ public class Aviso {
 
     public boolean estaPendiente() {
         return estado == EstadoAviso.PENDIENTE;
+    }
+
+    /** Un aviso pendiente o vencido vuelve a valer si el motor lo detecta de nuevo; uno que la persona resolvió, no. */
+    public boolean sePuedeReactivar() {
+        return estaPendiente() || estado == EstadoAviso.VENCIDO;
     }
 
     public boolean esUrgente() {

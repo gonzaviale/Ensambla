@@ -9,21 +9,43 @@ class LecturaCuadernoExceptionTest {
 
     private static final String MENSAJE = "No pudimos leer el cuaderno";
 
+    private LecturaCuadernoException excepcion;
+    private Throwable causa;
+
     @Test
     @DisplayName("Es una excepción de dominio con el mensaje recibido")
-    void constructorShouldKeepMessage() {
-        LecturaCuadernoException exception = new LecturaCuadernoException(MENSAJE);
+    void esUnaExcepcionDeDominioConElMensajeRecibido() {
+        cuandoSeCreaConElMensaje();
 
-        assertThat(exception).isInstanceOf(DomainException.class).hasMessage(MENSAJE).hasNoCause();
+        entoncesEsDeDominioConElMensajeSinCausa();
     }
 
     @Test
     @DisplayName("Conserva la causa técnica")
-    void constructorShouldKeepCause() {
-        IllegalStateException causa = new IllegalStateException("timeout");
+    void conservaLaCausaTecnica() {
+        cuandoSeCreaConElMensajeYUnTimeout();
 
-        LecturaCuadernoException exception = new LecturaCuadernoException(MENSAJE, causa);
+        entoncesConservaElMensajeYLaCausa();
+    }
 
-        assertThat(exception).hasMessage(MENSAJE).hasCause(causa);
+    // --- cuando ---
+
+    private void cuandoSeCreaConElMensaje() {
+        excepcion = new LecturaCuadernoException(MENSAJE);
+    }
+
+    private void cuandoSeCreaConElMensajeYUnTimeout() {
+        causa = new IllegalStateException("timeout");
+        excepcion = new LecturaCuadernoException(MENSAJE, causa);
+    }
+
+    // --- entonces ---
+
+    private void entoncesEsDeDominioConElMensajeSinCausa() {
+        assertThat(excepcion).isInstanceOf(DomainException.class).hasMessage(MENSAJE).hasNoCause();
+    }
+
+    private void entoncesConservaElMensajeYLaCausa() {
+        assertThat(excepcion).hasMessage(MENSAJE).hasCause(causa);
     }
 }

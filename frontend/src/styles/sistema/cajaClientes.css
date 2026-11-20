@@ -1,0 +1,138 @@
+.caja-pagina .caja-vistas {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 520px;
+}
+.caja-clientes {
+  max-width: 860px;
+  padding: 20px;
+  border: 1px solid #adb9bf;
+  border-radius: 14px;
+  background: #fff;
+}
+.caja-clientes h2 {
+  margin: 0;
+}
+.caja-deuda-antigua {
+  display: inline-block;
+  width: fit-content;
+  padding: 4px 8px;
+  border: 1px solid #ebce32;
+  border-radius: 6px;
+  color: var(--c-estructura) !important;
+  background: #fff;
+  font-size: 12px !important;
+  font-weight: 700;
+}
+.caja-clientes label {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+  font-size: 14px;
+}
+.caja-clientes input,
+.caja-clientes select {
+  min-height: 46px;
+  width: 100%;
+  min-width: 0;
+  font-size: 16px;
+  padding: 10px;
+  border: 1px solid #7398a6;
+  border-radius: 8px;
+}
+.caja-clientes .btn {
+  min-height: 44px;
+  font-size: 14px;
+}
+.caja-clientes-lista {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+}
+.caja-clientes-lista li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  border-top: 1px solid #dce5e9;
+}
+.caja-clientes-lista li > div {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.caja-clientes-lista span,
+.caja-clientes-lista small {
+  font-size: 14px;
+  color: var(--c-estructura);
+}
+
+.caja-selector-cliente {
+  margin: 16px 0;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid #7398a6;
+  border-radius: 10px;
+}
+.caja-opciones-clientes {
+  display: grid;
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 12px 0;
+}
+.caja-opciones-clientes button {
+  text-align: left;
+  justify-content: flex-start !important;
+  min-height: 44px;
+  font-size: 14px;
+}
+.caja-saldo {
+  padding: 12px;
+  border-left: 4px solid var(--orange);
+  background: #fff;
+  font-size: 16px;
+}
+
+.caja-actividad-vistas {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.caja-cobros-lista {
+  max-height: 55dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 6px;
+}
+.caja-dialogo .caja-clientes-lista {
+  margin-bottom: 20px;
+}
+.caja-dialogo .caja-clientes-lista li {
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+.caja-dialogo .caja-clientes-lista .btn {
+  min-height: 44px;
+  font-size: 14px;
+}
+@media (max-width: 800px) {
+  .caja-actividad-vistas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .caja-clientes-lista li {
+    flex-wrap: wrap;
+  }
+  .caja-pagina .caja-vistas {
+    max-width: none;
+  }
+  .caja-clientes {
+    padding: 14px;
+  }
+  .caja-clientes > .caja-entre {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .caja-pagina .caja-vistas button {
+    min-height: 44px;
+    font-size: 14px;
+  }
+}

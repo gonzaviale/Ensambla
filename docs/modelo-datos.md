@@ -6,13 +6,24 @@ Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (
 `V9__modelo_sistema_y_monitoreo.sql`, `V10__datos_prueba_san_justo.sql`, `V11__avisos_entidad_y_datos.sql`,
 `V12__planes_y_suscripciones.sql`, `V13__limites_y_funciones_por_plan.sql`, `V14__prueba_premium.sql`,
 `V15__renovaciones_y_pagos_premium.sql`,
-`V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`).
+`V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`,
+`V24__objetivo.sql`, `V29__mini_objetivo.sql`, `V30__progreso_objetivo.sql`, `V31__decision_objetivo.sql`,
+`V32__resumen_semanal_objetivo.sql`, `V33__objetivo_demo.sql`, `V38__objetivo_tipo_y_modo.sql`, `V39__respuesta_mini_objetivo.sql`, `V40__cuota_objetivos_ia.sql`, `V41__metricas_mini_objetivo_nuevas.sql`, `V42__cierre_con_manuales.sql`, `V43__metrica.sql`, `V44__grafico_metrica.sql`,
+`V45__metrica_calculo_ganancia_y_costo.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
 V3 carga Inventario, Pedidos y Clientes
 como plantillas globales; sus UUID coinciden con los del modo simulado del frontend. Este documento explica el
 porqué; si cambian, se actualizan juntos.
+
+## Caja: cobros posteriores (V37 · ENS-317)
+
+`cobro_caja` conserva cada pago de deuda con id propio, negocio, proyecto, inventario, fecha del servidor y aplicaciones a una o varias ventas del mismo cliente. Los importes y medios viven en el JSON inmutable; `cierre_id` vincula el movimiento al período en que se recibió. No se editan migraciones anteriores.
+
+`venta_caja.datos` conserva `clienteId`, `clienteNombre` y `pagosIniciales`, además de los pagos acumulados. Un cobro actualiza sólo ese acumulado, con bloqueo por negocio y en la misma transacción que el movimiento nuevo; conserva el cierre original de la venta. El saldo y el estado se calculan desde total y pagos. Los datos JSON anteriores, sin `pagosIniciales` ni cobros de deuda en el resumen de cierre, siguen siendo legibles.
+
+El cierre guarda una foto de ventas, cobros y saldos. Recibir después un pago modifica el estado actual de la venta y el nuevo período de caja; el cierre anterior conserva sus importes. Ver el contrato y la prueba de aceptación en [caja-clientes-y-cobros.md](caja-clientes-y-cobros.md).
 
 ## Convenciones
 
@@ -177,7 +188,7 @@ que traducirlos al guardar; `MONEDA` todavía no cuenta como numérica para fór
 ### Zona y negocio
 
 - `zona` (global): nombre, localidad, partido, provincia, centro (`latitud`, `longitud`) y `radio_metros`.
-- `negocio` suma `rubro` (`ALMACEN`, `KIOSCO`, `MINIMERCADO`, `DIETETICA`, `OTRO`), `direccion`, `localidad`, coordenadas
+- `negocio` suma `rubro` (`ALMACEN`, `KIOSCO`, `MINIMERCADO`, `DIETETICA`, `PAPELERIA`, `OTRO`), `direccion`, `localidad`, coordenadas
   (`ck_negocio_coordenadas`: ambas o ninguna), `zona_id` y `comparte_datos_zona`. Si es `false`, el negocio no aporta a los agregados.
   ENS-69 reutiliza estas columnas con `GET/PATCH /api/business`, sin modificar migraciones. El dueño se obtiene
   desde la sesión; al guardar un punto nuevo, `zona_id` se reasigna a la zona cuyo `radio_metros` contiene el punto
@@ -186,6 +197,17 @@ que traducirlos al guardar; `MONEDA` todavía no cuenta como numérica para fór
 - `agregado_zona_producto`: precio mínimo, promedio y máximo, comercios que lo tienen y que lo venden, y unidades por semana de un
   comercio promedio. Es el dato que consume `Zona` del frontend. La privacidad la hace cumplir la base: `comercios >= 3` y
   `comercios_venden >= 3`, así nunca se guarda un dato que identifique a un comercio. Único por `(zona_id, producto_normalizado)`.
+- V24 suma `fuente_dato_zona`, `metrica_zona` y `punto_interes_zona` para «Dónde abrir». Las fuentes conservan
+  procedencia, licencia y fecha de consulta; las métricas guardan valores comparables por zona y, para competencia,
+  por rubro; los puntos conservan las coordenadas reales que se muestran en el mapa. Son snapshots globales y no
+  contienen datos de un comercio individual. Las zonas precargadas se leen de PostgreSQL. Las lecturas de Ensambla
+  sólo participan agregadas cuando cumplen el mínimo de anonimato.
+- **Lugar suelto del mapa.** `POST /api/zona/donde-abrir` acepta `punto { latitud, longitud }`: el servidor mide ahora lo que
+  hay a 500 m (Overpass / OpenStreetMap, con las mismas reglas del snapshot) y lo suma al ranking como «Punto elegido».
+  Es la única consulta externa de la navegación: se guarda 24 h por punto en memoria, no se persiste y sólo envía
+  coordenadas. Sólo se miden lugares a menos de 8 km de una zona precargada (CABA y La Matanza), que es donde hay
+  guía de trámites. Un lugar suelto no tiene vecinos, poder de compra ni demanda de Ensambla (son por zona), así que esos
+  factores no suman a su puntaje; el aviso de la respuesta lo dice.
 
 ### Avisos del motor de monitoreo
 
@@ -246,6 +268,206 @@ leerla. Un índice único parcial permite una sola propuesta abierta por teléfo
 `POST /api/whatsapp/verificacion/confirmar` (`{codigo}`: vincula el número). `GET /api/whatsapp/vinculacion` suma `numeroBot`.
 `POST /api/whatsapp/webhook` acepta el secreto también como `?token=`.
 
+## Objetivos (V24)
+
+`objetivo` guarda lo que la persona le cuenta a Sami y su meta mensual: `negocio_id` (se borra en cascada con el negocio),
+`texto` (no vacío), `meta` (`numeric(14,2)`, positiva) y `creado_en`, con un índice por `(negocio_id, creado_en)`. El historial
+de avance no se guarda: lo calcula el frontend.
+
+**API.** `GET`, `POST` y `DELETE /api/objetivos`. El `negocio_id` sale de la sesión; un objetivo de otro negocio responde 404.
+
+### Mini-objetivos (V29)
+
+`V29` suma `objetivo.alcanzado_en` (cuándo el resultado del negocio llegó a la meta; vacío mientras no la alcance) y la tabla
+`mini_objetivo`: los hasta 3 cambios o metas con números del negocio que Sami propone al definir un objetivo.
+
+- Cada fila es de un `objetivo` y de un `negocio` (los dos con borrado en cascada) y tiene su `tipo` (`SUBIR_PRECIO`,
+  `MOVER_PARADO`, `PONER_A_LA_VISTA`, `RECORTAR_GASTO`, `MEJORAR_MARGEN` o `VENTAS_SEMANALES`), su `estado` (`EN_CURSO`,
+  `LOGRADO`, `ABANDONADO` o `REEMPLAZADO`), `meta`, `valor_inicial`, `valor_actual` y `aporte_estimado` (pesos por mes),
+  la `semana_inicio` (el lunes en que se propuso), su `titulo` y `justificacion` (`texto_con_ia` dice si los redactó la IA).
+- `registro_id` es el producto del cuaderno, sin clave foránea: el producto puede borrarse. `referencia` es su nombre o la
+  categoría de gasto.
+- `posicion` va de 1 a 3 y un índice único parcial `(objetivo_id, posicion) WHERE estado = 'EN_CURSO'` garantiza como máximo
+  3 en curso por objetivo. Los reemplazados, logrados y abandonados quedan como historia y no ocupan lugar.
+- `reemplazado_por` apunta al que lo reemplazó; su clave foránea es diferida porque, al cambiar uno, el viejo se actualiza
+  antes de insertar el nuevo (un lugar lo ocupa uno solo).
+
+**API.** `GET /api/objetivos/{id}/mini-objetivos` (los en curso, el historial y por qué faltan: `POCOS_DATOS` u
+`OBJETIVO_ALCANZADO`), `GET …/{miniId}/candidatos` (hasta 3 alternativas con los datos de hoy), `POST …/{miniId}/reemplazo`
+(el candidato elegido: `tipo`, `registroId`, `referencia`) y `DELETE …/{miniId}`. Un objetivo o mini-objetivo de otro negocio
+responde 404. Al crear un objetivo (`POST /api/objetivos`) el servidor propone los 3 de mayor aporte, sin repetir tipo ni
+producto; sin datos propone los que haya. La IA sólo redacta el texto (`ensambla.objetivos.ia.habilitada`, apagada por
+defecto); el número lo calcula el servidor y, sin IA, cada uno lleva su texto de reserva.
+
+### Monitoreo silencioso de objetivos (V30)
+
+`V30` suma `mini_objetivo.sin_avance_desde` (desde qué día el valor de un mini-objetivo en curso no mejora; vacío si viene
+mejorando) y la tabla `progreso_objetivo`: una foto por día del avance.
+
+- Cada fila es de un `objetivo` (borrado en cascada) y, si es de un mini-objetivo, de un `mini_objetivo` (también en cascada).
+  `mini_objetivo_id` vacío es la foto del objetivo mayor: su `valor` es el resultado del negocio de los últimos 30 días; el de
+  un mini-objetivo es su métrica. `dia` es el día argentino y `medido_en` el instante de la medición.
+- `ux_progreso_dia` (`UNIQUE NULLS NOT DISTINCT (objetivo_id, mini_objetivo_id, dia)`) garantiza una sola foto por sujeto y
+  día: la última pasada del día pisa a la anterior (`INSERT … ON CONFLICT … DO UPDATE`, así dos pasadas a la vez no chocan).
+- No hay `negocio_id`: se llega siempre desde un objetivo ya comprobado como del negocio de la sesión.
+
+**Worker.** `MonitoreoObjetivosWorker` corre `MonitorearObjetivos` cada hora (`ensambla.objetivos.monitoreo.habilitado`,
+`.intervalo`, `.demora-inicial` y `.tamano-tanda`: 50 negocios por vez, una transacción por negocio y un `try/catch` por
+negocio). Mide el resultado del negocio y la métrica de cada mini-objetivo en curso, marca como `LOGRADO` el que llegó a su
+meta y el objetivo cuyo resultado la alcanzó (`alcanzado_en`), y a un objetivo que nunca tuvo mini-objetivos le propone los
+suyos con texto de reserva. **No crea avisos ni manda mensajes**: el caso de uso no recibe ningún puerto que lo permita y
+un test de integración cuenta las filas de `aviso` antes y después de una pasada.
+
+**API.** `GET /api/objetivos/{id}/progreso`: la serie semanal (la última foto de cada semana, de lunes a domingo) del objetivo
+y de cada mini-objetivo en curso o logrado, con el hito `OBJETIVO_ALCANZADO`, `MINI_LOGRADO` o `SIN_AVANCE` (14 días sin
+mejorar) si corresponde. Las semanas anteriores a la primera foto del objetivo se completan con el resultado que se calcula
+con los cuadernos, marcadas `estimado: true`. Un objetivo de otro negocio responde 404.
+
+### Decisiones frente a un objetivo (V31)
+
+`V31` crea `decision_objetivo`: lo que la persona decidió frente a cada objetivo, para dibujarlo en el gráfico de la semana y
+mostrar qué efecto tuvo.
+
+- Una fila por objetivo activo del negocio (sin `alcanzado_en`), con `tipo` (`AVISO_APLICADO`, `AVISO_DESCARTADO`,
+  `PASO_ACEPTADO` o `PASO_IGNORADO`), `descripcion` (el título del aviso o del paso), `tomada_en` y `semana_inicio` (el lunes en
+  hora argentina). Si el negocio no tiene objetivos, no se guarda nada.
+- `mini_objetivo_id` es el mini-objetivo en curso del producto del aviso (o el que se aceptó o ignoró); queda vacío si ninguno
+  coincide, y también si el mini-objetivo se borra (`ON DELETE SET NULL`). `aviso_id` sigue el mismo criterio. `registro_id` es
+  el producto, sin clave foránea.
+- `ux_decision_aviso` (`UNIQUE (objetivo_id, aviso_id) WHERE aviso_id IS NOT NULL`) evita registrar dos veces el mismo aviso en un
+  objetivo.
+- **Se anotan solas.** `AplicarAviso` y `DescartarAviso` llaman a `DecisionesObjetivoService.registrarAviso` **dentro de su
+  transacción**: el aviso y la decisión se guardan juntos o no se guarda ninguno. «Ignorar» un paso es explícito: un botón, no se
+  deduce de no hacer nada. Aceptar un paso no cambia nada del cuaderno.
+
+**API.** `POST /api/objetivos/{id}/mini-objetivos/{miniId}/decisiones` con `{ "tipo": "ACEPTADO" | "IGNORADO" }` (201; el
+mini-objetivo tiene que estar en curso) y `GET /api/objetivos/{id}/decisiones`: las decisiones por semana, de la más nueva a la más
+vieja. Cada una trae su `efecto`: `MEDIDO` con `deltaIngresoSemanal` (lo que cambió el ingreso semanal del producto, que mide
+`MedirImpactoAvisos` a los 14 días en avisos `ESTANCADO` y `STOCK` aplicados), `MIDIENDO` mientras la ventana no terminó, o
+`SIN_MEDICION` (avisos descartados, pasos y tipos que no se miden). Un objetivo o mini-objetivo de otro negocio responde 404.
+
+### Cierre del domingo y reajuste (V32)
+
+`V32` crea `resumen_semanal_objetivo` (cómo terminó cada semana de un objetivo) y `reajuste_mini_objetivo` (qué mini-objetivo
+se cambió en ese cierre y por qué).
+
+- `resumen_semanal_objetivo`: una fila por objetivo y semana (`semana_inicio`, el lunes argentino), borrada en cascada con el
+  objetivo. Guarda `resultado` (los últimos 30 días al domingo), `avance` (de 0 a 1 frente a la meta), el conteo de decisiones
+  de la semana (`decisiones_aplicadas`, `_descartadas`, `_aceptadas`, `_ignoradas`), `minis` (jsonb con el valor de cada
+  mini-objetivo al cierre: `[{"miniObjetivoId": "…", "valor": "123.45"}]`), `que_funciono` (el resumen en palabras),
+  `texto_con_ia` y `cerrado_en`.
+- `ux_resumen_semana` (`UNIQUE (objetivo_id, semana_inicio)`) hace el cierre idempotente: si otra corrida ya cerró la semana,
+  el repositorio lo informa como duplicado y se sigue con la próxima.
+- `reajuste_mini_objetivo`: cuelga del resumen (cascada). `mini_anterior_id` es el que se dejó y `mini_nuevo_id` el que lo
+  siguió (`ON DELETE SET NULL`). `tipo` es `SUBIR_META`, `REEMPLAZAR` o `PROBAR_OTRO_CAMINO`; `motivo` es el texto para la
+  persona. Guarda títulos y metas de ese momento para poder contarlo después.
+
+**Reglas del reajuste.** Si el objetivo ya llegó a la meta o la semana no tuvo ventas, no se cambia nada. Si no: un
+mini-objetivo logrado sube su meta (o, si no se puede pedir más, se reemplaza); uno quitado por la persona o cuyo producto ya
+no está en el cuaderno se reemplaza; si se aplicó un aviso y las ventas no subieron, se prueba otro tipo de mini-objetivo; si
+pasaron dos cierres sin mejorar, se reemplaza. Un reemplazo no repite un mini-objetivo de las últimas 4 semanas.
+
+**Worker.** `CierreSemanalObjetivosWorker` corre `CerrarSemanasObjetivos` los domingos 23:30 (hora argentina) y una vez al
+arrancar, para cerrar las semanas que quedaron sin cerrar (`ensambla.objetivos.cierre.habilitado`, `.cron`,
+`.max-semanas-pendientes`: 8, `.tamano-tanda`: 50). Una transacción por objetivo y semana. **No crea avisos ni manda mensajes.**
+
+**API.** `GET /api/objetivos/{id}/semanas`: `{ ultimoCierre, semanas: [{ semana, resultado, avance, decisiones, queFunciono,
+textoConIa, reajustes: [{ tipo, motivo, de: { titulo, meta }, a }] }] }`, de la más nueva a la más vieja. Un objetivo de otro
+negocio responde 404.
+
+### Objetivos con Sami: tipo y modo (V34)
+
+Diseño completo en [`objetivos-con-sami.md`](objetivos-con-sami.md). `V34` deja que un objetivo no tenga meta en pesos y que un
+mini-objetivo no tenga números.
+
+- `objetivo.tipo` (`MONETARIO`, `CON_DATOS`, `SIN_DATOS` o `HIBRIDO`, por defecto `MONETARIO`) y `objetivo.armado_con_sami`
+  (si lo armó Sami con IA; es lo que cuenta para la cuota mensual). `objetivo.meta` ahora admite `NULL`, y la restricción
+  `ck_objetivo_meta_segun_tipo` exige que **sólo** el monetario la tenga.
+- `mini_objetivo.modo` (`MEDIDO` o `MANUAL`, por defecto `MEDIDO`). En uno `MANUAL` (una acción que la persona responde)
+  `tipo`, `registro_id`, `referencia`, `meta`, `valor_inicial`, `valor_actual` y `aporte_estimado` son `NULL`; en uno `MEDIDO`
+  todos los números y el `tipo` son obligatorios (`ck_mini_objetivo_segun_modo`). `tipo`, `meta`, `valor_inicial`,
+  `valor_actual` y `aporte_estimado` ahora admiten `NULL`.
+- Los objetivos y mini-objetivos que ya existían quedan `MONETARIO` y `MEDIDO`: no cambia nada de lo que ven.
+- Sin meta en pesos el objetivo nunca se da por alcanzado solo, el monitoreo no le propone mini-objetivos medidos y el
+  resumen del domingo guarda `avance = 0`. El monitoreo, el cierre y el progreso sólo miran los mini-objetivos medidos.
+
+**API.** `GET`/`POST /api/objetivos` suman `tipo` y `armadoConSami` y `meta` puede ser `null`; los mini-objetivos suman `modo`
+(en un manual `tipo`, `sentido`, `valorInicial`, `valorActual`, `meta`, `avance`, `aporteEstimado`, `registroId` y
+`referencia` son `null`).
+
+### Armar un objetivo con Sami (sin cambios de esquema)
+
+Usa lo de V34 (diseño en [`objetivos-con-sami.md`](objetivos-con-sami.md)). La conversación no se guarda: el frontend manda
+el historial en cada pedido y el servidor lo acota (hasta 6 mensajes de la persona de 500 caracteres,
+`ensambla.objetivos.ia.max-mensajes`).
+
+**API.** `POST /api/objetivos/sami/propuesta` (`{ mensajes: [{ rol: PERSONA|SAMI, texto }] }`): Sami contesta con los datos del
+negocio y propone hasta 3 mini-objetivos, sin guardar nada ni gastar cuota: `{ respuesta, entendido, tipo, esMonetario, minis,
+datos, origen, mensajesRestantes, puedeGuardar }`. Un `MEDIDO` sale de una métrica del catálogo con los números del servidor;
+un `MANUAL` es una acción sin números. Si la IA está apagada, sin acceso, sin reserva diaria, falla o responde algo inválido,
+`origen` es `RESPALDO` y la propuesta es un solo manual de seguimiento. `POST /api/objetivos/sami` (`{ texto,
+seguimientoManual?, minis: [...] }`, `201`) guarda el objetivo: de cada medido sólo se manda cuál es (`tipo`, `registroId`,
+`referencia`) y el servidor vuelve a calcular todo; el `tipo` del objetivo lo deduce el servidor. `400` si no hay entre 1 y 3,
+uno medido ya no está en el catálogo, dos miden lo mismo o una acción trae importes o porcentajes.
+
+**IA.** Puerto `ConversacionObjetivosIaPort` (proveedor simulado por defecto, sin costo). A la IA se le manda el texto de la
+persona como dato (sin correos ni teléfonos), el catálogo de métricas con códigos y datos agregados del negocio y de la zona;
+nunca nombres, contactos ni clientes. Una métrica fuera del catálogo se descarta y una acción con `$` o `%` también.
+`ensambla.objetivos.ia.conversacion-habilitada` apaga la conversación. Comparte el contador diario de Sami
+(`ensambla.objetivos.ia.limite-diario`). La cuota mensual por plan está en «Cuota mensual de objetivos con IA (V36)».
+
+### Cuota mensual de objetivos con IA (V36)
+
+`V36` suma `plan.limite_objetivos_ia_mensuales` (Gratuito 5, Premium 20; vacío es sin límite; `CHECK >= 0`) y la tabla
+`consumo_objetivo_ia`: una fila por objetivo armado con Sami con IA que se guardó (`negocio_id` con borrado en cascada,
+`objetivo_id` **sin** clave foránea y `consumido_en`). Borrar el objetivo no devuelve la cuota del mes. El mes es el del
+calendario argentino. Un monetario del formulario clásico y el seguimiento manual no gastan cuota.
+
+**API.** Guardar con IA sin cuota responde `403` con `codigo: "LIMITE_OBJETIVOS_IA"`. `GET /api/planes` suma
+`planes[].limiteObjetivosIaMensuales` y `uso.objetivosIa` / `uso.limiteObjetivosIa`; la propuesta de Sami trae `cuota`.
+
+### Métricas nuevas del catálogo (V37)
+
+`V37` amplía el `CHECK` de `mini_objetivo.tipo` con tres métricas del negocio (ninguna de un producto: `registro_id` y
+`referencia` quedan vacíos). Las mide el servidor; sin datos dicen «no se puede medir» y nunca un número inventado:
+
+| Tipo | Qué mide | Sentido | Meta | Sin datos cuando |
+|---|---|---|---|---|
+| `PRODUCTOS_BAJO_EL_MINIMO` | cuántos productos están en el mínimo que definió el negocio (campo `minimum`) o por debajo | baja | 0 | ningún producto tiene un mínimo positivo |
+| `CAPITAL_PARADO` | pesos de mercadería (costo × stock) de lo que no se vendió en 30 días | baja | el 75 % de hoy | no hubo ventas en 30 días o no hay productos con precio y costo |
+| `VARIEDAD_VENDIDA` | productos distintos vendidos en los últimos 7 días | sube | uno más (sólo si hay más productos que los vendidos) | no hubo ventas en 30 días o no hay productos |
+
+Como no suman al resultado mensual, su `aporte_estimado` es 0 (sin estimación): quedan al final del ranking y sólo llenan
+lugares que las métricas que suman no ocupan, o las elige Sami. Quedan para después las de H-58 (fiados pendientes y clientes
+que compran).
+
+### Cierre del domingo con mini-objetivos manuales (V38)
+
+`V38` deja que el cierre renueve los manuales (diseño en [`objetivos-con-sami.md`](objetivos-con-sami.md)):
+`reajuste_mini_objetivo.meta_anterior` admite `NULL` (un manual no tiene meta) y `resumen_semanal_objetivo.manuales` (jsonb,
+por defecto `[]`) guarda por cada manual en curso al cierre `{miniObjetivoId, titulo, hizo, quePaso}`; `hizo` en `null` es un
+manual sin respuesta, que no se renueva hasta que se responda. `GET /api/objetivos/{id}/semanas` suma `manuales` a cada
+semana.
+
+### Responder un mini-objetivo manual (V35)
+
+`V35` crea `respuesta_mini_objetivo`: lo que la persona cuenta de un mini-objetivo manual (diseño en
+[`objetivos-con-sami.md`](objetivos-con-sami.md)).
+
+- Cuelga del `mini_objetivo` (`mini_objetivo_id`, **único**: un manual se responde una sola vez y la respuesta no se pisa),
+  del `objetivo` y del `negocio` (los tres con borrado en cascada).
+- `hizo` (`SI`, `EN_PARTE`, `NO`) y `que_paso` (`FUNCIONO`, `NO_TUVE_TIEMPO`, `NO_FUNCIONO`, `OTRA`, obligatoria). No admite
+  «lo hice» con «no tuve tiempo». `comentario` es opcional (hasta 300 caracteres), `semana_inicio` es el lunes argentino de la
+  semana en que se respondió y `respondida_en` el instante.
+- Cada respuesta deja una fila en `decision_objetivo` con tipo `MINI_HECHO`, `MINI_EN_PARTE` o `MINI_NO_HECHO` (el título del
+  mini-objetivo como descripción), que `V35` suma al `CHECK` de `tipo`. El efecto de esas decisiones es `SIN_MEDICION`.
+- Responder **no cambia el estado** del mini-objetivo: sigue «en curso» hasta que el cierre del domingo lo renueve (T-247).
+
+**API.** `POST /api/objetivos/{id}/mini-objetivos/{miniId}/respuesta` (`{ hizo, quePaso, comentario? }`, `201`): `400` si el
+mini-objetivo es medido o ya no está en curso o la combinación es contradictoria, `409` si ya se respondió, `404` si es de otro
+negocio. `GET /api/objetivos/respuestas-pendientes` lista los manuales en curso sin respuesta de todos los objetivos del
+negocio, del más viejo al más nuevo.
+
 ## Datos de prueba (V10)
 
 `V10__datos_prueba_san_justo.sql` crea la zona **San Justo - UNLaM** (centro en la universidad, radio 1500 m), 10 comercios
@@ -272,6 +494,41 @@ producción hay que borrarlo antes de publicar.
   `INSERT … ON CONFLICT DO UPDATE … WHERE consultas < límite`, atómica por negocio y día.
 
 Detalles: [sami-asistente.md](sami-asistente.md).
+
+### Métricas a medida (V43, V44, V45)
+
+`V43__metrica.sql` crea `metrica`: lo que la persona guarda en un cuaderno para verlo en la home, sea una sugerida de su
+rubro o una que armó ella. Se guarda la **receta**, nunca el número: el servidor lo calcula cada vez con las filas reales.
+
+- Pertenece a un `negocio` y a un `proyecto` (cuaderno), los dos con borrado en cascada. Una métrica de otro negocio o de otro
+  cuaderno responde 404.
+- La receta son columnas con `CHECK`: `fuente` (`VENTAS`, `GASTOS`, `INVENTARIO`), `calculo` (`SUMA`, `PROMEDIO`, `CONTEO`,
+  `UNIDADES`, `GANANCIA`, `COSTO`), `agrupar` (`NINGUNA`, `PRODUCTO`, `CLIENTE`, `CATEGORIA`, `DIA_DE_LA_SEMANA`), `periodo` (`HOY`, `SEMANA`, `MES`,
+  `TODO`) y `solo_fiado`. Qué combinaciones valen lo decide el dominio (`DefinicionMetrica.validar()`).
+- `orden` es el lugar en el panel (de menor a mayor) y `autoria` es `SUGERIDA` (del catálogo del rubro) o `PROPIA`.
+- Un cuaderno guarda hasta 12 y no repite una receta, aunque el nombre cambie. Tampoco guarda lo que ya muestra el panel
+  de ventas del inicio (las ventas sumadas, sin repartir, de hoy, la semana o el mes).
+- `V44__grafico_metrica.sql` suma `grafico` (`NUMERO`, `BARRAS`, `DONA`, `LINEA`, o `NULL`): cómo se dibuja en su solapa.
+  `NULL` mientras la persona no eligió; el dominio usa el de siempre para su reparto (sin repartir, el número; repartida, las
+  barras). Qué gráficos sirven para cada reparto lo decide `GraficoMetrica`.
+- `V45__metrica_calculo_ganancia_y_costo.sql` amplía el `CHECK` de `calculo` con `GANANCIA` y `COSTO`.
+
+El catálogo de sugeridas vive en `resources/metricas/catalogo-metricas.json`, por rubro del negocio (`RubroNegocio`).
+
+**API.** Bajo `/api/proyectos/{proyectoId}/metricas`: `GET` (las guardadas, cada una con su resultado y «de dónde sale»),
+`GET /sugeridas`, `GET /fuentes` (de qué se puede armar en ese cuaderno), `POST /previsualizar` (calcula sin guardar),
+`POST` (201), `PATCH /{metricaId}` (nombre), `PATCH /{metricaId}/lugar`, `PATCH /{metricaId}/grafico`
+y `DELETE /{metricaId}` (204).
+
+### Objetivo de la cuenta demo (V33)
+
+`V33__objetivo_demo.sql` le suma a `demo@ensambla.test` 12 semanas de ventas que van mejorando (un 4 % más por semana;
+uno de cada cuatro productos vende siempre lo mismo), hasta el día en que se aplica la migración, con `origen = 'Demo de
+objetivos'`. También le crea un objetivo de hace 8 semanas con una meta del doble de lo que dejaron esas ventas en los
+últimos 30 días, redondeada a $10.000; las 4 semanas de antes llenan los 30 días de las primeras semanas del objetivo.
+Deja afuera el azúcar y los productos sin stock, para no romper los avisos del demo de V10.
+Los mini-objetivos, los cierres y los reajustes los arma el sistema solo, con el cierre al arrancar y el monitoreo.
+Busca todo por email y por clave de columna: sin la cuenta demo (por ejemplo, en producción) no hace nada.
 
 ## Aislamiento entre negocios (T-010, T-011)
 
@@ -548,6 +805,23 @@ pocos bloques por negocio, mandarlos en el prompt es más simple y barato que ma
 falta buscar registros "parecidos" o deduplicar con muchos datos, se agrega en una migración nueva
 (`CREATE EXTENSION vector`, columna `vector(n)` + índice HNSW) y la imagen `pgvector/pgvector:pg17` en Docker y
 Testcontainers.
+
+## Caja: importes libres y movimientos (ENS-317)
+
+El JSON de `venta_caja.datos.lineas` admite `productoId: null` para una línea por importe libre,
+con nombre descriptivo, cantidad 1 y precio/importe positivos. No se crea un registro de inventario.
+La tabla genérica Ventas conserva la línea sin relación Producto y con el origen canónico Caja + id.
+La descripción queda en el comprobante. Inicio incorpora los importes libres desde ese comprobante, sin productos ficticios.
+Los pagos y cobros posteriores conservan el mismo esquema; las cuentas agrupadas son una proyección de lectura.
+No se modifica ninguna migración aplicada ni hace falta agregar columnas para estos datos.
+
+Una salida de caja reutiliza `movimiento_stock`: sincroniza el saldo con la cantidad actual del inventario
+mediante un ajuste identificado cuando difiere y registra luego una SALIDA por la venta.
+Venta, cantidades, ajuste y salida comparten transacción y bloqueo por negocio; el reintento no crea movimientos.
+Los importes libres y artículos sin control de stock no generan salidas.
+Los cierres nuevos exigen recuento y motivo de diferencias en el modelo; los JSON históricos con null se siguen leyendo.
+
+Ver [contratos y anulación](caja-contratos.md) y [aceptación](caja-validacion.md).
 
 ## Qué queda para después
 

@@ -7,8 +7,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import tools.jackson.databind.json.JsonMapper;
 
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class ValidacionEstructuraIaTest {
 
@@ -18,30 +18,39 @@ class ValidacionEstructuraIaTest {
              "filas":[{"pagina":1,"renglon":1,"datos":{"monto":{"valor":"10","confianza":0.9}}}],
              "advertencias":["Aviso"]}
             """;
+
     private final ValidacionEstructuraIa validacionEstructuraIa = new ValidacionEstructuraIa();
     private final JsonMapper jsonMapper = JsonMapper.builder().build();
 
+    private String json = JSON;
+    private Throwable rechazo;
+
     @Test
     @DisplayName("Acepta objetos con los tipos JSON esperados")
-    void validarShouldAcceptExpectedShapes() {
-        assertThatCode(() -> validacionEstructuraIa.validar(jsonMapper.readTree(JSON))).doesNotThrowAnyException();
+    void aceptaObjetosConLosTiposJsonEsperados() {
+        cuandoSeValida();
+
+        entoncesSeAcepta();
     }
 
     @Test
     @DisplayName("Acepta un campo de conexión")
-    void validarShouldAcceptRelacionTipo() {
-        String json = JSON.replace("\"tipo\":\"NUMERO\"", "\"tipo\":\"RELACION\"");
+    void aceptaUnCampoDeConexion() {
+        dadoUnJsonCon("\"tipo\":\"NUMERO\"", "\"tipo\":\"RELACION\"");
 
-        assertThatCode(() -> validacionEstructuraIa.validar(jsonMapper.readTree(json))).doesNotThrowAnyException();
+        cuandoSeValida();
+
+        entoncesSeAcepta();
     }
 
     @Test
     @DisplayName("Acepta valores nulos sin inventar texto")
-    void validarShouldAcceptNullValuesAndStringBlockId() {
-        String json = JSON.replace("\"valor\":\"10\"", "\"valor\":null")
-                .replace("\"bloqueExistenteId\":null", "\"bloqueExistenteId\":\"id\"");
+    void aceptaValoresNulosSinInventarTexto() {
+        dadoUnJsonConValorNuloYBloqueExistenteDeTexto();
 
-        assertThatCode(() -> validacionEstructuraIa.validar(jsonMapper.readTree(json))).doesNotThrowAnyException();
+        cuandoSeValida();
+
+        entoncesSeAcepta();
     }
 
     @ParameterizedTest
@@ -49,7 +58,6 @@ class ValidacionEstructuraIaTest {
             "\"tipoRegistro\":\"VENTAS\"|\"tipoRegistro\":1",
             "\"tipoRegistro\":\"VENTAS\"|\"tipoRegistro\":\"ventas\"",
             "\"tipo\":\"NUMERO\"|\"tipo\":\"numero\"",
-            "\"bloque\":{|\"bloque\":[",
             "\"bloqueExistenteId\":null|\"bloqueExistenteId\":1",
             "\"campos\":[|\"campos\":null, \"otro\":[",
             "\"opciones\":[\"A\"]|\"opciones\":null",
@@ -62,46 +70,101 @@ class ValidacionEstructuraIaTest {
             "\"confianza\":0.9|\"confianza\":\"0.9\""
     })
     @DisplayName("Rechaza conversiones implícitas y formas JSON incompatibles")
-    void validarShouldRejectWrongShapes(String original, String reemplazo) {
-        String json = JSON.replace(original, reemplazo);
-        if (original.equals("\"bloque\":{")) {
-            json = JSON.replace("\"bloque\":", "\"otro\":")
-                    .replace("\"tipoRegistro\":", "\"bloque\":null,\"tipoRegistro\":");
-        }
+    void rechazaConversionesImplicitasYFormasJsonIncompatibles(String original, String reemplazo) {
+        dadoUnJsonCon(original, reemplazo);
 
-        String salida = json;
-        assertThatThrownBy(() -> validacionEstructuraIa.validar(jsonMapper.readTree(salida)))
-                .isInstanceOf(LecturaCuadernoException.class);
+        cuandoSeIntentaValidar();
+
+        entoncesSeRechaza();
+    }
+
+    @Test
+    @DisplayName("Rechaza un bloque nulo")
+    void rechazaUnBloqueNulo() {
+        dadoUnJsonConElBloqueNulo();
+
+        cuandoSeIntentaValidar();
+
+        entoncesSeRechaza();
     }
 
     @Test
     @DisplayName("Rechaza una raíz que no es objeto")
-    void validarShouldRejectNonObjectRoot() {
-        assertThatThrownBy(() -> validacionEstructuraIa.validar(jsonMapper.readTree("null")))
-                .isInstanceOf(LecturaCuadernoException.class);
+    void rechazaUnaRaizQueNoEsObjeto() {
+        dadoUnJsonDeRaiz("null");
+
+        cuandoSeIntentaValidar();
+
+        entoncesSeRechaza();
     }
 
     @Test
     @DisplayName("Rechaza elementos de campos que no son objetos")
-    void validarShouldRejectNonObjectField() {
-        String json = JSON.replace("\"campos\":[", "\"campos\":[1,");
-        assertThatThrownBy(() -> validacionEstructuraIa.validar(jsonMapper.readTree(json)))
-                .isInstanceOf(LecturaCuadernoException.class);
+    void rechazaElementosDeCamposQueNoSonObjetos() {
+        dadoUnJsonCon("\"campos\":[", "\"campos\":[1,");
+
+        cuandoSeIntentaValidar();
+
+        entoncesSeRechaza();
     }
 
     @Test
     @DisplayName("Rechaza filas que no son objetos")
-    void validarShouldRejectNonObjectRow() {
-        String json = JSON.replace("\"filas\":[", "\"filas\":[1,");
-        assertThatThrownBy(() -> validacionEstructuraIa.validar(jsonMapper.readTree(json)))
-                .isInstanceOf(LecturaCuadernoException.class);
+    void rechazaFilasQueNoSonObjetos() {
+        dadoUnJsonCon("\"filas\":[", "\"filas\":[1,");
+
+        cuandoSeIntentaValidar();
+
+        entoncesSeRechaza();
     }
 
     @Test
     @DisplayName("Rechaza datos que no son objetos")
-    void validarShouldRejectNonObjectData() {
-        String json = JSON.replace("\"monto\":{", "\"monto\":1,\"otro\":{");
-        assertThatThrownBy(() -> validacionEstructuraIa.validar(jsonMapper.readTree(json)))
-                .isInstanceOf(LecturaCuadernoException.class);
+    void rechazaDatosQueNoSonObjetos() {
+        dadoUnJsonCon("\"monto\":{", "\"monto\":1,\"otro\":{");
+
+        cuandoSeIntentaValidar();
+
+        entoncesSeRechaza();
+    }
+
+    // --- dado ---
+
+    private void dadoUnJsonCon(String original, String reemplazo) {
+        json = JSON.replace(original, reemplazo);
+    }
+
+    private void dadoUnJsonConValorNuloYBloqueExistenteDeTexto() {
+        json = JSON.replace("\"valor\":\"10\"", "\"valor\":null")
+                .replace("\"bloqueExistenteId\":null", "\"bloqueExistenteId\":\"id\"");
+    }
+
+    private void dadoUnJsonConElBloqueNulo() {
+        json = JSON.replace("\"bloque\":", "\"otro\":")
+                .replace("\"tipoRegistro\":", "\"bloque\":null,\"tipoRegistro\":");
+    }
+
+    private void dadoUnJsonDeRaiz(String raiz) {
+        json = raiz;
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeValida() {
+        validacionEstructuraIa.validar(jsonMapper.readTree(json));
+    }
+
+    private void cuandoSeIntentaValidar() {
+        rechazo = catchThrowable(this::cuandoSeValida);
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeAcepta() {
+        assertThat(rechazo).isNull();
+    }
+
+    private void entoncesSeRechaza() {
+        assertThat(rechazo).isInstanceOf(LecturaCuadernoException.class);
     }
 }

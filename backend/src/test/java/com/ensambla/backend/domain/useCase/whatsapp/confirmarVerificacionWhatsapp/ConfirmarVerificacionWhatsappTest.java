@@ -25,7 +25,7 @@ import java.time.ZoneOffset;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
@@ -40,6 +40,7 @@ class ConfirmarVerificacionWhatsappTest {
     private static final Instant INSTANTE = Instant.parse("2026-10-27T12:00:00Z");
     private static final OffsetDateTime AHORA = OffsetDateTime.ofInstant(INSTANTE, ZoneOffset.UTC);
     private static final String TELEFONO = "5491122334455";
+    private static final String CODIGO = "123456";
 
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final VerificacionWhatsappRepository verificacionRepository =
@@ -51,57 +52,117 @@ class ConfirmarVerificacionWhatsappTest {
             .confirmarVerificacionWhatsapp(negocioRepository, verificacionRepository,
                     new VinculacionWhatsappService(vinculoRepository, verificacionRepository), mensajeria,
                     new TransaccionDirecta(), Clock.fixed(INSTANTE, ZoneOffset.UTC));
+    private VerificacionWhatsapp verificacion;
+    private ConfirmarVerificacionWhatsappResponse vinculacion;
+    private Throwable error;
 
     @Test
-    @DisplayName("Con el código correcto vincula el número, descarta la verificación y da la bienvenida")
-    void executeShouldLinkNumberWithRightCode() {
-        VerificacionWhatsapp verificacion = givenVerificacion("123456");
-        when(vinculoRepository.save(any(VinculoWhatsapp.class))).thenAnswer(i -> i.getArgument(0));
-        when(mensajeria.numeroBot()).thenReturn("5491155550000");
+    @DisplayName("Con el código correcto vincula el número y lo informa junto con el número del bot")
+    void conElCodigoCorrectoVinculaElNumero() {
+        dadoQueSeLeMandoUnCodigo();
+        dadoQueElBotEs("5491155550000");
 
-        ConfirmarVerificacionWhatsappResponse result = confirmar.execute(request("123456"));
+        cuandoConfirmaCon(CODIGO);
 
-        assertThat(result.telefono()).isEqualTo(TELEFONO);
-        assertThat(result.numeroBot()).isEqualTo("5491155550000");
-        verify(vinculoRepository).deleteByUsuarioId(USUARIO_ID);
-        verify(verificacionRepository).deleteByUsuarioId(USUARIO_ID);
-        verify(mensajeria).enviarTexto(TELEFONO, TextosWhatsapp.BIENVENIDA);
-        assertThat(verificacion.getIntentos()).isEqualTo(1);
+        entoncesQuedoVinculadoA(TELEFONO);
+        entoncesElNumeroDelBotEs("5491155550000");
+        entoncesSeContoElIntento();
+    }
+
+    @Test
+    @DisplayName("Con el código correcto descarta el vínculo y la verificación anteriores y da la bienvenida")
+    void conElCodigoCorrectoDescartaLoAnteriorYDaLaBienvenida() {
+        dadoQueSeLeMandoUnCodigo();
+        dadoQueElBotEs("5491155550000");
+
+        cuandoConfirmaCon(CODIGO);
+
+        entoncesSeDescartoLoAnterior();
+        entoncesSeLeDioLaBienvenida();
     }
 
     @Test
     @DisplayName("Con un código incorrecto guarda el intento, no vincula y avisa cuántos quedan")
-    void executeShouldCountWrongAttemptAndNotLink() {
-        VerificacionWhatsapp verificacion = givenVerificacion("123456");
+    void conUnCodigoIncorrectoGuardaElIntentoYNoVincula() {
+        dadoQueSeLeMandoUnCodigo();
 
-        assertThatThrownBy(() -> confirmar.execute(request("000000")))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("El código no es correcto. Te quedan 4 intentos");
+        cuandoIntentaConfirmarCon("000000");
 
-        verify(verificacionRepository).save(verificacion);
-        verify(vinculoRepository, never()).save(any());
-        verify(mensajeria, never()).enviarTexto(any(), any());
+        entoncesSeRechazaPorque("El código no es correcto. Te quedan 4 intentos");
+        entoncesSeGuardoElIntento();
+        entoncesNoSeVinculoNiSeMandoNada();
     }
 
     @Test
     @DisplayName("Sin haber pedido un código responde como inexistente")
-    void executeShouldFailWithoutVerification() {
+    void sinHaberPedidoUnCodigoRespondeComoInexistente() {
+        dadoQueNoPidioNingunCodigo();
+
+        cuandoIntentaConfirmarCon(CODIGO);
+
+        entoncesNoSeEncuentra();
+    }
+
+    private void dadoQueSeLeMandoUnCodigo() {
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        verificacion = VerificacionWhatsapp.nueva(USUARIO_ID, new TelefonoWhatsapp(TELEFONO), CODIGO,
+                AHORA.minusMinutes(1));
+        when(verificacionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(verificacion));
+        when(vinculoRepository.save(any(VinculoWhatsapp.class))).thenAnswer(guardado -> guardado.getArgument(0));
+    }
+
+    private void dadoQueNoPidioNingunCodigo() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(verificacionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> confirmar.execute(request("123456")))
-                .isInstanceOf(ResourceNotFoundException.class);
     }
 
-    private VerificacionWhatsapp givenVerificacion(String codigo) {
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        VerificacionWhatsapp verificacion = VerificacionWhatsapp.nueva(USUARIO_ID, new TelefonoWhatsapp(TELEFONO),
-                codigo, AHORA.minusMinutes(1));
-        when(verificacionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(verificacion));
-        return verificacion;
+    private void dadoQueElBotEs(String numero) {
+        when(mensajeria.numeroBot()).thenReturn(numero);
     }
 
-    private static ConfirmarVerificacionWhatsappRequest request(String codigo) {
-        return new ConfirmarVerificacionWhatsappRequest(USUARIO_ID, codigo);
+    private void cuandoConfirmaCon(String codigo) {
+        vinculacion = confirmar.execute(new ConfirmarVerificacionWhatsappRequest(USUARIO_ID, codigo));
+    }
+
+    private void cuandoIntentaConfirmarCon(String codigo) {
+        error = catchThrowable(() -> cuandoConfirmaCon(codigo));
+    }
+
+    private void entoncesQuedoVinculadoA(String telefono) {
+        assertThat(vinculacion.telefono()).isEqualTo(telefono);
+    }
+
+    private void entoncesElNumeroDelBotEs(String numero) {
+        assertThat(vinculacion.numeroBot()).isEqualTo(numero);
+    }
+
+    private void entoncesSeContoElIntento() {
+        assertThat(verificacion.getIntentos()).isEqualTo(1);
+    }
+
+    private void entoncesSeDescartoLoAnterior() {
+        verify(vinculoRepository).deleteByUsuarioId(USUARIO_ID);
+        verify(verificacionRepository).deleteByUsuarioId(USUARIO_ID);
+    }
+
+    private void entoncesSeLeDioLaBienvenida() {
+        verify(mensajeria).enviarTexto(TELEFONO, TextosWhatsapp.BIENVENIDA);
+    }
+
+    private void entoncesSeRechazaPorque(String mensaje) {
+        assertThat(error).isInstanceOf(BusinessRuleException.class).hasMessage(mensaje);
+    }
+
+    private void entoncesSeGuardoElIntento() {
+        verify(verificacionRepository).save(verificacion);
+    }
+
+    private void entoncesNoSeVinculoNiSeMandoNada() {
+        verify(vinculoRepository, never()).save(any());
+        verify(mensajeria, never()).enviarTexto(any(), any());
+    }
+
+    private void entoncesNoSeEncuentra() {
+        assertThat(error).isInstanceOf(ResourceNotFoundException.class);
     }
 }

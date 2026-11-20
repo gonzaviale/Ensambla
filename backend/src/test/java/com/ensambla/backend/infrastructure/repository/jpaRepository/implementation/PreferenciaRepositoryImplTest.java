@@ -25,26 +25,58 @@ class PreferenciaRepositoryImplTest {
     private final PreferenciaRepositoryImpl repository =
             new PreferenciaRepositoryImpl(jpa, new PreferenciaRepositoryMapper());
 
+    private Optional<PreferenciaUsuario> encontrada;
+    private PreferenciaUsuario guardada;
+
     @Test
     @DisplayName("Busca las preferencias por usuario y las mapea al dominio")
-    void findByUsuarioIdShouldMap() {
-        when(jpa.findById(USUARIO_ID.valor())).thenReturn(Optional.of(entity()));
+    void buscaLasPreferenciasPorUsuarioYLasMapeaAlDominio() {
+        dadoQueElUsuarioTienePreferencias();
 
-        assertThat(repository.findByUsuarioId(USUARIO_ID)).map(PreferenciaUsuario::getUsuarioId).contains(USUARIO_ID);
+        cuandoSeBuscanLasPreferenciasDelUsuario();
+
+        entoncesSeEncuentranLasPreferenciasDelUsuario();
     }
 
     @Test
     @DisplayName("Guarda las preferencias y devuelve lo persistido")
-    void saveShouldReturnPersisted() {
-        when(jpa.save(any(PreferenciaUsuarioEntity.class))).thenReturn(entity());
+    void guardaLasPreferenciasYDevuelveLoPersistido() {
+        dadoQueGuardarDevuelveLasPreferencias();
 
-        PreferenciaUsuario result = repository.save(PreferenciaUsuario.inicial(USUARIO_ID, AHORA));
+        cuandoSeGuardanLasPreferenciasIniciales();
 
-        assertThat(result.getUsuarioId()).isEqualTo(USUARIO_ID);
+        entoncesSeDevuelvenLasPreferenciasDelUsuario();
     }
 
-    private PreferenciaUsuarioEntity entity() {
+    // --- dado ---
+    private void dadoQueElUsuarioTienePreferencias() {
+        when(jpa.findById(USUARIO_ID.valor())).thenReturn(Optional.of(unaEntidad()));
+    }
+
+    private void dadoQueGuardarDevuelveLasPreferencias() {
+        when(jpa.save(any(PreferenciaUsuarioEntity.class))).thenReturn(unaEntidad());
+    }
+
+    private PreferenciaUsuarioEntity unaEntidad() {
         return PreferenciaUsuarioEntity.builder().usuarioId(USUARIO_ID.valor()).bienvenidaVista(false)
                 .creadoEn(AHORA).actualizadoEn(AHORA).build();
+    }
+
+    // --- cuando ---
+    private void cuandoSeBuscanLasPreferenciasDelUsuario() {
+        encontrada = repository.findByUsuarioId(USUARIO_ID);
+    }
+
+    private void cuandoSeGuardanLasPreferenciasIniciales() {
+        guardada = repository.save(PreferenciaUsuario.inicial(USUARIO_ID, AHORA));
+    }
+
+    // --- entonces ---
+    private void entoncesSeEncuentranLasPreferenciasDelUsuario() {
+        assertThat(encontrada).map(PreferenciaUsuario::getUsuarioId).contains(USUARIO_ID);
+    }
+
+    private void entoncesSeDevuelvenLasPreferenciasDelUsuario() {
+        assertThat(guardada.getUsuarioId()).isEqualTo(USUARIO_ID);
     }
 }

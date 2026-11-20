@@ -31,61 +31,106 @@ class InventarioDtosTest {
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-13T12:00:00Z");
     private static final LocalDate FECHA = LocalDate.parse("2026-10-12");
 
+    private MovimientoItem item;
+    private RegistrarMovimientoResponse respuestaDeRegistro;
+    private List<MovimientoItem> items;
+    private ConsultarStockResponse respuestaDeStock;
+
     @Test
     @DisplayName("Pasa el movimiento a su item con el nombre del producto y el tipo como texto")
-    void deShouldMapMovimiento() {
-        MovimientoItem result = MovimientoItem.de(givenMovimiento(HARINA_ID), "Harina");
+    void pasaElMovimientoASuItemConElNombreDelProductoYElTipoComoTexto() {
+        cuandoSeArmaElItemDelMovimientoDeHarina();
 
-        assertThat(result).isEqualTo(new MovimientoItem(
-                MOVIMIENTO_ID, HARINA_ID, "Harina", "SALIDA", new BigDecimal("2"), FECHA, "Venta", AHORA));
+        entoncesElItemCopiaElMovimientoConElNombreDeHarina();
     }
 
     @Test
     @DisplayName("Registrar devuelve el movimiento y el stock después de aplicarlo")
-    void registrarShouldReturnMovimientoAndStock() {
-        RegistrarMovimientoResponse result = RegistrarMovimientoResponse.de(
-                givenMovimiento(HARINA_ID), "Harina", new BigDecimal("8"));
+    void registrarDevuelveElMovimientoYElStockDespuesDeAplicarlo() {
+        cuandoSeArmaLaRespuestaDeRegistrarConStockDe("8");
 
-        assertThat(result.movimiento().producto()).isEqualTo("Harina");
-        assertThat(result.stockActual()).isEqualByComparingTo("8");
+        entoncesLaRespuestaTieneElProductoHarinaYStockDe("8");
     }
 
     @Test
     @DisplayName("Listar pone a cada movimiento el nombre de su producto, o 'Sin nombre' si ya no está")
-    void listarShouldNameEachMovimientoAfterItsProduct() {
-        Registro harina = Registro.builder().id(HARINA_ID).valores(Map.of(CAMPO_NOMBRE_ID.toString(), "Harina")).build();
+    void listarPoneACadaMovimientoElNombreDeSuProductoOSinNombreSiYaNoEsta() {
+        cuandoSeListanMovimientosDeHarinaYDeUnProductoQueYaNoEsta();
 
-        List<MovimientoItem> result = MovimientoItem.de(
-                List.of(givenMovimiento(HARINA_ID), givenMovimiento(AZUCAR_ID)), List.of(harina), givenCampos());
-
-        assertThat(result).extracting(MovimientoItem::producto).containsExactly("Harina", "Sin nombre");
+        entoncesLosProductosSonHarinaYSinNombre();
     }
 
     @Test
     @DisplayName("Stock arma cada fila con el nombre del producto y su stock, y conserva la paginación")
-    void stockShouldPairEachProductWithItsStock() {
-        Registro harina = Registro.builder().id(HARINA_ID).valores(Map.of(CAMPO_NOMBRE_ID.toString(), "Harina")).build();
-        Pagina<Registro> pagina = new Pagina<>(List.of(harina), 1, 20, 41);
+    void stockArmaCadaFilaConElNombreDelProductoYSuStockYConservaLaPaginacion() {
+        cuandoSeArmaLaRespuestaDeStockDeUnaPaginaConHarinaYStockDe("3");
 
-        ConsultarStockResponse result = ConsultarStockResponse.de(
-                pagina, Map.of(HARINA_ID, new BigDecimal("3")), givenCampos());
-
-        assertThat(result.contenido()).singleElement().satisfies(item -> {
-            assertThat(item.registroId()).isEqualTo(HARINA_ID);
-            assertThat(item.producto()).isEqualTo("Harina");
-            assertThat(item.stock()).isEqualByComparingTo("3");
-        });
-        assertThat(result.pagina()).isEqualTo(1);
-        assertThat(result.tamanio()).isEqualTo(20);
-        assertThat(result.totalElementos()).isEqualTo(41);
-        assertThat(result.totalPaginas()).isEqualTo(3);
+        entoncesLaFilaMuestraHarinaConStockDe("3");
+        entoncesSeConservaLaPaginacion();
     }
 
-    private static List<Campo> givenCampos() {
+    // --- cuando ---
+
+    private void cuandoSeArmaElItemDelMovimientoDeHarina() {
+        item = MovimientoItem.de(unMovimientoDe(HARINA_ID), "Harina");
+    }
+
+    private void cuandoSeArmaLaRespuestaDeRegistrarConStockDe(String stock) {
+        respuestaDeRegistro = RegistrarMovimientoResponse.de(unMovimientoDe(HARINA_ID), "Harina", new BigDecimal(stock));
+    }
+
+    private void cuandoSeListanMovimientosDeHarinaYDeUnProductoQueYaNoEsta() {
+        items = MovimientoItem.de(
+                List.of(unMovimientoDe(HARINA_ID), unMovimientoDe(AZUCAR_ID)), List.of(unaHarina()), unosCampos());
+    }
+
+    private void cuandoSeArmaLaRespuestaDeStockDeUnaPaginaConHarinaYStockDe(String stock) {
+        Pagina<Registro> pagina = new Pagina<>(List.of(unaHarina()), 1, 20, 41);
+        respuestaDeStock = ConsultarStockResponse.de(pagina, Map.of(HARINA_ID, new BigDecimal(stock)), unosCampos());
+    }
+
+    // --- entonces ---
+
+    private void entoncesElItemCopiaElMovimientoConElNombreDeHarina() {
+        assertThat(item).isEqualTo(new MovimientoItem(
+                MOVIMIENTO_ID, HARINA_ID, "Harina", "SALIDA", new BigDecimal("2"), FECHA, "Venta", AHORA));
+    }
+
+    private void entoncesLaRespuestaTieneElProductoHarinaYStockDe(String stock) {
+        assertThat(respuestaDeRegistro.movimiento().producto()).isEqualTo("Harina");
+        assertThat(respuestaDeRegistro.stockActual()).isEqualByComparingTo(stock);
+    }
+
+    private void entoncesLosProductosSonHarinaYSinNombre() {
+        assertThat(items).extracting(MovimientoItem::producto).containsExactly("Harina", "Sin nombre");
+    }
+
+    private void entoncesLaFilaMuestraHarinaConStockDe(String stock) {
+        assertThat(respuestaDeStock.contenido()).singleElement().satisfies(fila -> {
+            assertThat(fila.registroId()).isEqualTo(HARINA_ID);
+            assertThat(fila.producto()).isEqualTo("Harina");
+            assertThat(fila.stock()).isEqualByComparingTo(stock);
+        });
+    }
+
+    private void entoncesSeConservaLaPaginacion() {
+        assertThat(respuestaDeStock.pagina()).isEqualTo(1);
+        assertThat(respuestaDeStock.tamanio()).isEqualTo(20);
+        assertThat(respuestaDeStock.totalElementos()).isEqualTo(41);
+        assertThat(respuestaDeStock.totalPaginas()).isEqualTo(3);
+    }
+
+    // --- datos ---
+
+    private static Registro unaHarina() {
+        return Registro.builder().id(HARINA_ID).valores(Map.of(CAMPO_NOMBRE_ID.toString(), "Harina")).build();
+    }
+
+    private static List<Campo> unosCampos() {
         return List.of(Campo.builder().id(CAMPO_NOMBRE_ID).tipo(TipoCampo.TEXTO).posicion((short) 0).build());
     }
 
-    private static MovimientoStock givenMovimiento(RegistroId registroId) {
+    private static MovimientoStock unMovimientoDe(RegistroId registroId) {
         return MovimientoStock.builder()
                 .id(MOVIMIENTO_ID)
                 .registroId(registroId)

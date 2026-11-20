@@ -30,6 +30,7 @@ class ClienteModeloVisionAnthropicTest {
 
     private AnthropicClient client;
     private ClienteModeloVisionAnthropic cliente;
+    private RespuestaModeloVision respuesta;
 
     @BeforeEach
     void setUp() {
@@ -39,56 +40,57 @@ class ClienteModeloVisionAnthropicTest {
 
     @Test
     @DisplayName("Devuelve el JSON de la respuesta con los tokens y el modelo informados")
-    void completarShouldReturnJsonWithTokensWhenModelRespondsPlainJson() {
-        givenModelResponds("{\"a\":1}", 120, 30);
+    void devuelveElJsonDeLaRespuestaConLosTokensYElModeloInformados() {
+        dadoQueElModeloResponde("{\"a\":1}", 120, 30);
 
-        RespuestaModeloVision respuesta = cliente.completar(PETICION);
+        cuandoSeCompleta();
 
-        thenRespuestaIs(respuesta, "{\"a\":1}", 120, 30);
+        entoncesLaRespuestaEs("{\"a\":1}", 120, 30);
     }
 
     @Test
     @DisplayName("Descarta la cerca de código que el modelo ponga alrededor del JSON")
-    void completarShouldStripCodeFenceWhenModelWrapsJson() {
-        givenModelResponds("```json\n{\"a\":1}\n```", 1, 2);
+    void descartaLaCercaDeCodigoQueElModeloPongaAlrededorDelJson() {
+        dadoQueElModeloResponde("```json\n{\"a\":1}\n```", 1, 2);
 
-        RespuestaModeloVision respuesta = cliente.completar(PETICION);
+        cuandoSeCompleta();
 
-        thenRespuestaIs(respuesta, "{\"a\":1}", 1, 2);
+        entoncesLaRespuestaEs("{\"a\":1}", 1, 2);
     }
 
     @Test
     @DisplayName("Si la respuesta no trae ningún objeto JSON la devuelve tal cual para que falle la validación")
-    void completarShouldReturnTextAsIsWhenThereIsNoJsonObject() {
-        givenModelResponds("no puedo leer la foto", 1, 2);
+    void siLaRespuestaNoTraeNingunObjetoJsonLaDevuelveTalCualParaQueFalleLaValidacion() {
+        dadoQueElModeloResponde("no puedo leer la foto", 1, 2);
 
-        RespuestaModeloVision respuesta = cliente.completar(PETICION);
+        cuandoSeCompleta();
 
-        thenRespuestaIs(respuesta, "no puedo leer la foto", 1, 2);
+        entoncesLaRespuestaEs("no puedo leer la foto", 1, 2);
     }
 
     @Test
     @DisplayName("Si el JSON viene cortado, sin llave de cierre, lo devuelve tal cual para que falle la validación")
-    void completarShouldReturnTextAsIsWhenJsonIsTruncated() {
-        givenModelResponds("{\"a\":", 1, 2);
+    void siElJsonVieneCortadoSinLlaveDeCierreLoDevuelveTalCualParaQueFalleLaValidacion() {
+        dadoQueElModeloResponde("{\"a\":", 1, 2);
 
-        RespuestaModeloVision respuesta = cliente.completar(PETICION);
+        cuandoSeCompleta();
 
-        thenRespuestaIs(respuesta, "{\"a\":", 1, 2);
+        entoncesLaRespuestaEs("{\"a\":", 1, 2);
     }
 
     @Test
     @DisplayName("Manda el modelo, las instrucciones con el esquema, el contexto y cada página como imagen")
-    void completarShouldSendModelInstructionsContextAndPages() {
-        givenModelResponds("{}", 0, 0);
+    void mandaElModeloLasInstruccionesConElEsquemaElContextoYCadaPaginaComoImagen() {
+        dadoQueElModeloResponde("{}", 0, 0);
 
-        cliente.completar(PETICION);
+        cuandoSeCompleta();
 
-        thenRequestCarriesEverything();
+        entoncesElPedidoLlevaTodo();
     }
 
-    // --- arrange ---
-    private void givenModelResponds(String texto, long entrada, long salida) {
+    // --- dado ---
+
+    private void dadoQueElModeloResponde(String texto, long entrada, long salida) {
         Message mensaje = mock(Message.class, Answers.RETURNS_DEEP_STUBS);
         ContentBlock bloqueTexto = mock(ContentBlock.class);
         TextBlock textBlock = mock(TextBlock.class);
@@ -102,8 +104,15 @@ class ClienteModeloVisionAnthropicTest {
         when(client.messages().create(any(MessageCreateParams.class))).thenReturn(mensaje);
     }
 
-    // --- assert ---
-    private void thenRespuestaIs(RespuestaModeloVision respuesta, String json, int entrada, int salida) {
+    // --- cuando ---
+
+    private void cuandoSeCompleta() {
+        respuesta = cliente.completar(PETICION);
+    }
+
+    // --- entonces ---
+
+    private void entoncesLaRespuestaEs(String json, int entrada, int salida) {
         assertThat(respuesta.json()).isEqualTo(json);
         assertThat(respuesta.proveedor()).isEqualTo(ClienteModeloVisionAnthropic.PROVEEDOR);
         assertThat(respuesta.modelo()).isEqualTo(MODELO);
@@ -111,7 +120,7 @@ class ClienteModeloVisionAnthropicTest {
         assertThat(respuesta.tokensSalida()).isEqualTo(salida);
     }
 
-    private void thenRequestCarriesEverything() {
+    private void entoncesElPedidoLlevaTodo() {
         ArgumentCaptor<MessageCreateParams> captor = ArgumentCaptor.forClass(MessageCreateParams.class);
         verify(client.messages()).create(captor.capture());
         String enviado = captor.getValue().toString();

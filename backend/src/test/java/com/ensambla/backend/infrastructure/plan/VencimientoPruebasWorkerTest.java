@@ -17,7 +17,7 @@ class VencimientoPruebasWorkerTest {
 
     @Test
     @DisplayName("Cada ciclo ejecuta el vencimiento de pruebas")
-    void vencerShouldRunExpirationUseCase() {
+    void cadaCicloEjecutaElVencimientoDePruebas() {
         VencerPruebas vencerPruebas = mock(VencerPruebas.class);
 
         new VencimientoPruebasWorker(vencerPruebas).vencer();
@@ -27,9 +27,9 @@ class VencimientoPruebasWorkerTest {
 
     @Test
     @DisplayName("El vencimiento se agenda automáticamente por defecto")
-    void contextShouldScheduleTrialExpirationByDefault() {
+    void elVencimientoSeAgendaAutomaticamentePorDefecto() {
         VencerPruebas vencerPruebas = mock(VencerPruebas.class);
-        ApplicationContextRunner runner = givenRunner(vencerPruebas)
+        ApplicationContextRunner runner = dadoRunner(vencerPruebas)
                 .withPropertyValues("ensambla.planes.pruebas.intervalo=100",
                         "ensambla.planes.pruebas.demora-inicial=10");
 
@@ -41,15 +41,15 @@ class VencimientoPruebasWorkerTest {
 
     @Test
     @DisplayName("El worker puede deshabilitarse explícitamente en las pruebas")
-    void contextShouldDisableWorkerWhenConfigured() {
-        ApplicationContextRunner runner = givenRunner(mock(VencerPruebas.class))
+    void elWorkerPuedeDeshabilitarseExplicitamenteEnLasPruebas() {
+        ApplicationContextRunner runner = dadoRunner(mock(VencerPruebas.class))
                 .withPropertyValues("ensambla.planes.pruebas.habilitado=false");
 
         runner.run(context -> assertThat(context).doesNotHaveBean(VencimientoPruebasWorker.class));
     }
 
-    // --- arrange ---
-    private ApplicationContextRunner givenRunner(VencerPruebas vencerPruebas) {
+    // --- dado ---
+    private ApplicationContextRunner dadoRunner(VencerPruebas vencerPruebas) {
         return new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(VencimientoPruebasWorker.class))
                 .withUserConfiguration(Programacion.class)

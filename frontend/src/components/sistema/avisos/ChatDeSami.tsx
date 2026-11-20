@@ -43,7 +43,7 @@ type Props = {
   onAyuda: () => void;
 };
 
-// El chat de Sami, chico y al costado: se le pregunta por el stock, las ventas o los avisos del cuaderno abierto.
+// El chat de Sami, chico y al costado: se le pregunta por el stock, las ventas o los avisos de la sección abierta.
 export function ChatDeSami({ contexto, mensajes, onMensajes, onCerrar, onAyuda }: Props) {
   const [texto, setTexto] = useState('');
   const [pensando, setPensando] = useState(false);
@@ -121,8 +121,11 @@ export function ChatDeSami({ contexto, mensajes, onMensajes, onCerrar, onAyuda }
   // Ir a lo que representa un aviso o un producto: el chat se guarda para que se vea lo marcado.
   const ver = (item: ItemDeChat) => {
     onCerrar();
-    if (item.aviso) acciones.ver(item.aviso as Aviso);
-    else if (item.destino) void acciones.irAlObjeto(item.destino);
+    if (item.aviso) {
+      acciones.ver(item.aviso as Aviso);
+      return;
+    }
+    if (item.destino) void acciones.irAlObjeto(item.destino);
   };
 
   // Se mueve agarrando la cabecera (no en el celular, donde ocupa el ancho, ni ampliado).
@@ -274,7 +277,7 @@ export function ChatDeSami({ contexto, mensajes, onMensajes, onCerrar, onAyuda }
         </button>
       </form>
       <button type="button" className="sami-chat-ayuda" onClick={onAyuda}>
-        <Icon name="help" /> ¿Una mano con esto?
+        <Icon name="help" /> Consultar a Sami
       </button>
     </section>
   );

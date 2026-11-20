@@ -17,6 +17,8 @@ export const planSchema = z.object({
   limiteProyectos: cantidad.nullable(),
   limiteRegistros: cantidad.nullable(),
   limitePaginasIaMensuales: cantidad.nullable(),
+  /** Cuántos objetivos armados con Sami (IA) incluye por mes; el servidor lo suma con la cuota (H-60). */
+  limiteObjetivosIaMensuales: cantidad.nullable().optional(),
   funciones: z.array(z.string()),
 });
 
@@ -45,6 +47,9 @@ export const planesSchema = z.object({
     periodoIa: z.enum(['MENSUAL', 'PRUEBA']),
     inicioPeriodoIa: fecha,
     finPeriodoIa: fecha,
+    /** Objetivos armados con Sami (IA) este mes y el tope del plan; sin tope (`null`) no hay cuota que mostrar (H-60). */
+    objetivosIa: cantidad.optional(),
+    limiteObjetivosIa: cantidad.nullable().optional(),
   }),
   prueba: pruebaPremiumSchema.nullable(),
 });

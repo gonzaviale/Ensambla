@@ -24,7 +24,7 @@ import java.time.ZoneOffset;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -41,6 +41,7 @@ class SolicitarVerificacionWhatsappTest {
     private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
     private static final Instant INSTANTE = Instant.parse("2026-10-27T12:00:00Z");
     private static final OffsetDateTime AHORA = OffsetDateTime.ofInstant(INSTANTE, ZoneOffset.UTC);
+    private static final String TELEFONO = "5491122334455";
 
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final VinculoWhatsappRepository vinculoRepository = mock(VinculoWhatsappRepository.class,
@@ -51,121 +52,198 @@ class SolicitarVerificacionWhatsappTest {
     private final SolicitarVerificacionWhatsapp solicitar = new WhatsappUseCaseConfig()
             .solicitarVerificacionWhatsapp(negocioRepository, vinculoRepository, verificacionRepository, mensajeria,
                     new TransaccionDirecta(), Clock.fixed(INSTANTE, ZoneOffset.UTC));
+    private VerificacionWhatsapp previa;
+    private SolicitarVerificacionWhatsappResponse solicitud;
+    private Throwable error;
 
     @Test
-    @DisplayName("Manda por WhatsApp un código de 6 dígitos, guarda sólo su huella y no lo devuelve")
-    void executeShouldSendCodeAndStoreOnlyItsHash() {
-        givenNegocioDelUsuario();
-        when(mensajeria.enviarTexto(anyString(), anyString())).thenReturn(true);
-        when(verificacionRepository.save(any(VerificacionWhatsapp.class))).thenAnswer(i -> i.getArgument(0));
+    @DisplayName("Manda por WhatsApp un código de 6 dígitos al número normalizado")
+    void mandaUnCodigoDeSeisDigitosAlNumeroNormalizado() {
+        dadoUnUsuarioConNegocio();
+        dadoQueWhatsappEntregaLosMensajes();
 
-        SolicitarVerificacionWhatsappResponse result = solicitar.execute(request("+54 11 2233 4455"));
+        cuandoSePideElCodigoPara("+54 11 2233 4455");
 
-        ArgumentCaptor<String> texto = ArgumentCaptor.forClass(String.class);
-        verify(mensajeria).enviarTexto(eq("5491122334455"), texto.capture());
-        assertThat(texto.getValue()).containsPattern("es [0-9]{6}[.]");
-        ArgumentCaptor<VerificacionWhatsapp> guardada = ArgumentCaptor.forClass(VerificacionWhatsapp.class);
-        verify(verificacionRepository).save(guardada.capture());
-        assertThat(guardada.getValue().getCodigoHash()).hasSize(64);
-        assertThat(result.telefono()).isEqualTo("5491122334455");
-        assertThat(result.expiraEn()).isEqualTo(AHORA.plusMinutes(10));
-        assertThat(result.reenviarDesde()).isEqualTo(AHORA.plusSeconds(60));
+        entoncesSeMandoUnCodigoDeSeisDigitosA(TELEFONO);
+    }
+
+    @Test
+    @DisplayName("Guarda sólo la huella del código y no lo devuelve")
+    void guardaSoloLaHuellaDelCodigo() {
+        dadoUnUsuarioConNegocio();
+        dadoQueWhatsappEntregaLosMensajes();
+
+        cuandoSePideElCodigoPara("+54 11 2233 4455");
+
+        entoncesSeGuardoSoloLaHuella();
+        entoncesLaSolicitudEsPara(TELEFONO, AHORA.plusMinutes(10), AHORA.plusSeconds(60));
     }
 
     @Test
     @DisplayName("Si ya había una verificación en curso la reemplaza respetando la espera entre envíos")
-    void executeShouldReplaceVerificationInProgress() {
-        givenNegocioDelUsuario();
-        when(mensajeria.enviarTexto(anyString(), anyString())).thenReturn(true);
-        VerificacionWhatsapp previa = VerificacionWhatsapp.nueva(USUARIO_ID, new TelefonoWhatsapp("5491122334455"),
-                "111111", AHORA.minusMinutes(2));
-        when(verificacionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(previa));
-        when(verificacionRepository.save(any(VerificacionWhatsapp.class))).thenAnswer(i -> i.getArgument(0));
+    void siYaHabiaUnaVerificacionLaReemplaza() {
+        dadoUnUsuarioConNegocio();
+        dadoQueWhatsappEntregaLosMensajes();
+        dadoUnaVerificacionEnCursoDesde(AHORA.minusMinutes(2));
 
-        solicitar.execute(request("5491100000000"));
+        cuandoSePideElCodigoPara("5491100000000");
 
-        assertThat(previa.getTelefono()).isEqualTo("5491100000000");
-        assertThat(previa.getEnviosVentana()).isEqualTo(2);
+        entoncesLaVerificacionPreviaPasoA("5491100000000", 2);
     }
 
     @Test
     @DisplayName("Pedir otro código antes de que pase la espera se rechaza y no manda nada")
-    void executeShouldRejectResendTooSoon() {
-        givenNegocioDelUsuario();
-        when(verificacionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(
-                VerificacionWhatsapp.nueva(USUARIO_ID, new TelefonoWhatsapp("5491122334455"), "111111",
-                        AHORA.minusSeconds(10))));
+    void pedirOtroCodigoAntesDeLaEsperaSeRechaza() {
+        dadoUnUsuarioConNegocio();
+        dadoUnaVerificacionEnCursoDesde(AHORA.minusSeconds(10));
 
-        assertThatThrownBy(() -> solicitar.execute(request("5491122334455")))
-                .hasMessage("Esperá un momento antes de pedir otro código");
+        cuandoSeIntentaPedirElCodigoPara(TELEFONO);
 
-        verify(mensajeria, never()).enviarTexto(anyString(), anyString());
+        entoncesSeRechazaPorque("Esperá un momento antes de pedir otro código");
+        entoncesNoSeMandoNada();
     }
 
     @Test
     @DisplayName("Un número que ya es de otra cuenta se rechaza con un conflicto")
-    void executeShouldRejectNumberOfAnotherAccount() {
-        givenNegocioDelUsuario();
-        when(vinculoRepository.findByTelefono("5491122334455")).thenReturn(Optional.of(
-                VinculoWhatsapp.nuevo(OTRO_USUARIO_ID, NEGOCIO_ID, new TelefonoWhatsapp("5491122334455"), AHORA)));
+    void unNumeroDeOtraCuentaSeRechazaConUnConflicto() {
+        dadoUnUsuarioConNegocio();
+        dadoQueElNumeroEsDe(OTRO_USUARIO_ID);
 
-        assertThatThrownBy(() -> solicitar.execute(request("5491122334455")))
-                .isInstanceOf(DuplicateResourceException.class);
+        cuandoSeIntentaPedirElCodigoPara(TELEFONO);
 
-        verify(mensajeria, never()).enviarTexto(anyString(), anyString());
+        entoncesHayUnConflicto();
+        entoncesNoSeMandoNada();
     }
 
     @Test
     @DisplayName("Pedir el código del número que ya tiene vinculado se rechaza")
-    void executeShouldRejectOwnLinkedNumber() {
-        givenNegocioDelUsuario();
-        when(vinculoRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(
-                VinculoWhatsapp.nuevo(USUARIO_ID, NEGOCIO_ID, new TelefonoWhatsapp("5491122334455"), AHORA)));
+    void pedirElCodigoDelNumeroPropioSeRechaza() {
+        dadoUnUsuarioConNegocio();
+        dadoQueElUsuarioYaVinculo(TELEFONO);
 
-        assertThatThrownBy(() -> solicitar.execute(request("+54 9 11 2233 4455")))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("Ese número ya está vinculado a tu cuenta");
+        cuandoSeIntentaPedirElCodigoPara("+54 9 11 2233 4455");
+
+        entoncesSeRechazaPorque("Ese número ya está vinculado a tu cuenta");
     }
 
     @Test
     @DisplayName("A un mismo número no se le piden más de 3 códigos por hora entre todas las cuentas")
-    void executeShouldLimitCodesPerPhone() {
-        givenNegocioDelUsuario();
-        when(verificacionRepository.contarEnviosRecientesA("5491122334455", AHORA.minusHours(1))).thenReturn(3L);
+    void aUnMismoNumeroNoSeLePidenMasDeTresCodigosPorHora() {
+        dadoUnUsuarioConNegocio();
+        dadoQueAlNumeroYaSeLeMandaronCodigos(3);
 
-        assertThatThrownBy(() -> solicitar.execute(request("5491122334455")))
-                .hasMessage("Ya mandamos varios códigos a ese número. Probá en una hora");
+        cuandoSeIntentaPedirElCodigoPara(TELEFONO);
 
-        verify(mensajeria, never()).enviarTexto(anyString(), anyString());
+        entoncesSeRechazaPorque("Ya mandamos varios códigos a ese número. Probá en una hora");
+        entoncesNoSeMandoNada();
     }
 
     @Test
     @DisplayName("Si el código no se pudo entregar se descarta la verificación y se pide revisar el número")
-    void executeShouldDiscardVerificationWhenSendFails() {
-        givenNegocioDelUsuario();
-        when(mensajeria.enviarTexto(anyString(), anyString())).thenReturn(false);
-        when(verificacionRepository.save(any(VerificacionWhatsapp.class))).thenAnswer(i -> i.getArgument(0));
+    void siElCodigoNoSeEntregaSeDescartaLaVerificacion() {
+        dadoUnUsuarioConNegocio();
+        dadoQueWhatsappNoEntregaLosMensajes();
 
-        assertThatThrownBy(() -> solicitar.execute(request("5491122334455")))
-                .hasMessageContaining("No pudimos mandarte el código por WhatsApp");
+        cuandoSeIntentaPedirElCodigoPara(TELEFONO);
 
-        verify(verificacionRepository).deleteByUsuarioId(USUARIO_ID);
+        entoncesElErrorDice("No pudimos mandarte el código por WhatsApp");
+        entoncesSeDescartoLaVerificacion();
     }
 
     @Test
     @DisplayName("Un teléfono con letras no es un número válido")
-    void executeShouldRejectInvalidPhone() {
-        givenNegocioDelUsuario();
+    void unTelefonoConLetrasNoEsValido() {
+        dadoUnUsuarioConNegocio();
 
-        assertThatThrownBy(() -> solicitar.execute(request("no es un número")))
-                .isInstanceOf(BusinessRuleException.class);
+        cuandoSeIntentaPedirElCodigoPara("no es un número");
+
+        entoncesSeRechaza();
     }
 
-    private void givenNegocioDelUsuario() {
+    private void dadoUnUsuarioConNegocio() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(verificacionRepository.save(any(VerificacionWhatsapp.class))).thenAnswer(guardada -> guardada.getArgument(0));
     }
 
-    private static SolicitarVerificacionWhatsappRequest request(String telefono) {
-        return new SolicitarVerificacionWhatsappRequest(USUARIO_ID, telefono);
+    private void dadoQueWhatsappEntregaLosMensajes() {
+        when(mensajeria.enviarTexto(anyString(), anyString())).thenReturn(true);
+    }
+
+    private void dadoQueWhatsappNoEntregaLosMensajes() {
+        when(mensajeria.enviarTexto(anyString(), anyString())).thenReturn(false);
+    }
+
+    private void dadoUnaVerificacionEnCursoDesde(OffsetDateTime enviada) {
+        previa = VerificacionWhatsapp.nueva(USUARIO_ID, new TelefonoWhatsapp(TELEFONO), "111111", enviada);
+        when(verificacionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(previa));
+    }
+
+    private void dadoQueElNumeroEsDe(UsuarioId usuarioId) {
+        when(vinculoRepository.findByTelefono(TELEFONO)).thenReturn(Optional.of(
+                VinculoWhatsapp.nuevo(usuarioId, NEGOCIO_ID, new TelefonoWhatsapp(TELEFONO), AHORA)));
+    }
+
+    private void dadoQueElUsuarioYaVinculo(String telefono) {
+        when(vinculoRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(
+                VinculoWhatsapp.nuevo(USUARIO_ID, NEGOCIO_ID, new TelefonoWhatsapp(telefono), AHORA)));
+    }
+
+    private void dadoQueAlNumeroYaSeLeMandaronCodigos(long cantidad) {
+        when(verificacionRepository.contarEnviosRecientesA(TELEFONO, AHORA.minusHours(1))).thenReturn(cantidad);
+    }
+
+    private void cuandoSePideElCodigoPara(String telefono) {
+        solicitud = solicitar.execute(new SolicitarVerificacionWhatsappRequest(USUARIO_ID, telefono));
+    }
+
+    private void cuandoSeIntentaPedirElCodigoPara(String telefono) {
+        error = catchThrowable(() -> cuandoSePideElCodigoPara(telefono));
+    }
+
+    private void entoncesSeMandoUnCodigoDeSeisDigitosA(String telefono) {
+        ArgumentCaptor<String> texto = ArgumentCaptor.forClass(String.class);
+        verify(mensajeria).enviarTexto(eq(telefono), texto.capture());
+        assertThat(texto.getValue()).containsPattern("es [0-9]{6}[.]");
+    }
+
+    private void entoncesSeGuardoSoloLaHuella() {
+        ArgumentCaptor<VerificacionWhatsapp> guardada = ArgumentCaptor.forClass(VerificacionWhatsapp.class);
+        verify(verificacionRepository).save(guardada.capture());
+        assertThat(guardada.getValue().getCodigoHash()).hasSize(64);
+    }
+
+    private void entoncesLaSolicitudEsPara(String telefono, OffsetDateTime vence, OffsetDateTime reenviarDesde) {
+        assertThat(solicitud.telefono()).isEqualTo(telefono);
+        assertThat(solicitud.expiraEn()).isEqualTo(vence);
+        assertThat(solicitud.reenviarDesde()).isEqualTo(reenviarDesde);
+    }
+
+    private void entoncesLaVerificacionPreviaPasoA(String telefono, int envios) {
+        assertThat(previa.getTelefono()).isEqualTo(telefono);
+        assertThat(previa.getEnviosVentana()).isEqualTo(envios);
+    }
+
+    private void entoncesSeRechazaPorque(String mensaje) {
+        assertThat(error).hasMessage(mensaje);
+    }
+
+    private void entoncesSeRechaza() {
+        assertThat(error).isInstanceOf(BusinessRuleException.class);
+    }
+
+    private void entoncesHayUnConflicto() {
+        assertThat(error).isInstanceOf(DuplicateResourceException.class);
+    }
+
+    private void entoncesElErrorDice(String parte) {
+        assertThat(error).hasMessageContaining(parte);
+    }
+
+    private void entoncesNoSeMandoNada() {
+        verify(mensajeria, never()).enviarTexto(anyString(), anyString());
+    }
+
+    private void entoncesSeDescartoLaVerificacion() {
+        verify(verificacionRepository).deleteByUsuarioId(USUARIO_ID);
     }
 }

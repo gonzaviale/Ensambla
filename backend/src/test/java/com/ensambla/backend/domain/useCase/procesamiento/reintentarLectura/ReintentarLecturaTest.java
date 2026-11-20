@@ -27,7 +27,8 @@ import java.util.Optional;
 import static com.ensambla.backend.support.ProcesamientoTestData.AHORA;
 import static com.ensambla.backend.support.ProcesamientoTestData.LOTE_ID;
 import static com.ensambla.backend.support.ProcesamientoTestData.NEGOCIO_ID;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doThrow;
@@ -50,9 +51,10 @@ class ReintentarLecturaTest {
     private ControlPlanService controlPlanService;
 
     private ReintentarLectura reintentarLectura;
+    private Throwable rechazo;
 
     @BeforeEach
-    void setUp() {
+    void dadoUnNegocioDelUsuario() {
         reintentarLectura = new ReintentarLectura(negocioRepository, controlPlanService, procesamientoRepository,
                 ProcesamientoTestData.politica(),
                 Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
@@ -61,63 +63,98 @@ class ReintentarLecturaTest {
 
     @Test
     @DisplayName("Reencola un lote propio cuando hay disponibilidad")
-    void executeShouldRequeueOwnError() {
-        givenRetry(5, 2);
-        when(procesamientoRepository.reencolar(NEGOCIO_ID, LOTE_ID, AHORA)).thenReturn(true);
+    void reencolaUnLotePropioCuandoHayDisponibilidad() {
+        dadoUnLoteEnErrorConConsumoDelDia(5, 2);
+        dadoQueElLoteSePuedeReencolar(true);
 
-        reintentarLectura.execute(request());
+        cuandoSeReintentaLaLectura();
 
-        verify(controlPlanService).validarPaginasIa(NEGOCIO_ID, 1, AHORA);
-        verify(procesamientoRepository).reencolar(NEGOCIO_ID, LOTE_ID, AHORA);
+        entoncesSeExigioUnaPaginaDelPlanYSeReencolo();
     }
 
     @Test
     @DisplayName("Rechaza reintentar si el plan no deja al menos una página en el mes")
-    void executeShouldRejectWhenMonthlyQuotaIsFull() {
-        when(procesamientoRepository.obtener(NEGOCIO_ID, LOTE_ID)).thenReturn(Optional.of(givenEstado()));
-        doThrow(new RestriccionPlanException("LIMITE_IA_MENSUAL", "Sin páginas"))
-                .when(controlPlanService).validarPaginasIa(NEGOCIO_ID, 1, AHORA);
-        UsuarioLoteRequest request = request();
+    void rechazaReintentarSiElPlanNoDejaAlMenosUnaPaginaEnElMes() {
+        dadoUnLoteEnError();
+        dadoQueElPlanNoTienePaginasEnElMes();
 
-        assertThatThrownBy(() -> reintentarLectura.execute(request)).isInstanceOf(RestriccionPlanException.class);
-        verify(procesamientoRepository, never()).reencolar(any(), any(), any());
+        cuandoSeIntentaReintentarLaLectura();
+
+        entoncesSeRechazaPorRestriccionDelPlanSinReencolar();
     }
 
     @Test
     @DisplayName("Rechaza reintentar si no queda disponibilidad diaria")
-    void executeShouldRejectExhaustedQuota() {
-        givenRetry(90, 10);
-        UsuarioLoteRequest request = request();
+    void rechazaReintentarSiNoQuedaDisponibilidadDiaria() {
+        dadoUnLoteEnErrorConConsumoDelDia(90, 10);
 
-        assertThatThrownBy(() -> reintentarLectura.execute(request))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage(PoliticaProcesamiento.LIMITE_DIARIO_AGOTADO);
-        verify(procesamientoRepository, never()).reencolar(any(), any(), any());
+        cuandoSeIntentaReintentarLaLectura();
+
+        entoncesSeRechazaPorLimiteDiarioSinReencolar();
     }
 
     @Test
     @DisplayName("Rechaza reintentar un estado distinto a ERROR")
-    void executeShouldRejectWrongState() {
-        givenRetry(0, 0);
-        when(procesamientoRepository.reencolar(NEGOCIO_ID, LOTE_ID, AHORA)).thenReturn(false);
-        UsuarioLoteRequest request = request();
+    void rechazaReintentarUnEstadoDistintoAError() {
+        dadoUnLoteEnErrorConConsumoDelDia(0, 0);
+        dadoQueElLoteSePuedeReencolar(false);
 
-        assertThatThrownBy(() -> reintentarLectura.execute(request)).hasMessageContaining("estado ERROR");
+        cuandoSeIntentaReintentarLaLectura();
+
+        entoncesSeRechazaPorEstadoQueNoEsError();
     }
 
-    // --- arrange ---
-    private void givenRetry(int paginas, int reservadas) {
-        when(procesamientoRepository.obtener(NEGOCIO_ID, LOTE_ID)).thenReturn(Optional.of(givenEstado()));
+    // --- dado ---
+    private void dadoUnLoteEnError() {
+        when(procesamientoRepository.obtener(NEGOCIO_ID, LOTE_ID)).thenReturn(Optional.of(unEstadoEnError()));
+    }
+
+    private void dadoUnLoteEnErrorConConsumoDelDia(int paginas, int reservadas) {
+        dadoUnLoteEnError();
         when(procesamientoRepository.consumo(NEGOCIO_ID, AHORA.toLocalDate()))
                 .thenReturn(new ConsumoDiario(AHORA.toLocalDate(), paginas, reservadas, 0, 0, null, false));
     }
 
-    private static EstadoLectura givenEstado() {
+    private void dadoQueElPlanNoTienePaginasEnElMes() {
+        doThrow(new RestriccionPlanException("LIMITE_IA_MENSUAL", "Sin páginas"))
+                .when(controlPlanService).validarPaginasIa(NEGOCIO_ID, 1, AHORA);
+    }
+
+    private void dadoQueElLoteSePuedeReencolar(boolean sePuede) {
+        when(procesamientoRepository.reencolar(NEGOCIO_ID, LOTE_ID, AHORA)).thenReturn(sePuede);
+    }
+
+    private static EstadoLectura unEstadoEnError() {
         return new EstadoLectura(LOTE_ID, EstadoLote.ERROR, "Error", 3, null);
     }
 
-    // --- helpers ---
-    private static UsuarioLoteRequest request() {
-        return new UsuarioLoteRequest(USUARIO_ID, LOTE_ID);
+    // --- cuando ---
+    private void cuandoSeReintentaLaLectura() {
+        reintentarLectura.execute(new UsuarioLoteRequest(USUARIO_ID, LOTE_ID));
+    }
+
+    private void cuandoSeIntentaReintentarLaLectura() {
+        rechazo = catchThrowable(this::cuandoSeReintentaLaLectura);
+    }
+
+    // --- entonces ---
+    private void entoncesSeExigioUnaPaginaDelPlanYSeReencolo() {
+        verify(controlPlanService).validarPaginasIa(NEGOCIO_ID, 1, AHORA);
+        verify(procesamientoRepository).reencolar(NEGOCIO_ID, LOTE_ID, AHORA);
+    }
+
+    private void entoncesSeRechazaPorRestriccionDelPlanSinReencolar() {
+        assertThat(rechazo).isInstanceOf(RestriccionPlanException.class);
+        verify(procesamientoRepository, never()).reencolar(any(), any(), any());
+    }
+
+    private void entoncesSeRechazaPorLimiteDiarioSinReencolar() {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class)
+                .hasMessage(PoliticaProcesamiento.LIMITE_DIARIO_AGOTADO);
+        verify(procesamientoRepository, never()).reencolar(any(), any(), any());
+    }
+
+    private void entoncesSeRechazaPorEstadoQueNoEsError() {
+        assertThat(rechazo).hasMessageContaining("estado ERROR");
     }
 }

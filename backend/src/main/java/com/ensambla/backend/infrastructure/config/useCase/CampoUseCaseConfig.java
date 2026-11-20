@@ -60,10 +60,12 @@ public class CampoUseCaseConfig {
     @Bean
     public EliminarCampo eliminarCampo(
             NegocioRepository negocioRepository,
+            BloqueRepository bloqueRepository,
             CampoRepository campoRepository,
             TransaccionPort transaccionPort) {
         return new EliminarCampo(
                 negocioRepository,
+                bloqueRepository,
                 campoRepository,
                 transaccionPort);
     }

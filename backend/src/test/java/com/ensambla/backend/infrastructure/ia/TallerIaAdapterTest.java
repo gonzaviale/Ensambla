@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class TallerIaAdapterTest {
 
@@ -23,34 +23,69 @@ class TallerIaAdapterTest {
             SamiPruebas.catalogoReal(), SamiPruebas.kitsReales());
     private final List<PeticionConHerramientas> pedidos = new ArrayList<>();
 
+    private TallerIaAdapter adapter;
+    private ResultadoTallerIa resultado;
+    private Throwable rechazo;
+
     @Test
     @DisplayName("Hace una sola llamada con el pedido armado y devuelve texto, llamadas y consumo")
-    void conversarShouldCallOnceAndReturnTextCallsAndConsumption() {
-        TallerIaAdapter adapter = new TallerIaAdapter(peticion -> {
-            pedidos.add(peticion);
-            return new RespuestaConHerramientas("Listo", List.of(
-                    new LlamadaHerramienta("agregar_pieza", Map.of("tipo", "expenses"))), "bedrock", "haiku", 800, 90);
-        }, prompt);
+    void haceUnaSolaLlamadaConElPedidoArmadoYDevuelveTextoLlamadasYConsumo() {
+        dadoUnClienteQueSumaGastos();
 
-        ResultadoTallerIa result = adapter.conversar(
-                new ConsultaTaller("gastos", new EstadoTaller("S", "mosaic", List.of()), List.of()));
+        cuandoSeConversaSobreGastos();
 
-        assertThat(pedidos).hasSize(1);
-        assertThat(pedidos.getFirst().contexto()).endsWith("Mensaje de la persona: gastos");
-        assertThat(result.texto()).isEqualTo("Listo");
-        assertThat(result.llamadas()).hasSize(1);
-        assertThat(result.consumo()).isEqualTo(new ConsumoIaSami("bedrock", "haiku", 800, 90));
+        entoncesSeHaceUnaLlamadaYSeDevuelveTextoLlamadasYConsumo();
     }
 
     @Test
     @DisplayName("Si el cliente falla deja pasar el error para que el servicio lo traduzca")
-    void conversarShouldPropagateClientFailure() {
-        TallerIaAdapter adapter = new TallerIaAdapter(peticion -> {
+    void siElClienteFallaDejaPasarElErrorParaQueElServicioLoTraduzca() {
+        dadoUnClienteQueFallaPorTimeout();
+
+        cuandoSeIntentaConversar();
+
+        entoncesSeDejaPasarElError();
+    }
+
+    // --- dado ---
+
+    private void dadoUnClienteQueSumaGastos() {
+        adapter = new TallerIaAdapter(peticion -> {
+            pedidos.add(peticion);
+            return new RespuestaConHerramientas("Listo", List.of(
+                    new LlamadaHerramienta("agregar_pieza", Map.of("tipo", "expenses"))), "bedrock", "haiku", 800, 90);
+        }, prompt);
+    }
+
+    private void dadoUnClienteQueFallaPorTimeout() {
+        adapter = new TallerIaAdapter(peticion -> {
             throw new IllegalStateException("timeout");
         }, prompt);
+    }
 
-        assertThatThrownBy(() -> adapter.conversar(
-                new ConsultaTaller("x", new EstadoTaller("S", "mosaic", List.of()), List.of())))
-                .isInstanceOf(IllegalStateException.class);
+    // --- cuando ---
+
+    private void cuandoSeConversaSobreGastos() {
+        resultado = adapter.conversar(
+                new ConsultaTaller("gastos", new EstadoTaller("S", "mosaic", List.of()), List.of()));
+    }
+
+    private void cuandoSeIntentaConversar() {
+        rechazo = catchThrowable(() -> adapter.conversar(
+                new ConsultaTaller("x", new EstadoTaller("S", "mosaic", List.of()), List.of())));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeHaceUnaLlamadaYSeDevuelveTextoLlamadasYConsumo() {
+        assertThat(pedidos).hasSize(1);
+        assertThat(pedidos.getFirst().contexto()).endsWith("Mensaje de la persona: gastos");
+        assertThat(resultado.texto()).isEqualTo("Listo");
+        assertThat(resultado.llamadas()).hasSize(1);
+        assertThat(resultado.consumo()).isEqualTo(new ConsumoIaSami("bedrock", "haiku", 800, 90));
+    }
+
+    private void entoncesSeDejaPasarElError() {
+        assertThat(rechazo).isInstanceOf(IllegalStateException.class);
     }
 }

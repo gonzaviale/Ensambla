@@ -28,31 +28,63 @@ class HistorialPrecioRepositoryImplTest {
     private final HistorialPrecioRepositoryImpl repository =
             new HistorialPrecioRepositoryImpl(jpa, new HistorialPrecioRepositoryMapper());
 
+    private CambioPrecio guardado;
+    private List<CambioPrecio> cambios;
+
     @Test
     @DisplayName("Guarda el cambio de precio y devuelve el que persistió")
-    void saveShouldReturnPersistedChange() {
-        when(jpa.saveAndFlush(any(HistorialPrecioEntity.class))).thenReturn(entity());
+    void guardaElCambioDePrecioYDevuelveElQuePersistio() {
+        dadoQueGuardarDevuelveElCambio();
 
-        CambioPrecio result = repository.save(cambio());
+        cuandoSeGuardaElCambioDePrecio();
 
-        assertThat(result).isEqualTo(cambio());
+        entoncesSeDevuelveElCambioPersistido();
     }
 
     @Test
     @DisplayName("Lista los cambios de precio del negocio desde una fecha")
-    void findByNegocioIdDesdeShouldMap() {
-        when(jpa.findByNegocioIdAndCambiadoEnGreaterThanEqualOrderByCambiadoEnAsc(NEGOCIO_ID.valor(), AHORA.minusDays(30)))
-                .thenReturn(List.of(entity()));
+    void listaLosCambiosDePrecioDelNegocioDesdeUnaFecha() {
+        dadoQueElNegocioTieneUnCambioReciente();
 
-        assertThat(repository.findByNegocioIdDesde(NEGOCIO_ID, AHORA.minusDays(30))).containsExactly(cambio());
+        cuandoSeListanLosCambiosDeLosUltimosTreintaDias();
+
+        entoncesSeListaElCambioDePrecio();
     }
 
-    private static CambioPrecio cambio() {
+    // --- dado ---
+    private void dadoQueGuardarDevuelveElCambio() {
+        when(jpa.saveAndFlush(any(HistorialPrecioEntity.class))).thenReturn(unaEntidad());
+    }
+
+    private void dadoQueElNegocioTieneUnCambioReciente() {
+        when(jpa.findByNegocioIdAndCambiadoEnGreaterThanEqualOrderByCambiadoEnAsc(
+                NEGOCIO_ID.valor(), AHORA.minusDays(30))).thenReturn(List.of(unaEntidad()));
+    }
+
+    private static CambioPrecio unCambio() {
         return new CambioPrecio(NEGOCIO_ID, REGISTRO_ID, new BigDecimal("1000"), new BigDecimal("1200"), AHORA);
     }
 
-    private static HistorialPrecioEntity entity() {
+    private static HistorialPrecioEntity unaEntidad() {
         return HistorialPrecioEntity.builder().negocioId(NEGOCIO_ID.valor()).registroId(REGISTRO_ID.valor())
                 .precioAnterior(new BigDecimal("1000")).precioNuevo(new BigDecimal("1200")).cambiadoEn(AHORA).build();
+    }
+
+    // --- cuando ---
+    private void cuandoSeGuardaElCambioDePrecio() {
+        guardado = repository.save(unCambio());
+    }
+
+    private void cuandoSeListanLosCambiosDeLosUltimosTreintaDias() {
+        cambios = repository.findByNegocioIdDesde(NEGOCIO_ID, AHORA.minusDays(30));
+    }
+
+    // --- entonces ---
+    private void entoncesSeDevuelveElCambioPersistido() {
+        assertThat(guardado).isEqualTo(unCambio());
+    }
+
+    private void entoncesSeListaElCambioDePrecio() {
+        assertThat(cambios).containsExactly(unCambio());
     }
 }

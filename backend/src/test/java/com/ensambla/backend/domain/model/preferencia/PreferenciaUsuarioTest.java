@@ -3,6 +3,9 @@ package com.ensambla.backend.domain.model.preferencia;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -16,27 +19,67 @@ class PreferenciaUsuarioTest {
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-21T10:00:00Z");
     private static final OffsetDateTime DESPUES = AHORA.plusHours(1);
 
+    private PreferenciaUsuario preferencia;
+
     @Test
     @DisplayName("Las preferencias iniciales no descartan nada ni apagan grupos")
-    void inicialShouldStartEmpty() {
-        PreferenciaUsuario result = PreferenciaUsuario.inicial(USUARIO_ID, AHORA);
+    void lasPreferenciasInicialesNoDescartanNadaNiApaganGrupos() {
+        cuandoSeCreanLasPreferenciasIniciales();
 
-        assertThat(result.getUsuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(result.getDescartadas()).isEmpty();
-        assertThat(result.getGrupos()).isEmpty();
-        assertThat(result.isBienvenidaVista()).isFalse();
-        assertThat(result.getNombre()).isNull();
-        assertThat(result.getCreadoEn()).isEqualTo(AHORA);
-        assertThat(result.getActualizadoEn()).isEqualTo(AHORA);
+        entoncesEmpiezanVacias();
     }
 
     @Test
     @DisplayName("Actualizar reemplaza los datos, recorta el nombre y mueve la fecha de actualización")
-    void actualizarShouldReplaceData() {
-        PreferenciaUsuario preferencia = PreferenciaUsuario.inicial(USUARIO_ID, AHORA);
+    void actualizarReemplazaLosDatosRecortaElNombreYMueveLaFechaDeActualizacion() {
+        dadoQueSeCrearonLasPreferenciasIniciales();
 
-        preferencia.actualizar(List.of("a1"), Map.of("STOCK", false), true, "  Gonza ", DESPUES);
+        cuandoSeActualizanConElNombre("  Gonza ");
 
+        entoncesSeReemplazanLosDatosYSeMueveLaFecha();
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    @DisplayName("Un nombre vacío o en blanco se guarda como ausente")
+    void unNombreVacioOEnBlancoSeGuardaComoAusente(String nombre) {
+        dadoQueSeCrearonLasPreferenciasIniciales();
+
+        cuandoSeActualizanConElNombre(nombre);
+
+        entoncesElNombreQuedaAusente();
+    }
+
+    // --- dado ---
+
+    private void dadoQueSeCrearonLasPreferenciasIniciales() {
+        preferencia = PreferenciaUsuario.inicial(USUARIO_ID, AHORA);
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeCreanLasPreferenciasIniciales() {
+        preferencia = PreferenciaUsuario.inicial(USUARIO_ID, AHORA);
+    }
+
+    private void cuandoSeActualizanConElNombre(String nombre) {
+        preferencia.actualizar(List.of("a1"), Map.of("STOCK", false), true, nombre, DESPUES);
+    }
+
+    // --- entonces ---
+
+    private void entoncesEmpiezanVacias() {
+        assertThat(preferencia.getUsuarioId()).isEqualTo(USUARIO_ID);
+        assertThat(preferencia.getDescartadas()).isEmpty();
+        assertThat(preferencia.getGrupos()).isEmpty();
+        assertThat(preferencia.isBienvenidaVista()).isFalse();
+        assertThat(preferencia.getNombre()).isNull();
+        assertThat(preferencia.getCreadoEn()).isEqualTo(AHORA);
+        assertThat(preferencia.getActualizadoEn()).isEqualTo(AHORA);
+    }
+
+    private void entoncesSeReemplazanLosDatosYSeMueveLaFecha() {
         assertThat(preferencia.getDescartadas()).containsExactly("a1");
         assertThat(preferencia.getGrupos()).containsEntry("STOCK", false);
         assertThat(preferencia.isBienvenidaVista()).isTrue();
@@ -45,15 +88,7 @@ class PreferenciaUsuarioTest {
         assertThat(preferencia.getActualizadoEn()).isEqualTo(DESPUES);
     }
 
-    @Test
-    @DisplayName("Un nombre vacío o en blanco se guarda como ausente")
-    void actualizarShouldDropBlankNombre() {
-        PreferenciaUsuario preferencia = PreferenciaUsuario.inicial(USUARIO_ID, AHORA);
-
-        preferencia.actualizar(List.of(), Map.of(), false, "   ", DESPUES);
-        assertThat(preferencia.getNombre()).isNull();
-
-        preferencia.actualizar(List.of(), Map.of(), false, null, DESPUES);
+    private void entoncesElNombreQuedaAusente() {
         assertThat(preferencia.getNombre()).isNull();
     }
 }

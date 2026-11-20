@@ -1,11 +1,11 @@
 package com.ensambla.backend.domain.model.aviso;
 
+import com.ensambla.backend.domain.model.common.ValorDeRegistro;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.Optional;
 
 /**
@@ -26,46 +26,32 @@ public record VentaProducto(
 
     /** La venta de la fila, o vacío si no se puede leer: sin producto válido, sin cantidad positiva o sin fecha válida. */
     public static Optional<VentaProducto> desde(BloqueVentas ventas, Registro registro) {
-        RegistroId producto = producto(ventas.valorDe(registro, CLAVE_PRODUCTO));
-        BigDecimal cantidad = numero(ventas.valorDe(registro, CLAVE_CANTIDAD));
-        LocalDate fecha = fecha(ventas.valorDe(registro, CLAVE_FECHA));
-        if (producto == null || cantidad == null || cantidad.signum() <= 0 || fecha == null) {
-            return Optional.empty();
-        }
-        BigDecimal precio = numero(ventas.valorDe(registro, CLAVE_PRECIO));
-        return Optional.of(new VentaProducto(
-                producto, cantidad, precio != null && precio.signum() > 0 ? precio : null, fecha,
-                cliente(ventas.valorDe(registro, CLAVE_CLIENTE))));
+        VentaProducto venta = new VentaProducto(
+                producto(leer(ventas, registro, CLAVE_PRODUCTO)),
+                leer(ventas, registro, CLAVE_CANTIDAD).comoNumeroPositivo(),
+                leer(ventas, registro, CLAVE_PRECIO).comoNumeroPositivo(),
+                leer(ventas, registro, CLAVE_FECHA).comoFecha(),
+                leer(ventas, registro, CLAVE_CLIENTE).comoTexto());
+        return Optional.of(venta).filter(VentaProducto::sePuedeContar);
+    }
+
+    private boolean sePuedeContar() {
+        return productoId != null && cantidad != null && fecha != null;
+    }
+
+    private static ValorDeRegistro leer(BloqueVentas ventas, Registro registro, String clave) {
+        return ValorDeRegistro.de(ventas.valorDe(registro, clave));
     }
 
     /** La conexión al producto se guarda como el id (texto) del registro de inventario. */
-    private static RegistroId producto(Object valor) {
-        if (!(valor instanceof String texto)) {
+    private static RegistroId producto(ValorDeRegistro valor) {
+        if (!valor.tieneTexto()) {
             return null;
         }
         try {
-            return RegistroId.de(texto.trim());
+            return RegistroId.de(valor.comoTexto());
         } catch (IllegalArgumentException e) {
             return null;
         }
-    }
-
-    private static BigDecimal numero(Object valor) {
-        return valor instanceof Number numero ? new BigDecimal(numero.toString()) : null;
-    }
-
-    private static LocalDate fecha(Object valor) {
-        if (!(valor instanceof String texto)) {
-            return null;
-        }
-        try {
-            return LocalDate.parse(texto.trim());
-        } catch (DateTimeParseException e) {
-            return null;
-        }
-    }
-
-    private static String cliente(Object valor) {
-        return valor instanceof String texto && !texto.isBlank() ? texto.trim() : null;
     }
 }

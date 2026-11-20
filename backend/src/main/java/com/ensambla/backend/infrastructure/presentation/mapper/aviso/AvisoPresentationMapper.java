@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.aviso;
 
+import com.ensambla.backend.infrastructure.avisos.AccionDeAvisoJson;
 import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
@@ -43,7 +44,7 @@ public class AvisoPresentationMapper {
                 aviso.titulo(),
                 aviso.detalle(),
                 aviso.motivos(),
-                aviso.acciones(),
+                AccionDeAvisoJson.escribirTodas(aviso.acciones()),
                 aviso.datos(),
                 aviso.creadoEn(),
                 aviso.resueltoEn());

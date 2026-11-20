@@ -34,7 +34,7 @@ const plantilla = (
 });
 
 const PLANTILLAS: Plantilla[] = [
-  plantilla(4, 'Ventas', 'Anotá lo que vendés, a quién y cuánto cobraste.', 'Ventas', [
+  plantilla(4, 'Ventas', 'Cargá lo que vendés, a quién y cuánto cobraste.', 'Ventas', [
     { nombre: 'Fecha', tipo: 'FECHA' },
     { nombre: 'Producto', tipo: 'TEXTO' },
     { nombre: 'Cantidad', tipo: 'NUMERO' },
@@ -52,7 +52,7 @@ const PLANTILLAS: Plantilla[] = [
       { nombre: 'Rubro', tipo: 'OPCION', opciones: ['Insumos', 'Terminados'] },
     ],
   ),
-  plantilla(2, 'Pedidos', 'Anotá los pedidos de tus clientes y seguí su estado.', 'Pedidos', [
+  plantilla(2, 'Pedidos', 'Cargá los pedidos de tus clientes y seguí su estado.', 'Pedidos', [
     { nombre: 'Cliente', tipo: 'TEXTO' },
     { nombre: 'Entrega', tipo: 'FECHA' },
     { nombre: 'Entregado', tipo: 'SI_NO' },

@@ -35,37 +35,37 @@ class SesionRequeridaFilterTest {
 
     @Test
     @DisplayName("Sin identidad rechaza con 401 sin ejecutar el endpoint")
-    void doFilterShouldRejectMissingAuthentication() throws Exception {
+    void sinIdentidadRechazaCon401SinEjecutarElEndpoint() throws Exception {
         filtrar();
 
-        thenUnauthorized();
+        entoncesUnauthorized();
     }
 
     @Test
     @DisplayName("Rechaza una identidad que todavía no fue autenticada")
-    void doFilterShouldRejectUnauthenticatedIdentity() throws Exception {
-        givenAuthentication(UsernamePasswordAuthenticationToken.unauthenticated("persona", "clave"));
+    void rechazaUnaIdentidadQueTodaviaNoFueAutenticada() throws Exception {
+        dadoAuthentication(UsernamePasswordAuthenticationToken.unauthenticated("persona", "clave"));
 
         filtrar();
 
-        thenUnauthorized();
+        entoncesUnauthorized();
     }
 
     @Test
     @DisplayName("Rechaza la identidad anónima")
-    void doFilterShouldRejectAnonymousIdentity() throws Exception {
-        givenAuthentication(new AnonymousAuthenticationToken("key", "anonymous",
+    void rechazaLaIdentidadAnonima() throws Exception {
+        dadoAuthentication(new AnonymousAuthenticationToken("key", "anonymous",
                 List.of(new SimpleGrantedAuthority("ROLE_ANONYMOUS"))));
 
         filtrar();
 
-        thenUnauthorized();
+        entoncesUnauthorized();
     }
 
     @Test
     @DisplayName("Una identidad autenticada continúa a la protección CSRF")
-    void doFilterShouldContinueWhenAuthenticated() throws Exception {
-        givenAuthentication(UsernamePasswordAuthenticationToken.authenticated("persona", null, List.of()));
+    void unaIdentidadAutenticadaContinuaALaProteccionCSRF() throws Exception {
+        dadoAuthentication(UsernamePasswordAuthenticationToken.authenticated("persona", null, List.of()));
 
         filtrar();
 
@@ -74,7 +74,7 @@ class SesionRequeridaFilterTest {
 
     @Test
     @DisplayName("Las rutas públicas no requieren identidad")
-    void shouldNotFilterShouldSkipPublicRoutes() throws Exception {
+    void lasRutasPublicasNoRequierenIdentidad() throws Exception {
         SesionRequeridaFilter publicFilter =
                 new SesionRequeridaFilter(ignored -> true, new SecurityErrorHandler(new ObjectMapper()));
 
@@ -83,18 +83,18 @@ class SesionRequeridaFilterTest {
         verify(chain).doFilter(request, response);
     }
 
-    // --- arrange ---
-    private void givenAuthentication(Authentication authentication) {
+    // --- dado ---
+    private void dadoAuthentication(Authentication authentication) {
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
-    // --- act ---
+    // --- cuando ---
     private void filtrar() throws Exception {
         filter.doFilter(request, response, chain);
     }
 
-    // --- assert ---
-    private void thenUnauthorized() {
+    // --- entonces ---
+    private void entoncesUnauthorized() {
         assertThat(response.getStatus()).isEqualTo(401);
         verifyNoInteractions(chain);
     }

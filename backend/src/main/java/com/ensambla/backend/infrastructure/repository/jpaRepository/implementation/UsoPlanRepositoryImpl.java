@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.repository.jpaRepository.implementat
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.objetivo.ObjetivoId;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +53,20 @@ public class UsoPlanRepositoryImpl implements UsoPlanRepository {
                 SELECT COALESCE(sum(paginas::bigint + reservadas), 0)
                 FROM consumo_ia_diario WHERE negocio_id = ? AND fecha >= ? AND fecha < ?
                 """, Long.class, negocioId.valor(), desde, hasta);
+    }
+
+    @Override
+    public long objetivosIaEnPeriodo(NegocioId negocioId, OffsetDateTime desde, OffsetDateTime hasta) {
+        return jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM consumo_objetivo_ia
+                WHERE negocio_id = ? AND consumido_en >= ? AND consumido_en < ?
+                """, Long.class, negocioId.valor(), desde, hasta);
+    }
+
+    @Override
+    public void registrarObjetivoIa(NegocioId negocioId, ObjetivoId objetivoId, OffsetDateTime ahora) {
+        jdbcTemplate.update("INSERT INTO consumo_objetivo_ia (negocio_id, objetivo_id, consumido_en) VALUES (?, ?, ?)",
+                negocioId.valor(), objetivoId.valor(), ahora);
     }
 
     @Override

@@ -19,137 +19,306 @@ class EvolutionWebhookParserTest {
 
     private static final Instant INSTANTE = Instant.parse("2026-10-19T12:00:00Z");
     private static final OffsetDateTime AHORA = OffsetDateTime.ofInstant(INSTANTE, ZoneOffset.UTC);
+    private static final String CONTACTO = "5491122334455@s.whatsapp.net";
+    private static final String TEXTO_HOLA = "\"message\":{\"conversation\":\"hola\"}";
 
     private final JsonMapper json = JsonMapper.builder().build();
     private final EvolutionWebhookParser parser = new EvolutionWebhookParser(Clock.fixed(INSTANTE, ZoneOffset.UTC));
 
+    private JsonNode cuerpo;
+    private Optional<MensajeEntrante> mensaje;
+
     @Test
     @DisplayName("Lee un texto simple con el teléfono, el id y la hora del mensaje")
-    void parsearShouldReadPlainText() {
-        Optional<MensajeEntrante> result = parsear(evento("messages.upsert",
-                key("5491122334455@s.whatsapp.net", false, "ID1"),
-                "\"message\":{\"conversation\":\"gasté 5000 en harina\"},\"messageTimestamp\":1792411200"));
+    void leeUnTextoSimpleConElTelefonoElIdYLaHoraDelMensaje() {
+        dadoUnTextoSimple();
 
-        assertThat(result).contains(new MensajeEntrante("5491122334455", "ID1", TipoMensajeWhatsapp.TEXTO,
+        cuandoSeParsea();
+
+        entoncesSeLeeElMensaje(new MensajeEntrante("5491122334455", "ID1", TipoMensajeWhatsapp.TEXTO,
                 "gasté 5000 en harina", null, null, AHORA));
     }
 
     @Test
     @DisplayName("Lee un texto que viene como mensaje extendido y acepta el evento en mayúsculas")
-    void parsearShouldReadExtendedTextAndUppercaseEvent() {
-        Optional<MensajeEntrante> result = parsear(evento("MESSAGES_UPSERT",
-                key("5491122334455@s.whatsapp.net", false, "ID2"),
-                "\"message\":{\"extendedTextMessage\":{\"text\":\"vendí 3 panes\"}}"));
+    void leeUnTextoQueVieneComoMensajeExtendidoYAceptaElEventoEnMayusculas() {
+        dadoUnTextoExtendidoConElEventoEnMayusculas();
 
-        assertThat(result).get().satisfies(mensaje -> {
-            assertThat(mensaje.texto()).isEqualTo("vendí 3 panes");
-            assertThat(mensaje.recibidoEn()).isEqualTo(AHORA);
-        });
+        cuandoSeParsea();
+
+        entoncesSeLeeElTextoYLaHoraActual("vendí 3 panes");
     }
 
     @Test
     @DisplayName("Lee una nota de voz con su tipo de audio y su duración")
-    void parsearShouldReadVoiceNote() {
-        Optional<MensajeEntrante> result = parsear(evento("messages.upsert",
-                key("5491122334455@s.whatsapp.net", false, "ID3"),
-                "\"message\":{\"audioMessage\":{\"mimetype\":\"audio/ogg; codecs=opus\",\"seconds\":7}}"));
+    void leeUnaNotaDeVozConSuTipoDeAudioYSuDuracion() {
+        dadoUnaNotaDeVozDeSieteSegundos();
 
-        assertThat(result).contains(new MensajeEntrante("5491122334455", "ID3", TipoMensajeWhatsapp.AUDIO, null,
+        cuandoSeParsea();
+
+        entoncesSeLeeElMensaje(new MensajeEntrante("5491122334455", "ID3", TipoMensajeWhatsapp.AUDIO, null,
                 "audio/ogg; codecs=opus", 7, AHORA));
     }
 
     @Test
     @DisplayName("Lee una foto con su pie y su tipo de imagen")
-    void parsearShouldReadPhotoWithCaption() {
-        Optional<MensajeEntrante> result = parsear(evento("messages.upsert",
-                key("5491122334455@s.whatsapp.net", false, "ID6"),
-                "\"message\":{\"imageMessage\":{\"mimetype\":\"image/png\",\"caption\":\"ventas de hoy\"}}"));
+    void leeUnaFotoConSuPieYSuTipoDeImagen() {
+        dadoUnaFotoConPie();
 
-        assertThat(result).contains(new MensajeEntrante("5491122334455", "ID6", TipoMensajeWhatsapp.IMAGEN,
+        cuandoSeParsea();
+
+        entoncesSeLeeElMensaje(new MensajeEntrante("5491122334455", "ID6", TipoMensajeWhatsapp.IMAGEN,
                 "ventas de hoy", "image/png", null, AHORA));
     }
 
     @Test
     @DisplayName("Una foto sin pie ni tipo se lee como JPEG sin texto")
-    void parsearShouldReadPhotoWithoutCaptionNorMime() {
-        Optional<MensajeEntrante> result = parsear(evento("messages.upsert",
-                key("5491122334455@s.whatsapp.net", false, "ID7"),
-                "\"message\":{\"imageMessage\":{\"caption\":\"  \"}}"));
+    void unaFotoSinPieNiTipoSeLeeComoJpegSinTexto() {
+        dadoUnaFotoSinPieNiTipo();
 
-        assertThat(result).contains(new MensajeEntrante("5491122334455", "ID7", TipoMensajeWhatsapp.IMAGEN,
+        cuandoSeParsea();
+
+        entoncesSeLeeElMensaje(new MensajeEntrante("5491122334455", "ID7", TipoMensajeWhatsapp.IMAGEN,
                 null, "image/jpeg", null, AHORA));
     }
 
     @Test
     @DisplayName("Una nota de voz sin tipo ni duración usa audio/ogg y duración vacía")
-    void parsearShouldDefaultVoiceNoteMimeAndDuration() {
-        Optional<MensajeEntrante> result = parsear(evento("messages.upsert",
-                key("5491122334455@s.whatsapp.net", false, "ID4"), "\"message\":{\"audioMessage\":{}}"));
+    void unaNotaDeVozSinTipoNiDuracionUsaAudioOggYDuracionVacia() {
+        dadoUnaNotaDeVozSinTipoNiDuracion();
 
-        assertThat(result).get().satisfies(mensaje -> {
-            assertThat(mensaje.mimeMedia()).isEqualTo("audio/ogg");
-            assertThat(mensaje.duracionSeg()).isNull();
-        });
+        cuandoSeParsea();
+
+        entoncesElAudioEsOggSinDuracion();
     }
 
     @Test
     @DisplayName("Con el direccionamiento @lid toma el número real de senderPn")
-    void parsearShouldUseSenderPnWhenChatIsLid() {
-        Optional<MensajeEntrante> result = parsear(evento("messages.upsert",
-                "\"key\":{\"remoteJid\":\"99887766@lid\",\"fromMe\":false,\"id\":\"ID5\","
-                        + "\"senderPn\":\"5491122334455@s.whatsapp.net\"}",
-                "\"message\":{\"conversation\":\"hola\"}"));
+    void conElDireccionamientoLidTomaElNumeroRealDeSenderPn() {
+        dadoUnChatLidConSenderPn();
 
-        assertThat(result).get().extracting(MensajeEntrante::telefono).isEqualTo("5491122334455");
+        cuandoSeParsea();
+
+        entoncesElTelefonoEsElNumeroReal();
     }
 
     @Test
     @DisplayName("Con @lid y sin senderPn usa remoteJidAlt")
-    void parsearShouldUseRemoteJidAltWhenSenderPnIsMissing() {
-        Optional<MensajeEntrante> result = parsear(evento("messages.upsert",
-                "\"key\":{\"remoteJid\":\"99887766@lid\",\"fromMe\":false,\"id\":\"ID6\","
-                        + "\"remoteJidAlt\":\"5491122334455@s.whatsapp.net\"}",
-                "\"message\":{\"conversation\":\"hola\"}"));
+    void conLidYSinSenderPnUsaRemoteJidAlt() {
+        dadoUnChatLidConRemoteJidAlt();
 
-        assertThat(result).get().extracting(MensajeEntrante::telefono).isEqualTo("5491122334455");
+        cuandoSeParsea();
+
+        entoncesElTelefonoEsElNumeroReal();
     }
 
     @Test
     @DisplayName("Con @lid y sin número real ignora el mensaje")
-    void parsearShouldIgnoreLidWithoutRealNumber() {
-        assertThat(parsear(evento("messages.upsert",
-                "\"key\":{\"remoteJid\":\"99887766@lid\",\"fromMe\":false,\"id\":\"ID7\"}",
-                "\"message\":{\"conversation\":\"hola\"}"))).isEmpty();
+    void conLidYSinNumeroRealIgnoraElMensaje() {
+        dadoUnChatLidSinNumeroReal();
+
+        cuandoSeParsea();
+
+        entoncesSeIgnoraElMensaje();
     }
 
     @Test
-    @DisplayName("Ignora otros eventos, mis propios mensajes, grupos, estados y mensajes sin id")
-    void parsearShouldIgnoreEverythingThatIsNotAContactsMessage() {
-        String texto = "\"message\":{\"conversation\":\"hola\"}";
+    @DisplayName("Ignora otros eventos")
+    void ignoraOtrosEventos() {
+        dadoUnEventoDeConexion();
 
-        assertThat(parsear(evento("connection.update", key("5491122334455@s.whatsapp.net", false, "A"), texto)))
-                .isEmpty();
-        assertThat(parsear(evento("messages.upsert", key("5491122334455@s.whatsapp.net", true, "B"), texto)))
-                .isEmpty();
-        assertThat(parsear(evento("messages.upsert", key("120363@g.us", false, "C"), texto))).isEmpty();
-        assertThat(parsear(evento("messages.upsert", key("status@broadcast", false, "D"), texto))).isEmpty();
-        assertThat(parsear(evento("messages.upsert", key("5491122334455@s.whatsapp.net", false, ""), texto)))
-                .isEmpty();
+        cuandoSeParsea();
+
+        entoncesSeIgnoraElMensaje();
     }
 
     @Test
-    @DisplayName("Ignora un chat con un número inválido y los mensajes que no son texto, audio ni foto")
-    void parsearShouldIgnoreInvalidPhonesAndOtherMessageTypes() {
-        assertThat(parsear(evento("messages.upsert", key("abc@s.whatsapp.net", false, "E"),
-                "\"message\":{\"conversation\":\"hola\"}"))).isEmpty();
-        assertThat(parsear(evento("messages.upsert", key("5491122334455@s.whatsapp.net", false, "F"),
-                "\"message\":{\"stickerMessage\":{}}"))).isEmpty();
-        assertThat(parsear(json.readTree("{}"))).isEmpty();
+    @DisplayName("Ignora mis propios mensajes")
+    void ignoraMisPropiosMensajes() {
+        dadoUnMensajeMio();
+
+        cuandoSeParsea();
+
+        entoncesSeIgnoraElMensaje();
     }
 
-    private Optional<MensajeEntrante> parsear(JsonNode cuerpo) {
-        return parser.parsear(cuerpo);
+    @Test
+    @DisplayName("Ignora los grupos")
+    void ignoraLosGrupos() {
+        dadoUnMensajeDeUnGrupo();
+
+        cuandoSeParsea();
+
+        entoncesSeIgnoraElMensaje();
     }
+
+    @Test
+    @DisplayName("Ignora los estados")
+    void ignoraLosEstados() {
+        dadoUnEstadoDeWhatsapp();
+
+        cuandoSeParsea();
+
+        entoncesSeIgnoraElMensaje();
+    }
+
+    @Test
+    @DisplayName("Ignora los mensajes sin id")
+    void ignoraLosMensajesSinId() {
+        dadoUnMensajeSinId();
+
+        cuandoSeParsea();
+
+        entoncesSeIgnoraElMensaje();
+    }
+
+    @Test
+    @DisplayName("Ignora un chat con un número inválido")
+    void ignoraUnChatConUnNumeroInvalido() {
+        dadoUnChatConUnNumeroInvalido();
+
+        cuandoSeParsea();
+
+        entoncesSeIgnoraElMensaje();
+    }
+
+    @Test
+    @DisplayName("Ignora los mensajes que no son texto, audio ni foto")
+    void ignoraLosMensajesQueNoSonTextoAudioNiFoto() {
+        dadoUnSticker();
+
+        cuandoSeParsea();
+
+        entoncesSeIgnoraElMensaje();
+    }
+
+    @Test
+    @DisplayName("Ignora un cuerpo vacío")
+    void ignoraUnCuerpoVacio() {
+        dadoUnCuerpoVacio();
+
+        cuandoSeParsea();
+
+        entoncesSeIgnoraElMensaje();
+    }
+
+    // --- dado ---
+
+    private void dadoUnTextoSimple() {
+        cuerpo = evento("messages.upsert", key(CONTACTO, false, "ID1"),
+                "\"message\":{\"conversation\":\"gasté 5000 en harina\"},\"messageTimestamp\":1792411200");
+    }
+
+    private void dadoUnTextoExtendidoConElEventoEnMayusculas() {
+        cuerpo = evento("MESSAGES_UPSERT", key(CONTACTO, false, "ID2"),
+                "\"message\":{\"extendedTextMessage\":{\"text\":\"vendí 3 panes\"}}");
+    }
+
+    private void dadoUnaNotaDeVozDeSieteSegundos() {
+        cuerpo = evento("messages.upsert", key(CONTACTO, false, "ID3"),
+                "\"message\":{\"audioMessage\":{\"mimetype\":\"audio/ogg; codecs=opus\",\"seconds\":7}}");
+    }
+
+    private void dadoUnaFotoConPie() {
+        cuerpo = evento("messages.upsert", key(CONTACTO, false, "ID6"),
+                "\"message\":{\"imageMessage\":{\"mimetype\":\"image/png\",\"caption\":\"ventas de hoy\"}}");
+    }
+
+    private void dadoUnaFotoSinPieNiTipo() {
+        cuerpo = evento("messages.upsert", key(CONTACTO, false, "ID7"),
+                "\"message\":{\"imageMessage\":{\"caption\":\"  \"}}");
+    }
+
+    private void dadoUnaNotaDeVozSinTipoNiDuracion() {
+        cuerpo = evento("messages.upsert", key(CONTACTO, false, "ID4"), "\"message\":{\"audioMessage\":{}}");
+    }
+
+    private void dadoUnChatLidConSenderPn() {
+        cuerpo = evento("messages.upsert",
+                "\"key\":{\"remoteJid\":\"99887766@lid\",\"fromMe\":false,\"id\":\"ID5\","
+                        + "\"senderPn\":\"" + CONTACTO + "\"}",
+                TEXTO_HOLA);
+    }
+
+    private void dadoUnChatLidConRemoteJidAlt() {
+        cuerpo = evento("messages.upsert",
+                "\"key\":{\"remoteJid\":\"99887766@lid\",\"fromMe\":false,\"id\":\"ID6\","
+                        + "\"remoteJidAlt\":\"" + CONTACTO + "\"}",
+                TEXTO_HOLA);
+    }
+
+    private void dadoUnChatLidSinNumeroReal() {
+        cuerpo = evento("messages.upsert",
+                "\"key\":{\"remoteJid\":\"99887766@lid\",\"fromMe\":false,\"id\":\"ID7\"}", TEXTO_HOLA);
+    }
+
+    private void dadoUnEventoDeConexion() {
+        cuerpo = evento("connection.update", key(CONTACTO, false, "A"), TEXTO_HOLA);
+    }
+
+    private void dadoUnMensajeMio() {
+        cuerpo = evento("messages.upsert", key(CONTACTO, true, "B"), TEXTO_HOLA);
+    }
+
+    private void dadoUnMensajeDeUnGrupo() {
+        cuerpo = evento("messages.upsert", key("120363@g.us", false, "C"), TEXTO_HOLA);
+    }
+
+    private void dadoUnEstadoDeWhatsapp() {
+        cuerpo = evento("messages.upsert", key("status@broadcast", false, "D"), TEXTO_HOLA);
+    }
+
+    private void dadoUnMensajeSinId() {
+        cuerpo = evento("messages.upsert", key(CONTACTO, false, ""), TEXTO_HOLA);
+    }
+
+    private void dadoUnChatConUnNumeroInvalido() {
+        cuerpo = evento("messages.upsert", key("abc@s.whatsapp.net", false, "E"), TEXTO_HOLA);
+    }
+
+    private void dadoUnSticker() {
+        cuerpo = evento("messages.upsert", key(CONTACTO, false, "F"), "\"message\":{\"stickerMessage\":{}}");
+    }
+
+    private void dadoUnCuerpoVacio() {
+        cuerpo = json.readTree("{}");
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeParsea() {
+        mensaje = parser.parsear(cuerpo);
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeLeeElMensaje(MensajeEntrante esperado) {
+        assertThat(mensaje).contains(esperado);
+    }
+
+    private void entoncesSeLeeElTextoYLaHoraActual(String texto) {
+        assertThat(mensaje).get().satisfies(leido -> {
+            assertThat(leido.texto()).isEqualTo(texto);
+            assertThat(leido.recibidoEn()).isEqualTo(AHORA);
+        });
+    }
+
+    private void entoncesElAudioEsOggSinDuracion() {
+        assertThat(mensaje).get().satisfies(leido -> {
+            assertThat(leido.mimeMedia()).isEqualTo("audio/ogg");
+            assertThat(leido.duracionSeg()).isNull();
+        });
+    }
+
+    private void entoncesElTelefonoEsElNumeroReal() {
+        assertThat(mensaje).get().extracting(MensajeEntrante::telefono).isEqualTo("5491122334455");
+    }
+
+    private void entoncesSeIgnoraElMensaje() {
+        assertThat(mensaje).isEmpty();
+    }
+
+    // --- datos ---
 
     private JsonNode evento(String evento, String key, String resto) {
         return json.readTree("{\"event\":\"" + evento + "\",\"data\":{" + key + "," + resto + "}}");

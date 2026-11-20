@@ -23,9 +23,9 @@ export function ModalBienvenida() {
           <Sami />
           <span className="welcome-bubble">Lo armamos juntos.</span>
         </div>
-        <span className="eyebrow">TU CUADERNO, UN BLOQUE A LA VEZ.</span>
+        <span className="eyebrow">TU NEGOCIO, UN BLOQUE A LA VEZ.</span>
         <h2 id="modal-title">
-          ¡Hola, {nombre}!
+          Hola, {nombre}.
           <br />
           Bienvenido a Ensambla.
         </h2>
@@ -40,7 +40,7 @@ export function ModalBienvenida() {
               <Icon name="spark" />
             </span>
             <span>
-              <strong>Hacer mi primer cuaderno con guía</strong>
+              <strong>Hacer mi primera sección con guía</strong>
               <small>Lo probamos paso a paso, haciendo de verdad.</small>
             </span>
             <Icon name="arrow" />
@@ -51,7 +51,7 @@ export function ModalBienvenida() {
             </span>
             <span>
               <strong>Explorar por mi cuenta</strong>
-              <small>Recorré las opciones. Sami sigue a mano.</small>
+              <small>Recorré las opciones. Sami está disponible si lo necesitás.</small>
             </span>
             <Icon name="arrow" />
           </button>

@@ -34,6 +34,7 @@ class ClienteModeloConHerramientasBedrockTest {
 
     private BedrockRuntimeClient bedrock;
     private ClienteModeloConHerramientasBedrock cliente;
+    private RespuestaConHerramientas respuesta;
 
     @BeforeEach
     void setUp() {
@@ -47,25 +48,123 @@ class ClienteModeloConHerramientasBedrockTest {
 
     @Test
     @DisplayName("Manda las instrucciones, el contexto y las herramientas, y devuelve texto, llamadas y tokens")
-    void completarShouldSendToolsAndReturnTextCallsAndTokens() {
-        givenModelAnswers(
+    void mandaLasInstruccionesElContextoYLasHerramientasYDevuelveTextoLlamadasYTokens() {
+        dadoUnModeloQueSumaGastosYPideAgregarUnaPieza();
+
+        cuandoSeCompletaConInstruccionesYContexto();
+
+        entoncesDevuelveTextoLlamadasYTokens();
+        entoncesElPedidoLlevaInstruccionesContextoYHerramientas();
+    }
+
+    @Test
+    @DisplayName("Si el modelo sólo pide una herramienta, el texto queda vacío")
+    void siElModeloSoloPideUnaHerramientaElTextoQuedaVacio() {
+        dadoUnModeloQueSoloOfreceOpciones();
+
+        cuandoSeCompleta();
+
+        entoncesElTextoEstaVacioYLaLlamadaTraeLasOpciones();
+    }
+
+    @Test
+    @DisplayName("Si el modelo sólo conversa no hay llamadas")
+    void siElModeloSoloConversaNoHayLlamadas() {
+        dadoQueElModeloResponde(ContentBlock.fromText("Claro, contame más."));
+
+        cuandoSeCompleta();
+
+        entoncesSoloHayTexto("Claro, contame más.");
+    }
+
+    @Test
+    @DisplayName("La foto adjunta va en el mismo mensaje como ImageBlock, antes del texto del turno")
+    void laFotoAdjuntaVaEnElMismoMensajeComoImageBlockAntesDelTextoDelTurno() {
+        dadoQueElModeloResponde(ContentBlock.fromText("Leí la foto."));
+
+        cuandoSeCompletaConUnaFotoWebp();
+
+        entoncesLaFotoViajaComoImageBlockAntesDelTexto();
+    }
+
+    @Test
+    @DisplayName("Si el modelo se queda sin tokens igual devuelve lo que alcanzó a decir")
+    void siElModeloSeQuedaSinTokensIgualDevuelveLoQueAlcanzoADecir() {
+        dadoUnModeloQueSeQuedaSinTokens();
+
+        cuandoSeCompleta();
+
+        entoncesSoloHayTexto("Veo un cuaderno");
+    }
+
+    // --- dado ---
+
+    private void dadoUnModeloQueSumaGastosYPideAgregarUnaPieza() {
+        dadoQueElModeloResponde(
                 ContentBlock.fromText("Listo, sumé los gastos."),
                 ContentBlock.fromToolUse(ToolUseBlock.builder()
                         .toolUseId("t1")
                         .name("agregar_pieza")
                         .input(Document.fromMap(Map.of("tipo", Document.fromString("expenses"))))
                         .build()));
+    }
 
-        RespuestaConHerramientas result = cliente.completar(new PeticionConHerramientas("Sos Sami", "contexto"));
+    private void dadoUnModeloQueSoloOfreceOpciones() {
+        dadoQueElModeloResponde(ContentBlock.fromToolUse(ToolUseBlock.builder()
+                .toolUseId("t1")
+                .name("ofrecer_opciones")
+                .input(Document.fromMap(Map.of(
+                        "pregunta", Document.fromString("¿Cuál?"),
+                        "opciones", Document.fromList(List.of(Document.fromString("A"), Document.fromString("B"))))))
+                .build()));
+    }
 
-        assertThat(result.texto()).isEqualTo("Listo, sumé los gastos.");
-        assertThat(result.llamadas()).containsExactly(
+    private void dadoUnModeloQueSeQuedaSinTokens() {
+        when(bedrock.converse(any(ConverseRequest.class))).thenReturn(ConverseResponse.builder()
+                .output(ConverseOutput.builder().message(Message.builder()
+                        .role(ConversationRole.ASSISTANT).content(ContentBlock.fromText("Veo un cuaderno")).build()).build())
+                .stopReason(StopReason.MAX_TOKENS)
+                .usage(TokenUsage.builder().inputTokens(850).outputTokens(400).build())
+                .build());
+    }
+
+    private void dadoQueElModeloResponde(ContentBlock... bloques) {
+        when(bedrock.converse(any(ConverseRequest.class))).thenReturn(ConverseResponse.builder()
+                .output(ConverseOutput.builder().message(Message.builder()
+                        .role(ConversationRole.ASSISTANT).content(bloques).build()).build())
+                .usage(TokenUsage.builder().inputTokens(850).outputTokens(70).build())
+                .build());
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeCompletaConInstruccionesYContexto() {
+        respuesta = cliente.completar(new PeticionConHerramientas("Sos Sami", "contexto"));
+    }
+
+    private void cuandoSeCompleta() {
+        respuesta = cliente.completar(new PeticionConHerramientas("i", "c"));
+    }
+
+    private void cuandoSeCompletaConUnaFotoWebp() {
+        respuesta = cliente.completar(new PeticionConHerramientas("i", "contexto",
+                List.of(new ImagenTaller("image/webp", new byte[]{4, 5}))));
+    }
+
+    // --- entonces ---
+
+    private void entoncesDevuelveTextoLlamadasYTokens() {
+        assertThat(respuesta.texto()).isEqualTo("Listo, sumé los gastos.");
+        assertThat(respuesta.llamadas()).containsExactly(
                 new LlamadaHerramienta("agregar_pieza", Map.of("tipo", "expenses")));
-        assertThat(result.proveedor()).isEqualTo("bedrock");
-        assertThat(result.modelo()).isEqualTo(MODELO);
-        assertThat(result.tokensEntrada()).isEqualTo(850);
-        assertThat(result.tokensSalida()).isEqualTo(70);
-        ConverseRequest pedido = capturedRequest();
+        assertThat(respuesta.proveedor()).isEqualTo("bedrock");
+        assertThat(respuesta.modelo()).isEqualTo(MODELO);
+        assertThat(respuesta.tokensEntrada()).isEqualTo(850);
+        assertThat(respuesta.tokensSalida()).isEqualTo(70);
+    }
+
+    private void entoncesElPedidoLlevaInstruccionesContextoYHerramientas() {
+        ConverseRequest pedido = pedidoEnviado();
         assertThat(pedido.modelId()).isEqualTo(MODELO);
         assertThat(pedido.system().getFirst().text()).isEqualTo("Sos Sami");
         assertThat(pedido.messages().getFirst().role()).isEqualTo(ConversationRole.USER);
@@ -78,76 +177,29 @@ class ClienteModeloConHerramientasBedrockTest {
                 .containsKeys("type", "properties", "required");
     }
 
-    @Test
-    @DisplayName("Si el modelo sólo pide una herramienta, el texto queda vacío")
-    void completarShouldReturnEmptyTextWhenModelOnlyCallsATool() {
-        givenModelAnswers(ContentBlock.fromToolUse(ToolUseBlock.builder()
-                .toolUseId("t1")
-                .name("ofrecer_opciones")
-                .input(Document.fromMap(Map.of(
-                        "pregunta", Document.fromString("¿Cuál?"),
-                        "opciones", Document.fromList(List.of(Document.fromString("A"), Document.fromString("B"))))))
-                .build()));
-
-        RespuestaConHerramientas result = cliente.completar(new PeticionConHerramientas("i", "c"));
-
-        assertThat(result.texto()).isEmpty();
-        assertThat(result.llamadas().getFirst().argumentos())
+    private void entoncesElTextoEstaVacioYLaLlamadaTraeLasOpciones() {
+        assertThat(respuesta.texto()).isEmpty();
+        assertThat(respuesta.llamadas().getFirst().argumentos())
                 .containsEntry("pregunta", "¿Cuál?")
                 .containsEntry("opciones", List.of("A", "B"));
     }
 
-    @Test
-    @DisplayName("Si el modelo sólo conversa no hay llamadas")
-    void completarShouldReturnNoCallsWhenModelOnlyTalks() {
-        givenModelAnswers(ContentBlock.fromText("Claro, contame más."));
-
-        RespuestaConHerramientas result = cliente.completar(new PeticionConHerramientas("i", "c"));
-
-        assertThat(result.texto()).isEqualTo("Claro, contame más.");
-        assertThat(result.llamadas()).isEmpty();
+    private void entoncesSoloHayTexto(String esperado) {
+        assertThat(respuesta.texto()).isEqualTo(esperado);
+        assertThat(respuesta.llamadas()).isEmpty();
     }
 
-    @Test
-    @DisplayName("La foto adjunta va en el mismo mensaje como ImageBlock, antes del texto del turno")
-    void completarShouldSendAttachedImageAsImageBlock() {
-        givenModelAnswers(ContentBlock.fromText("Leí la foto."));
-
-        cliente.completar(new PeticionConHerramientas("i", "contexto",
-                List.of(new ImagenTaller("image/webp", new byte[]{4, 5}))));
-
-        List<ContentBlock> bloques = capturedRequest().messages().getFirst().content();
+    private void entoncesLaFotoViajaComoImageBlockAntesDelTexto() {
+        List<ContentBlock> bloques = pedidoEnviado().messages().getFirst().content();
         assertThat(bloques).hasSize(2);
         assertThat(bloques.getFirst().image().format()).isEqualTo(ImageFormat.WEBP);
         assertThat(bloques.getFirst().image().source().bytes().asByteArray()).containsExactly(4, 5);
         assertThat(bloques.get(1).text()).isEqualTo("contexto");
     }
 
-    @Test
-    @DisplayName("Si el modelo se queda sin tokens igual devuelve lo que alcanzó a decir")
-    void completarShouldStillAnswerWhenTheModelRunsOutOfTokens() {
-        when(bedrock.converse(any(ConverseRequest.class))).thenReturn(ConverseResponse.builder()
-                .output(ConverseOutput.builder().message(Message.builder()
-                        .role(ConversationRole.ASSISTANT).content(ContentBlock.fromText("Veo un cuaderno")).build()).build())
-                .stopReason(StopReason.MAX_TOKENS)
-                .usage(TokenUsage.builder().inputTokens(850).outputTokens(400).build())
-                .build());
+    // --- datos ---
 
-        RespuestaConHerramientas result = cliente.completar(new PeticionConHerramientas("i", "c"));
-
-        assertThat(result.texto()).isEqualTo("Veo un cuaderno");
-        assertThat(result.llamadas()).isEmpty();
-    }
-
-    private void givenModelAnswers(ContentBlock... bloques) {
-        when(bedrock.converse(any(ConverseRequest.class))).thenReturn(ConverseResponse.builder()
-                .output(ConverseOutput.builder().message(Message.builder()
-                        .role(ConversationRole.ASSISTANT).content(bloques).build()).build())
-                .usage(TokenUsage.builder().inputTokens(850).outputTokens(70).build())
-                .build());
-    }
-
-    private ConverseRequest capturedRequest() {
+    private ConverseRequest pedidoEnviado() {
         ArgumentCaptor<ConverseRequest> captor = ArgumentCaptor.forClass(ConverseRequest.class);
         verify(bedrock).converse(captor.capture());
         return captor.getValue();

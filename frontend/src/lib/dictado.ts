@@ -5,7 +5,7 @@ export const MENSAJE_SIN_SOPORTE =
   'Tu navegador no permite dictar. Probá con Chrome o Edge, o escribí lo que querés contarme.';
 
 const MENSAJE_SIN_PERMISO =
-  'Para dictar, permití el micrófono: tocá el candadito junto a la dirección, activá «Micrófono» y volvé a tocar el botón. Mientras tanto podés escribir.';
+  'Para dictar, permití el micrófono: tocá el candado junto a la dirección, activá «Micrófono» y volvé a tocar el botón. Mientras tanto podés escribir.';
 
 const MENSAJES_DE_ERROR: Record<string, string> = {
   'not-allowed': MENSAJE_SIN_PERMISO,

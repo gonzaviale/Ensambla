@@ -30,7 +30,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -44,8 +44,10 @@ class ConversarConSamiTest {
     private static final UsuarioId USUARIO_ID = UsuarioId.de("c0000000-0000-4000-8000-000000000001");
     private static final NegocioId NEGOCIO_ID = NegocioId.de("c0000000-0000-4000-8000-000000000002");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-19T12:00:00Z");
+    private static final OffsetDateTime TARDE_EN_ARGENTINA = OffsetDateTime.parse("2026-10-19T22:30:00-03:00");
     private static final LocalDate HOY = LocalDate.of(2026, 10, 19);
     private static final int MAX_PREGUNTAS = 3;
+    private static final int SIN_PREGUNTAS = 0;
     private static final int LIMITE_IA = 20;
     private static final String TEXTO_AMBIGUO = "quiero un stock y llevar los pedidos";
     private static final ConsumoIaSami CONSUMO = new ConsumoIaSami("bedrock", "haiku", 300, 40);
@@ -66,248 +68,347 @@ class ConversarConSamiTest {
     private ControlPlanService controlPlanService;
 
     private List<PlantillaProyecto> plantillas;
+    private int maxPreguntas = MAX_PREGUNTAS;
+    private OffsetDateTime ahora = AHORA;
+    private ConversarConSamiResponse respuesta;
+    private Throwable error;
 
     @BeforeEach
-    void setUp() {
+    void dadasLasPlantillasDeSami() {
         plantillas = SamiPruebas.plantillas();
         when(plantillaRepository.findAllParaProyectoActivas()).thenReturn(plantillas);
     }
 
     @Test
-    @DisplayName("Con un texto claro propone la plantilla con sus columnas extra sin tocar la IA")
-    void executeShouldProposeTemplateForClearTextWithoutAi() {
-        ConversarConSamiResponse response = conversar("Vendo velas y anoto quién me debe");
+    @DisplayName("Con un texto claro propone la plantilla con sus columnas extra")
+    void conUnTextoClaroProponeLaPlantilla() {
+        cuandoLaPersonaEscribe("Vendo velas y anoto quién me debe");
 
-        assertThat(response.tipo()).isEqualTo("PROPUESTA");
-        assertThat(response.pregunta()).isNull();
-        assertThat(response.propuesta().plantilla()).isEqualTo("Ventas");
-        assertThat(response.propuesta().columnas()).extracting("nombre").containsExactly("Saldo pendiente");
-        assertThat(response.propuesta().origen()).isEqualTo("ALGORITMO");
-        assertThat(response.preguntasHechas()).isZero();
-        verifyNoInteractions(samiIaPort, consumoSamiRepository, negocioRepository);
+        entoncesSePropone("Ventas", "ALGORITMO");
+        entoncesLasColumnasExtraSon("Saldo pendiente");
+        entoncesSeHicieronPreguntas(0);
+    }
+
+    @Test
+    @DisplayName("Con un texto claro no pregunta ni toca la IA")
+    void conUnTextoClaroNoPreguntaNiTocaLaIa() {
+        cuandoLaPersonaEscribe("Vendo velas y anoto quién me debe");
+
+        entoncesNoHayPregunta();
+        entoncesNoSeUsoLaIaNiSeBuscoElNegocio();
     }
 
     @Test
     @DisplayName("Con dos candidatas empatadas pregunta lo que las separa, con respuestas rápidas")
-    void executeShouldAskQuestionThatSeparatesTiedCandidates() {
-        ConversarConSamiResponse response = conversar(TEXTO_AMBIGUO);
+    void conDosCandidatasEmpatadasPreguntaLoQueLasSepara() {
+        cuandoLaPersonaEscribe(TEXTO_AMBIGUO);
 
-        assertThat(response.tipo()).isEqualTo("PREGUNTA");
-        assertThat(response.pregunta().id()).isEqualTo("principal");
-        assertThat(response.pregunta().opciones()).extracting(OpcionSamiItem::id)
-                .containsExactly("ventas", "stock", "pedidos", "gastos", "clientes", "otra");
-        assertThat(response.pregunta().opciones().getFirst().texto()).isEqualTo("Lo que vendo");
+        entoncesSePregunta("principal");
+        entoncesLasOpcionesSon("ventas", "stock", "pedidos", "gastos", "clientes", "otra");
+        entoncesLaPrimeraOpcionDice("Lo que vendo");
     }
 
     @Test
     @DisplayName("Entre ventas y stock prefiere la pregunta específica a la general")
-    void executeShouldPreferSpecificQuestion() {
-        ConversarConSamiResponse response = conversar("vendo y llevo el stock de mi inventario");
+    void entreVentasYStockPrefiereLaPreguntaEspecifica() {
+        cuandoLaPersonaEscribe("vendo y llevo el stock de mi inventario");
 
-        assertThat(response.pregunta().id()).isEqualTo("venta-o-stock");
+        entoncesSePregunta("venta-o-stock");
     }
 
     @Test
     @DisplayName("Con una sola candidata débil pide confirmación con la primera pregunta que la incluye")
-    void executeShouldAskConfirmationForSingleWeakCandidate() {
-        ConversarConSamiResponse response = conversar("vendo velas");
+    void conUnaSolaCandidataDebilPideConfirmacion() {
+        cuandoLaPersonaEscribe("vendo velas");
 
-        assertThat(response.tipo()).isEqualTo("PREGUNTA");
-        assertThat(response.pregunta().id()).isEqualTo("venta-o-stock");
+        entoncesSePregunta("venta-o-stock");
     }
 
     @Test
     @DisplayName("Sin ninguna pista hace la pregunta general")
-    void executeShouldAskGeneralQuestionWithoutAnyClue() {
-        ConversarConSamiResponse response = conversar("hola, necesito ayuda");
+    void sinNingunaPistaHaceLaPreguntaGeneral() {
+        cuandoLaPersonaEscribe("hola, necesito ayuda");
 
-        assertThat(response.pregunta().id()).isEqualTo("principal");
-        assertThat(response.propuesta()).isNull();
+        entoncesSePregunta("principal");
+        entoncesNoHayPropuesta();
     }
 
     @Test
     @DisplayName("Tras responder queda decidida y propone")
-    void executeShouldProposeAfterAnswering() {
-        ConversarConSamiResponse response = conversar("vendo y llevo el stock de mi inventario",
-                new RespuestaSamiItem("venta-o-stock", "stock"));
+    void trasResponderQuedaDecididaYPropone() {
+        cuandoLaPersonaEscribe("vendo y llevo el stock de mi inventario", new RespuestaSamiItem("venta-o-stock", "stock"));
 
-        assertThat(response.tipo()).isEqualTo("PROPUESTA");
-        assertThat(response.propuesta().plantilla()).isEqualTo("Inventario");
-        assertThat(response.preguntasHechas()).isEqualTo(1);
+        entoncesSePropone("Inventario", "ALGORITMO");
+        entoncesSeHicieronPreguntas(1);
     }
 
     @Test
     @DisplayName("Una respuesta que sí elige una plantilla no corta las preguntas")
-    void executeShouldKeepAskingAfterAnAnswerThatPicksATemplate() {
-        ConversarConSamiResponse response = conversar(TEXTO_AMBIGUO, new RespuestaSamiItem("venta-o-stock", "stock"));
+    void unaRespuestaQueEligeUnaPlantillaNoCortaLasPreguntas() {
+        cuandoLaPersonaEscribe(TEXTO_AMBIGUO, new RespuestaSamiItem("venta-o-stock", "stock"));
 
-        assertThat(response.tipo()).isEqualTo("PREGUNTA");
-        assertThat(response.preguntasHechas()).isEqualTo(1);
+        entoncesSePreguntaOtraVez();
+        entoncesSeHicieronPreguntas(1);
     }
 
     @Test
     @DisplayName("Si responde «otra cosa» no sigue preguntando por plantillas y pasa directo a la IA")
-    void executeShouldFallBackToAiAfterNoneOfThese() {
-        givenIaPropone("Gastos");
+    void siRespondeOtraCosaPasaDirectoALaIa() {
+        dadoQueLaIaPropone("Gastos");
 
-        ConversarConSamiResponse response = conversar("quiero ordenar mi negocio",
-                new RespuestaSamiItem("principal", "otra"));
+        cuandoLaPersonaEscribe("quiero ordenar mi negocio", new RespuestaSamiItem("principal", "otra"));
 
-        assertThat(response.propuesta().origen()).isEqualTo("IA");
-        assertThat(response.pregunta()).isNull();
-        assertThat(response.preguntasHechas()).isEqualTo(1);
+        entoncesLaPropuestaVieneDe("IA");
+        entoncesNoHayPregunta();
+        entoncesSeHicieronPreguntas(1);
     }
 
     @Test
     @DisplayName("Al llegar al máximo de preguntas deriva al respaldo con IA")
-    void executeShouldFallBackToAiWhenQuestionsAreExhausted() {
-        givenIaPropone("Inventario");
+    void alLlegarAlMaximoDePreguntasDerivaALaIa() {
+        dadoQueSamiPuedeHacer(1);
+        dadoQueLaIaPropone("Inventario");
 
-        ConversarConSamiResponse response = conversacion(1).execute(new ConversarConSamiRequest(
-                USUARIO_ID, TEXTO_AMBIGUO, List.of(new RespuestaSamiItem("venta-o-stock", "stock"))));
+        cuandoLaPersonaEscribe(TEXTO_AMBIGUO, new RespuestaSamiItem("venta-o-stock", "stock"));
 
-        assertThat(response.propuesta().origen()).isEqualTo("IA");
-        assertThat(response.preguntasHechas()).isEqualTo(1);
+        entoncesLaPropuestaVieneDe("IA");
+        entoncesSeHicieronPreguntas(1);
     }
 
     @Test
     @DisplayName("Si ninguna pregunta separa a las candidatas deriva al respaldo con IA")
-    void executeShouldFallBackToAiWhenNoQuestionApplies() {
-        plantillas = List.of(SamiPruebas.plantilla("Otra", SamiPruebas.campo("Nombre", TipoCampo.TEXTO)));
-        when(plantillaRepository.findAllParaProyectoActivas()).thenReturn(plantillas);
-        givenIaPropone("Otra");
+    void siNingunaPreguntaSeparaALasCandidatasDerivaALaIa() {
+        dadoQueSoloHayLaPlantilla("Otra");
+        dadoQueLaIaPropone("Otra");
 
-        ConversarConSamiResponse response = conversar("hola");
+        cuandoLaPersonaEscribe("hola");
 
-        assertThat(response.propuesta().plantilla()).isEqualTo("Otra");
-        assertThat(response.propuesta().origen()).isEqualTo("IA");
+        entoncesSePropone("Otra", "IA");
     }
 
     @Test
-    @DisplayName("Si el algoritmo no alcanza reserva la consulta, llama a la IA, registra el consumo y marca el origen")
-    void executeShouldReserveCallRegisterAndMarkOriginWhenAlgorithmIsNotEnough() {
-        givenIaPropone("Gastos");
+    @DisplayName("Si el algoritmo no alcanza la IA propone con su confianza y se registra el consumo")
+    void siElAlgoritmoNoAlcanzaProponeLaIaYSeRegistraElConsumo() {
+        dadoQueSamiPuedeHacer(SIN_PREGUNTAS);
+        dadoQueLaIaPropone("Gastos");
 
-        ConversarConSamiResponse response = conversacion(0).execute(
-                new ConversarConSamiRequest(USUARIO_ID, "pago cosas", List.of()));
+        cuandoLaPersonaEscribe("pago cosas");
 
-        assertThat(response.tipo()).isEqualTo("PROPUESTA");
-        assertThat(response.propuesta().plantilla()).isEqualTo("Gastos");
-        assertThat(response.propuesta().origen()).isEqualTo("IA");
-        assertThat(response.propuesta().confianza()).isEqualTo(0.9);
-        verify(consumoSamiRepository).registrar(NEGOCIO_ID, HOY, CONSUMO, AHORA);
+        entoncesSePropone("Gastos", "IA");
+        entoncesLaConfianzaEs(0.9);
+        entoncesSeRegistroElConsumo();
     }
 
     @Test
     @DisplayName("Con el límite diario agotado no llama a la IA")
-    void executeShouldNotCallAiWhenLimitIsReached() {
-        givenNegocio();
-        when(consumoSamiRepository.reservar(NEGOCIO_ID, HOY, LIMITE_IA, AHORA)).thenReturn(false);
-        ConversarConSami conversacion = conversacion(0);
-        ConversarConSamiRequest request = new ConversarConSamiRequest(USUARIO_ID, "texto", List.of());
+    void conElLimiteDiarioAgotadoNoLlamaALaIa() {
+        dadoQueSamiPuedeHacer(SIN_PREGUNTAS);
+        dadoQueSeAgotoElLimiteDelDia(HOY, AHORA);
 
-        assertThatThrownBy(() -> conversacion.execute(request))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage(ConversarConSami.LIMITE_ALCANZADO);
-        verifyNoInteractions(samiIaPort);
-        verify(consumoSamiRepository, never()).registrar(any(), any(), any(), any());
+        cuandoLaPersonaIntentaEscribir("texto");
+
+        entoncesSeRechazaPorque(ConversarConSami.LIMITE_ALCANZADO);
+        entoncesNoSeConsultoLaIa();
+        entoncesNoSeRegistroConsumo();
     }
 
     @Test
     @DisplayName("Si la IA no está habilitada para el dueño, no reserva ni consulta")
-    void executeShouldRejectWhenIaIsNotEnabledForTheOwner() {
-        givenNegocio();
-        doThrow(new RestriccionPlanException("IA_NO_HABILITADA", "La IA no está habilitada para tu cuenta."))
-                .when(controlPlanService).exigirIa(NEGOCIO_ID);
-        ConversarConSamiRequest request = new ConversarConSamiRequest(USUARIO_ID, "texto", List.of());
+    void siLaIaNoEstaHabilitadaNoReservaNiConsulta() {
+        dadoQueSamiPuedeHacer(SIN_PREGUNTAS);
+        dadoQueLaIaNoEstaHabilitada();
 
-        assertThatThrownBy(() -> conversacion(0).execute(request))
-                .isInstanceOf(RestriccionPlanException.class)
-                .hasMessage("La IA no está habilitada para tu cuenta.");
-        verifyNoInteractions(samiIaPort, consumoSamiRepository);
+        cuandoLaPersonaIntentaEscribir("texto");
+
+        entoncesElPlanLoRestringePorque("La IA no está habilitada para tu cuenta.");
+        entoncesNoSeConsultoLaIaNiSeReservo();
     }
 
     @Test
     @DisplayName("El día del límite es el argentino aunque en UTC ya sea el día siguiente")
-    void executeShouldUseArgentinaDayForTheLimit() {
-        OffsetDateTime tardeEnArgentina = OffsetDateTime.parse("2026-10-19T22:30:00-03:00");
-        givenNegocio();
-        when(consumoSamiRepository.reservar(NEGOCIO_ID, LocalDate.of(2026, 10, 19), LIMITE_IA,
-                tardeEnArgentina.withOffsetSameInstant(ZoneOffset.UTC))).thenReturn(false);
-        ConversarConSami conversacion = new ConversarConSami(negocioRepository, plantillaRepository,
-                SamiPruebas.diccionarioReal(), samiIaPort, consumoSamiRepository, controlPlanService,
-                Clock.fixed(tardeEnArgentina.toInstant(), ZoneOffset.UTC), 0.7, 0, LIMITE_IA);
-        ConversarConSamiRequest request = new ConversarConSamiRequest(USUARIO_ID, "texto", List.of());
+    void elDiaDelLimiteEsElArgentino() {
+        dadoQueSamiPuedeHacer(SIN_PREGUNTAS);
+        dadoQueAhoraEs(TARDE_EN_ARGENTINA);
+        dadoQueSeAgotoElLimiteDelDia(LocalDate.of(2026, 10, 19), TARDE_EN_ARGENTINA.withOffsetSameInstant(ZoneOffset.UTC));
 
-        assertThatThrownBy(() -> conversacion.execute(request)).isInstanceOf(BusinessRuleException.class);
-        verifyNoInteractions(samiIaPort);
+        cuandoLaPersonaIntentaEscribir("texto");
+
+        entoncesSeRechaza();
+        entoncesNoSeConsultoLaIa();
     }
 
     @Test
     @DisplayName("Si la IA falla avisa con un mensaje simple y deja reservada la consulta")
-    void executeShouldTranslateAiFailure() {
-        givenReserva();
-        when(samiIaPort.proponer(any())).thenThrow(new IllegalStateException("timeout"));
-        ConversarConSami conversacion = conversacion(0);
-        ConversarConSamiRequest request = new ConversarConSamiRequest(USUARIO_ID, "texto", List.of());
+    void siLaIaFallaAvisaConUnMensajeSimple() {
+        dadoQueSamiPuedeHacer(SIN_PREGUNTAS);
+        dadoQueLaIaFalla();
 
-        assertThatThrownBy(() -> conversacion.execute(request))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage(ConversarConSami.IA_NO_DISPONIBLE);
-        verify(consumoSamiRepository, never()).registrar(any(), any(), any(), any());
+        cuandoLaPersonaIntentaEscribir("texto");
+
+        entoncesSeRechazaPorque(ConversarConSami.IA_NO_DISPONIBLE);
+        entoncesNoSeRegistroConsumo();
     }
 
     @Test
     @DisplayName("Si la IA inventó una plantilla igual registra lo que gastó y rechaza la propuesta")
-    void executeShouldRegisterConsumptionAndRejectInvalidProposal() {
-        givenIaPropone("Peluquería");
-        ConversarConSami conversacion = conversacion(0);
-        ConversarConSamiRequest request = new ConversarConSamiRequest(USUARIO_ID, "texto", List.of());
+    void siLaIaInventoUnaPlantillaRegistraElConsumoYRechaza() {
+        dadoQueSamiPuedeHacer(SIN_PREGUNTAS);
+        dadoQueLaIaPropone("Peluquería");
 
-        assertThatThrownBy(() -> conversacion.execute(request))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage(ConversarConSami.RESPUESTA_INVALIDA);
-        verify(consumoSamiRepository).registrar(NEGOCIO_ID, HOY, CONSUMO, AHORA);
+        cuandoLaPersonaIntentaEscribir("texto");
+
+        entoncesSeRechazaPorque(ConversarConSami.RESPUESTA_INVALIDA);
+        entoncesSeRegistroElConsumo();
     }
 
     @Test
     @DisplayName("Le pasa a la IA el texto, las plantillas y las respuestas como «pregunta → opción»")
-    void executeShouldSendTextTemplatesAndReadableAnswers() {
-        givenIaPropone("Gastos");
+    void lePasaALaIaElTextoLasPlantillasYLasRespuestas() {
+        dadoQueLaIaPropone("Gastos");
 
-        conversar("quiero ordenar", new RespuestaSamiItem("principal", "otra"));
+        cuandoLaPersonaEscribe("quiero ordenar", new RespuestaSamiItem("principal", "otra"));
 
-        ArgumentCaptor<ConsultaIaSami> captor = ArgumentCaptor.forClass(ConsultaIaSami.class);
-        verify(samiIaPort).proponer(captor.capture());
-        assertThat(captor.getValue().texto()).isEqualTo("quiero ordenar");
-        assertThat(captor.getValue().plantillas()).isSameAs(plantillas);
-        assertThat(captor.getValue().aclaraciones())
-                .containsExactly("¿Qué es lo principal que querés anotar? → Otra cosa");
+        entoncesSeConsultoALaIaCon("quiero ordenar", "¿Qué es lo principal que querés anotar? → Otra cosa");
     }
 
-    // --- arrange ---
-    private ConversarConSami conversacion(int maxPreguntas) {
-        return new ConversarConSami(negocioRepository, plantillaRepository, SamiPruebas.diccionarioReal(), samiIaPort,
-                consumoSamiRepository, controlPlanService, Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC), 0.7,
-                maxPreguntas, LIMITE_IA);
+    private void dadoQueSamiPuedeHacer(int preguntas) {
+        maxPreguntas = preguntas;
     }
 
-    private void givenNegocio() {
+    private void dadoQueAhoraEs(OffsetDateTime momento) {
+        ahora = momento;
+    }
+
+    private void dadoQueSoloHayLaPlantilla(String nombre) {
+        plantillas = List.of(SamiPruebas.plantilla(nombre, SamiPruebas.campo("Nombre", TipoCampo.TEXTO)));
+        when(plantillaRepository.findAllParaProyectoActivas()).thenReturn(plantillas);
+    }
+
+    private void dadoUnNegocio() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
-    private void givenReserva() {
-        givenNegocio();
+    private void dadoQueQuedanConsultasHoy() {
+        dadoUnNegocio();
         when(consumoSamiRepository.reservar(NEGOCIO_ID, HOY, LIMITE_IA, AHORA)).thenReturn(true);
     }
 
-    private void givenIaPropone(String plantilla) {
-        givenReserva();
+    private void dadoQueSeAgotoElLimiteDelDia(LocalDate dia, OffsetDateTime momento) {
+        dadoUnNegocio();
+        when(consumoSamiRepository.reservar(NEGOCIO_ID, dia, LIMITE_IA, momento)).thenReturn(false);
+    }
+
+    private void dadoQueLaIaPropone(String plantilla) {
+        dadoQueQuedanConsultasHoy();
         when(samiIaPort.proponer(any())).thenReturn(new PropuestaIaSami(plantilla, List.of(), 0.9, CONSUMO));
     }
 
-    // --- act ---
-    private ConversarConSamiResponse conversar(String texto, RespuestaSamiItem... respuestas) {
-        return conversacion(MAX_PREGUNTAS).execute(new ConversarConSamiRequest(USUARIO_ID, texto, List.of(respuestas)));
+    private void dadoQueLaIaFalla() {
+        dadoQueQuedanConsultasHoy();
+        when(samiIaPort.proponer(any())).thenThrow(new IllegalStateException("timeout"));
+    }
+
+    private void dadoQueLaIaNoEstaHabilitada() {
+        dadoUnNegocio();
+        doThrow(new RestriccionPlanException("IA_NO_HABILITADA", "La IA no está habilitada para tu cuenta."))
+                .when(controlPlanService).exigirIa(NEGOCIO_ID);
+    }
+
+    private void cuandoLaPersonaEscribe(String texto, RespuestaSamiItem... respuestas) {
+        ConversarConSami conversacion = new ConversarConSami(negocioRepository, plantillaRepository,
+                SamiPruebas.diccionarioReal(), samiIaPort, consumoSamiRepository, controlPlanService,
+                Clock.fixed(ahora.toInstant(), ZoneOffset.UTC), 0.7, maxPreguntas, LIMITE_IA);
+        respuesta = conversacion.execute(new ConversarConSamiRequest(USUARIO_ID, texto, List.of(respuestas)));
+    }
+
+    private void cuandoLaPersonaIntentaEscribir(String texto) {
+        error = catchThrowable(() -> cuandoLaPersonaEscribe(texto));
+    }
+
+    private void entoncesSePropone(String plantilla, String origen) {
+        assertThat(respuesta.tipo()).isEqualTo("PROPUESTA");
+        assertThat(respuesta.propuesta().plantilla()).isEqualTo(plantilla);
+        entoncesLaPropuestaVieneDe(origen);
+    }
+
+    private void entoncesLaPropuestaVieneDe(String origen) {
+        assertThat(respuesta.propuesta().origen()).isEqualTo(origen);
+    }
+
+    private void entoncesLasColumnasExtraSon(String... nombres) {
+        assertThat(respuesta.propuesta().columnas()).extracting("nombre").containsExactly((Object[]) nombres);
+    }
+
+    private void entoncesLaConfianzaEs(double confianza) {
+        assertThat(respuesta.propuesta().confianza()).isEqualTo(confianza);
+    }
+
+    private void entoncesSeHicieronPreguntas(int preguntas) {
+        assertThat(respuesta.preguntasHechas()).isEqualTo(preguntas);
+    }
+
+    private void entoncesNoHayPregunta() {
+        assertThat(respuesta.pregunta()).isNull();
+    }
+
+    private void entoncesNoHayPropuesta() {
+        assertThat(respuesta.propuesta()).isNull();
+    }
+
+    private void entoncesSePregunta(String pregunta) {
+        assertThat(respuesta.tipo()).isEqualTo("PREGUNTA");
+        assertThat(respuesta.pregunta().id()).isEqualTo(pregunta);
+    }
+
+    private void entoncesSePreguntaOtraVez() {
+        assertThat(respuesta.tipo()).isEqualTo("PREGUNTA");
+    }
+
+    private void entoncesLasOpcionesSon(String... opciones) {
+        assertThat(respuesta.pregunta().opciones()).extracting(OpcionSamiItem::id).containsExactly(opciones);
+    }
+
+    private void entoncesLaPrimeraOpcionDice(String texto) {
+        assertThat(respuesta.pregunta().opciones().getFirst().texto()).isEqualTo(texto);
+    }
+
+    private void entoncesNoSeUsoLaIaNiSeBuscoElNegocio() {
+        verifyNoInteractions(samiIaPort, consumoSamiRepository, negocioRepository);
+    }
+
+    private void entoncesSeRegistroElConsumo() {
+        verify(consumoSamiRepository).registrar(NEGOCIO_ID, HOY, CONSUMO, AHORA);
+    }
+
+    private void entoncesNoSeRegistroConsumo() {
+        verify(consumoSamiRepository, never()).registrar(any(), any(), any(), any());
+    }
+
+    private void entoncesNoSeConsultoLaIa() {
+        verifyNoInteractions(samiIaPort);
+    }
+
+    private void entoncesNoSeConsultoLaIaNiSeReservo() {
+        verifyNoInteractions(samiIaPort, consumoSamiRepository);
+    }
+
+    private void entoncesSeRechaza() {
+        assertThat(error).isInstanceOf(BusinessRuleException.class);
+    }
+
+    private void entoncesSeRechazaPorque(String mensaje) {
+        assertThat(error).isInstanceOf(BusinessRuleException.class).hasMessage(mensaje);
+    }
+
+    private void entoncesElPlanLoRestringePorque(String mensaje) {
+        assertThat(error).isInstanceOf(RestriccionPlanException.class).hasMessage(mensaje);
+    }
+
+    private void entoncesSeConsultoALaIaCon(String texto, String... aclaraciones) {
+        ArgumentCaptor<ConsultaIaSami> captor = ArgumentCaptor.forClass(ConsultaIaSami.class);
+        verify(samiIaPort).proponer(captor.capture());
+        assertThat(captor.getValue().texto()).isEqualTo(texto);
+        assertThat(captor.getValue().plantillas()).isSameAs(plantillas);
+        assertThat(captor.getValue().aclaraciones()).containsExactly(aclaraciones);
     }
 }

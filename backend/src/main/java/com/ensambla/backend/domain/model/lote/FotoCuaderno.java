@@ -51,6 +51,11 @@ public class FotoCuaderno {
      */
     public static FotoCuaderno nueva(NegocioId negocioId, byte[] contenido, short posicion, OffsetDateTime ahora) {
         TipoFoto tipo = validar(contenido, posicion);
+        return armar(negocioId, contenido, tipo, posicion, ahora);
+    }
+
+    private static FotoCuaderno armar(
+            NegocioId negocioId, byte[] contenido, TipoFoto tipo, short posicion, OffsetDateTime ahora) {
         return FotoCuaderno.builder()
                 .negocioId(negocioId)
                 .claveAlmacenamiento(clave(negocioId, tipo))

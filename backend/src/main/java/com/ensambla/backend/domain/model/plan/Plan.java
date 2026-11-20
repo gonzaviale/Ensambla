@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.model.plan;
 
+import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,6 +18,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Plan {
+
+    private static final String MONEDA_DE_COBRO = "ARS";
 
     private PlanId id;
 
@@ -38,15 +41,31 @@ public class Plan {
 
     private Integer limitePaginasIaMensuales;
 
+    private Integer limiteObjetivosIaMensuales;
+
     private List<String> funciones;
 
     private OffsetDateTime creadoEn;
 
     private OffsetDateTime actualizadoEn;
 
+    public boolean esPremium() {
+        return codigo == CodigoPlan.PREMIUM;
+    }
+
+    public boolean tieneLimitesConfigurados() {
+        return Boolean.TRUE.equals(limitesConfigurados);
+    }
+
     public void validarLimitesConfigurados() {
-        if (!Boolean.TRUE.equals(limitesConfigurados)) {
+        if (!tieneLimitesConfigurados()) {
             throw new RestriccionPlanException("PLAN_NO_CONFIGURADO", "Los límites del plan no están configurados");
+        }
+    }
+
+    public void validarPrecioMensualConfigurado() {
+        if (!tienePrecioMensualEnPesos()) {
+            throw new BusinessRuleException("El precio de Premium todavía no está configurado.");
         }
     }
 
@@ -63,11 +82,31 @@ public class Plan {
                 "análisis de foto por mes");
     }
 
+    /**
+     * Si el mes ya tiene todos los objetivos con IA que permite el plan, no entra otro.
+     *
+     * @throws RestriccionPlanException si se agotó la cuota mensual
+     */
+    public void validarObjetivosIa(long usados) {
+        if (new CuotaObjetivosIa(usados, limiteObjetivosIaMensuales).agotada()) {
+            throw new RestriccionPlanException("LIMITE_OBJETIVOS_IA",
+                    "Ya armaste los " + limiteObjetivosIaMensuales + " objetivos con Sami que incluye tu plan este "
+                            + "mes. Mirá los planes en «Planes» para armar más. Tus datos se conservan.");
+        }
+    }
+
     public void validarFuncion(FuncionPlan funcion) {
         if (!funciones.contains(funcion.name())) {
             throw new RestriccionPlanException("FUNCION_PREMIUM",
                     "Esta función requiere un plan premium activo. Tus datos se conservan.");
         }
+    }
+
+    private boolean tienePrecioMensualEnPesos() {
+        return Boolean.TRUE.equals(configurado)
+                && precioMensual != null
+                && precioMensual.signum() > 0
+                && MONEDA_DE_COBRO.equals(moneda);
     }
 
     private void validarCupo(long usadas, long nuevas, Number limite, String codigo, String recurso) {

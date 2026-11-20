@@ -1,63 +1,100 @@
 import { describe, expect, it } from 'vitest';
 import { handlersPara } from '@/mocks/handlers';
 
-const rutas = (modo: Parameters<typeof handlersPara>[0]) =>
-  handlersPara(modo).map((handler) => {
-    const { method, path } = handler.info as { method: string; path: string };
-    return `${method} ${path.replace(/^.*\/api/, '')}`;
-  });
+type Modo = Parameters<typeof handlersPara>[0];
+
+let rutasSimuladas: string[] = [];
 
 describe('API simulada según VITE_API_MOCKS', () => {
-  it('los planes y la prueba sólo se simulan en el modo completo', () => {
-    expect(rutas('completo')).toEqual(
-      expect.arrayContaining(['GET /planes', 'POST /planes/prueba']),
-    );
-    expect(rutas('parcial').filter((ruta) => ruta.includes('/planes'))).toEqual([]);
+  it('los planes y la prueba se simulan en el modo completo', () => {
+    cuandoSeSimulaElModo('completo');
+
+    entoncesSeSimulan('GET /planes', 'POST /planes/prueba');
   });
+
+  it('los planes y la prueba no se simulan en el modo parcial', () => {
+    cuandoSeSimulaElModo('parcial');
+
+    entoncesNoSeSimulaNingunaRutaQueContenga('/planes');
+  });
+
   it('en modo completo simula la sesión y los sistemas', () => {
-    expect(rutas('completo')).toEqual(
-      expect.arrayContaining([
-        'POST /auth/login',
-        'POST /auth/register',
-        'GET /auth/me',
-        'GET /sistemas',
-        'PUT /sistemas/:id',
-        'GET /preferencias',
-      ]),
+    cuandoSeSimulaElModo('completo');
+
+    entoncesSeSimulan(
+      'POST /auth/login',
+      'POST /auth/register',
+      'GET /auth/me',
+      'GET /sistemas',
+      'PUT /sistemas/:id',
+      'GET /preferencias',
     );
   });
 
   it('en modo parcial deja todas las rutas implementadas al backend real', () => {
-    const parcial = rutas('parcial');
+    cuandoSeSimulaElModo('parcial');
 
-    expect(parcial).toEqual([]);
-    expect(parcial.filter((ruta) => ruta.includes('/auth/'))).toEqual([]);
+    entoncesNoSeSimulaNingunaRuta();
   });
 
-  it('la lectura de fotos sólo se simula en el modo completo: en parcial la hace la IA del backend', () => {
-    expect(rutas('completo')).toContain('POST /importaciones/lectura');
-    expect(rutas('parcial')).not.toContain('POST /importaciones/lectura');
+  it('la lectura de fotos se simula en el modo completo', () => {
+    cuandoSeSimulaElModo('completo');
+
+    entoncesSeSimulan('POST /importaciones/lectura');
   });
 
-  it('los avisos del motor de monitoreo sólo se simulan en el modo completo: en parcial los da el backend', () => {
-    expect(rutas('completo')).toEqual(
-      expect.arrayContaining([
-        'GET /avisos',
-        'POST /avisos/:id/aplicar',
-        'POST /avisos/:id/descartar',
-      ]),
-    );
-    expect(rutas('parcial').filter((ruta) => ruta.includes('/avisos'))).toEqual([]);
+  it('en parcial la lectura de fotos la hace la IA del backend', () => {
+    cuandoSeSimulaElModo('parcial');
+
+    entoncesNoSeSimulaNingunaRutaQueContenga('/importaciones/lectura');
+  });
+
+  it('los avisos del motor de monitoreo se simulan en el modo completo', () => {
+    cuandoSeSimulaElModo('completo');
+
+    entoncesSeSimulan('GET /avisos', 'POST /avisos/:id/aplicar', 'POST /avisos/:id/descartar');
+  });
+
+  it('en parcial los avisos del motor de monitoreo los da el backend', () => {
+    cuandoSeSimulaElModo('parcial');
+
+    entoncesNoSeSimulaNingunaRutaQueContenga('/avisos');
   });
 
   it('en modo ninguno no simula nada', () => {
-    expect(rutas('ninguno')).toEqual([]);
+    cuandoSeSimulaElModo('ninguno');
+
+    entoncesNoSeSimulaNingunaRuta();
   });
 
-  it('la ubicación y los rubros sólo se simulan en modo completo', () => {
-    expect(rutas('completo')).toEqual(
-      expect.arrayContaining(['POST /ubicacion/direcciones', 'GET /ubicacion/rubros']),
-    );
-    expect(rutas('parcial').filter((ruta) => ruta.includes('/ubicacion/'))).toEqual([]);
+  it('la ubicación y los rubros se simulan en modo completo', () => {
+    cuandoSeSimulaElModo('completo');
+
+    entoncesSeSimulan('POST /ubicacion/direcciones', 'GET /ubicacion/rubros');
+  });
+
+  it('en parcial la ubicación y los rubros los da el backend', () => {
+    cuandoSeSimulaElModo('parcial');
+
+    entoncesNoSeSimulaNingunaRutaQueContenga('/ubicacion/');
   });
 });
+
+function cuandoSeSimulaElModo(modo: Modo) {
+  rutasSimuladas = handlersPara(modo).map((handler) => {
+    const { method, path } = handler.info as { method: string; path: string };
+    return `${method} ${path.replace(/^.*\/api/, '')}`;
+  });
+}
+
+function entoncesSeSimulan(...rutas: string[]) {
+  expect(rutasSimuladas).toEqual(expect.arrayContaining(rutas));
+}
+
+function entoncesNoSeSimulaNingunaRuta() {
+  expect(rutasSimuladas).toEqual([]);
+}
+
+function entoncesNoSeSimulaNingunaRutaQueContenga(fragmento: string) {
+  expect(rutasSimuladas.filter((ruta) => ruta.includes(fragmento))).toEqual([]);
+}

@@ -43,7 +43,7 @@ export function CierreDeCreacion({
       <div className="system-ready-head">
         <Icon name="check-circle" />
         <div>
-          <strong id="sistema-listo">¡Listo! «{sistema.name}» ya está armado.</strong>
+          <strong id="sistema-listo">«{sistema.name}» quedó armado.</strong>
           <p>
             Quedaron {bloques.length} {bloques.length === 1 ? 'tabla' : 'tablas'}:{' '}
             {listaDeTablas(bloques.map((bloque) => bloque.name))}. Ya podés empezar a usarlo.
@@ -53,7 +53,7 @@ export function CierreDeCreacion({
       </div>
       <div className="system-ready-actions">
         {paraRegistrar && (
-          <Btn cls="primary small" onClick={() => onRegistrar(paraRegistrar.id)}>
+          <Btn cls="petrol small" onClick={() => onRegistrar(paraRegistrar.id)}>
             <Icon name="plus" /> Registrar mi primer dato
           </Btn>
         )}

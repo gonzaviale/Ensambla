@@ -22,6 +22,9 @@ _Pasos claros para probar el cambio localmente._
 - [ ] Los tests pasan (`./mvnw verify` / `npm test`)
 - [ ] Toda consulta de datos de un negocio filtra por el `negocio_id` de la sesión
 - [ ] No edité migraciones Flyway ya aplicadas
+- [ ] Código semántico: métodos cortos que se leen como una frase, sin comentarios redundantes y **sin `switch`/`if/else if` por tipo o estado** (polimorfismo); tests dado/cuando/entonces (skills `codigo-semantico` y `codigo-frontend`)
+- [ ] Todo `@Test` lleva `@DisplayName` en español (frase con tildes), nombre de método en español sin tildes que se lee solo (sin `Should…`), tres bloques de una línea `dadoX/cuandoX/entoncesX` y cuerpo sin repositorios, mocks, `when/verify` ni builders
+- [ ] Los métodos públicos no llaman a repositorios, puertos ni servicios (van a privados con nombre de intención) y el dominio no conoce formatos de persistencia ni de transporte (`"servidor:"`, JSON, `Map<?, ?>`)
 - [ ] Actualicé la documentación (`docs/modelo-datos.md`, README) si corresponde
 
 ## 📎 Notas adicionales

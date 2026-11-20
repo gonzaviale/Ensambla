@@ -18,7 +18,93 @@ import { usuarioSchema } from '@/types/auth';
 
 const EMAIL = 'brian-sesion@example.com';
 
-async function completarRegistro() {
+type Router = ReturnType<typeof renderApp>;
+
+let router: Router;
+let contrato: unknown;
+
+describe('registro y sesión del cliente', () => {
+  it('registra usuario y negocio, inicia sesión y muestra el espacio privado', async () => {
+    dadaLaPantallaDeRegistro();
+
+    await cuandoSeCompletaElRegistro();
+
+    await entoncesSeMuestraElEspacioPrivado();
+    entoncesQuedoRegistradoBrianSinGuardarNadaEnElNavegador();
+  });
+
+  it('rechaza un email repetido con el mensaje del servidor', async () => {
+    dadoUnUsuarioConEseEmail();
+    dadaLaPantallaDeRegistro();
+
+    await cuandoSeCompletaElRegistro();
+
+    await verifyAlertPresentAsync('Ya existe una cuenta con ese email');
+    entoncesSigueEnElRegistro();
+  });
+
+  it('valida campos obligatorios antes de enviar el registro', async () => {
+    dadaLaPantallaDeRegistro();
+    await verifyHeadingPresentAsync('Creá tu cuenta');
+
+    await cuandoSeEnviaElRegistroVacio();
+
+    await entoncesSePidenLosCamposObligatorios();
+    entoncesNoSeRegistroNadie();
+  });
+
+  it('muestra los errores del servidor junto al campo del negocio', async () => {
+    dadoQueElServidorRechazaElNombreDelNegocio();
+    dadaLaPantallaDeRegistro();
+
+    await cuandoSeCompletaElRegistro();
+
+    await entoncesElCampoDelNegocioMuestraElErrorDelServidor();
+  });
+
+  // El cierre de sesión vive en el perfil del encabezado: sus pruebas se suman cuando esa pantalla esté.
+
+  it('verifica la sesión en el servidor aunque el cliente hubiera cacheado un usuario', async () => {
+    await dadoUnUsuarioConSesionYElInicioAbierto();
+    dadoQueElServidorYaNoReconoceLaSesion();
+
+    await cuandoSeVuelveAlInicio();
+
+    await entoncesSeLlevaAIngresar();
+  });
+
+  it('el contrato de usuario solo contiene datos públicos', () => {
+    cuandoSeLeeUnUsuarioConHashDeContrasenia();
+
+    entoncesSoloQuedanLosDatosPublicos();
+  });
+});
+
+function dadaLaPantallaDeRegistro() {
+  router = renderApp('/registro');
+}
+
+function dadoUnUsuarioConEseEmail() {
+  setupUsuarioSinSesion({ email: EMAIL });
+}
+
+function dadoQueElServidorRechazaElNombreDelNegocio() {
+  setupServerError('post', '/auth/register', 400, 'Revisá los datos enviados', {
+    nombreNegocio: 'El nombre del negocio no es válido',
+  });
+}
+
+async function dadoUnUsuarioConSesionYElInicioAbierto() {
+  setupUsuarioConSesion();
+  router = renderApp('/inicio');
+  await verifyHeadingPresentAsync(/En qué puedo/);
+}
+
+function dadoQueElServidorYaNoReconoceLaSesion() {
+  estado.sesionUsuarioId = null;
+}
+
+async function cuandoSeCompletaElRegistro() {
   const user = userEvent.setup();
   await verifyHeadingPresentAsync('Creá tu cuenta');
   await typeLabel(user, 'Tu nombre', 'Brian');
@@ -28,77 +114,59 @@ async function completarRegistro() {
   await clickButton(user, 'Crear cuenta');
 }
 
-describe('registro y sesión del cliente', () => {
-  it('registra usuario y negocio, inicia sesión y muestra el espacio privado', async () => {
-    const router = renderApp('/registro');
+async function cuandoSeEnviaElRegistroVacio() {
+  await clickButton(userEvent.setup(), 'Crear cuenta');
+}
 
-    await completarRegistro();
+async function cuandoSeVuelveAlInicio() {
+  await router.navigate({ to: '/inicio' });
+}
 
-    await verifyPathAsync(router, '/inicio');
-    await verifyHeadingPresentAsync(/En qué puedo/);
-    expect(estado.usuarios.get(EMAIL)?.nombre).toBe('Brian');
-    expect(localStorage.length).toBe(0);
+function cuandoSeLeeUnUsuarioConHashDeContrasenia() {
+  contrato = usuarioSchema.parse({
+    id: 'id',
+    nombre: 'Brian',
+    email: EMAIL,
+    hashContrasenia: 'no-se-expone',
   });
+}
 
-  it('rechaza un email repetido con el mensaje del servidor', async () => {
-    setupUsuarioSinSesion({ email: EMAIL });
-    const router = renderApp('/registro');
+async function entoncesSeMuestraElEspacioPrivado() {
+  await verifyPathAsync(router, '/inicio');
+  await verifyHeadingPresentAsync(/En qué puedo/);
+}
 
-    await completarRegistro();
+function entoncesQuedoRegistradoBrianSinGuardarNadaEnElNavegador() {
+  expect(estado.usuarios.get(EMAIL)?.nombre).toBe('Brian');
+  expect(localStorage.length).toBe(0);
+}
 
-    await verifyAlertPresentAsync('Ya existe una cuenta con ese email');
-    expect(router.state.location.pathname).toBe('/registro');
-  });
+function entoncesSigueEnElRegistro() {
+  expect(router.state.location.pathname).toBe('/registro');
+}
 
-  it('valida campos obligatorios antes de enviar el registro', async () => {
-    const user = userEvent.setup();
-    renderApp('/registro');
-    await verifyHeadingPresentAsync('Creá tu cuenta');
+async function entoncesSePidenLosCamposObligatorios() {
+  await verifyTextPresentAsync('Escribí tu nombre');
+  await verifyTextPresentAsync('Escribí el nombre de tu negocio');
+  await verifyTextPresentAsync('Escribí tu email');
+  await verifyTextPresentAsync('Usá al menos 8 caracteres');
+}
 
-    await clickButton(user, 'Crear cuenta');
+function entoncesNoSeRegistroNadie() {
+  expect(estado.usuarios.size).toBe(0);
+}
 
-    await verifyTextPresentAsync('Ingresá tu nombre');
-    await verifyTextPresentAsync('Ingresá el nombre de tu negocio');
-    await verifyTextPresentAsync('Ingresá tu email');
-    await verifyTextPresentAsync('Usá al menos 8 caracteres');
-    expect(estado.usuarios.size).toBe(0);
-  });
+async function entoncesElCampoDelNegocioMuestraElErrorDelServidor() {
+  await verifyTextPresentAsync('El nombre del negocio no es válido');
+  await verifyAlertPresentAsync('Revisá los datos enviados');
+  expect(screen.getByLabelText('Nombre del negocio')).toHaveAttribute('aria-invalid', 'true');
+}
 
-  it('muestra los errores del servidor junto al campo del negocio', async () => {
-    setupServerError('post', '/auth/register', 400, 'Revisá los datos enviados', {
-      nombreNegocio: 'El nombre del negocio no es válido',
-    });
-    renderApp('/registro');
+async function entoncesSeLlevaAIngresar() {
+  await verifyPathAsync(router, '/login');
+  await verifyHeadingPresentAsync('Entrá a tu cuenta');
+}
 
-    await completarRegistro();
-
-    await verifyTextPresentAsync('El nombre del negocio no es válido');
-    await verifyAlertPresentAsync('Revisá los datos enviados');
-    expect(screen.getByLabelText('Nombre del negocio')).toHaveAttribute('aria-invalid', 'true');
-  });
-
-  // El cierre de sesión vive en el perfil del encabezado: sus pruebas se suman cuando esa pantalla esté.
-
-  it('verifica la sesión en el servidor aunque el cliente hubiera cacheado un usuario', async () => {
-    setupUsuarioConSesion();
-    const router = renderApp('/inicio');
-    await verifyHeadingPresentAsync(/En qué puedo/);
-    estado.sesionUsuarioId = null;
-
-    await router.navigate({ to: '/inicio' });
-
-    await verifyPathAsync(router, '/login');
-    await verifyHeadingPresentAsync('Ingresá a tu cuenta');
-  });
-
-  it('el contrato de usuario solo contiene datos públicos', () => {
-    const response = usuarioSchema.parse({
-      id: 'id',
-      nombre: 'Brian',
-      email: EMAIL,
-      hashContrasenia: 'no-se-expone',
-    });
-
-    expect(response).toEqual({ id: 'id', nombre: 'Brian', email: EMAIL });
-  });
-});
+function entoncesSoloQuedanLosDatosPublicos() {
+  expect(contrato).toEqual({ id: 'id', nombre: 'Brian', email: EMAIL });
+}

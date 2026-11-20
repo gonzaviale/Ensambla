@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.nio.charset.StandardCharsets;
@@ -21,7 +22,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -38,6 +39,11 @@ class LectorCuadernoIaAdapterTest {
     private ClienteModeloVision cliente;
 
     private LectorCuadernoIaAdapter adapter;
+    private List<PaginaCuaderno> paginas = List.of(PAGINA);
+    private LecturaCuaderno lectura;
+    private Throwable rechazo;
+    private LecturaCuadernoException errorDelCliente;
+    private IllegalStateException fallaDelProveedor;
 
     @BeforeEach
     void setUp() {
@@ -48,151 +54,184 @@ class LectorCuadernoIaAdapterTest {
 
     @Test
     @DisplayName("Lee las páginas, valida la respuesta y devuelve la lectura con su consumo")
-    void leerShouldReturnLecturaWithConsumoWhenModelAnswersValidJson() {
-        givenModelAnswers(lecturaDeEjemplo());
+    void leeLasPaginasValidaLaRespuestaYDevuelveLaLecturaConSuConsumo() {
+        dadoQueElModeloResponde(lecturaDeEjemplo());
 
-        LecturaCuaderno result = adapter.leer(List.of(PAGINA), SIN_BLOQUES, null);
+        cuandoSeLee();
 
-        thenLecturaHasConsumo(result);
+        entoncesSeDevuelveLaLecturaConSuConsumo();
     }
 
     @Test
     @DisplayName("Le manda al modelo las instrucciones, el esquema, el contexto y las páginas")
-    void leerShouldSendPromptSchemaAndPagesToModel() {
-        givenModelAnswers(lecturaDeEjemplo());
+    void leMandaAlModeloLasInstruccionesElEsquemaElContextoYLasPaginas() {
+        dadoQueElModeloResponde(lecturaDeEjemplo());
 
-        adapter.leer(List.of(PAGINA), SIN_BLOQUES, null);
+        cuandoSeLee();
 
-        thenModelReceived();
+        entoncesElModeloRecibeInstruccionesEsquemaContextoYPaginas();
     }
 
     @Test
     @DisplayName("Rechaza un lote sin páginas sin llamar al modelo")
-    void leerShouldRejectEmptyLoteWithoutCallingModel() {
-        assertThatThrownBy(() -> adapter.leer(List.of(), SIN_BLOQUES, null))
-                .isInstanceOf(LecturaCuadernoException.class)
-                .hasMessage("Se pueden leer entre 1 y 3 páginas por vez");
-        verify(cliente, never()).completar(any());
+    void rechazaUnLoteSinPaginasSinLlamarAlModelo() {
+        dadoUnLoteSinPaginas();
+
+        cuandoSeIntentaLeer();
+
+        entoncesSeRechazaElLoteSinLlamarAlModelo();
     }
 
     @Test
     @DisplayName("Rechaza un lote con más páginas que el máximo")
-    void leerShouldRejectLoteAboveMaxPaginas() {
-        List<PaginaCuaderno> paginas = Collections.nCopies(MAX_PAGINAS + 1, PAGINA);
+    void rechazaUnLoteConMasPaginasQueElMaximo() {
+        dadoUnLoteConUnaPaginaDeMasQueElMaximo();
 
-        assertThatThrownBy(() -> adapter.leer(paginas, SIN_BLOQUES, null))
-                .isInstanceOf(LecturaCuadernoException.class)
-                .hasMessageContaining("entre 1 y 3");
+        cuandoSeIntentaLeer();
+
+        entoncesSeRechazaPorLaCantidadDePaginas();
     }
 
     @Test
     @DisplayName("Traduce una falla del proveedor a un error de lectura conservando la causa")
-    void leerShouldWrapProviderFailure() {
-        IllegalStateException falla = new IllegalStateException("timeout");
-        when(cliente.completar(any())).thenThrow(falla);
+    void traduceUnaFallaDelProveedorAUnErrorDeLecturaConservandoLaCausa() {
+        dadoUnProveedorQueFallaPorTimeout();
 
-        assertThatThrownBy(() -> adapter.leer(List.of(PAGINA), SIN_BLOQUES, null))
-                .isInstanceOf(LecturaCuadernoException.class)
-                .hasMessage(LectorCuadernoIaAdapter.ERROR_PROVEEDOR)
-                .hasCause(falla);
+        cuandoSeIntentaLeer();
+
+        entoncesSeTraduceLaFallaConservandoLaCausa();
     }
 
     @Test
     @DisplayName("Deja pasar un error de lectura que ya viene del cliente")
-    void leerShouldRethrowLecturaCuadernoExceptionFromClient() {
-        LecturaCuadernoException error = new LecturaCuadernoException("Límite diario alcanzado");
-        when(cliente.completar(any())).thenThrow(error);
+    void dejaPasarUnErrorDeLecturaQueYaVieneDelCliente() {
+        dadoUnClienteQueYaFallaConUnErrorDeLectura();
 
-        assertThatThrownBy(() -> adapter.leer(List.of(PAGINA), SIN_BLOQUES, null)).isSameAs(error);
+        cuandoSeIntentaLeer();
+
+        entoncesSePropagaElMismoError();
     }
 
     @Test
     @DisplayName("Rechaza una respuesta vacía del modelo")
-    void leerShouldRejectBlankJson() {
-        givenModelAnswers("   ");
+    void rechazaUnaRespuestaVaciaDelModelo() {
+        dadoQueElModeloResponde("   ");
 
-        thenRejectsJson();
+        cuandoSeIntentaLeer();
+
+        entoncesSeRechazaElJson();
     }
 
     @Test
     @DisplayName("Rechaza una respuesta nula del modelo")
-    void leerShouldRejectNullJson() {
-        givenModelAnswers(null);
+    void rechazaUnaRespuestaNulaDelModelo() {
+        dadoQueElModeloResponde(null);
 
-        thenRejectsJson();
+        cuandoSeIntentaLeer();
+
+        entoncesSeRechazaElJson();
     }
 
     @Test
     @DisplayName("Rechaza una respuesta que no es JSON")
-    void leerShouldRejectMalformedJson() {
-        givenModelAnswers("Acá tenés la lectura: {");
+    void rechazaUnaRespuestaQueNoEsJson() {
+        dadoQueElModeloResponde("Acá tenés la lectura: {");
 
-        assertThatThrownBy(() -> adapter.leer(List.of(PAGINA), SIN_BLOQUES, null))
-                .isInstanceOf(LecturaCuadernoException.class)
-                .hasMessage(LectorCuadernoIaAdapter.ERROR_JSON)
-                .hasCauseInstanceOf(tools.jackson.core.JacksonException.class);
+        cuandoSeIntentaLeer();
+
+        entoncesSeRechazaPorJsonMalformadoConSuCausa();
     }
 
     @Test
     @DisplayName("Rechaza propiedades repetidas en vez de conservar sólo la última")
-    void leerShouldRejectDuplicateJsonProperties() {
-        givenModelAnswers(lecturaDeEjemplo().replace("\"tipoRegistro\": \"VENTAS\"",
+    void rechazaPropiedadesRepetidasEnVezDeConservarSoloLaUltima() {
+        dadoQueElModeloResponde(lecturaDeEjemplo().replace("\"tipoRegistro\": \"VENTAS\"",
                 "\"tipoRegistro\": \"GASTOS\", \"tipoRegistro\": \"VENTAS\""));
 
-        thenRejectsJson();
+        cuandoSeIntentaLeer();
+
+        entoncesSeRechazaElJson();
     }
 
     @Test
     @DisplayName("Rechaza atributos extra que no pertenecen al contrato")
-    void leerShouldRejectUnknownProperties() {
-        givenModelAnswers(lecturaDeEjemplo().replace("\"tipoRegistro\":", "\"extra\": 1, \"tipoRegistro\":"));
+    void rechazaAtributosExtraQueNoPertenecenAlContrato() {
+        dadoQueElModeloResponde(lecturaDeEjemplo().replace("\"tipoRegistro\":", "\"extra\": 1, \"tipoRegistro\":"));
 
-        thenRejectsJson();
+        cuandoSeIntentaLeer();
+
+        entoncesSeRechazaElJson();
     }
 
     @Test
     @DisplayName("Rechaza campos requeridos ausentes")
-    void leerShouldRejectMissingRequiredProperties() {
-        givenModelAnswers(lecturaDeEjemplo().replace("\"bloqueExistenteId\": null,", ""));
+    void rechazaCamposRequeridosAusentes() {
+        dadoQueElModeloResponde(lecturaDeEjemplo().replace("\"bloqueExistenteId\": null,", ""));
 
-        thenRejectsJson();
+        cuandoSeIntentaLeer();
+
+        entoncesSeRechazaElJson();
     }
 
     @Test
     @DisplayName("Rechaza contenido JSON adicional después de la respuesta")
-    void leerShouldRejectTrailingJson() {
-        givenModelAnswers(lecturaDeEjemplo() + "{}");
+    void rechazaContenidoJsonAdicionalDespuesDeLaRespuesta() {
+        dadoQueElModeloResponde(lecturaDeEjemplo() + "{}");
 
-        thenRejectsJson();
+        cuandoSeIntentaLeer();
+
+        entoncesSeRechazaElJson();
     }
 
-    // --- arrange ---
-    private void givenModelAnswers(String json) {
+    // --- dado ---
+
+    private void dadoQueElModeloResponde(String json) {
         when(cliente.completar(any())).thenReturn(new RespuestaModeloVision(json, "proveedor", "modelo-x", 1200, 300));
     }
 
-    private static String lecturaDeEjemplo() {
-        return RecursoTexto.contenido(new ClassPathResource("ia/lectura-simulada.json"));
+    private void dadoUnLoteSinPaginas() {
+        paginas = List.of();
     }
 
-    private static ByteArrayResource texto(String contenido) {
-        return new ByteArrayResource(contenido.getBytes(StandardCharsets.UTF_8));
+    private void dadoUnLoteConUnaPaginaDeMasQueElMaximo() {
+        paginas = Collections.nCopies(MAX_PAGINAS + 1, PAGINA);
     }
 
-    // --- assert ---
-    private void thenLecturaHasConsumo(LecturaCuaderno result) {
-        assertThat(result.tipoRegistro()).isEqualTo(TipoRegistroCuaderno.VENTAS);
-        assertThat(result.filas()).hasSize(3);
-        assertThat(result.consumo().proveedor()).isEqualTo("proveedor");
-        assertThat(result.consumo().modelo()).isEqualTo("modelo-x");
-        assertThat(result.consumo().versionPrompt()).isEqualTo(PromptLecturaCuaderno.VERSION);
-        assertThat(result.consumo().paginas()).isEqualTo(1);
-        assertThat(result.consumo().tokensEntrada()).isEqualTo(1200);
-        assertThat(result.consumo().tokensSalida()).isEqualTo(300);
-        assertThat(result.consumo().duracionMs()).isNotNegative();
+    private void dadoUnProveedorQueFallaPorTimeout() {
+        fallaDelProveedor = new IllegalStateException("timeout");
+        when(cliente.completar(any())).thenThrow(fallaDelProveedor);
     }
 
-    private void thenModelReceived() {
+    private void dadoUnClienteQueYaFallaConUnErrorDeLectura() {
+        errorDelCliente = new LecturaCuadernoException("Límite diario alcanzado");
+        when(cliente.completar(any())).thenThrow(errorDelCliente);
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeLee() {
+        lectura = adapter.leer(paginas, SIN_BLOQUES, null);
+    }
+
+    private void cuandoSeIntentaLeer() {
+        rechazo = catchThrowable(this::cuandoSeLee);
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeDevuelveLaLecturaConSuConsumo() {
+        assertThat(lectura.tipoRegistro()).isEqualTo(TipoRegistroCuaderno.VENTAS);
+        assertThat(lectura.filas()).hasSize(3);
+        assertThat(lectura.consumo().proveedor()).isEqualTo("proveedor");
+        assertThat(lectura.consumo().modelo()).isEqualTo("modelo-x");
+        assertThat(lectura.consumo().versionPrompt()).isEqualTo(PromptLecturaCuaderno.VERSION);
+        assertThat(lectura.consumo().paginas()).isEqualTo(1);
+        assertThat(lectura.consumo().tokensEntrada()).isEqualTo(1200);
+        assertThat(lectura.consumo().tokensSalida()).isEqualTo(300);
+        assertThat(lectura.consumo().duracionMs()).isNotNegative();
+    }
+
+    private void entoncesElModeloRecibeInstruccionesEsquemaContextoYPaginas() {
         ArgumentCaptor<PeticionModeloVision> captor = ArgumentCaptor.forClass(PeticionModeloVision.class);
         verify(cliente).completar(captor.capture());
         PeticionModeloVision peticion = captor.getValue();
@@ -202,9 +241,43 @@ class LectorCuadernoIaAdapterTest {
         assertThat(peticion.paginas()).containsExactly(PAGINA);
     }
 
-    private void thenRejectsJson() {
-        assertThatThrownBy(() -> adapter.leer(List.of(PAGINA), SIN_BLOQUES, null))
-                .isInstanceOf(LecturaCuadernoException.class)
-                .hasMessage(LectorCuadernoIaAdapter.ERROR_JSON);
+    private void entoncesSeRechazaElLoteSinLlamarAlModelo() {
+        assertThat(rechazo).isInstanceOf(LecturaCuadernoException.class)
+                .hasMessage("Se pueden leer entre 1 y 3 páginas por vez");
+        verify(cliente, never()).completar(any());
+    }
+
+    private void entoncesSeRechazaPorLaCantidadDePaginas() {
+        assertThat(rechazo).isInstanceOf(LecturaCuadernoException.class).hasMessageContaining("entre 1 y 3");
+    }
+
+    private void entoncesSeTraduceLaFallaConservandoLaCausa() {
+        assertThat(rechazo).isInstanceOf(LecturaCuadernoException.class)
+                .hasMessage(LectorCuadernoIaAdapter.ERROR_PROVEEDOR)
+                .hasCause(fallaDelProveedor);
+    }
+
+    private void entoncesSePropagaElMismoError() {
+        assertThat(rechazo).isSameAs(errorDelCliente);
+    }
+
+    private void entoncesSeRechazaElJson() {
+        assertThat(rechazo).isInstanceOf(LecturaCuadernoException.class).hasMessage(LectorCuadernoIaAdapter.ERROR_JSON);
+    }
+
+    private void entoncesSeRechazaPorJsonMalformadoConSuCausa() {
+        assertThat(rechazo).isInstanceOf(LecturaCuadernoException.class)
+                .hasMessage(LectorCuadernoIaAdapter.ERROR_JSON)
+                .hasCauseInstanceOf(JacksonException.class);
+    }
+
+    // --- datos ---
+
+    private static String lecturaDeEjemplo() {
+        return RecursoTexto.contenido(new ClassPathResource("ia/lectura-simulada.json"));
+    }
+
+    private static ByteArrayResource texto(String contenido) {
+        return new ByteArrayResource(contenido.getBytes(StandardCharsets.UTF_8));
     }
 }

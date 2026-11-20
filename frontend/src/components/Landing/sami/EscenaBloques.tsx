@@ -51,8 +51,8 @@ const CONFETI = [
 ] as const;
 
 const aLocal = (p: Punto): Punto => ({ x: p.x - CABEZA.x, y: p.y - CABEZA.y });
-const TEXTO_INICIO = 'Contame qué vendés…';
-const TEXTO_FIN = '¡Listo! Tu sistema está armado';
+const TEXTO_INICIO = '¿Qué vendés?';
+const TEXTO_FIN = 'Tu negocio quedó armado';
 
 function construir(svg: SVGSVGElement, reducido: boolean): gsap.core.Timeline | null {
   const buscar = gsap.utils.selector(svg);

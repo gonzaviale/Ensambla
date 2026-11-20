@@ -12,6 +12,7 @@ import com.ensambla.backend.domain.useCase.sami.crearProyectoDesdeSami.CrearProy
 import com.ensambla.backend.infrastructure.presentation.dto.sami.ConversarSamiRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.sami.ConversarSamiResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.sami.CrearProyectoSamiRequest;
+import com.ensambla.backend.infrastructure.presentation.dto.sami.CrearProyectoSamiRequest.ColumnaSamiRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.sami.RespuestaSamiRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 class SamiPresentationMapperTest {
 
@@ -26,76 +28,118 @@ class SamiPresentationMapperTest {
     private static final PlantillaId PLANTILLA_ID = PlantillaId.nuevo();
 
     private final SamiPresentationMapper mapper = new SamiPresentationMapper();
+    private ConversarConSamiRequest conversacion;
+    private CrearProyectoDesdeSamiRequest creacion;
+    private ConversarSamiResponse respuesta;
 
     @Test
     @DisplayName("Arma el pedido con el usuario de la sesión, el texto sin espacios sobrantes y las respuestas")
-    void toRequestShouldTrimTextAndMapAnswers() {
-        ConversarSamiRequest body = new ConversarSamiRequest("  vendo velas  ",
-                List.of(new RespuestaSamiRequest("principal", "ventas")));
+    void armaElPedidoConElTextoRecortadoYLasRespuestas() {
+        cuandoLaPersonaEscribe(new ConversarSamiRequest("  vendo velas  ", List.of(new RespuestaSamiRequest("principal", "ventas"))));
 
-        ConversarConSamiRequest result = mapper.toRequest(USUARIO_ID, body);
-
-        assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(result.texto()).isEqualTo("vendo velas");
-        assertThat(result.respuestas()).extracting("preguntaId", "opcionId")
-                .containsExactly(org.assertj.core.groups.Tuple.tuple("principal", "ventas"));
+        entoncesLaConversacionEsDelUsuarioConElTexto("vendo velas");
+        entoncesLasRespuestasSon("principal", "ventas");
     }
 
     @Test
     @DisplayName("Sin respuestas en el body, el pedido lleva una lista vacía")
-    void toRequestShouldUseEmptyListWhenThereAreNoAnswers() {
-        ConversarConSamiRequest result = mapper.toRequest(USUARIO_ID, new ConversarSamiRequest("hola", null));
+    void sinRespuestasElPedidoLlevaUnaListaVacia() {
+        cuandoLaPersonaEscribe(new ConversarSamiRequest("hola", null));
 
-        assertThat(result.respuestas()).isEmpty();
+        entoncesNoHayRespuestas();
     }
 
     @Test
-    @DisplayName("Arma el pedido de crear proyecto con el usuario de la sesión, la plantilla, el nombre y las columnas")
-    void toCrearProyectoRequestShouldMapBodyWithSessionUser() {
-        CrearProyectoSamiRequest body = new CrearProyectoSamiRequest(PLANTILLA_ID, "Velas", List.of(
-                new CrearProyectoSamiRequest.ColumnaSamiRequest("Saldo pendiente", "NUMERO", null),
-                new CrearProyectoSamiRequest.ColumnaSamiRequest("Forma de pago", "OPCION", List.of("A", "B"))));
+    @DisplayName("Arma el pedido de crear proyecto con el usuario de la sesión, la plantilla y el nombre")
+    void armaElPedidoDeCrearProyecto() {
+        cuandoSeCreaElProyectoConLasColumnas();
 
-        CrearProyectoDesdeSamiRequest result = mapper.toCrearProyectoRequest(USUARIO_ID, body);
+        entoncesElProyectoEsDelUsuarioConLaPlantilla("Velas");
+    }
 
-        assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
-        assertThat(result.plantillaId()).isEqualTo(PLANTILLA_ID);
-        assertThat(result.nombre()).isEqualTo("Velas");
-        assertThat(result.columnas()).extracting("nombre", "tipo", "opciones").containsExactly(
-                org.assertj.core.groups.Tuple.tuple("Saldo pendiente", "NUMERO", null),
-                org.assertj.core.groups.Tuple.tuple("Forma de pago", "OPCION", List.of("A", "B")));
+    @Test
+    @DisplayName("Arma el pedido de crear proyecto con las columnas aceptadas")
+    void armaElPedidoDeCrearProyectoConLasColumnas() {
+        cuandoSeCreaElProyectoConLasColumnas();
+
+        entoncesLasColumnasSonSaldoPendienteYFormaDePago();
     }
 
     @Test
     @DisplayName("Mapea una respuesta con pregunta")
-    void toResponseShouldMapQuestion() {
-        ConversarConSamiResponse response = new ConversarConSamiResponse("PREGUNTA",
+    void mapeaUnaRespuestaConPregunta() {
+        cuandoSamiResponde(new ConversarConSamiResponse("PREGUNTA",
                 new PreguntaSamiItem("principal", "¿Qué querés anotar?", List.of(new OpcionSamiItem("ventas", "Vender"))),
-                null, 1);
+                null, 1));
 
-        ConversarSamiResponse result = mapper.toResponse(response);
-
-        assertThat(result.tipo()).isEqualTo("PREGUNTA");
-        assertThat(result.pregunta().opciones()).extracting("id", "texto")
-                .containsExactly(org.assertj.core.groups.Tuple.tuple("ventas", "Vender"));
-        assertThat(result.propuesta()).isNull();
-        assertThat(result.preguntasHechas()).isEqualTo(1);
+        entoncesPreguntaConLaOpcion("ventas", "Vender");
+        entoncesSeHicieronPreguntas(1);
     }
 
     @Test
     @DisplayName("Mapea una respuesta con propuesta")
-    void toResponseShouldMapProposal() {
-        ConversarConSamiResponse response = new ConversarConSamiResponse("PROPUESTA", null,
+    void mapeaUnaRespuestaConPropuesta() {
+        cuandoSamiResponde(new ConversarConSamiResponse("PROPUESTA", null,
                 new PropuestaSamiItem(PLANTILLA_ID, "Ventas",
                         List.of(new ColumnaSamiItem("Saldo pendiente", "NUMERO", List.of())), 0.9, "ALGORITMO"),
-                0);
+                0));
 
-        ConversarSamiResponse result = mapper.toResponse(response);
+        entoncesProponeLaPlantillaConLaColumna("Saldo pendiente", "NUMERO", "ALGORITMO");
+    }
 
-        assertThat(result.pregunta()).isNull();
-        assertThat(result.propuesta().plantillaId()).isEqualTo(PLANTILLA_ID);
-        assertThat(result.propuesta().columnas()).extracting("nombre", "tipo")
-                .containsExactly(org.assertj.core.groups.Tuple.tuple("Saldo pendiente", "NUMERO"));
-        assertThat(result.propuesta().origen()).isEqualTo("ALGORITMO");
+    private void cuandoLaPersonaEscribe(ConversarSamiRequest body) {
+        conversacion = mapper.toRequest(USUARIO_ID, body);
+    }
+
+    private void cuandoSeCreaElProyectoConLasColumnas() {
+        creacion = mapper.toCrearProyectoRequest(USUARIO_ID, new CrearProyectoSamiRequest(PLANTILLA_ID, "Velas", List.of(
+                new ColumnaSamiRequest("Saldo pendiente", "NUMERO", null),
+                new ColumnaSamiRequest("Forma de pago", "OPCION", List.of("A", "B")))));
+    }
+
+    private void cuandoSamiResponde(ConversarConSamiResponse deSami) {
+        respuesta = mapper.toResponse(deSami);
+    }
+
+    private void entoncesLaConversacionEsDelUsuarioConElTexto(String texto) {
+        assertThat(conversacion.usuarioId()).isEqualTo(USUARIO_ID);
+        assertThat(conversacion.texto()).isEqualTo(texto);
+    }
+
+    private void entoncesLasRespuestasSon(String pregunta, String opcion) {
+        assertThat(conversacion.respuestas()).extracting("preguntaId", "opcionId").containsExactly(tuple(pregunta, opcion));
+    }
+
+    private void entoncesNoHayRespuestas() {
+        assertThat(conversacion.respuestas()).isEmpty();
+    }
+
+    private void entoncesElProyectoEsDelUsuarioConLaPlantilla(String nombre) {
+        assertThat(creacion.usuarioId()).isEqualTo(USUARIO_ID);
+        assertThat(creacion.plantillaId()).isEqualTo(PLANTILLA_ID);
+        assertThat(creacion.nombre()).isEqualTo(nombre);
+    }
+
+    private void entoncesLasColumnasSonSaldoPendienteYFormaDePago() {
+        assertThat(creacion.columnas()).extracting("nombre", "tipo", "opciones").containsExactly(
+                tuple("Saldo pendiente", "NUMERO", null),
+                tuple("Forma de pago", "OPCION", List.of("A", "B")));
+    }
+
+    private void entoncesPreguntaConLaOpcion(String id, String texto) {
+        assertThat(respuesta.tipo()).isEqualTo("PREGUNTA");
+        assertThat(respuesta.pregunta().opciones()).extracting("id", "texto").containsExactly(tuple(id, texto));
+        assertThat(respuesta.propuesta()).isNull();
+    }
+
+    private void entoncesSeHicieronPreguntas(int preguntas) {
+        assertThat(respuesta.preguntasHechas()).isEqualTo(preguntas);
+    }
+
+    private void entoncesProponeLaPlantillaConLaColumna(String nombre, String tipo, String origen) {
+        assertThat(respuesta.pregunta()).isNull();
+        assertThat(respuesta.propuesta().plantillaId()).isEqualTo(PLANTILLA_ID);
+        assertThat(respuesta.propuesta().columnas()).extracting("nombre", "tipo").containsExactly(tuple(nombre, tipo));
+        assertThat(respuesta.propuesta().origen()).isEqualTo(origen);
     }
 }

@@ -2,7 +2,16 @@ import { screen, waitFor } from '@testing-library/react';
 import type { UserEvent } from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { expect } from 'vitest';
-import { estado, sembrarUsuario, type UsuarioMock } from '@/mocks/db/estado';
+import { objetivoDeEjemplo } from '@/lib/objetivos';
+import {
+  estado,
+  guardarObjetivosDe,
+  guardarSistemasDe,
+  sembrarUsuario,
+  type UsuarioMock,
+} from '@/mocks/db/estado';
+import { makeSystem } from '@/lib/sistema/core';
+import type { Sistema } from '@/lib/sistema/tipos';
 import { PREFERENCIAS_INICIALES } from '@/types/preferencias';
 import { server } from '@/mocks/node';
 
@@ -53,6 +62,14 @@ export const setupUsuarioConSesion = (
   return usuario;
 };
 
+// El objetivo de ejemplo de la demo, ya guardado en el servidor simulado para esa cuenta.
+export const setupObjetivoDeEjemplo = (email: string) => {
+  const { id, texto, meta } = objetivoDeEjemplo();
+  guardarObjetivosDe(email, [
+    { id, texto, tipo: 'MONETARIO', meta, armadoConSami: false, creadoEn: '2026-10-01T12:00:00' },
+  ]);
+};
+
 export const setupUsuarioSinSesion = (datos: Partial<UsuarioMock> = {}) => sembrarUsuario(datos);
 
 /* interacciones */
@@ -87,11 +104,24 @@ export const verifyPathAsync = async (
   await waitFor(() => expect(router.state.location.pathname).toBe(path), ESPERA);
 };
 
-/** El aviso breve de abajo (`#toast`); hay otros `status` en pantalla, como «Sami vio un cambio». */
+/** El aviso breve de abajo (`.toast`); hay otros `status` en pantalla, como «Sami vio un cambio». */
+export const avisoBreve = () =>
+  screen.getAllByRole('status').find((nodo) => nodo.classList.contains('toast'));
+
 export const verifyToastAsync = (texto: string | RegExp) =>
   waitFor(() => {
-    const toast = document.getElementById('toast');
+    const toast = avisoBreve();
     if (!toast) throw new Error('Falta el aviso breve');
     if (typeof texto === 'string') expect(toast).toHaveTextContent(texto);
     else expect(toast.textContent).toMatch(texto);
   }, ESPERA);
+
+/** Un negocio de la cuenta para sembrar en el mock: un cuaderno vacío con ese id y ese nombre. */
+export const negocioDePrueba = (id: string, nombre: string): Sistema => ({
+  ...makeSystem(nombre, [], false),
+  id,
+});
+
+/** Deja en el servidor simulado los negocios (cuadernos) de la cuenta, en ese orden. */
+export const setupNegocios = (email: string, ...negocios: Sistema[]) =>
+  guardarSistemasDe(email, structuredClone(negocios));

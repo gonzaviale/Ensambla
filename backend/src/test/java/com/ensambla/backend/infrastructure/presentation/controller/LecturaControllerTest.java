@@ -6,9 +6,9 @@ import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.procesamiento.confirmarLectura.ConfirmarLectura;
 import com.ensambla.backend.domain.useCase.procesamiento.consultarConsumo.ConsultarConsumo;
 import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagen;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenItem;
 import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenItem.CampoItem;
 import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenItem.DatoItem;
-import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenItem;
 import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenRequest;
 import com.ensambla.backend.domain.useCase.procesamiento.obtenerLectura.ObtenerLectura;
 import com.ensambla.backend.domain.useCase.procesamiento.reintentarLectura.ReintentarLectura;
@@ -45,11 +45,14 @@ class LecturaControllerTest {
              "campos":[{"key":"monto","label":"Monto","type":"currency","required":true},
                        {"key":"cliente","label":"Cliente","type":"text","required":false}]}""";
 
+    private static final String PEDIDO_SIN_CAMPOS = "{\"nombre\":\"Ventas\",\"destinoExistente\":false,\"campos\":[]}";
+
     private static final UsuarioId USUARIO_ID = UsuarioId.de("b9000000-0000-4000-8000-000000000001");
 
     private final LeerImagen leerImagen = mock(LeerImagen.class);
 
     private MockMvc mockMvc;
+    private ResultActions respuesta;
 
     @BeforeEach
     void setUp() {
@@ -66,65 +69,63 @@ class LecturaControllerTest {
 
     @Test
     @DisplayName("POST devuelve los registros, las columnas nuevas y las dudas con la forma de la pantalla")
-    void leerImagenShouldReturnReadingInTheScreenShape() throws Exception {
-        givenLectura();
+    void postDevuelveLosRegistrosLasColumnasNuevasYLasDudasConLaFormaDeLaPantalla() throws Exception {
+        dadoUnaLecturaConUnaColumnaNuevaYUnaDuda();
 
-        ResultActions result = leer(foto(), pedido(PEDIDO));
+        cuandoSeLeeUnaFotoDeVentas();
 
-        thenRespondeConLaLecturaDeLaPantalla(result);
+        entoncesSeRespondeConLaLecturaDeLaPantalla();
     }
 
     @Test
     @DisplayName("POST manda al use case la imagen y el bloque de destino")
-    void leerImagenShouldSendTheImageAndTheBlockToTheUseCase() throws Exception {
-        when(leerImagen.execute(any())).thenReturn(new LeerImagenItem(List.of(), List.of(), List.of()));
+    void postMandaAlUseCaseLaImagenYElBloqueDeDestino() throws Exception {
+        dadoUnaLecturaVacia();
 
-        leer(foto(), pedido(PEDIDO)).andExpect(status().isOk());
+        cuandoSeLeeUnaFotoDeVentas();
 
-        thenElUseCaseRecibioElBloqueVentas();
+        entoncesElUseCaseRecibeLaFotoYElBloqueVentas();
     }
 
     @Test
     @DisplayName("POST responde 400 con el mensaje cuando la foto no es del bloque o no es válida")
-    void leerImagenShouldReturnBadRequestWhenTheBusinessRuleFails() throws Exception {
-        when(leerImagen.execute(any()))
-                .thenThrow(new BusinessRuleException("La estructura leída no es compatible con el bloque de destino"));
+    void postResponde400ConElMensajeCuandoLaFotoNoEsDelBloqueONoEsValida() throws Exception {
+        dadoUnaFotoQueNoEsDelBloque();
 
-        leer(foto(), pedido(PEDIDO)).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("La estructura leída no es compatible con el bloque de destino"));
+        cuandoSeLeeUnaFotoDeVentas();
+
+        entoncesSeResponde400Con("La estructura leída no es compatible con el bloque de destino");
     }
 
     @Test
     @DisplayName("POST responde 502 con el mensaje cuando la IA no puede leer la foto")
-    void leerImagenShouldReturnBadGatewayWhenTheReaderFails() throws Exception {
-        when(leerImagen.execute(any())).thenThrow(new LecturaCuadernoException("No pudimos leer el cuaderno"));
+    void postResponde502ConElMensajeCuandoLaIaNoPuedeLeerLaFoto() throws Exception {
+        dadoQueLaIaNoPuedeLeerLaFoto();
 
-        leer(foto(), pedido(PEDIDO)).andExpect(status().isBadGateway())
-                .andExpect(jsonPath("$.message").value("No pudimos leer el cuaderno"));
+        cuandoSeLeeUnaFotoDeVentas();
+
+        entoncesSeResponde502Con("No pudimos leer el cuaderno");
     }
 
     @Test
     @DisplayName("POST responde 400 sin llamar a la IA cuando el bloque no trae datos")
-    void leerImagenShouldRejectABlockWithoutFields() throws Exception {
-        String sinCampos = "{\"nombre\":\"Ventas\",\"destinoExistente\":false,\"campos\":[]}";
+    void postResponde400SinLlamarALaIaCuandoElBloqueNoTraeDatos() throws Exception {
+        cuandoSeLeeUnaFotoDeUnBloqueSinCampos();
 
-        leer(foto(), pedido(sinCampos)).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors['campos']").exists());
-
-        verifyNoInteractions(leerImagen);
+        entoncesSeRechazaElBloqueSinCamposSinLlamarALaIa();
     }
 
     @Test
     @DisplayName("POST responde 400 cuando falta la imagen")
-    void leerImagenShouldRejectAMissingImage() throws Exception {
-        mockMvc.perform(multipart("/api/importaciones/lectura").file(pedido(PEDIDO)))
-                .andExpect(status().isBadRequest());
+    void postResponde400CuandoFaltaLaImagen() throws Exception {
+        cuandoSeEnviaElPedidoSinImagen();
 
-        verifyNoInteractions(leerImagen);
+        entoncesSeRechazaSinLlamarALaIa();
     }
 
-    // --- arrange ---
-    private void givenLectura() {
+    // --- dado ---
+
+    private void dadoUnaLecturaConUnaColumnaNuevaYUnaDuda() {
         Map<String, DatoItem> fila = Map.of(
                 "monto", new DatoItem("1500", false), "cliente", new DatoItem("Ana", true),
                 "direccion", new DatoItem("Belgrano 1", false));
@@ -132,22 +133,38 @@ class LecturaControllerTest {
                 List.of(new CampoItem("direccion", "Dirección", "TEXTO", List.of())), List.of()));
     }
 
-    private MockMultipartFile foto() {
-        return new MockMultipartFile("imagen", "foto", "image/jpeg", new byte[]{7, 8, 9});
+    private void dadoUnaLecturaVacia() {
+        when(leerImagen.execute(any())).thenReturn(new LeerImagenItem(List.of(), List.of(), List.of()));
     }
 
-    private MockMultipartFile pedido(String json) {
-        return new MockMultipartFile("pedido", "pedido.json", "application/json", json.getBytes());
+    private void dadoUnaFotoQueNoEsDelBloque() {
+        when(leerImagen.execute(any()))
+                .thenThrow(new BusinessRuleException("La estructura leída no es compatible con el bloque de destino"));
     }
 
-    // --- act ---
-    private ResultActions leer(MockMultipartFile imagen, MockMultipartFile pedido) throws Exception {
-        return mockMvc.perform(multipart("/api/importaciones/lectura").file(imagen).file(pedido));
+    private void dadoQueLaIaNoPuedeLeerLaFoto() {
+        when(leerImagen.execute(any())).thenThrow(new LecturaCuadernoException("No pudimos leer el cuaderno"));
     }
 
-    // --- assert ---
-    private void thenRespondeConLaLecturaDeLaPantalla(ResultActions result) throws Exception {
-        result.andExpect(status().isOk())
+    // --- cuando ---
+
+    private void cuandoSeLeeUnaFotoDeVentas() throws Exception {
+        respuesta = mockMvc.perform(multipart("/api/importaciones/lectura").file(foto()).file(pedido(PEDIDO)));
+    }
+
+    private void cuandoSeLeeUnaFotoDeUnBloqueSinCampos() throws Exception {
+        respuesta = mockMvc.perform(multipart("/api/importaciones/lectura")
+                .file(foto()).file(pedido(PEDIDO_SIN_CAMPOS)));
+    }
+
+    private void cuandoSeEnviaElPedidoSinImagen() throws Exception {
+        respuesta = mockMvc.perform(multipart("/api/importaciones/lectura").file(pedido(PEDIDO)));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeRespondeConLaLecturaDeLaPantalla() throws Exception {
+        respuesta.andExpect(status().isOk())
                 .andExpect(jsonPath("$.filas[0].monto").value(1500.0))
                 .andExpect(jsonPath("$.filas[0].cliente").value("Ana"))
                 .andExpect(jsonPath("$.filas[0].direccion").value("Belgrano 1"))
@@ -161,7 +178,8 @@ class LecturaControllerTest {
                 .andExpect(jsonPath("$.descripcion").value(""));
     }
 
-    private void thenElUseCaseRecibioElBloqueVentas() {
+    private void entoncesElUseCaseRecibeLaFotoYElBloqueVentas() throws Exception {
+        respuesta.andExpect(status().isOk());
         ArgumentCaptor<LeerImagenRequest> captor = ArgumentCaptor.forClass(LeerImagenRequest.class);
         verify(leerImagen).execute(captor.capture());
         assertThat(captor.getValue().usuarioId()).isEqualTo(USUARIO_ID);
@@ -170,5 +188,33 @@ class LecturaControllerTest {
         assertThat(captor.getValue().destinoExistente()).isTrue();
         assertThat(captor.getValue().campos()).extracting("clave", "tipo")
                 .containsExactly(tuple("monto", "NUMERO"), tuple("cliente", "TEXTO"));
+    }
+
+    private void entoncesSeResponde400Con(String mensaje) throws Exception {
+        respuesta.andExpect(status().isBadRequest()).andExpect(jsonPath("$.message").value(mensaje));
+    }
+
+    private void entoncesSeResponde502Con(String mensaje) throws Exception {
+        respuesta.andExpect(status().isBadGateway()).andExpect(jsonPath("$.message").value(mensaje));
+    }
+
+    private void entoncesSeRechazaElBloqueSinCamposSinLlamarALaIa() throws Exception {
+        respuesta.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors['campos']").exists());
+        verifyNoInteractions(leerImagen);
+    }
+
+    private void entoncesSeRechazaSinLlamarALaIa() throws Exception {
+        respuesta.andExpect(status().isBadRequest());
+        verifyNoInteractions(leerImagen);
+    }
+
+    // --- datos ---
+
+    private MockMultipartFile foto() {
+        return new MockMultipartFile("imagen", "foto", "image/jpeg", new byte[]{7, 8, 9});
+    }
+
+    private MockMultipartFile pedido(String json) {
+        return new MockMultipartFile("pedido", "pedido.json", "application/json", json.getBytes());
     }
 }

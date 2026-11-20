@@ -4,7 +4,7 @@ import { ApiError } from './apiError';
 import { errorResponseSchema } from './types';
 
 const MENSAJE_SIN_CONEXION = 'No pudimos conectarnos con el servidor. Revisá tu conexión.';
-const MENSAJE_INESPERADO = 'Ocurrió un error inesperado. Probá de nuevo en unos minutos.';
+const MENSAJE_INESPERADO = 'No pudimos completar la operación. Probá de nuevo en un rato.';
 
 export const EVENTO_SESION_EXPIRADA = 'auth:expirada';
 
@@ -133,7 +133,10 @@ async function requestConEncabezado<S extends z.ZodTypeAny>(
 ): Promise<{ datos: z.output<S>; encabezado: string | null }> {
   const response = await send(path, { signal });
   await exigirOk(path, response);
-  return { datos: schema.parse(await response.json()), encabezado: response.headers.get(encabezado) };
+  return {
+    datos: schema.parse(await response.json()),
+    encabezado: response.headers.get(encabezado),
+  };
 }
 
 /** Un archivo que el servidor manda para descargar, con el nombre que sugiere. */
@@ -176,8 +179,7 @@ export const http = {
     body: unknown,
     schema: S,
     headers?: Record<string, string>,
-  ) =>
-    request(path, schema, { method: 'PUT', body, headers }),
+  ) => request(path, schema, { method: 'PUT', body, headers }),
   patch: <S extends z.ZodTypeAny>(path: string, body: unknown, schema: S) =>
     request(path, schema, { method: 'PATCH', body }),
   delete: <S extends z.ZodTypeAny>(path: string, schema: S) =>

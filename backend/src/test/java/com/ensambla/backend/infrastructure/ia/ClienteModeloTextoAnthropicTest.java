@@ -15,28 +15,53 @@ class ClienteModeloTextoAnthropicTest {
     private static final String MODELO = "claude-haiku-4-5";
     private static final PeticionModeloTexto PETICION = new PeticionModeloTexto("Sos Sami", "vendo velas", "{schema}");
 
+    private AnthropicClient anthropic;
+    private RespuestaModeloTexto respuesta;
+
     @Test
     @DisplayName("Devuelve el JSON sin el texto que lo rodea, con el modelo y los tokens")
-    void completarShouldReturnJsonWithTokens() {
-        AnthropicClient anthropic = anthropicQueResponde("Acá va: {\"plantilla\":\"Ventas\"} listo");
+    void devuelveElJsonSinElTextoQueLoRodeaConElModeloYLosTokens() {
+        dadoUnAnthropicQueResponde("Acá va: {\"plantilla\":\"Ventas\"} listo");
 
-        RespuestaModeloTexto result = new ClienteModeloTextoAnthropic(anthropic, MODELO, 700).completar(PETICION);
+        cuandoSeCompleta();
 
-        assertThat(result.json()).isEqualTo("{\"plantilla\":\"Ventas\"}");
-        assertThat(result.proveedor()).isEqualTo("anthropic");
-        assertThat(result.modelo()).isEqualTo(MODELO);
-        assertThat(result.tokensEntrada()).isEqualTo(RespuestasAnthropicDePrueba.TOKENS_ENTRADA);
-        assertThat(result.tokensSalida()).isEqualTo(RespuestasAnthropicDePrueba.TOKENS_SALIDA);
+        entoncesDevuelveElJsonConElModeloYLosTokens();
     }
 
     @Test
     @DisplayName("Manda el modelo, las instrucciones con el esquema, el contexto y los tokens, sin temperatura")
-    void completarShouldSendInstructionsWithSchemaAndContext() {
-        AnthropicClient anthropic = anthropicQueResponde("{}");
+    void mandaElModeloLasInstruccionesConElEsquemaElContextoYLosTokensSinTemperatura() {
+        dadoUnAnthropicQueResponde("{}");
 
-        new ClienteModeloTextoAnthropic(anthropic, MODELO, 700).completar(PETICION);
+        cuandoSeCompleta();
 
-        MessageCreateParams pedido = pedidoEnviado(anthropic);
+        entoncesElPedidoLlevaModeloInstruccionesConEsquemaYContexto();
+    }
+
+    // --- dado ---
+
+    private void dadoUnAnthropicQueResponde(String texto) {
+        anthropic = anthropicQueResponde(texto);
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeCompleta() {
+        respuesta = new ClienteModeloTextoAnthropic(anthropic, MODELO, 700).completar(PETICION);
+    }
+
+    // --- entonces ---
+
+    private void entoncesDevuelveElJsonConElModeloYLosTokens() {
+        assertThat(respuesta.json()).isEqualTo("{\"plantilla\":\"Ventas\"}");
+        assertThat(respuesta.proveedor()).isEqualTo("anthropic");
+        assertThat(respuesta.modelo()).isEqualTo(MODELO);
+        assertThat(respuesta.tokensEntrada()).isEqualTo(RespuestasAnthropicDePrueba.TOKENS_ENTRADA);
+        assertThat(respuesta.tokensSalida()).isEqualTo(RespuestasAnthropicDePrueba.TOKENS_SALIDA);
+    }
+
+    private void entoncesElPedidoLlevaModeloInstruccionesConEsquemaYContexto() {
+        MessageCreateParams pedido = pedidoEnviado();
         assertThat(pedido.model().asString()).isEqualTo(MODELO);
         assertThat(pedido.maxTokens()).isEqualTo(700);
         assertThat(pedido.temperature()).isEmpty();
@@ -44,8 +69,9 @@ class ClienteModeloTextoAnthropicTest {
         assertThat(pedido.messages().getFirst().content().asString()).isEqualTo("vendo velas");
     }
 
-    // --- assert ---
-    private MessageCreateParams pedidoEnviado(AnthropicClient anthropic) {
+    // --- datos ---
+
+    private MessageCreateParams pedidoEnviado() {
         ArgumentCaptor<MessageCreateParams> captor = ArgumentCaptor.forClass(MessageCreateParams.class);
         verify(anthropic.messages()).create(captor.capture());
         return captor.getValue();

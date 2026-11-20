@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.ia;
 
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.support.ProcesamientoTestData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -11,135 +12,238 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class ArchivoCuadernoLocalAdapterTest {
+
+    private static final NegocioId NEGOCIO_ID = ProcesamientoTestData.NEGOCIO_ID;
+    private static final String FUERA_DE_LA_CARPETA = NEGOCIO_ID + "/../otra.jpg";
+    private static final String CARPETA_DE_FOTOS = NEGOCIO_ID + "/fotos";
 
     @TempDir
     private Path raiz;
 
     private ArchivoCuadernoLocalAdapter adapter;
     private String clave;
+    private byte[] bytes;
+    private Throwable rechazo;
 
     @BeforeEach
     void setUp() throws Exception {
-        Files.createDirectory(raiz.resolve(ProcesamientoTestData.NEGOCIO_ID.toString()));
-        clave = ProcesamientoTestData.NEGOCIO_ID + "/pagina.jpg";
+        Files.createDirectory(raiz.resolve(NEGOCIO_ID.toString()));
+        clave = NEGOCIO_ID + "/pagina.jpg";
         adapter = new ArchivoCuadernoLocalAdapter(raiz, 3);
     }
 
     @Test
     @DisplayName("Lee únicamente los bytes privados del negocio")
-    void leerShouldReadOwnPrivateFile() throws Exception {
-        Files.write(raiz.resolve(clave), new byte[]{1, 2, 3});
+    void leeUnicamenteLosBytesPrivadosDelNegocio() throws Exception {
+        dadoUnaFotoDelNegocioDeBytes(1, 2, 3);
 
-        byte[] bytes = adapter.leer(ProcesamientoTestData.NEGOCIO_ID, clave);
+        cuandoSeLeeLaFoto();
 
-        assertThat(bytes).containsExactly(1, 2, 3);
+        entoncesSeLeenLosBytes(1, 2, 3);
     }
 
     @Test
     @DisplayName("Rechaza una ruta que sale de la carpeta del negocio")
-    void leerShouldRejectTraversal() throws Exception {
-        Files.write(raiz.resolve("otra.jpg"), new byte[]{1});
+    void rechazaUnaRutaQueSaleDeLaCarpetaDelNegocio() throws Exception {
+        dadoUnArchivoAjenoFueraDeLaCarpetaDelNegocio();
 
-        assertThatThrownBy(() -> adapter.leer(ProcesamientoTestData.NEGOCIO_ID,
-                ProcesamientoTestData.NEGOCIO_ID + "/../otra.jpg"))
-                .isInstanceOf(LecturaCuadernoException.class).hasMessageContaining("no pertenece");
+        cuandoSeIntentaLeerFueraDeLaCarpeta();
+
+        entoncesSeRechazaPorqueNoPerteneceAlNegocio();
     }
 
     @Test
     @DisplayName("Rechaza fotos vacías")
-    void leerShouldRejectEmptyFile() throws Exception {
-        Files.write(raiz.resolve(clave), new byte[0]);
+    void rechazaFotosVacias() throws Exception {
+        dadoUnaFotoDelNegocioDeBytes();
 
-        assertThatThrownBy(() -> adapter.leer(ProcesamientoTestData.NEGOCIO_ID, clave))
-                .hasMessageContaining("vacía");
+        cuandoSeIntentaLeerLaFoto();
+
+        entoncesSeRechazaConElMensajeQueContiene("vacía");
     }
 
     @Test
     @DisplayName("Rechaza fotos que exceden el máximo")
-    void leerShouldRejectOversizedFile() throws Exception {
-        Files.write(raiz.resolve(clave), new byte[]{1, 2, 3, 4});
+    void rechazaFotosQueExcedenElMaximo() throws Exception {
+        dadoUnaFotoDelNegocioDeBytes(1, 2, 3, 4);
 
-        assertThatThrownBy(() -> adapter.leer(ProcesamientoTestData.NEGOCIO_ID, clave))
-                .hasMessageContaining("tamaño");
+        cuandoSeIntentaLeerLaFoto();
+
+        entoncesSeRechazaConElMensajeQueContiene("tamaño");
     }
 
     @Test
     @DisplayName("Una foto ausente produce un error permanente sin exponer su ruta")
-    void leerShouldRejectMissingFile() {
-        assertThatThrownBy(() -> adapter.leer(ProcesamientoTestData.NEGOCIO_ID, clave))
-                .isInstanceOf(LecturaCuadernoException.class)
-                .hasMessage("No se pudo acceder a la foto privada del lote");
+    void unaFotoAusenteProduceUnErrorPermanenteSinExponerSuRuta() {
+        cuandoSeIntentaLeerLaFoto();
+
+        entoncesSeRechazaPermanentementeCon("No se pudo acceder a la foto privada del lote");
     }
 
     @Test
     @DisplayName("Guarda la foto dentro de la carpeta del negocio creando las subcarpetas necesarias")
-    void guardarShouldWriteFileInsideNegocioFolder() throws Exception {
-        adapter.guardar(ProcesamientoTestData.NEGOCIO_ID, ProcesamientoTestData.NEGOCIO_ID + "/fotos/a.jpg",
-                new byte[]{7, 8});
+    void guardaLaFotoDentroDeLaCarpetaDelNegocioCreandoLasSubcarpetasNecesarias() throws Exception {
+        cuandoSeGuardaUnaFotoEnUnaSubcarpeta();
 
-        assertThat(Files.readAllBytes(raiz.resolve(ProcesamientoTestData.NEGOCIO_ID + "/fotos/a.jpg")))
-                .containsExactly(7, 8);
+        entoncesLaFotoQuedaGuardadaEnLaSubcarpeta();
     }
 
     @Test
     @DisplayName("No guarda una foto fuera de la carpeta del negocio")
-    void guardarShouldRejectPathOutsideNegocioFolder() {
-        assertThatThrownBy(() -> adapter.guardar(ProcesamientoTestData.NEGOCIO_ID,
-                ProcesamientoTestData.NEGOCIO_ID + "/../otra.jpg", new byte[]{1}))
-                .isInstanceOf(LecturaCuadernoException.class).hasMessageContaining("no pertenece");
+    void noGuardaUnaFotoFueraDeLaCarpetaDelNegocio() {
+        cuandoSeIntentaGuardarFueraDeLaCarpeta();
+
+        entoncesSeRechazaPorqueNoPerteneceAlNegocio();
     }
 
     @Test
     @DisplayName("Si no puede escribir en disco informa un error permanente sin exponer la ruta")
-    void guardarShouldFailWhenFolderCannotBeCreated() throws Exception {
-        Files.createFile(raiz.resolve(ProcesamientoTestData.NEGOCIO_ID + "/fotos"));
+    void siNoPuedeEscribirEnDiscoInformaUnErrorPermanenteSinExponerLaRuta() throws Exception {
+        dadoUnArchivoQueOcupaElLugarDeLaCarpetaDeFotos();
 
-        assertThatThrownBy(() -> adapter.guardar(ProcesamientoTestData.NEGOCIO_ID,
-                ProcesamientoTestData.NEGOCIO_ID + "/fotos/a.jpg", new byte[]{1}))
-                .isInstanceOf(LecturaCuadernoException.class)
-                .hasMessage("No se pudo guardar la foto privada del lote");
+        cuandoSeIntentaGuardarUnaFotoEnLaCarpetaDeFotos();
+
+        entoncesSeRechazaPermanentementeCon("No se pudo guardar la foto privada del lote");
     }
 
     @Test
     @DisplayName("Elimina la foto del negocio")
-    void eliminarShouldDeleteOwnFile() throws Exception {
-        Files.write(raiz.resolve(clave), new byte[]{1});
+    void eliminaLaFotoDelNegocio() throws Exception {
+        dadoUnaFotoDelNegocioDeBytes(1);
 
-        adapter.eliminar(ProcesamientoTestData.NEGOCIO_ID, clave);
+        cuandoSeEliminaLaFoto();
 
-        assertThat(raiz.resolve(clave)).doesNotExist();
+        entoncesLaFotoYaNoExiste();
     }
 
     @Test
     @DisplayName("Eliminar una foto que ya no existe no falla")
-    void eliminarShouldIgnoreMissingFile() {
-        assertThatCode(() -> adapter.eliminar(ProcesamientoTestData.NEGOCIO_ID, clave)).doesNotThrowAnyException();
+    void eliminarUnaFotoQueYaNoExisteNoFalla() {
+        cuandoSeIntentaEliminarLaFoto();
+
+        entoncesNoHuboFallo();
     }
 
     @Test
     @DisplayName("No elimina un archivo fuera de la carpeta del negocio")
-    void eliminarShouldRejectPathOutsideNegocioFolder() throws Exception {
-        Files.write(raiz.resolve("otra.jpg"), new byte[]{1});
+    void noEliminaUnArchivoFueraDeLaCarpetaDelNegocio() throws Exception {
+        dadoUnArchivoAjenoFueraDeLaCarpetaDelNegocio();
 
-        assertThatThrownBy(() -> adapter.eliminar(ProcesamientoTestData.NEGOCIO_ID,
-                ProcesamientoTestData.NEGOCIO_ID + "/../otra.jpg"))
-                .isInstanceOf(LecturaCuadernoException.class).hasMessageContaining("no pertenece");
-        assertThat(raiz.resolve("otra.jpg")).exists();
+        cuandoSeIntentaEliminarFueraDeLaCarpeta();
+
+        entoncesSeRechazaPorqueNoPerteneceAlNegocio();
+        entoncesElArchivoAjenoSigueExistiendo();
     }
 
     @Test
     @DisplayName("Si no puede eliminar la foto informa un error permanente")
-    void eliminarShouldFailWhenPathIsNotEmptyFolder() throws Exception {
-        Files.createDirectories(raiz.resolve(ProcesamientoTestData.NEGOCIO_ID + "/carpeta"));
-        Files.write(raiz.resolve(ProcesamientoTestData.NEGOCIO_ID + "/carpeta/x.jpg"), new byte[]{1});
+    void siNoPuedeEliminarLaFotoInformaUnErrorPermanente() throws Exception {
+        dadoUnaCarpetaNoVaciaDondeSeEsperabaUnaFoto();
 
-        assertThatThrownBy(() -> adapter.eliminar(ProcesamientoTestData.NEGOCIO_ID,
-                ProcesamientoTestData.NEGOCIO_ID + "/carpeta"))
-                .isInstanceOf(LecturaCuadernoException.class)
-                .hasMessage("No se pudo eliminar la foto privada del lote");
+        cuandoSeIntentaEliminarLaCarpeta();
+
+        entoncesSeRechazaPermanentementeCon("No se pudo eliminar la foto privada del lote");
+    }
+
+    // --- dado ---
+
+    private void dadoUnaFotoDelNegocioDeBytes(int... contenido) throws Exception {
+        byte[] datos = new byte[contenido.length];
+        for (int i = 0; i < contenido.length; i++) {
+            datos[i] = (byte) contenido[i];
+        }
+        Files.write(raiz.resolve(clave), datos);
+    }
+
+    private void dadoUnArchivoAjenoFueraDeLaCarpetaDelNegocio() throws Exception {
+        Files.write(raiz.resolve("otra.jpg"), new byte[]{1});
+    }
+
+    private void dadoUnArchivoQueOcupaElLugarDeLaCarpetaDeFotos() throws Exception {
+        Files.createFile(raiz.resolve(CARPETA_DE_FOTOS));
+    }
+
+    private void dadoUnaCarpetaNoVaciaDondeSeEsperabaUnaFoto() throws Exception {
+        Files.createDirectories(raiz.resolve(NEGOCIO_ID + "/carpeta"));
+        Files.write(raiz.resolve(NEGOCIO_ID + "/carpeta/x.jpg"), new byte[]{1});
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeLeeLaFoto() {
+        bytes = adapter.leer(NEGOCIO_ID, clave);
+    }
+
+    private void cuandoSeIntentaLeerLaFoto() {
+        rechazo = catchThrowable(this::cuandoSeLeeLaFoto);
+    }
+
+    private void cuandoSeIntentaLeerFueraDeLaCarpeta() {
+        rechazo = catchThrowable(() -> adapter.leer(NEGOCIO_ID, FUERA_DE_LA_CARPETA));
+    }
+
+    private void cuandoSeGuardaUnaFotoEnUnaSubcarpeta() {
+        adapter.guardar(NEGOCIO_ID, CARPETA_DE_FOTOS + "/a.jpg", new byte[]{7, 8});
+    }
+
+    private void cuandoSeIntentaGuardarFueraDeLaCarpeta() {
+        rechazo = catchThrowable(() -> adapter.guardar(NEGOCIO_ID, FUERA_DE_LA_CARPETA, new byte[]{1}));
+    }
+
+    private void cuandoSeIntentaGuardarUnaFotoEnLaCarpetaDeFotos() {
+        rechazo = catchThrowable(() -> adapter.guardar(NEGOCIO_ID, CARPETA_DE_FOTOS + "/a.jpg", new byte[]{1}));
+    }
+
+    private void cuandoSeEliminaLaFoto() {
+        adapter.eliminar(NEGOCIO_ID, clave);
+    }
+
+    private void cuandoSeIntentaEliminarLaFoto() {
+        rechazo = catchThrowable(this::cuandoSeEliminaLaFoto);
+    }
+
+    private void cuandoSeIntentaEliminarFueraDeLaCarpeta() {
+        rechazo = catchThrowable(() -> adapter.eliminar(NEGOCIO_ID, FUERA_DE_LA_CARPETA));
+    }
+
+    private void cuandoSeIntentaEliminarLaCarpeta() {
+        rechazo = catchThrowable(() -> adapter.eliminar(NEGOCIO_ID, NEGOCIO_ID + "/carpeta"));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeLeenLosBytes(int... esperados) {
+        assertThat(bytes).containsExactly(esperados);
+    }
+
+    private void entoncesSeRechazaPorqueNoPerteneceAlNegocio() {
+        assertThat(rechazo).isInstanceOf(LecturaCuadernoException.class).hasMessageContaining("no pertenece");
+    }
+
+    private void entoncesSeRechazaConElMensajeQueContiene(String texto) {
+        assertThat(rechazo).hasMessageContaining(texto);
+    }
+
+    private void entoncesSeRechazaPermanentementeCon(String mensaje) {
+        assertThat(rechazo).isInstanceOf(LecturaCuadernoException.class).hasMessage(mensaje);
+    }
+
+    private void entoncesLaFotoQuedaGuardadaEnLaSubcarpeta() throws Exception {
+        assertThat(Files.readAllBytes(raiz.resolve(CARPETA_DE_FOTOS + "/a.jpg"))).containsExactly(7, 8);
+    }
+
+    private void entoncesLaFotoYaNoExiste() {
+        assertThat(raiz.resolve(clave)).doesNotExist();
+    }
+
+    private void entoncesNoHuboFallo() {
+        assertThat(rechazo).isNull();
+    }
+
+    private void entoncesElArchivoAjenoSigueExistiendo() {
+        assertThat(raiz.resolve("otra.jpg")).exists();
     }
 }

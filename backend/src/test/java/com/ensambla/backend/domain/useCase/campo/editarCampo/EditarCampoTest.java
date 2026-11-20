@@ -7,8 +7,6 @@ import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.campo.CampoId;
-import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
@@ -24,13 +22,16 @@ import java.time.Clock;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
+import static com.ensambla.backend.support.CamposDePrueba.referenciaA;
+import static com.ensambla.backend.support.CamposDePrueba.unCampoNumerico;
+import static com.ensambla.backend.support.CamposDePrueba.unaFormulaQueNoUsaCampos;
+import static com.ensambla.backend.support.CamposDePrueba.unaFormulaQueUsa;
 import static com.ensambla.backend.support.ProyectoTestData.AHORA;
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.ProyectoTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
@@ -41,8 +42,6 @@ import static org.mockito.Mockito.when;
 class EditarCampoTest {
 
     private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
-    private static final CampoId CAMPO_ID = CampoId.de("d0000000-0000-4000-8000-000000000001");
-    private static final CampoId OTRO_CAMPO_ID = CampoId.de("d0000000-0000-4000-8000-000000000002");
     private static final ProyectoId PROYECTO_ID = ProyectoId.de("e0000000-0000-4000-8000-000000000001");
     private static final ProyectoId OTRO_PROYECTO_ID = ProyectoId.de("e0000000-0000-4000-8000-000000000002");
     private static final BloqueId RELACIONADO_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
@@ -57,156 +56,217 @@ class EditarCampoTest {
             new TransaccionDirecta(),
             Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
 
+    private CampoItem campoEditado;
+    private Throwable rechazo;
+
     @BeforeEach
-    void givenNegocio() {
+    void dadoUnNegocioConSuBloque() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(bloqueRepository.findByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Optional.of(
-                Bloque.builder().id(BLOQUE_ID).negocioId(NEGOCIO_ID).proyectoId(PROYECTO_ID).build()));
+        when(bloqueRepository.findByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID))
+                .thenReturn(Optional.of(unBloqueDelSistema(BLOQUE_ID, PROYECTO_ID)));
     }
 
     @Test
     @DisplayName("Editar reemplaza la configuración del campo y lo guarda con la hora del reloj")
-    void executeShouldReconfigureAndSave() {
-        Campo campo = givenCampo(CAMPO_ID.valor(), "Precio", 0);
-        givenCamposDelBloque(givenCampo(CAMPO_ID.valor(), "Precio", 0));
-        givenSaveReturnsArgument();
+    void editarReemplazaLaConfiguracionDelCampoYLoGuardaConLaHoraDelReloj() {
+        Campo precio = unCampoDelBloque("Precio");
+        dadoUnBloqueCon(precio);
 
-        CampoItem result = editar(campo, "Costo", "TEXTO", null, null);
+        cuandoSeEditaComoTexto(precio, "Costo");
 
-        assertThat(result.nombre()).isEqualTo("Costo");
-        assertThat(result.tipo()).isEqualTo("TEXTO");
-        assertThat(result.actualizadoEn()).isEqualTo(AHORA);
-        verify(campoRepository).save(campo);
+        entoncesElCampoEditadoSeLlamaCostoEsDeTextoYSeActualizoAhora();
+        entoncesSeGuardaUnCampo();
     }
 
     @Test
     @DisplayName("Editar con el nombre de otro campo del bloque no guarda nada")
-    void executeShouldNotSaveWhenNameIsTaken() {
-        Campo campo = givenCampo(CAMPO_ID.valor(), "Precio", 0);
-        givenCamposDelBloque(campo, givenCampo(OTRO_CAMPO_ID.valor(), "Producto", 1));
+    void editarConElNombreDeOtroCampoDelBloqueNoGuardaNada() {
+        Campo precio = unCampoDelBloque("Precio");
+        dadoUnBloqueCon(precio, unCampoDelBloque("Producto"));
 
-        assertThatThrownBy(() -> editar(campo, "Producto", "TEXTO", null, null))
-                .isInstanceOf(DuplicateResourceException.class);
-        verify(campoRepository, never()).save(any());
+        cuandoSeIntentaEditarComoTexto(precio, "Producto");
+
+        entoncesSeRechazaPorNombreRepetido();
+        entoncesNoSeGuardaNingunCampo();
     }
 
     @Test
-    @DisplayName("Editar rechaza convertir el campo en una conexión con una tabla de otro sistema")
-    void executeShouldRejectRelacionWhenBloqueIsOfOtherProyecto() {
-        Campo campo = givenCampo(CAMPO_ID.valor(), "Precio", 0);
-        givenCamposDelBloque(campo);
-        givenBloqueRelacionado(OTRO_PROYECTO_ID);
+    @DisplayName("Editar no deja convertir el campo en una conexión con una tabla de otro sistema")
+    void editarNoDejaConvertirElCampoEnUnaConexionConUnaTablaDeOtroSistema() {
+        Campo precio = unCampoDelBloque("Precio");
+        dadoUnBloqueCon(precio);
+        dadoUnaTablaRelacionadaDelSistema(OTRO_PROYECTO_ID);
 
-        assertThatThrownBy(() -> editar(campo, "Cliente", "RELACION", RELACIONADO_ID, null))
-                .isInstanceOf(CampoInvalidoException.class);
-        verify(campoRepository, never()).save(any());
+        cuandoSeIntentaEditarComoConexion(precio, "Cliente");
+
+        entoncesSeRechazaPorConfiguracionInvalida();
+        entoncesNoSeGuardaNingunCampo();
     }
 
     @Test
     @DisplayName("Editar guarda una conexión con una tabla del mismo sistema")
-    void executeShouldSaveRelacionWhenBloqueIsOfSameProyecto() {
-        Campo campo = givenCampo(CAMPO_ID.valor(), "Precio", 0);
-        givenCamposDelBloque(campo);
-        givenBloqueRelacionado(PROYECTO_ID);
-        givenSaveReturnsArgument();
+    void editarGuardaUnaConexionConUnaTablaDelMismoSistema() {
+        Campo precio = unCampoDelBloque("Precio");
+        dadoUnBloqueCon(precio);
+        dadoUnaTablaRelacionadaDelSistema(PROYECTO_ID);
 
-        CampoItem result = editar(campo, "Cliente", "RELACION", RELACIONADO_ID, null);
+        cuandoSeEditaComoConexion(precio, "Cliente");
 
-        assertThat(result.bloqueRelacionadoId()).isEqualTo(RELACIONADO_ID);
+        entoncesElCampoEditadoApuntaALaTablaRelacionada();
     }
 
     @Test
     @DisplayName("Editar un campo para que sea una fórmula que se cita a sí misma no guarda nada")
-    void executeShouldRejectFormulaThatUsesItself() {
-        Campo campo = givenCampo(CAMPO_ID.valor(), "Total", 0);
-        givenCamposDelBloque(givenCampo(CAMPO_ID.valor(), "Total", 0));
+    void editarUnCampoParaQueSeaUnaFormulaQueSeCitaASiMismoNoGuardaNada() {
+        Campo total = unCampoDelBloque("Total");
+        dadoUnBloqueCon(total);
 
-        assertThatThrownBy(() -> editar(campo, "Total", "FORMULA", null, "{" + CAMPO_ID + "} * 2"))
-                .isInstanceOf(CampoInvalidoException.class);
-        verify(campoRepository, never()).save(any());
+        cuandoSeIntentaEditarComoFormulaQueSeCitaASiMisma(total);
+
+        entoncesSeRechazaPorConfiguracionInvalida();
+        entoncesNoSeGuardaNingunCampo();
     }
 
     @Test
-    @DisplayName("Editar no deja cambiar el tipo de un campo que usa una fórmula")
-    void executeShouldRejectChangingTypeOfFieldUsedByFormula() {
-        Campo cantidad = givenCampo(CAMPO_ID.valor(), "Cantidad", 0);
-        givenCamposDelBloque(cantidad, givenFormula(OTRO_CAMPO_ID.valor(), "Doble", "{" + CAMPO_ID + "} * 2"));
+    @DisplayName("Un campo usado por una fórmula no puede cambiar de tipo")
+    void unCampoUsadoPorUnaFormulaNoPuedeCambiarDeTipo() {
+        Campo cantidad = unCampoDelBloque("Cantidad");
+        dadoUnBloqueCon(cantidad, unaFormulaQueUsa(cantidad, "Doble"));
 
-        assertThatThrownBy(() -> editar(cantidad, "Cantidad", "TEXTO", null, null))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("No se puede cambiar el tipo de «Cantidad»: la fórmula «Doble» lo usa");
-        verify(campoRepository, never()).save(any());
+        cuandoSeIntentaEditarComoTexto(cantidad, "Cantidad");
+
+        entoncesSeRechazaPorque("No se puede cambiar el tipo de «Cantidad»: la fórmula «Doble» lo usa");
+        entoncesNoSeGuardaNingunCampo();
     }
 
     @Test
-    @DisplayName("Editar deja cambiar el tipo de un campo que ninguna fórmula usa")
-    void executeShouldAllowChangingTypeOfFieldNotUsedByFormula() {
-        Campo cantidad = givenCampo(CAMPO_ID.valor(), "Cantidad", 0);
-        givenCamposDelBloque(cantidad, givenFormula(OTRO_CAMPO_ID.valor(), "Doble", "2 * 2"));
-        givenSaveReturnsArgument();
+    @DisplayName("Un campo que ninguna fórmula usa puede cambiar de tipo")
+    void unCampoQueNingunaFormulaUsaPuedeCambiarDeTipo() {
+        Campo cantidad = unCampoDelBloque("Cantidad");
+        dadoUnBloqueCon(cantidad, unaFormulaQueNoUsaCampos("Doble"));
 
-        CampoItem result = editar(cantidad, "Cantidad", "TEXTO", null, null);
+        cuandoSeEditaComoTexto(cantidad, "Cantidad");
 
-        assertThat(result.tipo()).isEqualTo("TEXTO");
+        entoncesElCampoEditadoEsDeTipo("TEXTO");
     }
 
     @Test
-    @DisplayName("Editar un campo numérico que usa una fórmula no revisa las fórmulas")
-    void executeShouldKeepNumericFieldUsedByFormula() {
-        Campo cantidad = givenCampo(CAMPO_ID.valor(), "Cantidad", 0);
-        givenCamposDelBloque(cantidad, givenFormula(OTRO_CAMPO_ID.valor(), "Doble", "{" + CAMPO_ID + "} * 2"));
-        givenSaveReturnsArgument();
+    @DisplayName("Un campo numérico usado por una fórmula puede seguir siendo numérico")
+    void unCampoNumericoUsadoPorUnaFormulaPuedeSeguirSiendoNumerico() {
+        Campo cantidad = unCampoDelBloque("Cantidad");
+        dadoUnBloqueCon(cantidad, unaFormulaQueUsa(cantidad, "Doble"));
 
-        CampoItem result = editar(cantidad, "Cantidad", "NUMERO", null, null);
+        cuandoSeEditaComoNumero(cantidad, "Cantidad");
 
-        assertThat(result.tipo()).isEqualTo("NUMERO");
+        entoncesElCampoEditadoEsDeTipo("NUMERO");
     }
 
     @Test
-    @DisplayName("Un campo ajeno propaga el 404 sin consultar el bloque ni editar")
-    void executeShouldStopWhenCampoIsForeign() {
-        when(campoRepository.findByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+    @DisplayName("Un campo ajeno se informa como no encontrado sin consultar el bloque ni editar")
+    void unCampoAjenoSePropagaComoNoEncontradoSinConsultarElBloqueNiEditar() {
+        Campo ajeno = unCampoDelBloque("Precio");
+        dadoUnCampoAjeno(ajeno);
 
-        assertThatThrownBy(() -> editarCampo.execute(
-                new EditarCampoRequest(USUARIO_ID, CAMPO_ID, "Costo", "NUMERO", false, "0", null, null, null)))
-                .isInstanceOf(ResourceNotFoundException.class);
-        verify(campoRepository, never()).save(any());
+        cuandoSeIntentaEditarComoNumero(ajeno, "Costo");
+
+        entoncesSeRechazaPorqueElCampoNoExiste();
+        entoncesNoSeGuardaNingunCampo();
     }
 
-    // --- arrange ---
-    private void givenCamposDelBloque(Campo... campos) {
+    private void dadoUnBloqueCon(Campo... campos) {
         when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of(campos));
-    }
-
-    private void givenSaveReturnsArgument() {
+        for (Campo campo : campos) {
+            when(campoRepository.findByIdAndNegocioId(campo.getId(), NEGOCIO_ID)).thenReturn(Optional.of(campo));
+        }
         when(campoRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
-    private void givenBloqueRelacionado(ProyectoId proyectoId) {
-        Bloque relacionado = Bloque.builder().id(RELACIONADO_ID).negocioId(NEGOCIO_ID).proyectoId(proyectoId).build();
-        when(bloqueRepository.findByIdAndNegocioId(RELACIONADO_ID, NEGOCIO_ID)).thenReturn(Optional.of(relacionado));
+    private void dadoUnaTablaRelacionadaDelSistema(ProyectoId proyectoId) {
+        when(bloqueRepository.findByIdAndNegocioId(RELACIONADO_ID, NEGOCIO_ID))
+                .thenReturn(Optional.of(unBloqueDelSistema(RELACIONADO_ID, proyectoId)));
     }
 
-    private Campo givenCampo(UUID id, String nombre, int posicion) {
-        return Campo.builder()
-                .id(CampoId.de(id))
-                .negocioId(NEGOCIO_ID)
-                .bloqueId(BLOQUE_ID)
-                .nombre(nombre)
-                .tipo(TipoCampo.NUMERO)
-                .posicion((short) posicion)
-                .build();
+    private void dadoUnCampoAjeno(Campo campo) {
+        when(campoRepository.findByIdAndNegocioId(campo.getId(), NEGOCIO_ID)).thenReturn(Optional.empty());
     }
 
-    private Campo givenFormula(UUID id, String nombre, String expresion) {
-        return Campo.builder().id(CampoId.de(id)).negocioId(NEGOCIO_ID).bloqueId(BLOQUE_ID).nombre(nombre)
-                .tipo(TipoCampo.FORMULA).formula(expresion).posicion((short) 1).build();
+    private Bloque unBloqueDelSistema(BloqueId bloqueId, ProyectoId proyectoId) {
+        return Bloque.builder().id(bloqueId).negocioId(NEGOCIO_ID).proyectoId(proyectoId).build();
     }
 
-    // --- act ---
-    private CampoItem editar(Campo campo, String nombre, String tipo, BloqueId bloqueRelacionadoId, String formula) {
-        when(campoRepository.findByIdAndNegocioId(campo.getId(), NEGOCIO_ID)).thenReturn(Optional.of(campo));
+    private Campo unCampoDelBloque(String nombre) {
+        return unCampoNumerico(nombre).ubicadoEn(NEGOCIO_ID, BLOQUE_ID, (short) 0, AHORA);
+    }
+
+    private void cuandoSeEditaComoTexto(Campo campo, String nombre) {
+        campoEditado = editar(campo, nombre, "TEXTO", null, null);
+    }
+
+    private void cuandoSeEditaComoNumero(Campo campo, String nombre) {
+        campoEditado = editar(campo, nombre, "NUMERO", null, null);
+    }
+
+    private void cuandoSeEditaComoConexion(Campo campo, String nombre) {
+        campoEditado = editar(campo, nombre, "RELACION", RELACIONADO_ID, null);
+    }
+
+    private void cuandoSeIntentaEditarComoTexto(Campo campo, String nombre) {
+        rechazo = catchThrowable(() -> cuandoSeEditaComoTexto(campo, nombre));
+    }
+
+    private void cuandoSeIntentaEditarComoNumero(Campo campo, String nombre) {
+        rechazo = catchThrowable(() -> cuandoSeEditaComoNumero(campo, nombre));
+    }
+
+    private void cuandoSeIntentaEditarComoConexion(Campo campo, String nombre) {
+        rechazo = catchThrowable(() -> cuandoSeEditaComoConexion(campo, nombre));
+    }
+
+    private void cuandoSeIntentaEditarComoFormulaQueSeCitaASiMisma(Campo campo) {
+        String expresion = referenciaA(campo) + " * 2";
+        rechazo = catchThrowable(() -> editar(campo, "Total", "FORMULA", null, expresion));
+    }
+
+    private CampoItem editar(Campo campo, String nombre, String tipo, BloqueId tabla, String formula) {
         return editarCampo.execute(new EditarCampoRequest(
-                USUARIO_ID, campo.getId(), nombre, tipo, null, null, null, bloqueRelacionadoId, formula));
+                USUARIO_ID, campo.getId(), nombre, tipo, null, null, null, tabla, formula));
+    }
+
+    private void entoncesElCampoEditadoSeLlamaCostoEsDeTextoYSeActualizoAhora() {
+        assertThat(campoEditado.nombre()).isEqualTo("Costo");
+        assertThat(campoEditado.tipo()).isEqualTo("TEXTO");
+        assertThat(campoEditado.actualizadoEn()).isEqualTo(AHORA);
+    }
+
+    private void entoncesElCampoEditadoEsDeTipo(String tipo) {
+        assertThat(campoEditado.tipo()).isEqualTo(tipo);
+    }
+
+    private void entoncesElCampoEditadoApuntaALaTablaRelacionada() {
+        assertThat(campoEditado.bloqueRelacionadoId()).isEqualTo(RELACIONADO_ID);
+    }
+
+    private void entoncesSeRechazaPorNombreRepetido() {
+        assertThat(rechazo).isInstanceOf(DuplicateResourceException.class);
+    }
+
+    private void entoncesSeRechazaPorConfiguracionInvalida() {
+        assertThat(rechazo).isInstanceOf(CampoInvalidoException.class);
+    }
+
+    private void entoncesSeRechazaPorque(String motivo) {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class).hasMessage(motivo);
+    }
+
+    private void entoncesSeRechazaPorqueElCampoNoExiste() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    private void entoncesSeGuardaUnCampo() {
+        verify(campoRepository).save(any(Campo.class));
+    }
+
+    private void entoncesNoSeGuardaNingunCampo() {
+        verify(campoRepository, never()).save(any());
     }
 }

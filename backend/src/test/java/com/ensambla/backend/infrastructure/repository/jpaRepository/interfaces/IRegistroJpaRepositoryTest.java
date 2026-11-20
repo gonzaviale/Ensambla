@@ -34,9 +34,10 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
     private UUID campoNombre;
     private UUID campoCantidad;
     private UUID campoActivo;
+    private UUID otroBloqueRegistro;
 
     @BeforeEach
-    void setUp() {
+    void dadoUnBloqueConTresCampos() {
         negocioA = givenNegocio("a@example.com").getId();
         negocioB = givenNegocio("b@example.com").getId();
         bloqueA = givenBloque(NegocioId.de(negocioA), "Productos");
@@ -45,178 +46,374 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
         campoActivo = givenCampo(NegocioId.de(negocioA), BloqueId.de(bloqueA), "Activo", TipoCampo.SI_NO, 2);
     }
 
+    private UUID registroId;
+    private UUID viejo;
+    private UUID medio;
+    private UUID nuevo;
+    private UUID harina;
+    private UUID conCantidad;
+    private UUID conPorcentaje;
+    private UUID diez;
+    private UUID nueve;
+    private UUID cien;
+    private UUID sinDato;
+    private UUID cinco;
+    private UUID siete;
+    private UUID zeta;
+    private UUID banana;
+    private UUID apple;
+    private UUID si;
+    private UUID no;
+    private UUID activoHarina;
+    private Optional<RegistroEntity> propio;
+    private Optional<RegistroEntity> ajeno;
+    private Page<RegistroEntity> pagina;
+    private Page<RegistroEntity> ascendente;
+    private Page<RegistroEntity> descendente;
+    private Map<String, BigDecimal> sumas;
+    private Map<String, BigDecimal> conBusqueda;
+    private Map<String, BigDecimal> sinBusqueda;
+    private List<RegistroEntity> traidos;
+    private List<RegistroEntity> enRango;
+    private List<RegistroEntity> desdeSolo;
+    private List<RegistroEntity> hastaSolo;
+    private List<RegistroEntity> limitado;
+    private List<RegistroEntity> porTextoYColumna;
+    private List<RegistroEntity> soloColumna;
+    private long cantidadDelReporte;
+    private long deOtroNegocio;
+
     @Test
     @DisplayName("Encuentra el registro por id sólo dentro de su negocio")
-    void findByIdAndNegocioIdShouldRespectNegocio() {
-        UUID registroId = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(0));
+    void encuentraElRegistroPorIdSoloDentroDeSuNegocio() {
+        dadoUnRegistroVacio();
 
-        Optional<RegistroEntity> propio = registros.findByIdAndNegocioId(registroId, negocioA);
-        Optional<RegistroEntity> ajeno = registros.findByIdAndNegocioId(registroId, negocioB);
+        cuandoSeBuscaElRegistroEnSuNegocioYEnOtro();
 
-        assertThat(propio).isPresent();
-        assertThat(ajeno).isEmpty();
+        entoncesSoloSeEncuentraEnSuNegocio();
     }
 
     @Test
     @DisplayName("Lista los más nuevos primero y sólo los del bloque y negocio pedidos")
-    void buscarDescendenteShouldListNewestFirstScopedToBloqueAndNegocio() {
-        UUID viejo = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(2));
-        UUID nuevo = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(1));
-        UUID otroBloque = givenBloque(NegocioId.de(negocioA), "Clientes");
-        givenRegistro(NegocioId.de(negocioA), BloqueId.de(otroBloque), Map.of(), hace(0));
-        UUID bloqueDeB = givenBloque(NegocioId.de(negocioB), "Productos");
-        givenRegistro(NegocioId.de(negocioB), BloqueId.de(bloqueDeB), Map.of(), hace(0));
+    void listaLosMasNuevosPrimeroYSoloLosDelBloqueYNegocioPedidos() {
+        dadoDosRegistrosDelBloqueYOtrosDeOtroBloqueYDeOtroNegocio();
 
-        Page<RegistroEntity> result = registros.buscarDescendente(negocioA, bloqueA, null, null, PRIMERA);
+        cuandoSeBuscaEnDescendenteSinFiltros();
 
-        assertThat(result.getContent()).extracting(RegistroEntity::getId).containsExactly(nuevo, viejo);
-        assertThat(result.getTotalElements()).isEqualTo(2);
+        entoncesSalenElNuevoYElViejoYElTotalEsDos();
     }
 
     @Test
     @DisplayName("No devuelve registros cuando el bloque pertenece a otro negocio")
-    void buscarShouldReturnNothingWhenBloqueBelongsToOtherNegocio() {
-        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(0));
+    void noDevuelveRegistrosCuandoElBloquePerteneceAOtroNegocio() {
+        dadoUnRegistroVacio();
 
-        Page<RegistroEntity> result = registros.buscarDescendente(negocioB, bloqueA, null, null, PRIMERA);
+        cuandoSeBuscaElBloqueDeAConElNegocioB();
 
-        assertThat(result.getContent()).isEmpty();
-        assertThat(result.getTotalElements()).isZero();
+        entoncesNoSeDevuelveNingunRegistro();
     }
 
     @Test
     @DisplayName("Lista los más viejos primero en orden ascendente por fecha de carga")
-    void buscarAscendenteShouldListOldestFirst() {
-        UUID viejo = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(2));
-        UUID nuevo = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(1));
+    void listaLosMasViejosPrimeroEnOrdenAscendentePorFechaDeCarga() {
+        dadoUnRegistroViejoYUnoNuevo();
 
-        Page<RegistroEntity> result = registros.buscarAscendente(negocioA, bloqueA, null, null, PRIMERA);
+        cuandoSeBuscaEnAscendenteSinFiltros();
 
-        assertThat(result.getContent()).extracting(RegistroEntity::getId).containsExactly(viejo, nuevo);
+        entoncesSalenElViejoYElNuevo();
     }
 
     @Test
     @DisplayName("Busca el texto entre los valores sin distinguir mayúsculas")
-    void buscarShouldMatchValuesIgnoringCase() {
-        UUID harina = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "Harina 000"),
-                hace(2));
-        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "Azúcar"), hace(1));
+    void buscaElTextoEntreLosValoresSinDistinguirMayusculas() {
+        dadoUnRegistroDeHarinaYUnoDeAzucar();
 
-        Page<RegistroEntity> result = registros.buscarDescendente(negocioA, bloqueA, "%HARINA%", null, PRIMERA);
+        cuandoSeBuscaElTexto("%HARINA%");
 
-        assertThat(result.getContent()).extracting(RegistroEntity::getId).containsExactly(harina);
-        assertThat(result.getTotalElements()).isEqualTo(1);
+        entoncesSoloSeEncuentraLaHarina();
     }
 
     @Test
     @DisplayName("Busca también en valores numéricos")
-    void buscarShouldMatchNumericValues() {
-        UUID conCantidad = givenRegistro(NegocioId.de(negocioA), BloqueId
-            .de(bloqueA), valores(campoCantidad, 4500), hace(1));
-        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 12), hace(0));
+    void buscaTambienEnValoresNumericos() {
+        dadoUnRegistroConCantidadCuatroMilQuinientosYOtroConDoce();
 
-        Page<RegistroEntity> result = registros.buscarDescendente(negocioA, bloqueA, "%450%", null, PRIMERA);
+        cuandoSeBuscaElTexto("%450%");
 
-        assertThat(result.getContent()).extracting(RegistroEntity::getId).containsExactly(conCantidad);
+        entoncesSoloSeEncuentraElDeCuatroMilQuinientos();
     }
 
     @Test
     @DisplayName("No busca entre los ids de los campos")
-    void buscarShouldNotMatchFieldIds() {
-        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "Harina"), hace(0));
-        String fragmentoDelId = campoNombre.toString().substring(0, 8);
+    void noBuscaEntreLosIdsDeLosCampos() {
+        dadoUnRegistroDeHarina();
 
-        Page<RegistroEntity> result = registros.buscarDescendente(
-                negocioA, bloqueA, "%" + fragmentoDelId + "%", null, PRIMERA);
+        cuandoSeBuscaUnFragmentoDelIdDelCampo();
 
-        assertThat(result.getContent()).isEmpty();
+        entoncesNoSeDevuelveNingunRegistro();
     }
 
     @Test
     @DisplayName("Un patrón con comodines escapados busca el símbolo literal")
-    void buscarShouldMatchEscapedWildcardsLiterally() {
-        UUID conPorcentaje = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA),
-                valores(campoNombre, "Oferta 50% off"), hace(1));
-        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "Oferta 50 off"), hace(0));
+    void unPatronConComodinesEscapadosBuscaElSimboloLiteral() {
+        dadoOfertasConYSinPorcentaje();
 
-        Page<RegistroEntity> result = registros.buscarDescendente(negocioA, bloqueA, "%50\\%%", null, PRIMERA);
+        cuandoSeBuscaElTexto("%50\\%%");
 
-        assertThat(result.getContent()).extracting(RegistroEntity::getId).containsExactly(conPorcentaje);
+        entoncesSoloSeEncuentraLaOfertaConPorcentaje();
     }
 
     @Test
     @DisplayName("Ordena los números por valor y no como texto")
-    void buscarAscendenteShouldOrderNumbersNumerically() {
-        UUID diez = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 10), hace(3));
-        UUID nueve = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 9), hace(2));
-        UUID cien = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 100), hace(1));
+    void ordenaLosNumerosPorValorYNoComoTexto() {
+        dadoRegistrosConCantidadDiezNueveYCien();
 
-        Page<RegistroEntity> result = registros.buscarAscendente(
-                negocioA, bloqueA, null, campoCantidad.toString(), PRIMERA);
+        cuandoSeOrdenaAscendentePor(campoCantidad);
 
-        assertThat(result.getContent()).extracting(RegistroEntity::getId).containsExactly(nueve, diez, cien);
+        entoncesLosNumerosVienenNueveDiezCien();
     }
 
     @Test
     @DisplayName("Deja al final a los registros sin el dato, tanto en orden ascendente como descendente")
-    void buscarShouldPutRegistrosWithoutValueLast() {
-        UUID sinDato = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(0));
-        UUID cinco = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 5), hace(2));
-        UUID siete = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 7), hace(1));
+    void dejaAlFinalALosRegistrosSinElDatoTantoEnOrdenAscendenteComoDescendente() {
+        dadoUnRegistroSinDatoYDosConCantidad();
 
-        Page<RegistroEntity> ascendente = registros.buscarAscendente(
-                negocioA, bloqueA, null, campoCantidad.toString(), PRIMERA);
-        Page<RegistroEntity> descendente = registros.buscarDescendente(
-                negocioA, bloqueA, null, campoCantidad.toString(), PRIMERA);
+        cuandoSeOrdenaPorCantidadEnAmbosSentidos();
 
-        assertThat(ascendente.getContent()).extracting(RegistroEntity::getId).containsExactly(cinco, siete, sinDato);
-        assertThat(descendente.getContent()).extracting(RegistroEntity::getId).containsExactly(siete, cinco, sinDato);
+        entoncesLosRegistrosSinDatoQuedanAlFinalEnAmbosSentidos();
     }
 
     @Test
     @DisplayName("Ordena los textos sin distinguir mayúsculas")
-    void buscarAscendenteShouldOrderTextsIgnoringCase() {
-        UUID zeta = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "Zeta"), hace(3));
-        UUID banana = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "banana"),
-                hace(2));
-        UUID apple = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "Apple"),
-                hace(1));
+    void ordenaLosTextosSinDistinguirMayusculas() {
+        dadoTresNombresZetaBananaYApple();
 
-        Page<RegistroEntity> result = registros.buscarAscendente(
-                negocioA, bloqueA, null, campoNombre.toString(), PRIMERA);
+        cuandoSeOrdenaAscendentePor(campoNombre);
 
-        assertThat(result.getContent()).extracting(RegistroEntity::getId).containsExactly(apple, banana, zeta);
+        entoncesLosTextosVienenAppleBananaZeta();
     }
 
     @Test
     @DisplayName("Ordena los sí/no poniendo primero el no")
-    void buscarAscendenteShouldOrderBooleansFalseFirst() {
-        UUID si = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoActivo, true), hace(2));
-        UUID no = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoActivo, false), hace(1));
+    void ordenaLosSiNoPoniendoPrimeroElNo() {
+        dadoUnRegistroActivoYUnoInactivo();
 
-        Page<RegistroEntity> result = registros.buscarAscendente(
-                negocioA, bloqueA, null, campoActivo.toString(), PRIMERA);
+        cuandoSeOrdenaAscendentePor(campoActivo);
 
-        assertThat(result.getContent()).extracting(RegistroEntity::getId).containsExactly(no, si);
+        entoncesElNoVienePrimero();
     }
 
     @Test
     @DisplayName("Pagina los resultados e informa el total sin paginar")
-    void buscarShouldPaginateAndCountTotal() {
-        for (int i = 0; i < 5; i++) {
-            givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, i), hace(10 - i));
-        }
+    void paginaLosResultadosEInformaElTotalSinPaginar() {
+        dadoCincoRegistrosConCantidadDeCeroACuatro();
 
-        Page<RegistroEntity> ultima = registros.buscarAscendente(
-                negocioA, bloqueA, null, campoCantidad.toString(), PageRequest.of(2, 2));
+        cuandoSePideLaUltimaPaginaDeDos();
 
-        assertThat(ultima.getTotalElements()).isEqualTo(5);
-        assertThat(ultima.getTotalPages()).isEqualTo(3);
-        assertThat(ultima.getContent()).hasSize(1);
-        assertThat(ultima.getContent().getFirst().getValores()).containsEntry(campoCantidad.toString(), 4);
+        entoncesLaUltimaPaginaTieneUnRegistroYElTotalEsCinco();
     }
 
-    // --- helpers ---
+    @Test
+    @DisplayName("Suma los valores numéricos de cada campo y no cuenta los registros que no lo cargaron")
+    void sumaLosValoresNumericosDeCadaCampoYNoCuentaLosRegistrosQueNoLoCargaron() {
+        dadoDosCantidadesYUnRegistroSinCantidad();
+
+        cuandoSeSumaLaCantidad();
+
+        entoncesSeSumanQuinceYMedio();
+    }
+
+    @Test
+    @DisplayName("Suma sólo lo que cumple la búsqueda y deja afuera otros bloques y otros negocios")
+    void sumaSoloLoQueCumpleLaBusquedaYDejaAfueraOtrosBloquesYOtrosNegocios() {
+        dadoProductosEnVariosBloquesYNegocios();
+
+        cuandoSeSumaLaCantidadConYSinBusqueda();
+
+        entoncesLaSumaConBusquedaEsCuarentaYSinBusquedaCuarentaYSiete();
+    }
+
+    @Test
+    @DisplayName("Sólo suma los campos pedidos y un campo sin números queda en cero")
+    void soloSumaLosCamposPedidosYUnCampoSinNumerosQuedaEnCero() {
+        dadoUnRegistroConTextoCantidadYActivo();
+
+        cuandoSeSumanCantidadYNombre();
+
+        entoncesSoloSeSumanLosCamposPedidosYElNombreQuedaEnCero();
+    }
+
+    @Test
+    @DisplayName("Trae sólo los ids pedidos del bloque y negocio, los más nuevos primero")
+    void traeSoloLosIdsPedidosDelBloqueYNegocioLosMasNuevosPrimero() {
+        dadoRegistrosDelBloqueYUnoDeOtroBloque();
+
+        cuandoSeTraenLosRegistrosPorIds();
+
+        entoncesSeTraenElNuevoYElViejo();
+    }
+
+    @Test
+    @DisplayName("No trae registros pedidos por id con el negocio equivocado")
+    void noTraeRegistrosPedidosPorIdConElNegocioEquivocado() {
+        dadoUnRegistroVacio();
+
+        cuandoSeTraeElRegistroPorIdConElNegocioB();
+
+        entoncesNoSeTraeNingunRegistro();
+    }
+
+    @Test
+    @DisplayName("El reporte trae las filas del rango de fechas, las más nuevas primero, y respeta el límite")
+    void elReporteTraeLasFilasDelRangoDeFechasLasMasNuevasPrimeroYRespetaElLimite() {
+        dadoTresRegistrosDeHaceDiezCincoYUnDia();
+
+        cuandoSeBuscaElReporteEnVariosRangos();
+
+        entoncesElReporteRespetaElRangoYElLimite();
+    }
+
+    @Test
+    @DisplayName("El reporte filtra por el texto y por el valor de una columna")
+    void elReporteFiltraPorElTextoYPorElValorDeUnaColumna() {
+        dadoTresRegistrosConNombreYActivo();
+
+        cuandoSeBuscaElReportePorTextoYColumna();
+
+        entoncesElReporteDevuelveSoloLaHarinaActiva();
+    }
+
+    @Test
+    @DisplayName("La cantidad y las sumas del reporte coinciden con sus filtros y no incluyen a otros negocios")
+    void laCantidadYLasSumasDelReporteCoincidenConSusFiltrosYNoIncluyenAOtrosNegocios() {
+        dadoRegistrosActivosEInactivosDeVariasFechasYNegocios();
+
+        cuandoSeCuentaYSumaElReporte();
+
+        entoncesLaCantidadYLaSumaCoincidenConLosFiltros();
+    }
+
+    // --- dado ---
+    private UUID unRegistroEnA(Map<String, Object> valores, int minutos) {
+        return givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores, hace(minutos));
+    }
+
+    private void dadoUnRegistroVacio() {
+        registroId = unRegistroEnA(Map.of(), 0);
+    }
+
+    private void dadoDosRegistrosDelBloqueYOtrosDeOtroBloqueYDeOtroNegocio() {
+        viejo = unRegistroEnA(Map.of(), 2);
+        nuevo = unRegistroEnA(Map.of(), 1);
+        UUID otroBloque = givenBloque(NegocioId.de(negocioA), "Clientes");
+        givenRegistro(NegocioId.de(negocioA), BloqueId.de(otroBloque), Map.of(), hace(0));
+        UUID bloqueDeB = givenBloque(NegocioId.de(negocioB), "Productos");
+        givenRegistro(NegocioId.de(negocioB), BloqueId.de(bloqueDeB), Map.of(), hace(0));
+    }
+
+    private void dadoUnRegistroViejoYUnoNuevo() {
+        viejo = unRegistroEnA(Map.of(), 2);
+        nuevo = unRegistroEnA(Map.of(), 1);
+    }
+
+    private void dadoUnRegistroDeHarinaYUnoDeAzucar() {
+        harina = unRegistroEnA(valores(campoNombre, "Harina 000"), 2);
+        unRegistroEnA(valores(campoNombre, "Azúcar"), 1);
+    }
+
+    private void dadoUnRegistroConCantidadCuatroMilQuinientosYOtroConDoce() {
+        conCantidad = unRegistroEnA(valores(campoCantidad, 4500), 1);
+        unRegistroEnA(valores(campoCantidad, 12), 0);
+    }
+
+    private void dadoUnRegistroDeHarina() {
+        unRegistroEnA(valores(campoNombre, "Harina"), 0);
+    }
+
+    private void dadoOfertasConYSinPorcentaje() {
+        conPorcentaje = unRegistroEnA(valores(campoNombre, "Oferta 50% off"), 1);
+        unRegistroEnA(valores(campoNombre, "Oferta 50 off"), 0);
+    }
+
+    private void dadoRegistrosConCantidadDiezNueveYCien() {
+        diez = unRegistroEnA(valores(campoCantidad, 10), 3);
+        nueve = unRegistroEnA(valores(campoCantidad, 9), 2);
+        cien = unRegistroEnA(valores(campoCantidad, 100), 1);
+    }
+
+    private void dadoUnRegistroSinDatoYDosConCantidad() {
+        sinDato = unRegistroEnA(Map.of(), 0);
+        cinco = unRegistroEnA(valores(campoCantidad, 5), 2);
+        siete = unRegistroEnA(valores(campoCantidad, 7), 1);
+    }
+
+    private void dadoTresNombresZetaBananaYApple() {
+        zeta = unRegistroEnA(valores(campoNombre, "Zeta"), 3);
+        banana = unRegistroEnA(valores(campoNombre, "banana"), 2);
+        apple = unRegistroEnA(valores(campoNombre, "Apple"), 1);
+    }
+
+    private void dadoUnRegistroActivoYUnoInactivo() {
+        si = unRegistroEnA(valores(campoActivo, true), 2);
+        no = unRegistroEnA(valores(campoActivo, false), 1);
+    }
+
+    private void dadoCincoRegistrosConCantidadDeCeroACuatro() {
+        for (int i = 0; i < 5; i++) {
+            unRegistroEnA(valores(campoCantidad, i), 10 - i);
+        }
+    }
+
+    private void dadoDosCantidadesYUnRegistroSinCantidad() {
+        unRegistroEnA(valores(campoCantidad, 10), 3);
+        unRegistroEnA(valores(campoCantidad, 5.5), 2);
+        unRegistroEnA(valores(campoNombre, "Sin cantidad"), 1);
+    }
+
+    private void dadoProductosEnVariosBloquesYNegocios() {
+        unRegistroEnA(producto("Harina 000", 40), 4);
+        unRegistroEnA(producto("Azúcar", 7), 3);
+        givenRegistro(NegocioId.de(negocioA), BloqueId.de(givenBloque(NegocioId.de(negocioA), "Clientes")),
+                producto("Harina 000", 100), hace(2));
+        givenRegistro(NegocioId.de(negocioB), BloqueId.de(givenBloque(NegocioId.de(negocioB), "Productos")),
+                producto("Harina 000", 1000), hace(1));
+    }
+
+    private void dadoUnRegistroConTextoCantidadYActivo() {
+        Map<String, Object> registro = producto("Texto", 3);
+        registro.put(campoActivo.toString(), true);
+        unRegistroEnA(registro, 1);
+    }
+
+    private void dadoRegistrosDelBloqueYUnoDeOtroBloque() {
+        viejo = unRegistroEnA(Map.of(), 2);
+        nuevo = unRegistroEnA(Map.of(), 1);
+        unRegistroEnA(Map.of(), 0);
+        otroBloqueRegistro = givenRegistro(NegocioId.de(negocioA), BloqueId
+                .de(givenBloque(NegocioId.de(negocioA), "Clientes")), Map.of(), hace(0));
+    }
+
+    private void dadoTresRegistrosDeHaceDiezCincoYUnDia() {
+        viejo = unRegistroEnA(producto("Viejo", 1), 60 * 24 * 10);
+        medio = unRegistroEnA(producto("Medio", 2), 60 * 24 * 5);
+        nuevo = unRegistroEnA(producto("Nuevo", 3), 60 * 24);
+    }
+
+    private void dadoTresRegistrosConNombreYActivo() {
+        activoHarina = unRegistroEnA(activo("Harina 000", true), 3);
+        unRegistroEnA(activo("Harina integral", false), 2);
+        unRegistroEnA(activo("Azúcar", true), 1);
+    }
+
+    private void dadoRegistrosActivosEInactivosDeVariasFechasYNegocios() {
+        unRegistroEnA(activo("Harina", true, 40), 60 * 24 * 3);
+        unRegistroEnA(activo("Azúcar", true, 7), 60 * 24 * 3);
+        unRegistroEnA(activo("Sal", false, 100), 60 * 24 * 3);
+        unRegistroEnA(activo("Harina vieja", true, 1000), 60 * 24 * 30);
+        givenRegistro(NegocioId.de(negocioB), BloqueId.de(givenBloque(NegocioId.de(negocioB), "Productos")),
+                activo("Harina", true, 5000), hace(60 * 24 * 3));
+    }
+
     private OffsetDateTime hace(int minutos) {
         return AHORA.minusMinutes(minutos);
     }
@@ -227,152 +424,10 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
         return valores;
     }
 
-    @Test
-    @DisplayName("Suma los valores numéricos de cada campo y no cuenta los registros que no lo cargaron")
-    void sumarNumericosShouldAddNumbersPerCampo() {
-        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 10), hace(3));
-        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoCantidad, 5.5), hace(2));
-        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), valores(campoNombre, "Sin cantidad"), hace(1));
-
-        Map<String, BigDecimal> sumas = sumasPorCampo(registros.sumarNumericos(
-                negocioA, bloqueA, null, List.of(campoCantidad.toString())));
-
-        assertThat(sumas).containsOnlyKeys(campoCantidad.toString());
-        assertThat(sumas.get(campoCantidad.toString())).isEqualByComparingTo("15.5");
-    }
-
-    @Test
-    @DisplayName("Suma sólo lo que cumple la búsqueda y deja afuera otros bloques y otros negocios")
-    void sumarNumericosShouldRespectSearchBloqueAndNegocio() {
-        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), producto("Harina 000", 40), hace(4));
-        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), producto("Azúcar", 7), hace(3));
-        givenRegistro(NegocioId.de(negocioA), BloqueId.de(givenBloque(NegocioId.de(negocioA), "Clientes")),
-                producto("Harina 000", 100), hace(2));
-        givenRegistro(NegocioId.de(negocioB), BloqueId.de(givenBloque(NegocioId.de(negocioB), "Productos")),
-                producto("Harina 000", 1000), hace(1));
-
-        Map<String, BigDecimal> conBusqueda = sumasPorCampo(registros.sumarNumericos(
-                negocioA, bloqueA, "%HARINA%", List.of(campoCantidad.toString())));
-        Map<String, BigDecimal> sinBusqueda = sumasPorCampo(registros.sumarNumericos(
-                negocioA, bloqueA, null, List.of(campoCantidad.toString())));
-
-        assertThat(conBusqueda.get(campoCantidad.toString())).isEqualByComparingTo("40");
-        assertThat(sinBusqueda.get(campoCantidad.toString())).isEqualByComparingTo("47");
-    }
-
-    @Test
-    @DisplayName("Sólo suma los campos pedidos y un campo sin números queda en cero")
-    void sumarNumericosShouldOnlyReturnRequestedCamposAndZeroWithoutNumbers() {
-        Map<String, Object> registro = producto("Texto", 3);
-        registro.put(campoActivo.toString(), true);
-        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), registro, hace(1));
-
-        Map<String, BigDecimal> sumas = sumasPorCampo(registros.sumarNumericos(
-                negocioA, bloqueA, null, List.of(campoCantidad.toString(), campoNombre.toString())));
-
-        assertThat(sumas).containsOnlyKeys(campoCantidad.toString(), campoNombre.toString());
-        assertThat(sumas.get(campoCantidad.toString())).isEqualByComparingTo("3");
-        assertThat(sumas.get(campoNombre.toString())).isEqualByComparingTo("0");
-    }
-
-    @Test
-    @DisplayName("Trae sólo los ids pedidos del bloque y negocio, los más nuevos primero")
-    void findAllByIdInShouldReturnRequestedRegistrosOfBloqueAndNegocioNewestFirst() {
-        UUID viejo = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(2));
-        UUID nuevo = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(1));
-        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(0));
-        UUID otroBloque = givenRegistro(NegocioId.de(negocioA), BloqueId
-                .de(givenBloque(NegocioId.de(negocioA), "Clientes")), Map.of(), hace(0));
-
-        List<RegistroEntity> result = registros.findAllByIdInAndBloqueIdAndNegocioIdOrderByCreadoEnDescIdDesc(
-                List.of(viejo, nuevo, otroBloque), bloqueA, negocioA);
-
-        assertThat(result).extracting(RegistroEntity::getId).containsExactly(nuevo, viejo);
-    }
-
-    @Test
-    @DisplayName("No trae registros pedidos por id con el negocio equivocado")
-    void findAllByIdInShouldReturnNothingForOtherNegocio() {
-        UUID registroId = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), hace(0));
-
-        List<RegistroEntity> result = registros.findAllByIdInAndBloqueIdAndNegocioIdOrderByCreadoEnDescIdDesc(
-                List.of(registroId), bloqueA, negocioB);
-
-        assertThat(result).isEmpty();
-    }
-
     private Map<String, Object> producto(String nombre, Object cantidad) {
         Map<String, Object> valores = valores(campoNombre, nombre);
         valores.put(campoCantidad.toString(), cantidad);
         return valores;
-    }
-
-    private Map<String, BigDecimal> sumasPorCampo(List<IRegistroJpaRepository.SumaPorCampo> filas) {
-        return filas.stream().collect(Collectors.toMap(
-                IRegistroJpaRepository.SumaPorCampo::getCampo,
-                IRegistroJpaRepository.SumaPorCampo::getSuma));
-    }
-
-    @Test
-    @DisplayName("El reporte trae las filas del rango de fechas, las más nuevas primero, y respeta el límite")
-    void buscarParaReporteShouldFilterByDateRangeNewestFirst() {
-        UUID viejo = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), producto("Viejo", 1),
-                hace(60 * 24 * 10));
-        UUID medio = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), producto("Medio", 2),
-                hace(60 * 24 * 5));
-        UUID nuevo = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), producto("Nuevo", 3), hace(60 * 24));
-        String desde = AHORA.minusDays(6).toInstant().toString();
-        String hasta = AHORA.minusDays(2).toInstant().toString();
-
-        List<RegistroEntity> enRango = registros.buscarParaReporte(negocioA, bloqueA, null, desde, hasta, null, null, 100);
-        List<RegistroEntity> desdeSolo = registros.buscarParaReporte(negocioA, bloqueA, null, desde, null, null, null, 100);
-        List<RegistroEntity> hastaSolo = registros.buscarParaReporte(negocioA, bloqueA, null, null, hasta, null, null, 100);
-        List<RegistroEntity> limitado = registros.buscarParaReporte(negocioA, bloqueA, null, null, null, null, null, 2);
-
-        assertThat(enRango).extracting(RegistroEntity::getId).containsExactly(medio);
-        assertThat(desdeSolo).extracting(RegistroEntity::getId).containsExactly(nuevo, medio);
-        assertThat(hastaSolo).extracting(RegistroEntity::getId).containsExactly(medio, viejo);
-        assertThat(limitado).extracting(RegistroEntity::getId).containsExactly(nuevo, medio);
-    }
-
-    @Test
-    @DisplayName("El reporte filtra por el texto y por el valor de una columna")
-    void buscarParaReporteShouldFilterByTextAndColumnValue() {
-        UUID activoHarina = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), activo("Harina 000", true),
-                hace(3));
-        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), activo("Harina integral", false), hace(2));
-        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), activo("Azúcar", true), hace(1));
-
-        List<RegistroEntity> result = registros.buscarParaReporte(
-                negocioA, bloqueA, "%harina%", null, null, campoActivo.toString(), "true", 100);
-        List<RegistroEntity> soloColumna = registros.buscarParaReporte(
-                negocioA, bloqueA, null, null, null, campoActivo.toString(), "false", 100);
-
-        assertThat(result).extracting(RegistroEntity::getId).containsExactly(activoHarina);
-        assertThat(soloColumna).hasSize(1);
-    }
-
-    @Test
-    @DisplayName("La cantidad y las sumas del reporte coinciden con sus filtros y no incluyen a otros negocios")
-    void reporteTotalsShouldMatchTheFiltersAndExcludeOtherNegocios() {
-        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), activo("Harina", true, 40), hace(60 * 24 * 3));
-        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), activo("Azúcar", true, 7), hace(60 * 24 * 3));
-        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), activo("Sal", false, 100), hace(60 * 24 * 3));
-        givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), activo("Harina vieja", true, 1000),
-                hace(60 * 24 * 30));
-        givenRegistro(NegocioId.de(negocioB), BloqueId.de(givenBloque(NegocioId.de(negocioB), "Productos")),
-                activo("Harina", true, 5000), hace(60 * 24 * 3));
-        String desde = AHORA.minusDays(10).toInstant().toString();
-        String ids = campoCantidad.toString();
-
-        long cantidad = registros.contarParaReporte(negocioA, bloqueA, null, desde, null, campoActivo.toString(), "true");
-        Map<String, BigDecimal> sumas = sumasPorCampo(registros.sumarNumericosParaReporte(
-                negocioA, bloqueA, null, desde, null, campoActivo.toString(), "true", List.of(ids)));
-        long deOtroNegocio = registros.contarParaReporte(negocioB, bloqueA, null, desde, null, null, null);
-
-        assertThat(cantidad).isEqualTo(2);
-        assertThat(sumas.get(ids)).isEqualByComparingTo("47");
-        assertThat(deOtroNegocio).isZero();
     }
 
     private Map<String, Object> activo(String nombre, boolean activo) {
@@ -386,5 +441,205 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
         Map<String, Object> valores = activo(nombre, activo);
         valores.put(campoCantidad.toString(), cantidad);
         return valores;
+    }
+
+    private Map<String, BigDecimal> sumasPorCampo(List<IRegistroJpaRepository.SumaPorCampo> filas) {
+        return filas.stream().collect(Collectors.toMap(
+                IRegistroJpaRepository.SumaPorCampo::getCampo,
+                IRegistroJpaRepository.SumaPorCampo::getSuma));
+    }
+
+    // --- cuando ---
+    private void cuandoSeBuscaElRegistroEnSuNegocioYEnOtro() {
+        propio = registros.findByIdAndNegocioId(registroId, negocioA);
+        ajeno = registros.findByIdAndNegocioId(registroId, negocioB);
+    }
+
+    private void cuandoSeBuscaEnDescendenteSinFiltros() {
+        pagina = registros.buscarDescendente(negocioA, bloqueA, null, null, PRIMERA);
+    }
+
+    private void cuandoSeBuscaEnAscendenteSinFiltros() {
+        pagina = registros.buscarAscendente(negocioA, bloqueA, null, null, PRIMERA);
+    }
+
+    private void cuandoSeBuscaElBloqueDeAConElNegocioB() {
+        pagina = registros.buscarDescendente(negocioB, bloqueA, null, null, PRIMERA);
+    }
+
+    private void cuandoSeBuscaElTexto(String patron) {
+        pagina = registros.buscarDescendente(negocioA, bloqueA, patron, null, PRIMERA);
+    }
+
+    private void cuandoSeBuscaUnFragmentoDelIdDelCampo() {
+        String fragmentoDelId = campoNombre.toString().substring(0, 8);
+        pagina = registros.buscarDescendente(negocioA, bloqueA, "%" + fragmentoDelId + "%", null, PRIMERA);
+    }
+
+    private void cuandoSeOrdenaAscendentePor(UUID campo) {
+        pagina = registros.buscarAscendente(negocioA, bloqueA, null, campo.toString(), PRIMERA);
+    }
+
+    private void cuandoSeOrdenaPorCantidadEnAmbosSentidos() {
+        ascendente = registros.buscarAscendente(negocioA, bloqueA, null, campoCantidad.toString(), PRIMERA);
+        descendente = registros.buscarDescendente(negocioA, bloqueA, null, campoCantidad.toString(), PRIMERA);
+    }
+
+    private void cuandoSePideLaUltimaPaginaDeDos() {
+        pagina = registros.buscarAscendente(negocioA, bloqueA, null, campoCantidad.toString(), PageRequest.of(2, 2));
+    }
+
+    private void cuandoSeSumaLaCantidad() {
+        sumas = sumasPorCampo(registros.sumarNumericos(negocioA, bloqueA, null, List.of(campoCantidad.toString())));
+    }
+
+    private void cuandoSeSumaLaCantidadConYSinBusqueda() {
+        conBusqueda = sumasPorCampo(registros.sumarNumericos(
+                negocioA, bloqueA, "%HARINA%", List.of(campoCantidad.toString())));
+        sinBusqueda = sumasPorCampo(registros.sumarNumericos(
+                negocioA, bloqueA, null, List.of(campoCantidad.toString())));
+    }
+
+    private void cuandoSeSumanCantidadYNombre() {
+        sumas = sumasPorCampo(registros.sumarNumericos(
+                negocioA, bloqueA, null, List.of(campoCantidad.toString(), campoNombre.toString())));
+    }
+
+    private void cuandoSeTraenLosRegistrosPorIds() {
+        traidos = registros.findAllByIdInAndBloqueIdAndNegocioIdOrderByCreadoEnDescIdDesc(
+                List.of(viejo, nuevo, otroBloqueRegistro), bloqueA, negocioA);
+    }
+
+    private void cuandoSeTraeElRegistroPorIdConElNegocioB() {
+        traidos = registros.findAllByIdInAndBloqueIdAndNegocioIdOrderByCreadoEnDescIdDesc(
+                List.of(registroId), bloqueA, negocioB);
+    }
+
+    private void cuandoSeBuscaElReporteEnVariosRangos() {
+        String desde = AHORA.minusDays(6).toInstant().toString();
+        String hasta = AHORA.minusDays(2).toInstant().toString();
+        enRango = registros.buscarParaReporte(negocioA, bloqueA, null, desde, hasta, null, null, 100);
+        desdeSolo = registros.buscarParaReporte(negocioA, bloqueA, null, desde, null, null, null, 100);
+        hastaSolo = registros.buscarParaReporte(negocioA, bloqueA, null, null, hasta, null, null, 100);
+        limitado = registros.buscarParaReporte(negocioA, bloqueA, null, null, null, null, null, 2);
+    }
+
+    private void cuandoSeBuscaElReportePorTextoYColumna() {
+        porTextoYColumna = registros.buscarParaReporte(
+                negocioA, bloqueA, "%harina%", null, null, campoActivo.toString(), "true", 100);
+        soloColumna = registros.buscarParaReporte(
+                negocioA, bloqueA, null, null, null, campoActivo.toString(), "false", 100);
+    }
+
+    private void cuandoSeCuentaYSumaElReporte() {
+        String desde = AHORA.minusDays(10).toInstant().toString();
+        cantidadDelReporte = registros.contarParaReporte(
+                negocioA, bloqueA, null, desde, null, campoActivo.toString(), "true");
+        sumas = sumasPorCampo(registros.sumarNumericosParaReporte(negocioA, bloqueA, null, desde, null,
+                campoActivo.toString(), "true", List.of(campoCantidad.toString())));
+        deOtroNegocio = registros.contarParaReporte(negocioB, bloqueA, null, desde, null, null, null);
+    }
+
+    // --- entonces ---
+    private List<UUID> ids() {
+        return pagina.getContent().stream().map(RegistroEntity::getId).toList();
+    }
+
+    private void entoncesSoloSeEncuentraEnSuNegocio() {
+        assertThat(propio).isPresent();
+        assertThat(ajeno).isEmpty();
+    }
+
+    private void entoncesSalenElNuevoYElViejoYElTotalEsDos() {
+        assertThat(ids()).containsExactly(nuevo, viejo);
+        assertThat(pagina.getTotalElements()).isEqualTo(2);
+    }
+
+    private void entoncesNoSeDevuelveNingunRegistro() {
+        assertThat(pagina.getContent()).isEmpty();
+        assertThat(pagina.getTotalElements()).isZero();
+    }
+
+    private void entoncesSalenElViejoYElNuevo() {
+        assertThat(ids()).containsExactly(viejo, nuevo);
+    }
+
+    private void entoncesSoloSeEncuentraLaHarina() {
+        assertThat(ids()).containsExactly(harina);
+        assertThat(pagina.getTotalElements()).isEqualTo(1);
+    }
+
+    private void entoncesSoloSeEncuentraElDeCuatroMilQuinientos() {
+        assertThat(ids()).containsExactly(conCantidad);
+    }
+
+    private void entoncesSoloSeEncuentraLaOfertaConPorcentaje() {
+        assertThat(ids()).containsExactly(conPorcentaje);
+    }
+
+    private void entoncesLosNumerosVienenNueveDiezCien() {
+        assertThat(ids()).containsExactly(nueve, diez, cien);
+    }
+
+    private void entoncesLosRegistrosSinDatoQuedanAlFinalEnAmbosSentidos() {
+        assertThat(ascendente.getContent()).extracting(RegistroEntity::getId).containsExactly(cinco, siete, sinDato);
+        assertThat(descendente.getContent()).extracting(RegistroEntity::getId).containsExactly(siete, cinco, sinDato);
+    }
+
+    private void entoncesLosTextosVienenAppleBananaZeta() {
+        assertThat(ids()).containsExactly(apple, banana, zeta);
+    }
+
+    private void entoncesElNoVienePrimero() {
+        assertThat(ids()).containsExactly(no, si);
+    }
+
+    private void entoncesLaUltimaPaginaTieneUnRegistroYElTotalEsCinco() {
+        assertThat(pagina.getTotalElements()).isEqualTo(5);
+        assertThat(pagina.getTotalPages()).isEqualTo(3);
+        assertThat(pagina.getContent()).hasSize(1);
+        assertThat(pagina.getContent().getFirst().getValores()).containsEntry(campoCantidad.toString(), 4);
+    }
+
+    private void entoncesSeSumanQuinceYMedio() {
+        assertThat(sumas).containsOnlyKeys(campoCantidad.toString());
+        assertThat(sumas.get(campoCantidad.toString())).isEqualByComparingTo("15.5");
+    }
+
+    private void entoncesLaSumaConBusquedaEsCuarentaYSinBusquedaCuarentaYSiete() {
+        assertThat(conBusqueda.get(campoCantidad.toString())).isEqualByComparingTo("40");
+        assertThat(sinBusqueda.get(campoCantidad.toString())).isEqualByComparingTo("47");
+    }
+
+    private void entoncesSoloSeSumanLosCamposPedidosYElNombreQuedaEnCero() {
+        assertThat(sumas).containsOnlyKeys(campoCantidad.toString(), campoNombre.toString());
+        assertThat(sumas.get(campoCantidad.toString())).isEqualByComparingTo("3");
+        assertThat(sumas.get(campoNombre.toString())).isEqualByComparingTo("0");
+    }
+
+    private void entoncesSeTraenElNuevoYElViejo() {
+        assertThat(traidos).extracting(RegistroEntity::getId).containsExactly(nuevo, viejo);
+    }
+
+    private void entoncesNoSeTraeNingunRegistro() {
+        assertThat(traidos).isEmpty();
+    }
+
+    private void entoncesElReporteRespetaElRangoYElLimite() {
+        assertThat(enRango).extracting(RegistroEntity::getId).containsExactly(medio);
+        assertThat(desdeSolo).extracting(RegistroEntity::getId).containsExactly(nuevo, medio);
+        assertThat(hastaSolo).extracting(RegistroEntity::getId).containsExactly(medio, viejo);
+        assertThat(limitado).extracting(RegistroEntity::getId).containsExactly(nuevo, medio);
+    }
+
+    private void entoncesElReporteDevuelveSoloLaHarinaActiva() {
+        assertThat(porTextoYColumna).extracting(RegistroEntity::getId).containsExactly(activoHarina);
+        assertThat(soloColumna).hasSize(1);
+    }
+
+    private void entoncesLaCantidadYLaSumaCoincidenConLosFiltros() {
+        assertThat(cantidadDelReporte).isEqualTo(2);
+        assertThat(sumas.get(campoCantidad.toString())).isEqualByComparingTo("47");
+        assertThat(deOtroNegocio).isZero();
     }
 }

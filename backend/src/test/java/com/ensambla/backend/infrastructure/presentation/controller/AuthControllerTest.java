@@ -22,6 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AuthControllerTest {
 
     private MockMvc mockMvc;
+    private ResultActions respuesta;
 
     @BeforeEach
     void setUp() {
@@ -35,11 +36,23 @@ class AuthControllerTest {
 
     @Test
     @DisplayName("CSRF entrega el token y el nombre del header sin caché")
-    void csrfShouldReturnTokenAndHeaderName() throws Exception {
-        ResultActions result = mockMvc.perform(get("/api/auth/csrf")
-                .requestAttr("_csrf", new DefaultCsrfToken("X-CSRF-TOKEN", "_csrf", "token")));
+    void csrfEntregaElTokenYElNombreDelHeaderSinCache() throws Exception {
+        cuandoSePideElTokenCsrf();
 
-        result.andExpect(status().isOk())
+        entoncesSeEntregaElTokenYElNombreDelHeaderSinCache();
+    }
+
+    // --- cuando ---
+
+    private void cuandoSePideElTokenCsrf() throws Exception {
+        respuesta = mockMvc.perform(get("/api/auth/csrf")
+                .requestAttr("_csrf", new DefaultCsrfToken("X-CSRF-TOKEN", "_csrf", "token")));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeEntregaElTokenYElNombreDelHeaderSinCache() throws Exception {
+        respuesta.andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").value("token"))
                 .andExpect(jsonPath("$.headerName").value("X-CSRF-TOKEN"))
                 .andExpect(header().string("Cache-Control", "no-store"));

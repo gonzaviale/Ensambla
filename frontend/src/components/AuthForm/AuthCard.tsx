@@ -41,18 +41,18 @@ export function AuthCard({
             <span className="size-3 rounded-full bg-accent-500" />
           </div>
           <p className="mb-3 text-caption font-bold tracking-widest text-petrol uppercase">
-            Un cuaderno a tu manera
+            Un negocio ordenado a tu manera
           </p>
           <h2 className="m-0 max-w-sm text-[clamp(1.8rem,3vw,2.8rem)] leading-tight font-bold tracking-tight text-petrol">
-            Tu negocio tiene su forma. Tu cuaderno también.
+            Tu negocio tiene su forma. Tus secciones también.
           </h2>
           <p className="mt-4 max-w-sm text-body leading-relaxed text-soft">
             Juntá tus pedidos, clientes y cuentas en un solo lugar. Empezá con lo que ya tenés y
-            armalo a tu ritmo.
+            organizalo a tu ritmo.
           </p>
           <div className="mt-6 flex items-center gap-2 text-hint font-semibold text-petrol">
             <CheckCircleIcon aria-hidden size={22} weight="fill" />
-            Pequeñas piezas. Todo conectado.
+            Secciones simples. Todo conectado.
           </div>
         </aside>
       )}

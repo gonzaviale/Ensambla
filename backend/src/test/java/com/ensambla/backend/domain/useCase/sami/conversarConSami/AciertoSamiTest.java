@@ -41,7 +41,7 @@ class AciertoSamiTest {
     private List<PlantillaProyecto> plantillas;
 
     @BeforeEach
-    void setUp() throws IOException {
+    void dadoElCorpusDeFrases() throws IOException {
         diccionario = leer("/ia/sami-diccionario.json", DiccionarioSami.class);
         plantillas = List.of(
                 plantilla("Inventario", "Nombre:TEXTO", "Stock:NUMERO", "Rubro:OPCION"),
@@ -53,7 +53,7 @@ class AciertoSamiTest {
 
     @Test
     @DisplayName("El algoritmo propio acierta la plantilla en al menos el 80 % de las frases de prueba")
-    void executeShouldGuessTemplateInAtLeastEightyPercentOfPhrases() throws IOException {
+    void aciertaLaPlantillaEnAlMenosElOchentaPorCientoDeLasFrases() throws IOException {
         List<FraseDePrueba> frases = frases();
 
         Resultado resultado = medir(frases);
@@ -65,7 +65,7 @@ class AciertoSamiTest {
 
     @Test
     @DisplayName("Lo que el algoritmo da por resuelto casi siempre es correcto y lo vago no se da por resuelto")
-    void executeShouldOnlyDecideWhenSure() throws IOException {
+    void soloDecideSinPreguntarCuandoEstaSeguro() throws IOException {
         Resultado resultado = medir(frases());
 
         assertThat(resultado.precisionDeLasDecididas()).as(resultado.reporte())

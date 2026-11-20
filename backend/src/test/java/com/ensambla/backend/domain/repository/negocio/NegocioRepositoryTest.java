@@ -11,58 +11,104 @@ import java.util.Optional;
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.ProyectoTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 class NegocioRepositoryTest {
 
+    private static final String SIN_NEGOCIO = "No se encontró el negocio del usuario";
+
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class, CALLS_REAL_METHODS);
+
+    private Negocio negocio;
+    private NegocioId idObtenido;
+    private Negocio negocioObtenido;
+    private Throwable rechazo;
 
     @Test
     @DisplayName("Resuelve el negocio usando el usuario autenticado")
-    void obtenerIdDelUsuarioShouldResolveOwner() {
-        givenIdDelNegocio(Optional.of(NEGOCIO_ID));
+    void resuelveElNegocioUsandoElUsuarioAutenticado() {
+        dadoQueElUsuarioTieneUnNegocio();
 
-        assertThat(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).isEqualTo(NEGOCIO_ID);
+        cuandoSeObtieneElIdDelNegocioDelUsuario();
+
+        entoncesSeResuelveElIdDelNegocio();
     }
 
     @Test
     @DisplayName("Responde no encontrado si el usuario no tiene negocio")
-    void obtenerIdDelUsuarioShouldRejectMissingNegocio() {
-        givenIdDelNegocio(Optional.empty());
+    void respondeNoEncontradoSiElUsuarioNoTieneNegocio() {
+        dadoQueElUsuarioNoTieneNegocio();
 
-        assertThatThrownBy(() -> negocioRepository.obtenerIdDelUsuario(USUARIO_ID))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("No se encontró el negocio del usuario");
+        cuandoSeIntentaObtenerElIdDelNegocioDelUsuario();
+
+        entoncesSeRespondeQueNoSeEncontroElNegocio();
     }
 
     @Test
     @DisplayName("Devuelve el negocio del usuario")
-    void obtenerNegocioDelUsuarioShouldReturnOwnNegocio() {
-        Negocio negocio = Negocio.builder().id(NEGOCIO_ID).build();
-        givenNegocio(Optional.of(negocio));
+    void devuelveElNegocioDelUsuario() {
+        dadoQueElUsuarioTieneUnNegocio();
 
-        assertThat(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID)).isSameAs(negocio);
+        cuandoSeObtieneElNegocioDelUsuario();
+
+        entoncesSeDevuelveElMismoNegocio();
     }
 
     @Test
     @DisplayName("Responde no encontrado al pedir el negocio de un usuario sin negocio")
-    void obtenerNegocioDelUsuarioShouldRejectMissingNegocio() {
-        givenNegocio(Optional.empty());
+    void respondeNoEncontradoAlPedirElNegocioDeUnUsuarioSinNegocio() {
+        dadoQueElUsuarioNoTieneNegocio();
 
-        assertThatThrownBy(() -> negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("No se encontró el negocio del usuario");
+        cuandoSeIntentaObtenerElNegocioDelUsuario();
+
+        entoncesSeRespondeQueNoSeEncontroElNegocio();
     }
 
-    // --- arrange ---
-    private void givenIdDelNegocio(Optional<NegocioId> id) {
-        doReturn(id).when(negocioRepository).findIdByDuenioId(USUARIO_ID);
+    // --- dado ---
+
+    private void dadoQueElUsuarioTieneUnNegocio() {
+        negocio = Negocio.builder().id(NEGOCIO_ID).build();
+        doReturn(Optional.of(NEGOCIO_ID)).when(negocioRepository).findIdByDuenioId(USUARIO_ID);
+        doReturn(Optional.of(negocio)).when(negocioRepository).findByDuenioId(USUARIO_ID);
     }
 
-    private void givenNegocio(Optional<Negocio> negocio) {
-        doReturn(negocio).when(negocioRepository).findByDuenioId(USUARIO_ID);
+    private void dadoQueElUsuarioNoTieneNegocio() {
+        doReturn(Optional.empty()).when(negocioRepository).findIdByDuenioId(USUARIO_ID);
+        doReturn(Optional.empty()).when(negocioRepository).findByDuenioId(USUARIO_ID);
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeObtieneElIdDelNegocioDelUsuario() {
+        idObtenido = negocioRepository.obtenerIdDelUsuario(USUARIO_ID);
+    }
+
+    private void cuandoSeIntentaObtenerElIdDelNegocioDelUsuario() {
+        rechazo = catchThrowable(this::cuandoSeObtieneElIdDelNegocioDelUsuario);
+    }
+
+    private void cuandoSeObtieneElNegocioDelUsuario() {
+        negocioObtenido = negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID);
+    }
+
+    private void cuandoSeIntentaObtenerElNegocioDelUsuario() {
+        rechazo = catchThrowable(this::cuandoSeObtieneElNegocioDelUsuario);
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeResuelveElIdDelNegocio() {
+        assertThat(idObtenido).isEqualTo(NEGOCIO_ID);
+    }
+
+    private void entoncesSeDevuelveElMismoNegocio() {
+        assertThat(negocioObtenido).isSameAs(negocio);
+    }
+
+    private void entoncesSeRespondeQueNoSeEncontroElNegocio() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class).hasMessage(SIN_NEGOCIO);
     }
 }

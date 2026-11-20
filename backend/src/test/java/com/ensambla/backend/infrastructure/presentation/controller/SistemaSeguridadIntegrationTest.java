@@ -77,16 +77,16 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        UsuarioId usuarioId = UsuarioId.de(givenUsuario());
-        negocioId = NegocioId.de(givenNegocio(usuarioId));
-        sesion = givenSesion(usuarioId);
+        UsuarioId usuarioId = UsuarioId.de(dadoUsuario());
+        negocioId = NegocioId.de(dadoNegocio(usuarioId));
+        sesion = dadoSesion(usuarioId);
     }
 
     @Test
     @DisplayName("Un sistema recién guardado vuelve completo en la lista, con ids, columnas y filas")
-    void putThenGetShouldRoundTrip() throws Exception {
+    void unSistemaRecienGuardadoVuelveCompletoEnLaListaConIdsColumnasYFilas() throws Exception {
         mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json").content(givenBody("Mi almacén")))
+                        .contentType("application/json").content(dadoBody("Mi almacén")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(SISTEMA_UUID.toString()));
 
@@ -107,10 +107,10 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Guardar otra vez reemplaza en vez de duplicar")
-    void putTwiceShouldReplace() throws Exception {
+    void guardarOtraVezReemplazaEnVezDeDuplicar() throws Exception {
         for (String nombre : List.of("Primero", "Segundo")) {
             mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                            .contentType("application/json").content(givenBody(nombre)))
+                            .contentType("application/json").content(dadoBody(nombre)))
                     .andExpect(status().isOk());
         }
 
@@ -121,10 +121,10 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("La lista contiene sólo sistemas del negocio autenticado")
-    void getShouldIsolateNegocios() throws Exception {
+    void laListaContieneSoloSistemasDelNegocioAutenticado() throws Exception {
         mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                .contentType("application/json").content(givenBody("Propio"))).andExpect(status().isOk());
-        MockHttpSession ajena = givenSesion(UsuarioId.de(givenUsuarioConNegocio()));
+                .contentType("application/json").content(dadoBody("Propio"))).andExpect(status().isOk());
+        MockHttpSession ajena = dadoSesion(UsuarioId.de(dadoUsuarioConNegocio()));
 
         mockMvc.perform(get("/api/sistemas").session(ajena))
                 .andExpect(status().isOk())
@@ -133,13 +133,13 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Guardar un sistema que es de otro negocio responde 404 y no lo modifica")
-    void putShouldNotModifyForeignSistema() throws Exception {
+    void guardarUnSistemaQueEsDeOtroNegocioResponde404YNoLoModifica() throws Exception {
         mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                .contentType("application/json").content(givenBody("Propio"))).andExpect(status().isOk());
-        MockHttpSession ajena = givenSesion(UsuarioId.de(givenUsuarioConNegocio()));
+                .contentType("application/json").content(dadoBody("Propio"))).andExpect(status().isOk());
+        MockHttpSession ajena = dadoSesion(UsuarioId.de(dadoUsuarioConNegocio()));
 
         mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(ajena).header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json").content(givenBody("Robado")))
+                        .contentType("application/json").content(dadoBody("Robado")))
                 .andExpect(status().isNotFound());
 
         assertThat(proyectos.findById(SISTEMA_UUID).orElseThrow().getNombre()).isEqualTo("Propio");
@@ -148,7 +148,7 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Un cuerpo inválido responde 400 y no guarda nada")
-    void putShouldRejectInvalidBody() throws Exception {
+    void unCuerpoInvalidoResponde400YNoGuardaNada() throws Exception {
         mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion).header("X-CSRF-TOKEN", csrfToken)
                         .contentType("application/json").content("{\"name\":\"Sin secciones\",\"sections\":[]}"))
                 .andExpect(status().isBadRequest());
@@ -158,9 +158,9 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Guardar sin CSRF devuelve 403 y sin sesión 401")
-    void putShouldRequireCsrfAndSession() throws Exception {
+    void guardarSinCSRFDevuelve403YSinSesion401() throws Exception {
         mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion)
-                        .contentType("application/json").content(givenBody("Mi almacén")))
+                        .contentType("application/json").content(dadoBody("Mi almacén")))
                 .andExpect(status().isForbidden());
         mockMvc.perform(get("/api/sistemas")).andExpect(status().isUnauthorized());
 
@@ -169,10 +169,10 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Eliminar borra el sistema y se puede repetir sin error; uno ajeno no se borra")
-    void deleteShouldBeIdempotentAndScoped() throws Exception {
+    void eliminarBorraElSistemaYSePuedeRepetirSinErrorUnoAjenoNoSeBorra() throws Exception {
         mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                .contentType("application/json").content(givenBody("Propio"))).andExpect(status().isOk());
-        MockHttpSession ajena = givenSesion(UsuarioId.de(givenUsuarioConNegocio()));
+                .contentType("application/json").content(dadoBody("Propio"))).andExpect(status().isOk());
+        MockHttpSession ajena = dadoSesion(UsuarioId.de(dadoUsuarioConNegocio()));
 
         mockMvc.perform(delete("/api/sistemas/{id}", SISTEMA_ID).session(ajena).header("X-CSRF-TOKEN", csrfToken))
                 .andExpect(status().isNoContent());
@@ -187,7 +187,7 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Sin preferencias guardadas devuelve las iniciales y un PUT las conserva")
-    void preferenciasShouldRoundTrip() throws Exception {
+    void sinPreferenciasGuardadasDevuelveLasInicialesYUnPUTLasConserva() throws Exception {
         mockMvc.perform(get("/api/preferencias").session(sesion))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.descartadas.length()").value(0))
@@ -209,7 +209,7 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Un negocio sin zona recibe una zona vacía en vez de un error")
-    void zonaShouldBeEmptyWhenNegocioHasNone() throws Exception {
+    void unNegocioSinZonaRecibeUnaZonaVaciaEnVezDeUnError() throws Exception {
         mockMvc.perform(get("/api/zona/agregados").session(sesion))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value(""))
@@ -219,14 +219,85 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Analizar un lugar que no es una zona conocida ni una dirección buscable responde 400")
-    void analisisShouldRejectPlaceThatIsNeitherZoneNorAddress() throws Exception {
+    void analizarUnLugarQueNoEsUnaZonaConocidaNiUnaDireccionBuscableResponde400() throws Exception {
         mockMvc.perform(post("/api/zona/analisis").session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json").content("{\"lugar\":\"ab\"}"))
+                        .contentType("application/json").content("{\"lugar\":\"xy\"}"))
                 .andExpect(status().isBadRequest());
     }
 
-    // --- arrange ---
-    private String givenBody(String nombre) {
+    @Test
+    @DisplayName("El catálogo incluido requiere sesión y responde desde el backend")
+    void elCatalogoIncluidoRequiereSesionYRespondeDesdeElBackend() throws Exception {
+        mockMvc.perform(get("/api/catalogos/sepa/7790895000997"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(get("/api/catalogos/sepa/7790895000997").session(sesion))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.producto.codigo").value("7790895000997"));
+    }
+
+    @Test
+    @DisplayName("Guarda el código como texto y recarga el producto con su stock real desde PostgreSQL")
+    void guardaElCodigoComoTextoYRecargaElProductoConSuStockRealDesdePostgreSQL() throws Exception {
+        String body = dadoBodyConCodigos("07790895000997", "77903754");
+
+        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion)
+                        .header("X-CSRF-TOKEN", csrfToken).contentType("application/json").content(body))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/sistemas").session(sesion))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[0].barcode").value("07790895000997"))
+                .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[0].quantity").value(14))
+                .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[1].barcode").value("77903754"));
+    }
+
+    @Test
+    @DisplayName("El backend rechaza códigos equivalentes duplicados sin guardar parcialmente")
+    void elBackendRechazaCodigosEquivalentesDuplicadosSinGuardarParcialmente() throws Exception {
+        String body = dadoBodyConCodigos("77903754", "00000077903754");
+
+        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion)
+                        .header("X-CSRF-TOKEN", csrfToken).contentType("application/json").content(body))
+                .andExpect(status().isConflict());
+
+        mockMvc.perform(get("/api/sistemas").session(sesion))
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("El backend rechaza un código de control inválido aunque se omita la validación del navegador")
+    void elBackendRechazaUnCodigoDeControlInvalidoAunqueSeOmitaLaValidacionDelNavegador() throws Exception {
+        String body = dadoBodyConCodigos("77903755", "77905741");
+
+        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion)
+                        .header("X-CSRF-TOKEN", csrfToken).contentType("application/json").content(body))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get("/api/sistemas").session(sesion))
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("Un código inválido o una fuente desconocida se rechazan antes de consultar al proveedor")
+    void unCodigoInvalidoOUnaFuenteDesconocidaSeRechazanAntesDeConsultarAlProveedor() throws Exception {
+        mockMvc.perform(get("/api/catalogos/sepa/77903755").session(sesion))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get("/api/catalogos/desconocida/77903754").session(sesion))
+                .andExpect(status().isBadRequest());
+    }
+
+    // --- dado ---
+    private String dadoBodyConCodigos(String primero, String segundo) {
+        return dadoBody("Inventario escaneado")
+                .replace("\"fields\":[", "\"fields\":[{\"key\":\"barcode\",\"label\":\"Código\",\"type\":\"text\",\"required\":false},"
+                        + "{\"key\":\"quantity\",\"label\":\"Cantidad\",\"type\":\"number\",\"required\":true,\"min\":0},")
+                .replace("\"name\":\"Harina\",\"price\":1200", "\"name\":\"Harina\",\"price\":1200,\"quantity\":14,\"barcode\":\"" + primero + "\"")
+                .replace("\"name\":\"Azúcar\",\"price\":900", "\"name\":\"Azúcar\",\"price\":900,\"quantity\":0,\"barcode\":\"" + segundo + "\"");
+    }
+
+    private String dadoBody(String nombre) {
         return """
                 {"id":"%s","name":"%s","createdAt":"2026-01-10T09:00:00.000Z","updatedAt":"2026-10-21T10:00:00.000Z",
                  "template":"shop","layout":"mosaic","options":{"movements":true,"expenses":false},"demoAlmacen":false,
@@ -239,7 +310,7 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 """.formatted(SISTEMA_ID, nombre);
     }
 
-    private UUID givenUsuario() {
+    private UUID dadoUsuario() {
         return usuarios.saveAndFlush(UsuarioEntity.builder()
                 .nombre("Persona")
                 .email(UUID.randomUUID() + "@example.com")
@@ -249,7 +320,7 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenNegocio(UsuarioId usuarioId) {
+    private UUID dadoNegocio(UsuarioId usuarioId) {
         UUID creado = negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(usuarioId.valor())
@@ -260,13 +331,13 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
         return creado;
     }
 
-    private UUID givenUsuarioConNegocio() {
-        UsuarioId usuarioId = UsuarioId.de(givenUsuario());
-        givenNegocio(usuarioId);
+    private UUID dadoUsuarioConNegocio() {
+        UsuarioId usuarioId = UsuarioId.de(dadoUsuario());
+        dadoNegocio(usuarioId);
         return usuarioId.valor();
     }
 
-    private MockHttpSession givenSesion(UsuarioId usuarioId) throws Exception {
+    private MockHttpSession dadoSesion(UsuarioId usuarioId) throws Exception {
         MockHttpSession session = new MockHttpSession();
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setSession(session);

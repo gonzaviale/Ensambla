@@ -1,15 +1,13 @@
 import { ContenidoPremium } from '@/components/planes/ContenidoPremium';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { GRUPOS, type GrupoDeAviso } from '@/lib/sistema/alertas';
+import { GRUPOS, type Aviso, type GrupoDeAviso } from '@/lib/sistema/alertas';
 import { MINIMO_DE_COMERCIOS } from '@/lib/sistema/zona';
 import { useAccionesDeAvisos } from '@/hooks/avisos/useAccionesDeAvisos';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useZona } from '@/hooks/zona/queries';
-import { useSistemaStore } from '@/stores/sistemaStore';
-import { Btn } from '../Btn';
+import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
 import { Icon } from '../Icon';
-import { Sami } from '../Sami';
-import { TarjetaDeAviso } from './TarjetaDeAviso';
+import { ListaDeAvisos } from './ListaDeAvisos';
 import { InvitacionConfigurarComercio } from '../ubicacion/InvitacionConfigurarComercio';
 import { useFaltaConfiguracionNegocio } from '@/hooks/negocio/queries';
 
@@ -20,7 +18,7 @@ export function PanelDeAvisos() {
   const panel = useSistemaStore((estado) => estado.panel);
   const avisos = useSistemaStore((estado) => estado.avisos);
   const acceso = useSistemaStore((estado) => estado.accesoAvisos);
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
+  const sistemas = useSistemaStore(seleccionarSistemasDelNegocio);
   const actualizarPanel = useSistemaStore((estado) => estado.actualizarPanel);
   const navegacion = useNavegacion();
   const zona = useZona();
@@ -67,40 +65,50 @@ export function PanelDeAvisos() {
   const deslizar = (sentido: number) =>
     cinta.current?.scrollBy?.({ left: sentido * 160, behavior: 'smooth' });
 
-  // Los cuadernos que tienen avisos, con cuántos. Si el elegido ya no tiene ninguno, se vuelve a «todos».
-  const cuadernos = new Map<string, { nombre: string; cantidad: number }>();
+  // Las secciones que tienen avisos, con cuántos. Si la elegida ya no tiene ninguno, se vuelve a «todos».
+  const conAvisos = new Map<string, { nombre: string; cantidad: number }>();
   for (const aviso of avisos) {
-    const actual = cuadernos.get(aviso.sistemaId);
-    cuadernos.set(aviso.sistemaId, {
+    const actual = conAvisos.get(aviso.sistemaId);
+    conAvisos.set(aviso.sistemaId, {
       nombre: aviso.sistema,
       cantidad: (actual?.cantidad ?? 0) + 1,
     });
   }
-  const opcionesDeCuaderno: [string, { nombre: string; cantidad: number }][] = [
+  const opcionesDeSistema: [string, { nombre: string; cantidad: number }][] = [
     ['todos', { nombre: 'Todos', cantidad: avisos.length }],
-    ...cuadernos,
+    ...conAvisos,
   ];
-  const cuaderno = cuadernos.has(panel.cuaderno) ? panel.cuaderno : 'todos';
-  const delCuaderno = avisos.filter(
-    (aviso) => cuaderno === 'todos' || aviso.sistemaId === cuaderno,
-  );
+  const elegido = conAvisos.has(panel.sistema) ? panel.sistema : 'todos';
+  const delSistema = avisos.filter((aviso) => elegido === 'todos' || aviso.sistemaId === elegido);
 
-  const urgentes = delCuaderno.filter((aviso) => aviso.prioridad >= 2).length;
-  const muyUrgentes = delCuaderno.filter((aviso) => aviso.prioridad === 3);
+  const urgentes = delSistema.filter((aviso) => aviso.prioridad >= 2).length;
+  const muyUrgentes = delSistema.filter((aviso) => aviso.prioridad === 3);
   const filtros: [string, string, number][] = [
-    ['todas', 'Todas', delCuaderno.length],
+    ['todas', 'Todas', delSistema.length],
     ['urgentes', 'Urgentes', urgentes],
     ...GRUPOS_EN_ORDEN.map(([clave, nombre]): [string, string, number] => [
       clave,
       nombre,
-      delCuaderno.filter((aviso) => aviso.grupo === clave).length,
+      delSistema.filter((aviso) => aviso.grupo === clave).length,
     ]),
   ];
-  const lista = delCuaderno.filter(
+  const lista = delSistema.filter(
     (aviso) =>
       panel.filtro === 'todas' ||
       (panel.filtro === 'urgentes' ? aviso.prioridad >= 2 : aviso.grupo === panel.filtro),
   );
+  // Al descartar, la pantalla se queda donde estaba aunque la lista se achique o se vuelva a pedir.
+  const posicion = useRef<{ y: number; hasta: number } | null>(null);
+  const descartarSinSaltar = (aviso: Aviso) => {
+    posicion.current = { y: window.scrollY, hasta: Date.now() + 2000 };
+    acciones.descartar(aviso);
+  };
+  useLayoutEffect(() => {
+    const guardada = posicion.current;
+    if (guardada && Date.now() < guardada.hasta && window.scrollY !== guardada.y) {
+      window.scrollTo({ top: guardada.y });
+    }
+  }, [avisos]);
   const hayDemo = sistemas.some((sistema) => sistema.demoAlmacen);
   const sinDatos = !sistemas.some((sistema) =>
     sistema.sections.some((seccion) => seccion.blocks.some((bloque) => bloque.rows.length)),
@@ -120,7 +128,7 @@ export function PanelDeAvisos() {
             {avisos.length > 0 &&
               `${urgentes ? `${urgentes} para resolver pronto · ` : ''}${avisos.length} ${acceso?.bloqueadas ? 'visibles' : 'en total'}. `}
             {acceso?.bloqueadas ? `${acceso.bloqueadas} más con Premium. ` : ''}
-            Miré {sistemas.length === 1 ? '1 cuaderno' : `${sistemas.length} cuadernos`}{' '}
+            Miré {sistemas.length === 1 ? '1 sección' : `${sistemas.length} secciones`}{' '}
             {zonaSuficiente
               ? `y los datos de tu zona (${zona.comercios} comercios, sin nombres).`
               : 'pero todavía no hay comercios suficientes en tu zona para usar sus datos.'}
@@ -175,16 +183,30 @@ export function PanelDeAvisos() {
           <Icon name="arrow" />
         </button>
       </div>
-      {cuadernos.size > 1 && (
-        <div className="alertas-cuadernos" role="group" aria-label="Filtrar por cuaderno">
-          <span>Cuaderno</span>
-          {opcionesDeCuaderno.map(([clave, { nombre, cantidad }]) => (
+      <ul className="alertas-leyenda" aria-label="Qué significa cada color">
+        <li data-nivel="3">
+          <i aria-hidden="true" />
+          <strong>Urgente</strong>
+        </li>
+        <li data-nivel="2">
+          <i aria-hidden="true" />
+          <strong>Advertencia</strong>
+        </li>
+        <li data-nivel="1">
+          <i aria-hidden="true" />
+          <strong>Normal</strong>
+        </li>
+      </ul>
+      {conAvisos.size > 1 && (
+        <div className="alertas-sistemas" role="group" aria-label="Filtrar por sección">
+          <span>Sección</span>
+          {opcionesDeSistema.map(([clave, { nombre, cantidad }]) => (
             <button
               key={clave}
               type="button"
-              className={cuaderno === clave ? 'active' : ''}
-              aria-pressed={cuaderno === clave}
-              onClick={() => actualizarPanel({ cuaderno: clave })}
+              className={elegido === clave ? 'active' : ''}
+              aria-pressed={elegido === clave}
+              onClick={() => actualizarPanel({ sistema: clave })}
             >
               {nombre} <span>{cantidad}</span>
             </button>
@@ -195,8 +217,8 @@ export function PanelDeAvisos() {
         <aside className="alertas-urgentes" aria-label="Lo urgente">
           <strong>
             {muyUrgentes.length === 1
-              ? 'Hay 1 cosa que no puede esperar'
-              : `Hay ${muyUrgentes.length} cosas que no pueden esperar`}
+              ? 'Hay 1 aviso urgente'
+              : `Hay ${muyUrgentes.length} avisos urgentes`}
           </strong>
           <ul>
             {muyUrgentes.map((aviso) => (
@@ -213,49 +235,19 @@ export function PanelDeAvisos() {
           </ul>
         </aside>
       )}
-      <div className="alertas-lista">
-        {lista.length ? (
-          lista.map((aviso) => (
-            <TarjetaDeAviso
-              key={aviso.id}
-              aviso={aviso}
-              enfocado={panel.foco === aviso.id}
-              onAccion={acciones.ejecutar}
-              onDescartar={acciones.descartar}
-            />
-          ))
-        ) : (
-          <div className={sinDatos ? 'alertas-vacio' : 'alertas-vacio ok'}>
-            {sinDatos ? (
-              <Sami />
-            ) : (
-              <img className="alertas-vacio-img" src="/mockup/sami-guino.webp" alt="" />
-            )}
-            {sinDatos ? (
-              <>
-                <h3>Todavía no tengo datos para mirar.</h3>
-                <p>
-                  Cuando cargues stock, ventas o precios, te aviso lo que necesita atención y lo
-                  comparo con los datos de tu zona.
-                </p>
-                {!hayDemo && (
-                  <Btn cls="primary" onClick={acciones.crearDemo}>
-                    Probar con un almacén de ejemplo
-                  </Btn>
-                )}
-              </>
-            ) : (
-              <>
-                <h3>{panel.filtro === 'todas' ? 'Todo en orden.' : 'Nada en esta categoría.'}</h3>
-                <p>
-                  Sigo mirando tu stock, tus ventas y los precios de tu zona. Si algo cambia, te
-                  aviso.
-                </p>
-              </>
-            )}
-          </div>
-        )}
-      </div>
+      <ListaDeAvisos
+        avisos={lista}
+        foco={panel.foco}
+        filtro={panel.filtro}
+        sinDatos={sinDatos}
+        hayDemo={hayDemo}
+        onAccion={acciones.ejecutar}
+        onDescartar={descartarSinSaltar}
+        onCrearDemo={acciones.crearDemo}
+      />
+      <p className="alertas-aclaracion">
+        Los datos de tu zona vienen de varios comercios juntos: nadie queda identificado.
+      </p>
       <div className="alertas-pie">
         <button
           type="button"

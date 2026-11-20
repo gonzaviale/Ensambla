@@ -19,9 +19,9 @@ import type {
 export type MensajeDeSami = { quien: 'sami' | 'you'; texto: string };
 
 const LARGO_MINIMO = 5;
-const MENSAJE_CORTO = 'Contame un poquito más para encontrar un punto de partida.';
+const MENSAJE_CORTO = 'Necesito más detalles para encontrar un punto de partida.';
 const SIN_RESPUESTA =
-  'Con lo que me contaste todavía no encuentro un punto de partida. ¿Me contás un poco más de cómo trabajás?';
+  'Con lo que me contaste todavía no encuentro un punto de partida. ¿Podés contarme más sobre cómo trabajás?';
 
 export const plantillasDelServidorQuery = () =>
   queryOptions({
@@ -35,7 +35,7 @@ const textoDeLaPropuesta = (propuesta: PropuestaDeSami) => {
   const columnas = extra.length
     ? ` y sumarle ${extra.length === 1 ? 'la columna' : 'las columnas'} ${extra.join(', ')}`
     : '';
-  return `Te propongo empezar con «${propuesta.plantilla}»${columnas}. Mirá cómo queda a la derecha y sacá lo que no necesites.`;
+  return `Te propongo empezar con «${propuesta.plantilla}»${columnas}. Revisá cómo queda a la derecha y quitá lo que no necesites.`;
 };
 
 // «Armalo con Sami» contra el backend real (T-118): la persona cuenta su negocio, Sami pregunta lo que le falta,
@@ -61,24 +61,36 @@ export function useSamiProyecto(saludo: string) {
   const decir = (quien: MensajeDeSami['quien'], texto: string) =>
     setMensajes((actuales) => [...actuales, { quien, texto }]);
 
-  const recibir = (respuesta: RespuestaDeConversacion) => {
-    if (respuesta.tipo === 'PREGUNTA' && respuesta.pregunta) {
-      setPregunta(respuesta.pregunta);
-      decir('sami', respuesta.pregunta.texto);
-    } else if (respuesta.tipo === 'PROPUESTA' && respuesta.propuesta) {
-      setPregunta(null);
-      setPropuesta(respuesta.propuesta);
-      setQuitadas([]);
-      setNombre(respuesta.propuesta.plantilla);
-      decir('sami', textoDeLaPropuesta(respuesta.propuesta));
-    } else {
-      // El algoritmo no alcanzó y no hubo propuesta: se vuelve a empezar con una descripción más completa.
-      setPregunta(null);
-      setDescripcion('');
-      setRespuestas([]);
-      decir('sami', SIN_RESPUESTA);
-    }
+  const recibirPregunta = (nueva: PreguntaDeSami) => {
+    setPregunta(nueva);
+    decir('sami', nueva.texto);
   };
+
+  const recibirPropuesta = (nueva: PropuestaDeSami) => {
+    setPregunta(null);
+    setPropuesta(nueva);
+    setQuitadas([]);
+    setNombre(nueva.plantilla);
+    decir('sami', textoDeLaPropuesta(nueva));
+  };
+
+  // El algoritmo no alcanzó y no hubo propuesta: se vuelve a empezar con una descripción más completa.
+  const recibirSinRespuesta = () => {
+    setPregunta(null);
+    setDescripcion('');
+    setRespuestas([]);
+    decir('sami', SIN_RESPUESTA);
+  };
+
+  const receptores: Partial<
+    Record<RespuestaDeConversacion['tipo'], (r: RespuestaDeConversacion) => void>
+  > = {
+    PREGUNTA: (r) => (r.pregunta ? recibirPregunta(r.pregunta) : recibirSinRespuesta()),
+    PROPUESTA: (r) => (r.propuesta ? recibirPropuesta(r.propuesta) : recibirSinRespuesta()),
+  };
+
+  const recibir = (respuesta: RespuestaDeConversacion) =>
+    (receptores[respuesta.tipo] ?? recibirSinRespuesta)(respuesta);
 
   /** `true` si Sami contestó; si falla avisa, deshace lo que se había adelantado y devuelve `false`. */
   const consultar = async (texto: string, elegidas: RespuestaElegida[], alFallar: () => void) => {
@@ -136,7 +148,7 @@ export function useSamiProyecto(saludo: string) {
     (columna) => !quitadas.includes(columna.nombre),
   );
 
-  /** El proyecto se creó en el servidor: se trae y se suma a la copia local para que aparezca en «Mis cuadernos». */
+  /** El proyecto se creó en el servidor: se trae y se suma a la copia local para que aparezca en el Inicio. */
   const sumarAMisSistemas = async () => {
     try {
       incorporarSistemas(await queryClient.fetchQuery({ ...sistemasQuery(), staleTime: 0 }));

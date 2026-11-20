@@ -21,7 +21,7 @@ class SuscripcionRepositoryTest {
 
     @Test
     @DisplayName("Obtiene la suscripción solamente por el negocio recibido del servidor")
-    void obtenerShouldReturnSubscriptionOfNegocio() {
+    void obtieneLaSuscripcionSolamentePorElNegocioRecibidoDelServidor() {
         Suscripcion esperada = suscripcion();
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(esperada));
 
@@ -32,7 +32,7 @@ class SuscripcionRepositoryTest {
 
     @Test
     @DisplayName("Responde recurso inexistente cuando el negocio no tiene suscripción")
-    void obtenerShouldRejectMissingSubscription() {
+    void respondeRecursoInexistenteCuandoElNegocioNoTieneSuscripcion() {
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> suscripcionRepository.obtener(NEGOCIO_ID))

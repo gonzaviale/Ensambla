@@ -15,7 +15,7 @@ export const avisoDelServidor = (datos: Partial<AvisoDelServidor> = {}): AvisoDe
   acciones: [
     {
       tipo: 'REGISTRAR',
-      texto: 'Registrar entrada',
+      texto: 'Cargar entrada',
       proyectoId: 'c0000000-0000-4000-8000-000000000001',
       bloqueId: 'b0000000-0000-4000-8000-000000000002',
     },

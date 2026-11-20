@@ -36,7 +36,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -76,9 +76,11 @@ class CrearRegistroTest {
     private RegistroRepository registroRepository;
 
     private CrearRegistro crearRegistro;
+    private CrearRegistroResponse creado;
+    private Throwable rechazo;
 
     @BeforeEach
-    void setUp() {
+    void dadoUnNegocioDelUsuario() {
         RegistroDatosService registroDatosService =
                 new RegistroDatosService(registroRepository, mock(BloqueRepository.class),
                         mock(HistorialPrecioRepository.class), new TransaccionDirecta());
@@ -90,135 +92,179 @@ class CrearRegistroTest {
 
     @Test
     @DisplayName("Crea en el bloque del negocio de la sesión el registro con los valores validados y lo devuelve")
-    void executeShouldSaveRegistroWithValidatedValues() {
-        givenBloqueConCampos(campos());
-        givenSaveReturnsArgument();
+    void creaElRegistroConLosValoresValidadosEnElBloqueDelNegocio() {
+        dadoUnBloqueConCampos(unosCamposDeNombreYCantidad());
+        dadoQueGuardarDevuelveElMismoRegistro();
 
-        CrearRegistroResponse response = crear(Map.of(NOMBRE_ID.toString(), "  Harina ", "ajeno", 1));
+        cuandoSeCreaConValores(Map.of(NOMBRE_ID.toString(), "  Harina ", "ajeno", 1));
 
-        Registro guardado = thenGuardado();
-        assertThat(guardado.getNegocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(guardado.getBloqueId()).isEqualTo(BLOQUE_ID);
-        assertThat(guardado.getValores()).containsOnly(Map.entry(NOMBRE_ID.toString(), "Harina"));
-        assertThat(guardado.getCreadoEn()).isEqualTo(AHORA);
-        assertThat(response.registro().valores()).containsOnly(Map.entry(NOMBRE_ID.toString(), "Harina"));
-        verify(controlPlanService).validarAltaRegistros(NEGOCIO_ID, 1, AHORA);
+        entoncesSeGuardaElRegistroConElNombre("Harina");
+        entoncesSeDevuelveElRegistroConElNombre("Harina");
+        entoncesSeExigioElCupoDeAltas();
     }
 
     @Test
     @DisplayName("No guarda nada cuando los valores no son válidos")
-    void executeShouldNotSaveWhenValuesAreInvalid() {
-        givenBloqueConCampos(campos());
+    void noGuardaNadaCuandoLosValoresNoSonValidos() {
+        dadoUnBloqueConCampos(unosCamposDeNombreYCantidad());
 
-        assertThatThrownBy(() -> crear(Map.of(CANTIDAD_ID.toString(), 3)))
-                .isInstanceOf(RegistroInvalidoException.class);
+        cuandoSeIntentaCrearConValores(Map.of(CANTIDAD_ID.toString(), 3));
 
-        verifyNoInteractions(registroRepository);
+        entoncesSeRechazaPorValoresInvalidos();
+        entoncesNoSeGuardaNingunRegistro();
     }
 
     @Test
     @DisplayName("Crea el registro cuando la fila a la que apunta la conexión existe")
-    void executeShouldSaveWhenReferencedRowExists() {
-        givenBloqueConCampos(conexiones());
-        givenFilasExistentes(Set.of(ANA_ID), ANA_ID);
-        givenSaveReturnsArgument();
+    void creaElRegistroCuandoLaFilaALaQueApuntaLaConexionExiste() {
+        dadoUnBloqueConCampos(unasConexiones());
+        dadoQueExistenLasFilas(Set.of(ANA_ID), ANA_ID);
+        dadoQueGuardarDevuelveElMismoRegistro();
 
-        CrearRegistroResponse response = crear(valoresCliente(ANA_ID));
+        cuandoSeCreaConValores(valoresDelCliente(ANA_ID));
 
-        assertThat(response.registro().valores()).containsEntry(CLIENTE_ID.toString(), ANA_ID.toString());
+        entoncesElRegistroApuntaALaFila(ANA_ID);
     }
 
     @Test
     @DisplayName("Rechaza el registro cuando la fila a la que apunta la conexión ya no existe")
-    void executeShouldRejectWhenReferencedRowIsMissing() {
-        givenBloqueConCampos(conexiones());
-        givenFilasExistentes(Set.of(ANA_ID));
+    void rechazaElRegistroCuandoLaFilaALaQueApuntaLaConexionYaNoExiste() {
+        dadoUnBloqueConCampos(unasConexiones());
+        dadoQueExistenLasFilas(Set.of(ANA_ID));
 
-        assertThatThrownBy(() -> crear(valoresCliente(ANA_ID)))
-                .isInstanceOf(RegistroInvalidoException.class)
-                .extracting(error -> ((RegistroInvalidoException) error).getErrores())
-                .isEqualTo(Map.of(CLIENTE_ID.toString(), "Esa fila ya no existe"));
-        verify(registroRepository, never()).save(any());
+        cuandoSeIntentaCrearConValores(valoresDelCliente(ANA_ID));
+
+        entoncesSeRechazaPorFilaInexistenteEn(CLIENTE_ID);
+        entoncesNoSeGuardaNingunRegistro();
     }
 
     @Test
     @DisplayName("Busca de una vez las filas de todas las conexiones a la misma tabla y marca sólo las que faltan")
-    void executeShouldQueryOncePerBloqueAndReportOnlyMissingRows() {
-        givenBloqueConCampos(conexiones());
-        givenFilasExistentes(Set.of(ANA_ID, BETO_ID), ANA_ID);
+    void buscaDeUnaVezLasFilasDeLasConexionesALaMismaTablaYMarcaSoloLasQueFaltan() {
+        dadoUnBloqueConCampos(unasConexiones());
+        dadoQueExistenLasFilas(Set.of(ANA_ID, BETO_ID), ANA_ID);
 
-        assertThatThrownBy(() -> crear(Map.of(CLIENTE_ID.toString(), ANA_ID.toString(), GARANTE_ID.toString(),
-                BETO_ID.toString())))
-                .isInstanceOf(RegistroInvalidoException.class)
-                .extracting(error -> ((RegistroInvalidoException) error).getErrores())
-                .isEqualTo(Map.of(GARANTE_ID.toString(), "Esa fila ya no existe"));
+        cuandoSeIntentaCrearConValores(
+                Map.of(CLIENTE_ID.toString(), ANA_ID.toString(), GARANTE_ID.toString(), BETO_ID.toString()));
+
+        entoncesSeRechazaPorFilaInexistenteEn(GARANTE_ID);
     }
 
     @Test
     @DisplayName("No consulta otras tablas cuando las conexiones quedan vacías")
-    void executeShouldNotQueryWhenConexionesAreEmpty() {
-        givenBloqueConCampos(conexiones());
-        givenSaveReturnsArgument();
+    void noConsultaOtrasTablasCuandoLasConexionesQuedanVacias() {
+        dadoUnBloqueConCampos(unasConexiones());
+        dadoQueGuardarDevuelveElMismoRegistro();
 
-        crear(Map.of());
+        cuandoSeCreaConValores(Map.of());
 
-        verify(registroRepository, never()).findAllByIdsAndBloque(any(), any(), any());
+        entoncesNoSeConsultaNingunaOtraTabla();
     }
 
     @Test
     @DisplayName("No valida ni guarda cuando el bloque no es del negocio")
-    void executeShouldPropagateNotFoundWhenBloqueIsNotOfTheNegocio() {
-        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID))
-                .thenThrow(new ResourceNotFoundException("El bloque no existe"));
+    void noValidaNiGuardaCuandoElBloqueNoEsDelNegocio() {
+        dadoQueElBloqueNoEsDelNegocio();
 
-        assertThatThrownBy(() -> crear(Map.of())).isInstanceOf(ResourceNotFoundException.class);
+        cuandoSeIntentaCrearConValores(Map.of());
 
-        verifyNoInteractions(campoRepository, registroRepository);
+        entoncesSeRechazaPorBloqueInexistente();
+        entoncesNoSeConsultaNingunCampoNiSeGuardaNada();
     }
 
-    // --- arrange ---
-    private void givenBloqueConCampos(List<Campo> campos) {
+    // --- dado ---
+    private void dadoUnBloqueConCampos(List<Campo> campos) {
         when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
         when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(campos);
     }
 
-    private void givenFilasExistentes(Set<RegistroId> buscados, RegistroId... existentes) {
+    private void dadoQueExistenLasFilas(Set<RegistroId> buscadas, RegistroId... existentes) {
         List<Registro> filas = List.of(existentes).stream()
                 .map(id -> Registro.builder().id(id).bloqueId(CLIENTES_ID).build())
                 .toList();
-        when(registroRepository.findAllByIdsAndBloque(buscados, CLIENTES_ID, NEGOCIO_ID)).thenReturn(filas);
+        when(registroRepository.findAllByIdsAndBloque(buscadas, CLIENTES_ID, NEGOCIO_ID)).thenReturn(filas);
     }
 
-    private void givenSaveReturnsArgument() {
+    private void dadoQueGuardarDevuelveElMismoRegistro() {
         when(registroRepository.save(any(Registro.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
-    private static List<Campo> conexiones() {
+    private void dadoQueElBloqueNoEsDelNegocio() {
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID))
+                .thenThrow(new ResourceNotFoundException("El bloque no existe"));
+    }
+
+    private static List<Campo> unasConexiones() {
         return List.of(
                 Campo.builder().id(CLIENTE_ID).tipo(TipoCampo.RELACION).bloqueRelacionadoId(CLIENTES_ID).build(),
                 Campo.builder().id(GARANTE_ID).tipo(TipoCampo.RELACION).bloqueRelacionadoId(CLIENTES_ID).build(),
                 Campo.builder().id(NOMBRE_ID).tipo(TipoCampo.TEXTO).build());
     }
 
-    private static Map<String, Object> valoresCliente(RegistroId filaId) {
-        return Map.of(CLIENTE_ID.toString(), filaId.toString());
-    }
-
-    private static List<Campo> campos() {
+    private static List<Campo> unosCamposDeNombreYCantidad() {
         return List.of(
                 Campo.builder().id(NOMBRE_ID).tipo(TipoCampo.TEXTO).obligatorio(true).build(),
                 Campo.builder().id(CANTIDAD_ID).tipo(TipoCampo.NUMERO).obligatorio(false).build());
     }
 
-    // --- act ---
-    private CrearRegistroResponse crear(Map<String, Object> valores) {
-        return crearRegistro.execute(new CrearRegistroRequest(USUARIO_ID, BLOQUE_ID, valores));
+    private static Map<String, Object> valoresDelCliente(RegistroId filaId) {
+        return Map.of(CLIENTE_ID.toString(), filaId.toString());
     }
 
-    // --- assert ---
-    private Registro thenGuardado() {
+    // --- cuando ---
+    private void cuandoSeCreaConValores(Map<String, Object> valores) {
+        creado = crearRegistro.execute(new CrearRegistroRequest(USUARIO_ID, BLOQUE_ID, valores));
+    }
+
+    private void cuandoSeIntentaCrearConValores(Map<String, Object> valores) {
+        rechazo = catchThrowable(() -> cuandoSeCreaConValores(valores));
+    }
+
+    // --- entonces ---
+    private void entoncesSeGuardaElRegistroConElNombre(String nombre) {
         ArgumentCaptor<Registro> guardado = ArgumentCaptor.forClass(Registro.class);
         verify(registroRepository).save(guardado.capture());
-        return guardado.getValue();
+        assertThat(guardado.getValue().getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(guardado.getValue().getBloqueId()).isEqualTo(BLOQUE_ID);
+        assertThat(guardado.getValue().getValores()).containsOnly(Map.entry(NOMBRE_ID.toString(), nombre));
+        assertThat(guardado.getValue().getCreadoEn()).isEqualTo(AHORA);
+    }
+
+    private void entoncesSeDevuelveElRegistroConElNombre(String nombre) {
+        assertThat(creado.registro().valores()).containsOnly(Map.entry(NOMBRE_ID.toString(), nombre));
+    }
+
+    private void entoncesSeExigioElCupoDeAltas() {
+        verify(controlPlanService).validarAltaRegistros(NEGOCIO_ID, 1, AHORA);
+    }
+
+    private void entoncesElRegistroApuntaALaFila(RegistroId filaId) {
+        assertThat(creado.registro().valores()).containsEntry(CLIENTE_ID.toString(), filaId.toString());
+    }
+
+    private void entoncesSeRechazaPorValoresInvalidos() {
+        assertThat(rechazo).isInstanceOf(RegistroInvalidoException.class);
+    }
+
+    private void entoncesSeRechazaPorFilaInexistenteEn(CampoId campoId) {
+        assertThat(rechazo).isInstanceOf(RegistroInvalidoException.class)
+                .extracting(error -> ((RegistroInvalidoException) error).getErrores())
+                .isEqualTo(Map.of(campoId.toString(), "Esa fila ya no existe"));
+    }
+
+    private void entoncesSeRechazaPorBloqueInexistente() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    private void entoncesNoSeGuardaNingunRegistro() {
+        verify(registroRepository, never()).save(any());
+    }
+
+    private void entoncesNoSeConsultaNingunaOtraTabla() {
+        verify(registroRepository, never()).findAllByIdsAndBloque(any(), any(), any());
+    }
+
+    private void entoncesNoSeConsultaNingunCampoNiSeGuardaNada() {
+        verifyNoInteractions(campoRepository, registroRepository);
     }
 }

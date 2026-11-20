@@ -12,7 +12,11 @@ public class DesvincularWhatsapp {
     private final TransaccionPort transaccionPort;
 
     public void execute(DesvincularWhatsappRequest request) {
-        transaccionPort.ejecutar(() -> desvincular(request.usuarioId()));
+        desvincularEnTransaccion(request.usuarioId());
+    }
+
+    private void desvincularEnTransaccion(UsuarioId usuarioId) {
+        transaccionPort.ejecutar(() -> desvincular(usuarioId));
     }
 
     private void desvincular(UsuarioId usuarioId) {
