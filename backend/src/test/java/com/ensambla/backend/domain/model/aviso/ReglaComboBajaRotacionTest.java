@@ -452,7 +452,7 @@ class ReglaComboBajaRotacionTest {
         assertThat(resultados).singleElement().satisfies(resultado -> {
             assertThat(resultado.motivos()).containsExactly(
                     "Por separado suman $1.900; como combo, $1.710 (10 % menos) puede ayudar a que roten.",
-                    "El combo se crea como un producto nuevo del inventario; después cargás cuántos armás.");
+                    "El combo se crea como un producto nuevo del stock; después cargás cuántos armás.");
             assertThat(resultado.datos()).containsEntry("precioA", new BigDecimal("800"))
                     .containsEntry("precioB", new BigDecimal("1100")).containsEntry("sugerido", new BigDecimal("1710"));
         });

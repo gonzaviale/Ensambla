@@ -537,7 +537,7 @@ class ConfirmarLecturaTest {
     }
 
     private void entoncesSeRechazaPorCampoInexistenteSinValidarRegistros() {
-        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class).hasMessage("El campo no existe");
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class).hasMessage("Ese dato ya no existe en la sección");
         verifyNoInteractions(registroDatosService);
     }
 
