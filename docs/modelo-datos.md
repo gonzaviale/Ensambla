@@ -409,7 +409,7 @@ rubro o una que armó ella. Se guarda la **receta**, nunca el número: el servid
 - Pertenece a un `negocio` y a un `proyecto` (cuaderno), los dos con borrado en cascada. Una métrica de otro negocio o de otro
   cuaderno responde 404.
 - La receta son columnas con `CHECK`: `fuente` (`VENTAS`, `GASTOS`, `INVENTARIO`), `calculo` (`SUMA`, `PROMEDIO`, `CONTEO`,
-  `UNIDADES`), `agrupar` (`NINGUNA`, `PRODUCTO`, `CLIENTE`, `CATEGORIA`, `DIA_DE_LA_SEMANA`), `periodo` (`HOY`, `SEMANA`, `MES`,
+  `UNIDADES`, `GANANCIA`, `COSTO`), `agrupar` (`NINGUNA`, `PRODUCTO`, `CLIENTE`, `CATEGORIA`, `DIA_DE_LA_SEMANA`), `periodo` (`HOY`, `SEMANA`, `MES`,
   `TODO`) y `solo_fiado`. Qué combinaciones valen lo decide el dominio (`DefinicionMetrica.validar()`).
 - `orden` es el lugar en el panel (de menor a mayor) y `autoria` es `SUGERIDA` (del catálogo del rubro) o `PROPIA`.
 - Un cuaderno guarda hasta 12 y no repite una receta, aunque el nombre cambie. Tampoco guarda lo que ya muestra el panel

@@ -4,9 +4,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
-/** Una fila de cualquiera de las tablas, ya leída: lo que hace falta para calcular y repartir. */
+/**
+ * Una fila de cualquiera de las tablas, ya leída: lo que hace falta para calcular y repartir. {@code costo} es lo que
+ * costó lo vendido (cantidad por el costo actual del producto); sólo lo traen las ventas de productos con costo.
+ */
 record LineaMetrica(String producto, String cliente, String categoria, LocalDate fecha, BigDecimal importe,
-                    BigDecimal unidades, boolean fiado) {
+                    BigDecimal unidades, boolean fiado, BigDecimal costo) {
 
     static final String SIN_CLIENTE = "Sin cliente";
 
@@ -19,12 +22,21 @@ record LineaMetrica(String producto, String cliente, String categoria, LocalDate
     private static final List<String> DIAS = List.of(
             "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo");
 
+    LineaMetrica(String producto, String cliente, String categoria, LocalDate fecha, BigDecimal importe,
+                 BigDecimal unidades, boolean fiado) {
+        this(producto, cliente, categoria, fecha, importe, unidades, fiado, null);
+    }
+
     boolean entraEn(DefinicionMetrica definicion, LocalDate hoy) {
         return definicion.periodo().incluye(fecha, hoy) && cumpleConElFiado(definicion);
     }
 
     boolean tieneImporte() {
         return importe != null;
+    }
+
+    boolean tieneCosto() {
+        return costo != null;
     }
 
     boolean tieneUnidades() {

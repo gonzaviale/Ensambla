@@ -144,6 +144,18 @@ class IMetricaJpaRepositoryTest extends PostgresDatosTestSupport {
     }
 
     @Test
+    @DisplayName("Guarda y relee una métrica de ganancia")
+    void guardaYReleeUnaMetricaDeGanancia() {
+        MetricaEntity fila = unaFilaSugeridaEn(negocioA, cuadernoA, "Ganancia", 0);
+        fila.setCalculo(CalculoMetrica.GANANCIA);
+        dadaGuardada(fila);
+
+        cuandoSeBuscaEn(guardada.getId(), cuadernoA, negocioA);
+
+        assertThat(encontrada).get().extracting(MetricaEntity::getCalculo).isEqualTo(CalculoMetrica.GANANCIA);
+    }
+
+    @Test
     @DisplayName("La base rechaza un lugar negativo en el panel")
     void laBaseRechazaUnLugarNegativo() {
         cuandoSeIntentaGuardar(unaFilaSugeridaEn(negocioA, cuadernoA, "Mal", -1));

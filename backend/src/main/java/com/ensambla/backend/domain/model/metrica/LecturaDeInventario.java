@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 /** Lee las tablas de inventario: cada producto con su nombre, lo que hay y lo que vale al costo. */
@@ -27,6 +28,14 @@ final class LecturaDeInventario {
         Map<RegistroId, String> nombres = new LinkedHashMap<>();
         productos(datos).forEach(producto -> nombres.put(producto.registro().getId(), producto.nombre()));
         return nombres;
+    }
+
+    /** El costo actual de cada producto por su id; los productos sin costo cargado no aparecen. */
+    static Map<RegistroId, BigDecimal> costosDeProductos(DatosDeProyecto datos) {
+        Map<RegistroId, BigDecimal> costos = new LinkedHashMap<>();
+        productos(datos).forEach(producto -> producto.costo()
+                .ifPresent(costo -> costos.put(producto.registro().getId(), costo)));
+        return costos;
     }
 
     private static Stream<Producto> productos(DatosDeProyecto datos) {
@@ -48,6 +57,10 @@ final class LecturaDeInventario {
 
         ValorDeRegistro dato(String clave) {
             return ValorDeRegistro.de(bloque.valorDe(registro, clave));
+        }
+
+        Optional<BigDecimal> costo() {
+            return Optional.ofNullable(dato("cost").comoNumero());
         }
 
         String nombre() {

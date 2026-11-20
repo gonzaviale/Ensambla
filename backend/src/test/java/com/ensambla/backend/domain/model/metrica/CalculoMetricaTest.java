@@ -49,6 +49,29 @@ class CalculoMetricaTest {
         entoncesSirvePara(CalculoMetrica.SUMA, FuenteMetrica.values());
     }
 
+    @Test
+    @DisplayName("La ganancia y el costo dan pesos y usan el importe de cada fila")
+    void laGananciaYElCostoDanPesos() {
+        entoncesElCalculo(CalculoMetrica.GANANCIA, FormatoMetrica.MONEDA, true);
+        entoncesElCalculo(CalculoMetrica.COSTO, FormatoMetrica.MONEDA, true);
+    }
+
+    @Test
+    @DisplayName("La ganancia y el costo sólo sirven para las ventas")
+    void laGananciaYElCostoSoloSirvenParaLasVentas() {
+        entoncesSirvePara(CalculoMetrica.GANANCIA, FuenteMetrica.VENTAS);
+        entoncesSirvePara(CalculoMetrica.COSTO, FuenteMetrica.VENTAS);
+        entoncesNoSirvePara(CalculoMetrica.GANANCIA, FuenteMetrica.GASTOS);
+        entoncesNoSirvePara(CalculoMetrica.COSTO, FuenteMetrica.INVENTARIO);
+    }
+
+    @Test
+    @DisplayName("Dice por qué una cuenta no sirve para una tabla")
+    void diceQuePorQueNoSirveParaUnaTabla() {
+        assertThat(CalculoMetrica.SUMA.motivoSiNoSirvePara(FuenteMetrica.GASTOS))
+                .isEqualTo("Esa cuenta no se puede hacer con gastos");
+    }
+
     private static void entoncesElCalculo(CalculoMetrica calculo, FormatoMetrica formato, boolean usaImporte) {
         assertThat(calculo.formato()).isEqualTo(formato);
         assertThat(calculo.usaImporte()).isEqualTo(usaImporte);

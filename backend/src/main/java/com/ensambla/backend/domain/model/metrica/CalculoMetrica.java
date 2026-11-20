@@ -69,6 +69,67 @@ public enum CalculoMetrica {
         String datoQueFalta(FuenteMetrica fuente) {
             return fuente.faltanLasUnidades();
         }
+
+        @Override
+        String motivoSiNoSirvePara(FuenteMetrica fuente) {
+            return "Los gastos no tienen unidades: elegí sumar, promediar o contar";
+        }
+    },
+
+    /** Lo vendido menos lo que costó, a costo actual: sólo cuentan las ventas con precio y con costo del producto. */
+    GANANCIA(FormatoMetrica.MONEDA) {
+        @Override
+        boolean aporta(LineaMetrica linea) {
+            return linea.tieneImporte() && linea.tieneCosto();
+        }
+
+        @Override
+        BigDecimal calcular(List<LineaMetrica> lineas) {
+            return sumaDe(lineas, linea -> linea.importe().subtract(linea.costo()));
+        }
+
+        @Override
+        public boolean sirvePara(FuenteMetrica fuente) {
+            return fuente == FuenteMetrica.VENTAS;
+        }
+
+        @Override
+        String datoQueFalta(FuenteMetrica fuente) {
+            return "Cargá el precio de tus ventas y el costo de tus productos para poder calcular la ganancia.";
+        }
+
+        @Override
+        String motivoSiNoSirvePara(FuenteMetrica fuente) {
+            return "La ganancia se calcula con tus ventas: elegí ventas";
+        }
+    },
+
+    /** Lo que costó lo que se vendió, a costo actual: sólo cuentan las ventas de productos con costo cargado. */
+    COSTO(FormatoMetrica.MONEDA) {
+        @Override
+        boolean aporta(LineaMetrica linea) {
+            return linea.tieneCosto();
+        }
+
+        @Override
+        BigDecimal calcular(List<LineaMetrica> lineas) {
+            return sumaDe(lineas, LineaMetrica::costo);
+        }
+
+        @Override
+        public boolean sirvePara(FuenteMetrica fuente) {
+            return fuente == FuenteMetrica.VENTAS;
+        }
+
+        @Override
+        String datoQueFalta(FuenteMetrica fuente) {
+            return "Cargá el costo de tus productos para poder calcular lo que te costó lo que vendiste.";
+        }
+
+        @Override
+        String motivoSiNoSirvePara(FuenteMetrica fuente) {
+            return "El costo de lo vendido se calcula con tus ventas: elegí ventas";
+        }
     };
 
     private final FormatoMetrica formato;
@@ -93,6 +154,11 @@ public enum CalculoMetrica {
 
     public boolean sirvePara(FuenteMetrica fuente) {
         return true;
+    }
+
+    /** Por qué esta cuenta no se puede hacer con la tabla elegida, en palabras de la persona. */
+    String motivoSiNoSirvePara(FuenteMetrica fuente) {
+        return "Esa cuenta no se puede hacer con " + fuente.getFilas();
     }
 
     /** Qué tiene que cargar la persona cuando ninguna fila trae el dato que hace falta. */

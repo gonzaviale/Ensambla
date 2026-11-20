@@ -40,7 +40,7 @@ public record DefinicionMetrica(
         rechazarSi(!tieneUnNombreValido(),
                 "El nombre de la métrica es obligatorio y tiene hasta " + LARGO_MAXIMO_DEL_NOMBRE + " letras");
         rechazarSi(fuente == null || calculo == null, "Elegí qué querés mirar y qué cuenta querés hacer");
-        rechazarSi(!calculo.sirvePara(fuente), "Los gastos no tienen unidades: elegí sumar, promediar o contar");
+        rechazarSi(!calculo.sirvePara(fuente), calculo.motivoSiNoSirvePara(fuente));
         rechazarSi(!fuente.permiteRepartirPor(agrupar), "No se puede repartir " + fuente.getFilas() + " de esa manera");
         rechazarSi(soloFiado && !fuente.admiteFiado(), "Sólo las ventas se pueden marcar como fiadas");
         rechazarSi(!fuente.tieneFecha() && !periodo.miraTodo(), "El stock es lo que hay hoy: no tiene períodos");

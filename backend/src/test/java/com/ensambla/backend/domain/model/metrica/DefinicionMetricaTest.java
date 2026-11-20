@@ -121,6 +121,17 @@ class DefinicionMetricaTest {
     }
 
     @Test
+    @DisplayName("La ganancia sólo se calcula con las ventas")
+    void laGananciaSoloSeCalculaConLasVentas() {
+        dadaLaReceta(unaReceta("Ganancia de gastos", FuenteMetrica.GASTOS, CalculoMetrica.GANANCIA,
+                AgrupacionMetrica.NINGUNA, PeriodoMetrica.MES, false));
+
+        cuandoSeValida();
+
+        entoncesSeRechazaPorque("ganancia se calcula con tus ventas");
+    }
+
+    @Test
     @DisplayName("No se pueden repartir las ventas por categoría")
     void noSePuedenRepartirLasVentasPorCategoria() {
         dadaLaReceta(lasVentasPorCategoria());

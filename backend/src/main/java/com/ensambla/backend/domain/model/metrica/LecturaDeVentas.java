@@ -16,10 +16,13 @@ final class LecturaDeVentas {
 
     private final Map<RegistroId, String> nombresDeProductos;
 
+    private final Map<RegistroId, BigDecimal> costosDeProductos;
+
     private final Map<String, String> nombresDeClientes;
 
     private LecturaDeVentas(DatosDeProyecto datos) {
         this.nombresDeProductos = LecturaDeInventario.nombresDeProductos(datos);
+        this.costosDeProductos = LecturaDeInventario.costosDeProductos(datos);
         this.nombresDeClientes = datos.nombresDeClientes();
     }
 
@@ -39,7 +42,7 @@ final class LecturaDeVentas {
 
     private LineaMetrica linea(VentaProducto venta, boolean fiada) {
         return new LineaMetrica(nombreDelProducto(venta), nombreDelCliente(venta), null, venta.fecha(),
-                importe(venta), venta.cantidad(), fiada);
+                importe(venta), venta.cantidad(), fiada, costo(venta));
     }
 
     private String nombreDelProducto(VentaProducto venta) {
@@ -49,6 +52,12 @@ final class LecturaDeVentas {
     private String nombreDelCliente(VentaProducto venta) {
         String cliente = venta.cliente();
         return cliente == null ? LineaMetrica.SIN_CLIENTE : nombresDeClientes.getOrDefault(cliente, cliente);
+    }
+
+    /** Lo que costó lo vendido, al costo actual del producto; vacío si el producto no tiene costo cargado. */
+    private BigDecimal costo(VentaProducto venta) {
+        BigDecimal costoUnitario = costosDeProductos.get(venta.productoId());
+        return costoUnitario == null ? null : costoUnitario.multiply(venta.cantidad());
     }
 
     private static BigDecimal importe(VentaProducto venta) {

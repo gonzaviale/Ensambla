@@ -15,6 +15,8 @@ import static com.ensambla.backend.domain.model.metrica.AgrupacionMetrica.DIA_DE
 import static com.ensambla.backend.domain.model.metrica.AgrupacionMetrica.NINGUNA;
 import static com.ensambla.backend.domain.model.metrica.AgrupacionMetrica.PRODUCTO;
 import static com.ensambla.backend.domain.model.metrica.CalculoMetrica.CONTEO;
+import static com.ensambla.backend.domain.model.metrica.CalculoMetrica.COSTO;
+import static com.ensambla.backend.domain.model.metrica.CalculoMetrica.GANANCIA;
 import static com.ensambla.backend.domain.model.metrica.CalculoMetrica.PROMEDIO;
 import static com.ensambla.backend.domain.model.metrica.CalculoMetrica.SUMA;
 import static com.ensambla.backend.domain.model.metrica.CalculoMetrica.UNIDADES;
@@ -364,6 +366,64 @@ class MotorMetricasTest {
         cuandoSeCalcula(definicion(INVENTARIO, UNIDADES, NINGUNA, TODO));
 
         entoncesNoSePuedeCalcularPorque("Cargá la cantidad de tus productos para poder calcularlo.");
+    }
+
+    @Test
+    @DisplayName("La ganancia es lo vendido menos lo que costó, y deja afuera lo que no tiene precio ni costo")
+    void laGananciaEsLoVendidoMenosLoQueCosto() {
+        dadoUnAlmacenConVentasYGastos();
+
+        cuandoSeCalcula(definicion(VENTAS, GANANCIA, NINGUNA, MES));
+
+        entoncesDaEnPesos("300");
+        entoncesSaleDe(3, 1);
+    }
+
+    @Test
+    @DisplayName("Reparte la ganancia por producto de mayor a menor")
+    void repartePorProductoLaGanancia() {
+        dadoUnAlmacenConVentasYGastos();
+
+        cuandoSeCalcula(definicion(VENTAS, GANANCIA, PRODUCTO, MES));
+
+        entoncesSeReparteEn(Map.of("Pan", "250", "Leche", "50"), "Pan", "Leche");
+    }
+
+    @Test
+    @DisplayName("El costo es lo que costó lo vendido, también de lo que no tiene precio")
+    void elCostoEsLoQueCostoLoVendido() {
+        dadoUnAlmacenConVentasYGastos();
+
+        cuandoSeCalcula(definicion(VENTAS, COSTO, NINGUNA, MES));
+
+        entoncesDaEnPesos("700");
+        entoncesSaleDe(3, 1);
+    }
+
+    @Test
+    @DisplayName("Sin el costo de los productos vendidos no calcula la ganancia y dice qué cargar")
+    void sinCostoNoCalculaLaGanancia() {
+        dadoUnaVentaDeUnProductoSinCosto();
+
+        cuandoSeCalcula(definicion(VENTAS, GANANCIA, NINGUNA, MES));
+
+        entoncesNoSePuedeCalcularPorque(
+                "Cargá el precio de tus ventas y el costo de tus productos para poder calcular la ganancia.");
+    }
+
+    @Test
+    @DisplayName("Sin el costo de los productos vendidos no calcula el costo y dice qué cargar")
+    void sinCostoNoCalculaElCosto() {
+        dadoUnaVentaDeUnProductoSinCosto();
+
+        cuandoSeCalcula(definicion(VENTAS, COSTO, NINGUNA, MES));
+
+        entoncesNoSePuedeCalcularPorque(
+                "Cargá el costo de tus productos para poder calcular lo que te costó lo que vendiste.");
+    }
+
+    private void dadoUnaVentaDeUnProductoSinCosto() {
+        cuaderno = unAlmacenQueVendio(venta(SAL_ID, 1, 100, "2026-11-10", null, false));
     }
 
     private void dadoUnAlmacenConVentasYGastos() {

@@ -5,7 +5,9 @@
       "cobré", "cobro", "cobramos", "cobrado", "facturé", "facturo", "facturamos", "facturado", "facturación",
       "ingresos", "ingresó", "recaudé", "recaudamos", "recaudación", "cuánto hice", "cuánta plata hice",
       "cuánto hicimos", "plata que entró", "cuánto entró", "cuánta plata entró",
-      "fiado", "fiados", "me deben", "me debe", "deuda", "deudas", "debe", "deben", "deudores", "deudor"
+      "fiado", "fiados", "me deben", "me debe", "deuda", "deudas", "debe", "deben", "deudores", "deudor",
+      "ganancia", "ganancias", "gané", "gano", "ganamos", "ganado", "margen", "rentabilidad", "utilidad",
+      "costo de lo que vendí", "lo que me costó lo vendido"
     ],
     "GASTOS": [
       "gasto", "gastos", "gasté", "gastamos", "gastar", "gastado", "pagué", "pagamos", "pago", "pagos",
@@ -17,6 +19,14 @@
     ]
   },
   "calculos": {
+    "GANANCIA": [
+      "ganancia", "ganancias", "gané", "gano", "ganamos", "ganado", "margen", "rentabilidad", "utilidad",
+      "cuánto saqué", "cuánto sacamos", "después de costos", "descontando costos"
+    ],
+    "COSTO": [
+      "costo", "costos", "costó", "costaron", "cuánto me costó lo que vendí", "costo de lo que vendí",
+      "costo de lo vendido", "lo que me costó lo vendido"
+    ],
     "PROMEDIO": ["promedio", "en promedio", "ticket", "por venta"],
     "CONTEO": [
       "cuántas ventas", "cantidad de ventas", "cantidad de gastos", "cuántas veces",
