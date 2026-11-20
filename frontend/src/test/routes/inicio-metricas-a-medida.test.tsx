@@ -28,7 +28,7 @@ import {
 const cuandoSePideConPalabras = async (usuario: UserEvent, pedido: string) => {
   await cuandoSeEligeLaPestana(usuario, 'Pedila con tus palabras');
   await usuario.type(screen.getByLabelText('¿Qué querés ver?'), pedido);
-  await usuario.click(screen.getByRole('button', { name: 'Ver qué entendí' }));
+  await usuario.click(screen.getByRole('button', { name: 'Analizar' }));
 };
 
 const cuandoSeAbreArmalaVos = (usuario: UserEvent) => cuandoSeEligeLaPestana(usuario, 'Armala vos');

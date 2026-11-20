@@ -543,7 +543,7 @@
    en petróleo con puntos naranjas. El selector de gráfico son íconos de línea; el elegido, petróleo lleno. */
 .grafico-metrica {
   display: grid;
-  grid-template-columns: minmax(170px, 250px) minmax(0, 1fr);
+  grid-template-columns: 250px minmax(0, 1fr);
   align-items: center;
   min-height: 220px;
   gap: 8px 28px;
@@ -1128,10 +1128,13 @@
 }
 .panel-agregar-pedido input[type='text'] {
   padding: 10px;
-  border: 2px solid var(--coral);
+  border: 2px solid var(--blue);
   border-radius: 10px;
   background: #fff;
   color: var(--ink);
+}
+.panel-agregar-pedido input[type='text']:focus {
+  border-color: var(--petrol);
 }
 .panel-agregar-pedido-intro {
   margin: 0;
@@ -1255,7 +1258,7 @@
   margin-bottom: 6px;
 }
 
-/* «Ver qué entendí» es la acción principal: llena, a diferencia de los pedidos de ejemplo. */
+/* «Analizar» es la acción principal: llena, a diferencia de los pedidos de ejemplo. */
 .panel-agregar-cuerpo .panel-agregar-pedido > .agregar-metrica-ver {
   border-color: var(--coral);
   background: var(--coral);

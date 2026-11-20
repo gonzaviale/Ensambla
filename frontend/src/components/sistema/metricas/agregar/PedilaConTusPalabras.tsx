@@ -39,7 +39,7 @@ export function PedilaConTusPalabras({ sistemaId, guardando, onAgregar }: PropsD
       </label>
       <EjemplosParaProbar onElegir={setPedido} />
       <button type="submit" className="agregar-metrica-ver" disabled={entendiendo}>
-        Ver qué entendí
+        Analizar
       </button>
       {aviso && <AvisoDelPedido texto={aviso} />}
       {propuesta && <LoQueEntendi propuesta={propuesta} />}
