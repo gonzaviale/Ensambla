@@ -221,8 +221,6 @@
       "dejaron",
       "dejan",
       "deja",
-      "me quedó",
-      "me quedaron",
       "beneficio",
       "beneficios",
       "en limpio",
@@ -260,7 +258,6 @@
       "por venta",
       "promedios",
       "en media",
-      "media",
       "venta media",
       "venta típica",
       "ticket promedio",
@@ -279,11 +276,8 @@
       "número de ventas",
       "número de compras",
       "número de gastos",
-      "cuántas compras",
-      "cuántos gastos",
       "cuántas operaciones",
-      "cantidad de operaciones",
-      "cuántas facturas"
+      "cantidad de operaciones"
     ],
     "UNIDADES": [
       "unidades",
@@ -325,8 +319,6 @@
       "ranking de productos",
       "mis productos",
       "los productos",
-      "de cada uno",
-      "cada uno",
       "cada cosa",
       "por ítem",
       "cada ítem",

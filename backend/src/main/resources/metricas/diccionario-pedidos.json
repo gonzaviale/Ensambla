@@ -38,9 +38,8 @@
     "GANANCIA": [
       "ganancia", "ganancias", "gané", "gano", "ganamos", "ganado", "margen", "rentabilidad", "utilidad",
       "cuánto saqué", "cuánto sacamos", "después de costos", "descontando costos", "ganó", "ganaron",
-      "ganando", "ganas", "dejó", "dejaron", "dejan", "deja", "me quedó", "me quedaron", "beneficio",
-      "beneficios", "en limpio", "ganancia neta", "sobró", "saqué", "sacamos", "saco", "cuánto saco",
-      "de ganancia"
+      "ganando", "ganas", "dejó", "dejaron", "dejan", "deja", "beneficio", "beneficios", "en limpio",
+      "ganancia neta", "sobró", "saqué", "sacamos", "saco", "cuánto saco", "de ganancia"
     ],
     "COSTO": [
       "costo", "costos", "costó", "costaron", "cuánto me costó lo que vendí", "costo de lo que vendí",
@@ -49,14 +48,13 @@
       "costo de la mercadería vendida", "costo de mercadería vendida", "costo de ventas", "costo de las ventas"
     ],
     "PROMEDIO": [
-      "promedio", "en promedio", "ticket", "por venta", "promedios", "en media", "media", "venta media",
-      "venta típica", "ticket promedio", "valor promedio", "por compra", "por operación"
+      "promedio", "en promedio", "ticket", "por venta", "promedios", "en media", "venta media", "venta típica",
+      "ticket promedio", "valor promedio", "por compra", "por operación"
     ],
     "CONTEO": [
       "cuántas ventas", "cantidad de ventas", "cantidad de gastos", "cuántas veces", "cuántos productos",
       "cantidad de productos", "cantidad de compras", "número de ventas", "número de compras",
-      "número de gastos", "cuántas compras", "cuántos gastos", "cuántas operaciones",
-      "cantidad de operaciones", "cuántas facturas"
+      "número de gastos", "cuántas operaciones", "cantidad de operaciones"
     ],
     "UNIDADES": [
       "unidades", "más vendido", "más vendidos", "producto vendo más", "productos vendo más",
@@ -69,9 +67,9 @@
     "PRODUCTO": [
       "por producto", "cada producto", "qué producto", "qué productos", "más vendido", "más vendidos",
       "por artículo", "cada artículo", "top productos", "top de productos", "mejores productos",
-      "ranking de productos", "mis productos", "los productos", "de cada uno", "cada uno", "cada cosa",
-      "por ítem", "cada ítem", "lo más vendido", "lo que más vendo", "qué vendo más", "lo que más se vende",
-      "qué se vende más", "más se vende"
+      "ranking de productos", "mis productos", "los productos", "cada cosa", "por ítem", "cada ítem",
+      "lo más vendido", "lo que más vendo", "qué vendo más", "lo que más se vende", "qué se vende más",
+      "más se vende"
     ],
     "CLIENTE": [
       "por cliente", "cada cliente", "qué cliente", "qué clientes", "quién", "quiénes", "a quién",

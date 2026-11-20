@@ -31,7 +31,7 @@ const COMO_TIPEA_LA_GENTE = [
   ['qué vendo más', 'VENTAS', 'UNIDADES', 'PRODUCTO', 'MES', false],
   ['cuánto vendí desde que abrí', 'VENTAS', 'SUMA', 'NINGUNA', 'TODO', false],
   ['ventas de cada cliente', 'VENTAS', 'SUMA', 'CLIENTE', 'MES', false],
-  ['cuántas compras tuve hoy', 'GASTOS', 'CONTEO', 'NINGUNA', 'HOY', false],
+  ['número de compras de hoy', 'GASTOS', 'CONTEO', 'NINGUNA', 'HOY', false],
   ['cuánto vendió el negocio en el mes', 'VENTAS', 'SUMA', 'NINGUNA', 'MES', false],
 ] as const;
 

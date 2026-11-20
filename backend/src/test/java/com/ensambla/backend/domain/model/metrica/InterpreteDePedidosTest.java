@@ -108,8 +108,8 @@ class InterpreteDePedidosTest {
                         unaReceta("Cuánto vendí desde que abrí", VENTAS, SUMA, NINGUNA, TODO, false)),
                 arguments("ventas de cada cliente",
                         unaReceta("Ventas de cada cliente", VENTAS, SUMA, CLIENTE, MES, false)),
-                arguments("cuántas compras tuve hoy",
-                        unaReceta("Cuántas compras tuve hoy", GASTOS, CONTEO, NINGUNA, HOY, false)),
+                arguments("número de compras de hoy",
+                        unaReceta("Número de compras de hoy", GASTOS, CONTEO, NINGUNA, HOY, false)),
                 arguments("cuánto vendió el negocio en el mes",
                         unaReceta("Cuánto vendió el negocio en el mes", VENTAS, SUMA, NINGUNA, MES, false)));
     }
