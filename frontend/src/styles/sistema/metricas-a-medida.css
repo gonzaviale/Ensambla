@@ -1330,6 +1330,11 @@
 .panel-negocio .tablero-ventas {
   animation: none;
 }
+/* El borde de arriba de la tarjeta de Ventas es petróleo y del mismo grosor que los costados, así sigue la línea de su
+   solapa: el `border-top` gris de `.tablero .tablero-ventas` (solidos.css) la cortaba. */
+.panel-negocio .tablero .tablero-ventas {
+  border-top: 2px solid var(--c-estructura);
+}
 
 /* Entre «Tu negocio» y los avisos de rentabilidad hay menos aire que entre las demás secciones del Inicio. */
 .inicio .tu-negocio .tu-negocio-cuerpo {
