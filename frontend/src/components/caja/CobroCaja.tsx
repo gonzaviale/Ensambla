@@ -8,10 +8,10 @@ import { clientesCaja } from '@/lib/clientesCaja';
 import { Icon } from '@/components/sistema/Icon';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import type { MedioCaja, PagoCaja, SolicitudCobro } from '@/types/caja';
+import { tonoDe } from '@/lib/sistema/tonos';
+import { aspectoDelMedio, iconoDelMedio, nombreDelMedio } from '@/lib/caja/mediosDePago';
 
 const medios: MedioCaja[] = ['EFECTIVO', 'TRANSFERENCIA', 'TARJETA'];
-const nombre = (medio: MedioCaja) =>
-  medio === 'EFECTIVO' ? 'Efectivo' : medio === 'TARJETA' ? 'Tarjeta' : 'Transferencia';
 
 export function CobroCaja({
   total,
@@ -109,6 +109,7 @@ export function CobroCaja({
       <DialogoCaja
         titulo={incierta ? 'Verificar la venta' : 'Guardar el cobro'}
         clase="caja-dialogo-cobro"
+        tono={tonoDe('ventas')}
         onCerrar={() => void solicitarCierre()}
         bloqueado={bloqueado}
       >
@@ -196,6 +197,7 @@ export function CobroCaja({
                   <button
                     key={valor}
                     type="button"
+                    {...aspectoDelMedio(valor, medio === valor)}
                     aria-pressed={medio === valor}
                     onClick={() => {
                       setMedio(valor);
@@ -204,16 +206,8 @@ export function CobroCaja({
                       setRecibido('');
                     }}
                   >
-                    <Icon
-                      name={
-                        valor === 'EFECTIVO'
-                          ? 'wallet'
-                          : valor === 'TRANSFERENCIA'
-                            ? 'arrow'
-                            : 'orders'
-                      }
-                    />
-                    {nombre(valor)}
+                    <Icon name={iconoDelMedio(valor)} />
+                    {nombreDelMedio(valor)}
                   </button>
                 ))}
               </div>
@@ -235,9 +229,9 @@ export function CobroCaja({
             {dividido && tipo !== 'fiada' && (
               <>
                 <label>
-                  {nombre(medio)} ($)
+                  {nombreDelMedio(medio)} ($)
                   <input
-                    aria-label={'Importe en ' + nombre(medio).toLowerCase() + ' ($)'}
+                    aria-label={'Importe en ' + nombreDelMedio(medio).toLowerCase() + ' ($)'}
                     inputMode="decimal"
                     value={primeraParte}
                     disabled={bloqueado}
@@ -260,7 +254,7 @@ export function CobroCaja({
                       .filter((m) => m !== medio)
                       .map((valor) => (
                         <option key={valor} value={valor}>
-                          {nombre(valor)}
+                          {nombreDelMedio(valor)}
                         </option>
                       ))}
                   </select>
@@ -285,7 +279,7 @@ export function CobroCaja({
             {dividido && tipo !== 'fiada' && (
               <span>
                 {restante > 0
-                  ? nombre(segundo) + ': ' + dineroCaja(restante)
+                  ? nombreDelMedio(segundo) + ': ' + dineroCaja(restante)
                   : 'Las dos partes deben ser mayores a cero.'}
               </span>
             )}

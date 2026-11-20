@@ -159,6 +159,7 @@ export function GestionCaja({
                   <button
                     type="button"
                     key={c.id}
+                    data-con-diferencia={tieneDiferencia(c.diferencia) || undefined}
                     disabled={caja.ocupada}
                     onClick={() => void caja.abrirDetalle(c.id)}
                   >
@@ -288,3 +289,5 @@ export function GestionCaja({
     </section>
   );
 }
+
+const tieneDiferencia = (diferencia: number | null) => !!diferencia;

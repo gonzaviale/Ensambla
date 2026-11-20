@@ -81,6 +81,7 @@ export function ArticuloCajaForm({
         titulo={
           soloPeso ? seleccion.nombre : seleccion.producto ? 'Editar artículo' : 'Agregar artículo'
         }
+        tono="naranja"
         onCerrar={() => void solicitarCierre()}
       >
         {seleccion.mensaje && <p className="caja-nota">{seleccion.mensaje}</p>}

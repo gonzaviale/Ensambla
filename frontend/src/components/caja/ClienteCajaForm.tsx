@@ -34,6 +34,7 @@ export function ClienteCajaForm({
     <>
       <DialogoCaja
         titulo={cliente ? 'Editar cliente' : 'Crear cliente'}
+        tono="celeste"
         onCerrar={() => void cerrar()}
       >
         <form

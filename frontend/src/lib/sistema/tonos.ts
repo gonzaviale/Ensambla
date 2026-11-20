@@ -33,6 +33,10 @@ export function tonoDe(concepto: ConceptoDeColor): Tono {
   return TONO_POR_CONCEPTO[concepto];
 }
 
+export function claseDeSeleccion(seleccionado: boolean) {
+  return seleccionado ? 'solido' : 'solido-contorno';
+}
+
 export function tonoPorPosicion(indice: number): Tono {
   return TONOS[Math.abs(indice) % TONOS.length] ?? TONOS[0];
 }

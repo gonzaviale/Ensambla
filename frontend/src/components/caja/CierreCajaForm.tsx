@@ -4,6 +4,7 @@ import { ConfirmacionCambios } from './ConfirmacionCambios';
 import { useConfirmarCambios } from '@/hooks/useConfirmarCambios';
 import { dineroCaja, leerMontoCaja } from '@/lib/caja';
 import type { ResumenVentasCaja, SolicitudCierreCaja } from '@/types/caja';
+import { tonoDe } from '@/lib/sistema/tonos';
 
 export function CierreCajaForm({
   resumen,
@@ -71,6 +72,7 @@ export function CierreCajaForm({
     <>
       <DialogoCaja
         titulo={incierta ? 'Verificar el cierre' : 'Cerrar caja'}
+        tono={tonoDe('pestanaCierresGuardados')}
         onCerrar={() => void solicitarCierre()}
         bloqueado={bloqueada}
       >

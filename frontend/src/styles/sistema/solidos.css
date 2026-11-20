@@ -76,8 +76,244 @@
 }
 
 @media (max-width: 700px) {
-  .solido:not(button, .solido-icono, .solido-chip) {
+  .solido:not(button, span, strong, small) {
     width: 100%;
     padding-inline: 16px;
   }
+}
+
+/* ===== Caja · Vender ===== */
+
+.caja-pagina .caja-modos button.solido,
+.caja-pagina .caja-modos button.solido-contorno {
+  border-width: 2px;
+  border-style: solid;
+  border-color: var(--solido);
+  box-shadow: none;
+  font-size: 16px;
+  font-weight: 700;
+}
+.caja-pagina .caja-modos button.solido {
+  background: var(--solido);
+  color: #fff;
+}
+.caja-pagina .caja-modos button.solido-contorno {
+  background: #fff;
+  color: var(--solido);
+}
+
+.caja-pagina .caja-proxima .caja-opciones button {
+  border: 2px solid var(--blue);
+  background: #fff;
+  color: var(--petrol);
+  box-shadow: none;
+  font-weight: 700;
+}
+.caja-pagina .caja-proxima .caja-opciones button[aria-pressed='true'] {
+  background: var(--blue);
+  color: #fff;
+}
+
+.caja-pagina .caja-lector > .btn.secondary.caja-articulo-manual {
+  border: 2px solid var(--blue);
+  background: #fff;
+  color: var(--petrol);
+  box-shadow: none;
+}
+.caja-pagina .caja-lector > .btn.secondary.caja-articulo-manual + .btn.secondary.caja-articulo-manual {
+  border-color: var(--coral);
+}
+.caja-pagina .caja-lector > .btn.secondary.caja-articulo-manual .icon {
+  color: var(--blue);
+}
+.caja-pagina .caja-escaner-acciones > .btn.secondary,
+.caja-pagina .caja-escaner-acciones .caja-ingresar-codigo,
+.caja-pagina .caja-escaner-acciones .caja-ajustes-lector {
+  border: 2px solid #adb9bf;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: none;
+}
+
+.caja-pagina .caja-lector .caja-antetitulo,
+.caja-pagina .caja-compra .caja-antetitulo {
+  color: var(--c-accion-texto);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.caja-pagina .caja-compra {
+  border-top: 1px solid #b9ced7;
+}
+.caja-pagina .caja-compra .caja-contador {
+  border-radius: 50%;
+  background: var(--orange);
+  color: #fff;
+  font-weight: 800;
+}
+.caja-pagina .caja-cierre .caja-entre > span {
+  font-size: 16px;
+  font-weight: 700;
+}
+/* caja.css fija los botones deshabilitados con !important: solo otro !important lo reemplaza. */
+.caja-pagina .caja-cierre > .btn.primary:disabled,
+.caja-pagina .caja-barra-movil > .btn.primary:disabled {
+  border-color: var(--muted) !important;
+  background: var(--muted) !important;
+  color: #fff !important;
+  opacity: 1;
+}
+
+.caja-pagina .caja-barra-movil > .btn.caja-barra-ver:not(:disabled) {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: #fff;
+  box-shadow: none;
+}
+
+/* ===== Caja · Actividad: pestañas internas ===== */
+
+.caja-pagina .caja-actividad-vistas {
+  max-width: 780px;
+}
+.caja-pagina .caja-actividad-vistas button.solido,
+.caja-pagina .caja-actividad-vistas button.solido-contorno {
+  border: 2px solid var(--solido);
+  box-shadow: none;
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.caja-pagina .caja-actividad-vistas button.solido {
+  background: var(--solido);
+  color: #fff;
+}
+.caja-pagina .caja-actividad-vistas button.solido-contorno {
+  background: #fff;
+  color: var(--solido);
+}
+
+/* ===== Caja · Resumen del día, Caja abierta y detalle de un cierre ===== */
+
+:is(.caja-pagina, .caja-dialogo) .caja-total-resumen.solido {
+  margin: 8px 0 16px;
+  padding: 20px 22px;
+  border-radius: 16px;
+}
+:is(.caja-pagina, .caja-dialogo) .caja-total-resumen.solido > :is(span, strong),
+:is(.caja-pagina, .caja-dialogo) .caja-total-resumen.solido > span:last-child {
+  color: #fff;
+  font-size: 16px;
+}
+:is(.caja-pagina, .caja-dialogo) .caja-total-resumen.solido > strong.solido-cifra {
+  font-size: 42px;
+}
+
+:is(.caja-pagina, .caja-dialogo) .caja-medios-resumen button.solido {
+  border: 0;
+  background: var(--solido);
+  color: #fff;
+  box-shadow: none;
+}
+:is(.caja-pagina, .caja-dialogo) .caja-medios-resumen button.solido[aria-pressed='true'] {
+  box-shadow:
+    0 0 0 3px #fff,
+    0 0 0 6px var(--solido);
+}
+:is(.caja-pagina, .caja-dialogo) .caja-medios-resumen button.solido :is(.caja-medio-nombre, small) {
+  color: #fff;
+  font-size: 16px;
+}
+:is(.caja-pagina, .caja-dialogo) .caja-medios-resumen button.solido .caja-medio-nombre {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+:is(.caja-pagina, .caja-dialogo) .caja-medios-resumen button.solido strong.solido-cifra {
+  color: #fff;
+  font-size: 26px;
+}
+
+:is(.caja-pagina, .caja-dialogo) .caja-opciones button.solido,
+:is(.caja-pagina, .caja-dialogo) .caja-opciones button.solido-contorno {
+  border: 2px solid var(--solido);
+  box-shadow: none;
+  font-size: 16px;
+  font-weight: 700;
+}
+:is(.caja-pagina, .caja-dialogo) .caja-opciones button.solido {
+  background: var(--solido);
+  color: #fff;
+}
+:is(.caja-pagina, .caja-dialogo) .caja-opciones button.solido-contorno {
+  background: #fff;
+  color: var(--solido);
+}
+
+/* ===== Caja · Cierres guardados: tarjetas blancas; franja coral si el arqueo tuvo diferencia ===== */
+
+.caja-pagina .caja-historial > button {
+  border: 1px solid var(--line);
+  box-shadow: var(--sombra-reposo);
+}
+.caja-pagina .caja-historial > button[data-con-diferencia] {
+  border-left: 4px solid var(--coral);
+}
+
+/* ===== Caja · Clientes ===== */
+
+.caja-pagina .caja-clientes .caja-saldo.solido {
+  padding: 16px 18px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--solido);
+  color: #fff;
+  font-size: 18px;
+}
+.caja-pagina .caja-clientes .caja-saldo.solido strong {
+  font-size: 24px;
+}
+.caja-pagina .caja-clientes-lista .caja-cliente-inicial {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+}
+.caja-pagina .caja-clientes-lista li > .caja-cliente-inicial + div {
+  margin-right: auto;
+}
+.caja-pagina .caja-clientes input {
+  border: 1px solid #adb9bf;
+  box-shadow: none;
+}
+.caja-pagina .caja-clientes-lista .caja-opciones .btn.petrol {
+  border: 2px solid var(--petrol);
+  background: var(--petrol);
+  color: #fff;
+}
+
+/* ===== Caja · Ventanas: franja sólida con el color del concepto ===== */
+
+.caja-dialogo .caja-dialogo-cabecera.solido[data-tono] {
+  position: static;
+  margin: 0 0 16px;
+  padding: 12px 12px 12px 18px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--solido);
+}
+.caja-dialogo .caja-dialogo-cabecera.solido[data-tono] h2 {
+  color: #fff;
+  font-size: 21px;
+  font-weight: 800;
+}
+.caja-dialogo .caja-dialogo-cabecera.solido[data-tono] .icon-btn {
+  border: 0;
+  background: rgb(255 255 255 / 0.22);
+  color: #fff;
 }

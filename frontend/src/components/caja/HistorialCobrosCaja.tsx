@@ -1,8 +1,7 @@
 import { dineroCaja, fechaCaja } from '@/lib/caja';
 import type { CobroDeudaCaja, VentaCaja } from '@/types/caja';
+import { nombreDelMedio } from '@/lib/caja/mediosDePago';
 
-const nombreMedio = (medio: string) =>
-  medio === 'EFECTIVO' ? 'Efectivo' : medio === 'TARJETA' ? 'Tarjeta' : 'Transferencia';
 
 export function HistorialCobrosCaja({
   ventas,
@@ -60,7 +59,7 @@ export function HistorialCobrosCaja({
               <small>{m.referencia}</small>
               <span>
                 {m.pagos
-                  .map((p) => `${nombreMedio(p.medio)} ${dineroCaja(Math.round(p.importe * 100))}`)
+                  .map((p) => `${nombreDelMedio(p.medio)} ${dineroCaja(Math.round(p.importe * 100))}`)
                   .join(' · ')}
               </span>
             </div>

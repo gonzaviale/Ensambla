@@ -5,11 +5,18 @@ import { dineroCaja, fechaCaja } from '@/lib/caja';
 import { Icon } from '@/components/sistema/Icon';
 import type { MedioCaja, ResumenVentasCaja as Resumen } from '@/types/caja';
 import type { VentaCaja } from '@/types/caja';
+import { claseDeSeleccion, tonoDe } from '@/lib/sistema/tonos';
 
 const medios = [
-  { id: 'EFECTIVO', nombre: 'Efectivo', clave: 'efectivo' },
-  { id: 'TRANSFERENCIA', nombre: 'Transferencia', clave: 'transferencia' },
-  { id: 'TARJETA', nombre: 'Tarjeta', clave: 'tarjeta' },
+  { id: 'EFECTIVO', nombre: 'Efectivo', clave: 'efectivo', icono: 'wallet' },
+  { id: 'TRANSFERENCIA', nombre: 'Transferencia', clave: 'transferencia', icono: 'arrow' },
+  { id: 'TARJETA', nombre: 'Tarjeta', clave: 'tarjeta', icono: 'orders' },
+] as const;
+
+const FILTROS_DE_ESTADO = [
+  ['todas', 'Todas', 'ventas'],
+  ['pendientes', 'Pendientes', 'fiado'],
+  ['pagadas', 'Pagadas', 'cobrado'],
 ] as const;
 
 export function ResumenVentasCaja({
@@ -30,9 +37,9 @@ export function ResumenVentasCaja({
   );
   return (
     <section className="caja-resumen-ventas" aria-label={titulo}>
-      <div className="caja-total-resumen">
+      <div className="caja-total-resumen solido" data-tono={tonoDe('ventas')}>
         <span className="caja-antetitulo">{titulo}</span>
-        <strong>{dineroCaja(Math.round(resumen.total * 100))}</strong>
+        <strong className="solido-cifra">{dineroCaja(Math.round(resumen.total * 100))}</strong>
         <span>
           {resumen.ventas.length}{' '}
           {resumen.ventas.length === 1 ? 'venta guardada' : 'ventas guardadas'}
@@ -49,19 +56,19 @@ export function ResumenVentasCaja({
           <button
             type="button"
             key={m.id}
+            className="solido"
+            data-tono={tonoDe(m.clave)}
             aria-pressed={filtro === m.id}
             onClick={() => setFiltro(filtro === m.id ? null : m.id)}
           >
             <span className="caja-medio-nombre">
-              <Icon
-                name={
-                  m.id === 'EFECTIVO' ? 'wallet' : m.id === 'TRANSFERENCIA' ? 'arrow' : 'orders'
-                }
-              />
+              <span className="solido-icono">
+                <Icon name={m.icono} />
+              </span>
               {m.nombre}
             </span>
-            <strong>{dineroCaja(Math.round(resumen[m.clave] * 100))}</strong>
-            <small>
+            <strong className="solido-cifra">{dineroCaja(Math.round(resumen[m.clave] * 100))}</strong>
+            <small className="solido-enlace">
               {filtro === m.id ? 'Filtro activo' : 'Ver ventas'} <span aria-hidden="true">→</span>
             </small>
           </button>
@@ -80,14 +87,15 @@ export function ResumenVentasCaja({
         )}
       </div>
       <div className="caja-opciones" aria-label="Estado de las ventas">
-        {(
-          [
-            ['todas', 'Todas'],
-            ['pendientes', 'Pendientes'],
-            ['pagadas', 'Pagadas'],
-          ] as const
-        ).map(([id, texto]) => (
-          <button key={id} type="button" aria-pressed={estado === id} onClick={() => setEstado(id)}>
+        {FILTROS_DE_ESTADO.map(([id, texto, concepto]) => (
+          <button
+            key={id}
+            type="button"
+            className={claseDeSeleccion(estado === id)}
+            data-tono={tonoDe(concepto)}
+            aria-pressed={estado === id}
+            onClick={() => setEstado(id)}
+          >
             {texto}
           </button>
         ))}

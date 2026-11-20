@@ -44,7 +44,7 @@ export function BarraCompraMovil({
       )}
       <button
         type="button"
-        className="btn primary"
+        className={`btn primary ${revisando ? 'caja-barra-cobrar' : 'caja-barra-ver'}`}
         aria-label={revisando ? 'Continuar al cobro' : 'Revisar compra'}
         disabled={bloqueada || (revisando && (!articulos || pendiente))}
         onClick={revisando ? onCobrar : onRevisar}
