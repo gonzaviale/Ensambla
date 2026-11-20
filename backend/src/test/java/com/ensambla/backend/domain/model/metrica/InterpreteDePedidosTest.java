@@ -111,7 +111,11 @@ class InterpreteDePedidosTest {
                 arguments("número de compras de hoy",
                         unaReceta("Número de compras de hoy", GASTOS, CONTEO, NINGUNA, HOY, false)),
                 arguments("cuánto vendió el negocio en el mes",
-                        unaReceta("Cuánto vendió el negocio en el mes", VENTAS, SUMA, NINGUNA, MES, false)));
+                        unaReceta("Cuánto vendió el negocio en el mes", VENTAS, SUMA, NINGUNA, MES, false)),
+                arguments("Todas ganancia por ventas en el mes",
+                        unaReceta("Todas ganancia por ventas en el mes", VENTAS, GANANCIA, NINGUNA, MES, false)),
+                arguments("costo por venta de esta semana",
+                        unaReceta("Costo por venta de esta semana", VENTAS, COSTO, NINGUNA, SEMANA, false)));
     }
 
     static Stream<Arguments> loQueSeTomaPorDefecto() {

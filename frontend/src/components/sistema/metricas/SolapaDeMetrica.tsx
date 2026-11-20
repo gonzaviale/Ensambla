@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Icon } from '@/components/sistema/Icon';
 import { GraficoDeLaMetrica } from '@/components/sistema/metricas/GraficoDeLaMetrica';
+import { NombreDeLaMetrica } from '@/components/sistema/metricas/NombreDeLaMetrica';
 import { MenuDeLaMetrica } from '@/components/sistema/metricas/MenuDeLaMetrica';
 import { SelectorDeGrafico } from '@/components/sistema/metricas/SelectorDeGrafico';
 import { VentanaFlotante } from '@/components/sistema/metricas/VentanaFlotante';
@@ -59,7 +60,7 @@ export function SolapaDeMetrica(props: Props) {
 function TituloDeLaMetrica({ metrica }: { metrica: Metrica }) {
   return (
     <div>
-      <h3>{metrica.definicion.nombre}</h3>
+      <NombreDeLaMetrica nombre={metrica.definicion.nombre} resultado={metrica.resultado} />
       <p className="metrica-medida-receta">{resumenDeLaReceta(metrica.definicion)}</p>
     </div>
   );

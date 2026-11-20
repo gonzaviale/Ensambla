@@ -157,9 +157,22 @@ const STOCK_SIN_PERIODO: Record<FuenteDeMetrica, boolean> = {
   INVENTARIO: true,
 };
 
+// Igual que el servidor: en las ventas, «ganancia por venta» pide la ganancia, no el promedio.
+const CALCULOS_QUE_SE_LEEN_PRIMERO_EN_VENTAS: readonly CalculoDeMetrica[] = ['GANANCIA', 'COSTO'];
+
+const calculosEnOrdenDeLectura = (fuente: FuenteDeMetrica): readonly CalculoDeMetrica[] =>
+  fuente === 'VENTAS'
+    ? [
+        ...CALCULOS_QUE_SE_LEEN_PRIMERO_EN_VENTAS,
+        ...CALCULOS_DE_METRICA.filter(
+          (calculo) => !CALCULOS_QUE_SE_LEEN_PRIMERO_EN_VENTAS.includes(calculo),
+        ),
+      ]
+    : CALCULOS_DE_METRICA;
+
 const loQueDiceDe = (pedido: Pedido, fuente: FuenteDeMetrica): LoQueDice => ({
   fuente,
-  calculo: loPrimeroQueMenciona(pedido, CALCULOS_DE_METRICA, DICCIONARIO.calculos),
+  calculo: loPrimeroQueMenciona(pedido, calculosEnOrdenDeLectura(fuente), DICCIONARIO.calculos),
   agrupar: loPrimeroQueMenciona(pedido, AGRUPACIONES_DE_METRICA, DICCIONARIO.agrupaciones),
   periodo: STOCK_SIN_PERIODO[fuente]
     ? undefined

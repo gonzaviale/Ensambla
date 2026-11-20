@@ -1276,3 +1276,40 @@
 .vista-previa .grafico-metrica-dibujo {
   min-height: 0;
 }
+
+/* Aviso de lo que falta cargar para calcular la métrica: al lado del nombre, en amarillo oscuro (avisa, no alarma)
+   con texto blanco. */
+.metrica-medida-titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.metrica-medida-aviso {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--yellow-dark);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.metrica-medida-aviso svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.panel-agregar-propuesta .agregar-metrica-acciones {
+  margin-top: 16px;
+}
+
+/* En «Tu negocio» la barra más alta llega al techo del gráfico: el cartel del día no sube más allá, así no lo tapa
+   «Agregar métrica» (queda sobre la punta de la barra, dentro de la tarjeta). */
+.panel-negocio .grafico-barra-detalle {
+  bottom: min(calc(var(--alto) + 10px), calc(100% - 52px));
+}

@@ -17,10 +17,13 @@ export const ETIQUETA_DE_FUENTE: Record<FuenteDeMetrica, string> = {
   INVENTARIO: 'Productos en stock',
 };
 
-const NOMBRE_DE_LAS_FILAS: Record<FuenteDeMetrica, { uno: string; varios: string }> = {
-  VENTAS: { uno: 'venta', varios: 'ventas' },
-  GASTOS: { uno: 'gasto', varios: 'gastos' },
-  INVENTARIO: { uno: 'producto', varios: 'productos' },
+const NOMBRE_DE_LAS_FILAS: Record<
+  FuenteDeMetrica,
+  { uno: string; varios: string; cuantos: string }
+> = {
+  VENTAS: { uno: 'venta', varios: 'ventas', cuantos: 'Cuántas ventas' },
+  GASTOS: { uno: 'gasto', varios: 'gastos', cuantos: 'Cuántos gastos' },
+  INVENTARIO: { uno: 'producto', varios: 'productos', cuantos: 'Cuántos productos' },
 };
 
 const TABLA_DE: Record<FuenteDeMetrica, string> = {
@@ -52,7 +55,7 @@ export function etiquetaDeCalculo(fuente: FuenteDeMetrica, calculo: CalculoDeMet
     case 'PROMEDIO':
       return `Promedio por ${NOMBRE_DE_LAS_FILAS[fuente].uno}`;
     case 'CONTEO':
-      return `Cuántas ${filas} hay`;
+      return `${NOMBRE_DE_LAS_FILAS[fuente].cuantos} hay`;
     case 'UNIDADES':
       return fuente === 'INVENTARIO' ? 'Unidades en stock' : 'Unidades vendidas';
     case 'GANANCIA':
@@ -75,6 +78,16 @@ export const agrupacionesDe = (fuente: FuenteDeMetrica): AgrupacionDeMetrica[] =
   if (fuente === 'GASTOS') return ['NINGUNA', 'CATEGORIA', 'DIA_DE_LA_SEMANA'];
   return ['NINGUNA', 'PRODUCTO'];
 };
+
+// Contar productos repartidos por producto daría siempre 1: el stock tiene una fila por producto.
+export const cuentaCadaProducto = ({ fuente, calculo, agrupar }: DefinicionDeMetrica) =>
+  fuente === 'INVENTARIO' && calculo === 'CONTEO' && agrupar === 'PRODUCTO';
+
+/** Las maneras de repartir que tienen sentido para la receta elegida hasta ahora. */
+export const agrupacionesPara = (definicion: DefinicionDeMetrica): AgrupacionDeMetrica[] =>
+  agrupacionesDe(definicion.fuente).filter(
+    (agrupar) => !cuentaCadaProducto({ ...definicion, agrupar }),
+  );
 
 export const periodosDe = (fuente: FuenteDeMetrica): PeriodoDeMetrica[] =>
   fuente === 'INVENTARIO' ? ['TODO'] : ['HOY', 'SEMANA', 'MES', 'TODO'];

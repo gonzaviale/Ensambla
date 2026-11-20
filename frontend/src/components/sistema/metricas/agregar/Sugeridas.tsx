@@ -1,6 +1,7 @@
 import { BotonParaAgregar } from '@/components/sistema/metricas/agregar/BotonParaAgregar';
 import type { PropsDeLaPestana } from '@/components/sistema/metricas/agregar/tipos';
 import { VistaPrevia } from '@/components/sistema/metricas/agregar/VistaPrevia';
+import { NombreDeLaMetrica } from '@/components/sistema/metricas/NombreDeLaMetrica';
 import { useMetricasSugeridas } from '@/hooks/metricas/queries';
 import { resumenDeLaReceta } from '@/lib/metricas/metricasAMedida';
 import type { SugeridaDelRubro } from '@/types/metricas';
@@ -46,7 +47,7 @@ function TarjetaSugerida({ sugerida, guardando, onAgregar }: PropsDeLaSugerida) 
   const { definicion, resultado, yaLaTenes } = sugerida;
   return (
     <li className="panel-agregar-sugerida">
-      <h3>{definicion.nombre}</h3>
+      <NombreDeLaMetrica nombre={definicion.nombre} resultado={resultado} />
       <p className="metrica-medida-receta">{resumenDeLaReceta(definicion)}</p>
       <VistaPrevia definicion={definicion} resultado={resultado} chica />
       <BotonParaAgregar

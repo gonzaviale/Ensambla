@@ -2,7 +2,7 @@ import {
   ETIQUETA_DE_AGRUPACION,
   ETIQUETA_DE_FUENTE,
   ETIQUETA_DE_PERIODO,
-  agrupacionesDe,
+  agrupacionesPara,
   ajustarALaFuente,
   calculosDe,
   etiquetaDeCalculo,
@@ -98,8 +98,8 @@ const COMO_REPARTIR: PasoDeLaReceta = {
   corto: 'Cómo verla',
   pista: 'Junta o por producto',
   color: 'celeste',
-  opciones: ({ fuente }) =>
-    agrupacionesDe(fuente).map((agrupar) => ({
+  opciones: (definicion) =>
+    agrupacionesPara(definicion).map((agrupar) => ({
       valor: agrupar,
       etiqueta: ETIQUETA_DE_AGRUPACION[agrupar],
       icono: ICONO_DE_AGRUPACION[agrupar],

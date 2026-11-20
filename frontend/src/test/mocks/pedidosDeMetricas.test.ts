@@ -27,6 +27,7 @@ const PEDIDOS_DE_UN_ALMACEN = [
 // Formas de tipear que el servidor también entiende (ver comoTipeaLaGente en InterpreteDePedidosTest).
 const COMO_TIPEA_LA_GENTE = [
   ['ganancias que me dejaron mis clientes este mes', 'VENTAS', 'GANANCIA', 'CLIENTE', 'MES', false],
+  ['Todas ganancia por ventas en el mes', 'VENTAS', 'GANANCIA', 'NINGUNA', 'MES', false],
   ['cuánto me costó lo que vendí esta semana', 'VENTAS', 'COSTO', 'NINGUNA', 'SEMANA', false],
   ['qué vendo más', 'VENTAS', 'UNIDADES', 'PRODUCTO', 'MES', false],
   ['cuánto vendí desde que abrí', 'VENTAS', 'SUMA', 'NINGUNA', 'TODO', false],

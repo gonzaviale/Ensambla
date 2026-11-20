@@ -22,6 +22,9 @@ public record DefinicionMetrica(
 
     public static final int LARGO_MAXIMO_DEL_NOMBRE = 80;
 
+    static final String CONTAR_CADA_PRODUCTO =
+            "Cada producto es uno solo: contarlos por producto siempre da 1. Elegí la cantidad o el valor al costo";
+
     /** Lo que el panel de ventas del inicio ya muestra siempre: lo vendido hoy, esta semana y este mes. */
     private static final List<DefinicionMetrica> EL_PANEL_DE_VENTAS = Stream
             .of(PeriodoMetrica.HOY, PeriodoMetrica.SEMANA, PeriodoMetrica.MES)
@@ -44,6 +47,7 @@ public record DefinicionMetrica(
         rechazarSi(!fuente.permiteRepartirPor(agrupar), "No se puede repartir " + fuente.getFilas() + " de esa manera");
         rechazarSi(soloFiado && !fuente.admiteFiado(), "Sólo las ventas se pueden marcar como fiadas");
         rechazarSi(!fuente.tieneFecha() && !periodo.miraTodo(), "El stock es lo que hay hoy: no tiene períodos");
+        rechazarSi(calculo.cuentaFilas() && fuente.tieneUnaFilaPor(agrupar), CONTAR_CADA_PRODUCTO);
     }
 
     /** La misma receta con otro nombre: renombrar no cambia lo que se calcula. */

@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import { expect } from 'vitest';
 import { GraficoDeLaMetrica } from '@/components/sistema/metricas/GraficoDeLaMetrica';
+import { NombreDeLaMetrica } from '@/components/sistema/metricas/NombreDeLaMetrica';
 import { SelectorDeGrafico } from '@/components/sistema/metricas/SelectorDeGrafico';
 import { partesParaMostrar, type Parte } from '@/lib/metricas/graficos';
 import type { DefinicionDeMetrica, GraficoDeMetrica, ResultadoDeMetrica } from '@/types/metricas';
@@ -73,7 +74,15 @@ export const entoncesNoHayDibujo = (nombre: string) =>
   expect(screen.queryByLabelText(nombre)).not.toBeInTheDocument();
 
 export const entoncesDiceElMotivo = (motivo: string) =>
-  expect(screen.getByRole('status')).toHaveTextContent(motivo);
+  expect(screen.getByRole('note')).toHaveTextContent(motivo);
+
+export const entoncesNoMuestraNingunNumero = () =>
+  expect(screen.queryByText(/\$|\d/)).not.toBeInTheDocument();
+
+export const dadoElNombreDe = (resultado: ResultadoDeMetrica) =>
+  render(<NombreDeLaMetrica nombre="Ventas del mes" resultado={resultado} />);
+
+export const entoncesNoHayAviso = () => expect(screen.queryByRole('note')).not.toBeInTheDocument();
 
 export const dadoElSelector = (grafico: GraficoDeMetrica, posibles: GraficoDeMetrica[]) =>
   render(<SelectorDeGrafico grafico={grafico} posibles={posibles} onElegir={() => undefined} />);

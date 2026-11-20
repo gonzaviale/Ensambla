@@ -81,6 +81,11 @@ public final class MetricasDePrueba {
                 AgrupacionMetrica.NINGUNA, PeriodoMetrica.SEMANA, false);
     }
 
+    public static DefinicionMetrica cuantosProductosHayPorProducto() {
+        return unaReceta("Productos por producto", FuenteMetrica.INVENTARIO, CalculoMetrica.CONTEO,
+                AgrupacionMetrica.PRODUCTO, PeriodoMetrica.TODO, false);
+    }
+
     public static DefinicionMetrica elStockPorProducto() {
         return unaReceta("Stock", FuenteMetrica.INVENTARIO, CalculoMetrica.UNIDADES, AgrupacionMetrica.PRODUCTO,
                 PeriodoMetrica.TODO, false);

@@ -6,11 +6,14 @@ import {
   SIN_NUMERO,
   cuandoSeMuestranLasPartesDe,
   dadoElGrafico,
+  dadoElNombreDe,
   dadoElSelector,
   entoncesDiceElMotivo,
   entoncesEstaElegido,
+  entoncesNoHayAviso,
   entoncesNoHayDibujo,
   entoncesNoHaySelector,
+  entoncesNoMuestraNingunNumero,
   entoncesNoSeLee,
   entoncesOfreceLosGraficos,
   entoncesSeLee,
@@ -75,7 +78,7 @@ describe('el gráfico de una métrica', () => {
   it('dice qué es el número grande y quién encabeza el reparto', () => {
     dadoElGrafico(SIETE_PRODUCTOS, 'BARRAS');
 
-    entoncesSeLee(/Total de todas las partes/);
+    entoncesSeLee(/Total de todos los productos/);
     entoncesSeLee('Yerba, 70');
   });
 
@@ -85,10 +88,24 @@ describe('el gráfico de una métrica', () => {
     entoncesNoSeLee(/El primero/);
   });
 
-  it('si no se pudo calcular dice por qué y no muestra un cero', () => {
+  it('si no se pudo calcular no muestra un cero', () => {
     dadoElGrafico(SIN_NUMERO, 'BARRAS');
 
+    entoncesNoMuestraNingunNumero();
+  });
+});
+
+describe('el nombre de la métrica', () => {
+  it('si no se pudo calcular avisa al lado del nombre qué falta cargar', () => {
+    dadoElNombreDe(SIN_NUMERO.resultado);
+
     entoncesDiceElMotivo('Todavía no cargaste ventas.');
+  });
+
+  it('si se pudo calcular no muestra ningún aviso', () => {
+    dadoElNombreDe(LA_SEMANA.resultado);
+
+    entoncesNoHayAviso();
   });
 });
 

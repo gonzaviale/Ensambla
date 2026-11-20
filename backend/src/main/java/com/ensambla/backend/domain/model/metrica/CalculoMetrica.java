@@ -2,6 +2,8 @@ package com.ensambla.backend.domain.model.metrica;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
 
@@ -45,6 +47,11 @@ public enum CalculoMetrica {
         @Override
         BigDecimal calcular(List<LineaMetrica> lineas) {
             return BigDecimal.valueOf(lineas.size());
+        }
+
+        @Override
+        boolean cuentaFilas() {
+            return true;
         }
     },
 
@@ -102,6 +109,11 @@ public enum CalculoMetrica {
         String motivoSiNoSirvePara(FuenteMetrica fuente) {
             return "La ganancia se calcula con tus ventas: elegí ventas";
         }
+
+        @Override
+        boolean seLeePrimeroPara(FuenteMetrica fuente) {
+            return sirvePara(fuente);
+        }
     },
 
     /** Lo que costó lo que se vendió, a costo actual: sólo cuentan las ventas de productos con costo cargado. */
@@ -130,6 +142,11 @@ public enum CalculoMetrica {
         String motivoSiNoSirvePara(FuenteMetrica fuente) {
             return "El costo de lo vendido se calcula con tus ventas: elegí ventas";
         }
+
+        @Override
+        boolean seLeePrimeroPara(FuenteMetrica fuente) {
+            return sirvePara(fuente);
+        }
     };
 
     private final FormatoMetrica formato;
@@ -154,6 +171,25 @@ public enum CalculoMetrica {
 
     public boolean sirvePara(FuenteMetrica fuente) {
         return true;
+    }
+
+    /**
+     * Las cuentas en el orden en que se buscan en un pedido en palabras. Las que piden algo más preciso (la ganancia o el
+     * costo de lo vendido) van primero cuando sirven para la tabla: «ganancia por venta» pide la ganancia, no el
+     * promedio. Las demás quedan en su orden.
+     */
+    static CalculoMetrica[] enOrdenDeLecturaPara(FuenteMetrica fuente) {
+        return Arrays.stream(values())
+                .sorted(Comparator.comparing((CalculoMetrica calculo) -> !calculo.seLeePrimeroPara(fuente)))
+                .toArray(CalculoMetrica[]::new);
+    }
+
+    boolean seLeePrimeroPara(FuenteMetrica fuente) {
+        return false;
+    }
+
+    boolean cuentaFilas() {
+        return false;
     }
 
     /** Por qué esta cuenta no se puede hacer con la tabla elegida, en palabras de la persona. */

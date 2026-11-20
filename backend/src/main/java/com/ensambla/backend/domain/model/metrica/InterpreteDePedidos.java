@@ -35,7 +35,7 @@ public class InterpreteDePedidos {
 
     private LoQueDiceElPedido loQueDice(PedidoEnPalabras pedido) {
         FuenteMetrica fuente = laTablaQuePide(pedido);
-        return new LoQueDiceElPedido(fuente, laCuentaQuePide(pedido), elRepartoQuePide(pedido),
+        return new LoQueDiceElPedido(fuente, laCuentaQuePide(pedido, fuente), elRepartoQuePide(pedido),
                 elPeriodoQuePide(pedido, fuente), pedido.menciona(diccionario.fiado()));
     }
 
@@ -44,8 +44,8 @@ public class InterpreteDePedidos {
                 .orElseThrow(() -> new BusinessRuleException(NO_SE_ENTIENDE_LA_TABLA));
     }
 
-    private Optional<CalculoMetrica> laCuentaQuePide(PedidoEnPalabras pedido) {
-        return pedido.loPrimeroQueMenciona(CalculoMetrica.values(), diccionario.calculos());
+    private Optional<CalculoMetrica> laCuentaQuePide(PedidoEnPalabras pedido, FuenteMetrica fuente) {
+        return pedido.loPrimeroQueMenciona(CalculoMetrica.enOrdenDeLecturaPara(fuente), diccionario.calculos());
     }
 
     private Optional<AgrupacionMetrica> elRepartoQuePide(PedidoEnPalabras pedido) {

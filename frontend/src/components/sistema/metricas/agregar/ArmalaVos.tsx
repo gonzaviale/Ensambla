@@ -3,6 +3,7 @@ import { PasosHechos } from '@/components/sistema/metricas/agregar/PasosHechos';
 import { TarjetasDelPaso } from '@/components/sistema/metricas/agregar/TarjetasDelPaso';
 import type { PropsDeLaPestana } from '@/components/sistema/metricas/agregar/tipos';
 import { VistaPrevia } from '@/components/sistema/metricas/agregar/VistaPrevia';
+import { NombreDeLaMetrica } from '@/components/sistema/metricas/NombreDeLaMetrica';
 import { useFuentesDelCuaderno, useVistaEnVivo } from '@/hooks/metricas/queries';
 import { ajustarALaFuente, definicionInicial } from '@/lib/metricas/metricasAMedida';
 import {
@@ -170,7 +171,7 @@ function VistaEnVivo({
   if (!resultado) return null;
   return (
     <section className="panel-agregar-propuesta" aria-label="Así quedaría">
-      <h3>Así quedaría</h3>
+      <NombreDeLaMetrica nombre="Así quedaría" resultado={resultado} />
       <VistaPrevia definicion={definicion} resultado={resultado} />
     </section>
   );

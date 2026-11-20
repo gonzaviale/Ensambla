@@ -5,6 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static com.ensambla.backend.support.MetricasDePrueba.cuantasVentasHuboEnElMes;
+import static com.ensambla.backend.support.MetricasDePrueba.cuantosProductosHayPorProducto;
 import static com.ensambla.backend.support.MetricasDePrueba.elInventarioDeLaSemana;
 import static com.ensambla.backend.support.MetricasDePrueba.elStockPorProducto;
 import static com.ensambla.backend.support.MetricasDePrueba.lasUnidadesDeLosGastos;
@@ -159,6 +160,16 @@ class DefinicionMetricaTest {
         cuandoSeValida();
 
         entoncesSeRechazaPorque("períodos");
+    }
+
+    @Test
+    @DisplayName("Contar los productos repartidos por producto no se puede: siempre daría 1")
+    void contarLosProductosPorProductoNoSePuede() {
+        dadaLaReceta(cuantosProductosHayPorProducto());
+
+        cuandoSeValida();
+
+        entoncesSeRechazaPorque("siempre da 1");
     }
 
     @Test

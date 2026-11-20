@@ -71,6 +71,19 @@ class CalculoMetricaTest {
         entoncesElMotivoPara(CalculoMetrica.SUMA, FuenteMetrica.GASTOS, "Esa cuenta no se puede hacer con gastos");
     }
 
+    @Test
+    @DisplayName("En un pedido de ventas se busca primero la ganancia y el costo, antes que el promedio")
+    void enUnPedidoDeVentasSeBuscaPrimeroLaGananciaYElCosto() {
+        entoncesElOrdenDeLecturaPara(FuenteMetrica.VENTAS, CalculoMetrica.GANANCIA, CalculoMetrica.COSTO,
+                CalculoMetrica.SUMA, CalculoMetrica.PROMEDIO, CalculoMetrica.CONTEO, CalculoMetrica.UNIDADES);
+    }
+
+    @Test
+    @DisplayName("En un pedido de gastos las cuentas se buscan en su orden de siempre")
+    void enUnPedidoDeGastosLasCuentasSeBuscanEnSuOrden() {
+        entoncesElOrdenDeLecturaPara(FuenteMetrica.GASTOS, CalculoMetrica.values());
+    }
+
     private static void entoncesElCalculo(CalculoMetrica calculo, FormatoMetrica formato, boolean usaImporte) {
         assertThat(calculo.formato()).isEqualTo(formato);
         assertThat(calculo.usaImporte()).isEqualTo(usaImporte);
@@ -82,6 +95,10 @@ class CalculoMetricaTest {
 
     private static void entoncesNoSirvePara(CalculoMetrica calculo, FuenteMetrica fuente) {
         assertThat(calculo.sirvePara(fuente)).isFalse();
+    }
+
+    private static void entoncesElOrdenDeLecturaPara(FuenteMetrica fuente, CalculoMetrica... orden) {
+        assertThat(CalculoMetrica.enOrdenDeLecturaPara(fuente)).containsExactly(orden);
     }
 
     private static void entoncesElMotivoPara(CalculoMetrica calculo, FuenteMetrica fuente, String motivo) {

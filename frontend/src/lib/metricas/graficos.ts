@@ -132,8 +132,16 @@ export function elPrimero(
 }
 
 /** Qué es el número grande, para que no haya que adivinarlo (un promedio no es el de cada cliente). */
+// Entre quiénes se reparte el número, en palabras: «Total de todos los productos» se entiende sin pensar.
+const ENTRE_QUIENES: Record<DefinicionDeMetrica['agrupar'], string> = {
+  NINGUNA: '',
+  PRODUCTO: ' de todos los productos',
+  CLIENTE: ' de todos los clientes',
+  CATEGORIA: ' de todas las categorías',
+  DIA_DE_LA_SEMANA: ' de todos los días',
+};
+
 export function queEsElNumero(definicion: DefinicionDeMetrica): string {
-  const repartida = definicion.agrupar !== 'NINGUNA';
-  if (definicion.calculo === 'PROMEDIO') return repartida ? 'Promedio de todas juntas' : 'Promedio';
-  return repartida ? 'Total de todas las partes' : 'Total';
+  const cuenta = definicion.calculo === 'PROMEDIO' ? 'Promedio' : 'Total';
+  return cuenta + ENTRE_QUIENES[definicion.agrupar];
 }

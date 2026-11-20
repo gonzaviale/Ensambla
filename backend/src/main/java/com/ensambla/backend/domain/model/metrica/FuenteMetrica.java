@@ -69,6 +69,12 @@ public enum FuenteMetrica {
         public boolean tieneFecha() {
             return false;
         }
+
+        /** El stock tiene una fila por producto: repartido por producto, cada parte es una sola fila. */
+        @Override
+        boolean tieneUnaFilaPor(AgrupacionMetrica agrupacion) {
+            return agrupacion.reparte();
+        }
     };
 
     private final String filas;
@@ -113,6 +119,11 @@ public enum FuenteMetrica {
 
     /** Sólo una venta dice qué producto salió, así que sólo de ellas sale la ganancia o el costo de lo vendido. */
     public boolean tieneCostoDeLoVendido() {
+        return false;
+    }
+
+    /** {@code true} si repartida así cada parte es una sola fila: contar filas por parte daría siempre 1. */
+    boolean tieneUnaFilaPor(AgrupacionMetrica agrupacion) {
         return false;
     }
 

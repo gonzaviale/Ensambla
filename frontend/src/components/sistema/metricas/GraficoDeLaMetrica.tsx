@@ -25,9 +25,12 @@ type Props = {
   grafico: GraficoDeMetrica;
 };
 
-/** El número que da la métrica y, si se reparte, su gráfico; si no se pudo calcular, el motivo (nunca un cero). */
+/**
+ * El número que da la métrica y, si se reparte, su gráfico. Si no se pudo calcular no muestra nada (nunca un cero): el
+ * motivo va resaltado junto al nombre, en {@link NombreDeLaMetrica}.
+ */
 export function GraficoDeLaMetrica({ definicion, resultado, grafico }: Props) {
-  if (resultado.valor == null) return <MotivoSinNumero resultado={resultado} />;
+  if (resultado.valor == null) return null;
   const Dibujo = DIBUJOS[grafico];
   return (
     <div className="grafico-metrica" data-grafico={grafico}>
@@ -67,14 +70,6 @@ function NotaDelNumero({ definicion, resultado }: Pick<Props, 'definicion' | 're
           <strong>{primero}</strong>
         </>
       )}
-    </p>
-  );
-}
-
-function MotivoSinNumero({ resultado }: { resultado: ResultadoDeMetrica }) {
-  return (
-    <p className="metrica-medida-motivo" role="status">
-      {resultado.motivo ?? 'Todavía no se puede calcular.'}
     </p>
   );
 }

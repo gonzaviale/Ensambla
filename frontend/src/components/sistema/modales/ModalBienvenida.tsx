@@ -23,7 +23,7 @@ export function ModalBienvenida() {
           <Sami />
           <span className="welcome-bubble">Lo armamos juntos.</span>
         </div>
-        <span className="eyebrow">TU SECCIÓN, UN BLOQUE A LA VEZ.</span>
+        <span className="eyebrow">TU NEGOCIO, UN BLOQUE A LA VEZ.</span>
         <h2 id="modal-title">
           ¡Hola, {nombre}!
           <br />

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { BotonParaAgregar } from '@/components/sistema/metricas/agregar/BotonParaAgregar';
 import type { PropsDeLaPestana } from '@/components/sistema/metricas/agregar/tipos';
 import { VistaPrevia } from '@/components/sistema/metricas/agregar/VistaPrevia';
+import { NombreDeLaMetrica } from '@/components/sistema/metricas/NombreDeLaMetrica';
 import { LoQueEntendi } from '@/components/sistema/metricas/LoQueEntendi';
 import { leerErrorServidor } from '@/hooks/errores';
 import { useEntenderPedido } from '@/hooks/metricas/mutations';
@@ -123,7 +124,7 @@ function PropuestaDelPedido({ propuesta, guardando, onGuardar, onDescartar }: Pr
   const { definicion, resultado } = propuesta;
   return (
     <section className="panel-agregar-propuesta" aria-label="Así quedaría">
-      <h3>{definicion.nombre}</h3>
+      <NombreDeLaMetrica nombre={definicion.nombre} resultado={resultado} />
       <p className="metrica-medida-receta">{resumenDeLaReceta(definicion)}</p>
       <VistaPrevia definicion={definicion} resultado={resultado} />
       <div className="agregar-metrica-acciones">

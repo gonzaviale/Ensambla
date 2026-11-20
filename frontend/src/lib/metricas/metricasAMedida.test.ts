@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   agrupacionesDe,
+  agrupacionesPara,
   ajustarALaFuente,
   calculosDe,
   definicionInicial,
@@ -13,12 +14,21 @@ import {
 } from '@/lib/metricas/metricasAMedida';
 import type { ResultadoDeMetrica } from '@/types/metricas';
 
-const resultado = (deDondeSale: Partial<ResultadoDeMetrica['deDondeSale']> = {}): ResultadoDeMetrica => ({
+const resultado = (
+  deDondeSale: Partial<ResultadoDeMetrica['deDondeSale']> = {},
+): ResultadoDeMetrica => ({
   formato: 'MONEDA',
   valor: 100,
   filas: [],
   motivo: null,
-  deDondeSale: { fuente: 'VENTAS', filasUsadas: 3, filasSinDato: 0, desde: '2026-11-07', hasta: '2026-11-13', ...deDondeSale },
+  deDondeSale: {
+    fuente: 'VENTAS',
+    filasUsadas: 3,
+    filasSinDato: 0,
+    desde: '2026-11-07',
+    hasta: '2026-11-13',
+    ...deDondeSale,
+  },
 });
 
 describe('metricasAMedida', () => {
@@ -38,13 +48,30 @@ describe('metricasAMedida', () => {
   });
 
   it('al cambiar de tabla conserva lo que sigue valiendo y corrige lo que no', () => {
-    const ventas = { ...definicionInicial(), calculo: 'UNIDADES', agrupar: 'CLIENTE', soloFiado: true } as const;
+    const ventas = {
+      ...definicionInicial(),
+      calculo: 'UNIDADES',
+      agrupar: 'CLIENTE',
+      soloFiado: true,
+    } as const;
     const gastos = ajustarALaFuente(ventas, 'GASTOS');
-    expect(gastos).toMatchObject({ fuente: 'GASTOS', calculo: 'SUMA', agrupar: 'NINGUNA', soloFiado: false, periodo: 'MES' });
+    expect(gastos).toMatchObject({
+      fuente: 'GASTOS',
+      calculo: 'SUMA',
+      agrupar: 'NINGUNA',
+      soloFiado: false,
+      periodo: 'MES',
+    });
     const inventario = ajustarALaFuente(ventas, 'INVENTARIO');
     expect(inventario.periodo).toBe('TODO');
     const mismaTabla = ajustarALaFuente({ ...ventas, agrupar: 'PRODUCTO' }, 'VENTAS');
     expect(mismaTabla).toMatchObject({ calculo: 'UNIDADES', agrupar: 'PRODUCTO', soloFiado: true });
+  });
+
+  it('al contar productos no ofrece repartirlos por producto, porque siempre daría 1', () => {
+    expect(
+      agrupacionesPara({ ...definicionInicial(), fuente: 'INVENTARIO', calculo: 'CONTEO' }),
+    ).toEqual(['NINGUNA']);
   });
 
   it('escribe los cálculos con las palabras de cada tabla', () => {
@@ -52,6 +79,8 @@ describe('metricasAMedida', () => {
     expect(etiquetaDeCalculo('INVENTARIO', 'SUMA')).toBe('Valor del stock (a costo)');
     expect(etiquetaDeCalculo('GASTOS', 'PROMEDIO')).toBe('Promedio por gasto');
     expect(etiquetaDeCalculo('VENTAS', 'CONTEO')).toBe('Cuántas ventas hay');
+    expect(etiquetaDeCalculo('INVENTARIO', 'CONTEO')).toBe('Cuántos productos hay');
+    expect(etiquetaDeCalculo('GASTOS', 'CONTEO')).toBe('Cuántos gastos hay');
     expect(etiquetaDeCalculo('VENTAS', 'UNIDADES')).toBe('Unidades vendidas');
     expect(etiquetaDeCalculo('INVENTARIO', 'UNIDADES')).toBe('Unidades en stock');
     expect(etiquetaDeCalculo('VENTAS', 'GANANCIA')).toBe('Ganancia');
@@ -70,7 +99,9 @@ describe('metricasAMedida', () => {
   });
 
   it('cuenta de dónde sale el número', () => {
-    expect(textoDeDondeSale(resultado())).toBe('Sale de tus ventas, del 7/11 al 13/11. Se usaron 3 ventas.');
+    expect(textoDeDondeSale(resultado())).toBe(
+      'Sale de tus ventas, del 7/11 al 13/11. Se usaron 3 ventas.',
+    );
     expect(textoDeDondeSale(resultado({ desde: '2026-11-13', filasUsadas: 1 }))).toBe(
       'Sale de tus ventas de hoy (13/11). Se usó 1 venta.',
     );

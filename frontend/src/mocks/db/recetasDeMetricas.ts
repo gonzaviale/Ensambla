@@ -1,6 +1,7 @@
 import {
   agrupacionesDe,
   calculosDe,
+  cuentaCadaProducto,
   periodosDe,
   permiteFiado,
 } from '@/lib/metricas/metricasAMedida';
@@ -43,6 +44,11 @@ const REGLAS: {
   {
     cumple: (receta) => periodosDe(receta.fuente).includes(receta.periodo),
     motivo: () => 'El stock es lo que hay hoy: no tiene períodos',
+  },
+  {
+    cumple: (receta) => !cuentaCadaProducto(receta),
+    motivo: () =>
+      'Cada producto es uno solo: contarlos por producto siempre da 1. Elegí la cantidad o el valor al costo',
   },
 ];
 
