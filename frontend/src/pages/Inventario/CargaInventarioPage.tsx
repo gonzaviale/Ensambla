@@ -52,9 +52,7 @@ export function CargaInventarioPage({
               CARGA DE PRODUCTOS · {carga.inventario?.name ?? 'INVENTARIO'}
             </span>
             <h1>Escaneá, revisá y agregá.</h1>
-            <p>
-              Los productos se guardan en el inventario de este negocio cuando confirmás la carga.
-            </p>
+            <p>Los productos se guardan en el stock de este negocio cuando confirmás la carga.</p>
           </div>
           <Btn
             cls="secondary"
@@ -65,8 +63,7 @@ export function CargaInventarioPage({
         </header>
         {!carga.sistema || carga.inventario?.type !== 'inventory' ? (
           <p className="escaneo-error" role="alert">
-            Esta sección ya no está disponible. Volvé al negocio para elegir una tabla de
-            Inventario.
+            Esta sección ya no está disponible. Volvé al negocio para elegir una sección de Stock.
           </p>
         ) : (
           <>

@@ -64,7 +64,7 @@ const CATALOGO: Record<TipoMiniObjetivo, Medida> = {
   MEJORAR_MARGEN: {
     tipo: 'MEJORAR_MARGEN',
     sentido: 'SUBE',
-    titulo: 'Llevá tu margen al 32 %',
+    titulo: 'Llevá tu ganancia por venta al 32 %',
     justificacion: 'Hoy ganás 28 de cada 100 que vendés; la zona anda por 33.',
     referencia: null,
     registroId: null,
@@ -122,7 +122,7 @@ const MANUALES: Record<'conocer' | 'atender' | 'general', Accion[]> = {
   ],
   general: [
     {
-      titulo: 'Anotá una cosa para mejorar cada día',
+      titulo: 'Escribí una cosa para mejorar cada día',
       justificacion: 'Con lo que anotes, el domingo armamos el siguiente paso.',
     },
     {
@@ -132,7 +132,7 @@ const MANUALES: Record<'conocer' | 'atender' | 'general', Accion[]> = {
   ],
 };
 
-const SEGUIMIENTO_MANUAL = 'Anotá cómo te fue con tu objetivo';
+const SEGUIMIENTO_MANUAL = 'Cargá cómo te fue con tu objetivo';
 
 const sinTildes = (texto: string) =>
   texto
@@ -245,7 +245,7 @@ export function proponerSimulado(
   if (ES_MONETARIO.test(sinTildes(ultimo))) {
     return {
       respuesta:
-        'Una meta en pesos por mes se define con el formulario de siempre: ahí Sami la mide con tu resultado.',
+        'Una meta en pesos por mes se define con el formulario de siempre: allí Sami la mide con tu resultado.',
       entendido: '',
       tipo: null,
       esMonetario: true,

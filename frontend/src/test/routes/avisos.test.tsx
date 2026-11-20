@@ -109,7 +109,7 @@ describe('la campana y la pantalla de avisos', () => {
     if (!primero) throw new Error('Falta un aviso en la campana');
     const titulo = primero.querySelector('strong')?.textContent ?? '';
 
-    await user.click(within(primero).getByRole('button', { name: /Sacar de acá/ }));
+    await user.click(within(primero).getByRole('button', { name: /Quitar de esta lista/ }));
     expect(within(menu).getAllByRole('listitem')).toHaveLength(8);
     expect(within(menu).queryByText(titulo)).toBeNull();
     expect(screen.getByRole('button', { name: 'Avisos de Sami: 8' })).toBeVisible();
@@ -134,7 +134,7 @@ describe('la campana y la pantalla de avisos', () => {
 
     await user.click(
       within(primero).getByRole('button', {
-        name: (texto) => !texto.startsWith('Sacar') && texto.includes(nombre),
+        name: (texto) => !texto.startsWith('Quitar de esta lista') && texto.includes(nombre),
       }),
     );
     await screen.findByRole('region', { name: /Lo que encontré en tus datos/ }, ESPERA);
@@ -326,8 +326,8 @@ describe('sin datos y con el almacén de ejemplo', () => {
 
     await verTodosDesdeLaCampana(user);
     const panel = await screen.findByRole('region', { name: /Tus avisos/ }, ESPERA);
-    expect(within(panel).getByText('Todavía no tengo datos para mirar.')).toBeVisible();
-    expect(within(panel).queryByRole('img', { name: /Sami, el pulpito/ })).toBeNull();
+    expect(within(panel).getByText('Todavía no tengo datos para revisar.')).toBeVisible();
+    expect(within(panel).queryByRole('img', { name: /Sami, el pulpo/ })).toBeNull();
     await user.click(
       within(panel).getByRole('button', { name: 'Probar con un almacén de ejemplo' }),
     );
@@ -594,7 +594,7 @@ describe('los avisos del motor del servidor', () => {
     await abrirPanel(user);
 
     const franja = screen.getByRole('complementary', { name: 'Lo urgente' });
-    expect(within(franja).getByText(/1 cosa que no puede esperar/)).toBeVisible();
+    expect(within(franja).getByText(/1 aviso urgente/)).toBeVisible();
     const sistemas = screen.getByRole('group', { name: 'Filtrar por sección' });
     expect(within(sistemas).getAllByRole('button').length).toBeGreaterThanOrEqual(3);
 

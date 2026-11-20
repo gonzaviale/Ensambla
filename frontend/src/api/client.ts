@@ -4,7 +4,7 @@ import { ApiError } from './apiError';
 import { errorResponseSchema } from './types';
 
 const MENSAJE_SIN_CONEXION = 'No pudimos conectarnos con el servidor. Revisá tu conexión.';
-const MENSAJE_INESPERADO = 'Ocurrió un error inesperado. Probá de nuevo en unos minutos.';
+const MENSAJE_INESPERADO = 'No pudimos completar la operación. Probá de nuevo en un rato.';
 
 export const EVENTO_SESION_EXPIRADA = 'auth:expirada';
 

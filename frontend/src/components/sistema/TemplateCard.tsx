@@ -3,14 +3,17 @@ import type { ClavePlantilla } from '@/lib/sistema/tipos';
 import { Btn } from './Btn';
 import { Icon } from './Icon';
 import { varsDeColor } from './colores';
+import { tonoPorPosicion } from '@/lib/sistema/tonos';
 
 // Una plantilla como conjunto de piezas, igual a templateCard() del mockup.
 export function TemplateCard({
   clave,
+  posicion = 0,
   oculta = false,
   onVer,
 }: {
   clave: ClavePlantilla;
+  posicion?: number;
   oculta?: boolean;
   onVer: (clave: ClavePlantilla) => void;
 }) {
@@ -19,6 +22,7 @@ export function TemplateCard({
     <article
       className="template-card template-set"
       data-template={clave}
+      data-tono={tonoPorPosicion(posicion)}
       style={varsDeColor(plantilla.color)}
       hidden={oculta}
     >

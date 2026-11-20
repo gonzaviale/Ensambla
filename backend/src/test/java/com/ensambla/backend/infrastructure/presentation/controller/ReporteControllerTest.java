@@ -124,7 +124,7 @@ class ReporteControllerTest {
 
     private void dadoElEscenarioDeGETConUnFiltroInvalidoResponde400YUnaFechaMalEscritaTambien() throws Exception {
         when(generarReporte.execute(any(GenerarReporteRequest.class)))
-                .thenThrow(new BusinessRuleException("No se puede filtrar por ese campo"));
+                .thenThrow(new BusinessRuleException("No se puede filtrar por ese dato"));
     }
 
     private void dadoElEscenarioDeGETDeLaDescargaDevuelveElXLSXConSuNombreYPasaLosMismosFiltros() throws Exception {

@@ -30,7 +30,7 @@ export const handlersImportaciones = [
     await delay(DEMORA_DE_LECTURA_MS);
     const pedido = await leerPedido(request);
     if (!pedido?.success) {
-      return errorResponse(400, 'No se pudo leer la imagen', pathDe(request));
+      return errorResponse(400, 'No pudimos leer la foto', pathDe(request));
     }
     const planes = planesDe(usuario.email);
     if (planes.uso.limitePaginasIa !== null && planes.uso.paginasIa >= planes.uso.limitePaginasIa)

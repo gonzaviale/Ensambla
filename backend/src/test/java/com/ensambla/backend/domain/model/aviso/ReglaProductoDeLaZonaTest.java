@@ -62,7 +62,7 @@ class ReglaProductoDeLaZonaTest {
                 + "Cada uno vende unas 9 unidades por semana.");
         entoncesLosMotivosDelPrimerAvisoSon(
                 "Es un dato agregado de varios comercios de tu zona: nadie queda identificado.",
-                "Lo cruzamos con tu inventario y no encontramos nada parecido.");
+                "Lo cruzamos con tu stock y no encontramos nada parecido.");
         entoncesElPrimerAvisoGuardaSoloElNombreYElPrecio(CAFE, new BigDecimal("3200"));
     }
 
@@ -74,7 +74,7 @@ class ReglaProductoDeLaZonaTest {
         cuandoSeEvaluaLaRegla();
 
         entoncesLasAccionesDelPrimerAvisoSon(
-                AccionesDePrueba.crearEnElInventario("Sumar a mi inventario",
+                AccionesDePrueba.crearEnElInventario("Sumar a mi stock",
                         Map.of("name", CAFE, "quantity", 0, "price", new BigDecimal("3200"), "minimum", 5)),
                 AccionesDePrueba.verEnLaZona(CAFE));
     }

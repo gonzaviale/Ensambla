@@ -32,7 +32,7 @@ const abrirZona = async (conDemo = false) => {
   const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
   if (conDemo) estado.sistemas.set(usuario.email, [crearAlmacenDeEjemplo(hoy())]);
   const router = renderApp('/zona');
-  await screen.findByRole('heading', { level: 1, name: /Mirá cuánto se cobra en tu zona/ }, ESPERA);
+  await screen.findByRole('heading', { level: 1, name: /Compará los precios de tu zona/ }, ESPERA);
   return { user: userEvent.setup(), router };
 };
 
@@ -170,7 +170,7 @@ describe('Qué se vende cerca', () => {
     await user.click(screen.getByRole('tab', { name: /Qué se vende cerca/ }));
     await screen.findByText('Leche La Serenísima 1 L', { selector: 'strong' }, ESPERA);
 
-    expect(screen.getByText(/necesitás una sección con un bloque de Inventario/)).toBeVisible();
+    expect(screen.getByText(/necesitás una sección de Stock/)).toBeVisible();
     expect(
       within(tarjetaDe('Leche La Serenísima 1 L')).getByRole('button', {
         name: /Sumar a mis productos/,
@@ -205,7 +205,7 @@ describe('el cupo gratuito de cada pestaña', () => {
     renderApp('/zona');
     await screen.findByRole(
       'heading',
-      { level: 1, name: /Mirá cuánto se cobra en tu zona/ },
+      { level: 1, name: /Compará los precios de tu zona/ },
       ESPERA,
     );
     return userEvent.setup();

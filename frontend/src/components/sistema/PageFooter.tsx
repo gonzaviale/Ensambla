@@ -47,7 +47,7 @@ export function PageFooter() {
             <BrandMark />
             <strong>Ensambla</strong>
           </p>
-          <p className="pie-frase">Tu sección, un bloque a la vez.</p>
+          <p className="pie-frase">Tu negocio, un bloque a la vez.</p>
         </div>
         <nav className="pie-enlaces" aria-label="Pie de página">
           {grupos.map((grupo) => (

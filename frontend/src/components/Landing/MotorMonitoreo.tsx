@@ -26,7 +26,7 @@ export function MotorMonitoreo() {
         <div className="vigia-texto revelar">
           <p className="sami-kicker sami-kicker--claro">Sami vigila</p>
           <h2 id="vigia-titulo">Mientras vos atendés, Sami mira tus números.</h2>
-          <p className="vigia-bajada">Y te avisa cuando algo cambia, sin gráficos raros.</p>
+          <p className="vigia-bajada">Y te avisa cuando algo cambia.</p>
 
           <ul className="vigia-avisos" aria-label="Sami te avisa de">
             {AVISOS.map(({ color, texto }) => (

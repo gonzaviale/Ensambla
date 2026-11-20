@@ -19,7 +19,7 @@ describe('la cuota de objetivos con IA', () => {
 
     cuandoSeAbreObjetivos();
 
-    await entoncesSeDiceQue('Te quedan 4 de 5 objetivos con IA este mes');
+    await entoncesSeDiceQue('Objetivos con IA disponibles este mes: 4 de 5');
   });
 
   it('un objetivo monetario del formulario clásico no gasta cuota', async () => {
@@ -104,7 +104,7 @@ async function cuandoSeAbrenLosPlanes() {
 
 async function cuandoSeDefineUnObjetivoMonetarioClasico() {
   const user = userEvent.setup();
-  await screen.findByText('Te quedan 5 de 5 objetivos con IA este mes', {}, ESPERA);
+  await screen.findByText('Objetivos con IA disponibles este mes: 5 de 5', {}, ESPERA);
   await user.click(screen.getByRole('button', { name: /Nuevo desafío/ }));
   await user.click(
     await screen.findByRole('button', { name: 'Quiero poner una meta en pesos por mes' }),
@@ -128,7 +128,7 @@ async function entoncesSeDiceQue(texto: string) {
 async function entoncesSeSumoUnObjetivoSinGastarCuota() {
   await waitFor(() => expect(screen.getAllByRole('article')).toHaveLength(2), ESPERA);
   expect(estado.objetivosConIa.has(`${usuario.email}|${elMes()}`)).toBe(false);
-  expect(screen.getByText('Te quedan 5 de 5 objetivos con IA este mes')).toBeVisible();
+  expect(screen.getByText('Objetivos con IA disponibles este mes: 5 de 5')).toBeVisible();
 }
 
 async function entoncesElAvisoExplicaQueSeAgotoYQueHayPremium() {

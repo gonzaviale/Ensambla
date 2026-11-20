@@ -84,7 +84,7 @@ type FormularioProps = {
 function FormularioDeDescripcion({ sami, entrada, onEntrada, dictado, onEnviar }: FormularioProps) {
   return (
     <form className="guide-composer" onSubmit={onEnviar}>
-      <label htmlFor="sami-descripcion">Contame un poco de tu negocio</label>
+      <label htmlFor="sami-descripcion">Describí tu negocio</label>
       <textarea
         id="sami-descripcion"
         placeholder="Vendo velas y anoto quién me debe…"
@@ -104,7 +104,7 @@ function FormularioDeDescripcion({ sami, entrada, onEntrada, dictado, onEnviar }
           <Icon name="mic" />
         </Btn>
         <button className="btn primary" type="submit" disabled={sami.pensando}>
-          Pensalo conmigo <Icon name="arrow" />
+          Enviar a Sami <Icon name="arrow" />
         </button>
       </div>
     </form>

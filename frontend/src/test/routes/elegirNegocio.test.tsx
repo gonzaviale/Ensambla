@@ -27,7 +27,7 @@ const dadoNegocios = (...negocios: Sistema[]) => {
 const cuandoIniciaSesion = async (ruta = '/login') => {
   const router = renderApp(ruta);
   const user = userEvent.setup();
-  await screen.findByRole('heading', { name: 'Ingresá a tu cuenta' }, ESPERA);
+  await screen.findByRole('heading', { name: 'Entrá a tu cuenta' }, ESPERA);
   await typeLabel(user, 'Email', USUARIO.email);
   await typeLabel(user, 'Contraseña', USUARIO.contrasenia);
   await user.click(screen.getByRole('button', { name: 'Ingresar' }));

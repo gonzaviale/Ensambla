@@ -8,7 +8,7 @@ import { ESPERA, verifyHeadingPresentAsync } from '@/test/testHelpers';
 type Router = ReturnType<typeof renderApp>;
 
 const TITULO_DE_LA_LANDING = 'Tu negocio de siempre, con tus cuentas más claras';
-const SAMI = 'Sami, el pulpito de Ensambla';
+const SAMI = 'Sami, el pulpo de Ensambla';
 
 let router: Router;
 let user: UserEvent;
@@ -164,7 +164,7 @@ export const entoncesSeAbreElRegistro = async () => {
 };
 
 export const entoncesSeAbreElIngreso = async () => {
-  await screen.findByRole('heading', { name: 'Ingresá a tu cuenta' }, ESPERA);
+  await screen.findByRole('heading', { name: 'Entrá a tu cuenta' }, ESPERA);
   expect(router.state.location.pathname).toBe('/login');
 };
 
@@ -202,7 +202,7 @@ export const entoncesNoHayCoincidencias = () => {
 };
 
 export const entoncesSeRechazaElImporteSinPasarALaConfirmacion = () => {
-  expect(screen.getByRole('alert')).toHaveTextContent('Ingresá un importe mayor a cero.');
+  expect(screen.getByRole('alert')).toHaveTextContent('Escribí un importe mayor a $0.');
   expect(importeDelFiado()).toHaveFocus();
   expect(importeDelFiado()).toHaveAttribute('aria-invalid', 'true');
   expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();

@@ -117,7 +117,7 @@ describe('objetivos con Sami', () => {
   it('dice la cuota que queda', () => {
     cuandoSeCalcula(() => textoDeCuota(CUOTA));
 
-    entoncesElResultadoEs('Te quedan 3 de 5 objetivos con IA este mes');
+    entoncesElResultadoEs('Objetivos con IA disponibles este mes: 3 de 5');
   });
 
   it('dice cuándo la cuota se agotó', () => {
@@ -129,7 +129,7 @@ describe('objetivos con Sami', () => {
   it('cuenta en qué datos se apoyó Sami y de cuáles no hay', () => {
     cuandoSeCalcula(() => datosUsados(PROPUESTA.datos));
 
-    entoncesElResultadoEs('Se apoyó en: ventas, margen. Sin datos de: gastos, zona.');
+    entoncesElResultadoEs('Se apoyó en: ventas, ganancia por venta. Sin datos de: gastos, zona.');
   });
 
   it('sin datos no cuenta nada', () => {

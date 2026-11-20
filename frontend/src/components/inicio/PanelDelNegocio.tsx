@@ -42,7 +42,7 @@ export function PanelDelNegocio() {
         <div className="panel-estado panel-vacio">
           <p>
             <strong>Todavía no cargaste ventas en los últimos {consulta.data.dias} días.</strong>{' '}
-            Anotá tus primeras ventas en «{sistema.name}» y acá vas a ver cómo se mueve tu plata
+            Cargá tus primeras ventas en «{sistema.name}» para ver aquí cómo se mueve tu plata
             semana a semana.
           </p>
           <Btn cls="small" onClick={() => void abrirVentas(sistema)}>
@@ -62,7 +62,7 @@ const periodo = (panel: Panel) =>
 function Esqueleto() {
   return (
     <div className="panel-esqueleto" role="status" aria-busy="true">
-      <span className="sr-only">Estamos haciendo tus cuentas…</span>
+      <span className="sr-only">Calculando tus números…</span>
       <div className="panel-esqueleto-flujo" aria-hidden="true" />
     </div>
   );

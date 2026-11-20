@@ -13,7 +13,7 @@ function BarraDeLaCuota({ cuota }: { cuota: CuotaObjetivos }) {
   );
 }
 
-// «Te quedan 3 de 5 objetivos con IA este mes»: una línea chica y tranquila, con una barra que se va vaciando.
+// «Objetivos con IA disponibles este mes: 3 de 5»: una línea chica y tranquila, con una barra que se va vaciando.
 // Sin dato del servidor no se muestra.
 export function CuotaDeObjetivos({ cuota }: { cuota: CuotaObjetivos | null | undefined }) {
   if (!cuota) return null;

@@ -116,7 +116,7 @@ describe('Ubicación y rubro del negocio', () => {
 
   it('protege la pantalla con el guard de sesión', async () => {
     const router = renderApp('/ubicacion');
-    await screen.findByRole('heading', { name: 'Ingresá a tu cuenta' }, ESPERA);
+    await screen.findByRole('heading', { name: 'Entrá a tu cuenta' }, ESPERA);
     expect(router.state.location.pathname).toBe('/login');
     expect(screen.queryByRole('heading', { name: 'Ubicación y rubro' })).toBeNull();
   });

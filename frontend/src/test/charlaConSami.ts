@@ -25,7 +25,7 @@ const ERROR_DE_CUOTA = 'Hoy ya usaste todas las consultas con IA.';
 let pedidos: Pedido[] = [];
 
 const persona = laPersonaDelTaller;
-const campo = () => screen.getByRole('textbox', { name: /Contame un poco|¿Qué le falta/ });
+const campo = () => screen.getByRole('textbox', { name: /Describí tu negocio|¿Qué le falta/ });
 const botonera = () => screen.findByRole('group', { name: 'Respuestas rápidas' }, ESPERA);
 const borrador = () => useSistemaStore.getState().taller?.borrador ?? null;
 const piezasDelBorrador = () => (borrador()?.sections ?? []).flatMap((seccion) => seccion.blocks);
@@ -54,7 +54,7 @@ const samiResponde = (responder: (pedido: Pedido) => JsonBodyType) => {
 
 const escribir = async (texto: string) => {
   await persona().type(campo(), texto);
-  await clickButton(persona(), /Pensalo conmigo|Ajustalo conmigo/);
+  await clickButton(persona(), /Enviar a Sami|Ajustar con Sami/);
 };
 
 const samiPregunta = (pregunta: string, opciones: string[], respuesta: string, final: string) =>
@@ -336,4 +336,4 @@ export const entoncesElNombreQueSamiPusoQuedaEnElCampo = async () => {
   expect(screen.getByLabelText('Nombre de tu sección')).toHaveValue('Velas de Ana');
 };
 
-export const entoncesSigueTePidiendoMasDetalle = () => verifyToastAsync(/Contame un poquito más/);
+export const entoncesSigueTePidiendoMasDetalle = () => verifyToastAsync(/Necesito más detalles/);

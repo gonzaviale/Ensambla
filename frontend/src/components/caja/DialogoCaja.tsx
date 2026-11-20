@@ -1,6 +1,7 @@
 import { useId, type ReactNode } from 'react';
 import { useDialogoCaja } from '@/hooks/caja/useDialogoCaja';
 import { Icon } from '@/components/sistema/Icon';
+import type { Tono } from '@/lib/sistema/tonos';
 
 export function DialogoCaja({
   titulo,
@@ -9,6 +10,7 @@ export function DialogoCaja({
   bloqueado = false,
   rol = 'dialog',
   clase = '',
+  tono,
 }: {
   titulo: string;
   onCerrar: () => void;
@@ -16,6 +18,7 @@ export function DialogoCaja({
   bloqueado?: boolean;
   rol?: 'dialog' | 'alertdialog';
   clase?: string;
+  tono?: Tono;
 }) {
   const tituloId = useId();
   const raiz = useDialogoCaja(onCerrar, bloqueado);
@@ -29,7 +32,10 @@ export function DialogoCaja({
         aria-modal="true"
         aria-labelledby={tituloId}
       >
-        <div className="caja-entre caja-dialogo-cabecera">
+        <div
+          className={`caja-entre caja-dialogo-cabecera ${tono ? 'solido' : ''}`}
+          data-tono={tono}
+        >
           <h2 id={tituloId}>{titulo}</h2>
           <button
             type="button"

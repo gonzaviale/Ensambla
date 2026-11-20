@@ -60,7 +60,7 @@ export function TarjetaPlan({
     },
     {
       icono: 'note',
-      titulo: 'Registros en total',
+      titulo: 'Datos guardados en total',
       valor: limite(plan.limiteRegistros, plan.limitesConfigurados),
     },
     {

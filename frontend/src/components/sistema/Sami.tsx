@@ -21,7 +21,7 @@ const ENCUADRES = {
 export function Sami({ pose = 'hello' }: { pose?: PoseDeSami }) {
   const { viewBox, archivo, ancho, alto } = ENCUADRES[pose];
   return (
-    <svg className="sami" viewBox={viewBox} role="img" aria-label="Sami, el pulpito de Ensambla">
+    <svg className="sami" viewBox={viewBox} role="img" aria-label="Sami, el pulpo de Ensambla">
       <image href={`/mockup/${archivo}`} width={ancho} height={alto} />
     </svg>
   );

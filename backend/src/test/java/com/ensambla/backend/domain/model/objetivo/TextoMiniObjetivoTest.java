@@ -76,7 +76,7 @@ class TextoMiniObjetivoTest {
 
         entoncesElTextoEs("Reponé lo que está por debajo de tu mínimo",
                 "Productos en su mínimo o por debajo: hoy son 4. Reponelos y bajá ese número a 0 para no quedarte "
-                        + "sin.");
+                        + "sin stock.");
     }
 
     @Test

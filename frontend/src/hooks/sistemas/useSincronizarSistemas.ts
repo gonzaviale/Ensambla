@@ -66,7 +66,7 @@ export function useSincronizarSistemas() {
           avisar(
             detenido && error instanceof ApiError
               ? `${error.message} Tus cambios pendientes se conservan en esta pestaña.${pistaDeLosPlanes(error)}`
-              : 'No pudimos guardar tus cambios. Lo vamos a intentar de nuevo.',
+              : 'No pudimos guardar tus cambios. Reintentaremos en unos segundos.',
           );
           avisoDeErrorDado = true;
         }

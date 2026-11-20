@@ -91,10 +91,10 @@ class FiltroReporteTest {
     void rechazaFiltrarPorUnaColumnaQueNoEsDeOpcionNiDeSiNoOQueNoExiste() {
         assertThatThrownBy(() -> armar(null, null, null, NOMBRE_ID, "x"))
                 .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("No se puede filtrar por ese campo");
+                .hasMessage("No se puede filtrar por ese dato");
         assertThatThrownBy(() -> armar(null, null, null, CampoId.nuevo(), "x"))
                 .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("No se puede filtrar por ese campo");
+                .hasMessage("No se puede filtrar por ese dato");
     }
 
     @Test

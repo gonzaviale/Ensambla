@@ -13,29 +13,66 @@
   cursor: pointer;
   border-radius: 12px;
 }
-.acciones-rapidas-disparador {
+.acciones-rapidas .acciones-rapidas-disparador {
   color: white;
   background: var(--petrol, #005064);
   border: 2px solid var(--petrol, #005064);
   box-shadow: 0 4px 16px #0003;
+  font-size: 16px;
 }
 .acciones-rapidas-panel {
-  display: grid;
-  gap: 8px;
+  position: relative;
   width: min(300px, calc(100vw - 32px));
-  padding: 12px;
+  padding: 28px 12px 12px;
   margin-bottom: 8px;
   border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--paper, white);
   box-shadow: 0 4px 20px #0003;
 }
-.acciones-rapidas-panel button {
+.acciones-rapidas-opciones {
+  display: grid;
+  gap: 8px;
+}
+.acciones-rapidas-opciones button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
+  font-size: 16px;
   text-align: left;
-  background: var(--paper, white);
-  color: var(--petrol, #005064);
-  border: 1px solid currentColor;
+}
+.acciones-rapidas-opciones button .icon {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+}
+.acciones-rapidas .acciones-rapidas-cerrar {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px #0003;
+}
+.acciones-rapidas-cerrar .icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 3;
+}
+@media (max-width: 400px) {
+  .acciones-rapidas .acciones-rapidas-cerrar {
+    top: 8px;
+    right: 8px;
+  }
+  .acciones-rapidas-panel {
+    padding-top: 60px;
+  }
 }
 .acciones-rapidas-inventarios {
   display: grid;

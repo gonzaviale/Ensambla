@@ -86,7 +86,7 @@ export function ModalImportar({ sistemaId }: Props) {
         <span className="upload-icono">
           <Icon name="upload" />
         </span>
-        <strong>{preparando ? 'Preparando la foto…' : 'Elegí una foto o arrastrala acá'}</strong>
+        <strong>{preparando ? 'Preparando la foto…' : 'Elegí una foto o arrastrala aquí'}</strong>
         <p>
           Una hoja, un cuaderno o una captura de pantalla.
           <br />

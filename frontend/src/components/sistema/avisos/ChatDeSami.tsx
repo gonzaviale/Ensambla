@@ -277,7 +277,7 @@ export function ChatDeSami({ contexto, mensajes, onMensajes, onCerrar, onAyuda }
         </button>
       </form>
       <button type="button" className="sami-chat-ayuda" onClick={onAyuda}>
-        <Icon name="help" /> ¿Una mano con esto?
+        <Icon name="help" /> Consultar a Sami
       </button>
     </section>
   );

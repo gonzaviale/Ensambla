@@ -19,9 +19,9 @@ import type {
 export type MensajeDeSami = { quien: 'sami' | 'you'; texto: string };
 
 const LARGO_MINIMO = 5;
-const MENSAJE_CORTO = 'Contame un poquito más para encontrar un punto de partida.';
+const MENSAJE_CORTO = 'Necesito más detalles para encontrar un punto de partida.';
 const SIN_RESPUESTA =
-  'Con lo que me contaste todavía no encuentro un punto de partida. ¿Me contás un poco más de cómo trabajás?';
+  'Con lo que me contaste todavía no encuentro un punto de partida. ¿Podés contarme más sobre cómo trabajás?';
 
 export const plantillasDelServidorQuery = () =>
   queryOptions({
@@ -35,7 +35,7 @@ const textoDeLaPropuesta = (propuesta: PropuestaDeSami) => {
   const columnas = extra.length
     ? ` y sumarle ${extra.length === 1 ? 'la columna' : 'las columnas'} ${extra.join(', ')}`
     : '';
-  return `Te propongo empezar con «${propuesta.plantilla}»${columnas}. Mirá cómo queda a la derecha y sacá lo que no necesites.`;
+  return `Te propongo empezar con «${propuesta.plantilla}»${columnas}. Revisá cómo queda a la derecha y quitá lo que no necesites.`;
 };
 
 // «Armalo con Sami» contra el backend real (T-118): la persona cuenta su negocio, Sami pregunta lo que le falta,

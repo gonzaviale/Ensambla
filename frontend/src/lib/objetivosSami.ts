@@ -35,8 +35,8 @@ export const ETIQUETA_DE_TIPO: Record<TipoObjetivo, string> = {
 
 const NOMBRE_DE_FUENTE: Record<FuenteDeDatos, string> = {
   VENTAS: 'ventas',
-  MARGEN: 'margen',
-  INVENTARIO: 'inventario',
+  MARGEN: 'ganancia por venta',
+  INVENTARIO: 'stock',
   GASTOS: 'gastos',
   ZONA: 'zona',
 };
@@ -53,11 +53,11 @@ export function datosUsados(datos: PropuestaObjetivo['datos']): string {
   return [con && `Se apoyó en: ${con}.`, sin && `Sin datos de: ${sin}.`].filter(Boolean).join(' ');
 }
 
-/** «Te quedan 3 de 5 este mes»; con cero, que se usaron todos. */
+/** «Objetivos con IA disponibles este mes: 3 de 5»; con cero, que se usaron todos. */
 export function textoDeCuota(cuota: CuotaObjetivos): string {
   return cuota.restantes === 0
     ? `Usaste los ${cuota.limite} objetivos con IA de este mes`
-    : `Te quedan ${cuota.restantes} de ${cuota.limite} objetivos con IA este mes`;
+    : `Objetivos con IA disponibles este mes: ${cuota.restantes} de ${cuota.limite}`;
 }
 
 /** Una acción manual no puede afirmar una cifra: los importes y porcentajes los mide Sami, no se escriben. */

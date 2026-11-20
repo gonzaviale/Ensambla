@@ -217,8 +217,8 @@ export function PanelDeAvisos() {
         <aside className="alertas-urgentes" aria-label="Lo urgente">
           <strong>
             {muyUrgentes.length === 1
-              ? 'Hay 1 cosa que no puede esperar'
-              : `Hay ${muyUrgentes.length} cosas que no pueden esperar`}
+              ? 'Hay 1 aviso urgente'
+              : `Hay ${muyUrgentes.length} avisos urgentes`}
           </strong>
           <ul>
             {muyUrgentes.map((aviso) => (

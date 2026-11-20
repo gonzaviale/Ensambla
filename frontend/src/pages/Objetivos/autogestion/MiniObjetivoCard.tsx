@@ -117,7 +117,7 @@ export function MiniObjetivoCard({ mini, decidido, ocupado, onDecidir, onRestaur
             </button>
             <button
               type="button"
-              className="btn primary"
+              className="btn petrol"
               disabled={ocupado}
               onClick={() => onDecidir('ACEPTADO')}
             >

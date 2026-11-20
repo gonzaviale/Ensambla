@@ -36,7 +36,7 @@ public class ReglaProductoDeLaZona implements ReglaAviso {
     private static final int STOCK_MINIMO_SUGERIDO = 5;
     private static final List<Object> MOTIVOS = List.of(
             "Es un dato agregado de varios comercios de tu zona: nadie queda identificado.",
-            "Lo cruzamos con tu inventario y no encontramos nada parecido.");
+            "Lo cruzamos con tu stock y no encontramos nada parecido.");
 
     private final BigDecimal popularidadMinima;
 
@@ -117,7 +117,7 @@ public class ReglaProductoDeLaZona implements ReglaAviso {
     private static List<AccionDeAviso> acciones(
             BloqueInventario destino, AgregadoZonaProducto producto, BigDecimal sugerido) {
         return List.of(
-                AccionesAviso.crearRegistro(destino, "Sumar a mi inventario", valoresDelProducto(producto, sugerido)),
+                AccionesAviso.crearRegistro(destino, "Sumar a mi stock", valoresDelProducto(producto, sugerido)),
                 AccionesAviso.verZona("Ver en Mi zona", producto.nombre()));
     }
 

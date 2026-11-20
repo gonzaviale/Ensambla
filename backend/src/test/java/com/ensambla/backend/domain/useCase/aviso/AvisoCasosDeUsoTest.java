@@ -62,7 +62,7 @@ class AvisoCasosDeUsoTest {
     private static final String SIN_TABLA = "La acción del aviso no indica en qué tabla crear la fila";
     private static final String SIN_REGISTRO = "La acción del aviso no indica qué registro cambiar";
     private static final String SIN_VALORES = "La acción del aviso no indica qué valores cambiar";
-    private static final String SIN_CAMPOS = "La tabla ya no tiene los campos que el aviso quería cambiar";
+    private static final String SIN_CAMPOS = "La sección ya no tiene los datos que el aviso quería cambiar";
 
     private static final NegocioId NEGOCIO_ID = AvisoTestData.NEGOCIO_ID;
     private static final Clock CLOCK = Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC);

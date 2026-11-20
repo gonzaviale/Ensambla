@@ -162,7 +162,7 @@ public class ReglaComboBajaRotacion implements ReglaAviso {
                 datos,
                 List.of("Por separado suman " + pesos(suma) + "; como combo, " + pesos(sugerido) + " ("
                                 + porcentaje(suma.subtract(sugerido), suma) + " % menos) puede ayudar a que roten.",
-                        "El combo se crea como un producto nuevo del inventario; después cargás cuántos armás."),
+                        "El combo se crea como un producto nuevo del stock; después cargás cuántos armás."),
                 List.of(AccionesAviso.crearRegistro(inventario, "Crear el combo",
                         valoresDelCombo(inventario, a, b, nombreA, nombreB, sugerido))));
     }
