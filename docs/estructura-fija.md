@@ -93,3 +93,33 @@ Las secciones nuevas se agregan sin filas; agregar una columna no escribe valore
 
 Una columna propia que quiera usar una clave reservada también se aparta (punto 4): la pantalla tiene que evitar
 generar esas claves al crear una columna (ver la lista de claves reservadas en la pantalla).
+
+## Qué informa el servidor a la pantalla
+
+Cada columna de la respuesta de `GET /api/sistemas` trae `system: true` si es una de las fijas de su tipo de sección, y
+cada sección trae `removable` (si se puede quitar: no lo es la última de un tipo obligatorio) y `typeLocked` (si lleva
+columnas fijas y por eso no se le puede cambiar el tipo). Son campos solo de salida: al guardar se ignoran y el backend
+los recalcula.
+
+La pantalla no espera al servidor para bloquear: `lib/sistema/estructuraFija.ts` aplica la misma regla sobre el
+catálogo (`CATALOG` marca con `system` las columnas fijas), así lo que la persona crea en el momento también queda
+protegido. El catálogo de componentes que lee Sami (`ia/catalogo-componentes.json`) se genera desde el mismo catálogo con
+`npm run catalogo:sami` y trae `fija` en cada columna y `obligatorioEnElNegocio` en cada componente.
+
+## Dónde se hace cumplir
+
+| Camino | Cómo |
+|---|---|
+| Guardar el negocio entero (`PUT /api/sistemas/{id}`) | `ProteccionDeEstructura.validar` rechaza con 409 y `EstructuraFija.completar` suma lo que falta |
+| Abrir el negocio (`GET /api/sistemas`) | `ListarSistemas` completa y guarda lo que falte, una sola vez |
+| Quitar una sección o una columna por su endpoint | `EliminarBloque` y `EliminarCampo` |
+| Editar una columna por su endpoint | `EditarCampo` |
+| Taller de Sami | `QuitarPieza`, `QuitarCampo` y `EditarCampo` del taller no quitan ni cambian lo fijo, y la acción de la pantalla vuelve a comprobarlo |
+| Editor | las acciones de `stores/accionesDelEditor.ts` y `lib/sistema/acciones`, y los botones deshabilitados con su motivo |
+
+La creación desde una plantilla (`CrearProyectoDesdeSami`, `CrearProyectoDesdePlantilla`) no cambia: el negocio nace con
+las secciones de la plantilla y se completa la primera vez que se abre. Un negocio creado en blanco desde la pantalla se
+completa al guardarse.
+
+Con las columnas fijas, una sección de Stock arranca con 9 columnas, así que el tope de columnas por pieza que usa el
+taller de Sami pasó de 12 a 16.
