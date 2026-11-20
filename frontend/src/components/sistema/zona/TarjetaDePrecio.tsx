@@ -14,7 +14,7 @@ const TEXTO_DE_POSICION: Record<PosicionDelPrecio, string> = {
   alto: 'por encima del promedio de tu zona',
 };
 
-const COLOR_DE_POSICION = { bajo: 'orange', justo: 'blue', alto: 'coral' } as const;
+const COLOR_DE_POSICION = { bajo: 'yellow', justo: 'blue', alto: 'coral' } as const;
 
 // Un producto de la zona: su rango de precios agregado y, si lo tenés, dónde está el tuyo.
 export function TarjetaDePrecio({

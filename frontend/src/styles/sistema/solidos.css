@@ -406,18 +406,6 @@
   border-top: 1px solid var(--line);
 }
 
-/* ===== Mi negocio: cabecera de cada sección con su color sólido; la amarilla pasa a naranja (R4) ===== */
-
-/* El color de cada pieza llega en línea (--accent); el !important es lo único que le gana a un estilo en línea, y así
-   la pieza amarilla pasa entera a naranja: cabecera, botones, vista previa de plantillas y miniaturas (R4). */
-[style*='--accent: #ba9500' i] {
-  --accent: var(--orange) !important;
-  --tint: #fff0da !important;
-}
-.block .block-head :is(h2, h3, p, span, small) {
-  color: #fff;
-}
-
 /* ===== Plantillas: encabezado sólido de un color distinto en cada tarjeta ===== */
 
 .template-page .template-card[data-tono] .set-visual {
@@ -452,54 +440,6 @@
 }
 .studio-canvas .draft-footer {
   border-top: 1px solid var(--line);
-}
-
-/* ===== Planes: Gratuito celeste sólido y Premium petróleo sólido, con letra blanca ===== */
-
-.plans-page .plan-current,
-.plans-page .plan-current.plan-current-trial {
-  border: 1px solid var(--line);
-}
-.plans-page .plan-card[data-color] {
-  border: 0;
-  background: var(--plan);
-  color: #fff;
-}
-.plans-page .plan-card[data-color]::before {
-  display: none;
-}
-.plans-page .plan-card[data-color] :is(h2, p, dt, dd, li, span, strong, small, .plan-renewal) {
-  color: #fff;
-}
-.plans-page .plan-card[data-color] .plan-card-description {
-  font-size: 16px;
-  font-weight: 700;
-}
-.plans-page .plan-card[data-color] :is(.plan-card-icon, .plan-limit-icono) {
-  background: rgb(255 255 255 / 0.22);
-  color: #fff;
-}
-.plans-page .plan-card[data-color] .plan-features .icon {
-  color: #fff;
-}
-.plans-page .plan-card[data-color] .plan-label {
-  border-color: #fff;
-  background: #fff;
-  color: var(--plan);
-}
-.plans-page .plan-card[data-color] .btn.secondary {
-  border-color: #fff;
-  background: #fff;
-  color: var(--plan);
-}
-
-/* Un botón deshabilitado («Prueba activa», «Contratar Premium» sin pagos configurados) es un estado, no la acción
-   principal: gris sólido con letra blanca, como «Cobrar» sin productos (R7). */
-.plans-page .btn.primary:disabled {
-  border-color: var(--muted);
-  background: var(--muted);
-  color: #fff;
-  opacity: 1;
 }
 
 /* ===== Cuenta: la sección elegida en petróleo; el resto, blancas con un ícono sólido de color ===== */
@@ -620,25 +560,6 @@
 }
 .comparar-negocios [data-hay] {
   color: #b32a25;
-}
-
-/* ===== Mi zona: más barato naranja, en línea celeste, más caro coral; tarjetas con borde fino (R6) ===== */
-
-.zona-tarjeta,
-.zona-lista .zona-tarjeta,
-.zona-lista .zona-tarjeta.mio {
-  border-left: 1px solid var(--c-borde, var(--line));
-}
-.zona-etiqueta.bajo::before,
-.zona-ref-nums div:nth-child(1) {
-  background: var(--orange);
-}
-.zona-etiqueta.alto::before,
-.zona-ref-nums div:nth-child(3) {
-  background: var(--coral);
-}
-.zona-ref .zona-ref-nums :is(strong, span) {
-  color: #fff;
 }
 
 /* ===== Ubicación y avisos de la cuenta: borde fino, el color queda en el control ===== */
