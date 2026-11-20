@@ -7,7 +7,7 @@ import {
   type PropsDelGrafico,
 } from '@/lib/metricas/graficos';
 
-const LADO = 220;
+const LADO = 176;
 
 // La torta como dona, a la izquierda, y al lado cada parte con su color, su valor y su porcentaje. Pasando el mouse por
 // una porción se ve de quién es. Con muchas partes la lista crece sin deformar el dibujo.

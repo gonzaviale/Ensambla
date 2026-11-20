@@ -253,6 +253,10 @@
 .agregar-metrica-entendi b {
   color: var(--petrol);
 }
+.agregar-metrica-entendi .objetivos-etiqueta {
+  color: var(--petrol);
+  font-size: 15px;
+}
 .agregar-metrica-por-defecto {
   color: var(--c-accion-texto);
 }
@@ -457,8 +461,8 @@
 /* El cuerpo de una métrica: tarjeta blanca con el borde entero de su color, título en petróleo. */
 .panel-negocio-metrica {
   display: grid;
-  gap: 6px;
-  padding: 18px 22px;
+  gap: 4px;
+  padding: 22px;
   border: 2px solid var(--color-solapa);
   border-radius: 20px;
   background: #fff;
@@ -576,7 +580,7 @@
   display: grid;
   grid-template-columns: 250px minmax(0, 1fr);
   align-items: center;
-  min-height: 220px;
+  min-height: 176px;
   gap: 8px 28px;
 }
 .grafico-metrica[data-grafico='NUMERO'] {
@@ -595,7 +599,7 @@
   align-content: center;
   gap: 12px;
   min-width: 0;
-  min-height: 220px;
+  min-height: 176px;
 }
 .panel-negocio-metrica-herramientas {
   display: flex;
@@ -690,7 +694,7 @@
 }
 .grafico-dona {
   display: grid;
-  grid-template-columns: minmax(0, 220px) minmax(0, max-content);
+  grid-template-columns: minmax(0, 176px) minmax(0, max-content);
   align-items: center;
   justify-content: center;
   gap: 20px;
@@ -711,6 +715,15 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+/* Con más de cinco partes la lista pasa a dos columnas: así la tarjeta de la dona no crece más que la de las barras. */
+.grafico-dona-lista:has(li:nth-child(6)) {
+  grid-auto-flow: column;
+  grid-template-rows: repeat(6, auto);
+  gap: 4px 24px;
+}
+.grafico-dona-lista:has(li:nth-child(6)) .grafico-dona-etiqueta {
+  max-width: 120px;
 }
 .grafico-dona-lista li {
   display: grid;
@@ -771,8 +784,14 @@
     width: 100%;
     max-width: 240px;
   }
-  .grafico-dona-lista {
+  .grafico-dona-lista,
+  .grafico-dona-lista:has(li:nth-child(6)) {
     width: 100%;
+    grid-auto-flow: row;
+    grid-template-rows: none;
+  }
+  .grafico-dona-lista:has(li:nth-child(6)) .grafico-dona-etiqueta {
+    max-width: none;
   }
 }
 
@@ -844,23 +863,28 @@
   color: var(--petrol);
   font-size: 22px;
 }
+/* La cruz de las ventanas: círculo con borde suave y la X oscura; al pasar el mouse se llena de coral. */
 .ventana-flotante-cerrar {
   display: grid;
   flex: none;
   place-items: center;
   width: 40px;
   height: 40px;
-  border: 2px solid var(--coral);
+  border: 2px solid #e4e8e6;
   border-radius: 50%;
-  background: var(--coral);
-  color: #fff;
+  background: #fff;
+  color: var(--ink);
   cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 .ventana-flotante-cerrar:hover,
 .ventana-flotante-cerrar:focus-visible {
+  border-color: var(--coral);
   background: var(--coral);
   color: #fff;
-  filter: brightness(0.92);
 }
 .ventana-flotante-cerrar .icon {
   width: 20px;
@@ -876,13 +900,16 @@
   align-items: center;
   gap: 8px;
   margin: 0;
-  color: var(--petrol);
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--blue);
+  color: #fff;
   font-weight: 700;
 }
 .aviso-ya-la-tenes .icon {
   width: 20px;
   height: 20px;
-  color: var(--blue);
+  color: #fff;
 }
 .panel-agregar-pestanas {
   display: grid;
@@ -1165,13 +1192,15 @@
 }
 .panel-agregar-pedido input[type='text'] {
   padding: 10px;
-  border: 2px solid var(--blue);
+  border: 2px solid #cdd5d2;
   border-radius: 10px;
   background: #fff;
   color: var(--ink);
 }
-.panel-agregar-pedido input[type='text']:focus {
-  border-color: var(--petrol);
+.panel-agregar-pedido input[type='text']:focus,
+.panel-agregar-pedido input[type='text']:focus-visible {
+  border-color: var(--blue);
+  outline: none;
 }
 .panel-agregar-pedido-intro {
   margin: 0;
@@ -1318,6 +1347,22 @@
   background: var(--coral);
   color: #fff;
   filter: brightness(0.92);
+}
+
+/* «Descartar» se ve como «Cancelar» de las ventanas: celeste suave, esquinas de 10px y la letra en petróleo. */
+.panel-agregar-cuerpo .panel-agregar-propuesta .agregar-metrica-acciones .agregar-metrica-ver {
+  border-color: var(--c-estructura-100);
+  border-radius: 10px;
+  background: var(--c-estructura-100);
+  color: var(--petrol);
+}
+.panel-agregar-cuerpo
+  .panel-agregar-propuesta
+  .agregar-metrica-acciones
+  .agregar-metrica-ver:hover:not(:disabled) {
+  border-color: var(--c-estructura-100);
+  background: #d3eaf1;
+  color: var(--petrol);
 }
 
 /* En la vista previa de la ventana la tarjeta no reserva alto de más. */

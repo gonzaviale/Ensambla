@@ -4,7 +4,7 @@ import { ListaParaElLector } from '@/components/sistema/metricas/graficos/ListaP
 import { TarjetaDelDato } from '@/components/sistema/metricas/graficos/TarjetaDelDato';
 import { datosDelGrafico, type PropsDelGrafico } from '@/lib/metricas/graficos';
 
-const ALTO = 220;
+const ALTO = 176;
 const COLOR_DEL_TEXTO = '#263443';
 const LARGO_DE_LOS_DIAS = 3;
 const PARTES_QUE_SE_LEEN_DE_FRENTE = 5;
@@ -25,7 +25,7 @@ export function BarrasDeLaMetrica({ definicion, resultado, partes }: PropsDelGra
       <LienzoDelGrafico alto={ALTO}>
         <BarChart
           data={datos}
-          margin={{ top: 28, right: 8, bottom: 4, left: inclinado ? 48 : 8 }}
+          margin={{ top: 22, right: 8, bottom: 4, left: inclinado ? 48 : 8 }}
           barCategoryGap="22%"
         >
           <XAxis
@@ -35,7 +35,7 @@ export function BarrasDeLaMetrica({ definicion, resultado, partes }: PropsDelGra
             axisLine={{ stroke: '#e6c9a8', strokeWidth: 2 }}
             angle={inclinado ? -35 : 0}
             textAnchor={inclinado ? 'end' : 'middle'}
-            height={inclinado ? 72 : 30}
+            height={inclinado ? 60 : 28}
             tick={{ fill: COLOR_DEL_TEXTO, fontSize: 12, fontWeight: 700 }}
           />
           <YAxis hide domain={[0, 'auto']} />

@@ -25,8 +25,7 @@ export function PedilaConTusPalabras({ sistemaId, guardando, onAgregar }: PropsD
   return (
     <form className="panel-agregar-pedido" onSubmit={entender} noValidate>
       <p className="panel-agregar-pedido-intro">
-        Contame qué querés ver, como se lo dirías a alguien del negocio. Yo lo traduzco y te muestro
-        cómo queda antes de guardarlo.
+        Contame qué querés ver y yo lo armo. Antes de guardarlo te muestro cómo queda.
       </p>
       <label>
         ¿Qué querés ver?
