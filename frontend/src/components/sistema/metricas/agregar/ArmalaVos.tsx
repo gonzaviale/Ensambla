@@ -5,7 +5,11 @@ import type { PropsDeLaPestana } from '@/components/sistema/metricas/agregar/tip
 import { VistaPrevia } from '@/components/sistema/metricas/agregar/VistaPrevia';
 import { NombreDeLaMetrica } from '@/components/sistema/metricas/NombreDeLaMetrica';
 import { useFuentesDelCuaderno, useVistaEnVivo } from '@/hooks/metricas/queries';
-import { ajustarALaFuente, definicionInicial } from '@/lib/metricas/metricasAMedida';
+import {
+  ajustarALaFuente,
+  conPrimeraEnMayuscula,
+  definicionInicial,
+} from '@/lib/metricas/metricasAMedida';
 import {
   PASO_DEL_NOMBRE,
   hechosDespuesDeElegir,
@@ -43,10 +47,13 @@ type PropsDelPasoAPaso = PropsDeLaPestana & { fuentes: FuenteDeMetrica[] };
 // contestadas y con nombre, así nunca se arma una con datos que la persona no decidió.
 function PasoAPaso({ sistemaId, guardando, onAgregar, fuentes }: PropsDelPasoAPaso) {
   const receta = useRecetaPasoAPaso(fuentes);
+  const vista = useVistaEnVivo(sistemaId, receta.definicion, receta.contestadasLasPreguntas);
+  // Sin datos para calcularla no se guarda: sería una métrica vacía.
+  const sinDatos = vista.resultado?.valor == null;
   const guardarLaMia = (evento: FormEvent) => {
     evento.preventDefault();
     const definicion = receta.lista();
-    if (definicion) onAgregar(definicion, 'PROPIA');
+    if (definicion && !sinDatos) onAgregar(definicion, 'PROPIA');
   };
   return (
     <form className="armala-vos" onSubmit={guardarLaMia} noValidate>
@@ -57,9 +64,9 @@ function PasoAPaso({ sistemaId, guardando, onAgregar, fuentes }: PropsDelPasoAPa
         paso={receta.paso}
         onIrAlPaso={receta.irAlPaso}
       />
-      <PasoActual receta={receta} fuentes={fuentes} guardando={guardando} />
+      <PasoActual receta={receta} fuentes={fuentes} guardando={guardando} sinDatos={sinDatos} />
       {receta.contestadasLasPreguntas && (
-        <VistaEnVivo sistemaId={sistemaId} definicion={receta.definicion} />
+        <VistaEnVivo vista={vista} definicion={receta.definicion} />
       )}
     </form>
   );
@@ -90,7 +97,8 @@ function useRecetaPasoAPaso(fuentes: FuenteDeMetrica[]) {
       setPaso(paso + 1);
     },
     cambiar: setDefinicion,
-    nombrar: (nuevo: string) => setDefinicion({ ...definicion, nombre: nuevo }),
+    nombrar: (nuevo: string) =>
+      setDefinicion({ ...definicion, nombre: conPrimeraEnMayuscula(nuevo) }),
     lista: () => (sePuedeGuardar ? { ...definicion, nombre } : null),
   };
 }
@@ -101,11 +109,12 @@ type PropsDelPasoActual = {
   receta: RecetaPasoAPaso;
   fuentes: FuenteDeMetrica[];
   guardando: boolean;
+  sinDatos: boolean;
 };
 
-function PasoActual({ receta, fuentes, guardando }: PropsDelPasoActual) {
+function PasoActual({ receta, fuentes, guardando, sinDatos }: PropsDelPasoActual) {
   if (receta.paso === PASO_DEL_NOMBRE)
-    return <PasoDelNombre receta={receta} guardando={guardando} />;
+    return <PasoDelNombre receta={receta} guardando={guardando} sinDatos={sinDatos} />;
   return (
     <TarjetasDelPaso
       paso={pasoConTarjetas(receta.paso)}
@@ -119,7 +128,9 @@ function PasoActual({ receta, fuentes, guardando }: PropsDelPasoActual) {
   );
 }
 
-function PasoDelNombre({ receta, guardando }: { receta: RecetaPasoAPaso; guardando: boolean }) {
+type PropsDelNombre = { receta: RecetaPasoAPaso; guardando: boolean; sinDatos: boolean };
+
+function PasoDelNombre({ receta, guardando, sinDatos }: PropsDelNombre) {
   return (
     <fieldset className="armala-vos-paso" data-color="petroleo">
       <legend>Paso 5 de 5 · Ponele un nombre</legend>
@@ -134,14 +145,23 @@ function PasoDelNombre({ receta, guardando }: { receta: RecetaPasoAPaso; guardan
         />
       </label>
       <LoQueFalta faltan={receta.faltan} />
+      {receta.contestadasLasPreguntas && sinDatos && <SinDatosParaGuardar />}
       <button
         type="submit"
         className="metricas-medida-agregar"
-        disabled={guardando || !receta.sePuedeGuardar}
+        disabled={guardando || !receta.sePuedeGuardar || sinDatos}
       >
         Guardar métrica
       </button>
     </fieldset>
+  );
+}
+
+function SinDatosParaGuardar() {
+  return (
+    <p className="armala-vos-falta" role="status">
+      Todavía no hay datos para armar esta métrica. Cargalos y volvé a intentar.
+    </p>
   );
 }
 
@@ -155,13 +175,13 @@ function LoQueFalta({ faltan }: { faltan: string[] }) {
 }
 
 function VistaEnVivo({
-  sistemaId,
+  vista,
   definicion,
 }: {
-  sistemaId: string;
+  vista: ReturnType<typeof useVistaEnVivo>;
   definicion: DefinicionDeMetrica;
 }) {
-  const { resultado, fallo } = useVistaEnVivo(sistemaId, definicion);
+  const { resultado, fallo } = vista;
   if (fallo)
     return (
       <p className="metrica-medida-error" role="alert">

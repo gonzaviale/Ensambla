@@ -131,6 +131,7 @@ function PropuestaDelPedido({ propuesta, guardando, onGuardar, onDescartar }: Pr
         <BotonParaAgregar
           yaLaTenes={propuesta.yaLaTenes}
           guardando={guardando}
+          sinDatos={resultado.valor == null}
           onAgregar={onGuardar}
           texto="Guardar métrica"
         />

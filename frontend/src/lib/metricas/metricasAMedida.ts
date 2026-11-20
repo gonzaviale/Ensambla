@@ -171,3 +171,7 @@ export function resumenDeLaReceta(definicion: DefinicionDeMetrica) {
     ETIQUETA_DE_PERIODO[definicion.periodo],
   ].join(' · ');
 }
+
+/** El nombre que escribe la persona sale siempre con la primera letra en mayúscula: «ventas por día» -> «Ventas por día». */
+export const conPrimeraEnMayuscula = (nombre: string) =>
+  nombre.charAt(0).toUpperCase() + nombre.slice(1);

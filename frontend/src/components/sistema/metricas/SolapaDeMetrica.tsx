@@ -7,7 +7,11 @@ import { SelectorDeGrafico } from '@/components/sistema/metricas/SelectorDeGrafi
 import { VentanaFlotante } from '@/components/sistema/metricas/VentanaFlotante';
 import { useRenombrarMetrica } from '@/hooks/metricas/mutations';
 import { useGraficoDeLaMetrica } from '@/hooks/metricas/useGraficoDeLaMetrica';
-import { resumenDeLaReceta, textoDeDondeSale } from '@/lib/metricas/metricasAMedida';
+import {
+  conPrimeraEnMayuscula,
+  resumenDeLaReceta,
+  textoDeDondeSale,
+} from '@/lib/metricas/metricasAMedida';
 import type { Metrica, ResultadoDeMetrica } from '@/types/metricas';
 
 type Props = {
@@ -83,7 +87,7 @@ function RenombrarLaMetrica({ metrica, sistemaId, onCerrar }: PropsDeRenombrar) 
           value={nombre}
           maxLength={80}
           autoFocus
-          onChange={(evento) => setNombre(evento.target.value)}
+          onChange={(evento) => setNombre(conPrimeraEnMayuscula(evento.target.value))}
         />
         {aviso && (
           <p className="metrica-medida-error" role="alert">

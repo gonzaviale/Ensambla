@@ -79,7 +79,7 @@ const sinNombre = ({ fuente, calculo, agrupar, periodo, soloFiado }: DefinicionD
 });
 
 /** Cómo queda la receta que se está armando, calculada con los datos del cuaderno; no guarda nada. */
-export function useVistaEnVivo(sistemaId: string, definicion: DefinicionDeMetrica) {
+export function useVistaEnVivo(sistemaId: string, definicion: DefinicionDeMetrica, activa = true) {
   const receta = sinNombre(definicion);
   const consulta = useQuery({
     queryKey: metricasKeys.vista(sistemaId, receta),
@@ -87,6 +87,7 @@ export function useVistaEnVivo(sistemaId: string, definicion: DefinicionDeMetric
     placeholderData: keepPreviousData,
     staleTime: 30_000,
     retry: false,
+    enabled: activa,
   });
   return { resultado: consulta.data, fallo: consulta.isError };
 }

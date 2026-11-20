@@ -2,13 +2,14 @@ import { BotonParaAgregar } from '@/components/sistema/metricas/agregar/BotonPar
 import type { PropsDeLaPestana } from '@/components/sistema/metricas/agregar/tipos';
 import { VistaPrevia } from '@/components/sistema/metricas/agregar/VistaPrevia';
 import { NombreDeLaMetrica } from '@/components/sistema/metricas/NombreDeLaMetrica';
-import { useMetricasSugeridas } from '@/hooks/metricas/queries';
+import { useFuentesDelCuaderno, useMetricasSugeridas } from '@/hooks/metricas/queries';
 import { resumenDeLaReceta } from '@/lib/metricas/metricasAMedida';
 import type { SugeridaDelRubro } from '@/types/metricas';
 
 /** Las métricas que el catálogo propone para el rubro, cada una con cómo se vería hoy. */
 export function Sugeridas({ sistemaId, guardando, onAgregar }: PropsDeLaPestana) {
   const { sugeridas, cargando, fallo, reintentar } = useMetricasSugeridas(sistemaId, true);
+  const { fuentes } = useFuentesDelCuaderno(sistemaId);
   if (fallo) return <NoSePudieronTraer onReintentar={() => void reintentar()} />;
   if (cargando || !sugeridas)
     return (
@@ -18,14 +19,16 @@ export function Sugeridas({ sistemaId, guardando, onAgregar }: PropsDeLaPestana)
     );
   return (
     <ul className="panel-agregar-sugeridas">
-      {sugeridas.map((sugerida) => (
-        <TarjetaSugerida
-          key={`${sugerida.definicion.nombre}-${resumenDeLaReceta(sugerida.definicion)}`}
-          sugerida={sugerida}
-          guardando={guardando}
-          onAgregar={() => onAgregar(sugerida.definicion, 'SUGERIDA')}
-        />
-      ))}
+      {sugeridas
+        .filter((sugerida) => !fuentes || fuentes.includes(sugerida.definicion.fuente))
+        .map((sugerida) => (
+          <TarjetaSugerida
+            key={`${sugerida.definicion.nombre}-${resumenDeLaReceta(sugerida.definicion)}`}
+            sugerida={sugerida}
+            guardando={guardando}
+            onAgregar={() => onAgregar(sugerida.definicion, 'SUGERIDA')}
+          />
+        ))}
     </ul>
   );
 }
@@ -54,6 +57,7 @@ function TarjetaSugerida({ sugerida, guardando, onAgregar }: PropsDeLaSugerida) 
         etiqueta={`Agregar ${definicion.nombre}`}
         yaLaTenes={yaLaTenes}
         guardando={guardando}
+        sinDatos={resultado.valor == null}
         onAgregar={onAgregar}
       />
     </li>

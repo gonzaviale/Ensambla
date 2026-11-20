@@ -304,8 +304,9 @@
   display: flex;
   flex: 1 1 auto;
   align-items: flex-end;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
+  padding-bottom: 6px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -354,7 +355,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  border: 2px solid transparent;
+  border: 2px solid #cdd5d2;
   border-bottom: 0;
   border-radius: 14px 14px 0 0;
   background: transparent;
@@ -364,6 +365,33 @@
   font-weight: 700;
   cursor: pointer;
   transition: color 0.15s ease;
+}
+/* Todas las solapas son rectángulos con las puntas redondeadas, a la misma altura y un poco separados de la tarjeta.
+   La elegida no se mueve: un puente blanco hacia abajo tapa el borde de la tarjeta y la funde con ella. */
+.panel-negocio-solapa {
+  padding: 8px 14px;
+  border: 2px solid #cdd5d2;
+  border-radius: 12px;
+}
+.panel-negocio-solapa[aria-selected='true'] {
+  padding-bottom: 10px;
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
+}
+.panel-negocio-solapa[aria-selected='true']::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  right: -2px;
+  left: -2px;
+  height: 6px;
+  border: solid var(--color-solapa);
+  border-width: 0 2px;
+  background: #fff;
+}
+.panel-negocio-solapa[aria-selected='true'] {
+  position: relative;
+  z-index: 1;
 }
 .panel-negocio-solapa:hover {
   color: var(--resalte);
@@ -532,7 +560,10 @@
 @media (max-width: 760px) {
   .panel-negocio-solapa {
     max-width: 160px;
-    padding: 10px 12px 9px;
+    padding: 8px 12px 7px;
+  }
+  .panel-negocio-solapa[aria-selected='true'] {
+    padding-bottom: 9px;
   }
   .panel-negocio-metrica {
     padding: 18px 18px;
@@ -667,6 +698,12 @@
 }
 .grafico-dona-dibujo {
   min-width: 0;
+}
+/* En la tarjeta de la métrica la dona y la lista se reparten el lugar con el mismo aire a cada lado (número, anillo, lista, borde):
+   así no queda un hueco blanco a un solo lado. */
+.grafico-metrica[data-grafico='DONA'] .grafico-dona {
+  justify-content: space-evenly;
+  column-gap: 0;
 }
 .grafico-dona-lista {
   display: grid;
@@ -1211,6 +1248,9 @@
 /* En el celular: el botón de agregar es sólo un «+» chico para que las solapas respiren, el título y los botones de la
    métrica van uno debajo del otro y los números se achican. */
 @media (max-width: 640px) {
+  .panel-negocio-flecha {
+    display: none;
+  }
   .panel-negocio-agregar {
     justify-content: center;
     width: 36px;
@@ -1225,6 +1265,9 @@
     max-width: 130px;
     padding: 8px 10px 7px;
     font-size: 13px;
+  }
+  .panel-negocio-solapa[aria-selected='true'] {
+    padding-bottom: 9px;
   }
   .panel-negocio-metrica {
     padding: 14px 14px;
@@ -1251,6 +1294,12 @@
   .grafico-dona-lista li {
     font-size: 12px;
   }
+}
+
+/* Al cambiar de solapa la tarjeta de Ventas aparece quieta: la animación de entrada del tablero la hacía subir y
+   aparecer de a poco, despegada de su solapa. */
+.panel-negocio .tablero-ventas {
+  animation: none;
 }
 
 /* Entre «Tu negocio» y los avisos de rentabilidad hay menos aire que entre las demás secciones del Inicio. */

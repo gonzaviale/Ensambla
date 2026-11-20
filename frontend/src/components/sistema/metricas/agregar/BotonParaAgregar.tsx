@@ -4,16 +4,18 @@ type Props = {
   etiqueta?: string;
   yaLaTenes: boolean;
   guardando: boolean;
+  sinDatos?: boolean;
   onAgregar: () => void;
   texto?: string;
 };
 
 // Lo que ya está a la vista (guardado o en el panel de ventas) se muestra con un aviso en lugar del botón: no se
-// agrega dos veces.
+// agrega dos veces. Si todavía no hay datos para calcularla, el botón queda apagado: el aviso de al lado dice qué falta.
 export function BotonParaAgregar({
   etiqueta,
   yaLaTenes,
   guardando,
+  sinDatos = false,
   onAgregar,
   texto = 'Agregar',
 }: Props) {
@@ -28,7 +30,7 @@ export function BotonParaAgregar({
     <button
       type="button"
       className="metricas-medida-agregar"
-      disabled={guardando}
+      disabled={guardando || sinDatos}
       aria-label={etiqueta}
       onClick={onAgregar}
     >
