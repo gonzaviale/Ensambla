@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from '@tanstack/react-router';
+import { CobroConQr } from '@/components/cuenta/CobroConQr';
 import { useUsuario } from '@/hooks/auth/queries';
 import { useConfiguracionNegocio } from '@/hooks/negocio/queries';
 import { useNegociosDeLaCuenta } from '@/hooks/negocios/queries';
@@ -131,6 +132,8 @@ export function SeccionPerfil() {
           </button>
         </div>
       </section>
+
+      <CobroConQr />
     </>
   );
 }
