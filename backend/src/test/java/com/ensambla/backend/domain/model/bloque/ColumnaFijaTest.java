@@ -171,6 +171,28 @@ class ColumnaFijaTest {
     }
 
     @Test
+    @DisplayName("Ajustar una columna que la persona ya exigía conserva que sea obligatoria")
+    void ajustarUnaColumnaQueLaPersonaYaExigiaConservaQueSeaObligatoria() {
+        dadaLaColumna(categoria());
+        dadoUnCampoDeListaCon("Servicios");
+
+        cuandoSeAjustaElCampo();
+
+        entoncesLaColumnaAjustadaEsObligatoria(true);
+    }
+
+    @Test
+    @DisplayName("Ajustar una columna que nadie exige no la vuelve obligatoria")
+    void ajustarUnaColumnaQueNadieExigeNoLaVuelveObligatoria() {
+        dadaLaColumna(categoria());
+        dadoUnCampoDeListaOpcionalCon("Servicios");
+
+        cuandoSeAjustaElCampo();
+
+        entoncesLaColumnaAjustadaEsObligatoria(false);
+    }
+
+    @Test
     @DisplayName("Ajustar una columna no repite las opciones que ya tenía")
     void ajustarUnaColumnaNoRepiteLasOpcionesQueYaTenia() {
         dadaLaColumna(categoria().siempreObligatoria());
@@ -316,6 +338,10 @@ class ColumnaFijaTest {
         assertThat(creado.getId()).isEqualTo(campo.getId());
         assertThat(creado.esObligatorio()).isTrue();
         assertThat(creado.getOpciones()).containsExactly("Servicios", "Mercadería");
+    }
+
+    private void entoncesLaColumnaAjustadaEsObligatoria(boolean obligatoria) {
+        assertThat(creado.esObligatorio()).isEqualTo(obligatoria);
     }
 
     private void entoncesConservaLasOpciones(String... opciones) {

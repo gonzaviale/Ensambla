@@ -93,7 +93,7 @@ class ConversarEnTallerEdicionTest {
     @Test
     @DisplayName("Descarta pasar un dato a lista sin opciones")
     void descartaPasarUnDatoAListaSinOpciones() {
-        dadoLasLlamadas(editar("pieza", "e1", "campo", "Cantidad", "tipo", "select"));
+        dadoLasLlamadas(editar("pieza", "e3", "campo", "Teléfono", "tipo", "select"));
 
         cuandoSeValidanLasLlamadas();
 
@@ -103,7 +103,7 @@ class ConversarEnTallerEdicionTest {
     @Test
     @DisplayName("Descarta pasar un dato a lista con una sola opción")
     void descartaPasarUnDatoAListaConUnaSolaOpcion() {
-        dadoLasLlamadas(editar("pieza", "e1", "campo", "Cantidad", "tipo", "select", "opciones", List.of("Una")));
+        dadoLasLlamadas(editar("pieza", "e3", "campo", "Teléfono", "tipo", "select", "opciones", List.of("Una")));
 
         cuandoSeValidanLasLlamadas();
 
@@ -312,8 +312,8 @@ class ConversarEnTallerEdicionTest {
 
     private void dadoQueSePidenTiposYObligatoriosInvalidos() {
         dadoLasLlamadas(
-                editar("pieza", "e1", "campo", "Cantidad", "tipo", "color"),
-                editar("pieza", "e1", "campo", "Cantidad", "tipo", "relation"),
+                editar("pieza", "e3", "campo", "Teléfono", "tipo", "color"),
+                editar("pieza", "e3", "campo", "Teléfono", "tipo", "relation"),
                 editar("pieza", "e1", "campo", "Cantidad", "obligatorio", "sí"));
     }
 
