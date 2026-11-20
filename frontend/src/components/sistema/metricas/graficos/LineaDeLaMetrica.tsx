@@ -4,7 +4,7 @@ import { ListaParaElLector } from '@/components/sistema/metricas/graficos/ListaP
 import { TarjetaDelDato } from '@/components/sistema/metricas/graficos/TarjetaDelDato';
 import { datosDelGrafico, type PropsDelGrafico } from '@/lib/metricas/graficos';
 
-const ALTO = 240;
+const ALTO = 200;
 const LARGO_DE_LOS_DIAS = 3;
 
 // La línea une los días de la semana en su orden, con un punto por día; al pasar el mouse el punto dice su valor.

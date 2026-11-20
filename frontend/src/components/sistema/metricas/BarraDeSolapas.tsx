@@ -120,10 +120,11 @@ function BotonParaAgregar({ onAgregar }: { onAgregar: () => void }) {
       type="button"
       className="panel-negocio-agregar"
       aria-haspopup="dialog"
+      aria-label="Agregar métrica"
       onClick={onAgregar}
     >
       <Icon name="plus" />
-      Agregar métrica
+      <span className="panel-negocio-agregar-texto">Agregar métrica</span>
     </button>
   );
 }

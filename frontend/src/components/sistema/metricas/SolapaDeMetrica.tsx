@@ -24,11 +24,16 @@ type Props = {
 export function SolapaDeMetrica(props: Props) {
   const [renombrando, setRenombrando] = useState(false);
   const { metrica, sistemaId, color } = props;
+  const { grafico, posibles, elegir, fallo } = useGraficoDeLaMetrica(metrica, sistemaId);
   return (
     <article className="panel-negocio-metrica" data-color={color}>
       <header className="panel-negocio-metrica-cabecera">
         <TituloDeLaMetrica metrica={metrica} />
-        <MenuDeLaMetrica {...props} onRenombrar={() => setRenombrando(true)} />
+        <div className="panel-negocio-metrica-herramientas">
+          <SelectorDeGrafico grafico={grafico} posibles={posibles} onElegir={elegir} />
+          <DeDondeSale resultado={metrica.resultado} />
+          <MenuDeLaMetrica {...props} onRenombrar={() => setRenombrando(true)} />
+        </div>
       </header>
       {renombrando && (
         <RenombrarLaMetrica
@@ -37,19 +42,6 @@ export function SolapaDeMetrica(props: Props) {
           onCerrar={() => setRenombrando(false)}
         />
       )}
-      <ElGraficoDeLaMetrica metrica={metrica} sistemaId={sistemaId} />
-    </article>
-  );
-}
-
-function ElGraficoDeLaMetrica({ metrica, sistemaId }: { metrica: Metrica; sistemaId: string }) {
-  const { grafico, posibles, elegir, fallo } = useGraficoDeLaMetrica(metrica, sistemaId);
-  return (
-    <>
-      <div className="panel-negocio-metrica-herramientas">
-        <SelectorDeGrafico grafico={grafico} posibles={posibles} onElegir={elegir} />
-        <DeDondeSale resultado={metrica.resultado} />
-      </div>
       {fallo && (
         <p className="metrica-medida-error" role="alert">
           No pudimos cambiar el gráfico. Probá de nuevo.
@@ -60,7 +52,7 @@ function ElGraficoDeLaMetrica({ metrica, sistemaId }: { metrica: Metrica; sistem
         resultado={metrica.resultado}
         grafico={grafico}
       />
-    </>
+    </article>
   );
 }
 

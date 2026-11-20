@@ -4,7 +4,7 @@ import { ListaParaElLector } from '@/components/sistema/metricas/graficos/ListaP
 import { TarjetaDelDato } from '@/components/sistema/metricas/graficos/TarjetaDelDato';
 import { datosDelGrafico, type PropsDelGrafico } from '@/lib/metricas/graficos';
 
-const ALTO = 240;
+const ALTO = 220;
 const COLOR_DEL_TEXTO = '#263443';
 const LARGO_DE_LOS_DIAS = 3;
 const PARTES_QUE_SE_LEEN_DE_FRENTE = 5;
