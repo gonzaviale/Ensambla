@@ -213,7 +213,7 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
     const { usuario } = await dadoElInicioDelAlmacen();
     await cuandoSeAbreAgregarMetrica(usuario);
     const sugerida = (await screen.findByRole('heading', { name: 'Cuánto vendí esta semana' }))
-      .parentElement as HTMLElement;
+      .closest('li') as HTMLElement;
     expect(within(sugerida).getByRole('status')).toHaveTextContent('Ya la tenés en tu panel');
     expect(within(sugerida).queryByRole('button')).not.toBeInTheDocument();
   });
