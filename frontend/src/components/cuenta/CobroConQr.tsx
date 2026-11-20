@@ -56,8 +56,10 @@ function CamposDelCobro({ borrador }: { borrador: Borrador }) {
       <CampoDelCobro
         id="cuenta-cobro-titular"
         etiqueta="Nombre del titular (opcional)"
+        ayuda={borrador.cambios.cobroAlias ? undefined : 'Primero cargá tu alias o CVU.'}
         valor={borrador.titular}
         alCambiar={borrador.setTitular}
+        deshabilitado={!borrador.cambios.cobroAlias}
       />
     </>
   );
@@ -69,9 +71,10 @@ interface PropsDelCampo {
   ayuda?: string;
   valor: string;
   alCambiar: (valor: string) => void;
+  deshabilitado?: boolean;
 }
 
-function CampoDelCobro({ id, etiqueta, ayuda, valor, alCambiar }: PropsDelCampo) {
+function CampoDelCobro({ id, etiqueta, ayuda, valor, alCambiar, deshabilitado }: PropsDelCampo) {
   return (
     <div className="field">
       <label htmlFor={id}>{etiqueta}</label>
@@ -79,6 +82,7 @@ function CampoDelCobro({ id, etiqueta, ayuda, valor, alCambiar }: PropsDelCampo)
         className="input"
         id={id}
         maxLength={120}
+        disabled={deshabilitado}
         value={valor}
         onChange={(evento) => alCambiar(evento.target.value)}
       />

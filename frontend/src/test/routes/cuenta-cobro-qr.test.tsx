@@ -14,6 +14,7 @@ import {
   entoncesElNegocioCobraEn,
   entoncesElNegocioNoGuardoNada,
   entoncesNoSeMuestraElQrDePrueba,
+  entoncesNoSePuedeEditarElTitular,
   entoncesNoSePuedeGuardar,
   entoncesSeAclaraQueNoSeVerificaElPago,
   entoncesSeAvisaQueNoSePudoGuardar,
@@ -40,6 +41,12 @@ describe('cobro con QR en tu cuenta', () => {
     await dadaLaCuentaSinCobroConQr();
 
     entoncesNoSeMuestraElQrDePrueba();
+  });
+
+  it('sin alias no permite cargar un titular que no se guardaría', async () => {
+    await dadaLaCuentaSinCobroConQr();
+
+    entoncesNoSePuedeEditarElTitular();
   });
 
   it('al escribir el alias muestra el QR de prueba', async () => {
@@ -92,6 +99,8 @@ describe('cobro con QR en tu cuenta', () => {
   it('borrar el alias y guardar quita el cobro con QR', async () => {
     await dadaLaCuentaConElCobroGuardado();
     await cuandoSeBorraElAlias();
+
+    entoncesNoSePuedeEditarElTitular();
 
     await cuandoSeGuardaElCobro();
 

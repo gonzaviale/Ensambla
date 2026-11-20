@@ -13,22 +13,26 @@ import {
   cuandoYaLeTransfirieron,
   dadoUnNegocioQueCobraEnSuAlias,
   dadoUnServidorQueGeneraYCancelaCobrosQr,
+  dadoUnServidorQueGeneraUnCobroVencido,
   dadoUnServidorQueNoPuedeGenerarCobrosQr,
   elIdDelCobroQrGenerado,
   entoncesElQrMuestraElError,
   entoncesNoSeCancelaNingunCobroQr,
   entoncesNoSeOfreceCobrarConQr,
   entoncesSeAvisaQueEnsamblaNoVerificoElPago,
+  entoncesSeExplicaComoIngresarElImporte,
   entoncesSeAvisaQueNoSePudoGenerarElQr,
   entoncesSeCanceloElCobroQrGenerado,
   entoncesSeCopioElAlias,
   entoncesSeGeneroUnSoloCobroQr,
   entoncesSeIndicaHastaCuandoVale,
+  entoncesSeIndicaQueElCobroVencio,
   entoncesSeMuestraElQrPor,
   entoncesSeMuestranElAliasYElTitular,
   entoncesSeOfreceCobrarConQr,
   entoncesSePidioElQrPorImporte,
   entoncesSePideCargarElAlias,
+  entoncesSeVerificaAntesDeCancelar,
 } from '@/test/caja/cobroQrHelpers';
 import { renderApp } from '@/test/renderApp';
 import { ESPERA, setupServerError, setupUsuarioConSesion } from '@/test/testHelpers';
@@ -78,12 +82,29 @@ describe('cobrar una venta con QR en la caja', () => {
     await entoncesSeAvisaQueEnsamblaNoVerificoElPago();
   });
 
+  it('explica que el cliente debe ingresar el importe manualmente', async () => {
+    await dadaUnaVentaPorTransferenciaListaParaCobrarConQr();
+
+    await cuandoSeCobraConQr(user);
+
+    await entoncesSeExplicaComoIngresarElImporte();
+  });
+
   it('indica hasta qué hora vale el QR', async () => {
     await dadaUnaVentaPorTransferenciaListaParaCobrarConQr();
 
     await cuandoSeCobraConQr(user);
 
     await entoncesSeIndicaHastaCuandoVale();
+  });
+
+  it('avisa cuando el cobro venció y permite confirmar si llegó el pago', async () => {
+    await dadaUnaVentaPorTransferenciaListaParaCobrarConQr();
+    dadoUnServidorQueGeneraUnCobroVencido();
+
+    await cuandoSeCobraConQr(user);
+
+    await entoncesSeIndicaQueElCobroVencio();
   });
 
   it('el alias se puede copiar', async () => {
@@ -194,6 +215,17 @@ describe('cobrar una venta con QR en la caja', () => {
 
     await entoncesElQrMuestraElError('El cobro con QR ya está cobrado');
   });
+
+  it('si no se sabe si la venta se guardó obliga a verificar antes de cancelar el QR', async () => {
+    await dadaUnaVentaPorTransferenciaListaParaCobrarConQr();
+    dadoUnServidorQueDejaInciertaLaVenta();
+    await cuandoSeCobraConQr(user);
+    await entoncesSeMuestraElQrPor(/10\.000,00/);
+
+    await cuandoYaLeTransfirieron(user);
+
+    await entoncesSeVerificaAntesDeCancelar();
+  });
 });
 
 async function abrirElCobroPorDiezMilPesos(conAlias: boolean) {
@@ -242,6 +274,9 @@ async function responderCobro({ request }: { request: Request }) {
 // --- dado ---
 
 const dadoUnCobroPorDiezMilPesosEnLaCaja = () => abrirElCobroPorDiezMilPesos(true);
+
+const dadoUnServidorQueDejaInciertaLaVenta = () =>
+  setupServerError('post', '/caja/ventas', 500, 'No sabemos si se guardó');
 
 async function dadaUnaVentaPorTransferenciaListaParaCobrarConQr() {
   await abrirElCobroPorDiezMilPesos(true);

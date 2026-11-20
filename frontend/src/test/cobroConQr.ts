@@ -96,6 +96,8 @@ export const entoncesElCampoDelAliasTiene = (alias: string) =>
 export const entoncesElCampoDelTitularTiene = (titular: string) =>
   expect(campoDelTitular()).toHaveValue(titular);
 
+export const entoncesNoSePuedeEditarElTitular = () => expect(campoDelTitular()).toBeDisabled();
+
 export const entoncesSeAvisaQueSeGuardo = () => verifyToastAsync('Guardamos tu cobro con QR.');
 
 export const entoncesSeAvisaQueNoSePudoGuardar = () =>

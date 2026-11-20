@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { CodigoQrDiferido } from '@/components/cobro/CodigoQrDiferido';
 import { useCancelarCobroQr } from '@/hooks/caja/useCancelarCobroQr';
 import { useCobroConQr, type EstadoDelCobroQr } from '@/hooks/caja/useCobroConQr';
+import { useVigenciaCobroQr } from '@/hooks/caja/useVigenciaCobroQr';
 import { useCopiarAlPortapapeles } from '@/hooks/useCopiarAlPortapapeles';
 import { dineroCaja } from '@/lib/caja';
 import { horaDelVencimiento } from '@/lib/caja/cobroQr';
@@ -34,6 +35,7 @@ export function CobroConQrCaja(props: Props) {
   const { cancelar } = useCancelarCobroQr();
   const Pantalla = PANTALLAS[estado];
   const cerrar = () => {
+    if (props.ocupada || props.incierta) return;
     if (cobro) cancelar(id);
     props.onCerrar();
   };
@@ -43,7 +45,7 @@ export function CobroConQrCaja(props: Props) {
       titulo="Cobrar con QR"
       clase="caja-dialogo-qr"
       onCerrar={cerrar}
-      bloqueado={props.ocupada}
+      bloqueado={props.ocupada || props.incierta}
     >
       <Pantalla {...props} onCerrar={cerrar} cobro={cobro} />
     </DialogoCaja>
@@ -104,6 +106,9 @@ function PantallaDelCobro(props: PropsDeLaPantalla) {
         <span className="caja-antetitulo">MONTO A TRANSFERIR</span>
         <p className="caja-qr-monto">{dineroCaja(importeCentavos)}</p>
         <CodigoQrDiferido texto={cobro.alias} descripcion="QR con tu alias o CVU para transferir" />
+        <p className="caja-ayuda">
+          El QR lleva tu alias o CVU. El cliente escribe el monto en su app.
+        </p>
         <DatosParaTransferir cobro={cobro} />
         <p className="caja-nota">
           Ensambla no verificó el pago. Revisá en tu cuenta que te llegó antes de confirmar.
@@ -115,7 +120,12 @@ function PantallaDelCobro(props: PropsDeLaPantalla) {
         )}
       </div>
       <div className="caja-acciones">
-        <button type="button" className="btn secondary" disabled={ocupada} onClick={onCerrar}>
+        <button
+          type="button"
+          className="btn secondary"
+          disabled={ocupada || incierta}
+          onClick={onCerrar}
+        >
           Cancelar cobro con QR
         </button>
         <button
@@ -139,6 +149,7 @@ function textoDelBotonDeConfirmar(ocupada: boolean, incierta: boolean): string {
 
 function DatosParaTransferir({ cobro }: { cobro: CobroQr }) {
   const { copiar, resultado } = useCopiarAlPortapapeles('Alias copiado.');
+  const vencido = useVigenciaCobroQr(cobro.venceEn);
 
   return (
     <div className="caja-qr-datos">
@@ -149,7 +160,18 @@ function DatosParaTransferir({ cobro }: { cobro: CobroQr }) {
       </button>
       {cobro.titular && <span>Titular: {cobro.titular}</span>}
       <span role="status">{resultado}</span>
-      <span>Vale hasta las {horaDelVencimiento(cobro.venceEn)}.</span>
+      <VigenciaDelCobro vencido={vencido} venceEn={cobro.venceEn} />
     </div>
   );
+}
+
+function VigenciaDelCobro({ vencido, venceEn }: { vencido: boolean; venceEn: string }) {
+  if (vencido) {
+    return (
+      <span role="status">
+        Este cobro venció. Si te pagaron, podés confirmarlo; si no, cancelalo y abrí otro.
+      </span>
+    );
+  }
+  return <span>Vale hasta las {horaDelVencimiento(venceEn)}.</span>;
 }

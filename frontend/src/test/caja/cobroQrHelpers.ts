@@ -17,13 +17,18 @@ let cancelados: string[] = [];
 
 const dialogoDelQr = () => screen.getByRole('dialog', { name: 'Cobrar con QR' });
 
-const cobroQr = (id: string, importe: number, estadoDelCobro: CobroQr['estado']): CobroQr => ({
+const cobroQr = (
+  id: string,
+  importe: number,
+  estadoDelCobro: CobroQr['estado'],
+  venceEn = '2099-11-19T18:45:00Z',
+): CobroQr => ({
   id,
   importe,
   alias: ALIAS_DEL_COMERCIO,
   titular: TITULAR_DEL_COMERCIO,
   estado: estadoDelCobro,
-  venceEn: '2026-11-19T18:45:00Z',
+  venceEn,
 });
 
 /* dado */
@@ -58,6 +63,18 @@ export function dadoUnServidorQueGeneraYCancelaCobrosQr() {
 
 export function dadoUnServidorQueNoPuedeGenerarCobrosQr() {
   server.use(http.post('/api/caja/cobros-qr', () => new HttpResponse(null, { status: 500 })));
+}
+
+export function dadoUnServidorQueGeneraUnCobroVencido() {
+  server.use(
+    http.post('/api/caja/cobros-qr', async ({ request }) => {
+      const solicitud = (await request.json()) as SolicitudCobroQr;
+      generados.push(solicitud);
+      return HttpResponse.json(
+        cobroQr(solicitud.id, solicitud.importe, 'VENCIDO', '2020-11-19T18:45:00Z'),
+      );
+    }),
+  );
 }
 
 /* cuando */
@@ -101,9 +118,32 @@ export async function entoncesSeAvisaQueEnsamblaNoVerificoElPago() {
   expect(await dialogo.findByText(/Ensambla no verificó el pago/)).toBeVisible();
 }
 
+export async function entoncesSeExplicaComoIngresarElImporte() {
+  const dialogo = within(await screen.findByRole('dialog', { name: 'Cobrar con QR' }));
+  expect(
+    await dialogo.findByText('El QR lleva tu alias o CVU. El cliente escribe el monto en su app.'),
+  ).toBeVisible();
+}
+
+export async function entoncesSeVerificaAntesDeCancelar() {
+  const dialogo = within(dialogoDelQr());
+  await waitFor(
+    () => expect(dialogo.getByRole('button', { name: 'Verificar misma operación' })).toBeEnabled(),
+    ESPERA,
+  );
+  expect(dialogo.getByRole('button', { name: 'Cancelar cobro con QR' })).toBeDisabled();
+  expect(dialogo.getByRole('button', { name: 'Cerrar' })).toBeDisabled();
+}
+
 export async function entoncesSeIndicaHastaCuandoVale() {
   const dialogo = within(await screen.findByRole('dialog', { name: 'Cobrar con QR' }));
   expect(await dialogo.findByText('Vale hasta las 15:45.')).toBeVisible();
+}
+
+export async function entoncesSeIndicaQueElCobroVencio() {
+  const dialogo = within(await screen.findByRole('dialog', { name: 'Cobrar con QR' }));
+  expect(await dialogo.findByText(/Este cobro venció.*podés confirmarlo/)).toBeVisible();
+  expect(dialogo.getByRole('button', { name: 'Ya me transfirieron' })).toBeEnabled();
 }
 
 export async function entoncesSeCopioElAlias() {

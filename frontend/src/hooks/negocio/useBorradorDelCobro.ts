@@ -7,7 +7,11 @@ export function useBorradorDelCobro(negocio: ConfiguracionNegocio) {
   const titularGuardado = negocio.cobroTitular ?? '';
   const [alias, setAlias] = useState(aliasGuardado);
   const [titular, setTitular] = useState(titularGuardado);
-  const cambios: CambiosNegocio = { cobroAlias: alias.trim(), cobroTitular: titular.trim() };
+  const aliasLimpio = alias.trim();
+  const cambios: CambiosNegocio = {
+    cobroAlias: aliasLimpio,
+    cobroTitular: aliasLimpio ? titular.trim() : '',
+  };
   const hayCambios =
     cambios.cobroAlias !== aliasGuardado || cambios.cobroTitular !== titularGuardado;
 
