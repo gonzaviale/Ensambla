@@ -9,6 +9,7 @@ import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.sistema.SistemaItem.BloqueItem;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.CampoItem;
 import com.ensambla.backend.domain.useCase.sistema.SistemaItem.SeccionItem;
 import com.ensambla.backend.domain.useCase.sistema.guardarSistema.GuardarSistema;
 import com.ensambla.backend.domain.useCase.sistema.guardarSistema.GuardarSistemaRequest;
@@ -92,13 +93,24 @@ class EstructuraFijaEnSistemasTest {
     }
 
     @Test
-    @DisplayName("Al guardar sin la sección de Ventas de un negocio que la tenía se rechaza")
-    void alGuardarSinLaSeccionDeVentasDeUnNegocioQueLaTeniaSeRechaza() {
+    @DisplayName("Al guardar sin la sección de Ventas de un negocio que la tenía se repone")
+    void alGuardarSinLaSeccionDeVentasDeUnNegocioQueLaTeniaSeRepone() {
         dadoUnNegocioGuardadoCompletoYUnaPropuestaSinVentas();
+
+        cuandoSeGuarda();
+
+        entoncesSeGuardaElNegocioCompleto();
+    }
+
+    @Test
+    @DisplayName("Al guardar con el precio en otro tipo de dato se rechaza")
+    void alGuardarConElPrecioEnOtroTipoDeDatoSeRechaza() {
+        dadoUnNegocioGuardadoCompletoYUnaPropuestaConElPrecioEnTexto();
 
         cuandoSeIntentaGuardar();
 
-        entoncesSeRechazaPorque("No se puede quitar la sección «Ventas»: Ensambla la necesita para funcionar.");
+        entoncesSeRechazaPorque("No se puede cambiar «Precio»: Ensambla la necesita para cobrar en Caja y calcular "
+                + "la ganancia. Podés cambiarle el nombre.");
         entoncesNoSeGuardaNada();
     }
 
@@ -118,6 +130,28 @@ class EstructuraFijaEnSistemasTest {
         Sistema completo = unSistemaCompleto();
         when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(completo));
         propuesta = sinLaSeccionDeVentas(SistemaItem.de(completo));
+    }
+
+    private void dadoUnNegocioGuardadoCompletoYUnaPropuestaConElPrecioEnTexto() {
+        Sistema completo = unSistemaCompleto();
+        when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(completo));
+        propuesta = conElPrecioEnTexto(SistemaItem.de(completo));
+    }
+
+    private static SistemaItem conElPrecioEnTexto(SistemaItem completo) {
+        List<BloqueItem> bloques = completo.sections().get(0).blocks().stream().map(bloque -> "inventory"
+                .equals(bloque.type()) ? conElPrecioEnTexto(bloque) : bloque).toList();
+        SeccionItem seccion = new SeccionItem(completo.sections().get(0).id(), completo.sections().get(0).name(),
+                bloques);
+        return new SistemaItem(completo.id(), completo.name(), completo.createdAt(), completo.updatedAt(),
+                List.of(seccion), completo.template(), completo.options(), completo.layout(), completo.demoAlmacen());
+    }
+
+    private static BloqueItem conElPrecioEnTexto(BloqueItem stock) {
+        List<CampoItem> campos = stock.fields().stream().map(campo -> "price".equals(campo.key())
+                ? new CampoItem("price", campo.label(), "text", false, null, null, null) : campo).toList();
+        return new BloqueItem(stock.id(), stock.type(), stock.name(), stock.description(), stock.color(),
+                stock.width(), campos, stock.rows(), stock.content(), stock.startRow(), stock.stockDirection());
     }
 
     private static SistemaItem sinLaSeccionDeVentas(SistemaItem completo) {
@@ -154,7 +188,8 @@ class EstructuraFijaEnSistemasTest {
 
     private void entoncesSeGuardaElNegocioCompleto() {
         assertThat(elSistemaGuardado().proyecto().getBloques()).extracting(Bloque::getTipo)
-                .containsExactly(TipoBloque.INVENTARIO, TipoBloque.CLIENTES, TipoBloque.VENTAS, TipoBloque.GASTOS);
+                .containsExactlyInAnyOrder(TipoBloque.INVENTARIO, TipoBloque.CLIENTES, TipoBloque.VENTAS,
+                        TipoBloque.GASTOS);
     }
 
     private void entoncesNoSeGuardaNada() {

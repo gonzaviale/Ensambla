@@ -8,9 +8,10 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Que un guardado no quite ni cambie lo que Ensambla necesita para funcionar: la última sección de cada tipo
- * obligatorio, el tipo de esas secciones y sus columnas fijas. Compara el sistema guardado con el propuesto; lo que
- * nunca existió no se rechaza, lo completa {@link EstructuraFija}.
+ * Que un guardado no cambie lo que Ensambla necesita para funcionar: el tipo de las secciones que llevan columnas
+ * fijas y el tipo de dato, la obligatoriedad y el destino de esas columnas. Compara el sistema guardado con el
+ * propuesto. Lo que falta no se rechaza: lo repone {@link EstructuraFija}, porque quien guarda puede no haber recibido
+ * todavía lo que el servidor completó (por ejemplo, un negocio nuevo que se guarda dos veces).
  */
 public final class ProteccionDeEstructura {
 
@@ -48,18 +49,7 @@ public final class ProteccionDeEstructura {
     }
 
     private static void validar(Sistema actual, Sistema propuesto) {
-        TipoBloque.obligatorios().forEach(tipo -> exigirQueSigaHabiendoUna(tipo, actual, propuesto));
         actual.proyecto().getBloques().forEach(bloque -> exigirQueConserve(bloque, actual, propuesto));
-    }
-
-    private static void exigirQueSigaHabiendoUna(TipoBloque tipo, Sistema actual, Sistema propuesto) {
-        if (haySeccionDe(tipo, actual) && !haySeccionDe(tipo, propuesto)) {
-            throw rechazo(tipo.mensajeAlQuitarLaUltima());
-        }
-    }
-
-    private static boolean haySeccionDe(TipoBloque tipo, Sistema sistema) {
-        return sistema.proyecto().getBloques().stream().anyMatch(bloque -> bloque.getTipo() == tipo);
     }
 
     private static void exigirQueConserve(Bloque actual, Sistema sistemaActual, Sistema propuesto) {
@@ -95,11 +85,11 @@ public final class ProteccionDeEstructura {
 
     private static void exigirQueSigaCumpliendo(ColumnaFija columna, Campo antes, Bloque nuevo,
                                                 List<Bloque> bloquesPropuestos) {
-        Campo ahora = nuevo.getCampos().stream().filter(columna::esLaDe).findFirst()
-                .orElseThrow(() -> rechazo(columna.mensajeAlQuitar(antes.getNombre())));
-        if (!columna.laCumple(ahora, bloquesPropuestos)) {
-            throw rechazo(columna.mensajeAlCambiar(antes.getNombre()));
-        }
+        nuevo.getCampos().stream().filter(columna::esLaDe).findFirst()
+                .filter(ahora -> !columna.laCumple(ahora, bloquesPropuestos))
+                .ifPresent(ahora -> {
+                    throw rechazo(columna.mensajeAlCambiar(antes.getNombre()));
+                });
     }
 
     private static DuplicateResourceException rechazo(String mensaje) {

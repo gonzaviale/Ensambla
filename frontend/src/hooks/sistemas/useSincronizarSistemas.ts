@@ -37,15 +37,15 @@ export function useSincronizarSistemas() {
 
     async function volcar() {
       if (volcando || detenido) return;
-      const { pendientes, eliminados, sistemas, marcarGuardados, avisar } =
+      const { pendientes, eliminados, sistemas, marcarGuardados, actualizarDesdeServidor, avisar } =
         useSistemaStore.getState();
       const aGuardar = sistemas.filter((sistema) => pendientes.includes(sistema.id));
       if (aGuardar.length === 0 && eliminados.length === 0) return;
       volcando = true;
       try {
-        await Promise.all([
-          ...aGuardar.map((sistema) => guardarSistema(sistema)),
-          ...eliminados.map((id) => eliminarSistema(id)),
+        const [guardados] = await Promise.all([
+          Promise.all(aGuardar.map((sistema) => guardarSistema(sistema))),
+          Promise.all(eliminados.map((id) => eliminarSistema(id))),
         ]);
         // Si se volvió a cambiar mientras viajaba, ese sistema sigue pendiente.
         const actuales = useSistemaStore.getState().sistemas;
@@ -56,6 +56,7 @@ export function useSincronizarSistemas() {
           )
           .map((sistema) => sistema.id);
         marcarGuardados(sinCambios, eliminados);
+        actualizarDesdeServidor(guardados);
         void queryClient.invalidateQueries({ queryKey: objetivosKeys.pasos });
         avisoDeErrorDado = false;
       } catch (error) {

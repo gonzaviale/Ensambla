@@ -66,19 +66,9 @@ class ProteccionDeEstructuraTest {
     }
 
     @Test
-    @DisplayName("No se puede quitar la única sección de Ventas")
-    void noSePuedeQuitarLaUnicaSeccionDeVentas() {
+    @DisplayName("Una sección que falta en lo que se guarda no se rechaza: se repone al completar")
+    void unaSeccionQueFaltaEnLoQueSeGuardaNoSeRechazaSeReponeAlCompletar() {
         dadoUnaPropuestaSinLaSeccionDeVentas();
-
-        cuandoSeIntentaValidar();
-
-        entoncesSeRechazaPorque("No se puede quitar la sección «Ventas»: Ensambla la necesita para funcionar.");
-    }
-
-    @Test
-    @DisplayName("Se puede quitar una sección de Stock si queda otra")
-    void sePuedeQuitarUnaSeccionDeStockSiQuedaOtra() {
-        dadoUnNegocioConDosStockYUnaPropuestaConUno();
 
         cuandoSeValida();
 
@@ -107,20 +97,9 @@ class ProteccionDeEstructuraTest {
     }
 
     @Test
-    @DisplayName("No se puede quitar la columna de costo")
-    void noSePuedeQuitarLaColumnaDeCosto() {
+    @DisplayName("Una columna que falta en lo que se guarda no se rechaza: se repone al completar")
+    void unaColumnaQueFaltaEnLoQueSeGuardaNoSeRechazaSeReponeAlCompletar() {
         dadoUnNegocioGuardadoYUnaPropuestaSinLaColumnaDeCosto();
-
-        cuandoSeIntentaValidar();
-
-        entoncesSeRechazaPorque("No se puede quitar «Costo»: Ensambla la necesita para calcular la ganancia de "
-                + "Objetivos y Mi negocio.");
-    }
-
-    @Test
-    @DisplayName("Se puede quitar una columna propia")
-    void sePuedeQuitarUnaColumnaPropia() {
-        dadoUnNegocioConUnaColumnaPropiaQueLaPropuestaQuita();
 
         cuandoSeValida();
 
@@ -128,9 +107,9 @@ class ProteccionDeEstructuraTest {
     }
 
     @Test
-    @DisplayName("Se puede quitar una columna que ya no cumplía su función")
-    void sePuedeQuitarUnaColumnaQueYaNoCumpliaSuFuncion() {
-        dadoUnNegocioConElPrecioEnTextoQueLaPropuestaQuita();
+    @DisplayName("Una columna que ya no cumplía su función se acepta tal como estaba")
+    void unaColumnaQueYaNoCumpliaSuFuncionSeAceptaTalComoEstaba() {
+        dadoUnNegocioConElPrecioEnTextoYLaMismaPropuesta();
 
         cuandoSeValida();
 
@@ -309,11 +288,10 @@ class ProteccionDeEstructuraTest {
         quitarLaColumna(laSeccionDe(propuesto, TipoBloque.INVENTARIO), "marca");
     }
 
-    private void dadoUnNegocioConElPrecioEnTextoQueLaPropuestaQuita() {
+    private void dadoUnNegocioConElPrecioEnTextoYLaMismaPropuesta() {
         actual = unSistemaCompleto();
         cambiarElTipoDeLaColumna(laSeccionDe(actual, TipoBloque.INVENTARIO), "price", TipoCampo.TEXTO);
         propuesto = unaCopiaDe(actual);
-        quitarLaColumna(laSeccionDe(propuesto, TipoBloque.INVENTARIO), "price");
     }
 
     private void dadoUnaPropuestaConElPrecioEnTexto() {

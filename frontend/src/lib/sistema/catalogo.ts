@@ -23,7 +23,7 @@ const fija = (key: string, label: string, type: TipoCampo = 'text', extra: Parti
 // textos son de comercio (almacenes, kioscos y minimercados) y se agrega el bloque Ventas.
 export const CATALOG: Record<TipoBloque, DefinicionDeBloque> = {
   inventory: {
-    name: 'Stock',
+    name: 'Inventario',
     singular: 'producto',
     icon: 'box',
     color: 'orange',

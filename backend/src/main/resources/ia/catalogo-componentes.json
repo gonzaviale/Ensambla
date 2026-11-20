@@ -3,7 +3,7 @@
   "componentes": [
     {
       "tipo": "inventory",
-      "nombre": "Stock",
+      "nombre": "Inventario",
       "singular": "producto",
       "proposito": "Sabé qué tenés, a cuánto lo vendés y qué necesitás reponer.",
       "obligatorioEnElNegocio": true,

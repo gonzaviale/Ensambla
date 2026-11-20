@@ -289,9 +289,9 @@ export const entoncesSamiSumaLosGastosATravesDeLaOrden = async () => {
   expect(cantidadDePiezasDeLaPropuesta()).toBe(4);
 };
 
-export const entoncesSamiSacaLosClientes = async () => {
-  expect(await screen.findByText('Listo, saqué clientes.', {}, ESPERA)).toBeVisible();
-  expect(cantidadDePiezasDeLaPropuesta()).toBe(2);
+export const entoncesSamiNoSacaLosClientes = async () => {
+  expect(await screen.findByText(/No puedo sacar clientes: Ensambla los necesita/, {}, ESPERA)).toBeVisible();
+  expect(cantidadDePiezasDeLaPropuesta()).toBe(3);
 };
 
 export const entoncesSamiRenombraElSistema = async () => {
