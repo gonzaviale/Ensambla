@@ -126,7 +126,7 @@ describe('cierres y pagos mixtos de caja', () => {
 
     await cuandoSeAbreElCierreDesdeElHistorial();
 
-    entoncesElCierreSeVeSinRecuento();
+    await entoncesElCierreSeVeSinRecuento();
   });
 
   it('un cierre incierto se vuelve a consultar con el mismo identificador', async () => {
