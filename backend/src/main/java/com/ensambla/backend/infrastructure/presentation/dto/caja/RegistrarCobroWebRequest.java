@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.dto.caja;
 
+import com.ensambla.backend.domain.model.caja.CobroQrId;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.caja.CobroCajaId;
 import com.ensambla.backend.domain.model.caja.VentaCajaId;
@@ -17,7 +18,8 @@ import java.util.List;
 
 public record RegistrarCobroWebRequest(@NotNull CobroCajaId id, @NotNull ProyectoId proyectoId,
                                        @NotNull BloqueId inventarioId,
-                                       @NotEmpty @Size(max = 100) List<@NotNull @Valid AplicacionWebRequest> aplicaciones) {
+                                       @NotEmpty @Size(max = 100) List<@NotNull @Valid AplicacionWebRequest> aplicaciones,
+                                       CobroQrId cobroQrId) {
 
     public record AplicacionWebRequest(@NotNull VentaCajaId ventaId,
                                        @NotEmpty @Size(max = 3) List<@NotNull @Valid PagoWebRequest> pagos) {

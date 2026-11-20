@@ -54,7 +54,8 @@ public class CajaPresentationMapper {
         return new RegistrarCobroRequest(usuarioId, request.id(), request.proyectoId(), request.inventarioId(),
                 request.aplicaciones().stream().map(aplicacion -> new RegistrarCobroRequest.AplicacionRequest(
                         aplicacion.ventaId(), aplicacion.pagos().stream().map(pago ->
-                                new RegistrarCobroRequest.PagoRequest(pago.medio(), pago.importe())).toList())).toList());
+                                new RegistrarCobroRequest.PagoRequest(pago.medio(), pago.importe())).toList())).toList(),
+                request.cobroQrId());
     }
 
     public CobroCajaWebResponse toCobroResponse(CobroCajaItem cobro) {
@@ -103,7 +104,7 @@ public class CajaPresentationMapper {
                         linea.productoId(), linea.cantidad(), linea.precio(), linea.modo(), linea.descripcion())).toList(),
                 request.medio(), request.recibido(), request.pagos() == null ? null : request.pagos().stream()
                         .map(pago -> new CobrarVentaRequest.PagoRequest(pago.medio(), pago.importe())).toList(),
-                request.clienteId());
+                request.clienteId(), request.cobroQrId());
     }
 
     public CobrarVentaWebResponse toResponse(CobrarVentaResponse response) {

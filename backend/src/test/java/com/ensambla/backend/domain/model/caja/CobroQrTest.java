@@ -157,6 +157,26 @@ class CobroQrTest {
         entoncesSeRechazaPorque("El cobro con QR ya está cobrado");
     }
 
+    @Test
+    @DisplayName("Acepta lo transferido si coincide con el importe aunque tenga otra escala")
+    void aceptaLoTransferidoSiCoincideConElImporteAunqueTengaOtraEscala() {
+        dadoUnCobroPendiente();
+
+        cuandoSeExigeLaTransferenciaPor(new BigDecimal("2500.500"));
+
+        entoncesNoSeRechaza();
+    }
+
+    @Test
+    @DisplayName("Rechaza lo transferido si no coincide con el importe")
+    void rechazaLoTransferidoSiNoCoincideConElImporte() {
+        dadoUnCobroPendiente();
+
+        cuandoSeExigeLaTransferenciaPor(new BigDecimal("2500.49"));
+
+        entoncesSeRechazaPorque("El importe transferido no coincide con el del cobro con QR");
+    }
+
     // --- dado ---
     private void dadoUnCobroPendiente() {
         cobro = unCobroQrPendiente();
@@ -181,6 +201,10 @@ class CobroQrTest {
 
     private void cuandoSeIntentaCrearUnCobroPor(BigDecimal importe) {
         rechazo = catchThrowable(() -> CobroQr.nuevo(COBRO_QR_ID, NEGOCIO_ID, unDestinoDeCobro(), importe, AHORA));
+    }
+
+    private void cuandoSeExigeLaTransferenciaPor(BigDecimal transferido) {
+        rechazo = catchThrowable(() -> cobro.exigirTransferenciaPor(transferido));
     }
 
     private void cuandoSeMiraElEstadoEn(OffsetDateTime momento) {
@@ -221,6 +245,10 @@ class CobroQrTest {
     private void entoncesNoTieneConfirmacion() {
         assertThat(cobro.confirmadoEn()).isNull();
         assertThat(cobro.confirmacion()).isNull();
+    }
+
+    private void entoncesNoSeRechaza() {
+        assertThat(rechazo).isNull();
     }
 
     private void entoncesSeVe(EstadoCobroQr esperado) {

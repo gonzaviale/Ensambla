@@ -1,5 +1,9 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
+import com.ensambla.backend.domain.useCase.caja.cancelarCobroQr.CancelarCobroQr;
+import com.ensambla.backend.domain.useCase.caja.generarCobroQr.GenerarCobroQr;
+import com.ensambla.backend.domain.repository.caja.CobroQrRepository;
+import com.ensambla.backend.domain.service.caja.CobroQrService;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.inventario.MovimientoStockRepository;
 import com.ensambla.backend.domain.repository.caja.VentaCajaRepository;
@@ -32,9 +36,9 @@ public class CajaUseCaseConfig {
     @Bean
     public RegistrarCobro registrarCobro(NegocioRepository negocioRepository, UsoPlanRepository usoPlanRepository,
             VentaCajaRepository ventaCajaRepository, CobroCajaRepository cobroCajaRepository,
-            TransaccionPort transaccionPort, Clock clock) {
+            CobroQrService cobroQrService, TransaccionPort transaccionPort, Clock clock) {
         return new RegistrarCobro(negocioRepository, usoPlanRepository, ventaCajaRepository, cobroCajaRepository,
-                transaccionPort, clock);
+                cobroQrService, transaccionPort, clock);
     }
 
     @Bean
@@ -63,8 +67,26 @@ public class CajaUseCaseConfig {
     @Bean
     public CobrarVenta cobrarVenta(NegocioRepository negocioRepository, UsoPlanRepository usoPlanRepository,
             SistemaRepository sistemaRepository, VentaCajaRepository ventaCajaRepository,
-            MovimientoStockRepository movimientoStockRepository, ControlPlanService controlPlanService, TransaccionPort transaccionPort, Clock clock) {
+            MovimientoStockRepository movimientoStockRepository, ControlPlanService controlPlanService,
+            CobroQrService cobroQrService, TransaccionPort transaccionPort, Clock clock) {
         return new CobrarVenta(negocioRepository, usoPlanRepository, sistemaRepository, ventaCajaRepository,
-                movimientoStockRepository, controlPlanService, transaccionPort, clock);
+                movimientoStockRepository, controlPlanService, cobroQrService, transaccionPort, clock);
+    }
+
+    @Bean
+    public CobroQrService cobroQrService(CobroQrRepository cobroQrRepository) {
+        return new CobroQrService(cobroQrRepository);
+    }
+
+    @Bean
+    public GenerarCobroQr generarCobroQr(NegocioRepository negocioRepository, CobroQrRepository cobroQrRepository,
+            TransaccionPort transaccionPort, Clock clock) {
+        return new GenerarCobroQr(negocioRepository, cobroQrRepository, transaccionPort, clock);
+    }
+
+    @Bean
+    public CancelarCobroQr cancelarCobroQr(NegocioRepository negocioRepository, UsoPlanRepository usoPlanRepository,
+            CobroQrRepository cobroQrRepository, TransaccionPort transaccionPort, Clock clock) {
+        return new CancelarCobroQr(negocioRepository, usoPlanRepository, cobroQrRepository, transaccionPort, clock);
     }
 }

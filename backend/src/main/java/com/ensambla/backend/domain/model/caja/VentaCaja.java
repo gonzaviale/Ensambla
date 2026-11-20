@@ -56,6 +56,11 @@ public record VentaCaja(VentaCajaId id, NegocioId negocioId, ProyectoId proyecto
         return pagos.stream().map(PagoCaja::importe).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
+    public BigDecimal importeEn(MedioPagoCaja medioDePago) {
+        return pagos.stream().filter(pago -> pago.medio() == medioDePago)
+                .map(PagoCaja::importe).reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
     public BigDecimal saldo() {
         return total.subtract(cobrado());
     }

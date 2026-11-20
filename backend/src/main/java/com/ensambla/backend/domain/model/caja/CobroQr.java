@@ -41,6 +41,12 @@ public record CobroQr(CobroQrId id, NegocioId negocioId, DestinoDeCobro destino,
         return conEstado(EstadoCobroQr.CANCELADO, ahora, null, null);
     }
 
+    public void exigirTransferenciaPor(BigDecimal transferido) {
+        if (importe.compareTo(transferido) != 0) {
+            throw new BusinessRuleException("El importe transferido no coincide con el del cobro con QR");
+        }
+    }
+
     private CobroQr conEstado(EstadoCobroQr nuevoEstado, OffsetDateTime ahora,
                               OffsetDateTime confirmadoEn, ConfirmacionDeCobro confirmacion) {
         return new CobroQr(id, negocioId, destino, importe, nuevoEstado, creadoEn, venceEn,

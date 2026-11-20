@@ -1,11 +1,13 @@
 package com.ensambla.backend.domain.useCase.caja.cobrarVenta;
 
+import com.ensambla.backend.domain.service.caja.CobroQrService;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.bloque.TipoBloque;
+import com.ensambla.backend.domain.model.caja.CobroQrId;
 import com.ensambla.backend.domain.model.caja.MedioPagoCaja;
 import com.ensambla.backend.domain.model.caja.VentaCaja;
 import com.ensambla.backend.domain.model.campo.Campo;
@@ -35,9 +37,12 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
+import static org.mockito.Mockito.doThrow;
+import static com.ensambla.backend.support.CobrosQrDePrueba.COBRO_QR_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -57,6 +62,8 @@ class CobrarVentaTest {
     private ControlPlanService controlPlanService;
     @Mock
     private MovimientoStockRepository movimientoStockRepository;
+    @Mock
+    private CobroQrService cobroQrService;
     private CobrarVenta cobrarVenta;
     private Sistema sistema;
 
@@ -67,7 +74,7 @@ class CobrarVentaTest {
     @BeforeEach
     void setUp() {
         cobrarVenta = new CobrarVenta(negocioRepository, usoPlanRepository, sistemaRepository,
-                ventaCajaRepository, movimientoStockRepository, controlPlanService, new TransaccionDirecta(),
+                ventaCajaRepository, movimientoStockRepository, controlPlanService, cobroQrService, new TransaccionDirecta(),
                 Clock.fixed(CajaTestData.AHORA.toInstant(), ZoneOffset.UTC));
         sistema = CajaTestData.sistema();
     }
@@ -289,7 +296,44 @@ class CobrarVentaTest {
         entoncesSeRechazaCon(ResourceNotFoundException.class);
     }
 
+    @Test
+    @DisplayName("Cobrar con QR confirma el cobro por lo transferido en la misma operación de la venta")
+    void cobrarConQrConfirmaElCobroPorLoTransferidoEnLaMismaOperacionDeLaVenta() {
+        dadoUnaCajaQueGuardaLasVentas();
+
+        cuandoSeCobraMedioKiloPorTransferenciaConElCobroQr();
+
+        entoncesSeConfirmaElCobroQrPorLoTransferido();
+        entoncesSeGuardoLaFilaDeVentasDeLaOperacion();
+    }
+
+    @Test
+    @DisplayName("Una venta sin cobro con QR no identifica ningún cobro para confirmar")
+    void unaVentaSinCobroConQrNoIdentificaNingunCobroParaConfirmar() {
+        dadoUnaCajaQueGuardaLasVentas();
+
+        cuandoSeCobraMedioKilo();
+
+        entoncesSeConsultaElCobroQrSinIdentificador();
+    }
+
+    @Test
+    @DisplayName("Si el cobro con QR se rechaza no se guarda la venta ni se descuenta el stock")
+    void siElCobroConQrSeRechazaNoSeGuardaLaVentaNiSeDescuentaElStock() {
+        dadoUnaCaja();
+        dadoUnCobroConQrQueSeRechaza();
+
+        cuandoSeIntentaCobrarMedioKiloPorTransferenciaConElCobroQr();
+
+        entoncesSeRechazaSinGuardarNada(BusinessRuleException.class);
+    }
+
     // --- dado ---
+
+    private void dadoUnCobroConQrQueSeRechaza() {
+        doThrow(new BusinessRuleException("El cobro con QR ya está cobrado"))
+                .when(cobroQrService).confirmarSiHay(any(), any(), any(), any());
+    }
 
     private void dadoUnUsuarioDelNegocio() {
         when(negocioRepository.obtenerIdDelUsuario(CajaTestData.USUARIO)).thenReturn(CajaTestData.NEGOCIO);
@@ -410,6 +454,14 @@ class CobrarVentaTest {
         respuesta = cobrarVenta.execute(CajaTestData.request("0.5"));
     }
 
+    private void cuandoSeCobraMedioKiloPorTransferenciaConElCobroQr() {
+        respuesta = cobrarVenta.execute(medioKiloPorTransferenciaConElCobroQr());
+    }
+
+    private void cuandoSeIntentaCobrarMedioKiloPorTransferenciaConElCobroQr() {
+        rechazo = catchThrowable(() -> cobrarVenta.execute(medioKiloPorTransferenciaConElCobroQr()));
+    }
+
     private void cuandoSeIntentaCobrarMedioKilo() {
         rechazo = catchThrowable(() -> cobrarVenta.execute(CajaTestData.request("0.5")));
     }
@@ -444,6 +496,21 @@ class CobrarVentaTest {
         assertThat(fila.getCreadoEn()).isEqualTo(CajaTestData.AHORA);
         assertThat(fila.getId()).isNotNull();
         assertThat(fila.getOrden()).isZero();
+    }
+
+    private void entoncesSeConfirmaElCobroQrPorLoTransferido() {
+        assertThat(importeTransferidoAlConfirmar(COBRO_QR_ID)).isEqualByComparingTo("2000");
+    }
+
+    private void entoncesSeConsultaElCobroQrSinIdentificador() {
+        assertThat(importeTransferidoAlConfirmar(null)).isEqualByComparingTo("0");
+    }
+
+    private BigDecimal importeTransferidoAlConfirmar(CobroQrId cobroQrId) {
+        ArgumentCaptor<BigDecimal> transferido = ArgumentCaptor.forClass(BigDecimal.class);
+        verify(cobroQrService).confirmarSiHay(eq(cobroQrId), eq(CajaTestData.NEGOCIO), transferido.capture(),
+                eq(CajaTestData.AHORA));
+        return transferido.getValue();
     }
 
     private void entoncesSeDevuelveElComprobanteDeLaVentaPrevia() {
@@ -499,6 +566,12 @@ class CobrarVentaTest {
     }
 
     // --- datos ---
+
+    private CobrarVentaRequest medioKiloPorTransferenciaConElCobroQr() {
+        CobrarVentaRequest base = CajaTestData.request("0.5");
+        return new CobrarVentaRequest(base.usuarioId(), base.id(), base.proyectoId(), base.inventarioId(),
+                base.ventasId(), base.lineas(), "TRANSFERENCIA", null, null, null, COBRO_QR_ID);
+    }
 
     private CobrarVentaRequest solicitudConCliente(List<CobrarVentaRequest.PagoRequest> pagos) {
         CobrarVentaRequest base = CajaTestData.request("0.5");

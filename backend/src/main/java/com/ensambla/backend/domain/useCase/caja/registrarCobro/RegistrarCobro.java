@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.useCase.caja.registrarCobro;
 
+import com.ensambla.backend.domain.service.caja.CobroQrService;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
@@ -34,6 +35,7 @@ public class RegistrarCobro {
     private final UsoPlanRepository usoPlanRepository;
     private final VentaCajaRepository ventaCajaRepository;
     private final CobroCajaRepository cobroCajaRepository;
+    private final CobroQrService cobroQrService;
     private final TransaccionPort transaccionPort;
     private final Clock clock;
 
@@ -75,7 +77,13 @@ public class RegistrarCobro {
         exigirDeudaDeUnCliente(primera);
         CobroCaja cobro = cobroDe(negocioId, request, aplicaciones, primera);
         aplicaciones.forEach(aplicacion -> cobrarLaVenta(obtenerVenta(ventas, aplicacion.ventaId()), aplicacion, cobro));
+        confirmarCobroQr(negocioId, request, cobro);
         return guardarCobro(cobro);
+    }
+
+    private void confirmarCobroQr(NegocioId negocioId, RegistrarCobroRequest request, CobroCaja cobro) {
+        cobroQrService.confirmarSiHay(request.cobroQrId(), negocioId,
+                cobro.importe(MedioPagoCaja.TRANSFERENCIA), cobro.creadoEn());
     }
 
     private List<CobroCaja.Aplicacion> aplicacionesDe(RegistrarCobroRequest request) {

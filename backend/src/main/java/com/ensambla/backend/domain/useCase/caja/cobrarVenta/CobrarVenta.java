@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.useCase.caja.cobrarVenta;
 
+import com.ensambla.backend.domain.service.caja.CobroQrService;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
@@ -47,6 +48,7 @@ public class CobrarVenta {
     private final VentaCajaRepository ventaCajaRepository;
     private final MovimientoStockRepository movimientoStockRepository;
     private final ControlPlanService controlPlanService;
+    private final CobroQrService cobroQrService;
     private final TransaccionPort transaccionPort;
     private final Clock clock;
 
@@ -81,6 +83,7 @@ public class CobrarVenta {
         validarLimiteDeRegistros(negocioId, request, entorno.ahora());
         List<LineaVentaCaja> lineas = aplicarLineas(entorno.sistema(), entorno.inventario(), request, entorno.ahora());
         VentaCaja venta = crearVenta(negocioId, request, entorno, lineas);
+        confirmarCobroQr(negocioId, request, venta, entorno.ahora());
         registrarLineasVentas(entorno.sistema(), entorno.ventas(), venta, entorno.ahora());
         guardarInventarioYVentas(entorno);
         return guardarComprobante(venta);
@@ -118,6 +121,12 @@ public class CobrarVenta {
         return VentaCaja.nueva(request.id(), negocioId, entorno.sistema().id(), request.inventarioId(),
                 request.huella(), lineas, MedioPagoCaja.valueOf(request.medio()), request.recibido(), entorno.ahora(),
                 pagos, request.clienteId(), entorno.clienteNombre());
+    }
+
+    private void confirmarCobroQr(NegocioId negocioId, CobrarVentaRequest request, VentaCaja venta,
+            OffsetDateTime ahora) {
+        cobroQrService.confirmarSiHay(request.cobroQrId(), negocioId,
+                venta.importeEn(MedioPagoCaja.TRANSFERENCIA), ahora);
     }
 
     private void guardarInventarioYVentas(EntornoCobro entorno) {

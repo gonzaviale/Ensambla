@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.repository;
 
+import com.ensambla.backend.domain.service.caja.CobroQrService;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.model.caja.CierreCaja;
@@ -86,6 +87,7 @@ class CajaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Autowired private RegistrarCobro registrarCobro;
     @Autowired private ListarVentasCaja listarVentasCaja;
     @Autowired private CobroCajaRepository cobroCajaRepository;
+    @Autowired private CobroQrService cobroQrService;
     @Autowired private NegocioRepository negocioRepository;
     @Autowired private DatosDeProyectoService datosDeProyectoService;
     @Autowired private UsoPlanRepository usoPlanRepository;
@@ -634,7 +636,7 @@ class CajaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     private void cuandoSeCobraElSaldoAlDiaSiguiente() {
         OffsetDateTime manana = venta.creadoEn().plusDays(1);
         new RegistrarCobro(negocioRepository, usoPlanRepository, ventaCajaRepository, cobroCajaRepository,
-                transaccionPort, Clock.fixed(manana.toInstant(), ZoneOffset.UTC))
+                cobroQrService, transaccionPort, Clock.fixed(manana.toInstant(), ZoneOffset.UTC))
                 .execute(solicitudCobro(venta.id(), "600", "TRANSFERENCIA"));
         recargar();
         resumenDelDia = resumenDelDia(venta.creadoEn());
