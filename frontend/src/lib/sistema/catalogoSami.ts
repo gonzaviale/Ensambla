@@ -1,5 +1,6 @@
 import { CATALOG } from './catalogo';
-import type { TipoBloque } from './tipos';
+import { esUnaSeccionObligatoria } from './estructuraFija';
+import type { Bloque, TipoBloque } from './tipos';
 
 // Lo que Sami (el backend) sabe de los componentes del editor. El catálogo vive en `catalogo.ts`: de ahí se exporta
 // a `backend/src/main/resources/ia/catalogo-componentes.json` con `npm run catalogo:sami`, y un test falla si el
@@ -10,12 +11,14 @@ export type ComponenteParaSami = {
   nombre: string;
   singular: string;
   proposito: string;
+  obligatorioEnElNegocio: boolean;
   campos: {
     clave: string;
     etiqueta: string;
     tipo: string;
     obligatorio: boolean;
     opciones?: string[];
+    fija?: boolean;
   }[];
 };
 
@@ -34,12 +37,14 @@ export function catalogoParaSami(): CatalogoParaSami {
         nombre: definicion.name,
         singular: definicion.singular,
         proposito: definicion.purpose,
+        obligatorioEnElNegocio: esUnaSeccionObligatoria({ type: tipo } as Bloque),
         campos: definicion.fields.map((campo) => ({
           clave: campo.key,
           etiqueta: campo.label,
           tipo: campo.type,
           obligatorio: campo.required,
           ...(campo.options && { opciones: campo.options }),
+          ...(campo.system && { fija: true }),
         })),
       };
     }),

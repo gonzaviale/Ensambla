@@ -3,39 +3,77 @@
   "componentes": [
     {
       "tipo": "inventory",
-      "nombre": "Inventario",
+      "nombre": "Stock",
       "singular": "producto",
       "proposito": "Sabé qué tenés, a cuánto lo vendés y qué necesitás reponer.",
+      "obligatorioEnElNegocio": true,
       "campos": [
         {
           "clave": "name",
           "etiqueta": "Producto",
           "tipo": "text",
-          "obligatorio": true
+          "obligatorio": true,
+          "fija": true
         },
         {
           "clave": "quantity",
           "etiqueta": "Cantidad",
           "tipo": "number",
-          "obligatorio": true
+          "obligatorio": true,
+          "fija": true
         },
         {
           "clave": "price",
           "etiqueta": "Precio",
           "tipo": "currency",
-          "obligatorio": false
+          "obligatorio": false,
+          "fija": true
         },
         {
           "clave": "cost",
           "etiqueta": "Costo",
           "tipo": "currency",
-          "obligatorio": false
+          "obligatorio": false,
+          "fija": true
         },
         {
           "clave": "minimum",
           "etiqueta": "Stock mínimo",
           "tipo": "number",
-          "obligatorio": false
+          "obligatorio": false,
+          "fija": true
+        },
+        {
+          "clave": "barcode",
+          "etiqueta": "Código de barras",
+          "tipo": "text",
+          "obligatorio": false,
+          "fija": true
+        },
+        {
+          "clave": "saleMode",
+          "etiqueta": "Venta por",
+          "tipo": "select",
+          "obligatorio": false,
+          "opciones": [
+            "unidad",
+            "peso"
+          ],
+          "fija": true
+        },
+        {
+          "clave": "favorite",
+          "etiqueta": "Favorito en caja",
+          "tipo": "checkbox",
+          "obligatorio": false,
+          "fija": true
+        },
+        {
+          "clave": "stockControl",
+          "etiqueta": "Controlar stock",
+          "tipo": "checkbox",
+          "obligatorio": false,
+          "fija": true
         }
       ]
     },
@@ -44,6 +82,7 @@
       "nombre": "Pedidos",
       "singular": "pedido",
       "proposito": "Seguí tus pedidos desde que llegan hasta que los entregás.",
+      "obligatorioEnElNegocio": false,
       "campos": [
         {
           "clave": "name",
@@ -87,12 +126,14 @@
       "nombre": "Clientes",
       "singular": "cliente",
       "proposito": "Reuní los datos de quienes te compran y lo que te deben.",
+      "obligatorioEnElNegocio": true,
       "campos": [
         {
           "clave": "name",
           "etiqueta": "Nombre",
           "tipo": "text",
-          "obligatorio": true
+          "obligatorio": true,
+          "fija": true
         },
         {
           "clave": "phone",
@@ -119,42 +160,49 @@
       "nombre": "Ventas",
       "singular": "venta",
       "proposito": "Cada venta descuenta stock y muestra qué se mueve y qué no.",
+      "obligatorioEnElNegocio": true,
       "campos": [
         {
           "clave": "product",
           "etiqueta": "Producto",
           "tipo": "relation",
-          "obligatorio": true
+          "obligatorio": true,
+          "fija": true
         },
         {
           "clave": "quantity",
           "etiqueta": "Cantidad",
           "tipo": "number",
-          "obligatorio": true
+          "obligatorio": true,
+          "fija": true
         },
         {
           "clave": "price",
           "etiqueta": "Precio",
           "tipo": "currency",
-          "obligatorio": false
+          "obligatorio": false,
+          "fija": true
         },
         {
           "clave": "date",
           "etiqueta": "Fecha",
           "tipo": "date",
-          "obligatorio": false
+          "obligatorio": false,
+          "fija": true
         },
         {
           "clave": "customer",
           "etiqueta": "Cliente",
           "tipo": "text",
-          "obligatorio": false
+          "obligatorio": false,
+          "fija": true
         },
         {
           "clave": "credit",
           "etiqueta": "Fiado",
           "tipo": "checkbox",
-          "obligatorio": false
+          "obligatorio": false,
+          "fija": true
         }
       ]
     },
@@ -163,24 +211,28 @@
       "nombre": "Gastos",
       "singular": "gasto",
       "proposito": "Registrá compras y gastos para entender tus costos.",
+      "obligatorioEnElNegocio": true,
       "campos": [
         {
           "clave": "name",
           "etiqueta": "Concepto",
           "tipo": "text",
-          "obligatorio": true
+          "obligatorio": true,
+          "fija": true
         },
         {
           "clave": "date",
           "etiqueta": "Fecha",
           "tipo": "date",
-          "obligatorio": false
+          "obligatorio": false,
+          "fija": true
         },
         {
           "clave": "total",
           "etiqueta": "Importe",
           "tipo": "currency",
-          "obligatorio": true
+          "obligatorio": true,
+          "fija": true
         },
         {
           "clave": "category",
@@ -192,7 +244,8 @@
             "Servicios",
             "Alquiler",
             "Otros"
-          ]
+          ],
+          "fija": true
         }
       ]
     },
@@ -201,6 +254,7 @@
       "nombre": "Resumen",
       "singular": "indicador",
       "proposito": "Mirá totales que se actualizan con tus registros.",
+      "obligatorioEnElNegocio": false,
       "campos": []
     },
     {
@@ -208,6 +262,7 @@
       "nombre": "Formulario",
       "singular": "registro",
       "proposito": "Pedí exactamente los datos que necesitás.",
+      "obligatorioEnElNegocio": false,
       "campos": [
         {
           "clave": "name",
@@ -234,6 +289,7 @@
       "nombre": "Nota",
       "singular": "nota",
       "proposito": "Dejá un mensaje útil junto a tus herramientas.",
+      "obligatorioEnElNegocio": false,
       "campos": []
     },
     {
@@ -241,18 +297,21 @@
       "nombre": "Entradas",
       "singular": "entrada",
       "proposito": "Cada entrada suma unidades al stock del producto.",
+      "obligatorioEnElNegocio": false,
       "campos": [
         {
           "clave": "product",
           "etiqueta": "Producto",
           "tipo": "relation",
-          "obligatorio": true
+          "obligatorio": true,
+          "fija": true
         },
         {
           "clave": "quantity",
           "etiqueta": "Cantidad",
           "tipo": "number",
-          "obligatorio": true
+          "obligatorio": true,
+          "fija": true
         },
         {
           "clave": "date",
@@ -273,18 +332,21 @@
       "nombre": "Salidas",
       "singular": "salida",
       "proposito": "Cada salida descuenta unidades del stock disponible.",
+      "obligatorioEnElNegocio": false,
       "campos": [
         {
           "clave": "product",
           "etiqueta": "Producto",
           "tipo": "relation",
-          "obligatorio": true
+          "obligatorio": true,
+          "fija": true
         },
         {
           "clave": "quantity",
           "etiqueta": "Cantidad",
           "tipo": "number",
-          "obligatorio": true
+          "obligatorio": true,
+          "fija": true
         },
         {
           "clave": "date",
