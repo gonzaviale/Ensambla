@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from 'react';
 import { ArmalaVos } from '@/components/sistema/metricas/agregar/ArmalaVos';
-import { PedilaConTusPalabras } from '@/components/sistema/metricas/agregar/PedilaConTusPalabras';
 import { Sugeridas } from '@/components/sistema/metricas/agregar/Sugeridas';
 import type { PropsDeLaPestana } from '@/components/sistema/metricas/agregar/tipos';
 import { VentanaFlotante } from '@/components/sistema/metricas/VentanaFlotante';
@@ -8,7 +7,7 @@ import { leerErrorServidor } from '@/hooks/errores';
 import { useGuardarMetrica } from '@/hooks/metricas/mutations';
 import type { AutoriaDeMetrica, DefinicionDeMetrica } from '@/types/metricas';
 
-type Pestana = 'sugeridas' | 'armala' | 'palabras';
+type Pestana = 'sugeridas' | 'armala';
 
 const PESTANAS: Record<
   Pestana,
@@ -16,18 +15,13 @@ const PESTANAS: Record<
 > = {
   sugeridas: { etiqueta: 'Sugeridas', color: 'naranja', Contenido: Sugeridas },
   armala: { etiqueta: 'Armala vos', color: 'celeste', Contenido: ArmalaVos },
-  palabras: {
-    etiqueta: 'Pedila con tus palabras',
-    color: 'coral',
-    Contenido: PedilaConTusPalabras,
-  },
 };
 
-const ORDEN_DE_LAS_PESTANAS: Pestana[] = ['sugeridas', 'armala', 'palabras'];
+const ORDEN_DE_LAS_PESTANAS: Pestana[] = ['sugeridas', 'armala'];
 
 type Props = { sistemaId: string; onCerrar: () => void; onAgregada: (metricaId: string) => void };
 
-// Una ventana centrada, encima del inicio: no ocupa lugar en «Tu negocio». Tres formas de sumar una métrica sin
+// Una ventana centrada, encima del inicio: no ocupa lugar en «Tu negocio». Dos formas de sumar una métrica sin
 // escribir fórmulas, y en todas se ve cómo queda antes de guardarla.
 export function AgregarMetrica({ sistemaId, onCerrar, onAgregada }: Props) {
   const [pestana, setPestana] = useState<Pestana>('sugeridas');

@@ -20,8 +20,7 @@
   margin: 4px 0 0;
   color: var(--ink);
 }
-.metricas-medida-agregar,
-.agregar-metrica-ver {
+.metricas-medida-agregar {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -32,18 +31,12 @@
   color: #fff;
   font-weight: 700;
 }
-.agregar-metrica-ver {
-  background: #fff;
-  color: var(--petrol);
-}
-.metricas-medida-agregar:hover,
-.agregar-metrica-ver:hover {
+.metricas-medida-agregar:hover {
   border-color: var(--resalte, var(--coral));
   background: var(--resalte, var(--coral));
   color: #fff;
 }
-.metricas-medida-agregar:disabled,
-.agregar-metrica-ver:disabled {
+.metricas-medida-agregar:disabled {
   opacity: 0.6;
 }
 .metricas-medida-aviso {
@@ -235,51 +228,6 @@
   display: flex !important;
   align-items: center;
   gap: 8px !important;
-}
-.agregar-metrica-acciones {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-.agregar-metrica-entendi {
-  grid-column: 1 / -1;
-}
-.agregar-metrica-entendi ul {
-  display: grid;
-  gap: 4px;
-  list-style: none;
-  padding-left: 0;
-}
-.agregar-metrica-entendi b {
-  color: var(--petrol);
-}
-.agregar-metrica-entendi .objetivos-etiqueta {
-  color: var(--petrol);
-  font-size: 15px;
-}
-.agregar-metrica-por-defecto {
-  color: var(--c-accion-texto);
-}
-.agregar-metrica-entendi .agregar-metrica-no-entendidas {
-  color: var(--coral);
-  font-size: 13px;
-  font-weight: 700;
-}
-.agregar-metrica-no-entendi {
-  display: grid;
-  gap: 4px;
-  padding: 12px 16px;
-  border: 2px solid var(--coral);
-  border-radius: 12px;
-  background: #fff;
-  color: var(--ink);
-}
-.agregar-metrica-no-entendi p,
-.agregar-metrica-no-entendi ul {
-  margin: 0;
-}
-.agregar-metrica-no-entendi ul {
-  padding-left: 18px;
 }
 
 /* «Tu negocio» en solapas: la de ventas (petróleo) y una por métrica, cada una con su color de la paleta. La activa
@@ -913,7 +861,7 @@
 }
 .panel-agregar-pestanas {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 6px;
 }
 .panel-agregar-pestanas button {
@@ -928,9 +876,6 @@
 }
 .panel-agregar-pestanas button[data-color='celeste'] {
   --color-solapa: var(--blue);
-}
-.panel-agregar-pestanas button[data-color='coral'] {
-  --color-solapa: var(--coral);
 }
 .panel-agregar-pestanas button[aria-selected='true'] {
   background: var(--color-solapa);
@@ -1180,56 +1125,6 @@
   color: #fff;
 }
 
-/* Pedila con tus palabras. */
-.panel-agregar-pedido {
-  display: grid;
-  gap: 12px;
-}
-.panel-agregar-pedido label {
-  display: grid;
-  gap: 4px;
-  font-weight: 700;
-}
-.panel-agregar-pedido input[type='text'] {
-  padding: 10px;
-  border: 2px solid #cdd5d2;
-  border-radius: 10px;
-  background: #fff;
-  color: var(--ink);
-}
-.panel-agregar-pedido input[type='text']:focus,
-.panel-agregar-pedido input[type='text']:focus-visible {
-  border-color: var(--blue);
-  outline: none;
-}
-.panel-agregar-pedido-intro {
-  margin: 0;
-  color: var(--ink);
-  font-weight: 600;
-}
-.panel-agregar-ejemplos {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.panel-agregar-ejemplos button {
-  padding: 5px 10px;
-  border: 2px dashed var(--yellow);
-  border-radius: 8px;
-  background: #fff;
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 600;
-}
-.panel-agregar-ejemplos button:hover {
-  border-style: solid;
-  background: #fff;
-  color: var(--ink);
-}
-.panel-agregar-pedido > .agregar-metrica-ver {
-  justify-self: start;
-}
-
 /* Mientras llegan los números de ventas, el hueco ya tiene el marco de la tarjeta: la solapa nunca queda en el aire. */
 .panel-negocio .tablero-cargando {
   padding: 18px;
@@ -1243,13 +1138,7 @@
   border-color: var(--orange);
   background: var(--orange);
 }
-.panel-agregar-cuerpo .agregar-metrica-ver {
-  border-color: var(--orange);
-  background: #fff;
-  color: var(--ink);
-}
-.panel-agregar-cuerpo .metricas-medida-agregar:hover:not(:disabled),
-.panel-agregar-cuerpo .agregar-metrica-ver:hover:not(:disabled) {
+.panel-agregar-cuerpo .metricas-medida-agregar:hover:not(:disabled) {
   border-color: var(--orange);
   background: var(--orange);
   color: #fff;
@@ -1341,35 +1230,6 @@
   margin-bottom: 6px;
 }
 
-/* «Analizar» es la acción principal: llena, a diferencia de los pedidos de ejemplo. */
-.panel-agregar-cuerpo .panel-agregar-pedido > .agregar-metrica-ver {
-  border-color: var(--coral);
-  background: var(--coral);
-  color: #fff;
-}
-.panel-agregar-cuerpo .panel-agregar-pedido > .agregar-metrica-ver:hover:not(:disabled) {
-  border-color: var(--coral);
-  background: var(--coral);
-  color: #fff;
-  filter: brightness(0.92);
-}
-
-/* «Descartar» se ve como «Cancelar» de las ventanas: celeste suave, esquinas de 10px y la letra en petróleo. */
-.panel-agregar-cuerpo .panel-agregar-propuesta .agregar-metrica-acciones .agregar-metrica-ver {
-  border-color: var(--c-estructura-100);
-  border-radius: 10px;
-  background: var(--c-estructura-100);
-  color: var(--petrol);
-}
-.panel-agregar-cuerpo
-  .panel-agregar-propuesta
-  .agregar-metrica-acciones
-  .agregar-metrica-ver:hover:not(:disabled) {
-  border-color: var(--c-estructura-100);
-  background: #d3eaf1;
-  color: var(--petrol);
-}
-
 /* En la vista previa de la ventana la tarjeta no reserva alto de más. */
 .vista-previa .grafico-metrica,
 .vista-previa .grafico-metrica-dibujo {
@@ -1401,10 +1261,6 @@
   flex: none;
   width: 16px;
   height: 16px;
-}
-
-.panel-agregar-propuesta .agregar-metrica-acciones {
-  margin-top: 16px;
 }
 
 /* En «Tu negocio» la barra más alta llega al techo del gráfico: el cartel del día no sube más allá, así no lo tapa

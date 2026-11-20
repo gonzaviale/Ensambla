@@ -517,7 +517,7 @@ El catálogo de sugeridas vive en `resources/metricas/catalogo-metricas.json`, p
 
 **API.** Bajo `/api/proyectos/{proyectoId}/metricas`: `GET` (las guardadas, cada una con su resultado y «de dónde sale»),
 `GET /sugeridas`, `GET /fuentes` (de qué se puede armar en ese cuaderno), `POST /previsualizar` (calcula sin guardar),
-`POST /interpretar`, `POST` (201), `PATCH /{metricaId}` (nombre), `PATCH /{metricaId}/lugar`, `PATCH /{metricaId}/grafico`
+`POST` (201), `PATCH /{metricaId}` (nombre), `PATCH /{metricaId}/lugar`, `PATCH /{metricaId}/grafico`
 y `DELETE /{metricaId}` (204).
 
 ### Objetivo de la cuenta demo (V33)

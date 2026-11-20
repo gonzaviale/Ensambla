@@ -2,7 +2,6 @@ import { screen, within } from '@testing-library/react';
 import type { UserEvent } from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { estado } from '@/mocks/db/estado';
-import { entoncesApareceQueEntendio } from '@/test/loQueEntendi';
 import {
   LO_QUE_TE_DEBEN,
   PRODUCTO_MAS_VENDIDO,
@@ -24,12 +23,6 @@ import {
   entoncesSeVeComo,
   entoncesSeGuardoConLaFuente,
 } from '@/test/panelDeTuNegocio';
-
-const cuandoSePideConPalabras = async (usuario: UserEvent, pedido: string) => {
-  await cuandoSeEligeLaPestana(usuario, 'Pedila con tus palabras');
-  await usuario.type(screen.getByLabelText('¿Qué querés ver?'), pedido);
-  await usuario.click(screen.getByRole('button', { name: 'Analizar' }));
-};
 
 const cuandoSeAbreArmalaVos = (usuario: UserEvent) => cuandoSeEligeLaPestana(usuario, 'Armala vos');
 
@@ -216,40 +209,6 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
       .closest('li') as HTMLElement;
     expect(within(sugerida).getByRole('status')).toHaveTextContent('Ya la tenés en tu panel');
     expect(within(sugerida).queryByRole('button')).not.toBeInTheDocument();
-  });
-
-  it('pide una métrica con sus palabras, la mira y la guarda como una solapa', async () => {
-    const { usuario } = await dadoElInicioDelAlmacen();
-    await cuandoSePideConPalabras(usuario, '¿Qué producto vendo más este mes?');
-    const vista = await screen.findByLabelText('Así quedaría');
-    expect(within(vista).getByText(/Por producto/)).toBeInTheDocument();
-    await usuario.click(within(vista).getByRole('button', { name: 'Guardar métrica' }));
-    await entoncesEstaAbiertaLaSolapa('Qué producto vendo más este mes');
-  });
-
-  it('al pedir con sus palabras muestra qué entendió, qué tomó por defecto y qué no entendió', async () => {
-    const { usuario } = await dadoElInicioDelAlmacen();
-
-    await cuandoSePideConPalabras(usuario, 'cuanto vendi el finde');
-
-    await entoncesApareceQueEntendio('Período: este mes (no dijiste cuándo)', '«finde»');
-  });
-
-  it('si no entiende el pedido dice qué falta y da ejemplos', async () => {
-    const { usuario } = await dadoElInicioDelAlmacen();
-    await cuandoSePideConPalabras(usuario, 'hola, ¿cómo andás?');
-    const aviso = await screen.findByRole('alert');
-    expect(aviso).toHaveTextContent('Decime si es de tus ventas, tus gastos o tu stock');
-    expect(within(aviso).getByText('«Cuánto vendí esta semana»')).toBeInTheDocument();
-  });
-
-  it('descarta lo que entendió sin guardar nada', async () => {
-    const { usuario, almacen } = await dadoElInicioDelAlmacen();
-    await cuandoSePideConPalabras(usuario, 'cuánto gasté en total');
-    const vista = await screen.findByLabelText('Así quedaría');
-    await usuario.click(within(vista).getByRole('button', { name: 'Descartar' }));
-    expect(screen.queryByLabelText('Así quedaría')).not.toBeInTheDocument();
-    expect(estado.metricas.get(almacen.id) ?? []).toEqual([]);
   });
 
   it('no deja guardar lo que ya muestra el panel de ventas y dice por qué', async () => {

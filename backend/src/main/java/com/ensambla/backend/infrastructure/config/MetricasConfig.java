@@ -2,7 +2,6 @@ package com.ensambla.backend.infrastructure.config;
 
 import com.ensambla.backend.domain.model.metrica.CatalogoMetricas;
 import com.ensambla.backend.domain.model.metrica.DefinicionMetrica;
-import com.ensambla.backend.domain.model.metrica.InterpreteDePedidos;
 import com.ensambla.backend.domain.model.metrica.MotorMetricas;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,14 +24,6 @@ public class MetricasConfig {
     @Bean
     public MotorMetricas motorMetricas() {
         return new MotorMetricas();
-    }
-
-    /** Entiende los pedidos en palabras con las frases de {@code metricas/diccionario-pedidos.json}. */
-    @Bean
-    public InterpreteDePedidos interpreteDePedidos(ObjectMapper objectMapper) {
-        return new InterpreteDePedidos(
-                leer(new ClassPathResource("metricas/diccionario-pedidos.json"), objectMapper,
-                        DiccionarioDePedidosJson.class).aDiccionario());
     }
 
     static CatalogoMetricas cargar(Resource recurso, ObjectMapper objectMapper) {

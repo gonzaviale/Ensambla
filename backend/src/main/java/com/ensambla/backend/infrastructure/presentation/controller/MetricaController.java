@@ -10,17 +10,14 @@ import com.ensambla.backend.domain.useCase.metrica.listarMetricas.ListarMetricas
 import com.ensambla.backend.domain.model.metrica.FuenteMetrica;
 import com.ensambla.backend.domain.useCase.metrica.listarFuentesDelCuaderno.ListarFuentesDelCuaderno;
 import com.ensambla.backend.domain.useCase.metrica.listarSugeridas.ListarSugeridas;
-import com.ensambla.backend.domain.useCase.metrica.interpretarPedido.InterpretarPedido;
 import com.ensambla.backend.domain.useCase.metrica.moverMetrica.MoverMetrica;
 import com.ensambla.backend.domain.useCase.metrica.previsualizarMetrica.PrevisualizarMetrica;
 import com.ensambla.backend.domain.useCase.metrica.renombrarMetrica.RenombrarMetrica;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.CambiarGraficoWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.CrearMetricaWebRequest;
-import com.ensambla.backend.infrastructure.presentation.dto.metrica.InterpretarPedidoWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MetricaResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MetricaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.MoverMetricaWebRequest;
-import com.ensambla.backend.infrastructure.presentation.dto.metrica.PedidoInterpretadoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.RenombrarMetricaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.ResultadoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.metrica.SugeridaResponse;
@@ -62,8 +59,6 @@ public class MetricaController {
     private final RenombrarMetrica renombrarMetrica;
 
     private final MoverMetrica moverMetrica;
-
-    private final InterpretarPedido interpretarPedido;
 
     private final ListarFuentesDelCuaderno listarFuentesDelCuaderno;
 
@@ -155,16 +150,5 @@ public class MetricaController {
         moverMetrica.execute(metricaPresentationMapper.toMoverRequest(
                 UsuarioId.de(authentication.getName()), proyectoId, metricaId, request));
         return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/interpretar")
-    @Operation(summary = "Entender un pedido en palabras y devolver la métrica que arma, con lo que daría hoy y "
-            + "qué se tomó por defecto o no se entendió")
-    public ResponseEntity<PedidoInterpretadoResponse> interpretar(
-            Authentication authentication, @PathVariable ProyectoId proyectoId,
-            @Valid @RequestBody InterpretarPedidoWebRequest request) {
-        return ResponseEntity.ok(metricaPresentationMapper.toInterpretadoResponse(interpretarPedido.execute(
-                metricaPresentationMapper.toInterpretarRequest(
-                        UsuarioId.de(authentication.getName()), proyectoId, request))));
     }
 }

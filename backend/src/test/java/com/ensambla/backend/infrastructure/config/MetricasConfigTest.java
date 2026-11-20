@@ -3,7 +3,6 @@ package com.ensambla.backend.infrastructure.config;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.metrica.CatalogoMetricas;
 import com.ensambla.backend.domain.model.metrica.DefinicionMetrica;
-import com.ensambla.backend.domain.model.metrica.InterpreteDePedidos;
 import com.ensambla.backend.domain.model.metrica.MotorMetricas;
 import com.ensambla.backend.domain.model.negocio.RubroNegocio;
 import org.junit.jupiter.api.DisplayName;
@@ -66,12 +65,6 @@ class MetricasConfigTest {
     @DisplayName("Crea el motor de métricas")
     void creaElMotorDeMetricas() {
         entoncesCreaElMotor();
-    }
-
-    @Test
-    @DisplayName("Crea el intérprete de pedidos con el diccionario de la aplicación")
-    void creaElInterpreteDePedidos() {
-        entoncesCreaElInterprete();
     }
 
     @Test
@@ -148,9 +141,5 @@ class MetricasConfigTest {
 
     private static ByteArrayResource recurso(String json) {
         return new ByteArrayResource(json.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private void entoncesCreaElInterprete() {
-        assertThat(config.interpreteDePedidos(objectMapper)).isInstanceOf(InterpreteDePedidos.class);
     }
 }
