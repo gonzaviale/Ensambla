@@ -8,6 +8,14 @@ import { prepararCaja, idCaja } from '@/lib/caja';
 import { clavePagoDeudaCaja } from '@/lib/cobrosDeudasCaja';
 import { estado } from '@/mocks/db/estado';
 import { server } from '@/mocks/node';
+import {
+  cuandoSeCobraConQr,
+  cuandoYaLeTransfirieron,
+  dadoUnNegocioQueCobraEnSuAlias,
+  dadoUnServidorQueGeneraYCancelaCobrosQr,
+  elIdDelCobroQrGenerado,
+  entoncesSeMuestraElQrPor,
+} from '@/test/caja/cobroQrHelpers';
 import { renderApp } from '@/test/renderApp';
 import { ESPERA, setupUsuarioConSesion } from '@/test/testHelpers';
 import type { CobroDeudaCaja, SolicitudPagoDeudaCaja, VentaCaja } from '@/types/caja';
@@ -64,6 +72,26 @@ describe('cuenta y cobros de fiado de clientes', () => {
     await cuandoSeConfirmaElPago();
 
     await entoncesElPagoMixtoSeRepartioEntreLasVentas();
+  });
+
+  it('cobra una deuda con QR por lo que se transfiere y guarda el pago con ese cobro', async () => {
+    await dadaLaCuentaDeAnaConCobroConQr();
+    await cuandoSePreparaUnPagoPorTransferenciaDe('1500');
+    await cuandoSeCobraConQr(user);
+    await entoncesSeMuestraElQrPor(/1\.500,00/);
+
+    await cuandoYaLeTransfirieron(user);
+
+    await entoncesElPagoSeGuardoConElCobroQrGenerado();
+  });
+
+  it('en un pago dividido de la deuda el QR es sólo por la parte en transferencia', async () => {
+    await dadaLaCuentaDeAnaConCobroConQr();
+    await cuandoSePrepararUnPagoMixtoDe7000();
+
+    await cuandoSeCobraConQr(user);
+
+    await entoncesSeMuestraElQrPor(/5\.000,00/);
   });
 
   it('verifica un resultado incierto con el mismo id', async () => {
@@ -165,7 +193,11 @@ function guardarCobro(solicitud: SolicitudPagoDeudaCaja): CobroDeudaCaja {
   return cobro;
 }
 
-async function abrirLaCuentaDeAna({ respuestaPerdida = false, recuperar = false } = {}) {
+async function abrirLaCuentaDeAna({
+  respuestaPerdida = false,
+  recuperar = false,
+  conCobroQr = false,
+} = {}) {
   const usuario = setupUsuarioConSesion();
   const sistema = makeTemplate('shop', {}, false);
   const inventario = allBlocks(sistema).find((b) => b.type === 'inventory');
@@ -175,6 +207,7 @@ async function abrirLaCuentaDeAna({ respuestaPerdida = false, recuperar = false 
   clienteId = crypto.randomUUID();
   clientes.rows = [{ id: `e${clienteId}`, name: 'Ana López', phone: '1122334455' }];
   estado.sistemas.set(usuario.email, [sistema]);
+  if (conCobroQr) prepararElCobroQr(usuario.email);
   ventas = dosVentasDeAna();
   cobros = [];
   solicitudes = [];
@@ -187,6 +220,11 @@ async function abrirLaCuentaDeAna({ respuestaPerdida = false, recuperar = false 
   user = userEvent.setup();
   await user.click(screen.getByRole('button', { name: 'Clientes' }));
   await user.click(await screen.findByRole('button', { name: 'Ver cuenta de Ana López' }));
+}
+
+function prepararElCobroQr(email: string) {
+  dadoUnNegocioQueCobraEnSuAlias(email);
+  dadoUnServidorQueGeneraYCancelaCobrosQr();
 }
 
 function dejarUnPagoPendiente(sistemaId: string, inventarioId: string) {
@@ -225,6 +263,10 @@ async function dadaLaCuentaDeAnaConDosVentasPendientes() {
   await abrirLaCuentaDeAna();
 }
 
+async function dadaLaCuentaDeAnaConCobroConQr() {
+  await abrirLaCuentaDeAna({ conCobroQr: true });
+}
+
 async function dadaLaCuentaDeAnaConRespuestaPerdida() {
   await abrirLaCuentaDeAna({ respuestaPerdida: true });
 }
@@ -244,6 +286,14 @@ async function cuandoSeGuardaUnPagoDe(importe: string, medio: string) {
   await user.click(formulario.getByRole('button', { name: 'Confirmar pago' }));
   await screen.findByRole('dialog', { name: 'Pago guardado' }, ESPERA);
   await user.click(screen.getByRole('button', { name: 'Listo' }));
+}
+
+async function cuandoSePreparaUnPagoPorTransferenciaDe(importe: string) {
+  await user.click(within(cuenta()).getByRole('button', { name: 'Guardar pago' }));
+  const formulario = within(screen.getByRole('dialog', { name: 'Guardar pago del fiado' }));
+  await user.clear(formulario.getByLabelText('Importe del pago ($)'));
+  await user.type(formulario.getByLabelText('Importe del pago ($)'), importe);
+  await user.click(formulario.getByRole('button', { name: 'Transferencia' }));
 }
 
 async function cuandoSeSaldaLoQueQueda() {
@@ -294,6 +344,11 @@ async function cuandoSeEscribeUnImporteMayorAlSaldo(importe: string) {
 }
 
 // --- entonces ---
+
+async function entoncesElPagoSeGuardoConElCobroQrGenerado() {
+  await screen.findByRole('dialog', { name: 'Pago guardado' }, ESPERA);
+  expect(solicitudes.map((solicitud) => solicitud.cobroQrId)).toEqual([elIdDelCobroQrGenerado()]);
+}
 
 async function entoncesLaCuentaMuestraElSaldo(saldo: string) {
   await waitFor(

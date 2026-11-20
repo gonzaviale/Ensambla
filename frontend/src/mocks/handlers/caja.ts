@@ -6,7 +6,9 @@ import { cuentasDeCaja } from '../db/cuentasCaja';
 import type {
   CierreCaja,
   CobroDeudaCaja,
+  CobroQr,
   ConsultaCaja,
+  SolicitudCobroQr,
   SolicitudCierreCaja,
   SolicitudCobro,
   SolicitudPagoDeudaCaja,
@@ -22,6 +24,8 @@ export type EscenarioCajaMock = {
   consultar?: (url: URL) => Respuesta<ConsultaCaja>;
   cerrar?: (solicitud: SolicitudCierreCaja) => Respuesta<CierreCaja>;
   obtenerCierre?: (id: string) => Respuesta<CierreCaja>;
+  generarCobroQr?: (solicitud: SolicitudCobroQr) => Respuesta<CobroQr>;
+  cancelarCobroQr?: (id: string) => Respuesta<CobroQr>;
 };
 
 export function crearHandlersCaja(escenario: EscenarioCajaMock): RequestHandler[] {
@@ -35,6 +39,7 @@ export function crearHandlersCaja(escenario: EscenarioCajaMock): RequestHandler[
   agregarConsulta(handlers, escenario);
   agregarCierre(handlers, escenario);
   agregarDetalleCierre(handlers, escenario);
+  agregarCobroQr(handlers, escenario);
   return handlers;
 }
 function cuentasDelEscenario(escenario: EscenarioCajaMock) {
@@ -103,4 +108,19 @@ function agregarDetalleCierre(handlers: RequestHandler[], escenario: EscenarioCa
       atender(request, false, () => obtener(String(params.id))),
     ),
   );
+}
+function agregarCobroQr(handlers: RequestHandler[], escenario: EscenarioCajaMock) {
+  const { generarCobroQr, cancelarCobroQr } = escenario;
+  if (generarCobroQr)
+    handlers.push(
+      http.post(api('/caja/cobros-qr'), ({ request }) =>
+        atender(request, true, async () => generarCobroQr((await request.json()) as SolicitudCobroQr)),
+      ),
+    );
+  if (cancelarCobroQr)
+    handlers.push(
+      http.post(api('/caja/cobros-qr/:id/cancelar'), ({ request, params }) =>
+        atender(request, true, () => cancelarCobroQr(String(params.id))),
+      ),
+    );
 }

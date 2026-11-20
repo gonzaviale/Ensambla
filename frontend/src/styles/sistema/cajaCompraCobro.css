@@ -284,3 +284,31 @@
     margin-bottom: 6px;
   }
 }
+
+.caja-qr {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+}
+.caja-qr-monto {
+  margin: 0;
+  font-size: clamp(32px, 9vw, 48px);
+  font-weight: 800;
+  color: var(--petrol);
+}
+.caja-qr .codigo-qr {
+  width: min(72vw, 300px);
+  height: auto;
+  aspect-ratio: 1;
+}
+.caja-qr-datos {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  font-size: 15px;
+}
+.caja-qr-datos strong {
+  font-size: 20px;
+  overflow-wrap: anywhere;
+}
