@@ -15,22 +15,30 @@ const campo = (
   extra: Partial<Campo> = {},
 ): Campo => ({ key, label, type, required: false, ...extra });
 
+// Una columna fija: la leen Caja, Objetivos, Avisos o Mi negocio. La lista completa está en docs/estructura-fija.md.
+const fija = (key: string, label: string, type: TipoCampo = 'text', extra: Partial<Campo> = {}): Campo =>
+  campo(key, label, type, { ...extra, system: true });
+
 // Los bloques que se pueden sumar a un sistema. Las piezas son las del mockup; los ejemplos y los
 // textos son de comercio (almacenes, kioscos y minimercados) y se agrega el bloque Ventas.
 export const CATALOG: Record<TipoBloque, DefinicionDeBloque> = {
   inventory: {
-    name: 'Inventario',
+    name: 'Stock',
     singular: 'producto',
     icon: 'box',
     color: 'orange',
     description: 'Productos, cantidades, costos y precios.',
     purpose: 'Sabé qué tenés, a cuánto lo vendés y qué necesitás reponer.',
     fields: [
-      campo('name', 'Producto', 'text', { required: true }),
-      campo('quantity', 'Cantidad', 'number', { required: true, min: 0 }),
-      campo('price', 'Precio', 'currency'),
-      campo('cost', 'Costo', 'currency'),
-      campo('minimum', 'Stock mínimo', 'number'),
+      fija('name', 'Producto', 'text', { required: true }),
+      fija('quantity', 'Cantidad', 'number', { required: true, min: 0 }),
+      fija('price', 'Precio', 'currency'),
+      fija('cost', 'Costo', 'currency'),
+      fija('minimum', 'Stock mínimo', 'number'),
+      fija('barcode', 'Código de barras'),
+      fija('saleMode', 'Venta por', 'select', { options: ['unidad', 'peso'] }),
+      fija('favorite', 'Favorito en caja', 'checkbox'),
+      fija('stockControl', 'Controlar stock', 'checkbox'),
     ],
     examples: [
       { name: 'Yerba Playadito 1 kg', quantity: 24, price: 3600, cost: 2700, minimum: 10 },
@@ -86,7 +94,7 @@ export const CATALOG: Record<TipoBloque, DefinicionDeBloque> = {
     description: 'Contactos y fiado, siempre a mano.',
     purpose: 'Reuní los datos de quienes te compran y lo que te deben.',
     fields: [
-      campo('name', 'Nombre', 'text', { required: true }),
+      fija('name', 'Nombre', 'text', { required: true }),
       campo('phone', 'Teléfono', 'tel'),
       campo('email', 'Correo', 'email'),
       campo('notes', 'Notas', 'textarea'),
@@ -120,12 +128,12 @@ export const CATALOG: Record<TipoBloque, DefinicionDeBloque> = {
     description: 'Lo que vendés, producto por producto.',
     purpose: 'Cada venta descuenta stock y muestra qué se mueve y qué no.',
     fields: [
-      campo('product', 'Producto', 'relation', { required: true }),
-      campo('quantity', 'Cantidad', 'number', { required: true, min: 1 }),
-      campo('price', 'Precio', 'currency'),
-      campo('date', 'Fecha', 'date'),
-      campo('customer', 'Cliente'),
-      campo('credit', 'Fiado', 'checkbox'),
+      fija('product', 'Producto', 'relation', { required: true }),
+      fija('quantity', 'Cantidad', 'number', { required: true, min: 1 }),
+      fija('price', 'Precio', 'currency'),
+      fija('date', 'Fecha', 'date'),
+      fija('customer', 'Cliente'),
+      fija('credit', 'Fiado', 'checkbox'),
     ],
     examples: [],
   },
@@ -137,10 +145,10 @@ export const CATALOG: Record<TipoBloque, DefinicionDeBloque> = {
     description: 'Lo que comprás e invertís.',
     purpose: 'Registrá compras y gastos para entender tus costos.',
     fields: [
-      campo('name', 'Concepto', 'text', { required: true }),
-      campo('date', 'Fecha', 'date'),
-      campo('total', 'Importe', 'currency', { required: true }),
-      campo('category', 'Categoría', 'select', {
+      fija('name', 'Concepto', 'text', { required: true }),
+      fija('date', 'Fecha', 'date'),
+      fija('total', 'Importe', 'currency', { required: true }),
+      fija('category', 'Categoría', 'select', {
         options: ['Mercadería', 'Servicios', 'Alquiler', 'Otros'],
       }),
     ],
@@ -191,8 +199,8 @@ export const CATALOG: Record<TipoBloque, DefinicionDeBloque> = {
     description: 'Compras, ingresos y reposición.',
     purpose: 'Cada entrada suma unidades al stock del producto.',
     fields: [
-      campo('product', 'Producto', 'relation', { required: true }),
-      campo('quantity', 'Cantidad', 'number', { required: true, min: 1 }),
+      fija('product', 'Producto', 'relation', { required: true }),
+      fija('quantity', 'Cantidad', 'number', { required: true, min: 1 }),
       campo('date', 'Fecha', 'date'),
       campo('notes', 'Referencia'),
     ],
@@ -206,8 +214,8 @@ export const CATALOG: Record<TipoBloque, DefinicionDeBloque> = {
     description: 'Consumos, mermas y retiros.',
     purpose: 'Cada salida descuenta unidades del stock disponible.',
     fields: [
-      campo('product', 'Producto', 'relation', { required: true }),
-      campo('quantity', 'Cantidad', 'number', { required: true, min: 1 }),
+      fija('product', 'Producto', 'relation', { required: true }),
+      fija('quantity', 'Cantidad', 'number', { required: true, min: 1 }),
       campo('date', 'Fecha', 'date'),
       campo('notes', 'Referencia'),
     ],

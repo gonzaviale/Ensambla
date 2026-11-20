@@ -1,5 +1,6 @@
 import { comportamientoDe } from '../comportamiento';
 import { allBlocks, findBlock, id, normalize } from '../core';
+import { clavesReservadasDe } from '../estructuraFija';
 import type { Bloque, Campo, Fila, Seccion, Sistema, Valor } from '../tipos';
 import { texto } from './argumentos';
 
@@ -29,13 +30,17 @@ export const buscarCampo = (bloque: Bloque, etiqueta: string) =>
 export const campoNombrado = (pieza: Bloque, etiqueta: string) =>
   buscarCampo(pieza, etiqueta) ?? pieza.fields.find((campo) => campo.key === etiqueta);
 
+const estaUsada = (bloque: Bloque, clave: string, reservadas: string[]) =>
+  reservadas.includes(clave) || bloque.fields.some((campo) => campo.key === clave);
+
 export const claveDeCampo = (bloque: Bloque, etiqueta: string) => {
   const base =
     normalize(etiqueta)
       .replace(/[^a-z0-9]+/g, '_')
       .replace(/^_+|_+$/g, '') || 'dato';
+  const reservadas = clavesReservadasDe(bloque);
   let clave = base;
-  for (let n = 2; bloque.fields.some((campo) => campo.key === clave); n++) clave = `${base}_${n}`;
+  for (let n = 2; estaUsada(bloque, clave, reservadas); n++) clave = `${base}_${n}`;
   return clave;
 };
 

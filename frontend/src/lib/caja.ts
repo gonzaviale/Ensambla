@@ -105,10 +105,29 @@ export function prepararCaja(sistema: Sistema, inventarioId: string) {
       type: 'select' as const,
       options: ['unidad', 'peso'],
       required: false,
+      system: true,
     },
-    { key: 'favorite', label: 'Favorito en caja', type: 'checkbox' as const, required: false },
-    { key: 'stockControl', label: 'Controlar stock', type: 'checkbox' as const, required: false },
-    { key: 'barcode', label: 'Código de barras', type: 'text' as const, required: false },
+    {
+      key: 'favorite',
+      label: 'Favorito en caja',
+      type: 'checkbox' as const,
+      required: false,
+      system: true,
+    },
+    {
+      key: 'stockControl',
+      label: 'Controlar stock',
+      type: 'checkbox' as const,
+      required: false,
+      system: true,
+    },
+    {
+      key: 'barcode',
+      label: 'Código de barras',
+      type: 'text' as const,
+      required: false,
+      system: true,
+    },
   ]) {
     const existente = inventario.fields.find((f) => f.key === campo.key);
     if (existente && existente.type !== campo.type)
