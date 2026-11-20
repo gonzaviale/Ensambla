@@ -23,6 +23,7 @@ import {
   entoncesSeVeComo,
   entoncesSeGuardoConLaFuente,
 } from '@/test/panelDeTuNegocio';
+import { ESPERA, verifyAlertPresentAsync } from '@/test/testHelpers';
 
 const cuandoSeAbreArmalaVos = (usuario: UserEvent) => cuandoSeEligeLaPestana(usuario, 'Armala vos');
 
@@ -69,7 +70,7 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
 
     await cuandoSeAbreAgregarMetrica(usuario);
 
-    const sugerida = (await screen.findByRole('heading', { name: 'Qué producto vendo más' }))
+    const sugerida = (await screen.findByRole('heading', { name: 'Qué producto vendo más' }, ESPERA))
       .parentElement as HTMLElement;
     expect(within(sugerida).queryByRole('list')).not.toBeInTheDocument();
   });
@@ -88,7 +89,7 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
     const { usuario } = await dadoElInicioDelAlmacen(LO_QUE_TE_DEBEN);
     await cuandoSeAbreLaSolapa(usuario, 'Lo que te deben');
 
-    await usuario.click(await screen.findByRole('button', { name: '¿De dónde sale?' }));
+    await usuario.click(await screen.findByRole('button', { name: '¿De dónde sale?' }, ESPERA));
 
     expect(screen.getByRole('dialog', { name: '¿De dónde sale?' })).toHaveTextContent(
       /Sale de tus ventas/,
@@ -168,7 +169,7 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
     await cuandoSeEligeLaTarjeta(usuario, '¿Qué querés saber?', 'Total de ventas');
     await cuandoSeEligeLaTarjeta(usuario, '¿Cómo querés verla?', 'Por día de la semana');
     await cuandoSeEligeLaTarjeta(usuario, '¿De cuándo?', 'Todo lo cargado');
-    expect(await screen.findByLabelText('Así quedaría')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Así quedaría', {}, ESPERA)).toBeInTheDocument();
 
     await usuario.type(screen.getByLabelText('Nombre'), 'Ventas por día');
     await usuario.click(screen.getByRole('button', { name: 'Guardar métrica' }));
@@ -178,7 +179,7 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
   it('no deja guardar la propia hasta contestar todas las solapas y ponerle nombre', async () => {
     const { usuario } = await dadoElInicioDelAlmacen();
     await cuandoSeAbreArmalaVos(usuario);
-    await screen.findByRole('radiogroup', { name: '¿Qué querés mirar?' });
+    await screen.findByRole('radiogroup', { name: '¿Qué querés mirar?' }, ESPERA);
     expect(screen.queryByRole('radio', { checked: true })).not.toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Paso 5: Nombre' })).toBeDisabled();
 
@@ -194,7 +195,11 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
   it('sólo ofrece armar de lo que el negocio cargó: sin gastos no ofrece gastos', async () => {
     const { usuario } = await dadoElInicioDelAlmacen();
     await cuandoSeAbreArmalaVos(usuario);
-    const queMirar = await screen.findByRole('radiogroup', { name: '¿Qué querés mirar?' });
+    const queMirar = await screen.findByRole(
+      'radiogroup',
+      { name: '¿Qué querés mirar?' },
+      ESPERA,
+    );
     expect(
       within(queMirar)
         .getAllByRole('radio')
@@ -205,7 +210,7 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
   it('avisa «Ya la tenés» en la sugerida que ya muestra el panel de ventas, sin botón para agregarla', async () => {
     const { usuario } = await dadoElInicioDelAlmacen();
     await cuandoSeAbreAgregarMetrica(usuario);
-    const sugerida = (await screen.findByRole('heading', { name: 'Cuánto vendí esta semana' }))
+    const sugerida = (await screen.findByRole('heading', { name: 'Cuánto vendí esta semana' }, ESPERA))
       .closest('li') as HTMLElement;
     expect(within(sugerida).getByRole('status')).toHaveTextContent('Ya la tenés en tu panel');
     expect(within(sugerida).queryByRole('button')).not.toBeInTheDocument();
@@ -220,6 +225,6 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
     await cuandoSeEligeLaTarjeta(usuario, '¿De cuándo?', 'Este mes');
     await usuario.type(screen.getByLabelText('Nombre'), 'Total del mes');
     await usuario.click(screen.getByRole('button', { name: 'Guardar métrica' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Esa ya la tenés en el panel');
+    await verifyAlertPresentAsync('Esa ya la tenés en el panel');
   });
 });
