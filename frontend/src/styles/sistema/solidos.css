@@ -1,0 +1,83 @@
+/* Colores sólidos con letra blanca (criterio R1 a R7 de armonia.css). Se carga última y no define colores nuevos:
+   solo usa las variables de la marca. El tono lo decide el concepto (lib/sistema/tonos.ts), no la posición. */
+
+/* ===== Los cuatro tonos ===== */
+
+[data-tono='naranja'] {
+  --solido: var(--orange);
+}
+[data-tono='coral'] {
+  --solido: var(--coral);
+}
+[data-tono='celeste'] {
+  --solido: var(--blue);
+}
+[data-tono='petroleo'] {
+  --solido: var(--petrol);
+}
+
+/* ===== Superficie sólida ===== */
+
+.solido {
+  border: 0;
+  background: var(--solido);
+  color: #fff;
+  box-shadow: none;
+  font-weight: 700;
+}
+.solido :is(h1, h2, h3, h4, h5, h6, p, span, strong, small, b, em, label, li, a, svg, dt, dd) {
+  color: inherit;
+}
+.solido:focus-visible,
+.solido :focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px var(--petrol);
+}
+
+.solido-icono {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgb(255 255 255 / 0.22);
+  color: #fff;
+}
+.solido-icono.redondo {
+  border-radius: 50%;
+}
+
+.solido-cifra {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.solido-enlace {
+  color: #fff;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ===== Versión no seleccionada: blanca con borde del tono ===== */
+
+.solido-contorno {
+  border: 2px solid var(--solido);
+  background: #fff;
+  color: var(--solido);
+  box-shadow: none;
+  font-weight: 700;
+}
+.solido-contorno :is(span, strong, small, svg) {
+  color: inherit;
+}
+
+@media (max-width: 700px) {
+  .solido:not(button, .solido-icono, .solido-chip) {
+    width: 100%;
+    padding-inline: 16px;
+  }
+}
