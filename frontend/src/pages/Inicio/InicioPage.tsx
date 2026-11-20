@@ -97,7 +97,7 @@ function BienvenidaSinNegocio() {
         <p className="inicio-hola">Hola, {nombre}.</p>
         <h1>¿En qué puedo ayudarte hoy?</h1>
         <p className="inicio-bajada">
-          Tocá una ficha para arrancar. Lo que armes, después lo podés cambiar.
+          Elegí una opción para empezar. Lo que armes se puede cambiar después.
         </p>
         <button type="button" className="inicio-guia" onClick={tutorial.empezar}>
           <span className="inicio-guia-icono">
@@ -158,7 +158,7 @@ function Atajos({ compactos = false }: { compactos?: boolean }) {
         color="blue"
         icono="chart"
         titulo="Ver mi zona"
-        texto="Mirá cuánto se cobra cerca y qué se vende. Nunca se sabe quién es quién."
+        texto="Compará tus precios con los de la zona y qué se vende. Los datos son anónimos."
         onClick={() => void navegacion.irAZona()}
       />
     </section>

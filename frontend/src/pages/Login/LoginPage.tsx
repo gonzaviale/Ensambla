@@ -25,9 +25,9 @@ export function LoginPage() {
 
   return (
     <AuthCard
-      title="Ingresá a tu cuenta"
+      title="Entrá a tu cuenta"
       lead="Retomá tu negocio donde lo dejaste."
-      saludoSami="¡Qué bueno verte!"
+      saludoSami="Hola de nuevo."
       samiALaIzquierda
       footer={
         <>

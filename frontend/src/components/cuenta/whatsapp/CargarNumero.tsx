@@ -25,8 +25,8 @@ export function CargarNumero({
   return (
     <form onSubmit={enviar} aria-labelledby="cuenta-whatsapp-titulo" noValidate>
       <p>
-        Verificá tu número para usar a Sami por WhatsApp: te mandamos un código y lo escribís acá.
-        Es para estar seguros de que el número es tuyo.
+        Verificá tu número para usar a Sami por WhatsApp: te enviamos un código y lo escribís en
+        esta pantalla. Es para estar seguros de que el número es tuyo.
       </p>
       <div className="field">
         <label htmlFor="cuenta-whatsapp-telefono">Tu número de WhatsApp</label>

@@ -27,7 +27,7 @@ export function MapaDeZonas(props: Props) {
       />
       {error && (
         <p role="status" className="donde-mapa-aviso">
-          No se pudo cargar parte del mapa. Las zonas y sus datos se ven igual en la lista.
+          No pudimos cargar parte del mapa. Las zonas y sus datos se ven igual en la lista.
         </p>
       )}
     </>

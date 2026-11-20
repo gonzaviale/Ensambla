@@ -423,7 +423,7 @@ async function cuandoSeIntentaIrALaZona() {
 
 async function cuandoSeDescribeElNegocio(descripcion: string) {
   await user.type(await screen.findByLabelText('Contame un poco de tu negocio'), descripcion);
-  await cuandoSeElige(/Pensalo conmigo/);
+  await cuandoSeElige(/Enviar a Sami/);
 }
 
 async function cuandoSeAjustaElAnchoDelSegundoBloque() {

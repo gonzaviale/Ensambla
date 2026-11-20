@@ -226,7 +226,7 @@ async function cuandoSeMiraElResumenDelDomingo() {
 }
 
 async function cuandoSeEligeVerLaSemana() {
-  await screen.findByText('Resumen de la semana listo', {}, ESPERA);
+  await screen.findByText('Resumen semanal disponible', {}, ESPERA);
   await user.click(screen.getByRole('button', { name: 'Ver mi semana' }));
 }
 

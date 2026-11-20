@@ -106,7 +106,7 @@ export function SeccionPerfil() {
         <div className="cuenta-administrar-negocio">
           <div>
             <strong>Administrar este negocio</strong>
-            <p>Se elimina solamente este negocio y todo lo que cargaste dentro de él.</p>
+            <p>Se borra solamente este negocio y todo lo que cargaste dentro de él.</p>
           </div>
           <button
             type="button"
@@ -114,7 +114,7 @@ export function SeccionPerfil() {
             disabled={negocios.negocios.length === 1 || !comercio}
             title={
               negocios.negocios.length === 1
-                ? 'No podés eliminar el único negocio de tu cuenta'
+                ? 'No podés borrar el único negocio de tu cuenta'
                 : undefined
             }
             onClick={() => {
@@ -127,7 +127,7 @@ export function SeccionPerfil() {
                 });
             }}
           >
-            Eliminar negocio
+            Borrar negocio
           </button>
         </div>
       </section>

@@ -105,7 +105,7 @@ export function ClientesCaja({
       <div className="caja-entre">
         <div>
           <h2>Clientes</h2>
-          <p className="caja-ayuda">Los mismos contactos que usás en Mi Negocio.</p>
+          <p className="caja-ayuda">Los mismos contactos que usás en Mi negocio.</p>
         </div>
         <button
           type="button"
@@ -263,7 +263,11 @@ export function ClientesCaja({
 
 function InicialDeCliente({ nombre, posicion }: { nombre: string; posicion: number }) {
   return (
-    <span className="caja-cliente-inicial solido" data-tono={tonoPorPosicion(posicion)} aria-hidden="true">
+    <span
+      className="caja-cliente-inicial solido"
+      data-tono={tonoPorPosicion(posicion)}
+      aria-hidden="true"
+    >
       {inicialDe(nombre)}
     </span>
   );

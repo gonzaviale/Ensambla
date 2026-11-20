@@ -54,7 +54,7 @@ const samiResponde = (responder: (pedido: Pedido) => JsonBodyType) => {
 
 const escribir = async (texto: string) => {
   await persona().type(campo(), texto);
-  await clickButton(persona(), /Pensalo conmigo|Ajustalo conmigo/);
+  await clickButton(persona(), /Enviar a Sami|Ajustar con Sami/);
 };
 
 const samiPregunta = (pregunta: string, opciones: string[], respuesta: string, final: string) =>
@@ -336,4 +336,4 @@ export const entoncesElNombreQueSamiPusoQuedaEnElCampo = async () => {
   expect(screen.getByLabelText('Nombre de tu sección')).toHaveValue('Velas de Ana');
 };
 
-export const entoncesSigueTePidiendoMasDetalle = () => verifyToastAsync(/Contame un poquito más/);
+export const entoncesSigueTePidiendoMasDetalle = () => verifyToastAsync(/Necesito más detalles/);

@@ -76,7 +76,7 @@ const esperarLaMiniatura = () => screen.findByRole('img', { name: MINIATURA });
 const ajustarConLaFoto = async () => {
   await adjuntar();
   await esperarLaMiniatura();
-  await clickButton(persona(), /Ajustalo conmigo/);
+  await clickButton(persona(), /Ajustar con Sami/);
   await screen.findByText(/Miré tu foto/, {}, ESPERA);
 };
 
@@ -121,7 +121,7 @@ export const dadoQueSeAbrioLaFotoEnGrande = async () => {
 
 export const dadoQueSeMandoLaFoto = async () => {
   await dadoQueSeAdjuntoLaFoto();
-  await clickButton(persona(), /Pensalo conmigo/);
+  await clickButton(persona(), /Enviar a Sami/);
   await screen.findByText('Ya la miré.', {}, ESPERA);
 };
 
@@ -166,18 +166,18 @@ export const cuandoSeAdjuntaUnaFotoPngConElTextoDeLasVentas = async () => {
   await adjuntar(foto('otra', 'image/png'));
   await esperarLaMiniatura();
   await persona().type(campoDeLaConversacion(), 'Mis ventas de ayer');
-  await clickButton(persona(), /Pensalo conmigo/);
+  await clickButton(persona(), /Enviar a Sami/);
 };
 
 export const cuandoSeAdjuntaUnaFotoDeMasDe5MB = () => adjuntar(foto(new Uint8Array(6 * 1024 * 1024)));
 
 export const cuandoSeQuitaLaFoto = () => clickButton(persona(), 'Quitar foto');
 
-export const cuandoSeEnviaElMensajeSinTexto = () => clickButton(persona(), /Pensalo conmigo/);
+export const cuandoSeEnviaElMensajeSinTexto = () => clickButton(persona(), /Enviar a Sami/);
 
 export const cuandoSeEscribeGraciasYSeEnvia = async () => {
   await persona().type(screen.getByRole('textbox', { name: /Contame un poco/ }), 'Gracias');
-  await clickButton(persona(), /Pensalo conmigo/);
+  await clickButton(persona(), /Enviar a Sami/);
 };
 
 export const cuandoSeAbreLaFotoEnGrande = () => persona().click(botonParaVerLaFotoEnGrande());
@@ -199,7 +199,7 @@ export const cuandoSeSaltanLasDudas = saltearLasDudas;
 
 export const cuandoSePideAjustarElPrecio = async () => {
   await persona().type(screen.getByRole('textbox', { name: /¿Qué le falta/ }), 'El precio era 9000');
-  await clickButton(persona(), /Ajustalo conmigo/);
+  await clickButton(persona(), /Ajustar con Sami/);
 };
 
 export const cuandoSeSumanLosRegistrosLeidos = () =>
@@ -299,7 +299,7 @@ export const entoncesSamiSugiereLosRegistrosQueNoEncontro = async () => {
 export const entoncesSeAvisaQueElStockNoAlcanzo = async () => {
   expect(screen.queryByRole('group', { name: REGISTROS_NUEVOS })).toBeNull();
   await verifyToastAsync(
-    'Ojo: no alcanzó el stock de Vela lavanda, Vela vainilla y Vela flotante; quedaron en 0.',
+    'Atención: no alcanzó el stock de Vela lavanda, Vela vainilla y Vela flotante; quedaron en 0.',
   );
 };
 
@@ -349,7 +349,7 @@ export const entoncesLasVentasUsanLosRegistrosQueYaEstan = () => {
 export const entoncesLaVentaDescuentaElStockYSamiAvisa = () => {
   expect(deTipo(borradorDelTaller(), 'inventory').rows[0]?.quantity).toBe(0);
   expect(
-    screen.getByText(/Ojo: no alcanzó el stock de Vela lavanda \(vendiste 2 y había 1\); quedó en 0\./),
+    screen.getByText(/Atención: no alcanzó el stock de Vela lavanda \(vendiste 2 y había 1\); quedó en 0\./),
   ).toBeVisible();
 };
 

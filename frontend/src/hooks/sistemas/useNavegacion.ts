@@ -22,7 +22,7 @@ export function useNombre() {
 }
 
 export const saludoDeSami = (nombre: string) =>
-  `Hola, ${nombre}. Contame qué hacés y cómo te organizás hoy. Yo pienso una base y vos me decís si te sirve.`;
+  `Hola, ${nombre}. Escribí qué hacés y cómo te organizás hoy. Te propongo una base y vos decidís si te sirve.`;
 
 /** Cómo arranca Sami cuando se abre el taller sobre un sistema que ya existe. */
 export const saludoParaAjustar = (nombreDelSistema: string) =>

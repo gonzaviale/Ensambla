@@ -137,7 +137,7 @@ export function guardarProductoEscaneado(
       propuesto != null &&
       Number(propuesto) < 0
     )
-      errores[campo.key] = 'Ingresá un valor mayor o igual a cero.';
+      errores[campo.key] = 'Escribí un valor mayor o igual a cero.';
   }
   if (Object.keys(errores).length) return { errores };
   const campoCodigo = inventario.fields.find((campo) => campo.key === 'barcode');

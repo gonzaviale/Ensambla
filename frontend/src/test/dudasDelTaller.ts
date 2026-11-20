@@ -46,7 +46,7 @@ const espiarElTaller = (responder: (pedido: Pedido) => JsonBodyType) => {
 
 const escribirAlTaller = async (texto: string) => {
   await persona().type(screen.getByRole('textbox', { name: /Contame un poco/ }), texto);
-  await clickButton(persona(), /Pensalo conmigo/);
+  await clickButton(persona(), /Enviar a Sami/);
 };
 
 /* dado */

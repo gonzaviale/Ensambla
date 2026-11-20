@@ -91,7 +91,7 @@ describe('«Armalo con Sami» (crear un proyecto real)', () => {
 
     await cuandoSeLeCuentaASami('hola');
 
-    await verifyToastAsync(/Contame un poquito más/);
+    await verifyToastAsync(/Necesito más detalles/);
   });
 
   it('cuando lo escrito es muy corto no borra lo escrito', async () => {
@@ -226,7 +226,7 @@ function dadoUnSamiSinConsultasDeIa() {
 
 async function cuandoSeLeCuentaASami(texto: string) {
   await user.type(campoDeNegocio(), texto);
-  await clickButton(user, /Pensalo conmigo/);
+  await clickButton(user, /Enviar a Sami/);
 }
 
 async function cuandoSeEligeLaRespuestaRapida(nombre: string) {
@@ -258,7 +258,7 @@ async function cuandoSeCreaConElNombre(nombre: string) {
 
 function entoncesSamiSaludaAAna() {
   expect(screen.getByText('Hola, Ana Pérez.')).toBeVisible();
-  expect(screen.getByText('Contame qué hacés y cómo te organizás hoy.')).toBeVisible();
+  expect(screen.getByText('Escribí qué hacés y cómo te organizás hoy.')).toBeVisible();
   expect(screen.getByText(/Yo pienso una base y vos me decís si te sirve/)).toBeVisible();
 }
 

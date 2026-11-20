@@ -222,8 +222,8 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
     setRetomarLectura((revision) => revision + 1);
     setMensaje(
       borrador.productoId
-        ? 'Cambios del producto aplicados al inventario.'
-        : 'Producto agregado al inventario. Ya podés escanear el siguiente.',
+        ? 'Cambios del producto aplicados al stock.'
+        : 'Producto agregado al stock. Ya podés escanear el siguiente.',
     );
   };
   return {
@@ -264,7 +264,7 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
     grupos: [
       {
         titulo: 'Identificación del producto',
-        ayuda: 'Revisá la descripción que se usará en tu inventario.',
+        ayuda: 'Revisá la descripción que se usará en tu stock.',
         claves: ['name'],
       },
       {

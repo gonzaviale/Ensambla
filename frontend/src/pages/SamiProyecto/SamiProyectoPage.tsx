@@ -15,12 +15,12 @@ type Sami = ReturnType<typeof useSamiProyecto>;
 function etiquetaDelEstado({ creado, propuesta }: Sami): string {
   if (creado) return 'Proyecto creado';
   if (propuesta) return 'Propuesta sin guardar';
-  return 'Contame tu negocio';
+  return 'Describí tu negocio';
 }
 
 // «Armalo con Sami» (T-118): la conversación que arma un proyecto real a partir de cómo la persona cuenta su negocio.
 export function SamiProyectoPage() {
-  useTituloPagina('Armalo con Sami');
+  useTituloPagina('Crear con Sami');
   const nombrePersona = useNombre();
   const navegacion = useNavegacion();
   const avisar = useSistemaStore((estado) => estado.avisar);
@@ -50,7 +50,7 @@ export function SamiProyectoPage() {
           <Btn cls="ghost small" onClick={() => void navegacion.irAInicio()}>
             <Icon name="back" /> Inicio
           </Btn>
-          <span>ARMALO CON SAMI</span>
+          <span>CREAR CON SAMI</span>
           <span className="tag outline">{etiquetaDelEstado(sami)}</span>
         </div>
         <div className="studio-layout">

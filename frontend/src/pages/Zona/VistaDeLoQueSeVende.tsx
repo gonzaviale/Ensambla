@@ -19,9 +19,7 @@ type Consulta = ReturnType<typeof useZonaDeLoQueSeVende>;
 function AvisoSinInventario({ destino }: { destino: DestinoDeProducto | undefined }) {
   if (destino) return null;
   return (
-    <div className="info-box">
-      Para sumar productos a tu inventario necesitás una sección con un bloque de Inventario.
-    </div>
+    <div className="info-box">Para sumar productos a tu stock necesitás una sección de Stock.</div>
   );
 }
 

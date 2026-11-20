@@ -120,7 +120,10 @@
   color: var(--petrol);
   box-shadow: none;
 }
-.caja-pagina .caja-lector > .btn.secondary.caja-articulo-manual + .btn.secondary.caja-articulo-manual {
+.caja-pagina
+  .caja-lector
+  > .btn.secondary.caja-articulo-manual
+  + .btn.secondary.caja-articulo-manual {
   border-color: var(--coral);
 }
 .caja-pagina .caja-lector > .btn.secondary.caja-articulo-manual .icon {

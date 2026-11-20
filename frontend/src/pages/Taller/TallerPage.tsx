@@ -524,7 +524,7 @@ export function TallerPage() {
               </>
             ) : (
               <div className="studio-empty">
-                <div className="empty-studio-label">TU IDEA VA A APARECER ACÁ</div>
+                <div className="empty-studio-label">TU IDEA VA A APARECER AQUÍ</div>
                 <div className="ghost-composition">
                   <div className="ghost-piece ghost-clients">
                     <Icon name="users" />
@@ -687,7 +687,7 @@ export function TallerPage() {
         </div>
         <form className="guide-composer" data-tour="describe" onSubmit={alEnviar}>
           <label htmlFor="guide-message" className="sr-only">
-            {borrador ? '¿Qué le falta? ¿Qué cambiarías?' : 'Contame un poco de tu negocio'}
+            {borrador ? '¿Qué le falta? ¿Qué cambiarías?' : 'Describí tu negocio'}
           </label>
           <textarea
             id="guide-message"
@@ -756,7 +756,7 @@ export function TallerPage() {
               type="submit"
               disabled={taller.pensando || preparandoFoto}
             >
-              <span className="sr-only">{borrador ? 'Ajustalo conmigo' : 'Pensalo conmigo'}</span>
+              <span className="sr-only">{borrador ? 'Ajustar con Sami' : 'Enviar a Sami'}</span>
               <Icon name="arrow" />
             </button>
           </div>

@@ -111,5 +111,5 @@ export const botonParaVolverAlInicio = () =>
   within(screen.getByRole('main')).getByRole('button', { name: /Inicio/ });
 
 export const entoncesLaConversacionYElLienzoEstanVacios = () => {
-  expect(screen.getByText('TU IDEA VA A APARECER ACÁ')).toBeVisible();
+  expect(screen.getByText('TU IDEA VA A APARECER AQUÍ')).toBeVisible();
 };

@@ -266,7 +266,7 @@ const CANDIDATOS: CandidatoMiniObjetivo[] = [
   {
     tipo: 'MEJORAR_MARGEN',
     sentido: 'SUBE',
-    titulo: 'Llevá tu margen al 32 %',
+    titulo: 'Llevá tu ganancia por venta al 32 %',
     justificacion: 'Hoy ganás 28 de cada 100 que vendés; la zona anda por 33.',
     referencia: null,
     registroId: null,
@@ -358,7 +358,7 @@ export function datosSinDatosDeEjemplo(
   const sinContar = manual(
     'sin-contar',
     3,
-    'Anotá qué te piden y no tenés',
+    'Escribí qué te piden y no tenés',
     'Con esa lista sabés qué sumar primero.',
     pasada,
   );

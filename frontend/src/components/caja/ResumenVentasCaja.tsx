@@ -67,7 +67,9 @@ export function ResumenVentasCaja({
               </span>
               {m.nombre}
             </span>
-            <strong className="solido-cifra">{dineroCaja(Math.round(resumen[m.clave] * 100))}</strong>
+            <strong className="solido-cifra">
+              {dineroCaja(Math.round(resumen[m.clave] * 100))}
+            </strong>
             <small className="solido-enlace">
               {filtro === m.id ? 'Filtro activo' : 'Ver ventas'} <span aria-hidden="true">→</span>
             </small>

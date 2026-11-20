@@ -20,7 +20,7 @@ import {
   type OpcionesDeSami,
 } from '@/types/samiTaller';
 
-const MENSAJE_CORTO = 'Contame un poquito más para encontrar un punto de partida.';
+const MENSAJE_CORTO = 'Necesito más detalles para encontrar un punto de partida.';
 const MENSAJE_FALLO = 'Sami no pudo pensar la propuesta. Probá de nuevo en un momento.';
 const MENSAJE_DESHECHO = 'Listo, volví atrás. ¿Probamos otra cosa?';
 const MENSAJE_SIN_CAMBIOS = 'No pude hacer ese cambio. ¿Me lo contás de otra manera?';
@@ -73,7 +73,7 @@ function textoDeSami(
 ) {
   if (respuesta.trim()) return respuesta.trim();
   if (!aplicadas.length) return dudas[0]?.pregunta.trim() || MENSAJE_SIN_CAMBIOS;
-  const cierre = primeraVez ? 'Ya podés verlo a la derecha.' : 'Mirá cómo queda.';
+  const cierre = primeraVez ? 'Ya podés verlo a la derecha.' : 'Revisá cómo queda.';
   return `${aplicadas.join(' ')} ${cierre} ¿Qué cambiarías?`;
 }
 
@@ -86,13 +86,13 @@ export function avisoDeStock(sinStock: SinStock[]): string {
   if (!productos.length) return '';
   const [unico] = sinStock;
   if (sinStock.length === 1 && unico) {
-    return `Ojo: no alcanzó el stock de ${unico.producto} (vendiste ${unico.pedido} y había ${unico.habia}); quedó en 0.`;
+    return `Atención: no alcanzó el stock de ${unico.producto} (vendiste ${unico.pedido} y había ${unico.habia}); quedó en 0.`;
   }
   const lista =
     productos.length === 1
       ? productos[0]
       : `${productos.slice(0, -1).join(', ')} y ${productos.at(-1)}`;
-  return `Ojo: no alcanzó el stock de ${lista}; ${productos.length === 1 ? 'quedó' : 'quedaron'} en 0.`;
+  return `Atención: no alcanzó el stock de ${lista}; ${productos.length === 1 ? 'quedó' : 'quedaron'} en 0.`;
 }
 
 const limpiarFinal = (texto: string) => texto.trim().replace(/[.\s]+$/, '');

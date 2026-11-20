@@ -48,11 +48,11 @@ export function AuthCard({
           </h2>
           <p className="mt-4 max-w-sm text-body leading-relaxed text-soft">
             Juntá tus pedidos, clientes y cuentas en un solo lugar. Empezá con lo que ya tenés y
-            armalo a tu ritmo.
+            organizalo a tu ritmo.
           </p>
           <div className="mt-6 flex items-center gap-2 text-hint font-semibold text-petrol">
             <CheckCircleIcon aria-hidden size={22} weight="fill" />
-            Pequeñas piezas. Todo conectado.
+            Secciones simples. Todo conectado.
           </div>
         </aside>
       )}

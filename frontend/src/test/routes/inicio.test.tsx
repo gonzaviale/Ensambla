@@ -479,7 +479,7 @@ function entoncesNoHayPlantillasYSeSugiereOtraBusqueda() {
 }
 
 function elBotonDeAyuda() {
-  return screen.getByRole('button', { name: /¿Necesitás una mano\?/ });
+  return screen.getByRole('button', { name: 'Ayuda' });
 }
 
 function entoncesElModalEstaAbiertoYElScrollBloqueado() {

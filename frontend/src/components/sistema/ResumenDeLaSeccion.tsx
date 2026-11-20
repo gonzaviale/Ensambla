@@ -7,7 +7,7 @@ export function ResumenDeLaSeccion({ sistema }: { sistema: Sistema }) {
   const indicadores: [number, string][] = [
     [total.records, 'Registros en tu sección'],
     [total.pending, 'Pedidos pendientes'],
-    [total.stock, 'Unidades en inventario'],
+    [total.stock, 'Unidades en stock'],
     [total.clients, 'Clientes registrados'],
   ];
   return (

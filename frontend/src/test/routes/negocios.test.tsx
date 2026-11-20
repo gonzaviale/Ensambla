@@ -167,7 +167,7 @@ describe('mis negocios: cada negocio es un cuaderno', () => {
     const user = userEvent.setup();
     await verifyHeadingPresentAsync('Tu cuenta');
 
-    await user.click(await screen.findByRole('button', { name: 'Eliminar negocio' }, ESPERA));
+    await user.click(await screen.findByRole('button', { name: 'Borrar negocio' }, ESPERA));
     expect(screen.getByText(/tablas y todo lo que cargaste en ellas/)).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Sí, eliminar negocio' }));
 

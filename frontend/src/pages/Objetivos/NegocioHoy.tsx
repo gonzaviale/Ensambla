@@ -8,8 +8,8 @@ export function NegocioHoy({ negocio }: { negocio: ComoVieneTuNegocio | undefine
   if (!negocio?.hayVentas) return null;
   return (
     <section className="objetivos-negocio" aria-labelledby="objetivos-negocio-titulo">
-      <h2 id="objetivos-negocio-titulo">Cómo viene tu negocio</h2>
-      <p>Los últimos 30 días, con lo que anotaste en tus secciones.</p>
+      <h2 id="objetivos-negocio-titulo">Estado de tu negocio</h2>
+      <p>Últimos 30 días, según los datos de tus secciones.</p>
       <CifrasDelNegocio negocio={negocio} />
     </section>
   );
@@ -18,16 +18,16 @@ export function NegocioHoy({ negocio }: { negocio: ComoVieneTuNegocio | undefine
 function CifrasDelNegocio({ negocio }: { negocio: ComoVieneTuNegocio }) {
   return (
     <div className="objetivos-negocio-cifras">
-      <CifraDelNegocio etiqueta="Vendiste" valor={negocio.vendiste} concepto="ventas" />
+      <CifraDelNegocio etiqueta="Ventas" valor={negocio.vendiste} concepto="ventas" />
       <CifraDelNegocio
-        etiqueta="La mercadería te costó"
+        etiqueta="Costo de mercadería"
         valor={negocio.mercaderia}
         concepto="costoDeMercaderia"
       />
       {negocio.gastos > 0 && (
         <CifraDelNegocio etiqueta="Otros gastos" valor={negocio.gastos} concepto="otrosGastos" />
       )}
-      <CifraDelNegocio etiqueta="Te queda" valor={negocio.queda} concepto="ganancia" />
+      <CifraDelNegocio etiqueta="Ganancia" valor={negocio.queda} concepto="ganancia" />
       {negocio.teDeben > 0 && (
         <CifraDelNegocio etiqueta="Te deben (fiado)" valor={negocio.teDeben} concepto="fiado" />
       )}

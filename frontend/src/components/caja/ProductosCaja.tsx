@@ -17,7 +17,10 @@ type PropsDeProductos = {
   onGestionar: () => void;
 };
 
-type AccionesDeTarjeta = Pick<PropsDeProductos, 'bloqueada' | 'onElegir' | 'onFavorito' | 'onEditar'>;
+type AccionesDeTarjeta = Pick<
+  PropsDeProductos,
+  'bloqueada' | 'onElegir' | 'onFavorito' | 'onEditar'
+>;
 
 const ICONO_POR_MODO: Record<ModoVentaCaja, NombreDeIcono> = { unidad: 'box', peso: 'grid' };
 const UNIDAD_POR_MODO: Record<ModoVentaCaja, string> = { unidad: 'unidad', peso: 'kg' };
@@ -55,12 +58,17 @@ function CabeceraDeProductos({ favoritos, bloqueada, onGestionar }: PropsDeProdu
         <h3>{favoritos ? 'Tus favoritos' : 'Buscar en tu stock'}</h3>
         <p className="caja-ayuda">
           {favoritos
-            ? 'Los artículos de todos los días, a un toque.'
+            ? 'Los artículos que vendés todos los días.'
             : 'Elegí un artículo para agregarlo a la compra.'}
         </p>
       </div>
       {favoritos && (
-        <button type="button" className="btn secondary small" disabled={bloqueada} onClick={onGestionar}>
+        <button
+          type="button"
+          className="btn secondary small"
+          disabled={bloqueada}
+          onClick={onGestionar}
+        >
           <Icon name="edit" /> Organizar
         </button>
       )}
@@ -95,7 +103,13 @@ function ListaDeProductos({ productos, favoritos, acciones }: PropsDeLista) {
   );
 }
 
-function TarjetaDeProducto({ producto, acciones }: { producto: Fila; acciones: AccionesDeTarjeta }) {
+function TarjetaDeProducto({
+  producto,
+  acciones,
+}: {
+  producto: Fila;
+  acciones: AccionesDeTarjeta;
+}) {
   return (
     <div className="caja-tarjeta-producto">
       <BotonDeElegirProducto producto={producto} acciones={acciones} />
@@ -153,7 +167,8 @@ function BotonDeFavorito({ producto, acciones }: PropsDeBoton) {
 
 const accionDeFavorito = (producto: Fila) => (esFavorito(producto) ? 'Quitar de' : 'Agregar a');
 
-const iconoDeFavorito = (producto: Fila): NombreDeIcono => (esFavorito(producto) ? 'star-fill' : 'star');
+const iconoDeFavorito = (producto: Fila): NombreDeIcono =>
+  esFavorito(producto) ? 'star-fill' : 'star';
 
 function BotonDeEditarArticulo({ producto, acciones }: PropsDeBoton) {
   return (
@@ -170,17 +185,32 @@ function BotonDeEditarArticulo({ producto, acciones }: PropsDeBoton) {
 }
 
 function SinProductos({ consulta }: { consulta: string }) {
-  if (consulta) return <AvisoSinProductos icono="search" titulo="Sin resultados" detalle="Probá otro nombre o agregá un artículo." />;
+  if (consulta)
+    return (
+      <AvisoSinProductos
+        icono="search"
+        titulo="Sin resultados"
+        detalle="Probá con otro nombre o agregá un artículo."
+      />
+    );
   return (
     <AvisoSinProductos
       icono="box"
-      titulo="Tus favoritos aparecerán aquí"
-      detalle="Tocá Organizar para elegirlos o crear uno nuevo."
+      titulo="Todavía no hay favoritos"
+      detalle="Usá «Organizar» para elegirlos o crear uno nuevo."
     />
   );
 }
 
-function AvisoSinProductos({ icono, titulo, detalle }: { icono: NombreDeIcono; titulo: string; detalle: string }) {
+function AvisoSinProductos({
+  icono,
+  titulo,
+  detalle,
+}: {
+  icono: NombreDeIcono;
+  titulo: string;
+  detalle: string;
+}) {
   return (
     <div className="caja-vacio">
       <Icon name={icono} />

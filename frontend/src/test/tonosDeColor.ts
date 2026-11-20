@@ -1,5 +1,11 @@
 import { expect } from 'vitest';
-import { CONCEPTOS_DE_COLOR, TONOS, tonoDe, tonoPorPosicion, type ConceptoDeColor } from '@/lib/sistema/tonos';
+import {
+  CONCEPTOS_DE_COLOR,
+  TONOS,
+  tonoDe,
+  tonoPorPosicion,
+  type ConceptoDeColor,
+} from '@/lib/sistema/tonos';
 
 export const MEDIOS_DE_PAGO: ConceptoDeColor[] = ['efectivo', 'transferencia', 'tarjeta'];
 
@@ -10,7 +16,11 @@ export const PESTANAS_DE_CAJA: ConceptoDeColor[] = [
   'pestanaCierresGuardados',
 ];
 
-export const MODOS_DE_VENDER: ConceptoDeColor[] = ['venderEscanear', 'venderBuscar', 'venderFavoritos'];
+export const MODOS_DE_VENDER: ConceptoDeColor[] = [
+  'venderEscanear',
+  'venderBuscar',
+  'venderFavoritos',
+];
 
 let tonosLeidos: string[] = [];
 

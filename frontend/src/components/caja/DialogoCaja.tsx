@@ -32,7 +32,10 @@ export function DialogoCaja({
         aria-modal="true"
         aria-labelledby={tituloId}
       >
-        <div className={`caja-entre caja-dialogo-cabecera ${tono ? 'solido' : ''}`} data-tono={tono}>
+        <div
+          className={`caja-entre caja-dialogo-cabecera ${tono ? 'solido' : ''}`}
+          data-tono={tono}
+        >
           <h2 id={tituloId}>{titulo}</h2>
           <button
             type="button"

@@ -142,7 +142,7 @@ export const PALANCA: Record<ClavePalanca, Palanca> = {
     aporte: 0.25,
     referencia: 3,
     paso: 0.5,
-    formato: (valor) => `+${valor} pts de margen`,
+    formato: (valor) => `+${valor} pts de ganancia por venta`,
   },
   gastos: {
     clave: 'gastos',
@@ -223,19 +223,19 @@ export function caminos(objetivo: Objetivo): Camino[] {
     {
       clave: 'combinado',
       titulo: 'Camino combinado',
-      bajada: 'Reparte el esfuerzo entre ventas, margen y gastos.',
+      bajada: 'Reparte el esfuerzo entre ventas, ganancia por venta y gastos.',
       recomendado: true,
       confianza: 'Confianza media-alta',
       datos: [
         { nombre: 'Vender más', valor: PALANCA.ventas.formato(combinado.ventas) },
         { nombre: 'Reducir gastos', valor: PALANCA.gastos.formato(combinado.gastos) },
-        { nombre: 'Mejorar margen', valor: PALANCA.margen.formato(combinado.margen) },
+        { nombre: 'Ganar más por venta', valor: PALANCA.margen.formato(combinado.margen) },
       ],
     },
     {
       clave: 'ventas',
       titulo: 'Vender más',
-      bajada: 'Mantiene costos y margen actuales.',
+      bajada: 'Mantiene los costos y la ganancia por venta actuales.',
       recomendado: false,
       confianza: 'Requiere revisar sus supuestos',
       datos: [
@@ -251,8 +251,8 @@ export function caminos(objetivo: Objetivo): Camino[] {
       recomendado: false,
       confianza: 'Requiere revisar sus supuestos',
       datos: [
-        { nombre: 'Margen actual', valor: '34%' },
-        { nombre: 'Margen necesario', valor: `${margenNecesario}%` },
+        { nombre: 'Ganancia por venta actual', valor: '34%' },
+        { nombre: 'Ganancia por venta necesaria', valor: `${margenNecesario}%` },
         { nombre: 'Productos a revisar', valor: `${Math.max(1, Math.round(8 * factor))}` },
       ],
     },

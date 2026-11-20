@@ -330,14 +330,16 @@ async function entoncesSePropone(titulo: string) {
 }
 
 async function entoncesSeMuestraConLoQueFaltaSinPorcentajes() {
-  expect(await screen.findByRole('heading', { name: 'Cómo van tus objetivos' })).toBeVisible();
+  expect(
+    await screen.findByRole('heading', { name: 'Seguimiento de tus objetivos' }),
+  ).toBeVisible();
   expect(screen.getByText(/Te faltan \$400\.000/)).toBeVisible();
   expect(screen.getByText(/Todavía no hay semanas para comparar/)).toBeVisible();
   expect(screen.queryByText(/%/)).not.toBeInTheDocument();
 }
 
 async function entoncesTodoEstaEnUnaPantalla() {
-  await screen.findByRole('heading', { name: 'Cómo van tus objetivos' }, ESPERA);
+  await screen.findByRole('heading', { name: 'Seguimiento de tus objetivos' }, ESPERA);
   expect(screen.queryByRole('tab')).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Ver cómo funcionaría' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Ver plan de acción' })).not.toBeInTheDocument();
@@ -345,15 +347,15 @@ async function entoncesTodoEstaEnUnaPantalla() {
 }
 
 async function entoncesNoSeMuestranNumerosDeEjemplo() {
-  await screen.findByRole('heading', { name: 'Cómo van tus objetivos' }, ESPERA);
+  await screen.findByRole('heading', { name: 'Seguimiento de tus objetivos' }, ESPERA);
   expect(screen.getByText(/Todavía no hay semanas para comparar/)).toBeVisible();
   expect(screen.getByText(/Te faltan \$500\.000/)).toBeVisible();
-  expect(screen.queryByRole('heading', { name: 'Cómo viene tu negocio' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: 'Estado de tu negocio' })).not.toBeInTheDocument();
 }
 
 async function entoncesSeMuestraComoVieneElNegocioYElAvance() {
   expect(
-    await screen.findByRole('heading', { name: 'Cómo viene tu negocio' }, ESPERA),
+    await screen.findByRole('heading', { name: 'Estado de tu negocio' }, ESPERA),
   ).toBeVisible();
   expect(
     await screen.findByText(/Subió \$40\.000 en las últimas 2 semanas/, {}, ESPERA),
@@ -389,7 +391,7 @@ async function entoncesElObjetivoSeQuito() {
 }
 
 async function entoncesQuedaGuardadoElObjetivoDe400Mil() {
-  await screen.findByRole('heading', { name: 'Cómo van tus objetivos' }, ESPERA);
+  await screen.findByRole('heading', { name: 'Seguimiento de tus objetivos' }, ESPERA);
   expect(objetivosDe(usuario.email)).toMatchObject([
     { texto: expect.stringContaining('$400.000') as string, meta: 400_000 },
   ]);
@@ -402,7 +404,7 @@ function entoncesSamiEntendioQueQuiereCubrirGastosYNoSePuedeDefinir() {
 }
 
 async function entoncesQuedaGuardadaLaMeta(meta: number) {
-  await screen.findByRole('heading', { name: 'Cómo van tus objetivos' }, ESPERA);
+  await screen.findByRole('heading', { name: 'Seguimiento de tus objetivos' }, ESPERA);
   expect(objetivosDe(usuario.email)).toMatchObject([{ meta }]);
 }
 
@@ -413,11 +415,13 @@ async function entoncesSeAvisaQueLaMetaNoSeAlcanzaYSePropone36Mil() {
 }
 
 async function entoncesSeVeElObjetivoGuardado() {
-  await screen.findByRole('heading', { name: 'Cómo van tus objetivos' }, ESPERA);
+  await screen.findByRole('heading', { name: 'Seguimiento de tus objetivos' }, ESPERA);
   expect(screen.getByText(/sin subir demasiado los precios/)).toBeVisible();
 }
 
 async function entoncesSeAvisaElRechazoSinDarloPorDefinido() {
   expect(await screen.findByRole('alert')).toHaveTextContent('El texto es obligatorio');
-  expect(screen.queryByRole('heading', { name: 'Cómo van tus objetivos' })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('heading', { name: 'Seguimiento de tus objetivos' }),
+  ).not.toBeInTheDocument();
 }

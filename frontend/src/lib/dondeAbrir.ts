@@ -904,9 +904,9 @@ export function sinFiltro(filtros: Filtros, id: string): Filtros {
 /** Qué conviene comprobar en persona, según el rubro. */
 export function queVerificar(rubro: Rubro): string[] {
   const propias: Record<Rubro, string> = {
-    almacen: 'Fijate si hay un supermercado grande a menos de 500 m y cómo le va.',
+    almacen: 'Revisá si hay un supermercado grande a menos de 500 m y cómo le va.',
     papeleria: 'Confirmá cuándo es el ciclo de clases: la demanda cambia mucho en el año.',
-    kiosco: 'Mirá el movimiento a la noche y los horarios de los comercios de al lado.',
+    kiosco: 'Observá el movimiento a la noche y los horarios de los comercios de al lado.',
   };
   return [
     'Caminá la zona un día de semana y un sábado, a distintas horas.',
@@ -998,6 +998,6 @@ export function resumenParaCompartir(filtros: Filtros, exploracion: Exploracion)
   return [
     `Dónde abrir mi próximo local, ${NOMBRE_DE_RUBRO[filtros.rubro]} (estimación de Sami con fuentes trazables):`,
     ...lineas,
-    'Ojo: es una estimación para decidir mejor, no una predicción de ventas.',
+    'Atención: es una estimación para decidir mejor, no una predicción de ventas.',
   ].join('\n');
 }

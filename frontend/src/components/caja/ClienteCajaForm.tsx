@@ -44,7 +44,7 @@ export function ClienteCajaForm({
             setErrores(onGuardar(valores));
           }}
         >
-          <p className="caja-ayuda">Se guarda en {tabla.name} de Mi Negocio.</p>
+          <p className="caja-ayuda">Se guarda en {tabla.name} de Mi negocio.</p>
           {tabla.fields.map((campo) => {
             const id = `${prefijo}-${campo.key}`;
             return (

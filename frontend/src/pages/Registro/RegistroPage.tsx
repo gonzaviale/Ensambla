@@ -8,11 +8,11 @@ export function RegistroPage() {
     <AuthCard
       title="Creá tu cuenta"
       lead="Empezá a armar tu negocio en Ensambla."
-      saludoSami="¡Hola, soy Sami!"
+      saludoSami="Hola, soy Sami."
       conEslogan
       footer={
         <>
-          ¿Ya tenés cuenta? <EnlaceAuth to="/login">Ingresá</EnlaceAuth>
+          ¿Ya tenés cuenta? <EnlaceAuth to="/login">Entrá</EnlaceAuth>
         </>
       }
     >

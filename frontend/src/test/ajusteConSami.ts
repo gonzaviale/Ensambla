@@ -68,7 +68,7 @@ const sinViolaciones = async () => {
 
 const pedirASami = async (texto: string) => {
   await persona().type(screen.getByRole('textbox', { name: /¿Qué le falta/ }), texto);
-  await clickButton(persona(), /Ajustalo conmigo/);
+  await clickButton(persona(), /Ajustar con Sami/);
 };
 
 /* dado */

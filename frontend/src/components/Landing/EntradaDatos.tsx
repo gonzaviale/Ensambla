@@ -57,7 +57,7 @@ export function EntradaDatos() {
     evento.preventDefault();
     const valor = Number(importe);
     if (!Number.isFinite(valor) || valor <= 0) {
-      setError('Ingresá un importe mayor a cero.');
+      setError('Escribí un importe mayor a $0.');
       campoImporte.current?.focus();
       return;
     }

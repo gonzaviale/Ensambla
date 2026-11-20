@@ -19,9 +19,9 @@ export function NumeroVinculado({ vinculo }: { vinculo: VinculoWhatsapp }) {
         <span>Vinculado el {fecha(vinculo.vinculadoEn)}</span>
       </p>
       <p>
-        Mandale a Sami una foto de tu cuaderno o un texto como «gasté 5000 en harina»: arma las
-        filas, te las muestra y las guarda cuando le respondés que sí. Las fotos descuentan de las
-        páginas con IA de <Link to="/planes">tu plan</Link>.
+        Enviá a Sami una foto de tu cuaderno o un texto como «gasté 5000 en harina»: arma las filas,
+        te las muestra y las guarda cuando le respondés que sí. Las fotos descuentan de las páginas
+        con IA de <Link to="/planes">tu plan</Link>.
       </p>
       {desvincular.isError ? (
         <p role="alert">{leerErrorServidor(desvincular.error)?.mensaje}</p>

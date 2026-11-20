@@ -15,5 +15,8 @@ export const nombreDelMedio = (medio: MedioCaja) => MEDIOS_DE_PAGO[medio].nombre
 export const iconoDelMedio = (medio: MedioCaja) => MEDIOS_DE_PAGO[medio].icono;
 
 export function aspectoDelMedio(medio: MedioCaja, elegido: boolean) {
-  return { className: claseDeSeleccion(elegido), 'data-tono': tonoDe(MEDIOS_DE_PAGO[medio].concepto) };
+  return {
+    className: claseDeSeleccion(elegido),
+    'data-tono': tonoDe(MEDIOS_DE_PAGO[medio].concepto),
+  };
 }

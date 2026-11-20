@@ -119,17 +119,17 @@ export function CajaPage() {
             <Icon name="box" />
             <h2>Primero, tu negocio</h2>
             <p>
-              Creá tu espacio desde Mi Negocio. Después vas a poder cobrar con sus productos desde
-              acá.
+              Creá tu negocio desde Mi negocio. Después vas a poder cobrar con sus productos desde
+              esta pantalla.
             </p>
           </section>
         ) : !lista || !inventario || !ventas ? (
           <section className="caja-preparar">
             <Icon name="orders" />
-            <h2>Dejemos tu caja lista</h2>
+            <h2>Falta preparar tu caja</h2>
             <p>
               Usaremos {inventario?.name ?? 'una sección de stock nueva'} de {sistema.name}. Se habilitan
-              favoritos y venta por unidad o peso, y se prepara una tabla de ventas conectada.
+              favoritos y venta por unidad o peso, y se prepara una sección de ventas conectada.
             </p>
             <button type="button" className="btn primary" onClick={preparar}>
               Preparar caja

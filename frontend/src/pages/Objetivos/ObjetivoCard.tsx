@@ -59,7 +59,7 @@ function ObjetivoSinMetaCard({ objetivo, onQuitar, onVerSemana }: Props) {
         <button type="button" className="btn secondary" onClick={onVerSemana}>
           <CalendarCheckIcon aria-hidden size={18} /> Ver mi semana
         </button>
-        {resumenListo && <span className="objetivos-chip-resumen">Resumen de la semana listo</span>}
+        {resumenListo && <span className="objetivos-chip-resumen">Resumen semanal disponible</span>}
         <button type="button" className="objetivos-textual" onClick={onQuitar}>
           <TrashIcon aria-hidden size={16} /> Quitar objetivo
         </button>
@@ -115,7 +115,7 @@ function ObjetivoConMetaCard({
         <button type="button" className="btn secondary" onClick={onVerSemana}>
           <CalendarCheckIcon aria-hidden size={18} /> Ver mi semana
         </button>
-        {resumenListo && <span className="objetivos-chip-resumen">Resumen de la semana listo</span>}
+        {resumenListo && <span className="objetivos-chip-resumen">Resumen semanal disponible</span>}
         <button type="button" className="objetivos-textual" onClick={onQuitar}>
           <TrashIcon aria-hidden size={16} /> Quitar objetivo
         </button>

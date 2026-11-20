@@ -289,8 +289,8 @@ describe('los errores de cada registro', () => {
     );
 
     entoncesLosErroresIncluyen({
-      'registro-0': { proveedor: 'Ingresá un número válido.' },
-      'registro-1': { proveedor: 'Ingresá un número válido.' },
+      'registro-0': { proveedor: 'Escribí un número válido.' },
+      'registro-1': { proveedor: 'Escribí un número válido.' },
     });
   });
 

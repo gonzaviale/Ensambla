@@ -146,9 +146,9 @@ function entoncesSigueEnElRegistro() {
 }
 
 async function entoncesSePidenLosCamposObligatorios() {
-  await verifyTextPresentAsync('Ingresá tu nombre');
-  await verifyTextPresentAsync('Ingresá el nombre de tu negocio');
-  await verifyTextPresentAsync('Ingresá tu email');
+  await verifyTextPresentAsync('Escribí tu nombre');
+  await verifyTextPresentAsync('Escribí el nombre de tu negocio');
+  await verifyTextPresentAsync('Escribí tu email');
   await verifyTextPresentAsync('Usá al menos 8 caracteres');
 }
 
@@ -164,7 +164,7 @@ async function entoncesElCampoDelNegocioMuestraElErrorDelServidor() {
 
 async function entoncesSeLlevaAIngresar() {
   await verifyPathAsync(router, '/login');
-  await verifyHeadingPresentAsync('Ingresá a tu cuenta');
+  await verifyHeadingPresentAsync('Entrá a tu cuenta');
 }
 
 function entoncesSoloQuedanLosDatosPublicos() {

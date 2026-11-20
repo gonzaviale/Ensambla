@@ -15,7 +15,7 @@ export function PendientesDeRespuesta() {
   return (
     <section className="objetivos-pendientes" aria-labelledby="objetivos-pendientes-titulo">
       <h2 id="objetivos-pendientes-titulo">Sami quiere saber cómo te fue</h2>
-      <p className="objetivos-pendientes-calma">Cuando puedas. Si hoy no, te lo vuelve a preguntar mañana.</p>
+      <p className="objetivos-pendientes-calma">Respondé cuando puedas. Si hoy no podés, Sami vuelve a preguntar mañana.</p>
       <PreguntaDeSami key={pregunta.miniObjetivo.id} pregunta={pregunta} onMasTarde={posponer} />
       <PaginadorDePreguntas total={preguntas.length} actual={actual} onIr={setIndice} />
     </section>

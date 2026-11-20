@@ -28,8 +28,8 @@ const TEMAS_DEL_EDITOR: Tema[] = [
 ];
 
 const TEMAS_DEL_INICIO: Tema[] = [
-  ['guide', 'spark', 'Crear una sección conmigo', 'naranja'],
-  ['templates', 'grid', 'Encontrar una plantilla simple', 'celeste'],
+  ['guide', 'spark', 'Crear una sección con Sami', 'naranja'],
+  ['templates', 'grid', 'Elegir una plantilla', 'celeste'],
 ];
 
 export function ModalAyuda({ respuesta }: { respuesta?: string }) {
@@ -58,8 +58,8 @@ export function ModalAyuda({ respuesta }: { respuesta?: string }) {
       <div className="sami-intro">
         <img className="sami-intro-img" src="/mockup/sami-pensando.webp" alt="" />
         <div>
-          <h2 id="modal-title">¿En qué te doy una mano?</h2>
-          <p>Te ayudo a encontrar el próximo paso.</p>
+          <h2 id="modal-title">¿En qué puedo ayudarte?</h2>
+          <p>Elegí cómo querés continuar.</p>
         </div>
       </div>
       {respuesta && RESPUESTAS[respuesta] && (
@@ -98,7 +98,11 @@ export function ModalAyuda({ respuesta }: { respuesta?: string }) {
 
 function IconoDelTema({ icono, tono }: { icono: NombreDeIcono; tono?: Tono }) {
   return (
-    <span className={`icon-tile ${tono ? 'solido' : ''}`} data-tono={tono} style={varsDeColor('petrol')}>
+    <span
+      className={`icon-tile ${tono ? 'solido' : ''}`}
+      data-tono={tono}
+      style={varsDeColor('petrol')}
+    >
       <Icon name={icono} />
     </span>
   );

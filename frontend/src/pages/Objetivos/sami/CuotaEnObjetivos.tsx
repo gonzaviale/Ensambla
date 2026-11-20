@@ -4,7 +4,7 @@ import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { LIMITE_PREMIUM_DE_OBJETIVOS } from '@/lib/objetivosSami';
 import { CuotaDeObjetivos } from './CuotaDeObjetivos';
 
-// La cuota del mes en la pantalla de Objetivos: «Te quedan 3 de 5» mientras haya, y al agotarse un aviso tranquilo que
+// La cuota del mes en la pantalla de Objetivos: «3 de 5» disponibles mientras haya, y al agotarse un aviso tranquilo que
 // explica qué pasa y, en el plan Gratuito, lleva a Planes. Sin dato del servidor no muestra nada.
 export function CuotaEnObjetivos() {
   const { cuota } = useCuotaObjetivos();

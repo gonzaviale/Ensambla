@@ -30,7 +30,9 @@ export function AccesosRapidos() {
       onKeyDown={cerrarConEscape(cerrarYVolverAlDisparador)}
       onBlur={cerrarAlSalir(accesos.cerrar)}
     >
-      {accesos.abierto && <PanelDeAccesos id={id} accesos={accesos} alCerrar={cerrarYVolverAlDisparador} />}
+      {accesos.abierto && (
+        <PanelDeAccesos id={id} accesos={accesos} alCerrar={cerrarYVolverAlDisparador} />
+      )}
       <DisparadorDeAccesos disparador={disparador} panel={id} accesos={accesos} />
     </aside>
   );
@@ -48,11 +50,23 @@ function cerrarAlSalir(cerrar: () => void) {
   };
 }
 
-function PanelDeAccesos({ id, accesos, alCerrar }: { id: string; accesos: Accesos; alCerrar: () => void }) {
+function PanelDeAccesos({
+  id,
+  accesos,
+  alCerrar,
+}: {
+  id: string;
+  accesos: Accesos;
+  alCerrar: () => void;
+}) {
   const opciones = useEnfocarLaPrimeraOpcion();
   return (
     <div id={id} className="acciones-rapidas-panel">
-      <nav ref={opciones} aria-label="Acciones de venta y stock" className="acciones-rapidas-opciones">
+      <nav
+        ref={opciones}
+        aria-label="Acciones de venta y stock"
+        className="acciones-rapidas-opciones"
+      >
         <OpcionDeAcceso concepto="accesoNuevaVenta" icono="check-circle" alElegir={accesos.vender}>
           Nueva venta
         </OpcionDeAcceso>

@@ -46,7 +46,7 @@ function Uso({
           <progress aria-label={titulo} value={Math.min(cantidad, limite)} max={limite || 1} />
         ) : null}
         {superado ? (
-          <p>Pasaste el límite para cargar datos nuevos. Los que ya tenés siguen ahí.</p>
+          <p>Pasaste el límite para cargar datos nuevos. Los que ya tenés siguen guardados.</p>
         ) : null}
       </dd>
     </div>
@@ -77,7 +77,7 @@ export function PlanesPage() {
               Un plan para seguir
               dándole forma.
             </h1>
-            <p>Mirá qué incluye cada plan y elegí la que más se ajuste a vos.</p>
+            <p>Compará qué incluye cada plan y elegí el que mejor se ajuste a tu negocio.</p>
           </div>
         </header>
         {consulta.isPending ? (
@@ -190,7 +190,7 @@ export function PlanesPage() {
               <div>
                 <h2 id="plans-data-title">Tus datos tienen su lugar.</h2>
                 <p>
-                  Cuando termina la prueba conservás tus secciones, registros y recetas. Podés
+                  Cuando termina la prueba conservás tus secciones, tus datos y tus recetas. Podés
                   consultar y editar tus datos; las nuevas altas y las funciones premium respetan
                   los límites del plan gratuito.
                 </p>

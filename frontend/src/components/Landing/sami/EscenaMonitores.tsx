@@ -407,7 +407,7 @@ export function EscenaMonitores() {
             Hay un aviso
           </text>
           <text x="438" y="102" fontSize="15" fontWeight="600" fill="#ffc9c6">
-            Mirá los precios
+            Revisá los precios
           </text>
         </g>
 
@@ -457,7 +457,7 @@ export function EscenaMonitores() {
             !
           </text>
           <text x="762" y="270" fontSize="18" fontWeight="800" fill="#00384a">
-            ¡Subió la yerba!
+            Subió la yerba
           </text>
           <text x="762" y="294" fontSize="15" fontWeight="700" fill="#00384a">
             Ajustá el precio

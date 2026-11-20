@@ -146,7 +146,7 @@ describe('definir un objetivo conversando con Sami', () => {
     await cuandoLeCuentaASami('Quiero gastar menos en luz');
 
     expect(
-      await screen.findByText('Te quedan 20 de 20 objetivos con IA este mes', {}, ESPERA),
+      await screen.findByText('Objetivos con IA disponibles este mes: 20 de 20', {}, ESPERA),
     ).toBeVisible();
   });
 
@@ -233,7 +233,7 @@ async function cuandoSeQuitaUnMiniSeRetocaOtroYSeGuarda() {
   await user.type(titulo, 'Pedile a 5 clientes que te recomienden');
   await user.click(screen.getByRole('button', { name: 'Listo' }));
   await user.click(screen.getByRole('button', { name: 'Guardar objetivo' }));
-  await screen.findByRole('heading', { name: 'Cómo van tus objetivos' }, ESPERA);
+  await screen.findByRole('heading', { name: 'Seguimiento de tus objetivos' }, ESPERA);
 }
 
 async function cuandoSeEscribeUnPorcentajeEnUnaAccionSinDatos() {
@@ -265,7 +265,9 @@ async function entoncesSamiMuestraLoQueEntendio() {
   );
   expect(lectura.getByText(FRASE_DEL_BARRIO)).toBeVisible();
   expect(lectura.getByText('Una parte la mide Sami y otra me la contás vos')).toBeVisible();
-  expect(lectura.getByText(/Se apoyó en: ventas, margen, inventario, gastos\./)).toBeVisible();
+  expect(
+    lectura.getByText(/Se apoyó en: ventas, ganancia por venta, stock, gastos\./),
+  ).toBeVisible();
   expect(lectura.getByText(/Sin datos de: zona\./)).toBeVisible();
 }
 
@@ -276,7 +278,7 @@ async function entoncesSeProponenTresMinisYLaCuota() {
   expect(screen.getByText('Vender un 10 % más por semana')).toBeVisible();
   expect(screen.getByText('Lo mide Sami')).toBeVisible();
   expect(screen.getAllByText('Me lo contás vos')).toHaveLength(2);
-  expect(screen.getByText('Te quedan 5 de 5 objetivos con IA este mes')).toBeVisible();
+  expect(screen.getByText('Objetivos con IA disponibles este mes: 5 de 5')).toBeVisible();
 }
 
 async function entoncesTodaviaNoSeGuardoNada() {
@@ -329,7 +331,7 @@ async function entoncesSoloOfreceElSeguimientoManual() {
 }
 
 async function entoncesQuedoGuardadoElSeguimientoManualSinGastarCuota() {
-  await screen.findByRole('heading', { name: 'Cómo van tus objetivos' }, ESPERA);
+  await screen.findByRole('heading', { name: 'Seguimiento de tus objetivos' }, ESPERA);
   expect(objetivosDe(usuario.email)).toMatchObject([
     { texto: 'Quiero vender más', tipo: 'SIN_DATOS', meta: null, armadoConSami: false },
   ]);
