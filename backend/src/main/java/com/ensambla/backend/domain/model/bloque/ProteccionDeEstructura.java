@@ -22,6 +22,31 @@ public final class ProteccionDeEstructura {
                 .forEach(actual -> validar(actual, propuesto));
     }
 
+    /** Para quitar una sección por fuera del guardado del negocio entero. */
+    public static void exigirQueSePuedaQuitarLaSeccion(Bloque bloque, List<Bloque> bloquesDelSistema) {
+        if (!EstructuraFija.sePuedeQuitar(bloque, bloquesDelSistema)) {
+            throw rechazo(bloque.getTipo().mensajeAlQuitarLaUltima());
+        }
+    }
+
+    /** Para quitar una columna por fuera del guardado del negocio entero. */
+    public static void exigirQueSePuedaQuitarLaColumna(Bloque bloque, Campo campo) {
+        bloque.getTipo().columnasFijas().stream().filter(columna -> columna.esLaDe(campo)).findFirst()
+                .ifPresent(columna -> {
+                    throw rechazo(columna.mensajeAlQuitar(campo.getNombre()));
+                });
+    }
+
+    /** Para cambiar una columna por fuera del guardado del negocio entero. */
+    public static void exigirQueSePuedaCambiarLaColumna(Bloque bloque, Campo actual, Campo editado,
+                                                        List<Bloque> bloquesDelSistema) {
+        bloque.getTipo().columnasFijas().stream()
+                .filter(columna -> columna.esLaDe(actual) && !columna.laCumple(editado, bloquesDelSistema))
+                .findFirst().ifPresent(columna -> {
+                    throw rechazo(columna.mensajeAlCambiar(actual.getNombre()));
+                });
+    }
+
     private static void validar(Sistema actual, Sistema propuesto) {
         TipoBloque.obligatorios().forEach(tipo -> exigirQueSigaHabiendoUna(tipo, actual, propuesto));
         actual.proyecto().getBloques().forEach(bloque -> exigirQueConserve(bloque, actual, propuesto));
