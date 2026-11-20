@@ -1,9 +1,15 @@
 package com.ensambla.backend.domain.useCase.campo.eliminarCampo;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.infrastructure.config.useCase.CampoUseCaseConfig;
@@ -15,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static com.ensambla.backend.support.BloquesDePrueba.unBloqueDelNegocio;
 import static com.ensambla.backend.support.CamposDePrueba.unCampoNumerico;
 import static com.ensambla.backend.support.CamposDePrueba.unaFormulaQueUsa;
 import static com.ensambla.backend.support.ProyectoTestData.AHORA;
@@ -34,9 +41,10 @@ class EliminarCampoTest {
     private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
 
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
+    private final BloqueRepository bloqueRepository = mock(BloqueRepository.class, CALLS_REAL_METHODS);
     private final CampoRepository campoRepository = mock(CampoRepository.class, CALLS_REAL_METHODS);
     private final EliminarCampo eliminarCampo = new CampoUseCaseConfig().eliminarCampo(negocioRepository,
-            campoRepository, new TransaccionDirecta());
+            bloqueRepository, campoRepository, new TransaccionDirecta());
 
     private Campo cantidad;
     private Throwable rechazo;
@@ -59,6 +67,18 @@ class EliminarCampoTest {
         cuandoSeIntentaEliminarElCampo();
 
         entoncesSeRechazaPorque("No se puede eliminar «Cantidad»: la fórmula «Doble» lo usa");
+        entoncesNoSeEliminaNingunCampo();
+    }
+
+    @Test
+    @DisplayName("Una columna fija del negocio no se puede eliminar")
+    void unaColumnaFijaDelNegocioNoSePuedeEliminar() {
+        dadoUnCostoFijoEnUnaSeccionDeStock();
+
+        cuandoSeIntentaEliminarElCampo();
+
+        entoncesSeProtegeLaEstructuraPorque("No se puede quitar «Costo»: Ensambla la necesita para calcular la "
+                + "ganancia de Objetivos y Mi negocio.");
         entoncesNoSeEliminaNingunCampo();
     }
 
@@ -88,9 +108,24 @@ class EliminarCampoTest {
         when(campoRepository.findByIdAndNegocioId(cantidad.getId(), NEGOCIO_ID)).thenReturn(Optional.empty());
     }
 
+    private void dadoUnCostoFijoEnUnaSeccionDeStock() {
+        Campo costo = Campo.builder().id(CampoId.nuevo()).negocioId(NEGOCIO_ID).bloqueId(BLOQUE_ID)
+                .tipo(TipoCampo.MONEDA).nombre("Costo").clave("cost").build();
+        dadoUnCampoPropioConLosCampos(costo);
+        when(bloqueRepository.findByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID))
+                .thenReturn(Optional.of(unaSeccionDeStock()));
+    }
+
+    private Bloque unaSeccionDeStock() {
+        return Bloque.builder().id(BLOQUE_ID).negocioId(NEGOCIO_ID).nombre("Stock").tipo(TipoBloque.INVENTARIO)
+                .build();
+    }
+
     private void dadoUnCampoPropioConLosCampos(Campo propio, Campo... otros) {
         cantidad = propio;
         dadoUnNegocio();
+        when(bloqueRepository.findByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID))
+                .thenReturn(Optional.of(unBloqueDelNegocio(BLOQUE_ID, "Productos")));
         when(campoRepository.findByIdAndNegocioId(cantidad.getId(), NEGOCIO_ID)).thenReturn(Optional.of(cantidad));
         when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(camposDelBloque(otros));
     }
@@ -119,6 +154,10 @@ class EliminarCampoTest {
 
     private void entoncesSeEliminaElCampo() {
         verify(campoRepository).deleteByIdAndNegocioId(cantidad.getId(), NEGOCIO_ID);
+    }
+
+    private void entoncesSeProtegeLaEstructuraPorque(String mensaje) {
+        assertThat(rechazo).isInstanceOf(DuplicateResourceException.class).hasMessage(mensaje);
     }
 
     private void entoncesNoSeEliminaNingunCampo() {

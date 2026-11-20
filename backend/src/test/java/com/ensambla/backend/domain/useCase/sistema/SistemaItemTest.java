@@ -366,7 +366,7 @@ class SistemaItemTest {
 
     private void dadoUnDocumentoCompletoConUnaFila() {
         camposDelDocumento = List.of(
-                new CampoItem("name", "Producto", "text", true, null, null, null),
+                new CampoItem("name", "Producto", "text", true, null, null, null, true),
                 new CampoItem("category", "Categoría", "select", false, List.of("Insumos"), null, null),
                 new CampoItem("client", "Cliente", "relation", false, null, null, CLIENTES_ID.toString()));
         filaDelDocumento = fila(FILA_ID.toString(), "name", "Harina", "category", "Insumos",
@@ -595,7 +595,7 @@ class SistemaItemTest {
         List<CampoItem> columnas = inventarioDevuelto().fields();
         assertThat(columnas).extracting(CampoItem::key).containsExactly("name", "categoria", "cliente");
         assertThat(columnas.getFirst()).isEqualTo(
-                new CampoItem("name", "Producto", "text", true, null, new BigDecimal("1"), null));
+                new CampoItem("name", "Producto", "text", true, null, new BigDecimal("1"), null, true));
         assertThat(columnas.get(1).type()).isEqualTo("select");
         assertThat(columnas.get(1).options()).containsExactly("Insumos");
         assertThat(columnas.get(2).type()).isEqualTo("relation");

@@ -56,3 +56,5 @@
 @import './cajaCompraCobro.css';
 @import './accesosRapidos.css';
 @import './presentacionMovil.css';
+/* Último: superficies sólidas con letra blanca, por concepto (lib/sistema/tonos.ts). */
+@import './solidos.css';

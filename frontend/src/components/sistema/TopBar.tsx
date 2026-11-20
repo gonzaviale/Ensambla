@@ -123,8 +123,8 @@ export function TopBar({
         <button
           type="button"
           className="help-trigger"
-          aria-label="¿Necesitás una mano?"
-          title="¿Necesitás una mano?"
+          aria-label="Ayuda"
+          title="Ayuda"
           onClick={onAyuda}
         >
           <Icon name="help" />

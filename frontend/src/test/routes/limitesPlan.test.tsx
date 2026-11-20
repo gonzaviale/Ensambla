@@ -58,7 +58,7 @@ function dadoUnUsuarioConSieteAvisos() {
 
 async function cuandoSeAbreMiZona() {
   renderApp('/zona');
-  await screen.findByRole('heading', { level: 1, name: /Mirá cuánto se cobra/ }, ESPERA);
+  await screen.findByRole('heading', { level: 1, name: /Compará los precios de tu zona/ }, ESPERA);
   await screen.findByRole('region', { name: 'Tu acceso a recomendaciones' }, ESPERA);
 }
 

@@ -11,6 +11,7 @@ import { PageFooter } from '@/components/sistema/PageFooter';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { SECCION_DE_CUENTA_POR_DEFECTO, type SeccionDeCuenta } from '@/lib/cuenta';
 import type { NombreDeIcono } from '@/lib/sistema/iconos';
+import { tonoPorPosicion } from '@/lib/sistema/tonos';
 
 const ruta = getRouteApi('/_app/cuenta');
 
@@ -47,7 +48,7 @@ export function CuentaPage() {
         </div>
         <div className="cuenta-layout">
           <nav className="cuenta-menu" aria-label="Secciones de tu cuenta">
-            {SECCIONES.map(({ clave, titulo, icono }) => (
+            {SECCIONES.map(({ clave, titulo, icono }, posicion) => (
               <Link
                 key={clave}
                 to="/cuenta"
@@ -55,7 +56,9 @@ export function CuentaPage() {
                 className={clave === seccion ? 'activa' : ''}
                 aria-current={clave === seccion ? 'page' : undefined}
               >
-                <Icon name={icono} />
+                <span className="cuenta-menu-icono solido" data-tono={tonoPorPosicion(posicion)}>
+                  <Icon name={icono} />
+                </span>
                 {titulo}
               </Link>
             ))}

@@ -31,7 +31,7 @@ const DETALLE = `/objetivos/${ID_OBJETIVO_SIN_DATOS_DE_EJEMPLO}`;
 const MINI_SIN_CONTAR = `${ID_OBJETIVO_SIN_DATOS_DE_EJEMPLO}-sin-contar`;
 const MINI_PENDIENTE = `${ID_OBJETIVO_SIN_DATOS_DE_EJEMPLO}-pendiente`;
 const MINI_RESPONDIDA = `${ID_OBJETIVO_SIN_DATOS_DE_EJEMPLO}-respondida`;
-const PRIMERA = 'Anotá qué te piden y no tenés';
+const PRIMERA = 'Escribí qué te piden y no tenés';
 const SEGUNDA = 'Poné un cartel en la vereda con lo que ofrecés';
 
 const conObjetivoSinDatos = () => {
@@ -192,7 +192,7 @@ describe('mini-objetivos manuales', () => {
     const minis = within(await screen.findByRole('region', { name: 'Tus mini-objetivos' }, ESPERA));
     expect(await minis.findAllByRole('article')).toHaveLength(3);
     expect(minis.getByRole('form', { name: /Poné un cartel en la vereda/ })).toBeVisible();
-    expect(minis.getByRole('form', { name: /Anotá qué te piden/ })).toBeVisible();
+    expect(minis.getByRole('form', { name: /Escribí qué te piden/ })).toBeVisible();
     // El que ya se contó no vuelve a pedir nada.
     const respondida = within(
       minis
@@ -226,7 +226,7 @@ describe('mini-objetivos manuales', () => {
     expect(noCumplido.getByText('Saludá por el nombre a los clientes de siempre')).toBeVisible();
     expect(noCumplido.getByText('· no se pudo')).toBeVisible();
     // Un manual que quedó sin respuesta no se renueva solo: se cuenta como «sin contar».
-    expect(noCumplido.getByText('Anotá qué te piden y no tenés')).toBeVisible();
+    expect(noCumplido.getByText('Escribí qué te piden y no tenés')).toBeVisible();
     expect(noCumplido.getByText('· sin contar')).toBeVisible();
     const nuevo = within(
       resumen.getByRole('heading', { name: 'Lo nuevo que propone Sami' })

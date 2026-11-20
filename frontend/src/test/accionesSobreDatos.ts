@@ -16,6 +16,11 @@ const campoLlamado = (tipo: string, etiqueta: string) =>
 const campoDeClave = (tipo: string, clave: string) =>
   piezaDelTipo(tipo).fields.find((campo) => campo.key === clave);
 
+// Un negocio guardado antes de la estructura fija: sus columnas todavía no vienen marcadas.
+const quitarLaMarcaDeColumnaFija = (campo: Campo | undefined) => {
+  if (campo) Reflect.deleteProperty(campo, 'system');
+};
+
 export const dadoUnInventarioQueYaUsaLaClaveRubro = () => {
   dadoUnAlmacenDeEjemplo();
   piezaDelTipo('inventory').fields.push({
@@ -29,6 +34,7 @@ export const dadoUnInventarioQueYaUsaLaClaveRubro = () => {
 export const dadoUnInventarioConMinimosEscritosDeDistintasFormas = () => {
   dadoUnAlmacenDeEjemplo();
   const inventario = piezaDelTipo('inventory');
+  quitarLaMarcaDeColumnaFija(campoDeClave('inventory', 'minimum'));
   const [primera, segunda] = inventario.rows as [Fila, Fila];
   primera.minimum = 5;
   segunda.minimum = 'mucho';
@@ -52,6 +58,7 @@ export const dadoUnAlmacenConGastos = () => {
 
 export const dadosGastosConLaCategoriaComoListaPropia = () => {
   dadoUnAlmacenConGastos();
+  quitarLaMarcaDeColumnaFija(campoDeClave('expenses', 'category'));
   dadoQueSamiYaPidio(
     editarCampo('expenses', 'Categoría', { opciones: ['Mercadería', 'Impuestos'] }),
   );

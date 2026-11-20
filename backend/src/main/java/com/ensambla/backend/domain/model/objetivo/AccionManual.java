@@ -30,7 +30,7 @@ public record AccionManual(String titulo, String justificacion) {
             objetivo = objetivo.substring(0, LARGO_DEL_OBJETIVO_EN_EL_SEGUIMIENTO).strip() + "…";
         }
         return new AccionManual(
-                "Anotá cómo te fue con tu objetivo",
+                "Cargá cómo te fue con tu objetivo",
                 "Una vez por semana contale a Sami cómo avanzaste con: " + objetivo);
     }
 

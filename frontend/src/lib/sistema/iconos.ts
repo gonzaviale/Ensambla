@@ -46,6 +46,10 @@ export const NOMBRES_DE_ICONO = [
   'mic',
   'bulb',
   'expand',
+  'lock',
+
+  'star',
+  'star-fill',
 ] as const;
 
 export type NombreDeIcono = (typeof NOMBRES_DE_ICONO)[number];

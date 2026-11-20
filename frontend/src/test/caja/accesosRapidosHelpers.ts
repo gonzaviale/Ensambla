@@ -28,9 +28,17 @@ export const cuandoEligeInventario = (caso: Caso) =>
   caso.user.click(
     within(screen.getByRole('navigation', { name: 'Acciones de venta y stock' })).getByRole(
       'button',
-      { name: /Escanear Inventario/ },
+      { name: /^Escanear / },
     ),
   );
+export const cuandoCierraConLaCruz = (caso: Caso) =>
+  caso.user.click(screen.getByRole('button', { name: 'Cerrar accesos rápidos' }));
+export function entoncesNoHayUnBotonDeTextoParaCerrar() {
+  expect(screen.queryByRole('button', { name: 'Cerrar accesos' })).toBeNull();
+}
+export function entoncesLaCruzDeCerrarEstaVisible() {
+  expect(screen.getByRole('button', { name: 'Cerrar accesos rápidos' })).toBeVisible();
+}
 export async function entoncesCajaSinFlotante() {
   await screen.findByRole('heading', { name: 'Caja', level: 1 }, ESPERA);
   expect(screen.queryByRole('button', { name: 'Accesos rápidos' })).toBeNull();

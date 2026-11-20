@@ -11,6 +11,9 @@ import { allBlocks, makeBlock, normalize } from '@/lib/sistema/core';
 import { clientesCaja, guardarClienteCaja } from '@/lib/clientesCaja';
 import type { ErroresFila, Valor, Bloque, Fila } from '@/lib/sistema/tipos';
 import type { VentaCaja, CobroDeudaCaja } from '@/types/caja';
+import { claseDeSeleccion, tonoDe, tonoPorPosicion, type Tono } from '@/lib/sistema/tonos';
+
+const TONO_DE_LOS_FILTROS: Tono = 'petroleo';
 
 type CuentaCliente = {
   id: string;
@@ -102,7 +105,7 @@ export function ClientesCaja({
       <div className="caja-entre">
         <div>
           <h2>Clientes</h2>
-          <p className="caja-ayuda">Los mismos contactos que usás en Mi Negocio.</p>
+          <p className="caja-ayuda">Los mismos contactos que usás en Mi negocio.</p>
         </div>
         <button
           type="button"
@@ -114,7 +117,7 @@ export function ClientesCaja({
         </button>
       </div>
       {cuentas.data && (
-        <p className="caja-saldo">
+        <p className="caja-saldo solido" data-tono={tonoDe('fiado')}>
           Te deben{' '}
           <strong>{dineroCaja(conDeuda.reduce((sum, cuenta) => sum + saldoDe(cuenta), 0))}</strong>{' '}
           · {conDeuda.length} clientes en esta caja
@@ -130,10 +133,22 @@ export function ClientesCaja({
         </p>
       )}
       <div className="caja-opciones" aria-label="Filtrar clientes">
-        <button type="button" aria-pressed={!mostrarTodos} onClick={() => setMostrarTodos(false)}>
+        <button
+          type="button"
+          className={claseDeSeleccion(!mostrarTodos)}
+          data-tono={TONO_DE_LOS_FILTROS}
+          aria-pressed={!mostrarTodos}
+          onClick={() => setMostrarTodos(false)}
+        >
           Con deuda
         </button>
-        <button type="button" aria-pressed={mostrarTodos} onClick={() => setMostrarTodos(true)}>
+        <button
+          type="button"
+          className={claseDeSeleccion(mostrarTodos)}
+          data-tono={TONO_DE_LOS_FILTROS}
+          aria-pressed={mostrarTodos}
+          onClick={() => setMostrarTodos(true)}
+        >
           Todos
         </button>
       </div>
@@ -171,8 +186,9 @@ export function ClientesCaja({
         </p>
       )}
       <ul className="caja-clientes-lista">
-        {clientes.map((cuenta) => (
+        {clientes.map((cuenta, posicion) => (
           <li key={cuenta.id}>
+            <InicialDeCliente nombre={cuenta.nombre} posicion={posicion} />
             <div>
               <strong>{cuenta.nombre}</strong>
               <AntiguedadDeudaCaja ventas={cuenta.ventas} />
@@ -195,7 +211,7 @@ export function ClientesCaja({
             <div className="caja-opciones">
               <button
                 type="button"
-                className="btn primary"
+                className="btn petrol"
                 disabled={!cuentas.data}
                 aria-label={`Ver cuenta de ${cuenta.nombre}`}
                 onClick={() => setCuentaAbierta(cuenta.id)}
@@ -244,3 +260,17 @@ export function ClientesCaja({
     </section>
   );
 }
+
+function InicialDeCliente({ nombre, posicion }: { nombre: string; posicion: number }) {
+  return (
+    <span
+      className="caja-cliente-inicial solido"
+      data-tono={tonoPorPosicion(posicion)}
+      aria-hidden="true"
+    >
+      {inicialDe(nombre)}
+    </span>
+  );
+}
+
+const inicialDe = (nombre: string) => nombre.trim().charAt(0).toUpperCase() || '?';

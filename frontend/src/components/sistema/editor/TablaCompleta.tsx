@@ -17,6 +17,7 @@ import { Icon } from '../Icon';
 import { IconBtn } from '../IconBtn';
 import { IconTile } from '../IconTile';
 import { ValorDeCampo } from '../ValorDeCampo';
+import { CandadoDeColumna } from './CandadoDeColumna';
 import { FiltroDeColumna } from './FiltroDeColumna';
 
 
@@ -190,6 +191,7 @@ export function TablaCompleta({
                 {bloque.fields.map((campo) => (
                   <th scope="col" key={campo.key}>
                     {campo.label}
+                    <CandadoDeColumna campo={campo} />
                   </th>
                 ))}
                 <th scope="col">

@@ -10,7 +10,7 @@ const EJEMPLOS = [
 ] as const;
 
 const ALTO_MAXIMO_DEL_CAMPO = 120;
-const SALUDO = 'Hola, soy Sami. Contame qué querés lograr con tu negocio y lo armamos juntos.';
+const SALUDO = 'Hola, soy Sami. Escribí qué querés lograr con tu negocio y armamos el plan juntos.';
 
 type Props = {
   mensajes: MensajeDeConversacion[];

@@ -6,9 +6,10 @@ import { useConfirmarCambios } from '@/hooks/useConfirmarCambios';
 import { dineroCaja, fechaCaja, leerPrecio } from '@/lib/caja';
 import { repartirCobroDeuda } from '@/lib/cobrosDeudasCaja';
 import type { MedioCaja, PagoCaja, VentaCaja } from '@/types/caja';
+import { tonoDe } from '@/lib/sistema/tonos';
+import { Icon } from '@/components/sistema/Icon';
+import { aspectoDelMedio, iconoDelMedio, nombreDelMedio } from '@/lib/caja/mediosDePago';
 
-const nombreMedio = (medio: MedioCaja) =>
-  medio === 'EFECTIVO' ? 'Efectivo' : medio === 'TARJETA' ? 'Tarjeta' : 'Transferencia';
 const medios: MedioCaja[] = ['EFECTIVO', 'TRANSFERENCIA', 'TARJETA'];
 
 export function CobroDeudaCaja({
@@ -70,6 +71,7 @@ export function CobroDeudaCaja({
               : 'Guardar pago del fiado'
         }
         bloqueado={bloqueado}
+        tono={tonoDe('cobrado')}
         onCerrar={() => void cerrar()}
       >
         <p>
@@ -124,6 +126,7 @@ export function CobroDeudaCaja({
                       key={valor}
                       type="button"
                       disabled={bloqueado}
+                      {...aspectoDelMedio(valor, medio === valor)}
                       aria-pressed={medio === valor}
                       onClick={() => {
                         setMedio(valor);
@@ -132,7 +135,8 @@ export function CobroDeudaCaja({
                           setSegundo(medios.find((m) => m !== valor) ?? 'TRANSFERENCIA');
                       }}
                     >
-                      {nombreMedio(valor)}
+                      <Icon name={iconoDelMedio(valor)} />
+                      {nombreDelMedio(valor)}
                     </button>
                   ))}
                 </div>
@@ -151,7 +155,7 @@ export function CobroDeudaCaja({
                 {dividido && (
                   <>
                     <label>
-                      Importe en {nombreMedio(medio).toLowerCase()} ($)
+                      Importe en {nombreDelMedio(medio).toLowerCase()} ($)
                       <input
                         inputMode="decimal"
                         value={primeraParte}
@@ -174,7 +178,7 @@ export function CobroDeudaCaja({
                             aria-pressed={segundo === valor}
                             onClick={() => setSegundo(valor)}
                           >
-                            {nombreMedio(valor)}
+                            {nombreDelMedio(valor)}
                           </button>
                         ))}
                     </div>

@@ -26,7 +26,7 @@ export function ControlSonidosEscaneo() {
         </button>
       </div>
       <p className="escaneo-ayuda">
-        Tono ascendente: artículo registrado. Aviso grave: fuera del inventario.
+        Tono ascendente: artículo registrado. Aviso grave: fuera del stock.
       </p>
     </div>
   );

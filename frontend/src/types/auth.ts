@@ -11,26 +11,26 @@ const MAX_BYTES_CONTRASENIA = 72;
 const emailSchema = z
   .string()
   .trim()
-  .min(1, 'Ingresá tu email')
+  .min(1, 'Escribí tu email')
   .max(254, 'El email es demasiado largo')
-  .email('Ingresá un email válido');
+  .email('Escribí un email válido');
 
 export const loginSchema = z.object({
   email: emailSchema,
   contrasenia: z
     .string()
-    .min(1, 'Ingresá tu contraseña')
+    .min(1, 'Escribí tu contraseña')
     .refine((valor) => new TextEncoder().encode(valor).length <= MAX_BYTES_CONTRASENIA, {
       message: 'La contraseña es demasiado larga',
     }),
 });
 
 export const registroSchema = z.object({
-  nombre: z.string().trim().min(1, 'Ingresá tu nombre').max(100, 'Máximo 100 caracteres'),
+  nombre: z.string().trim().min(1, 'Escribí tu nombre').max(100, 'Máximo 100 caracteres'),
   nombreNegocio: z
     .string()
     .trim()
-    .min(1, 'Ingresá el nombre de tu negocio')
+    .min(1, 'Escribí el nombre de tu negocio')
     .max(120, 'Máximo 120 caracteres'),
   email: emailSchema,
   contrasenia: z

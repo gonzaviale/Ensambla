@@ -72,8 +72,8 @@ function ObjetivosDelNegocio({ objetivos }: { objetivos: Objetivo[] }) {
     <>
       <Encabezado
         etiqueta="Objetivos"
-        titulo="Cómo van tus objetivos"
-        texto="Acá ves cuánto te falta para llegar. En «Ver mi semana» están los mini-objetivos de Sami."
+        titulo="Seguimiento de tus objetivos"
+        texto="Aquí se muestra cuánto falta para llegar a tu meta. Los mini-objetivos de Sami están en «Ver mi semana»."
         accion={<NuevoDesafio abierto={definiendo} onNuevo={() => setDefiniendo(true)} />}
       />
       {definiendo && <NuevoObjetivo onDefinido={cerrarDefinicion} onCancelar={cerrarDefinicion} />}

@@ -194,7 +194,7 @@ function entoncesNoSeMandoNingunaVerificacion() {
 }
 
 async function entoncesSeAvisaQueSeMandoElCodigoAl(telefono: string) {
-  const aviso = new RegExp(`Te mandamos un código de 6 dígitos por WhatsApp al \\${telefono}`);
+  const aviso = new RegExp(`Te enviamos un código de 6 dígitos por WhatsApp al \\${telefono}`);
   expect(await screen.findByText(aviso)).toBeVisible();
 }
 

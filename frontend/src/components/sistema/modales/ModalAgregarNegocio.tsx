@@ -54,7 +54,7 @@ export function ModalAgregarNegocio() {
         <Icon name="plus" />
       </div>
       <h2 id="modal-title">Agregá otro negocio</h2>
-      <p>Arranca vacío y con sus propias tablas. Lo armás después, desde su Inicio.</p>
+      <p>Empieza vacío y con sus propias secciones. Lo armás después, desde su Inicio.</p>
       <form onSubmit={(evento) => void guardar(evento)} noValidate>
         <fieldset disabled={crear.isPending}>
           <div className="field">

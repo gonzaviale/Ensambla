@@ -307,7 +307,9 @@ function dadoUnCampoObligatorioDeRubro() {
 }
 
 function dadoUnCampoDeCodigoNumerico() {
-  inventario.fields.push({ key: 'barcode', label: 'Código', type: 'number', required: false });
+  inventario.fields = inventario.fields.map((campo) =>
+    campo.key === 'barcode' ? { ...campo, label: 'Código', type: 'number' } : campo,
+  );
 }
 
 function dadoUnBorradorCompletoDeUnProductoNuevo() {
@@ -417,7 +419,7 @@ function entoncesSeGuardoElProductoConTodosSusDatos() {
 
 function entoncesNoSeCrearonVentasNiMovimientosNiSeTocoElOriginal() {
   expect(inventario.rows).toHaveLength(1);
-  expect(inventario.fields.some((campo) => campo.key === 'barcode')).toBe(false);
+  expect(inventario.fields).toHaveLength(10);
   const bloquesDeMovimientos = allBlocks(requerido(guardado.sistema)).filter((bloque) =>
     ['sales', 'entries'].includes(bloque.type),
   );
@@ -454,7 +456,7 @@ function entoncesElSistemaNoCambio() {
 
 function entoncesElStockQuedaEnYSinDuplicarse(cantidad: number) {
   expect(guardado.errores).toBeUndefined();
-  expect(guardado.producto).toEqual({ ...alfajor(), quantity: cantidad });
+  expect(guardado.producto).toMatchObject({ ...alfajor(), quantity: cantidad });
   expect(filasDelInventarioDe(guardado)).toHaveLength(1);
 }
 

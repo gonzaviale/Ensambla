@@ -33,7 +33,7 @@ export const QUE_SE_MIDE: Record<TipoMiniObjetivo, string> = {
   SUBIR_PRECIO: 'Precio actual',
   VENTAS_SEMANALES: 'Venta semanal',
   RECORTAR_GASTO: 'Gasto del mes',
-  MEJORAR_MARGEN: 'Margen actual',
+  MEJORAR_MARGEN: 'Ganancia por venta actual',
   MOVER_PARADO: 'Ventas por semana',
   PONER_A_LA_VISTA: 'Ventas por semana',
 };
@@ -153,7 +153,7 @@ export function partesDeMini(
   valor: number,
 ): { numero: string; unidad: string } {
   const texto = valorDeMini(tipo, valor);
-  if (tipo === 'MEJORAR_MARGEN') return { numero: texto, unidad: 'de margen' };
+  if (tipo === 'MEJORAR_MARGEN') return { numero: texto, unidad: 'de ganancia por venta' };
   const [numero = texto, ...resto] = texto.split(' ');
   return { numero, unidad: resto.join(' ') };
 }

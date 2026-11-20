@@ -179,7 +179,7 @@ describe('objetivos', () => {
   it('el camino de referencia pide +12 % de ventas, −$80.000 de gastos y +3 puntos de margen', () => {
     cuandoSeCalcula(() => caminos(objetivoDeEjemplo())[0]?.datos.map((dato) => dato.valor));
 
-    entoncesElResultadoEs(['+12%', '−$80.000', '+3 pts de margen']);
+    entoncesElResultadoEs(['+12%', '−$80.000', '+3 pts de ganancia por venta']);
   });
 });
 

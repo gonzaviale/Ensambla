@@ -145,7 +145,7 @@ class AccionManualTest {
     }
 
     private void entoncesElSeguimientoPideContarCadaSemana() {
-        assertThat(seguimiento.titulo()).isEqualTo("Anotá cómo te fue con tu objetivo");
+        assertThat(seguimiento.titulo()).isEqualTo("Cargá cómo te fue con tu objetivo");
         assertThat(seguimiento.justificacion())
                 .isEqualTo("Una vez por semana contale a Sami cómo avanzaste con: Quiero vender más");
     }

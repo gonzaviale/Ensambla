@@ -72,6 +72,10 @@ export const entoncesLasVelasSonUnInventarioConElAromaAlFinal = () => {
     'Precio',
     'Costo',
     'Stock mínimo',
+    'Código de barras',
+    'Venta por',
+    'Favorito en caja',
+    'Controlar stock',
     'Aroma',
   ]);
   expect(velas.fields.at(-1)).toMatchObject({ key: 'aroma', type: 'text', required: false });

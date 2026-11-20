@@ -215,7 +215,7 @@ const PASOS_CON_DECLARACION: Paso[] = [
   },
   {
     texto:
-      'Si lo libra al uso, recibís la oblea con código QR y el Libro de Registro de Inspecciones Digital. Ojo: librar al uso no es lo mismo que estar habilitado.',
+      'Si lo libra al uso, recibís la oblea con código QR y el Libro de Registro de Inspecciones Digital. Atención: librar al uso no es lo mismo que estar habilitado.',
   },
 ];
 

@@ -10,12 +10,19 @@ import java.util.Objects;
  * @param tipo     identificador del frontend ({@code inventory}, {@code form}…)
  * @param singular cómo se llama una fila ({@code producto}, {@code cliente})
  * @param campos   los datos que trae de fábrica
+ * @param obligatorioEnElNegocio si todo negocio necesita al menos uno de estos componentes y no se puede quitar el último
  */
 public record ComponenteCatalogo(String tipo, String nombre, String singular, String proposito,
-                                 List<CampoComponente> campos) {
+                                 List<CampoComponente> campos, boolean obligatorioEnElNegocio) {
 
     public ComponenteCatalogo {
         campos = List.copyOf(Objects.requireNonNullElse(campos, List.of()));
+    }
+
+    /** Un componente que no es obligatorio en el negocio. */
+    public ComponenteCatalogo(String tipo, String nombre, String singular, String proposito,
+                              List<CampoComponente> campos) {
+        this(tipo, nombre, singular, proposito, campos, false);
     }
 
     /** Sólo la tabla a medida puede estar más de una vez en un sistema (y por eso siempre lleva nombre). */

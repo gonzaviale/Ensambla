@@ -292,7 +292,7 @@ export function SistemaPage() {
                 </div>
                 <h2>Este espacio lo armás vos.</h2>
                 <p>
-                  Traé un bloque desde la izquierda o elegí uno acá. Los campos ya vienen
+                  Traé un bloque desde la izquierda o elegí uno aquí. Los campos ya vienen
                   preparados.
                 </p>
                 <div className="row">

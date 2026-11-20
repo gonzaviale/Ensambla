@@ -44,12 +44,12 @@ export function ModalRenovacion({ cancelar = false }: { cancelar?: boolean }) {
       {cancelar ? (
         <>
           <p>
-            Vamos a pedir la cancelación a Mercado Pago. La baja queda confirmada cuando el
+            Solicitaremos la cancelación a Mercado Pago. La baja queda confirmada cuando el
             proveedor la acepte.
           </p>
           <p>
-            Conservás los días de prueba o el período ya pagado. Tus negocios, secciones y registros
-            se mantienen.
+            Conservás los días de prueba o el período ya pagado. Tus negocios, secciones y datos se
+            mantienen.
           </p>
           <p>Cancelar futuras renovaciones no solicita un reembolso del período actual.</p>
         </>

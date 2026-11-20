@@ -88,7 +88,7 @@ public record FiltroReporte(
                 .filter(candidato -> candidato.getId().equals(campoId))
                 .filter(Campo::admiteFiltroPorValor)
                 .findFirst()
-                .orElseThrow(() -> new BusinessRuleException("No se puede filtrar por ese campo"));
+                .orElseThrow(() -> new BusinessRuleException("No se puede filtrar por ese dato"));
     }
 
     private static void exigirUnValor(String valor) {

@@ -88,10 +88,11 @@ export function PlantillasPage() {
           </label>
         </div>
         <div className="template-grid" data-tour="pickTemplate">
-          {CLAVES.map((clave) => (
+          {CLAVES.map((clave, posicion) => (
             <TemplateCard
               key={clave}
               clave={clave}
+              posicion={posicion}
               oculta={!visibles.includes(clave)}
               onVer={(elegida) => abrirModal({ tipo: 'plantilla', clave: elegida })}
             />

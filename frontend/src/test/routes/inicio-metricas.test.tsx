@@ -126,7 +126,7 @@ describe('inicio: métricas', () => {
 
     const negocio = within(await screen.findByRole('region', { name: 'Tu negocio' }, ESPERA));
     expect(
-      await negocio.findByRole('heading', { name: 'Acá vas a ver tus ventas' }, ESPERA),
+      await negocio.findByRole('heading', { name: 'Aquí vas a ver tus ventas' }, ESPERA),
     ).toBeVisible();
   });
 

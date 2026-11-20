@@ -65,7 +65,7 @@ describe('planes y activación de prueba', () => {
   it('exige sesión antes de mostrar datos de planes', async () => {
     router = renderApp('/planes');
 
-    await screen.findByRole('heading', { name: 'Ingresá a tu cuenta' }, ESPERA);
+    await screen.findByRole('heading', { name: 'Entrá a tu cuenta' }, ESPERA);
 
     expect(router.state.location.pathname).toBe('/login');
   });
@@ -358,7 +358,7 @@ async function entoncesSeMuestraLaPruebaFinalizada() {
   await esperarGratuito();
   expect(screen.getByText(/Tu prueba terminó/)).toBeVisible();
   expect(screen.getByRole('button', { name: 'Prueba ya utilizada' })).toBeDisabled();
-  expect(screen.getByText(/conservás tus secciones, registros y recetas/)).toBeVisible();
+  expect(screen.getByText(/conservás tus secciones, tus datos y tus recetas/)).toBeVisible();
 }
 
 async function entoncesSeMuestraPremiumVigenteConCienPaginas() {

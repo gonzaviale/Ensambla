@@ -104,7 +104,7 @@ export function LectorCaja({
             ? errorCodigo
             : sinLectura
               ? 'Alejá un poco el teléfono y evitá reflejos.'
-              : mensaje || 'Alineá las barras dentro del marco horizontal.'}
+              : mensaje || 'Alineá el código de barras dentro del marco.'}
       </p>
       <div className="caja-escaner-acciones">
         {errorCamara ? (
@@ -157,7 +157,7 @@ export function LectorCaja({
           {panel === 'codigo' ? (
             <>
               <p className="caja-ayuda">
-                Ingresá el código o usá tu lector USB/Bluetooth. Podés leer varios seguidos.
+                Escribí el código o usá tu lector USB/Bluetooth. Podés leer varios seguidos.
               </p>
               <form
                 className="caja-formulario"

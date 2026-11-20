@@ -22,7 +22,7 @@ export class ComportamientoNumerico extends ComportamientoDeCampo {
   }
 
   protected errorDeTipo(_campo: Campo, valor: Valor): string | undefined {
-    return Number.isFinite(Number(valor)) ? undefined : 'Ingresá un número válido.';
+    return Number.isFinite(Number(valor)) ? undefined : 'Escribí un número válido.';
   }
 }
 

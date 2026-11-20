@@ -24,7 +24,7 @@ export function presentacionDelLector(lector: LectorInventario) {
 export function guiaDelLector(lector: LectorInventario) {
   const guiaDeLectura = lector.sinLectura
     ? 'Alejá un poco el teléfono y evitá reflejos.'
-    : 'Alineá todas las barras dentro del marco horizontal.';
+    : 'Alineá el código de barras dentro del marco.';
   return lector.errorCamara
     ? 'La cámara necesita atención. Abrí Ajustes o escribí el código.'
     : guiaDeLectura;

@@ -16,7 +16,7 @@ export function EstadoVacioDeAvisos({ sinDatos, hayDemo, filtro, onCrearDemo }: 
 function SinDatos({ hayDemo, onCrearDemo }: { hayDemo: boolean; onCrearDemo: () => void }) {
   return (
     <div className="alertas-vacio">
-      <h3>Todavía no tengo datos para mirar.</h3>
+      <h3>Todavía no tengo datos para revisar.</h3>
       <p>
         Cuando cargues stock, ventas o precios, te aviso lo que necesita atención y lo comparo con
         los datos de tu zona.

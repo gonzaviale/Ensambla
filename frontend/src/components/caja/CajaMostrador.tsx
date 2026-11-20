@@ -16,6 +16,20 @@ import { ProductosCaja } from './ProductosCaja';
 import { BarraCompraMovil } from './BarraCompraMovil';
 import { dineroCaja } from '@/lib/caja';
 import { normalize } from '@/lib/sistema/core';
+import { claseDeSeleccion, tonoDe } from '@/lib/sistema/tonos';
+
+const MODOS_DE_ENTRADA = [
+  ['escanear', 'Escanear', 'camera', 'venderEscanear'],
+  ['buscar', 'Buscar', 'search', 'venderBuscar'],
+  ['favoritos', 'Favoritos', 'grid', 'venderFavoritos'],
+] as const;
+
+const VISTAS_DE_ACTIVIDAD = [
+  ['dia', 'Resumen del día', 'chart', 'pestanaResumenDelDia'],
+  ['cobros', 'Cobros', 'wallet', 'pestanaCobros'],
+  ['abierta', 'Caja abierta', 'wallet', 'pestanaCajaAbierta'],
+  ['cierres', 'Cierres guardados', 'folder', 'pestanaCierresGuardados'],
+] as const;
 
 export function CajaMostrador({
   sistemaId,
@@ -122,17 +136,12 @@ export function CajaMostrador({
       ) : vista !== 'cobrar' ? (
         <>
           <nav className="caja-actividad-vistas" aria-label="Consultar actividad">
-            {(
-              [
-                ['dia', 'Resumen del día', 'chart'],
-                ['cobros', 'Cobros', 'wallet'],
-                ['abierta', 'Caja abierta', 'wallet'],
-                ['cierres', 'Cierres guardados', 'folder'],
-              ] as const
-            ).map(([id, nombre, icono]) => (
+            {VISTAS_DE_ACTIVIDAD.map(([id, nombre, icono, concepto]) => (
               <button
                 key={id}
                 type="button"
+                className={claseDeSeleccion(vista === id)}
+                data-tono={tonoDe(concepto)}
                 aria-current={vista === id ? 'page' : undefined}
                 disabled={bloqueada}
                 onClick={() => setVista(id)}
@@ -224,17 +233,13 @@ export function CajaMostrador({
                         ?.focus();
                     }}
                   >
-                    {(
-                      [
-                        ['escanear', 'Escanear', 'camera'],
-                        ['buscar', 'Buscar', 'search'],
-                        ['favoritos', 'Favoritos', 'grid'],
-                      ] as const
-                    ).map(([id, nombre, icono]) => (
+                    {MODOS_DE_ENTRADA.map(([id, nombre, icono, concepto]) => (
                       <button
                         key={id}
                         id={`caja-modo-${id}`}
                         type="button"
+                        className={claseDeSeleccion(entradaElegida === id)}
+                        data-tono={tonoDe(concepto)}
                         role="tab"
                         tabIndex={entradaElegida === id ? 0 : -1}
                         aria-selected={entradaElegida === id}

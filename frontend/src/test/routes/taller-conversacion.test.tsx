@@ -36,7 +36,7 @@ import {
   entoncesSamiEnsamblaLasPiezasDeLasVelas,
   entoncesSamiPreguntaElRubroConUnaBotoneraQueDejaEscribirOtraCosa,
   entoncesSamiRenombraElSistema,
-  entoncesSamiSacaLosClientes,
+  entoncesSamiNoSacaLosClientes,
   entoncesSamiSumaElProveedorAlInventario,
   entoncesSamiSumaLosGastosATravesDeLaOrden,
   entoncesSamiSumaUnaTablaDeTurnosAMedida,
@@ -162,12 +162,12 @@ describe('la conversación de Sami en el taller', () => {
     await entoncesSamiSumaLosGastosATravesDeLaOrden();
   });
 
-  it('sacar una pieza se le pide a Sami', async () => {
+  it('Sami no saca una pieza que Ensambla necesita', async () => {
     await dadoQueSamiArmoLaPropuestaDeUnAlmacen();
 
     await cuandoSeEscribe('sacá los clientes');
 
-    await entoncesSamiSacaLosClientes();
+    await entoncesSamiNoSacaLosClientes();
   });
 
   it('renombrar el sistema también se le pide a Sami', async () => {
