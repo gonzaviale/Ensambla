@@ -1,6 +1,6 @@
 # Ensambla
 
-> **Tu sistema, un bloque a la vez.**
+> **Tu negocio, un bloque a la vez.**
 
 Ensambla es una aplicación web **no-code** para que emprendedores, comercios y PyMEs armen el sistema interno de su
 negocio —inventario, pedidos, clientes— sin programar: eligen una **plantilla** (o empiezan en blanco), agregan
