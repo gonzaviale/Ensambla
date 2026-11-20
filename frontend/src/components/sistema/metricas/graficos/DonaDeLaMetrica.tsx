@@ -19,6 +19,7 @@ export function DonaDeLaMetrica({ definicion, resultado, partes }: PropsDelGrafi
         <LienzoDelGrafico alto={LADO}>
           <PieChart>
             <Pie
+              isAnimationActive={false}
               data={datos}
               dataKey="valor"
               nameKey="etiqueta"

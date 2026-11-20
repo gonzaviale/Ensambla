@@ -32,7 +32,7 @@ export function BarrasDeLaMetrica({ definicion, resultado, partes }: PropsDelGra
           />
           <YAxis hide domain={[0, 'auto']} />
           <Tooltip content={TarjetaDelDato} cursor={{ fill: '#e6f3f7' }} />
-          <Bar dataKey="valor" radius={[8, 8, 0, 0]} maxBarSize={64}>
+          <Bar isAnimationActive={false} dataKey="valor" radius={[8, 8, 0, 0]} maxBarSize={64}>
             {datos.map((dato) => (
               <Cell
                 key={dato.etiqueta}

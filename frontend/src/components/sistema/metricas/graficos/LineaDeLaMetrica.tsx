@@ -28,6 +28,7 @@ export function LineaDeLaMetrica({ definicion, resultado, partes }: PropsDelGraf
             cursor={{ stroke: '#00506a', strokeDasharray: '4 4' }}
           />
           <Line
+            isAnimationActive={false}
             type="monotone"
             dataKey="valor"
             stroke="#00506a"
