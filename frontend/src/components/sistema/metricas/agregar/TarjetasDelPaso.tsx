@@ -73,17 +73,19 @@ type PropsDelFiado = {
   onCambiar: (definicion: DefinicionDeMetrica) => void;
 };
 
-// En la cuenta de las ventas se puede mirar sólo lo fiado; tildarlo no pasa de paso.
+// En la cuenta de las ventas se puede mirar sólo lo fiado: es un interruptor aparte de las tarjetas, y tocarlo no pasa de paso.
 function OpcionDelFiado({ paso, definicion, onCambiar }: PropsDelFiado) {
   if (paso !== PASO_DE_LA_CUENTA || !permiteFiado(definicion.fuente)) return null;
   return (
-    <label className="agregar-metrica-check">
-      <input
-        type="checkbox"
-        checked={definicion.soloFiado}
-        onChange={(evento) => onCambiar({ ...definicion, soloFiado: evento.target.checked })}
-      />
+    <button
+      type="button"
+      role="switch"
+      aria-checked={definicion.soloFiado}
+      className="armala-vos-fiado"
+      onClick={() => onCambiar({ ...definicion, soloFiado: !definicion.soloFiado })}
+    >
+      <Icon name={definicion.soloFiado ? 'check' : 'users'} />
       Sólo lo fiado
-    </label>
+    </button>
   );
 }

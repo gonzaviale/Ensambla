@@ -22,12 +22,16 @@ type Props = {
   onElegir: (grafico: GraficoDeMetrica) => void;
 };
 
-/** Cómo ver la métrica: sólo los gráficos que tienen sentido para su reparto; si hay uno solo, no se muestra. */
+/**
+ * Cómo ver la métrica: sólo los gráficos que tienen sentido para su reparto; si hay uno solo, no se muestra. El número
+ * no es una opción: siempre se ve junto al gráfico.
+ */
 export function SelectorDeGrafico({ grafico, posibles, onElegir }: Props) {
-  if (posibles.length < 2) return null;
+  const opciones = posibles.filter((opcion) => opcion !== 'NUMERO');
+  if (opciones.length < 2) return null;
   return (
     <div className="selector-grafico" role="radiogroup" aria-label="Cómo verla">
-      {posibles.map((opcion) => (
+      {opciones.map((opcion) => (
         <button
           key={opcion}
           type="button"

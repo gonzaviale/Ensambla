@@ -12,11 +12,15 @@ type Pestana = 'sugeridas' | 'armala' | 'palabras';
 
 const PESTANAS: Record<
   Pestana,
-  { etiqueta: string; Contenido: (props: PropsDeLaPestana) => ReactNode }
+  { etiqueta: string; color: string; Contenido: (props: PropsDeLaPestana) => ReactNode }
 > = {
-  sugeridas: { etiqueta: 'Sugeridas', Contenido: Sugeridas },
-  armala: { etiqueta: 'Armala vos', Contenido: ArmalaVos },
-  palabras: { etiqueta: 'Pedila con tus palabras', Contenido: PedilaConTusPalabras },
+  sugeridas: { etiqueta: 'Sugeridas', color: 'naranja', Contenido: Sugeridas },
+  armala: { etiqueta: 'Armala vos', color: 'celeste', Contenido: ArmalaVos },
+  palabras: {
+    etiqueta: 'Pedila con tus palabras',
+    color: 'coral',
+    Contenido: PedilaConTusPalabras,
+  },
 };
 
 const ORDEN_DE_LAS_PESTANAS: Pestana[] = ['sugeridas', 'armala', 'palabras'];
@@ -56,6 +60,7 @@ function PestanasDelPanel({
           key={opcion}
           type="button"
           role="tab"
+          data-color={PESTANAS[opcion].color}
           aria-selected={pestana === opcion}
           aria-controls="panel-agregar-cuerpo"
           onClick={() => onElegir(opcion)}

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Icon } from '@/components/sistema/Icon';
 import { GraficoDeLaMetrica } from '@/components/sistema/metricas/GraficoDeLaMetrica';
 import { MenuDeLaMetrica } from '@/components/sistema/metricas/MenuDeLaMetrica';
 import { SelectorDeGrafico } from '@/components/sistema/metricas/SelectorDeGrafico';
@@ -37,7 +38,6 @@ export function SolapaDeMetrica(props: Props) {
         />
       )}
       <ElGraficoDeLaMetrica metrica={metrica} sistemaId={sistemaId} />
-      <DeDondeSale resultado={metrica.resultado} />
     </article>
   );
 }
@@ -46,7 +46,10 @@ function ElGraficoDeLaMetrica({ metrica, sistemaId }: { metrica: Metrica; sistem
   const { grafico, posibles, elegir, fallo } = useGraficoDeLaMetrica(metrica, sistemaId);
   return (
     <>
-      <SelectorDeGrafico grafico={grafico} posibles={posibles} onElegir={elegir} />
+      <div className="panel-negocio-metrica-herramientas">
+        <SelectorDeGrafico grafico={grafico} posibles={posibles} onElegir={elegir} />
+        <DeDondeSale resultado={metrica.resultado} />
+      </div>
       {fallo && (
         <p className="metrica-medida-error" role="alert">
           No pudimos cambiar el gráfico. Probá de nuevo.
@@ -129,18 +132,24 @@ function avisoDelNombre(faltaElNombre: boolean, fallo: boolean) {
 }
 
 function DeDondeSale({ resultado }: { resultado: ResultadoDeMetrica }) {
-  const [conDetalle, setConDetalle] = useState(false);
+  const [abierta, setAbierta] = useState(false);
   return (
     <div className="panel-negocio-metrica-origen">
       <button
         type="button"
         className="metrica-medida-origen"
-        aria-expanded={conDetalle}
-        onClick={() => setConDetalle(!conDetalle)}
+        aria-haspopup="dialog"
+        aria-label="¿De dónde sale?"
+        title="¿De dónde sale?"
+        onClick={() => setAbierta(true)}
       >
-        ¿De dónde sale?
+        <Icon name="help" />
       </button>
-      {conDetalle && <p className="metrica-medida-detalle">{textoDeDondeSale(resultado)}</p>}
+      {abierta && (
+        <VentanaFlotante titulo="¿De dónde sale?" tamano="chica" onCerrar={() => setAbierta(false)}>
+          <p className="metrica-medida-detalle">{textoDeDondeSale(resultado)}</p>
+        </VentanaFlotante>
+      )}
     </div>
   );
 }

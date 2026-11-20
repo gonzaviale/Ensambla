@@ -27,6 +27,11 @@ describe('Los pasos de «Armala vos»', () => {
     expect(sePuedeIrAlPaso([], 1)).toBe(false);
   });
 
+  it('los pasos van en orden: no se salta al tercero sin contestar el segundo', () => {
+    expect(sePuedeIrAlPaso([0], 1)).toBe(true);
+    expect(sePuedeIrAlPaso([0], 2)).toBe(false);
+  });
+
   it('al nombre se llega cuando las cuatro preguntas están contestadas', () => {
     expect(sePuedeIrAlPaso([0, 1, 2], 4)).toBe(false);
     expect(sePuedeIrAlPaso([0, 1, 2, 3], 4)).toBe(true);

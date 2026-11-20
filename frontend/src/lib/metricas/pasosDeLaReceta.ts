@@ -142,8 +142,6 @@ export const SOLAPAS_DE_LOS_PASOS: { corto: string; color: PasoDeLaReceta['color
   { corto: 'Nombre', color: 'petroleo' },
 ];
 
-const LUGARES_CON_TARJETAS = PASOS_CON_TARJETAS.map((_, lugar) => lugar);
-
 /** Qué pasos quedan contestados al elegir en uno: si cambia lo que se mira, lo demás hay que volver a elegirlo. */
 export const hechosDespuesDeElegir = (hechos: number[], paso: number, cambioLaFuente: boolean) => [
   ...new Set(cambioLaFuente ? [paso] : [...hechos, paso]),
@@ -153,9 +151,6 @@ export const hechosDespuesDeElegir = (hechos: number[], paso: number, cambioLaFu
 export const pasosSinContestar = (hechos: number[]) =>
   PASOS_CON_TARJETAS.filter((_, lugar) => !hechos.includes(lugar)).map(({ corto }) => corto);
 
-/** Se puede ir a un paso si ya se contestó lo que viene antes: las opciones dependen de qué se mira. */
-export const sePuedeIrAlPaso = (hechos: number[], lugar: number) => {
-  if (lugar === 0) return true;
-  if (lugar < PASO_DEL_NOMBRE) return hechos.includes(0);
-  return LUGARES_CON_TARJETAS.every((paso) => hechos.includes(paso));
-};
+/** Los pasos van en orden: se puede ir a uno si ya se contestaron todos los de antes (y volver a cualquiera hecho). */
+export const sePuedeIrAlPaso = (hechos: number[], lugar: number) =>
+  Array.from({ length: lugar }, (_, antes) => antes).every((antes) => hechos.includes(antes));

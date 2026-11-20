@@ -199,13 +199,28 @@
   font-weight: 700;
 }
 .metrica-medida-origen {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   justify-self: start;
+  width: 40px;
+  height: 40px;
   padding: 0;
   border: 0;
-  background: transparent;
-  color: var(--petrol);
-  font-weight: 700;
-  text-decoration: underline;
+  border-radius: 50%;
+  background: var(--color-solapa, var(--orange));
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+.metrica-medida-origen .icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .metrica-medida-detalle {
   margin: 0;
@@ -446,7 +461,7 @@
   font-weight: 800;
 }
 .panel-negocio-metrica .metrica-medida-origen:hover {
-  color: var(--resalte);
+  filter: brightness(0.92);
 }
 
 /* El menú de la métrica abierta: un botón de línea y la lista flotante. */
@@ -528,7 +543,45 @@
    en petróleo con puntos naranjas. El selector de gráfico son íconos de línea; el elegido, petróleo lleno. */
 .grafico-metrica {
   display: grid;
+  grid-template-columns: minmax(170px, 250px) minmax(0, 1fr);
+  align-items: center;
+  min-height: 300px;
+  gap: 8px 28px;
+}
+.grafico-metrica[data-grafico='NUMERO'] {
+  grid-template-columns: minmax(0, 1fr);
+}
+.grafico-metrica-numero {
+  display: grid;
   gap: 14px;
+}
+.grafico-metrica-dibujo {
+  display: grid;
+  align-content: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 300px;
+}
+.panel-negocio-metrica-herramientas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+.vista-previa-chica .grafico-metrica {
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+}
+.vista-previa-chica .grafico-metrica-nota {
+  display: none;
+}
+.vista-previa-chica .grafico-metrica-dibujo {
+  min-height: 0;
+}
+@media (max-width: 760px) {
+  .grafico-metrica {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .panel-negocio-metrica .metrica-medida-reparto li {
   grid-template-columns: minmax(110px, 1fr) 2fr auto;
@@ -542,21 +595,6 @@
 }
 .panel-negocio-metrica .metrica-medida-reparto li[data-otros='true'] .metrica-medida-barra > span {
   background: var(--c-celeste);
-}
-.grafico-metrica-ver-todo {
-  justify-self: start;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--c-estructura);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 800;
-  text-decoration: underline;
-  cursor: pointer;
-}
-.grafico-metrica-ver-todo:hover {
-  color: var(--resalte);
 }
 .selector-grafico {
   display: inline-flex;
@@ -582,7 +620,7 @@
   color: var(--resalte);
 }
 .selector-grafico button[aria-checked='true'] {
-  background: var(--c-estructura);
+  background: var(--color-solapa, var(--c-estructura));
   color: #fff;
 }
 .selector-grafico button:focus-visible {
@@ -615,19 +653,18 @@
 }
 .grafico-dona {
   display: grid;
-  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+  grid-template-columns: 220px minmax(0, 1fr);
   align-items: center;
-  justify-content: center;
-  gap: 28px;
-  max-width: 760px;
-  margin: 0 auto;
+  justify-content: start;
+  gap: 24px;
+  margin: 0;
 }
 .grafico-dona-dibujo {
   min-width: 0;
 }
 .grafico-dona-lista {
   display: grid;
-  gap: 8px;
+  gap: 5px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -674,7 +711,8 @@
   font-weight: 800;
 }
 .grafico-metrica-nota {
-  margin: -8px 0 0;
+  margin: 0;
+  line-height: 1.5;
   color: var(--c-estructura);
   font-size: 14px;
 }
@@ -707,6 +745,7 @@
   background: rgb(38 52 67 / 60%);
 }
 .ventana-flotante {
+  --resalte: var(--coral);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -768,15 +807,26 @@
   place-items: center;
   width: 40px;
   height: 40px;
-  border: 2px solid var(--petrol);
+  border: 2px solid var(--coral);
   border-radius: 50%;
-  background: #fff;
-  color: var(--petrol);
-}
-.ventana-flotante-cerrar:hover {
-  border-color: var(--resalte);
-  background: var(--resalte);
+  background: var(--coral);
   color: #fff;
+  cursor: pointer;
+}
+.ventana-flotante-cerrar:hover,
+.ventana-flotante-cerrar:focus-visible {
+  background: var(--coral);
+  color: #fff;
+  filter: brightness(0.92);
+}
+.ventana-flotante-cerrar .icon {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .aviso-ya-la-tenes {
   display: inline-flex;
@@ -797,20 +847,28 @@
   gap: 6px;
 }
 .panel-agregar-pestanas button {
+  --color-solapa: var(--orange);
   padding: 10px 8px;
-  border: 2px solid var(--petrol);
+  border: 2px solid var(--color-solapa);
   border-radius: 12px;
   background: #fff;
-  color: var(--petrol);
+  color: var(--ink);
   font-weight: 700;
   line-height: 1.2;
 }
+.panel-agregar-pestanas button[data-color='celeste'] {
+  --color-solapa: var(--blue);
+}
+.panel-agregar-pestanas button[data-color='coral'] {
+  --color-solapa: var(--coral);
+}
 .panel-agregar-pestanas button[aria-selected='true'] {
-  background: var(--petrol);
+  background: var(--color-solapa);
   color: #fff;
 }
-.panel-agregar-pestanas button:hover {
-  border-color: var(--resalte);
+.panel-agregar-pestanas button:hover:not([aria-selected='true']) {
+  background: var(--color-solapa);
+  color: #fff;
 }
 .panel-agregar-cuerpo {
   display: grid;
@@ -828,14 +886,15 @@
 }
 .panel-agregar-sugerida {
   display: grid;
-  gap: 8px;
+  align-content: start;
+  gap: 4px;
   padding: 14px;
   border: 2px solid var(--orange);
   border-radius: 16px;
   background: #fff;
 }
 .panel-agregar-sugerida:nth-child(4n + 2) {
-  border-color: var(--resalte);
+  border-color: var(--yellow);
 }
 .panel-agregar-sugerida:nth-child(4n + 3) {
   border-color: var(--blue);
@@ -855,14 +914,11 @@
 .vista-previa-chica .metrica-medida-valor {
   font-size: 22px;
 }
-.vista-previa-chica .grafico-metrica-ver-todo {
-  display: none;
-}
-.panel-agregar-propuesta {
+.vista-previa-chica .panel-agregar-propuesta {
   display: grid;
   gap: 8px;
   padding: 14px;
-  border: 2px solid var(--petrol);
+  border: 2px solid var(--blue);
   border-radius: 16px;
   background: #fff;
 }
@@ -981,7 +1037,7 @@
 }
 .armala-vos-paso input[type='text'] {
   padding: 10px;
-  border: 2px solid var(--petrol);
+  border: 2px solid var(--color-solapa);
   border-radius: 10px;
   background: #fff;
   color: var(--ink);
@@ -1012,10 +1068,42 @@
   color: var(--color-solapa);
 }
 .armala-vos-tarjeta:hover {
-  border-color: var(--resalte);
+  background: var(--color-solapa);
+  color: #fff;
+}
+.armala-vos-tarjeta:hover .icon {
+  color: #fff;
+}
+.armala-vos-fiado {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: start;
+  padding: 8px 16px;
+  border: 2px solid var(--color-solapa);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+}
+.armala-vos-fiado .icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.armala-vos-fiado[aria-checked='true'] {
+  border-color: var(--petrol);
+  background: var(--petrol);
+  color: #fff;
 }
 .armala-vos-tarjeta[aria-checked='true'] {
-  background: var(--color-solapa);
+  border-color: var(--petrol);
+  background: var(--petrol);
   color: #fff;
 }
 .armala-vos-tarjeta[aria-checked='true'] .icon {
@@ -1034,15 +1122,15 @@
 }
 .panel-agregar-pedido input[type='text'] {
   padding: 10px;
-  border: 2px solid var(--petrol);
+  border: 2px solid var(--coral);
   border-radius: 10px;
   background: #fff;
   color: var(--ink);
 }
 .panel-agregar-pedido-intro {
   margin: 0;
-  color: var(--petrol);
-  font-weight: 700;
+  color: var(--ink);
+  font-weight: 600;
 }
 .panel-agregar-ejemplos {
   display: flex;
@@ -1072,4 +1160,40 @@
   border: 2px solid var(--c-estructura);
   border-radius: 20px;
   background: #fff;
+}
+
+/* Dentro de «Agregar una métrica» los botones usan naranja: el petróleo queda para lo que se elige. */
+.panel-agregar-cuerpo .metricas-medida-agregar {
+  border-color: var(--orange);
+  background: var(--orange);
+}
+.panel-agregar-cuerpo .agregar-metrica-ver {
+  border-color: var(--orange);
+  background: #fff;
+  color: var(--ink);
+}
+.panel-agregar-cuerpo .metricas-medida-agregar:hover:not(:disabled),
+.panel-agregar-cuerpo .agregar-metrica-ver:hover:not(:disabled) {
+  border-color: var(--orange);
+  background: var(--orange);
+  color: #fff;
+}
+.panel-agregar-sugerida .metrica-medida-receta,
+.panel-agregar-sugerida .metrica-medida-motivo,
+.panel-agregar-propuesta .metrica-medida-receta,
+.panel-agregar-propuesta .metrica-medida-motivo {
+  color: var(--ink);
+}
+.panel-agregar-sugerida p,
+.panel-agregar-sugerida h3 {
+  margin: 0;
+}
+.panel-agregar-sugerida .metricas-medida-agregar,
+.panel-agregar-sugerida .aviso-ya-la-tenes {
+  margin-top: 6px;
+}
+
+/* El gráfico de la semana de Ventas, dentro de «Tu negocio», con el alto de siempre de ese gráfico. */
+.inicio .panel-negocio .tablero-ventas .grafico-barras-area {
+  height: 180px;
 }

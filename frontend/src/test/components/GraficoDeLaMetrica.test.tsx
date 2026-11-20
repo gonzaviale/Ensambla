@@ -1,9 +1,9 @@
 import { describe, it } from 'vitest';
 import {
+  DOCE_EN_EL_REPARTO,
   LA_SEMANA,
   SIETE_PRODUCTOS,
   SIN_NUMERO,
-  cuandoSeMuestranLasPartesConElCalculo,
   cuandoSeMuestranLasPartesDe,
   dadoElGrafico,
   dadoElSelector,
@@ -12,10 +12,7 @@ import {
   entoncesNoHayDibujo,
   entoncesNoHaySelector,
   entoncesNoSeLee,
-  entoncesNoOfreceVerTodas,
   entoncesOfreceLosGraficos,
-  entoncesOfreceVerTodas,
-  entoncesOtrosSuma,
   entoncesSeLee,
   entoncesSeVeElDibujo,
   entoncesSeVeElNumero,
@@ -23,28 +20,16 @@ import {
 } from '@/test/graficosDeMetrica';
 
 describe('las partes que se muestran de una métrica repartida', () => {
-  it('muestra las cinco más grandes y junta el resto en «Otros»', () => {
+  it('muestra todas las partes, sin «Otros» ni botón para ver más', () => {
     cuandoSeMuestranLasPartesDe(SIETE_PRODUCTOS);
-
-    entoncesSeVenLasPartes(['Yerba', 'Coca', 'Pan', 'Sprite', 'Harina', 'Otros']);
-  });
-
-  it('«Otros» es lo que falta para llegar al total', () => {
-    cuandoSeMuestranLasPartesDe(SIETE_PRODUCTOS);
-
-    entoncesOtrosSuma(50);
-  });
-
-  it('con «Ver todo» muestra todas las partes', () => {
-    cuandoSeMuestranLasPartesDe(SIETE_PRODUCTOS, true);
 
     entoncesSeVenLasPartes(['Yerba', 'Coca', 'Pan', 'Sprite', 'Harina', 'Arroz', 'Fideos']);
   });
 
-  it('un promedio no se junta en «Otros»: sólo muestra las cinco más grandes', () => {
-    cuandoSeMuestranLasPartesConElCalculo('PROMEDIO');
+  it('con más de diez partes muestra las diez más grandes', () => {
+    cuandoSeMuestranLasPartesDe(DOCE_EN_EL_REPARTO);
 
-    entoncesSeVenLasPartes(['Yerba', 'Coca', 'Pan', 'Sprite', 'Harina']);
+    entoncesSeVenLasPartes(Array.from({ length: 10 }, (_, lugar) => `Producto ${lugar + 1}`));
   });
 
   it('los días de la semana se muestran siempre los siete', () => {
@@ -100,18 +85,6 @@ describe('el gráfico de una métrica', () => {
     entoncesNoSeLee(/El primero/);
   });
 
-  it('con más de cinco partes ofrece verlas todas', () => {
-    dadoElGrafico(SIETE_PRODUCTOS, 'BARRAS');
-
-    entoncesOfreceVerTodas('Ver las 7');
-  });
-
-  it('con los días de la semana no ofrece «Ver todo»: ya están todos', () => {
-    dadoElGrafico(LA_SEMANA, 'BARRAS');
-
-    entoncesNoOfreceVerTodas();
-  });
-
   it('si no se pudo calcular dice por qué y no muestra un cero', () => {
     dadoElGrafico(SIN_NUMERO, 'BARRAS');
 
@@ -123,7 +96,7 @@ describe('el selector de gráfico', () => {
   it('ofrece sólo los gráficos posibles para la métrica', () => {
     dadoElSelector('BARRAS', ['NUMERO', 'BARRAS', 'DONA']);
 
-    entoncesOfreceLosGraficos(['Número', 'Barras', 'Torta']);
+    entoncesOfreceLosGraficos(['Barras', 'Torta']);
   });
 
   it('marca el gráfico elegido', () => {

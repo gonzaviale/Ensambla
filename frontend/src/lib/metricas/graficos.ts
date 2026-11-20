@@ -1,7 +1,6 @@
 import { formatoDelValor } from '@/lib/metricas/metricasAMedida';
 import type {
   AgrupacionDeMetrica,
-  CalculoDeMetrica,
   DefinicionDeMetrica,
   GraficoDeMetrica,
   ResultadoDeMetrica,
@@ -30,19 +29,6 @@ export const ETIQUETA_DEL_GRAFICO: Record<GraficoDeMetrica, string> = {
   LINEA: 'Línea',
 };
 
-/** Cuántas partes se ven de entrada; el resto se suma en «Otros» o se ve con «Ver todo». */
-export const PARTES_A_LA_VISTA = 5;
-
-// En una suma las partes se pueden juntar en «Otros»; un promedio de varios no es la suma de sus promedios.
-const SE_PUEDE_JUNTAR: Record<CalculoDeMetrica, boolean> = {
-  SUMA: true,
-  CONTEO: true,
-  UNIDADES: true,
-  GANANCIA: true,
-  COSTO: true,
-  PROMEDIO: false,
-};
-
 // Los días de la semana se muestran siempre los siete y en su orden: recortarlos rompería la semana.
 const VA_EN_ORDEN: Record<AgrupacionDeMetrica, boolean> = {
   NINGUNA: false,
@@ -52,7 +38,7 @@ const VA_EN_ORDEN: Record<AgrupacionDeMetrica, boolean> = {
   DIA_DE_LA_SEMANA: true,
 };
 
-export type Parte = { etiqueta: string; valor: number; otros?: boolean };
+export type Parte = { etiqueta: string; valor: number };
 
 /** Lo que recibe cada dibujo: la receta, lo que dio y las partes que se ven. */
 export type PropsDelGrafico = {
@@ -61,30 +47,17 @@ export type PropsDelGrafico = {
   partes: Parte[];
 };
 
-/** Las partes que se muestran: las cinco más grandes y, si suman, el resto junto en «Otros»; o todas, si se pide. */
-export function partesParaMostrar(
+/** Lo más que se dibuja de un reparto: entran todas, sin botón para ver más ni «Otros». */
+export const MAXIMO_DE_PARTES = 10;
+
+/** Las partes que se muestran: todas las del reparto (los días de la semana siempre los siete), hasta diez. */
+export const partesParaMostrar = (
   definicion: DefinicionDeMetrica,
   resultado: ResultadoDeMetrica,
-  todas: boolean,
-): Parte[] {
-  if (todas || !hayMasPartes(definicion, resultado)) return resultado.filas;
-  const primeras = resultado.filas.slice(0, PARTES_A_LA_VISTA);
-  if (!SE_PUEDE_JUNTAR[definicion.calculo]) return primeras;
-  return [...primeras, otrosDe(primeras, resultado.valor ?? 0)];
-}
+): Parte[] =>
+  VA_EN_ORDEN[definicion.agrupar] ? resultado.filas : resultado.filas.slice(0, MAXIMO_DE_PARTES);
 
-const otrosDe = (primeras: Parte[], total: number): Parte => ({
-  etiqueta: 'Otros',
-  valor: Math.max(0, total - primeras.reduce((suma, parte) => suma + parte.valor, 0)),
-  otros: true,
-});
-
-/** {@code true} si hay más partes que las que se ven de entrada (los días de la semana se ven siempre todos). */
-export const hayMasPartes = (definicion: DefinicionDeMetrica, resultado: ResultadoDeMetrica) =>
-  !VA_EN_ORDEN[definicion.agrupar] && resultado.filas.length > PARTES_A_LA_VISTA;
-
-// Los colores de la paleta de Ensambla, en orden, para las porciones; «Otros» va en arena para no competir con las
-// partes de verdad.
+// Los colores de la paleta de Ensambla, en orden, para las partes de cada gráfico.
 const COLORES_DE_LA_PALETA = [
   '#00506a',
   '#ee8000',
@@ -95,7 +68,6 @@ const COLORES_DE_LA_PALETA = [
   '#a95700',
   '#416048',
 ];
-const COLOR_DE_OTROS = '#e6c9a8';
 
 /** Lo que cada gráfico necesita saber de una parte: cómo se llama, cómo se escribe y de qué color va. */
 export type DatoDelGrafico = {
@@ -105,7 +77,6 @@ export type DatoDelGrafico = {
   detalle: string;
   porcentaje: number;
   color: string;
-  otros: boolean;
 };
 
 const LARGO_DE_LA_ETIQUETA_CORTA = 11;
@@ -113,10 +84,8 @@ const LARGO_DE_LA_ETIQUETA_CORTA = 11;
 const recortar = (etiqueta: string, largo: number) =>
   etiqueta.length > largo ? `${etiqueta.slice(0, largo - 1).trimEnd()}…` : etiqueta;
 
-const colorDeLaParte = (parte: Parte, lugar: number) =>
-  parte.otros
-    ? COLOR_DE_OTROS
-    : (COLORES_DE_LA_PALETA[lugar % COLORES_DE_LA_PALETA.length] ?? '#00506a');
+const colorDeLaParte = (lugar: number) =>
+  COLORES_DE_LA_PALETA[lugar % COLORES_DE_LA_PALETA.length] ?? '#00506a';
 
 /** Las partes listas para dibujar: etiqueta corta para el eje, valor escrito, porcentaje del total y color. */
 export function datosDelGrafico(
@@ -132,8 +101,7 @@ export function datosDelGrafico(
     valor: parte.valor,
     detalle: formatoDelValor(parte.valor, formato),
     porcentaje: total > 0 ? Math.round((parte.valor / total) * 100) : 0,
-    color: colorDeLaParte(parte, lugar),
-    otros: parte.otros === true,
+    color: colorDeLaParte(lugar),
   }));
 }
 

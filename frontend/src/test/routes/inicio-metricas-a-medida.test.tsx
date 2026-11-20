@@ -18,7 +18,6 @@ import {
   entoncesElMenuNoDejaMoverA,
   entoncesElPanelParaAgregarSeCerro,
   entoncesEstaAbiertaLaSolapa,
-  entoncesLaSolapaMuestra,
   entoncesLaSolapaMuestraElTitulo,
   entoncesLasSolapasSon,
   entoncesQuedoGuardadaComo,
@@ -72,16 +71,14 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
     await entoncesElPanelParaAgregarSeCerro();
   });
 
-  it('cada sugerida se ve con su gráfico antes de agregarla', async () => {
+  it('cada sugerida se ve sólo con su número, sin gráfico, para que la lista no se alargue', async () => {
     const { usuario } = await dadoElInicioDelAlmacen();
 
     await cuandoSeAbreAgregarMetrica(usuario);
 
     const sugerida = (await screen.findByRole('heading', { name: 'Qué producto vendo más' }))
       .parentElement as HTMLElement;
-    expect(
-      within(sugerida).getByRole('list', { name: 'Qué producto vendo más' }),
-    ).toBeInTheDocument();
+    expect(within(sugerida).queryByRole('list')).not.toBeInTheDocument();
   });
 
   it('el panel para agregar se cierra con Escape sin cambiar la solapa abierta', async () => {
@@ -100,7 +97,9 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
 
     await usuario.click(await screen.findByRole('button', { name: '¿De dónde sale?' }));
 
-    await entoncesLaSolapaMuestra(/Sale de tus ventas/);
+    expect(screen.getByRole('dialog', { name: '¿De dónde sale?' })).toHaveTextContent(
+      /Sale de tus ventas/,
+    );
   });
 
   it('quitar una métrica desde el menú saca su solapa y vuelve a las ventas', async () => {

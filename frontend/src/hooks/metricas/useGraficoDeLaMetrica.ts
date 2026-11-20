@@ -8,11 +8,26 @@ import type { GraficoDeMetrica, Metrica } from '@/types/metricas';
  */
 export function useGraficoDeLaMetrica(metrica: Metrica, sistemaId: string) {
   const cambiar = useCambiarGrafico(sistemaId, metrica.id);
-  const guardado = metrica.grafico ?? graficoDeSiempre(metrica.definicion.agrupar);
+  const posibles = metrica.graficosPosibles ?? graficosPosiblesPara(metrica.definicion.agrupar);
+  const guardado = elDeSiempreSiEraElNumero(
+    metrica.grafico ?? graficoDeSiempre(metrica.definicion.agrupar),
+    metrica,
+    posibles,
+  );
   return {
     grafico: cambiar.isPending ? cambiar.variables : guardado,
-    posibles: metrica.graficosPosibles ?? graficosPosiblesPara(metrica.definicion.agrupar),
+    posibles,
     elegir: (grafico: GraficoDeMetrica) => cambiar.mutate(grafico),
     fallo: cambiar.isError,
   };
 }
+
+// El número ya no se elige aparte: una métrica repartida que había quedado en «Número» vuelve al gráfico de siempre.
+const elDeSiempreSiEraElNumero = (
+  grafico: GraficoDeMetrica,
+  metrica: Metrica,
+  posibles: GraficoDeMetrica[],
+) =>
+  grafico === 'NUMERO' && posibles.length > 1
+    ? graficoDeSiempre(metrica.definicion.agrupar)
+    : grafico;

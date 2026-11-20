@@ -4,13 +4,13 @@ import { ListaParaElLector } from '@/components/sistema/metricas/graficos/ListaP
 import { TarjetaDelDato } from '@/components/sistema/metricas/graficos/TarjetaDelDato';
 import { datosDelGrafico, type PropsDelGrafico } from '@/lib/metricas/graficos';
 
-const ALTO = 260;
+const ALTO = 240;
 const COLOR_DEL_TEXTO = '#263443';
-const MAS_PARTES_QUE_NO_ENTRAN_ESCRITAS = 7;
 const LARGO_DE_LOS_DIAS = 3;
+const PARTES_QUE_SE_LEEN_DE_FRENTE = 5;
 
-// Barras paradas, una por parte, del color de la solapa; «Otros» en arena. Al pasar el mouse cada barra dice de quién
-// es y cuánto vale. Los días van con tres letras; los nombres largos se recortan y se leen completos en la tarjeta.
+// Barras paradas, una por parte y cada una de su color, con el valor arriba y el nombre abajo (inclinado si son
+// muchas, para que no se encimen). «Otros» va en arena. Al pasar el mouse cada barra dice de quién es y cuánto vale.
 export function BarrasDeLaMetrica({ definicion, resultado, partes }: PropsDelGrafico) {
   const datos = datosDelGrafico(
     partes,
@@ -19,35 +19,38 @@ export function BarrasDeLaMetrica({ definicion, resultado, partes }: PropsDelGra
       ? (dia) => dia.slice(0, LARGO_DE_LOS_DIAS)
       : undefined,
   );
+  const inclinado = datos.length > PARTES_QUE_SE_LEEN_DE_FRENTE;
   return (
     <figure className="grafico-recharts" aria-label={definicion.nombre}>
       <LienzoDelGrafico alto={ALTO}>
-        <BarChart data={datos} margin={{ top: 26, right: 8, bottom: 4, left: 8 }}>
+        <BarChart
+          data={datos}
+          margin={{ top: 28, right: 8, bottom: 4, left: 8 }}
+          barCategoryGap="22%"
+        >
           <XAxis
             dataKey="corta"
             interval={0}
             tickLine={false}
-            axisLine={{ stroke: '#00506a', strokeWidth: 2 }}
+            axisLine={{ stroke: '#e6c9a8', strokeWidth: 2 }}
+            angle={inclinado ? -35 : 0}
+            textAnchor={inclinado ? 'end' : 'middle'}
+            height={inclinado ? 64 : 30}
             tick={{ fill: COLOR_DEL_TEXTO, fontSize: 12, fontWeight: 700 }}
           />
           <YAxis hide domain={[0, 'auto']} />
-          <Tooltip content={TarjetaDelDato} cursor={{ fill: '#e6f3f7' }} />
-          <Bar isAnimationActive={false} dataKey="valor" radius={[8, 8, 0, 0]} maxBarSize={64}>
+          <Tooltip content={TarjetaDelDato} cursor={{ fill: '#f6ede1' }} />
+          <Bar isAnimationActive={false} dataKey="valor" radius={[10, 10, 0, 0]} maxBarSize={48}>
             {datos.map((dato) => (
-              <Cell
-                key={dato.etiqueta}
-                fill={dato.otros ? dato.color : 'var(--color-solapa, #00506a)'}
-              />
+              <Cell key={dato.etiqueta} fill={dato.color} />
             ))}
-            {datos.length <= MAS_PARTES_QUE_NO_ENTRAN_ESCRITAS && (
-              <LabelList
-                dataKey="detalle"
-                position="top"
-                fill={COLOR_DEL_TEXTO}
-                fontSize={12}
-                fontWeight={700}
-              />
-            )}
+            <LabelList
+              dataKey="detalle"
+              position="top"
+              fill={COLOR_DEL_TEXTO}
+              fontSize={12}
+              fontWeight={800}
+            />
           </Bar>
         </BarChart>
       </LienzoDelGrafico>

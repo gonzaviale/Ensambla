@@ -3,17 +3,13 @@ import { expect } from 'vitest';
 import { GraficoDeLaMetrica } from '@/components/sistema/metricas/GraficoDeLaMetrica';
 import { SelectorDeGrafico } from '@/components/sistema/metricas/SelectorDeGrafico';
 import { partesParaMostrar, type Parte } from '@/lib/metricas/graficos';
-import type {
-  CalculoDeMetrica,
-  DefinicionDeMetrica,
-  GraficoDeMetrica,
-  ResultadoDeMetrica,
-} from '@/types/metricas';
+import type { DefinicionDeMetrica, GraficoDeMetrica, ResultadoDeMetrica } from '@/types/metricas';
 
 // Métricas ya calculadas, como las devuelve el servidor, para mirar sus gráficos sin red.
 
 const DIAS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 const PRODUCTOS = ['Yerba', 'Coca', 'Pan', 'Sprite', 'Harina', 'Arroz', 'Fideos'];
+const DOCE_PRODUCTOS = Array.from({ length: 12 }, (_, lugar) => `Producto ${lugar + 1}`);
 
 const receta = (cambios: Partial<DefinicionDeMetrica>): DefinicionDeMetrica => ({
   nombre: 'Lo más vendido',
@@ -34,6 +30,10 @@ const resultadoCon = (etiquetas: string[], valor: number): ResultadoDeMetrica =>
 });
 
 export const SIETE_PRODUCTOS = { definicion: receta({}), resultado: resultadoCon(PRODUCTOS, 300) };
+export const DOCE_EN_EL_REPARTO = {
+  definicion: receta({}),
+  resultado: resultadoCon(DOCE_PRODUCTOS, 600),
+};
 export const LA_SEMANA = {
   definicion: receta({ nombre: 'Ventas por día', calculo: 'SUMA', agrupar: 'DIA_DE_LA_SEMANA' }),
   resultado: resultadoCon(DIAS, 280),
@@ -47,21 +47,12 @@ type Metrica = { definicion: DefinicionDeMetrica; resultado: ResultadoDeMetrica 
 
 let partes: Parte[];
 
-export const cuandoSeMuestranLasPartesDe = (metrica: Metrica, todas = false) => {
-  partes = partesParaMostrar(metrica.definicion, metrica.resultado, todas);
+export const cuandoSeMuestranLasPartesDe = (metrica: Metrica) => {
+  partes = partesParaMostrar(metrica.definicion, metrica.resultado);
 };
-
-export const cuandoSeMuestranLasPartesConElCalculo = (calculo: CalculoDeMetrica) =>
-  cuandoSeMuestranLasPartesDe({
-    ...SIETE_PRODUCTOS,
-    definicion: receta({ calculo }),
-  });
 
 export const entoncesSeVenLasPartes = (etiquetas: string[]) =>
   expect(partes.map((parte) => parte.etiqueta)).toEqual(etiquetas);
-
-export const entoncesOtrosSuma = (valor: number) =>
-  expect(partes.find((parte) => parte.otros)?.valor).toBe(valor);
 
 export const dadoElGrafico = (metrica: Metrica, grafico: GraficoDeMetrica) =>
   render(<GraficoDeLaMetrica {...metrica} grafico={grafico} />);
@@ -83,12 +74,6 @@ export const entoncesNoHayDibujo = (nombre: string) =>
 
 export const entoncesDiceElMotivo = (motivo: string) =>
   expect(screen.getByRole('status')).toHaveTextContent(motivo);
-
-export const entoncesOfreceVerTodas = (texto: string) =>
-  expect(screen.getByRole('button', { name: texto })).toBeInTheDocument();
-
-export const entoncesNoOfreceVerTodas = () =>
-  expect(screen.queryByRole('button', { name: /Ver las/ })).not.toBeInTheDocument();
 
 export const dadoElSelector = (grafico: GraficoDeMetrica, posibles: GraficoDeMetrica[]) =>
   render(<SelectorDeGrafico grafico={grafico} posibles={posibles} onElegir={() => undefined} />);
