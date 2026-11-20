@@ -19,6 +19,8 @@ export function CajaPage() {
   const sistema = sistemas.find((s) => s.id === elegido) ?? sistemas[0];
   const inventarios = allBlocks(sistema).filter((b) => b.type === 'inventory');
   const inventario = inventarios.find((b) => b.id === tabla) ?? inventarios[0];
+  // Con un solo negocio y una sola sección de stock el diálogo no tiene nada para elegir.
+  const hayQueElegir = sistemas.length > 1 || inventarios.length > 1;
   const ventas = allBlocks(sistema).find(
     (b) =>
       b.type === 'sales' &&
@@ -55,16 +57,18 @@ export function CajaPage() {
             <h1>Caja</h1>
             <p>Productos, compra y cobro. Paso a paso.</p>
           </div>
-          <button
-            type="button"
-            className="caja-negocio"
-            aria-label="Elegir negocio y sección"
-            onClick={() => setConfigurando(true)}
-          >
-            <Icon name="box" />
-            <span>{sistema?.name ?? 'Tu negocio'}</span>
-            <Icon name="down" />
-          </button>
+          {hayQueElegir && (
+            <button
+              type="button"
+              className="caja-negocio"
+              aria-label="Elegir negocio y sección"
+              onClick={() => setConfigurando(true)}
+            >
+              <Icon name="box" />
+              <span>{sistema?.name ?? 'Tu negocio'}</span>
+              <Icon name="down" />
+            </button>
+          )}
         </header>
         {configurando && (
           <DialogoCaja titulo="Negocio y sección" onCerrar={() => setConfigurando(false)}>
