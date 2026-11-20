@@ -1703,9 +1703,9 @@
   border-radius: 14px;
 }
 .mini-objetivo-medida dl {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
   margin: 0 0 10px;
 }
 .mini-objetivo-medida dt {
@@ -1719,8 +1719,9 @@
   margin: 2px 0 0;
 }
 .mini-objetivo-medida dd strong {
-  font-size: 24px;
+  font-size: 20px;
   line-height: 1.1;
+  white-space: nowrap;
 }
 .mini-objetivo-medida dd span {
   display: block;
@@ -1744,8 +1745,12 @@
 }
 .mini-objetivo-decision {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 8px;
+  margin-top: auto;
+}
+.mini-objetivo-decision .btn.petrol {
+  order: -1;
 }
 .mini-objetivo-decision .btn {
   display: inline-flex;
@@ -2342,24 +2347,28 @@
 
 /* «Por qué de este paso»: un botón que despliega la explicación. */
 .mini-objetivo-porque-boton {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  margin-top: 10px;
-  padding: 9px 14px;
-  border: 1.5px solid var(--petrol);
-  border-radius: 12px;
-  background: #fff;
+  gap: 4px;
+  min-height: 32px;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--petrol);
   font: inherit;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
   cursor: pointer;
 }
-.mini-objetivo-porque-boton:hover,
+.mini-objetivo-porque-boton:hover {
+  color: var(--c-estructura-700);
+}
 .mini-objetivo-porque-boton:focus-visible {
-  border-color: var(--orange);
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
 }
 .mini-objetivo-porque-boton svg {
   transition: transform 0.2s ease;
@@ -2552,12 +2561,24 @@
 .mini-manual[data-pendiente='true'] {
   border-top-color: var(--petrol);
 }
+.mini-objetivo-numero {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--orange);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+}
 .respuesta-rapida {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   gap: 12px;
-  min-height: 220px;
+  min-height: 190px;
   margin-top: auto;
 }
 .respuesta-pagina {
@@ -2573,10 +2594,18 @@
   min-height: 44px;
 }
 .respuesta-progreso {
+  display: inline-flex;
+  gap: 6px;
   margin-left: auto;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
+}
+.respuesta-progreso i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c-borde-fuerte);
+}
+.respuesta-progreso i[data-hecho='true'] {
+  background: var(--orange);
 }
 .respuesta-pie .btn {
   margin-left: 0;
@@ -2596,22 +2625,24 @@
   color: var(--ink);
 }
 .respuesta-opciones {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
   gap: 8px;
 }
 .respuesta-opciones button {
-  flex: 1 1 auto;
-  min-width: 88px;
-  min-height: 44px;
+  min-height: 48px;
   padding: 8px 16px;
-  border: 2px solid var(--line);
+  border: 2px solid var(--c-borde-fuerte);
   border-radius: 12px;
   background: #fff;
   color: var(--ink);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
+}
+.respuesta-opciones button:hover:not(:disabled):not([aria-pressed='true']) {
+  border-color: var(--petrol);
+  background: var(--c-estructura-50);
 }
 .respuesta-opciones button[aria-pressed='true'] {
   border-color: var(--petrol);
@@ -2651,7 +2682,6 @@
 }
 .objetivos-pregunta .mini-objetivo {
   justify-self: stretch;
-  min-height: 420px;
 }
 .objetivos-paginador {
   display: flex;

@@ -35,7 +35,7 @@ function PreguntaDeSami({
       <MiniManualCard mini={miniObjetivo} objetivoId={objetivoId} objetivoTexto={objetivoTexto} pendiente />
       <button
         type="button"
-        className="objetivos-textual"
+        className="btn ghost"
         aria-label={`Más tarde: ${miniObjetivo.titulo}`}
         onClick={() => onMasTarde(miniObjetivo.id)}
       >

@@ -63,7 +63,12 @@ function PieDeRespuesta({ respuesta }: { respuesta: RespuestaPorPasos }) {
   return (
     <footer className="respuesta-pie">
       <BotonVolver respuesta={respuesta} />
-      <span className="respuesta-progreso">
+      <span className="respuesta-progreso" aria-hidden>
+        {PASOS.map((paso, posicion) => (
+          <i key={paso} data-hecho={posicion <= respuesta.indice} />
+        ))}
+      </span>
+      <span className="sr-only">
         Paso {respuesta.indice + 1} de {PASOS.length}
       </span>
       <BotonEnviar respuesta={respuesta} />
@@ -74,7 +79,7 @@ function PieDeRespuesta({ respuesta }: { respuesta: RespuestaPorPasos }) {
 function BotonVolver({ respuesta }: { respuesta: RespuestaPorPasos }) {
   if (respuesta.indice === 0) return null;
   return (
-    <button type="button" className="objetivos-textual" onClick={respuesta.volver}>
+    <button type="button" className="btn ghost" onClick={respuesta.volver}>
       Volver
     </button>
   );
