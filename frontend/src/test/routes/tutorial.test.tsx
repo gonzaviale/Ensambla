@@ -98,7 +98,7 @@ describe('el tutorial', () => {
 
     await cuandoSeAjustaElAnchoDelSegundoBloque();
 
-    await esperarPaso('Cuando te cierre, la creamos.');
+    await esperarPaso('Cuando te sirva, la creamos.');
   });
 
   it('el camino de Sami: crear la sección lleva al editor', async () => {
@@ -122,7 +122,7 @@ describe('el tutorial', () => {
 
     await cuandoSeRenombraElBloque('Mercadería');
 
-    await esperarPaso('De acá se mueve.');
+    await esperarPaso('Desde aquí se mueve.');
   });
 
   it('el camino de Sami: mover el bloque lleva a llenarlo', async () => {
@@ -130,7 +130,7 @@ describe('el tutorial', () => {
 
     await cuandoSeMueveElBloqueAbajo();
 
-    await esperarPaso('De acá se llena.');
+    await esperarPaso('Desde aquí se carga.');
   });
 
   it('el camino de Sami: registrar abre la carga de un dato', async () => {
@@ -178,7 +178,7 @@ describe('el tutorial', () => {
 
     await cuandoSeMiraLaPlantillaDeAlmacen();
 
-    await esperarPaso('Mirá las piezas antes de empezar.');
+    await esperarPaso('Revisá las piezas antes de empezar.');
   });
 
   it('el camino de las plantillas: seguir mirando vuelve a la lista', async () => {
@@ -194,7 +194,7 @@ describe('el tutorial', () => {
 
     await cuandoSeElige(/Empezar con este conjunto/);
 
-    await esperarPaso('De acá se cambia.');
+    await esperarPaso('Desde aquí se cambia.');
   });
 
   it('el camino desde cero: confirmar muestra el lienzo propio', async () => {
@@ -218,7 +218,7 @@ describe('el tutorial', () => {
 
     await cuandoSeAgregaLaPiezaClientes();
 
-    await esperarPaso('De acá se cambia.');
+    await esperarPaso('Desde aquí se cambia.');
   });
 
   it('cerrar el cartel de «desde cero» vuelve a elegir el camino', async () => {
@@ -317,7 +317,7 @@ async function dadoUnaGuiaEnElPrimerPaso() {
 async function dadoUnaGuiaEnElCaminoDeSami() {
   await dadoUnaGuiaEnElPrimerPaso();
   await cuandoSeElige(/Crear con Sami/);
-  await esperarPaso('Contame lo que necesitás.');
+  await esperarPaso('Describí lo que necesitás.');
 }
 
 async function dadoUnaGuiaConLaIdeaDeSamiConForma() {
@@ -329,32 +329,32 @@ async function dadoUnaGuiaConLaIdeaDeSamiConForma() {
 async function dadoUnaGuiaConElAnchoAjustado() {
   await dadoUnaGuiaConLaIdeaDeSamiConForma();
   await cuandoSeAjustaElAnchoDelSegundoBloque();
-  await esperarPaso('Cuando te cierre, la creamos.');
+  await esperarPaso('Cuando te sirva, la creamos.');
 }
 
 async function dadoUnaGuiaEnElEditor() {
   await dadoUnaGuiaConElAnchoAjustado();
   await cuandoSeCreaLaSeccion();
-  await esperarPaso('De acá se cambia.');
+  await esperarPaso('Desde aquí se cambia.');
   await waitFor(() => expect(() => bloqueDelTutorial()).not.toThrow(), ESPERA);
 }
 
 async function dadoUnaGuiaPersonalizandoElBloque() {
   await dadoUnaGuiaEnElEditor();
   await cuandoSePersonalizaElBloque();
-  await esperarPaso('Ponelo en tus palabras.');
+  await esperarPaso('Elegí un nombre claro.');
 }
 
 async function dadoUnaGuiaConElBloqueRenombrado() {
   await dadoUnaGuiaPersonalizandoElBloque();
   await cuandoSeRenombraElBloque('Mercadería');
-  await esperarPaso('De acá se mueve.');
+  await esperarPaso('Desde aquí se mueve.');
 }
 
 async function dadoUnaGuiaConElBloqueMovido() {
   await dadoUnaGuiaConElBloqueRenombrado();
   await cuandoSeMueveElBloqueAbajo();
-  await esperarPaso('De acá se llena.');
+  await esperarPaso('Desde aquí se carga.');
 }
 
 async function dadoUnaGuiaCargandoUnDato() {
@@ -379,7 +379,7 @@ async function dadoUnaGuiaEnLasPlantillas() {
 async function dadoUnaGuiaMirandoLaPlantillaDeAlmacen() {
   await dadoUnaGuiaEnLasPlantillas();
   await cuandoSeMiraLaPlantillaDeAlmacen();
-  await esperarPaso('Mirá las piezas antes de empezar.');
+  await esperarPaso('Revisá las piezas antes de empezar.');
 }
 
 async function dadoUnaGuiaEnElLienzoDesdeCero() {
@@ -422,7 +422,7 @@ async function cuandoSeIntentaIrALaZona() {
 }
 
 async function cuandoSeDescribeElNegocio(descripcion: string) {
-  await user.type(await screen.findByLabelText('Contame un poco de tu negocio'), descripcion);
+  await user.type(await screen.findByLabelText('Describí tu negocio'), descripcion);
   await cuandoSeElige(/Enviar a Sami/);
 }
 
@@ -532,12 +532,12 @@ async function entoncesSeRecuerdaElPrimerPaso() {
 }
 
 async function entoncesSeAbreElEditorEnElPasoDeCambiar() {
-  await esperarPaso('De acá se cambia.');
+  await esperarPaso('Desde aquí se cambia.');
   expect(router.state.location.pathname).toMatch(/^\/sistemas\//);
 }
 
 async function entoncesElNombreTieneElFoco() {
-  await esperarPaso('Ponelo en tus palabras.');
+  await esperarPaso('Elegí un nombre claro.');
   expect(screen.getByLabelText('Nombre')).toHaveFocus();
 }
 

@@ -176,7 +176,7 @@ export const cuandoSeQuitaLaFoto = () => clickButton(persona(), 'Quitar foto');
 export const cuandoSeEnviaElMensajeSinTexto = () => clickButton(persona(), /Enviar a Sami/);
 
 export const cuandoSeEscribeGraciasYSeEnvia = async () => {
-  await persona().type(screen.getByRole('textbox', { name: /Contame un poco/ }), 'Gracias');
+  await persona().type(screen.getByRole('textbox', { name: /Describí tu negocio/ }), 'Gracias');
   await clickButton(persona(), /Enviar a Sami/);
 };
 

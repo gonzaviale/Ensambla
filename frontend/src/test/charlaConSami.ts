@@ -25,7 +25,7 @@ const ERROR_DE_CUOTA = 'Hoy ya usaste todas las consultas con IA.';
 let pedidos: Pedido[] = [];
 
 const persona = laPersonaDelTaller;
-const campo = () => screen.getByRole('textbox', { name: /Contame un poco|¿Qué le falta/ });
+const campo = () => screen.getByRole('textbox', { name: /Describí tu negocio|¿Qué le falta/ });
 const botonera = () => screen.findByRole('group', { name: 'Respuestas rápidas' }, ESPERA);
 const borrador = () => useSistemaStore.getState().taller?.borrador ?? null;
 const piezasDelBorrador = () => (borrador()?.sections ?? []).flatMap((seccion) => seccion.blocks);

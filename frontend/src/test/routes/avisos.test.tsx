@@ -134,7 +134,7 @@ describe('la campana y la pantalla de avisos', () => {
 
     await user.click(
       within(primero).getByRole('button', {
-        name: (texto) => !texto.startsWith('Sacar') && texto.includes(nombre),
+        name: (texto) => !texto.startsWith('Quitar de esta lista') && texto.includes(nombre),
       }),
     );
     await screen.findByRole('region', { name: /Lo que encontré en tus datos/ }, ESPERA);

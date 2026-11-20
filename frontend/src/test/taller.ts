@@ -77,7 +77,7 @@ export const dadoQueSeAjustaConSamiUnAlmacenDeAna = async (
 };
 
 export const campoDeLaConversacion = () =>
-  screen.getByLabelText('Contame un poco de tu negocio') as HTMLTextAreaElement;
+  screen.getByLabelText('Describí tu negocio') as HTMLTextAreaElement;
 
 export const campoDeLosAjustes = () => screen.getByLabelText('¿Qué le falta? ¿Qué cambiarías?');
 

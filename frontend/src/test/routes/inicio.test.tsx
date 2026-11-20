@@ -479,7 +479,7 @@ function entoncesNoHayPlantillasYSeSugiereOtraBusqueda() {
 }
 
 function elBotonDeAyuda() {
-  return screen.getByRole('button', { name: 'Ayuda' });
+  return screen.getByTitle('Ayuda');
 }
 
 function entoncesElModalEstaAbiertoYElScrollBloqueado() {

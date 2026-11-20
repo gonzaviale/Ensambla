@@ -201,7 +201,7 @@ describe('«Armalo con Sami» (crear un proyecto real)', () => {
 });
 
 const nombreDelProyecto = () => screen.findByLabelText('Nombre de tu proyecto', {}, ESPERA);
-const campoDeNegocio = () => screen.getByLabelText('Contame un poco de tu negocio');
+const campoDeNegocio = () => screen.getByLabelText('Describí tu negocio');
 const proyecto = () => within(screen.getByRole('region', { name: 'Tu proyecto' }));
 
 async function dadaLaPantallaDeSami() {
@@ -259,11 +259,11 @@ async function cuandoSeCreaConElNombre(nombre: string) {
 function entoncesSamiSaludaAAna() {
   expect(screen.getByText('Hola, Ana Pérez.')).toBeVisible();
   expect(screen.getByText('Escribí qué hacés y cómo te organizás hoy.')).toBeVisible();
-  expect(screen.getByText(/Yo pienso una base y vos me decís si te sirve/)).toBeVisible();
+  expect(screen.getByText(/Te propongo una base y vos decidís si te sirve/)).toBeVisible();
 }
 
 function entoncesNoHayPropuestaTodavia() {
-  expect(screen.getByText('TU PROPUESTA VA A APARECER ACÁ')).toBeVisible();
+  expect(screen.getByText('TU PROPUESTA VA A APARECER AQUÍ')).toBeVisible();
   expect(screen.queryByLabelText('Nombre de tu proyecto')).toBeNull();
 }
 
