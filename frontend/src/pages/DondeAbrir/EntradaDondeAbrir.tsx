@@ -5,7 +5,11 @@ import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 export function EntradaDondeAbrir() {
   const navegacion = useNavegacion();
   return (
-    <section className="donde-entrada" aria-labelledby="donde-entrada-titulo">
+    <section
+      className="donde-entrada solido"
+      data-tono="celeste"
+      aria-labelledby="donde-entrada-titulo"
+    >
       <span className="donde-entrada-icono" aria-hidden="true">
         <MapPinAreaIcon size={28} />
       </span>

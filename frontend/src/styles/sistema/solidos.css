@@ -317,3 +317,212 @@
   background: rgb(255 255 255 / 0.22);
   color: #fff;
 }
+
+/* ===== Objetivos ===== */
+
+.objetivos-negocio-cifras .objetivos-metrica.solido {
+  border: 0;
+  border-radius: 14px;
+}
+.objetivos-negocio-cifras .objetivos-metrica.solido span {
+  color: #fff;
+  font-size: 16px;
+}
+.objetivos-negocio-cifras .objetivos-metrica.solido strong {
+  color: #fff;
+}
+
+/* Tarjetas normales: blancas con borde fino, sin raya de color arriba (R6). */
+.mini-objetivo,
+.mini-objetivo:nth-child(n),
+.mini-manual[data-pendiente='true'],
+.reajustes > li,
+.objetivos-tarjeta.dinamico,
+.objetivos-tarjeta.dinamico[data-tipo] {
+  border-top: 1px solid var(--line);
+}
+
+.donde-entrada.solido {
+  border: 0;
+  background: var(--solido);
+}
+.donde-entrada.solido :is(h2, p, .donde-entrada-icono) {
+  color: #fff;
+  font-weight: 700;
+}
+.donde-entrada.solido p {
+  font-size: 16px;
+}
+.donde-entrada.solido .btn.secondary {
+  border-color: #fff;
+  background: #fff;
+  color: var(--solido);
+}
+
+/* ===== Inicio ===== */
+
+/* Señales de rentabilidad: el color sale del concepto (ventas, ganancia), no de si sube o baja. Las tarjetas de dato
+   son blancas con borde fino; solo la de productos, que se toca, es sólida. */
+.rentabilidad-tarjeta[data-tono] {
+  --tono: var(--solido);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.rentabilidad-tarjeta[data-tono] .rentabilidad-icono {
+  background: var(--solido);
+  color: #fff;
+}
+.rentabilidad-tarjeta[data-tono][data-clickeable] {
+  background: var(--solido);
+  box-shadow: none;
+}
+.rentabilidad-tarjeta[data-tono][data-clickeable] .rentabilidad-icono {
+  background: rgb(255 255 255 / 0.22);
+}
+
+/* «Empezar de cero»: el amarillo no es fondo (R4); el ícono pasa a coral. */
+.inicio-ficha[data-color='yellow'] .inicio-ficha-icono,
+.inicio-ficha[data-color='yellow'] .inicio-ficha-flecha {
+  background: var(--coral);
+  color: #fff;
+}
+.tablero .tablero-ventas {
+  border-top: 1px solid var(--line);
+}
+
+/* ===== Mi negocio: cabecera de cada sección con su color sólido; la amarilla pasa a naranja (R4) ===== */
+
+.block[style*='#ba9500' i] .block-head {
+  background: var(--orange);
+}
+.block .block-head :is(h2, h3, p, span, small) {
+  color: #fff;
+}
+
+/* ===== Plantillas: encabezado sólido de un color distinto en cada tarjeta ===== */
+
+.template-page .template-card[data-tono] .set-visual {
+  background: var(--solido);
+}
+.template-page .template-card[data-tono] .set-visual .set-count {
+  color: #fff;
+  font-weight: 700;
+}
+
+/* ===== Taller de Sami ===== */
+
+.sami-conversation .conversation-bubble,
+.sami-conversation .conversation-examples > span {
+  border: 0;
+  background: var(--blue);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+}
+.sami-conversation .conversation-bubble.you {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  font-weight: 500;
+}
+.sami-conversation .conversation-bubble.escribiendo i {
+  background: #fff;
+}
+.sami-conversation {
+  border-top: 2px solid var(--line);
+}
+.studio-canvas .draft-footer {
+  border-top: 1px solid var(--line);
+}
+
+/* ===== Planes: Gratuito celeste sólido y Premium petróleo sólido, con letra blanca ===== */
+
+.plans-page .plan-current,
+.plans-page .plan-current.plan-current-trial {
+  border: 1px solid var(--line);
+}
+.plans-page .plan-card[data-color] {
+  border: 0;
+  background: var(--plan);
+  color: #fff;
+}
+.plans-page .plan-card[data-color]::before {
+  display: none;
+}
+.plans-page .plan-card[data-color] :is(h2, p, dt, dd, li, span, strong, small, .plan-renewal) {
+  color: #fff;
+}
+.plans-page .plan-card[data-color] .plan-card-description {
+  font-size: 16px;
+  font-weight: 700;
+}
+.plans-page .plan-card[data-color] :is(.plan-card-icon, .plan-limit-icono) {
+  background: rgb(255 255 255 / 0.22);
+  color: #fff;
+}
+.plans-page .plan-card[data-color] .plan-features .icon {
+  color: #fff;
+}
+.plans-page .plan-card[data-color] .plan-label {
+  border-color: #fff;
+  background: #fff;
+  color: var(--plan);
+}
+.plans-page .plan-card[data-color] .btn.secondary {
+  border-color: #fff;
+  background: #fff;
+  color: var(--plan);
+}
+
+/* ===== Cuenta: la sección elegida en petróleo; el resto, blancas con un ícono sólido de color ===== */
+
+.cuenta-menu a .cuenta-menu-icono {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  color: #fff;
+}
+.cuenta-menu a .cuenta-menu-icono .icon,
+.cuenta-menu a.activa .cuenta-menu-icono .icon {
+  color: #fff;
+}
+.cuenta-menu a.activa .cuenta-menu-icono {
+  background: rgb(255 255 255 / 0.22);
+}
+
+/* ===== Mis negocios: círculo con la inicial de cada negocio, sólido y en rotación ===== */
+
+.elegir-negocio-opcion:has(.elegir-negocio-inicial) {
+  grid-template-columns: 44px minmax(0, 1fr);
+  column-gap: 14px;
+  align-items: center;
+}
+.elegir-negocio-opcion .elegir-negocio-inicial {
+  display: grid;
+  grid-row: 1 / span 2;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  font-size: 18px;
+  font-weight: 800;
+}
+.elegir-negocio-opcion .elegir-negocio-fila,
+.elegir-negocio-opcion .elegir-negocio-detalle {
+  grid-column: 2;
+}
+.negocio-selector-inicial.solido,
+.negocio-selector-inicial.solido[data-tono] {
+  border-radius: 50%;
+  background: var(--solido);
+  color: #fff;
+}
+
+/* ===== Ventana de ayuda de Sami ===== */
+
+.suggestion .icon-tile.solido[data-tono] {
+  background: var(--solido);
+  color: #fff;
+}

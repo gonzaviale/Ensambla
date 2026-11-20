@@ -4,6 +4,7 @@ import { Icon } from '../Icon';
 import { Modal } from '../Modal';
 import { varsDeColor } from '../colores';
 import type { NombreDeIcono } from '@/lib/sistema/iconos';
+import type { Tono } from '@/lib/sistema/tonos';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
@@ -17,7 +18,7 @@ const RESPUESTAS: Record<string, string> = {
   data: 'Usá Registrar para cargar un dato. Para probar la carga con una foto, elegí Traer datos de una foto: revisás los registros de ejemplo y confirmás qué incorporar.',
 };
 
-type Tema = [clave: string, icono: NombreDeIcono, etiqueta: string];
+type Tema = [clave: string, icono: NombreDeIcono, etiqueta: string, tono?: Tono];
 
 const TEMAS_DEL_EDITOR: Tema[] = [
   ['blocks', 'box', 'Agregar y mover bloques'],
@@ -27,8 +28,8 @@ const TEMAS_DEL_EDITOR: Tema[] = [
 ];
 
 const TEMAS_DEL_INICIO: Tema[] = [
-  ['guide', 'spark', 'Crear una sección conmigo'],
-  ['templates', 'grid', 'Encontrar una plantilla simple'],
+  ['guide', 'spark', 'Crear una sección conmigo', 'naranja'],
+  ['templates', 'grid', 'Encontrar una plantilla simple', 'celeste'],
 ];
 
 export function ModalAyuda({ respuesta }: { respuesta?: string }) {
@@ -64,11 +65,9 @@ export function ModalAyuda({ respuesta }: { respuesta?: string }) {
       {respuesta && RESPUESTAS[respuesta] && (
         <div className="help-answer">{RESPUESTAS[respuesta]}</div>
       )}
-      {(enElEditor ? TEMAS_DEL_EDITOR : TEMAS_DEL_INICIO).map(([clave, icono, etiqueta]) => (
+      {(enElEditor ? TEMAS_DEL_EDITOR : TEMAS_DEL_INICIO).map(([clave, icono, etiqueta, tono]) => (
         <button key={clave} type="button" className="suggestion" onClick={() => elegir(clave)}>
-          <span className="icon-tile" style={varsDeColor('petrol')}>
-            <Icon name={icono} />
-          </span>
+          <IconoDelTema icono={icono} tono={tono} />
           <strong>{etiqueta}</strong>
           <Icon name="chevron" />
         </button>
@@ -94,5 +93,13 @@ export function ModalAyuda({ respuesta }: { respuesta?: string }) {
         </div>
       )}
     </Modal>
+  );
+}
+
+function IconoDelTema({ icono, tono }: { icono: NombreDeIcono; tono?: Tono }) {
+  return (
+    <span className={`icon-tile ${tono ? 'solido' : ''}`} data-tono={tono} style={varsDeColor('petrol')}>
+      <Icon name={icono} />
+    </span>
   );
 }
