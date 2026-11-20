@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 import { Link } from '@tanstack/react-router';
-import { CodigoQr } from '@/components/cobro/CodigoQr';
+import { CodigoQrDiferido } from '@/components/cobro/CodigoQrDiferido';
 import { useCancelarCobroQr } from '@/hooks/caja/useCancelarCobroQr';
 import { useCobroConQr, type EstadoDelCobroQr } from '@/hooks/caja/useCobroConQr';
 import { useCopiarAlPortapapeles } from '@/hooks/useCopiarAlPortapapeles';
@@ -103,7 +103,7 @@ function PantallaDelCobro(props: PropsDeLaPantalla) {
       <div className="caja-qr">
         <span className="caja-antetitulo">MONTO A TRANSFERIR</span>
         <p className="caja-qr-monto">{dineroCaja(importeCentavos)}</p>
-        <CodigoQr texto={cobro.alias} descripcion="QR con tu alias o CVU para transferir" />
+        <CodigoQrDiferido texto={cobro.alias} descripcion="QR con tu alias o CVU para transferir" />
         <DatosParaTransferir cobro={cobro} />
         <p className="caja-nota">
           Ensambla no verificó el pago. Revisá en tu cuenta que te llegó antes de confirmar.

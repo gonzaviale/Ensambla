@@ -83,8 +83,8 @@ export async function entoncesSePuedeCargarElAliasYElTitular() {
 export const entoncesNoSeMuestraElQrDePrueba = () =>
   expect(screen.queryByRole('img', { name: QR_DE_PRUEBA })).toBeNull();
 
-export const entoncesSeMuestraElQrDePrueba = () =>
-  expect(screen.getByRole('img', { name: QR_DE_PRUEBA })).toBeVisible();
+export const entoncesSeMuestraElQrDePrueba = async () =>
+  expect(await screen.findByRole('img', { name: QR_DE_PRUEBA })).toBeVisible();
 
 export const entoncesNoSePuedeGuardar = () => expect(botonDeGuardar()).toBeDisabled();
 

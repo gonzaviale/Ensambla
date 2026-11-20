@@ -71,3 +71,72 @@ descargar al redactar este documento; se usó su resumen).
   cobro de una deuda anterior.
 - **Aislamiento:** el negocio sale de la sesión; un cobro de otro negocio responde 404.
 - **Aviso:** la pantalla dice claramente que Ensambla no verificó el pago.
+
+## Cómo funciona en la app (nivel 1)
+
+1. **Cargar el alias.** En **Tu cuenta → Perfil → Cobro con QR**, el comerciante escribe su alias o CVU (texto libre) y,
+   si quiere, el nombre del titular. Debajo ve un QR de prueba con lo que escribió.
+2. **Cobrar.** En **Caja**, al cobrar una venta con transferencia aparece **Cobrar con QR**. Lo mismo al saldar una deuda
+   desde **Clientes → Ver cuenta → Guardar pago**.
+3. **Mostrarle al cliente.** La pantalla muestra el monto a transferir, el QR, el alias para copiar, el titular y hasta
+   qué hora vale. Avisa que Ensambla no verificó el pago.
+4. **Confirmar.** Cuando el comerciante ve la plata en su cuenta toca **Ya me transfirieron**: la venta o el pago se
+   guardan y el cobro queda como confirmado a mano. **Cancelar cobro con QR** (o cerrar la pantalla) lo cancela y no guarda
+   nada.
+
+El QR es solo por la parte que se paga por transferencia: sirve con la venta entera, con una entrega a medias de un
+fiado y con un pago dividido (por ejemplo, 6.000 en efectivo y 4.000 por transferencia generan un QR de 4.000).
+
+## Endpoints
+
+Todos exigen sesión y el token de `GET /api/auth/csrf`. El negocio sale de la sesión; un cobro de otro negocio responde 404.
+
+| Método y ruta | Entrada | Salida |
+|---|---|---|
+| `POST /api/caja/cobros-qr` | `id` (lo genera el cliente) e `importe` | `{id, importe, alias, titular, estado, venceEn}` |
+| `POST /api/caja/cobros-qr/{id}/cancelar` | nada | el mismo cobro, ya cancelado |
+| `POST /api/caja/ventas` | los datos de siempre y `cobroQrId` opcional | el comprobante de siempre |
+| `POST /api/caja/cobros` | los datos de siempre y `cobroQrId` opcional | el cobro de siempre |
+
+- Generar el mismo `id` con el mismo importe devuelve el cobro que ya estaba; con otro importe responde 409. Sin alias
+  cargado en el negocio responde 400.
+- Con `cobroQrId`, la venta o el cobro se guardan y el cobro con QR queda `COBRADO` en la misma transacción. Lo transferido
+  (la suma de los pagos por `TRANSFERENCIA`) tiene que coincidir con el importe del QR. Un cobro ya cobrado o cancelado no se
+  puede reutilizar y frena toda la operación.
+- Un cobro pendiente se ve `VENCIDO` a los 15 minutos, pero todavía se puede confirmar para no perder una venta que el
+  cliente sí pagó.
+- Un cobro cobrado no se cancela; uno cancelado no se confirma.
+
+Los avisos de pago de Mercado Pago, la vinculación de la cuenta y la conciliación automática son del nivel 2 y no están
+implementados.
+
+## Guía de prueba (sin ningún cobro real)
+
+El nivel 1 no llama a Mercado Pago, así que no hace falta ninguna cuenta de prueba ni se mueve dinero.
+
+**Preparación:** levantar backend y frontend como indica el README y entrar con una cuenta que tenga un negocio con
+productos y stock.
+
+1. **Sin alias.** En **Caja**, armar una compra, tocar **Cobrar**, elegir **Transferencia** y **Cobrar con QR**.
+   *Esperado:* dice que todavía no cargó el alias y ofrece **Cargar mi alias o CVU**.
+2. **Cargar el alias.** Ir a **Tu cuenta → Perfil**, escribir un alias cualquiera (por ejemplo `mi.alias.prueba`) y el
+   titular. *Esperado:* aparece el QR de prueba; **Guardar cobro con QR** avisa "Guardamos tu cobro con QR".
+3. **Venta total.** Repetir el paso 1. *Esperado:* monto igual al total, QR, alias, titular y "Vale hasta las…".
+   **Copiar alias** avisa "Alias copiado". **Ya me transfirieron** guarda la venta; el stock baja una sola vez.
+4. **Cancelación.** Repetir y tocar **Cancelar cobro con QR**. *Esperado:* vuelve al cobro, no se guardó ninguna venta y se
+   puede abrir otro QR.
+5. **Cobro repetido.** Con la red cortada justo al tocar **Ya me transfirieron** (o con el servidor apagado un
+   momento), usar **Verificar misma operación**. *Esperado:* la venta aparece una sola vez.
+6. **Cobro vencido.** Abrir un QR, esperar más de 15 minutos y tocar **Ya me transfirieron**. *Esperado:* la venta se
+   guarda igual.
+7. **Fiado a medias.** Elegir **A medias**, un cliente, pagar ahora 4.000 con **Transferencia** y **Cobrar con QR**.
+   *Esperado:* QR por 4.000 y la venta queda `PARCIAL` con 6.000 pendientes.
+8. **Pago dividido.** Una compra de 10.000 con 6.000 en efectivo y el resto por transferencia. *Esperado:* QR por 4.000.
+9. **Cobro de una deuda.** En **Clientes → Ver cuenta → Guardar pago**, elegir **Transferencia** y **Cobrar con QR**.
+   *Esperado:* QR por el importe del pago; **Ya me transfirieron** lo guarda y reduce el saldo.
+10. **Reutilizar un QR.** Con la API, mandar un `cobroQrId` ya cobrado o cancelado en `POST /api/caja/ventas`.
+    *Esperado:* responde 400 y no se guarda la venta.
+11. **Aislamiento.** Con otra cuenta, cancelar un `id` de cobro de la primera. *Esperado:* 404.
+
+**Límite que hay que decirle al comerciante:** el QR lleva el alias o CVU como texto, sin monto. Algunas apps de pago
+pueden no abrir la transferencia al escanearlo: por eso la pantalla muestra el monto en grande y el alias para copiar.

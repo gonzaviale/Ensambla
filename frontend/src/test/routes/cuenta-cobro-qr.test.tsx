@@ -47,7 +47,7 @@ describe('cobro con QR en tu cuenta', () => {
 
     await cuandoSeEscribeElAlias(ALIAS_DE_PRUEBA);
 
-    entoncesSeMuestraElQrDePrueba();
+    await entoncesSeMuestraElQrDePrueba();
   });
 
   it('guardar sólo se habilita cuando hay un cambio', async () => {
@@ -85,7 +85,7 @@ describe('cobro con QR en tu cuenta', () => {
   it('con un alias guardado muestra el QR de prueba y deja guardar sólo con un cambio', async () => {
     await dadaLaCuentaConElCobroGuardado();
 
-    entoncesSeMuestraElQrDePrueba();
+    await entoncesSeMuestraElQrDePrueba();
     entoncesNoSePuedeGuardar();
   });
 

@@ -16,8 +16,10 @@ Las fechas de operación las asigna el servidor. El día comercial usa `America/
 | GET /resumen | proyectoId, inventarioId, fecha opcional ISO yyyy-MM-dd, pagina desde 0 | Día elegido, período abierto y lista paginada de cierres |
 | POST /cierres | Identificador propio, proyecto, inventario, revisión del período, fondo, entradas, retiros, contado y nota | Cierre histórico con resumen, efectivo esperado, contado y diferencia |
 | GET /cierres/{id} | Identificador del cierre | El mismo comprobante histórico, sin recalcularlo |
+| POST /cobros-qr | Identificador propio e importe | Cobro con QR pendiente con el alias del negocio y su vencimiento |
+| POST /cobros-qr/{id}/cancelar | Identificador del cobro | El mismo cobro, cancelado |
 
-No hay endpoint de anulación ni devolución en ENS-317.
+No hay endpoint de anulación ni devolución en ENS-317. `POST /ventas` y `POST /cobros` aceptan un `cobroQrId` opcional: ver [cobro-con-qr.md](cobro-con-qr.md).
 
 ## Venta por importe libre
 

@@ -85,7 +85,9 @@ export const entoncesSeOfreceCobrarConQr = () =>
 export async function entoncesSeMuestraElQrPor(monto: RegExp) {
   const dialogo = within(await screen.findByRole('dialog', { name: 'Cobrar con QR' }));
   expect(await dialogo.findByText(monto)).toBeVisible();
-  expect(dialogo.getByRole('img', { name: 'QR con tu alias o CVU para transferir' })).toBeVisible();
+  expect(
+    await dialogo.findByRole('img', { name: 'QR con tu alias o CVU para transferir' }),
+  ).toBeVisible();
 }
 
 export async function entoncesSeMuestranElAliasYElTitular() {

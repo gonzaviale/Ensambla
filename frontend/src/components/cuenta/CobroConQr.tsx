@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react';
-import { CodigoQr } from '@/components/cobro/CodigoQr';
+import { CodigoQrDiferido } from '@/components/cobro/CodigoQrDiferido';
 import { useConfiguracionNegocio } from '@/hooks/negocio/queries';
 import { useBorradorDelCobro } from '@/hooks/negocio/useBorradorDelCobro';
 import { useGuardarCobroConQr } from '@/hooks/negocio/useGuardarCobroConQr';
@@ -92,7 +92,7 @@ function VistaPreviaDelQr({ alias }: { alias: string }) {
     return <p className="input-hint">Cuando cargues tu alias o CVU, acá ves un QR de prueba.</p>;
   return (
     <figure className="cobro-qr-previa">
-      <CodigoQr texto={alias} descripcion="QR de prueba con tu alias o CVU" />
+      <CodigoQrDiferido texto={alias} descripcion="QR de prueba con tu alias o CVU" />
       <figcaption>
         QR de prueba. Escanealo con tu celular: tiene que aparecer tu alias o CVU.
       </figcaption>

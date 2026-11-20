@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import com.ensambla.backend.support.SesionHttpDePrueba;
+import jakarta.persistence.EntityManager;
 import jakarta.servlet.Filter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,6 +38,9 @@ class CobroQrIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private EntityManager entityManager;
 
     private MockMvc mockMvc;
     private UUID negocioId;
@@ -200,11 +204,13 @@ class CobroQrIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     private void entoncesLaBaseGuardaUnCobroEn(String estado) {
+        entityManager.flush();
         assertThat(jdbcTemplate.queryForObject("SELECT estado FROM cobro_qr WHERE id = ?", String.class, cobroId))
                 .isEqualTo(estado);
     }
 
     private void entoncesLaBaseTieneCobros(int cantidad) {
+        entityManager.flush();
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM cobro_qr WHERE id = ?", Integer.class, cobroId))
                 .isEqualTo(cantidad);
     }
