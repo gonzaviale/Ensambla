@@ -42,14 +42,15 @@ public final class QuitarCampo extends HerramientaSobreElSistema {
                 });
     }
 
-    /** Los vínculos y los datos obligatorios del componente no se quitan (el taller tampoco lo deja). */
+    /** Los vínculos, los datos obligatorios y los fijos del componente no se quitan (el taller tampoco lo deja). */
     private boolean sePuedeQuitar(PiezaTaller pieza, CampoTaller campo) {
-        return !CatalogoTaller.TIPO_VINCULO.equals(campo.tipo()) && !esObligatorioDelComponente(pieza, campo);
+        return !CatalogoTaller.TIPO_VINCULO.equals(campo.tipo()) && !esDeFabricaYNecesario(pieza, campo);
     }
 
-    private boolean esObligatorioDelComponente(PiezaTaller pieza, CampoTaller campo) {
+    private boolean esDeFabricaYNecesario(PiezaTaller pieza, CampoTaller campo) {
         return catalogo.buscar(pieza.tipo()).stream()
                 .flatMap(componente -> componente.campos().stream())
-                .anyMatch(base -> base.obligatorio() && base.etiqueta().equalsIgnoreCase(campo.etiqueta()));
+                .anyMatch(base -> (base.obligatorio() || base.fija())
+                        && base.etiqueta().equalsIgnoreCase(campo.etiqueta()));
     }
 }

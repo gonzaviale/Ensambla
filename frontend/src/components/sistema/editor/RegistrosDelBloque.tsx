@@ -11,6 +11,7 @@ import { useSistemaStore } from '@/stores/sistemaStore';
 import { Icon } from '../Icon';
 import { IconBtn } from '../IconBtn';
 import { ValorDeCampo } from '../ValorDeCampo';
+import { CandadoDeColumna } from './CandadoDeColumna';
 
 // La tabla del bloque: los registros se dibujan de a 10 (con el scroll del propio bloque) y la búsqueda filtra sobre
 // todos. Una sección con cientos de registros no estira la página ni dibuja de más.
@@ -79,6 +80,7 @@ export function RegistrosDelBloque({
                 <th scope="col" key={campo.key}>
                   {campo.label}
                   {comportamientoDe(campo.type).marcaDeColumna()}
+                  <CandadoDeColumna campo={campo} />
                 </th>
               ))}
               <th scope="col">

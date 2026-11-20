@@ -10,6 +10,13 @@ import { useSistemaStore } from '@/stores/sistemaStore';
 const ESPERA_MS = 500;
 const REINTENTO_MS = 4000;
 
+// Un rechazo que se repetiría igual (sin sesión, sin cupo o un conflicto con la estructura fija) no se reintenta.
+const elServidorNoVaAAceptarlo = (error: unknown) =>
+  error instanceof ApiError &&
+  (error.status === 401 || error.status === 409 || (error.status === 403 && Boolean(error.codigo)));
+
+const pistaDeLosPlanes = (error: ApiError) => (error.status === 403 ? ' Revisá Planes.' : '');
+
 // Lleva al servidor lo que la persona va cambiando. Los cambios se juntan medio segundo, así que mover
 // un bloque o escribir un nombre no dispara un pedido por cada tecla; si falla, se reintenta solo.
 export function useSincronizarSistemas() {
@@ -30,15 +37,15 @@ export function useSincronizarSistemas() {
 
     async function volcar() {
       if (volcando || detenido) return;
-      const { pendientes, eliminados, sistemas, marcarGuardados, avisar } =
+      const { pendientes, eliminados, sistemas, marcarGuardados, actualizarDesdeServidor, avisar } =
         useSistemaStore.getState();
       const aGuardar = sistemas.filter((sistema) => pendientes.includes(sistema.id));
       if (aGuardar.length === 0 && eliminados.length === 0) return;
       volcando = true;
       try {
-        await Promise.all([
-          ...aGuardar.map((sistema) => guardarSistema(sistema)),
-          ...eliminados.map((id) => eliminarSistema(id)),
+        const [guardados] = await Promise.all([
+          Promise.all(aGuardar.map((sistema) => guardarSistema(sistema))),
+          Promise.all(eliminados.map((id) => eliminarSistema(id))),
         ]);
         // Si se volvió a cambiar mientras viajaba, ese sistema sigue pendiente.
         const actuales = useSistemaStore.getState().sistemas;
@@ -49,17 +56,16 @@ export function useSincronizarSistemas() {
           )
           .map((sistema) => sistema.id);
         marcarGuardados(sinCambios, eliminados);
+        actualizarDesdeServidor(guardados);
         void queryClient.invalidateQueries({ queryKey: objetivosKeys.pasos });
         avisoDeErrorDado = false;
       } catch (error) {
         guardarBorradorSesion(useSistemaStore.getState());
-        detenido =
-          error instanceof ApiError &&
-          (error.status === 401 || (error.status === 403 && Boolean(error.codigo)));
+        detenido = elServidorNoVaAAceptarlo(error);
         if (!avisoDeErrorDado) {
           avisar(
             detenido && error instanceof ApiError
-              ? `${error.message} Tus cambios pendientes se conservan en esta pestaña. Revisá Planes.`
+              ? `${error.message} Tus cambios pendientes se conservan en esta pestaña.${pistaDeLosPlanes(error)}`
               : 'No pudimos guardar tus cambios. Lo vamos a intentar de nuevo.',
           );
           avisoDeErrorDado = true;

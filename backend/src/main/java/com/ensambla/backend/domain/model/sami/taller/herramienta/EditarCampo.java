@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.model.sami.taller.herramienta;
 import com.ensambla.backend.domain.model.sami.taller.AccionTaller;
 import com.ensambla.backend.domain.model.sami.taller.ArgumentosDeHerramienta;
 import com.ensambla.backend.domain.model.sami.taller.CampoTaller;
+import com.ensambla.backend.domain.model.sami.taller.CatalogoComponentes;
 import com.ensambla.backend.domain.model.sami.taller.CatalogoTaller;
 import com.ensambla.backend.domain.model.sami.taller.HerramientaTaller;
 import com.ensambla.backend.domain.model.sami.taller.ListaDeCampos;
@@ -22,8 +23,11 @@ import java.util.Optional;
  */
 public final class EditarCampo extends HerramientaSobreElSistema {
 
-    EditarCampo() {
+    private final CatalogoComponentes catalogo;
+
+    EditarCampo(CatalogoComponentes catalogo) {
         super(HerramientaTaller.EDITAR_CAMPO);
+        this.catalogo = catalogo;
     }
 
     @Override
@@ -42,7 +46,7 @@ public final class EditarCampo extends HerramientaSobreElSistema {
         PiezaTaller pieza = piezas.en(indice);
         ListaDeCampos campos = pieza.listaDeCampos();
         return buscado.flatMap(campos::campoDe)
-                .flatMap(campo -> cambiosDe(argumentos, campos, campo)
+                .flatMap(campo -> cambiosDe(argumentos, pieza, campos, campo)
                         .map(cambios -> aplicarCambios(indice, pieza, campo, cambios, piezas)));
     }
 
@@ -56,11 +60,11 @@ public final class EditarCampo extends HerramientaSobreElSistema {
                 .armar();
     }
 
-    private Optional<Map<String, Object>> cambiosDe(ArgumentosDeHerramienta argumentos, ListaDeCampos campos,
-                                                    CampoTaller campo) {
+    private Optional<Map<String, Object>> cambiosDe(ArgumentosDeHerramienta argumentos, PiezaTaller pieza,
+                                                    ListaDeCampos campos, CampoTaller campo) {
         CambiosDeCampo cambios = new CambiosDeCampo();
         etiquetaEditada(argumentos.de("etiqueta"), campos, campo, cambios);
-        String tipo = tipoEditado(argumentos.de("tipo"), campos, campo, cambios);
+        String tipo = tipoEditado(argumentos.de("tipo"), pieza, campos, campo, cambios);
         opcionesEditadas(argumentos.de("opciones"), tipo, campo, cambios);
         obligatorioEditado(argumentos.de("obligatorio"), cambios);
         posicionEditada(argumentos.de("posicion"), campos, campo, cambios);
@@ -79,10 +83,13 @@ public final class EditarCampo extends HerramientaSobreElSistema {
         etiqueta.filter(nueva -> !nueva.equals(campo.etiqueta())).ifPresent(nueva -> cambios.anotar("etiqueta", nueva));
     }
 
-    /** El tipo con el que queda el dato. Un vínculo o el primer dato (el que nombra cada fila) lo conservan. */
-    private String tipoEditado(ValorDeArgumento valor, ListaDeCampos campos, CampoTaller campo,
+    /**
+     * El tipo con el que queda el dato. Un vínculo, el primer dato (el que nombra cada fila) y los datos que Ensambla
+     * necesita para funcionar lo conservan.
+     */
+    private String tipoEditado(ValorDeArgumento valor, PiezaTaller pieza, ListaDeCampos campos, CampoTaller campo,
                                CambiosDeCampo cambios) {
-        if (esDeTipoFijo(campos, campo) || !valor.llego()) {
+        if (esDeTipoFijo(pieza, campos, campo) || !valor.llego()) {
             return campo.tipo();
         }
         Optional<String> tipo = valor.clave().filter(CatalogoTaller.TIPOS_DE_CAMPO::contains);
@@ -91,8 +98,15 @@ public final class EditarCampo extends HerramientaSobreElSistema {
         return tipo.orElse(campo.tipo());
     }
 
-    private boolean esDeTipoFijo(ListaDeCampos campos, CampoTaller campo) {
-        return CatalogoTaller.TIPO_VINCULO.equals(campo.tipo()) || campos.esElPrimero(campo);
+    private boolean esDeTipoFijo(PiezaTaller pieza, ListaDeCampos campos, CampoTaller campo) {
+        return CatalogoTaller.TIPO_VINCULO.equals(campo.tipo()) || campos.esElPrimero(campo)
+                || esFijoDelComponente(pieza, campo);
+    }
+
+    private boolean esFijoDelComponente(PiezaTaller pieza, CampoTaller campo) {
+        return catalogo.buscar(pieza.tipo()).stream()
+                .flatMap(componente -> componente.campos().stream())
+                .anyMatch(base -> base.fija() && base.etiqueta().equalsIgnoreCase(campo.etiqueta()));
     }
 
     /**

@@ -73,6 +73,7 @@ function entoncesElInventarioEmpiezaPorElProducto() {
     etiqueta: 'Producto',
     tipo: 'text',
     obligatorio: true,
+    fija: true,
   });
 }
 

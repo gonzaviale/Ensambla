@@ -109,17 +109,17 @@ describe('sumar y quitar datos', () => {
   it('quita un dato', () => {
     dadoUnAlmacenDeEjemplo();
 
-    cuandoSamiPide(quitarCampo('inventory', 'costo'));
+    cuandoSamiPide(quitarCampo('clients', 'correo'));
 
-    entoncesSeAplico('Quité Costo de inventario.');
+    entoncesSeAplico('Quité Correo de clientes.');
   });
 
   it('al quitar un dato también se borra su valor en las filas', () => {
     dadoUnAlmacenDeEjemplo();
 
-    cuandoSamiPide(quitarCampo('inventory', 'costo'));
+    cuandoSamiPide(quitarCampo('clients', 'correo'));
 
-    entoncesLaPiezaYaNoTieneElDato('inventory', 'cost');
+    entoncesLaPiezaYaNoTieneElDato('clients', 'email');
   });
 
   it('no quita un dato obligatorio, una conexión ni uno que no existe', () => {
@@ -133,8 +133,8 @@ describe('sumar y quitar datos', () => {
     );
 
     entoncesSoloSeOmitio(
-      '«Producto» no se puede quitar.',
-      '«Cliente» no se puede quitar.',
+      'No se puede quitar «Producto»: Ensambla la necesita para funcionar. Podés cambiarle el nombre.',
+      'No se puede quitar «Cliente»: Ensambla la necesita para funcionar. Podés cambiarle el nombre.',
       'No encontré ese dato.',
       'No encontré ese dato.',
     );
@@ -377,12 +377,12 @@ describe('obligatorio y lugar de un dato', () => {
 
     cuandoSamiPide(
       editarCampo('clients', 'Teléfono', { obligatorio: true }),
-      editarCampo('clients', 'Nombre', { obligatorio: false }),
+      editarCampo('clients', 'Teléfono', { obligatorio: false }),
     );
 
     entoncesSeAplico(
       'Hice obligatorio Teléfono en clientes.',
-      'Nombre ya no es obligatorio en clientes.',
+      'Teléfono ya no es obligatorio en clientes.',
     );
   });
 
@@ -391,10 +391,11 @@ describe('obligatorio y lugar de un dato', () => {
 
     cuandoSamiPide(
       editarCampo('clients', 'Teléfono', { obligatorio: true }),
-      editarCampo('clients', 'Nombre', { obligatorio: false }),
+      editarCampo('clients', 'Correo', { obligatorio: true }),
+      editarCampo('clients', 'Teléfono', { obligatorio: false }),
     );
 
-    entoncesLosDatosSon('clients', { Teléfono: { required: true }, Nombre: { required: false } });
+    entoncesLosDatosSon('clients', { Teléfono: { required: false }, Correo: { required: true } });
   });
 
   it('mueve el dato al lugar pedido, acotado a los que hay', () => {

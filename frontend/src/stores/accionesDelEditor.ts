@@ -20,6 +20,13 @@ import {
   wireSystem,
 } from '@/lib/sistema/core';
 import {
+  esColumnaFija,
+  motivoParaNoQuitarLaColumna,
+  motivoParaNoQuitarLaSeccion,
+  problemaAlCambiarLaColumna,
+  sePuedeQuitarLaSeccion,
+} from '@/lib/sistema/estructuraFija';
+import {
   armarSeccion,
   moverSeccionEn,
   quitarSeccionDe,
@@ -171,8 +178,13 @@ function copiaDe(original: Bloque, copiaId: string): Bloque {
 }
 
 export function pedirQuitarBloque(bloqueId: string) {
-  const bloque = findBlock(sistemaActivo(), bloqueId);
-  if (!bloque) return;
+  const sistema = sistemaActivo();
+  const bloque = findBlock(sistema, bloqueId);
+  if (!sistema || !bloque) return;
+  if (!sePuedeQuitarLaSeccion(sistema, bloque)) {
+    avisar(motivoParaNoQuitarLaSeccion(bloque));
+    return;
+  }
   pedirConfirmacion({
     titulo: `¿Quitar ${bloque.name}?`,
     mensaje: `Se quitarán este bloque y sus ${bloque.rows.length} registros. Los vínculos que apuntan a él quedarán vacíos. Podés deshacer este cambio.`,
@@ -285,6 +297,11 @@ export function quitarSeccion(seccionId: string) {
 export function pedirQuitarCampo(bloqueId: string, clave: string) {
   const bloque = findBlock(sistemaActivo(), bloqueId);
   if (!bloque) return;
+  const campo = bloque.fields.find((candidato) => candidato.key === clave);
+  if (campo && esColumnaFija(campo)) {
+    avisar(motivoParaNoQuitarLaColumna(campo));
+    return;
+  }
   if (bloque.fields.length <= 1) {
     avisar('Conservá al menos un campo para identificar los registros.');
     return;
@@ -321,6 +338,7 @@ export function guardarCampo(bloqueId: string, clave: string | null, datos: Dato
   if (!sistema || !bloque) return 'Este bloque ya no existe.';
   const campo = campoPedido(clave, datos);
   const problema =
+    problemaAlCambiarLaColumna(bloque.fields.find((item) => item.key === clave), campo) ??
     problemaDelCampo(bloque, clave, campo) ??
     problemaConLosRegistros(sistema, bloque, clave, campo, datos);
   if (problema) return problema;
@@ -366,7 +384,10 @@ function problemaDelCampo(bloque: Bloque, clave: string | null, campo: Campo) {
 }
 
 const conElCampo = (campos: Campo[], clave: string | null, campo: Campo) =>
-  clave ? campos.map((item) => (item.key === clave ? campo : item)) : [...campos, campo];
+  clave ? campos.map((item) => (item.key === clave ? conservandoLoFijo(item, campo) : item)) : [...campos, campo];
+
+const conservandoLoFijo = (anterior: Campo, campo: Campo): Campo =>
+  anterior.system ? { ...campo, system: true } : campo;
 
 function problemaConLosRegistros(
   sistema: Sistema,

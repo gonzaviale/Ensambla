@@ -3,6 +3,7 @@ import { FIELD_TYPES } from '@/lib/sistema/catalogo';
 import type { Bloque, TipoBloque, TipoCampo } from '@/lib/sistema/tipos';
 import { cambiarDatoDelBloque } from '@/stores/accionesDelEditor';
 import { useSistemaStore } from '@/stores/sistemaStore';
+import { CandadoDeColumna } from './CandadoDeColumna';
 import { Btn } from '../Btn';
 import { Icon } from '../Icon';
 import { TextoAlSalir } from './TextoAlSalir';
@@ -68,6 +69,7 @@ function PanelDeCampos({ bloque }: PanelProps) {
             <strong>
               {campo.label}
               {campo.required ? ' *' : ''}
+              <CandadoDeColumna campo={campo} />
             </strong>
             <small>{FIELD_TYPES[campo.type]}</small>
           </span>

@@ -1,8 +1,11 @@
 package com.ensambla.backend.domain.useCase.bloque.eliminarBloque;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
@@ -20,6 +23,7 @@ import static com.ensambla.backend.support.BloquesDePrueba.OTRO_BLOQUE_ID;
 import static com.ensambla.backend.support.BloquesDePrueba.unBloqueDelNegocio;
 import static com.ensambla.backend.support.BloquesDePrueba.unaConexionDesde;
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
+import static com.ensambla.backend.support.ProyectoTestData.PROYECTO_ID;
 import static com.ensambla.backend.support.ProyectoTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
@@ -70,6 +74,28 @@ class EliminarBloqueTest {
     }
 
     @Test
+    @DisplayName("Rechaza borrar la única sección de Stock del negocio")
+    void rechazaBorrarLaUnicaSeccionDeStockDelNegocio() {
+        dadoUnaSeccionDeStockUnicaEnElSistema();
+
+        cuandoSeIntentaEliminarElBloque();
+
+        entoncesSeProtegeLaEstructuraPorque(
+                "No se puede quitar la sección «Stock»: Ensambla la necesita para funcionar.");
+        entoncesNoSeBorraNingunBloque();
+    }
+
+    @Test
+    @DisplayName("Borra una sección de Stock si el sistema tiene otra")
+    void borraUnaSeccionDeStockSiElSistemaTieneOtra() {
+        dadoDosSeccionesDeStockEnElSistema();
+
+        cuandoSeEliminaElBloque();
+
+        entoncesSeBorraElBloqueDelNegocio();
+    }
+
+    @Test
     @DisplayName("Un bloque ajeno propaga el 404 y no borra nada")
     void unBloqueAjenoPropagaElNoEncontradoYNoBorraNada() {
         dadoUnBloqueAjeno();
@@ -89,6 +115,24 @@ class EliminarBloqueTest {
     private void dadoUnaConexionHaciaElBloqueDesdeLaColumnaClienteDePedidos() {
         when(campoRepository.findRelacionesHacia(BLOQUE_ID, NEGOCIO_ID))
                 .thenReturn(List.of(unaConexionDesde(OTRO_BLOQUE_ID, "Cliente")));
+    }
+
+    private void dadoUnaSeccionDeStockUnicaEnElSistema() {
+        Bloque stock = unaSeccionDeStock(BLOQUE_ID);
+        when(bloqueRepository.findByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Optional.of(stock));
+        when(bloqueRepository.findByProyectoIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID)).thenReturn(List.of(stock));
+    }
+
+    private void dadoDosSeccionesDeStockEnElSistema() {
+        Bloque stock = unaSeccionDeStock(BLOQUE_ID);
+        when(bloqueRepository.findByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Optional.of(stock));
+        when(bloqueRepository.findByProyectoIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID))
+                .thenReturn(List.of(stock, unaSeccionDeStock(OTRO_BLOQUE_ID)));
+    }
+
+    private Bloque unaSeccionDeStock(BloqueId bloqueId) {
+        return Bloque.builder().id(bloqueId).negocioId(NEGOCIO_ID).proyectoId(PROYECTO_ID).nombre("Stock")
+                .tipo(TipoBloque.INVENTARIO).build();
     }
 
     private void dadoUnBloqueAjeno() {
@@ -115,6 +159,10 @@ class EliminarBloqueTest {
 
     private void entoncesSeRechazaPorque(String motivo) {
         assertThat(rechazo).isInstanceOf(BusinessRuleException.class).hasMessage(motivo);
+    }
+
+    private void entoncesSeProtegeLaEstructuraPorque(String motivo) {
+        assertThat(rechazo).isInstanceOf(DuplicateResourceException.class).hasMessage(motivo);
     }
 
     private void entoncesSeRechazaPorqueElBloqueNoExiste() {
