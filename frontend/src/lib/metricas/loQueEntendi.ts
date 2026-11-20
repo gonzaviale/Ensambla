@@ -39,18 +39,24 @@ const QUE_CUENTA: Record<FuenteDeMetrica, Record<CalculoDeMetrica, string>> = {
     PROMEDIO: 'el promedio por venta',
     CONTEO: 'cuántas ventas hay',
     UNIDADES: 'las unidades vendidas',
+    GANANCIA: 'la ganancia (lo vendido menos lo que costó)',
+    COSTO: 'lo que costó lo que vendiste',
   },
   GASTOS: {
     SUMA: 'la plata que salió',
     PROMEDIO: 'el promedio por gasto',
     CONTEO: 'cuántos gastos hay',
     UNIDADES: 'las unidades',
+    GANANCIA: 'la ganancia',
+    COSTO: 'el costo',
   },
   INVENTARIO: {
     SUMA: 'la plata parada en stock (a costo)',
     PROMEDIO: 'el promedio por producto',
     CONTEO: 'cuántos productos hay',
     UNIDADES: 'las unidades en stock',
+    GANANCIA: 'la ganancia',
+    COSTO: 'el costo',
   },
 };
 

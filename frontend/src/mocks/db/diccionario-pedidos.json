@@ -39,7 +39,18 @@
       "debe",
       "deben",
       "deudores",
-      "deudor"
+      "deudor",
+      "ganancia",
+      "ganancias",
+      "gané",
+      "gano",
+      "ganamos",
+      "ganado",
+      "margen",
+      "rentabilidad",
+      "utilidad",
+      "costo de lo que vendí",
+      "lo que me costó lo vendido"
     ],
     "GASTOS": [
       "gasto",
@@ -75,6 +86,31 @@
     ]
   },
   "calculos": {
+    "GANANCIA": [
+      "ganancia",
+      "ganancias",
+      "gané",
+      "gano",
+      "ganamos",
+      "ganado",
+      "margen",
+      "rentabilidad",
+      "utilidad",
+      "cuánto saqué",
+      "cuánto sacamos",
+      "después de costos",
+      "descontando costos"
+    ],
+    "COSTO": [
+      "costo",
+      "costos",
+      "costó",
+      "costaron",
+      "cuánto me costó lo que vendí",
+      "costo de lo que vendí",
+      "costo de lo vendido",
+      "lo que me costó lo vendido"
+    ],
     "PROMEDIO": ["promedio", "en promedio", "ticket", "por venta"],
     "CONTEO": [
       "cuántas ventas",

@@ -3,7 +3,14 @@ import { z } from 'zod';
 // Las métricas a medida de un cuaderno. Lo que se guarda es la receta (qué tabla, qué cálculo, cómo repartir y de qué
 // período); el número lo calcula siempre el servidor con las filas reales y viene con su «de dónde sale».
 export const FUENTES_DE_METRICA = ['VENTAS', 'GASTOS', 'INVENTARIO'] as const;
-export const CALCULOS_DE_METRICA = ['SUMA', 'PROMEDIO', 'CONTEO', 'UNIDADES'] as const;
+export const CALCULOS_DE_METRICA = [
+  'SUMA',
+  'PROMEDIO',
+  'CONTEO',
+  'UNIDADES',
+  'GANANCIA',
+  'COSTO',
+] as const;
 export const AGRUPACIONES_DE_METRICA = [
   'NINGUNA',
   'PRODUCTO',

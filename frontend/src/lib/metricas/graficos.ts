@@ -37,6 +37,8 @@ const SE_PUEDE_JUNTAR: Record<CalculoDeMetrica, boolean> = {
   SUMA: true,
   CONTEO: true,
   UNIDADES: true,
+  GANANCIA: true,
+  COSTO: true,
   PROMEDIO: false,
 };
 

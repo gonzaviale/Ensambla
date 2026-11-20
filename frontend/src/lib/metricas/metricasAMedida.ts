@@ -55,11 +55,20 @@ export function etiquetaDeCalculo(fuente: FuenteDeMetrica, calculo: CalculoDeMet
       return `Cuántas ${filas} hay`;
     case 'UNIDADES':
       return fuente === 'INVENTARIO' ? 'Unidades en stock' : 'Unidades vendidas';
+    case 'GANANCIA':
+      return 'Ganancia (lo vendido menos lo que costó)';
+    case 'COSTO':
+      return 'Lo que costó lo que vendiste';
   }
 }
 
-export const calculosDe = (fuente: FuenteDeMetrica): CalculoDeMetrica[] =>
-  fuente === 'GASTOS' ? ['SUMA', 'PROMEDIO', 'CONTEO'] : ['SUMA', 'PROMEDIO', 'CONTEO', 'UNIDADES'];
+const CALCULOS_DE: Record<FuenteDeMetrica, CalculoDeMetrica[]> = {
+  VENTAS: ['SUMA', 'PROMEDIO', 'CONTEO', 'UNIDADES', 'GANANCIA', 'COSTO'],
+  GASTOS: ['SUMA', 'PROMEDIO', 'CONTEO'],
+  INVENTARIO: ['SUMA', 'PROMEDIO', 'CONTEO', 'UNIDADES'],
+};
+
+export const calculosDe = (fuente: FuenteDeMetrica): CalculoDeMetrica[] => CALCULOS_DE[fuente];
 
 export const agrupacionesDe = (fuente: FuenteDeMetrica): AgrupacionDeMetrica[] => {
   if (fuente === 'VENTAS') return ['NINGUNA', 'PRODUCTO', 'CLIENTE', 'DIA_DE_LA_SEMANA'];

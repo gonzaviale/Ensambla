@@ -2,6 +2,7 @@ import { yaEstaALaVista } from '@/lib/metricas/recetas';
 import type { Sistema } from '@/lib/sistema/tipos';
 import {
   FUENTES_DE_METRICA,
+  type CalculoDeMetrica,
   type DefinicionDeMetrica,
   type FuenteDeMetrica,
   type MetricaSugerida,
@@ -92,6 +93,16 @@ const formatoDe = (definicion: DefinicionDeMetrica): ResultadoDeMetrica['formato
 
 const numero = (valor: unknown) => (typeof valor === 'number' ? valor : null);
 
+function costosPorProducto(sistema: Sistema) {
+  const costos = new Map<string, number>();
+  const inventario = bloqueDe(sistema, 'INVENTARIO');
+  for (const fila of inventario?.rows ?? []) {
+    const costo = numero(fila.cost);
+    if (costo !== null) costos.set(fila.id, costo);
+  }
+  return costos;
+}
+
 // Producto y cliente son relaciones: la fila guarda el id y el nombre está en la otra tabla.
 function nombresPorId(sistema: Sistema) {
   const nombres = new Map<string, string>();
@@ -161,12 +172,27 @@ export function calcularMetricaDeEjemplo(
     const cantidad = numero(fila.quantity);
     return precio === null || cantidad === null ? null : precio * cantidad;
   };
-  const valorDe = (fila: Record<string, unknown>) =>
-    definicion.calculo === 'UNIDADES'
-      ? numero(fila.quantity)
-      : definicion.calculo === 'CONTEO'
-        ? 1
-        : importe(fila);
+  // Lo que costó lo vendido: el costo actual del producto por la cantidad; sin costo cargado, no se sabe.
+  const costos = costosPorProducto(sistema);
+  const costoDeLaVenta = (fila: Record<string, unknown>) => {
+    const costo = costos.get(String(fila.product));
+    const cantidad = numero(fila.quantity);
+    return costo === undefined || cantidad === null ? null : costo * cantidad;
+  };
+  const gananciaDeLaVenta = (fila: Record<string, unknown>) => {
+    const vendido = importe(fila);
+    const costo = costoDeLaVenta(fila);
+    return vendido === null || costo === null ? null : vendido - costo;
+  };
+  const valoresDe: Record<CalculoDeMetrica, (fila: Record<string, unknown>) => number | null> = {
+    SUMA: importe,
+    PROMEDIO: importe,
+    CONTEO: () => 1,
+    UNIDADES: (fila) => numero(fila.quantity),
+    GANANCIA: gananciaDeLaVenta,
+    COSTO: costoDeLaVenta,
+  };
+  const valorDe = valoresDe[definicion.calculo];
 
   const usables = delPeriodo.filter((fila) => valorDe(fila) !== null);
   const filasSinDato = delPeriodo.length - usables.length;

@@ -25,6 +25,9 @@ describe('metricasAMedida', () => {
   it('ofrece sólo lo que cada tabla puede calcular', () => {
     expect(calculosDe('GASTOS')).not.toContain('UNIDADES');
     expect(calculosDe('VENTAS')).toContain('UNIDADES');
+    expect(calculosDe('VENTAS')).toEqual(expect.arrayContaining(['GANANCIA', 'COSTO']));
+    expect(calculosDe('GASTOS')).not.toContain('GANANCIA');
+    expect(calculosDe('INVENTARIO')).not.toContain('COSTO');
     expect(agrupacionesDe('GASTOS')).toContain('CATEGORIA');
     expect(agrupacionesDe('VENTAS')).not.toContain('CATEGORIA');
     expect(agrupacionesDe('INVENTARIO')).toEqual(['NINGUNA', 'PRODUCTO']);
@@ -51,6 +54,8 @@ describe('metricasAMedida', () => {
     expect(etiquetaDeCalculo('VENTAS', 'CONTEO')).toBe('Cuántas ventas hay');
     expect(etiquetaDeCalculo('VENTAS', 'UNIDADES')).toBe('Unidades vendidas');
     expect(etiquetaDeCalculo('INVENTARIO', 'UNIDADES')).toBe('Unidades en stock');
+    expect(etiquetaDeCalculo('VENTAS', 'GANANCIA')).toBe('Ganancia (lo vendido menos lo que costó)');
+    expect(etiquetaDeCalculo('VENTAS', 'COSTO')).toBe('Lo que costó lo que vendiste');
   });
 
   it('resume la receta en una frase', () => {

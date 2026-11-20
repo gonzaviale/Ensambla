@@ -42,6 +42,8 @@ const ICONO_DE_CALCULO: Record<CalculoDeMetrica, NombreDeIcono> = {
   PROMEDIO: 'igual',
   CONTEO: 'check',
   UNIDADES: 'box',
+  GANANCIA: 'sube',
+  COSTO: 'wallet',
 };
 
 const ICONO_DE_AGRUPACION: Record<AgrupacionDeMetrica, NombreDeIcono> = {

@@ -4,7 +4,7 @@ import {
   periodosDe,
   permiteFiado,
 } from '@/lib/metricas/metricasAMedida';
-import type { DefinicionDeMetrica, FuenteDeMetrica } from '@/types/metricas';
+import type { CalculoDeMetrica, DefinicionDeMetrica, FuenteDeMetrica } from '@/types/metricas';
 
 // Las mismas reglas que DefinicionMetrica.validar del servidor, con los mismos motivos.
 
@@ -14,13 +14,23 @@ const FILAS_DE: Record<FuenteDeMetrica, string> = {
   INVENTARIO: 'productos',
 };
 
+// Lo mismo que CalculoMetrica.motivoSiNoSirvePara; sólo las cuentas que no sirven para alguna tabla tienen el suyo.
+const MOTIVO_SI_NO_SIRVE: Record<CalculoDeMetrica, string> = {
+  SUMA: 'Esa cuenta no se puede hacer con esa tabla',
+  PROMEDIO: 'Esa cuenta no se puede hacer con esa tabla',
+  CONTEO: 'Esa cuenta no se puede hacer con esa tabla',
+  UNIDADES: 'Los gastos no tienen unidades: elegí sumar, promediar o contar',
+  GANANCIA: 'La ganancia se calcula con tus ventas: elegí ventas',
+  COSTO: 'El costo de lo vendido se calcula con tus ventas: elegí ventas',
+};
+
 const REGLAS: {
   cumple: (receta: DefinicionDeMetrica) => boolean;
   motivo: (receta: DefinicionDeMetrica) => string;
 }[] = [
   {
     cumple: (receta) => calculosDe(receta.fuente).includes(receta.calculo),
-    motivo: () => 'Los gastos no tienen unidades: elegí sumar, promediar o contar',
+    motivo: (receta) => MOTIVO_SI_NO_SIRVE[receta.calculo],
   },
   {
     cumple: (receta) => agrupacionesDe(receta.fuente).includes(receta.agrupar),
