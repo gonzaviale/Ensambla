@@ -183,6 +183,11 @@
   box-shadow: none;
 }
 
+/* Lo que falta completar en el cobro no es un éxito: va en el tono de error, no en verde. */
+.caja-dialogo .caja-cobro-estado[data-valido='false'] {
+  color: #b32a25;
+}
+
 /* ===== Caja · Actividad: pestañas internas ===== */
 
 .caja-pagina .caja-actividad-vistas {
@@ -403,8 +408,11 @@
 
 /* ===== Mi negocio: cabecera de cada sección con su color sólido; la amarilla pasa a naranja (R4) ===== */
 
-.block[style*='#ba9500' i] .block-head {
-  background: var(--orange);
+/* El color de cada pieza llega en línea (--accent); el !important es lo único que le gana a un estilo en línea, y así
+   la pieza amarilla pasa entera a naranja: cabecera, botones, vista previa de plantillas y miniaturas (R4). */
+[style*='--accent: #ba9500' i] {
+  --accent: var(--orange) !important;
+  --tint: #fff0da !important;
 }
 .block .block-head :is(h2, h3, p, span, small) {
   color: #fff;
@@ -485,6 +493,15 @@
   color: var(--plan);
 }
 
+/* Un botón deshabilitado («Prueba activa», «Contratar Premium» sin pagos configurados) es un estado, no la acción
+   principal: gris sólido con letra blanca, como «Cobrar» sin productos (R7). */
+.plans-page .btn.primary:disabled {
+  border-color: var(--muted);
+  background: var(--muted);
+  color: #fff;
+  opacity: 1;
+}
+
 /* ===== Cuenta: la sección elegida en petróleo; el resto, blancas con un ícono sólido de color ===== */
 
 .cuenta-menu a .cuenta-menu-icono {
@@ -537,4 +554,107 @@
 .suggestion .icon-tile.solido[data-tono] {
   background: var(--solido);
   color: #fff;
+}
+
+/* ===== Avisos y campana: urgente coral, para hoy naranja, para mirar celeste (sin amarillo, R4) ===== */
+
+.aviso-seccion,
+.aviso-fila,
+.aviso-detalle-cabeza,
+.campana-aviso {
+  --nivel: var(--blue);
+  --nivel-solido: var(--blue);
+  --nivel-solido-texto: #fff;
+}
+.aviso-seccion.p2,
+.aviso-fila.p2,
+.aviso-fila-icono.p2,
+.campana-aviso.p2 {
+  --nivel: var(--orange);
+  --nivel-solido: var(--orange);
+  --nivel-solido-texto: #fff;
+  --nivel-tint: #fff0da;
+  --nivel-ink: #9a4f00;
+}
+.aviso-seccion.p3,
+.aviso-fila.p3,
+.aviso-fila-icono.p3,
+.campana-aviso.p3 {
+  --nivel: var(--coral);
+  --nivel-solido: var(--coral);
+  --nivel-solido-texto: #fff;
+}
+.alertas-leyenda [data-nivel='2'] i {
+  background: var(--orange);
+}
+.tablero-aviso-sami[data-prioridad='MEDIA'] {
+  --franja: var(--orange);
+}
+.aviso-fila {
+  border-left-width: 1px;
+  border-left-color: var(--c-borde);
+}
+.campana-ver-todos,
+.alertas-cinta .alertas-filtros button.active span {
+  background: var(--orange);
+  color: #fff;
+}
+.alertas-vacio.ok {
+  border-top: 0;
+}
+.alertas-vacio.ok h3 {
+  color: #fff;
+}
+
+/* ===== Comparar negocios: cada total en sólido con el color de su concepto ===== */
+
+.comparar-totales .comparar-total.solido {
+  border: 0;
+  background: var(--solido);
+}
+.comparar-totales .comparar-total.solido :is(dt, dd, .comparar-total-icono) {
+  color: #fff;
+}
+.comparar-totales .comparar-total.solido dt {
+  font-weight: 700;
+}
+.comparar-negocios [data-hay] {
+  color: #b32a25;
+}
+
+/* ===== Mi zona: más barato naranja, en línea celeste, más caro coral; tarjetas con borde fino (R6) ===== */
+
+.zona-tarjeta,
+.zona-lista .zona-tarjeta,
+.zona-lista .zona-tarjeta.mio {
+  border-left: 1px solid var(--c-borde, var(--line));
+}
+.zona-etiqueta.bajo::before,
+.zona-ref-nums div:nth-child(1) {
+  background: var(--orange);
+}
+.zona-etiqueta.alto::before,
+.zona-ref-nums div:nth-child(3) {
+  background: var(--coral);
+}
+.zona-ref .zona-ref-nums :is(strong, span) {
+  color: #fff;
+}
+
+/* ===== Ubicación y avisos de la cuenta: borde fino, el color queda en el control ===== */
+
+.ubicacion-panel {
+  border-top-width: 2px;
+}
+.ajuste-tema {
+  border-left: 2px solid #e4e6df;
+}
+
+/* ===== Plantillas y Taller: la marca «Ejemplo» y la pieza flotante sin amarillo ===== */
+
+:is(.studio-canvas, .template-preview-stage) .example-badge {
+  background: var(--petrol);
+}
+.floating-piece.yellow {
+  background: var(--coral);
 }

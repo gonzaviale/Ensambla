@@ -3,6 +3,7 @@ import {
   MEDIOS_DE_PAGO,
   MODOS_DE_VENDER,
   PESTANAS_DE_CAJA,
+  TOTALES_DE_LA_CUENTA,
   cuandoSeLeenLosTonosDe,
   cuandoSeLeenLosTonosDeLasPosiciones,
   cuandoSeLeenLosTonosDeTodosLosConceptos,
@@ -32,6 +33,12 @@ describe('tonoDe', () => {
 
   it('distingue los tres modos de Vender con colores distintos', () => {
     cuandoSeLeenLosTonosDe(MODOS_DE_VENDER);
+
+    entoncesNingunTonoSeRepite();
+  });
+
+  it('distingue los cuatro totales de la cuenta con colores distintos', () => {
+    cuandoSeLeenLosTonosDe(TOTALES_DE_LA_CUENTA);
 
     entoncesNingunTonoSeRepite();
   });

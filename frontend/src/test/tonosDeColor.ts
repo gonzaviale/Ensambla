@@ -22,6 +22,8 @@ export const MODOS_DE_VENDER: ConceptoDeColor[] = [
   'venderFavoritos',
 ];
 
+export const TOTALES_DE_LA_CUENTA: ConceptoDeColor[] = ['ventas', 'gastos', 'ganancia', 'fiado'];
+
 let tonosLeidos: string[] = [];
 
 export function cuandoSeLeenLosTonosDeTodosLosConceptos() {

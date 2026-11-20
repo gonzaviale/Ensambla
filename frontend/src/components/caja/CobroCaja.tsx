@@ -10,6 +10,11 @@ import { useSistemaStore } from '@/stores/sistemaStore';
 import type { MedioCaja, PagoCaja, SolicitudCobro } from '@/types/caja';
 import { tonoDe } from '@/lib/sistema/tonos';
 import { aspectoDelMedio, iconoDelMedio, nombreDelMedio } from '@/lib/caja/mediosDePago';
+import {
+  ESTADOS_DE_LA_VENTA,
+  aspectoDelEstado,
+  type EstadoDeLaVenta,
+} from '@/lib/caja/estadosDeLaVenta';
 
 const medios: MedioCaja[] = ['EFECTIVO', 'TRANSFERENCIA', 'TARJETA'];
 
@@ -42,7 +47,7 @@ export function CobroCaja({
   const [dividido, setDividido] = useState(false);
   const [primeraParte, setPrimeraParte] = useState('');
   const [recibido, setRecibido] = useState('');
-  const [tipo, setTipo] = useState<'pagada' | 'parcial' | 'fiada'>('pagada');
+  const [tipo, setTipo] = useState<EstadoDeLaVenta>('pagada');
   const [importeParcial, setImporteParcial] = useState('');
   const [clienteId, setClienteId] = useState('');
   const [eligiendoCliente, setEligiendoCliente] = useState(false);
@@ -129,24 +134,19 @@ export function CobroCaja({
           <fieldset disabled={bloqueado}>
             <legend className="sr-only">Cómo queda la venta</legend>
             <div className="caja-opciones">
-              {(
-                [
-                  ['pagada', 'Pagada'],
-                  ['parcial', 'A medias'],
-                  ['fiada', 'Fiada'],
-                ] as const
-              ).map(([valor, texto]) => (
+              {ESTADOS_DE_LA_VENTA.map((estado) => (
                 <button
-                  key={valor}
+                  key={estado.valor}
                   type="button"
-                  aria-pressed={tipo === valor}
+                  {...aspectoDelEstado(estado, tipo === estado.valor)}
+                  aria-pressed={tipo === estado.valor}
                   onClick={() => {
-                    setTipo(valor);
+                    setTipo(estado.valor);
                     setRecibido('');
                     setDividido(false);
                   }}
                 >
-                  {texto}
+                  {estado.texto}
                 </button>
               ))}
             </div>
@@ -275,7 +275,7 @@ export function CobroCaja({
               </label>
             )}
           </div>
-          <div className="caja-cobro-estado" role="status">
+          <div className="caja-cobro-estado" role="status" data-valido={valido}>
             {dividido && tipo !== 'fiada' && (
               <span>
                 {restante > 0

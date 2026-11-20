@@ -7,6 +7,7 @@ const TONO_POR_CONCEPTO = {
   ganancia: 'celeste',
   costoDeMercaderia: 'coral',
   otrosGastos: 'naranja',
+  gastos: 'naranja',
   fiado: 'coral',
   cobrado: 'celeste',
   efectivo: 'celeste',

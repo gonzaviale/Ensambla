@@ -24,7 +24,7 @@ import {
 import { ESPERA, clickButton, verifyPathAsync, verifyToastAsync } from '@/test/testHelpers';
 
 const DIALOGO_DE_CONSEJOS = 'Para que Sami lea bien tu foto';
-const BOTON_DE_LA_CAMARA = 'Mandarle una foto a Sami';
+const BOTON_DE_LA_CAMARA = 'Enviar una foto a Sami';
 
 let abrirSelector: ReturnType<typeof vi.spyOn>;
 let piezasAntes: (string | undefined)[];

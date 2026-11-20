@@ -734,7 +734,7 @@ export function TallerPage() {
               <Btn
                 cls="ghost small"
                 data-accion="guide-photo"
-                aria-label={taller.foto ? 'Cambiar la foto para Sami' : 'Mandarle una foto a Sami'}
+                aria-label={taller.foto ? 'Cambiar la foto para Sami' : 'Enviar una foto a Sami'}
                 disabled={taller.pensando || preparandoFoto}
                 onClick={elegirDondeSacarLaFoto}
               >
