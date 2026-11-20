@@ -2,7 +2,8 @@ import type { DragEvent } from 'react';
 import type { CargaDeArrastre } from '@/hooks/sistemas/useArrastreDelEditor';
 import type { Bloque } from '@/lib/sistema/tipos';
 import { duplicarBloque, moverBloque, pedirQuitarBloque } from '@/stores/accionesDelEditor';
-import { useSistemaStore } from '@/stores/sistemaStore';
+import { sePuedeQuitarLaSeccion } from '@/lib/sistema/estructuraFija';
+import { seleccionarSistemaActivo, useSistemaStore } from '@/stores/sistemaStore';
 import { Icon } from '../Icon';
 import { IconBtn } from '../IconBtn';
 
@@ -23,6 +24,8 @@ export function HerramientasDelBloque({
   onFinArrastre,
 }: HerramientasDelBloqueProps) {
   const seleccionar = useSistemaStore((estado) => estado.seleccionar);
+  const sistema = useSistemaStore(seleccionarSistemaActivo);
+  const sePuedeQuitar = !sistema || sePuedeQuitarLaSeccion(sistema, bloque);
   return (
     <div className="block-tools" data-tour="move" data-tour-id={bloque.id}>
           <button
@@ -69,8 +72,9 @@ export function HerramientasDelBloque({
           />
           <IconBtn
             name="trash"
-            label="Quitar bloque"
+            label={sePuedeQuitar ? 'Quitar bloque' : 'Este bloque lo necesita Ensambla y no se puede quitar'}
             data-accion="delete-block"
+            disabled={!sePuedeQuitar}
             onClick={() => pedirQuitarBloque(bloque.id)}
           />
         </div>

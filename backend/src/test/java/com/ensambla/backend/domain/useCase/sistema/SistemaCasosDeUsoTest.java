@@ -61,7 +61,8 @@ class SistemaCasosDeUsoTest {
     private final UsoPlanRepository usoPlanRepository = mock(UsoPlanRepository.class);
     private final ControlPlanService controlPlanService = mock(ControlPlanService.class);
     private final SistemaUseCaseConfig config = new SistemaUseCaseConfig();
-    private final ListarSistemas listarSistemas = config.listarSistemas(negocioRepository, sistemaRepository);
+    private final ListarSistemas listarSistemas = config.listarSistemas(negocioRepository, sistemaRepository,
+            new TransaccionDirecta(), CLOCK);
     private final GuardarSistema guardarSistema = config.guardarSistema(negocioRepository, sistemaRepository,
             usoPlanRepository, controlPlanService, new TransaccionDirecta(), CLOCK);
     private final EliminarSistema eliminarSistema =

@@ -95,7 +95,8 @@ const descripcionDeLaPiezaSumada = (nombre: string, nombreDeSeccion: string, sec
 export function quitarPieza({ sistema, hecho }: Turno, args: Record<string, unknown>) {
   const pieza = resolverPieza(sistema, args.pieza);
   if (!pieza) return NO_ENCONTRE_LA_PIEZA;
-  if (!removeBlock(sistema, pieza.id).removed) return 'No se pudo quitar esa pieza.';
+  const resultado = removeBlock(sistema, pieza.id);
+  if (!resultado.removed) return resultado.errors?._form ?? 'No se pudo quitar esa pieza.';
   return hecho(`Quité ${enMinuscula(pieza)}.`);
 }
 

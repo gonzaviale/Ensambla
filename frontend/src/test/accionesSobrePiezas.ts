@@ -1,6 +1,7 @@
 import { expect } from 'vitest';
 import { mismoSistema, resumirSistema, type EstadoCompacto } from '@/lib/sistema/acciones';
-import { allBlocks, clone } from '@/lib/sistema/core';
+import { allBlocks, clone, makeBlock } from '@/lib/sistema/core';
+import { soltarVinculosSinDestino } from '@/lib/sistema/acciones/vinculos';
 import type { Sistema } from '@/lib/sistema/tipos';
 import {
   agregarPieza,
@@ -53,6 +54,22 @@ export const dadoUnAlmacenConUnaVentaDeUnProductoQueNoExiste = () => {
   dadoQueSamiYaPidio(cargarRegistros('sales', [{ Producto: 'Yerba', Cantidad: 2 }]));
   const [venta] = piezaDelTipo('sales').rows;
   if (venta) venta.product = 'e0000000-nada';
+};
+
+// Con otra pieza de cada tipo que el negocio necesita, se puede quitar la primera sin dejarlo sin ninguna.
+export const dadoUnAlmacenConOtraPiezaDeCadaTipoObligatorio = () => {
+  dadoUnAlmacenDeEjemplo();
+  const pestana = taller.sistema.sections[0];
+  for (const tipo of ['inventory', 'sales', 'clients'] as const) pestana?.blocks.push(makeBlock(tipo));
+};
+
+// La protección no deja quitar la última pieza de un tipo obligatorio: acá la pieza desaparece sin pasar por ella.
+export const cuandoDejaDeExistirLaPiezaDeTipo = (tipo: string) => {
+  const pieza = piezaDelTipo(tipo);
+  for (const seccion of taller.sistema.sections) {
+    seccion.blocks = seccion.blocks.filter((bloque) => bloque.id !== pieza.id);
+  }
+  soltarVinculosSinDestino(taller.sistema);
 };
 
 export const dadaUnaTablaDeTurnosConectadaALosClientes = () => {

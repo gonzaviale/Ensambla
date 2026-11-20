@@ -423,11 +423,9 @@ const respuestaDe = ({ mensaje = '', estado, imagen }: Pedido) => {
   }
   const clientes = deTipo('clients');
   if (/\b(saca|quita)\w*\b.*cliente/.test(texto) && clientes) {
-    return {
-      respuesta: `Listo, saqué ${clientes.nombre.toLowerCase()}.`,
-      acciones: [accion('quitar_pieza', { pieza: clientes.id })],
-      preguntas: [],
-    };
+    return sinAcciones(
+      `No puedo sacar ${clientes.nombre.toLowerCase()}: Ensambla los necesita para funcionar. Podés cambiarles el nombre.`,
+    );
   }
   if (/gasto/.test(texto) && !deTipo('expenses')) {
     return {

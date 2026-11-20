@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.model.bloque.AnchoBloque;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.bloque.ColorBloque;
+import com.ensambla.backend.domain.model.bloque.EstructuraFija;
 import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.CampoId;
@@ -58,7 +59,10 @@ public record SistemaItem(
     public record SeccionItem(String id, String name, List<BloqueItem> blocks) {
     }
 
-    /** {@code rows}: cada fila trae su {@code id} y los valores por clave de columna. */
+    /**
+     * {@code rows}: cada fila trae su {@code id} y los valores por clave de columna. {@code removable} y
+     * {@code typeLocked} son sólo de salida: el servidor los calcula siempre.
+     */
     public record BloqueItem(
             String id,
             String type,
@@ -70,9 +74,19 @@ public record SistemaItem(
             List<Map<String, Object>> rows,
             String content,
             Boolean startRow,
-            Integer stockDirection) {
+            Integer stockDirection,
+            boolean removable,
+            boolean typeLocked) {
+
+        public BloqueItem(String id, String type, String name, String description, String color, String width,
+                          List<CampoItem> fields, List<Map<String, Object>> rows, String content, Boolean startRow,
+                          Integer stockDirection) {
+            this(id, type, name, description, color, width, fields, rows, content, startRow, stockDirection, true,
+                    false);
+        }
     }
 
+    /** {@code system} es sólo de salida: la columna es una de las fijas de su tipo de sección. */
     public record CampoItem(
             String key,
             String label,
@@ -80,7 +94,13 @@ public record SistemaItem(
             boolean required,
             List<String> options,
             BigDecimal min,
-            String target) {
+            String target,
+            boolean system) {
+
+        public CampoItem(String key, String label, String type, boolean required, List<String> options,
+                         BigDecimal min, String target) {
+            this(key, label, type, required, options, min, target, false);
+        }
     }
 
 
@@ -198,11 +218,13 @@ public record SistemaItem(
                 bloque.getDescripcion(),
                 clave(COLORES, bloque.getColor()),
                 clave(ANCHOS, bloque.getAncho()),
-                campos.stream().map(SistemaItem::campo).toList(),
+                campos.stream().map(campo -> campo(bloque, campo)).toList(),
                 filas.stream().map(fila -> fila(fila, campos)).toList(),
                 bloque.getContenido(),
                 bloque.getEmpiezaFila(),
-                bloque.getDireccionStock() == null ? null : Integer.valueOf(bloque.getDireccionStock()));
+                bloque.getDireccionStock() == null ? null : Integer.valueOf(bloque.getDireccionStock()),
+                EstructuraFija.sePuedeQuitar(bloque, sistema.proyecto().getBloques()),
+                bloque.getTipo().tieneColumnasFijas());
     }
 
     private static List<Campo> camposOrdenados(Bloque bloque) {
@@ -211,7 +233,7 @@ public record SistemaItem(
                 .toList();
     }
 
-    private static CampoItem campo(Campo campo) {
+    private static CampoItem campo(Bloque bloque, Campo campo) {
         boolean esOpcion = campo.getTipo() == TipoCampo.OPCION;
         return new CampoItem(
                 campo.claveDePantalla(),
@@ -220,7 +242,8 @@ public record SistemaItem(
                 campo.esObligatorio(),
                 esOpcion ? campo.getOpciones() : null,
                 campo.getMinimo(),
-                campo.esRelacion() ? IdSistema.aFront(campo.getBloqueRelacionadoId()) : null);
+                campo.esRelacion() ? IdSistema.aFront(campo.getBloqueRelacionadoId()) : null,
+                EstructuraFija.esColumnaFija(bloque, campo));
     }
 
     private static Map<String, Object> fila(Registro registro, List<Campo> campos) {

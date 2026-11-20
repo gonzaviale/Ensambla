@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.useCase.bloque.eliminarBloque;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.bloque.ProteccionDeEstructura;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
@@ -45,8 +46,17 @@ public class EliminarBloque {
     }
 
     private void eliminar(Bloque bloque) {
+        validarQueNoSeaLaUltimaObligatoria(bloque);
         validarSinConexionesHacia(bloque);
         borrar(bloque);
+    }
+
+    private void validarQueNoSeaLaUltimaObligatoria(Bloque bloque) {
+        ProteccionDeEstructura.exigirQueSePuedaQuitarLaSeccion(bloque, obtenerBloquesDelSistema(bloque));
+    }
+
+    private List<Bloque> obtenerBloquesDelSistema(Bloque bloque) {
+        return bloqueRepository.findByProyectoIdAndNegocioId(bloque.getProyectoId(), bloque.getNegocioId());
     }
 
     private void validarSinConexionesHacia(Bloque bloque) {

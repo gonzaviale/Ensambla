@@ -14,6 +14,7 @@ import type {
   TipoBloque,
   Valor,
 } from './tipos';
+import { motivoParaNoQuitarLaSeccion, sePuedeQuitarLaSeccion } from './estructuraFija';
 
 // Motor local de Ensambla: define bloques, campos y registros. Es independiente de la
 // interfaz. Igual que en el mockup, muchas funciones modifican el sistema que reciben (los tests y la
@@ -536,13 +537,18 @@ export function removeRow(bloque: Bloque, filaId: string, sistema: Sistema): Res
 export function removeBlock(sistema: Sistema, bloqueId: string): ResultadoDeQuitar {
   const objetivo = findBlock(sistema, bloqueId);
   if (!objetivo) return { errors: { _form: 'El bloque ya no existe.' } };
-  const error = errorAlVaciarUnaCopia(sistema, bloqueId);
+  const error = errorDeLaEstructuraFija(sistema, objetivo) ?? errorAlVaciarUnaCopia(sistema, bloqueId);
   if (error) return error;
   for (const fila of [...objetivo.rows]) removeRow(objetivo, fila.id, sistema);
   for (const seccion of sistema.sections) {
     seccion.blocks = seccion.blocks.filter((bloque) => bloque.id !== bloqueId);
   }
   return { removed: true };
+}
+
+function errorDeLaEstructuraFija(sistema: Sistema, bloque: Bloque): ResultadoDeQuitar | undefined {
+  if (sePuedeQuitarLaSeccion(sistema, bloque)) return undefined;
+  return { errors: { _form: motivoParaNoQuitarLaSeccion(bloque) } };
 }
 
 function errorAlVaciarUnaCopia(sistema: Sistema, bloqueId: string) {

@@ -494,7 +494,7 @@ function entoncesLosErroresSon(esperados: unknown) {
 }
 
 function entoncesElBloqueFinalTieneLaColumnaNueva() {
-  expect(incorporacion.bloque.fields).toHaveLength(6);
+  expect(incorporacion.bloque.fields).toHaveLength(10);
   expect(incorporacion.bloque.fields.at(-1)).toEqual({
     key: 'clave-nueva',
     label: 'Quién lo vende',
@@ -504,7 +504,7 @@ function entoncesElBloqueFinalTieneLaColumnaNueva() {
 }
 
 function entoncesElBloqueOriginalSigueConCincoCampos() {
-  expect(bloqueOriginal.fields).toHaveLength(5);
+  expect(bloqueOriginal.fields).toHaveLength(9);
 }
 
 function entoncesLosRegistrosUsanLaClaveNueva() {
@@ -517,7 +517,7 @@ function entoncesLosRegistrosUsanLaClaveNueva() {
 }
 
 function entoncesNoSeCreaLaColumnaNiSusDatos() {
-  expect(incorporacion.bloque.fields).toHaveLength(5);
+  expect(incorporacion.bloque.fields).toHaveLength(9);
   for (const fila of incorporacion.filas)
     expect(Object.keys(fila)).toEqual(bloqueOriginal.fields.map((campo) => campo.key));
 }

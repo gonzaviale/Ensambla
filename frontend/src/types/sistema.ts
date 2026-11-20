@@ -23,6 +23,7 @@ export const campoSchema = z.object({
   options: z.array(z.string()).optional(),
   min: z.number().optional(),
   target: z.string().optional(),
+  system: z.boolean().optional(),
 });
 
 // Una fila guarda los valores por la clave de cada campo.

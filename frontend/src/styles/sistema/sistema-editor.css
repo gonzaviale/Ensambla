@@ -1348,3 +1348,15 @@ body:has(.editor-layout) {
     width: 100%;
   }
 }
+
+/* Candado de las columnas que Ensambla necesita para funcionar. */
+.columna-fija {
+  display: inline-flex;
+  margin-left: 6px;
+  vertical-align: middle;
+  opacity: 0.75;
+}
+.columna-fija .icon {
+  width: 14px;
+  height: 14px;
+}

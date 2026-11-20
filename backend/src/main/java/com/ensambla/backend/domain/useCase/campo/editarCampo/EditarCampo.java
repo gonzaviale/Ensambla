@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.campo.editarCampo;
 
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.ProteccionDeEstructura;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @RequiredArgsConstructor
 public class EditarCampo {
@@ -58,10 +60,20 @@ public class EditarCampo {
     private Campo editar(Bloque bloque, Campo campo, ConfiguracionCampo configuracion, OffsetDateTime ahora) {
         cargarCamposDe(bloque);
         Campo editado = bloque.editarCampo(campo, configuracion, ahora);
+        validarQueConserveSuFuncion(bloque, campo, editado);
         validarConexion(bloque, editado);
         editado.validarReferenciasDeFormula(bloque.getCampos());
         editado.validarCambioDeTipo(bloque.getCampos());
         return guardar(editado);
+    }
+
+    private void validarQueConserveSuFuncion(Bloque bloque, Campo campo, Campo editado) {
+        ProteccionDeEstructura.exigirQueSePuedaCambiarLaColumna(
+                bloque, campo, editado, obtenerBloquesDelSistema(bloque));
+    }
+
+    private List<Bloque> obtenerBloquesDelSistema(Bloque bloque) {
+        return bloqueRepository.findByProyectoIdAndNegocioId(bloque.getProyectoId(), bloque.getNegocioId());
     }
 
     private void cargarCamposDe(Bloque bloque) {

@@ -41,6 +41,10 @@ public final class PiezasDelTurno {
         return piezas.stream().anyMatch(pieza -> pieza.tipo().equals(tipo));
     }
 
+    public boolean esLaUnicaDelTipo(PiezaTaller pieza) {
+        return piezas.stream().filter(otra -> otra.tipo().equals(pieza.tipo())).count() == 1;
+    }
+
     public boolean tieneNombre(String nombre) {
         return piezas.stream().anyMatch(pieza -> pieza.seLlama(nombre));
     }

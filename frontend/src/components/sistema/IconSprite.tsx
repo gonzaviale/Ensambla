@@ -79,6 +79,10 @@ export function IconSprite() {
         <symbol id="i-grip" viewBox="0 0 24 24">
           <path d="M9 5h.01M15 5h.01M9 12h.01M15 12h.01M9 19h.01M15 19h.01" strokeWidth="3.5" />
         </symbol>
+        <symbol id="i-lock" viewBox="0 0 24 24">
+          <rect x="5" y="11" width="14" height="10" rx="2" />
+          <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+        </symbol>
         <symbol id="i-edit" viewBox="0 0 24 24">
           <path d="m14 5 5 5M4 20l5-1L21 7a2 2 0 0 0-5-5L4 14l-1 7 6-2" />
         </symbol>

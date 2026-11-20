@@ -46,6 +46,7 @@ export const NOMBRES_DE_ICONO = [
   'mic',
   'bulb',
   'expand',
+  'lock',
 
   'star',
   'star-fill',

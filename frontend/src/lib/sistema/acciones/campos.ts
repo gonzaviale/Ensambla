@@ -1,6 +1,11 @@
 import { FIELD_TYPES } from '../catalogo';
 import { comportamientoDe } from '../comportamiento';
 import { normalize } from '../core';
+import {
+  esColumnaFija,
+  motivoParaNoQuitarLaColumna,
+  problemaAlCambiarLaColumna,
+} from '../estructuraFija';
 import type { Bloque, Campo, TipoCampo } from '../tipos';
 import { MAXIMO_DE_OPCIONES, lista, llego, nombreCorto, texto, valorDeEjemplo } from './argumentos';
 import {
@@ -84,6 +89,7 @@ export function quitarCampo({ sistema, hecho }: Turno, args: Record<string, unkn
   const pieza = resolverPieza(sistema, args.pieza);
   const campo = pieza && buscarCampo(pieza, texto(args.campo));
   if (!pieza || !campo) return NO_ENCONTRE_EL_DATO;
+  if (esColumnaFija(campo)) return motivoParaNoQuitarLaColumna(campo);
   if (campo.required || esVinculo(campo)) return `«${campo.label}» no se puede quitar.`;
   pieza.fields = pieza.fields.filter((candidato) => candidato.key !== campo.key);
   borrarElDatoDeLasFilas(pieza.rows, campo.key);
@@ -102,9 +108,18 @@ export function editarCampo({ sistema, hecho }: Turno, args: Record<string, unkn
   const cambio = cambioPedido(pieza, campo, args);
   if (typeof cambio === 'string') return cambio;
   if (noCambiaNada(campo, cambio)) return cambio.tipoIgnorado ?? `«${campo.label}» ya estaba así.`;
+  const problema = problemaAlCambiarLaColumna(campo, campoComoQuedaria(campo, cambio));
+  if (problema) return problema;
   aplicarElCambio(pieza, campo, cambio, hecho);
   return undefined;
 }
+
+const campoComoQuedaria = (campo: Campo, cambio: CambioDeCampo): Campo => ({
+  ...campo,
+  type: cambio.tipo,
+  options: cambio.opciones ?? campo.options,
+  required: cambio.obligatorio ?? campo.required,
+});
 
 function cambioPedido(
   pieza: Bloque,
