@@ -3,6 +3,8 @@ package com.ensambla.backend.domain.useCase.sistema.guardarSistema;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.catalogo.CodigosInventario;
+import com.ensambla.backend.domain.model.bloque.EstructuraFija;
+import com.ensambla.backend.domain.model.bloque.ProteccionDeEstructura;
 import com.ensambla.backend.domain.model.caja.ProteccionCaja;
 import com.ensambla.backend.domain.model.sistema.Sistema;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
@@ -49,11 +51,14 @@ public class GuardarSistema {
     }
 
     /** Crea el sistema o lo reemplaza; si el id es de un proyecto de otro negocio responde como si no existiera. */
-    private Sistema guardar(NegocioId negocioId, Sistema sistema, OffsetDateTime leidoEn) {
+    private Sistema guardar(NegocioId negocioId, Sistema propuesto, OffsetDateTime leidoEn) {
         bloquearNegocio(negocioId);
-        Optional<NegocioId> duenioActual = obtenerDuenioActual(sistema);
+        Optional<NegocioId> duenioActual = obtenerDuenioActual(propuesto);
         validarDuenio(negocioId, duenioActual);
-        validarProteccionDeCaja(negocioId, sistema, leidoEn);
+        List<Sistema> actuales = obtenerSistemasDelNegocio(negocioId);
+        validarProteccionDeCaja(actuales, propuesto, leidoEn);
+        validarProteccionDeEstructura(actuales, propuesto);
+        Sistema sistema = completarLaEstructura(propuesto);
         validarCodigosDeInventario(sistema);
         validarAltaDelProyecto(negocioId, sistema, duenioActual);
         validarRegistrosNuevos(negocioId, sistema);
@@ -69,8 +74,16 @@ public class GuardarSistema {
                 });
     }
 
-    private void validarProteccionDeCaja(NegocioId negocioId, Sistema sistema, OffsetDateTime leidoEn) {
-        ProteccionCaja.validar(obtenerSistemasDelNegocio(negocioId), sistema, leidoEn);
+    private void validarProteccionDeCaja(List<Sistema> actuales, Sistema propuesto, OffsetDateTime leidoEn) {
+        ProteccionCaja.validar(actuales, propuesto, leidoEn);
+    }
+
+    private void validarProteccionDeEstructura(List<Sistema> actuales, Sistema propuesto) {
+        ProteccionDeEstructura.validar(actuales, propuesto);
+    }
+
+    private Sistema completarLaEstructura(Sistema propuesto) {
+        return EstructuraFija.completar(propuesto, OffsetDateTime.now(clock));
     }
 
     private void validarCodigosDeInventario(Sistema sistema) {

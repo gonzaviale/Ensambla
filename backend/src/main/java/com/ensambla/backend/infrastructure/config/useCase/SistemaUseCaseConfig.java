@@ -18,8 +18,12 @@ import java.time.Clock;
 public class SistemaUseCaseConfig {
 
     @Bean
-    public ListarSistemas listarSistemas(NegocioRepository negocioRepository, SistemaRepository sistemaRepository) {
-        return new ListarSistemas(negocioRepository, sistemaRepository);
+    public ListarSistemas listarSistemas(
+            NegocioRepository negocioRepository,
+            SistemaRepository sistemaRepository,
+            TransaccionPort transaccionPort,
+            Clock clock) {
+        return new ListarSistemas(negocioRepository, sistemaRepository, transaccionPort, clock);
     }
 
     @Bean

@@ -130,7 +130,7 @@ public final class EstructuraFija {
 
     /** La columna de la persona con una clave reservada y otro tipo se conserva, con sus datos, con otro nombre. */
     private static void apartar(Campo propia, OffsetDateTime ahora) {
-        propia.setClave(propia.claveDePantalla() + SUFIJO_DE_LA_ANTERIOR);
+        propia.setClave(propia.getClave() + SUFIJO_DE_LA_ANTERIOR);
         propia.setNombre(propia.getNombre() + NOMBRE_DE_LA_ANTERIOR);
         propia.setActualizadoEn(ahora);
     }

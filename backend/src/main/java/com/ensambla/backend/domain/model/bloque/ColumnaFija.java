@@ -73,7 +73,7 @@ public record ColumnaFija(
     }
 
     public boolean esLaDe(Campo campo) {
-        return clave.equals(campo.claveDePantalla());
+        return clave.equals(campo.getClave());
     }
 
     public boolean laCumple(Campo campo, List<Bloque> bloques) {
