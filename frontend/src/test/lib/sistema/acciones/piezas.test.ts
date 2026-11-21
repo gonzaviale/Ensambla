@@ -21,8 +21,6 @@ import {
   cuandoSeCopiaConOtraFecha,
   cuandoSeCopiaConOtroNombre,
   cuandoSeResume,
-  cuandoSeResumeConLaPrimeraVentaYaGuardada,
-  cuandoSeResumeConTodoGuardado,
   dadaUnaTablaDeTurnosConectadaALosClientes,
   dadoUnAlmacenConDosVentasCargadas,
   dadoUnAlmacenConUnaVentaAAntoGuardada,
@@ -47,10 +45,10 @@ import {
   entoncesLaPrimeraVentaViajaConSusDatosYSuClienta,
   entoncesLasPiezasVinculadasLlevanLosNombresQueTienen,
   entoncesLaVentaViajaSoloConSuCantidad,
-  entoncesLoGuardadoNoViajaComoRegistro,
+  entoncesLoGuardadoViajaComoRegistro,
   entoncesLosNombresMiden,
   entoncesLosProductosSumadosAlVincularViajanSinStock,
-  entoncesSoloViajaLaVentaNueva,
+  entoncesViajanLasDosVentas,
   entoncesTodasLasPiezasOcupanTodoElAncho,
   entoncesUnaPiezaQueNadieVinculaNoLlevaNombres,
 } from '@/test/accionesSobrePiezas';
@@ -80,12 +78,12 @@ describe('el resumen del sistema que se manda a Sami', () => {
     entoncesElResumenEsDeUnaColumnaConTodoEnLaPrimeraPestana();
   });
 
-  it('lleva los registros del armado pero no los que ya estaban guardados', () => {
+  it('lleva los registros del armado y también los que ya estaban guardados', () => {
     dadoUnAlmacenConDosVentasCargadas();
 
-    cuandoSeResumeConLaPrimeraVentaYaGuardada();
+    cuandoSeResume();
 
-    entoncesSoloViajaLaVentaNueva();
+    entoncesViajanLasDosVentas();
   });
 
   it('cada registro viaja con su id y sus datos por etiqueta, también el nombre de su vínculo', () => {
@@ -99,7 +97,7 @@ describe('el resumen del sistema que se manda a Sami', () => {
   it('los productos que se sumaron al vincular las ventas viajan como registros sin stock', () => {
     dadoUnAlmacenConDosVentasCargadas();
 
-    cuandoSeResumeConLaPrimeraVentaYaGuardada();
+    cuandoSeResume();
 
     entoncesLosProductosSumadosAlVincularViajanSinStock();
   });
@@ -107,23 +105,23 @@ describe('el resumen del sistema que se manda a Sami', () => {
   it('las piezas con las que otra se vincula llevan los nombres que ya tienen, también los guardados', () => {
     dadoUnAlmacenConUnaVentaAAntoGuardada();
 
-    cuandoSeResumeConTodoGuardado();
+    cuandoSeResume();
 
     entoncesLasPiezasVinculadasLlevanLosNombresQueTienen();
   });
 
-  it('lo que ya estaba guardado no viaja como registro', () => {
+  it('lo que ya estaba guardado viaja como registro', () => {
     dadoUnAlmacenConUnaVentaAAntoGuardada();
 
-    cuandoSeResumeConTodoGuardado();
+    cuandoSeResume();
 
-    entoncesLoGuardadoNoViajaComoRegistro();
+    entoncesLoGuardadoViajaComoRegistro();
   });
 
   it('una pieza con la que nadie se vincula no lleva nombres', () => {
     dadoUnAlmacenConUnaVentaAAntoGuardada();
 
-    cuandoSeResumeConTodoGuardado();
+    cuandoSeResume();
 
     entoncesUnaPiezaQueNadieVinculaNoLlevaNombres();
   });
