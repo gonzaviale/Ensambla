@@ -38,15 +38,101 @@ class VencerPruebasTest {
     private final PruebaPremiumRepository pruebaPremiumRepository = mock(PruebaPremiumRepository.class);
     private final UsoPlanRepository usoPlanRepository = mock(UsoPlanRepository.class);
 
+    private Suscripcion suscripcion;
+    private Plan gratuito;
+
     @Test
     @DisplayName("El vencimiento devuelve el gratuito con el reloj del servidor sin borrar el historial de prueba")
-    void executeShouldRestoreFreePlanAtExactEnd() {
-        Suscripcion suscripcion = givenPruebaQueTermina(INSTANTE);
-        Plan gratuito = plan();
+    void elVencimientoDevuelveElGratuitoConElRelojDelServidorSinBorrarElHistorialDePrueba() {
+        dadoUnaPruebaQueTerminaAhora();
+
+        cuandoVenceElProcesoAhora();
+
+        entoncesElNegocioVuelveAlGratuitoDesdeAhora();
+        entoncesSeConservaElHistorialDeLaPrueba();
+    }
+
+    @Test
+    @DisplayName("El proceso no vence una prueba antes de su fecha de fin")
+    void elProcesoNoVenceUnaPruebaAntesDeSuFechaDeFin() {
+        dadoUnaPruebaQueTerminaElDiaSiguiente();
+
+        cuandoVenceElProcesoAhora();
+
+        entoncesNoSeModificaNingunaSuscripcion();
+    }
+
+    @Test
+    @DisplayName("Un pago activado después de listar candidatos no es degradado por el job")
+    void unPagoActivadoDespuesDeListarCandidatosNoEsDegradadoPorElJob() {
+        dadoUnCandidatoQueYaPagoPremium();
+
+        cuandoVenceElProcesoDentroDeTreintaDias();
+
+        entoncesNoSeModificaNingunaSuscripcion();
+    }
+
+    @Test
+    @DisplayName("Un lote sin pruebas vencidas no modifica suscripciones")
+    void unLoteSinPruebasVencidasNoModificaSuscripciones() {
+        dadoUnLoteSinPruebasVencidas();
+
+        cuandoVenceElProcesoAhora();
+
+        entoncesNoSeConsultaNingunaSuscripcion();
+    }
+
+    // --- dado ---
+    private void dadoUnaPruebaQueTerminaAhora() {
+        suscripcion = dadoPruebaQueTermina(INSTANTE);
+        gratuito = plan();
         when(planRepository.findByCodigo(CodigoPlan.GRATUITO)).thenReturn(Optional.of(gratuito));
+    }
 
+    private void dadoUnaPruebaQueTerminaElDiaSiguiente() {
+        dadoPruebaQueTermina(INSTANTE.plusDays(1));
+    }
+
+    private void dadoUnCandidatoQueYaPagoPremium() {
+        dadoCandidato();
+        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
+    }
+
+    private void dadoUnLoteSinPruebasVencidas() {
+        when(pruebaPremiumRepository.findNegociosVencidos(INSTANTE)).thenReturn(List.of());
+    }
+
+    private Suscripcion dadoPruebaQueTermina(OffsetDateTime fin) {
+        dadoCandidato();
+        Suscripcion enPrueba = suscripcion();
+        enPrueba.setEstado(EstadoSuscripcion.PRUEBA);
+        enPrueba.setFinEn(fin);
+        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(enPrueba));
+        return enPrueba;
+    }
+
+    private void dadoCandidato() {
+        when(pruebaPremiumRepository.findNegociosVencidos(any())).thenReturn(List.of(NEGOCIO_ID));
+    }
+
+    // --- cuando ---
+    private void cuandoVenceElProcesoAhora() {
         vencerA(INSTANTE);
+    }
 
+    private void cuandoVenceElProcesoDentroDeTreintaDias() {
+        vencerA(INSTANTE.plusDays(30));
+    }
+
+    private void vencerA(OffsetDateTime ahora) {
+        new VencerPruebas(planRepository, pruebaPremiumRepository,
+                suscripcionRepository, usoPlanRepository, new TransaccionDirecta(),
+                Clock.fixed(ahora.toInstant(), ZoneOffset.UTC))
+                .execute();
+    }
+
+    // --- entonces ---
+    private void entoncesElNegocioVuelveAlGratuitoDesdeAhora() {
         assertThat(suscripcion.getEstado()).isEqualTo(EstadoSuscripcion.ACTIVA);
         assertThat(suscripcion.getPlanId()).isEqualTo(gratuito.getId());
         assertThat(suscripcion.getInicioEn()).isEqualTo(INSTANTE);
@@ -54,61 +140,18 @@ class VencerPruebasTest {
         assertThat(suscripcion.getActualizadoEn()).isEqualTo(INSTANTE);
         verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
         verify(suscripcionRepository).save(suscripcion);
+    }
+
+    private void entoncesSeConservaElHistorialDeLaPrueba() {
         verify(pruebaPremiumRepository, never()).save(any());
     }
 
-    @Test
-    @DisplayName("El proceso no vence una prueba antes de su fecha de fin")
-    void executeShouldKeepUnexpiredTrial() {
-        givenPruebaQueTermina(INSTANTE.plusDays(1));
-
-        vencerA(INSTANTE);
-
+    private void entoncesNoSeModificaNingunaSuscripcion() {
         verify(suscripcionRepository, never()).save(any());
         verifyNoInteractions(planRepository);
     }
 
-    @Test
-    @DisplayName("Un pago activado después de listar candidatos no es degradado por el job")
-    void executeShouldPreserveSubscriptionActivatedAfterSelection() {
-        givenCandidato();
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
-
-        vencerA(INSTANTE.plusDays(30));
-
-        verify(suscripcionRepository, never()).save(any());
-        verifyNoInteractions(planRepository);
-    }
-
-    @Test
-    @DisplayName("Un lote sin pruebas vencidas no modifica suscripciones")
-    void executeShouldSkipEmptyBatch() {
-        when(pruebaPremiumRepository.findNegociosVencidos(INSTANTE)).thenReturn(List.of());
-
-        vencerA(INSTANTE);
-
+    private void entoncesNoSeConsultaNingunaSuscripcion() {
         verifyNoInteractions(suscripcionRepository, usoPlanRepository);
-    }
-
-    // --- arrange ---
-    private Suscripcion givenPruebaQueTermina(OffsetDateTime fin) {
-        givenCandidato();
-        Suscripcion suscripcion = suscripcion();
-        suscripcion.setEstado(EstadoSuscripcion.PRUEBA);
-        suscripcion.setFinEn(fin);
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
-        return suscripcion;
-    }
-
-    private void givenCandidato() {
-        when(pruebaPremiumRepository.findNegociosVencidos(any())).thenReturn(List.of(NEGOCIO_ID));
-    }
-
-    // --- act ---
-    private void vencerA(OffsetDateTime ahora) {
-        new VencerPruebas(planRepository, pruebaPremiumRepository,
-                suscripcionRepository, usoPlanRepository, new TransaccionDirecta(),
-                Clock.fixed(ahora.toInstant(), ZoneOffset.UTC))
-                .execute();
     }
 }

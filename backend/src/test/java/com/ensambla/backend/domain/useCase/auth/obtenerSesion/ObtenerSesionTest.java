@@ -11,40 +11,58 @@ import static com.ensambla.backend.support.UsuarioTestData.NOMBRE;
 import static com.ensambla.backend.support.UsuarioTestData.USUARIO_ID;
 import static com.ensambla.backend.support.UsuarioTestData.usuario;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ObtenerSesionTest {
 
     private final UsuarioRepository usuarioRepository = mock(UsuarioRepository.class);
-    private final ObtenerSesion useCase = new ObtenerSesion(usuarioRepository);
+    private final ObtenerSesion obtenerSesion = new ObtenerSesion(usuarioRepository);
+    private UsuarioResponse sesion;
+    private Throwable error;
 
     @Test
-    @DisplayName("Delega al repositorio y devuelve la identidad mapeada")
-    void executeShouldDelegateAndMapResponse() {
-        when(usuarioRepository.obtenerActivo(USUARIO_ID)).thenReturn(usuario());
+    @DisplayName("Devuelve la identidad del usuario activo de la sesión")
+    void devuelveLaIdentidadDelUsuarioActivo() {
+        dadoQueElUsuarioEstaActivo();
 
-        UsuarioResponse result = ejecutar();
+        cuandoSeObtieneLaSesion();
 
-        assertThat(result.id()).isEqualTo(usuario().getId());
-        assertThat(result.nombre()).isEqualTo(NOMBRE);
-        assertThat(result.email()).isEqualTo(EMAIL);
-        verify(usuarioRepository).obtenerActivo(USUARIO_ID);
+        entoncesLaSesionEsDeLaPersona();
     }
 
     @Test
     @DisplayName("Propaga el error del repositorio sin convertirlo")
-    void executeShouldPropagateRepositoryError() {
-        when(usuarioRepository.obtenerActivo(USUARIO_ID)).thenThrow(new CredencialesInvalidasException());
+    void propagaElErrorDelRepositorioSinConvertirlo() {
+        dadoQueElUsuarioNoEstaActivo();
 
-        assertThatThrownBy(this::ejecutar).isInstanceOf(CredencialesInvalidasException.class);
+        cuandoSeIntentaObtenerLaSesion();
+
+        entoncesSeRechazanLasCredenciales();
     }
 
-    // --- act ---
-    private UsuarioResponse ejecutar() {
-        return useCase.execute(USUARIO_ID);
+    private void dadoQueElUsuarioEstaActivo() {
+        when(usuarioRepository.obtenerActivo(USUARIO_ID)).thenReturn(usuario());
+    }
+
+    private void dadoQueElUsuarioNoEstaActivo() {
+        when(usuarioRepository.obtenerActivo(USUARIO_ID)).thenThrow(new CredencialesInvalidasException());
+    }
+
+    private void cuandoSeObtieneLaSesion() {
+        sesion = obtenerSesion.execute(USUARIO_ID);
+    }
+
+    private void cuandoSeIntentaObtenerLaSesion() {
+        error = catchThrowable(this::cuandoSeObtieneLaSesion);
+    }
+
+    private void entoncesLaSesionEsDeLaPersona() {
+        assertThat(sesion).isEqualTo(new UsuarioResponse(usuario().getId(), NOMBRE, EMAIL));
+    }
+
+    private void entoncesSeRechazanLasCredenciales() {
+        assertThat(error).isInstanceOf(CredencialesInvalidasException.class);
     }
 }
-

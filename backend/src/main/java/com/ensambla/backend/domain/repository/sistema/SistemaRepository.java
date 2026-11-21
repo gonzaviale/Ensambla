@@ -1,6 +1,10 @@
 package com.ensambla.backend.domain.repository.sistema;
 
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.sistema.Sistema;
 
@@ -9,6 +13,13 @@ import java.util.List;
 import java.util.Optional;
 
 public interface SistemaRepository {
+
+    default Bloque obtenerInventarioCaja(NegocioId negocioId, ProyectoId proyectoId, BloqueId inventarioId) {
+        return findAllByNegocioId(negocioId).stream().filter(sistema -> sistema.id().equals(proyectoId))
+                .flatMap(sistema -> sistema.proyecto().getBloques().stream())
+                .filter(bloque -> bloque.getId().equals(inventarioId) && bloque.getTipo() == TipoBloque.INVENTARIO)
+                .findFirst().orElseThrow(() -> new ResourceNotFoundException("Inventario de caja no encontrado"));
+    }
 
     /** Todos los sistemas del negocio, con secciones, columnas y filas. Nunca incluye los de otro negocio. */
     List<Sistema> findAllByNegocioId(NegocioId negocioId);

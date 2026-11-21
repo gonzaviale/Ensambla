@@ -1,19 +1,39 @@
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'vitest';
 import { aAvisoDeSami, tiposCubiertosPorElServidor } from '@/lib/sistema/avisosServidor';
 import { avisoDelServidor } from '@/test/avisosData';
+import {
+  cuandoSeCalcula,
+  entoncesElResultadoCoincideCon,
+  entoncesElResultadoDe,
+  entoncesElResultadoEs,
+} from '@/test/calculo';
 
 const PROYECTO_ID = 'c0000000-0000-4000-8000-000000000001';
+const AVISO_ID = 'e0000000-0000-4000-8000-000000000001';
+
+type AvisoDeSami = ReturnType<typeof aAvisoDeSami>;
+type Acciones = NonNullable<Parameters<typeof avisoDelServidor>[0]>['acciones'];
+
+const traducir = (
+  cambios: Parameters<typeof avisoDelServidor>[0] = {},
+  nombres = new Map<string, string>(),
+) => cuandoSeCalcula(() => aAvisoDeSami(avisoDelServidor(cambios), nombres));
+
+const lasAcciones = (esperadas: unknown[]) =>
+  entoncesElResultadoDe<AvisoDeSami>((aviso) => aviso.acciones, esperadas);
+
+const conAcciones = (acciones: Acciones): { acciones: Acciones } => ({ acciones });
+
+const delServidor = (...tipos: Array<'STOCK' | 'ESTANCADO'>) =>
+  tipos.map((tipo) => aAvisoDeSami(avisoDelServidor({ tipo }), new Map()));
 
 describe('aAvisoDeSami', () => {
   it('arma el aviso con el id del servidor, el tipo y el grupo en minúscula', () => {
-    const aviso = aAvisoDeSami(
-      avisoDelServidor({ tipo: 'PRECIO_ZONA', grupo: 'VENTAS', prioridad: 2 }),
-      new Map(),
-    );
+    traducir({ tipo: 'PRECIO_ZONA', grupo: 'VENTAS', prioridad: 2 });
 
-    expect(aviso).toMatchObject({
-      id: 'servidor:e0000000-0000-4000-8000-000000000001',
-      servidorId: 'e0000000-0000-4000-8000-000000000001',
+    entoncesElResultadoCoincideCon({
+      id: `servidor:${AVISO_ID}`,
+      servidorId: AVISO_ID,
       tipo: 'precio_zona',
       grupo: 'ventas',
       prioridad: 2,
@@ -21,35 +41,34 @@ describe('aAvisoDeSami', () => {
     });
   });
 
-  it('usa el nombre del sistema que conoce y, si no, «Tu negocio»', () => {
-    const conNombre = aAvisoDeSami(avisoDelServidor(), new Map([[PROYECTO_ID, 'Mi almacén']]));
-    const sinNombre = aAvisoDeSami(avisoDelServidor({ proyectoId: null }), new Map());
+  it('usa el nombre del sistema que conoce', () => {
+    traducir({}, new Map([[PROYECTO_ID, 'Mi almacén']]));
 
-    expect(conNombre.sistema).toBe('Mi almacén');
-    expect(conNombre.sistemaId).toBe(PROYECTO_ID);
-    expect(sinNombre.sistema).toBe('Tu negocio');
-    expect(sinNombre.sistemaId).toBe('');
+    entoncesElResultadoCoincideCon({ sistema: 'Mi almacén', sistemaId: PROYECTO_ID });
+  });
+
+  it('si no conoce el sistema usa «Tu negocio»', () => {
+    traducir({ proyectoId: null });
+
+    entoncesElResultadoCoincideCon({ sistema: 'Tu negocio', sistemaId: '' });
   });
 
   it('registrar y abrir llevan a la tabla del proyecto', () => {
-    const aviso = aAvisoDeSami(
-      avisoDelServidor({
-        acciones: [
-          { tipo: 'REGISTRAR', proyectoId: PROYECTO_ID, bloqueId: 'entradas' },
-          { tipo: 'ABRIR', proyectoId: PROYECTO_ID, bloqueId: 'inventario', registroId: 'fila-1' },
-          { tipo: 'ABRIR' },
-        ],
-      }),
-      new Map(),
+    traducir(
+      conAcciones([
+        { tipo: 'REGISTRAR', proyectoId: PROYECTO_ID, bloqueId: 'entradas' },
+        { tipo: 'ABRIR', proyectoId: PROYECTO_ID, bloqueId: 'inventario', registroId: 'fila-1' },
+        { tipo: 'ABRIR' },
+      ]),
     );
 
-    expect(aviso.acciones).toEqual([
+    lasAcciones([
       {
         tipo: 'registrar',
-        texto: 'Registrar entrada',
+        texto: 'Cargar entrada',
         sistemaId: PROYECTO_ID,
         bloqueId: 'entradas',
-        avisoId: 'e0000000-0000-4000-8000-000000000001',
+        avisoId: AVISO_ID,
       },
       {
         tipo: 'abrir',
@@ -63,94 +82,106 @@ describe('aAvisoDeSami', () => {
   });
 
   it('editar un registro se le pide al servidor, que lo aplica y cierra el aviso', () => {
-    const aviso = aAvisoDeSami(
-      avisoDelServidor({
-        acciones: [
-          { tipo: 'EDITAR_REGISTRO', texto: 'Subir a $4.200', registroId: 'fila-1' },
-          { tipo: 'EDITAR_REGISTRO' },
-        ],
-      }),
-      new Map(),
+    traducir(
+      conAcciones([
+        { tipo: 'EDITAR_REGISTRO', texto: 'Subir a $4.200', registroId: 'fila-1' },
+        { tipo: 'EDITAR_REGISTRO' },
+      ]),
     );
 
-    expect(aviso.acciones).toEqual([
+    lasAcciones([
       {
         tipo: 'servidor',
         texto: 'Subir a $4.200',
-        avisoId: 'e0000000-0000-4000-8000-000000000001',
+        avisoId: AVISO_ID,
         confirmacion: 'Listo, aplicamos el cambio.',
       },
       {
         tipo: 'servidor',
         texto: 'Aplicar el cambio',
-        avisoId: 'e0000000-0000-4000-8000-000000000001',
+        avisoId: AVISO_ID,
         confirmacion: 'Listo, aplicamos el cambio.',
       },
     ]);
   });
 
   it('ver en Mi zona lleva a la zona con el producto, sin pedirle nada al servidor', () => {
-    const aviso = aAvisoDeSami(
-      avisoDelServidor({
-        tipo: 'CONSUMO_ZONA',
-        grupo: 'ZONA',
-        acciones: [
-          { tipo: 'VER_ZONA', texto: 'Ver en Mi zona', producto: 'Café La Virginia 250 g' },
-          { tipo: 'VER_ZONA' },
-        ],
-      }),
-      new Map(),
-    );
+    traducir({
+      tipo: 'CONSUMO_ZONA',
+      grupo: 'ZONA',
+      ...conAcciones([
+        { tipo: 'VER_ZONA', texto: 'Ver en Mi zona', producto: 'Café La Virginia 250 g' },
+        { tipo: 'VER_ZONA' },
+      ]),
+    });
 
-    expect(aviso.tipo).toBe('consumo_zona');
-    expect(aviso.acciones).toEqual([
+    lasAcciones([
       { tipo: 'zona', texto: 'Ver en Mi zona', producto: 'Café La Virginia 250 g' },
       { tipo: 'zona', texto: 'Ver en Mi zona', producto: undefined },
     ]);
   });
 
-  it('crear una fila (un combo) también se le pide al servidor, que la crea y cierra el aviso', () => {
-    const aviso = aAvisoDeSami(
-      avisoDelServidor({
-        tipo: 'COMBO',
-        acciones: [
-          { tipo: 'CREAR_REGISTRO', texto: 'Crear el combo', proyectoId: PROYECTO_ID, bloqueId: 'inventario' },
-          { tipo: 'CREAR_REGISTRO' },
-        ],
-      }),
-      new Map(),
-    );
+  it('un aviso de consumo en la zona conserva su tipo', () => {
+    traducir({ tipo: 'CONSUMO_ZONA', grupo: 'ZONA' });
 
-    expect(aviso.tipo).toBe('combo');
-    expect(aviso.acciones).toEqual([
+    entoncesElResultadoCoincideCon({ tipo: 'consumo_zona' });
+  });
+
+  it('crear una fila (un combo) también se le pide al servidor, que la crea y cierra el aviso', () => {
+    traducir({
+      tipo: 'COMBO',
+      ...conAcciones([
+        {
+          tipo: 'CREAR_REGISTRO',
+          texto: 'Crear el combo',
+          proyectoId: PROYECTO_ID,
+          bloqueId: 'inventario',
+        },
+        { tipo: 'CREAR_REGISTRO' },
+      ]),
+    });
+
+    lasAcciones([
       {
         tipo: 'servidor',
         texto: 'Crear el combo',
-        avisoId: 'e0000000-0000-4000-8000-000000000001',
+        avisoId: AVISO_ID,
         confirmacion: 'Listo, lo creamos.',
       },
       {
         tipo: 'servidor',
         texto: 'Crear la fila',
-        avisoId: 'e0000000-0000-4000-8000-000000000001',
+        avisoId: AVISO_ID,
         confirmacion: 'Listo, lo creamos.',
       },
     ]);
   });
+
+  it('un aviso de combo conserva su tipo', () => {
+    traducir({ tipo: 'COMBO' });
+
+    entoncesElResultadoCoincideCon({ tipo: 'combo' });
+  });
 });
 
 describe('tiposCubiertosPorElServidor', () => {
-  const delServidor = (...tipos: Array<'STOCK' | 'ESTANCADO'>) =>
-    tipos.map((tipo) => aAvisoDeSami(avisoDelServidor({ tipo }), new Map()));
-
   it('sin motor activo sólo cubre los tipos que el servidor ya trajo', () => {
-    expect([...tiposCubiertosPorElServidor(delServidor('ESTANCADO'), false)]).toEqual(['estancado']);
-    expect(tiposCubiertosPorElServidor([], false).size).toBe(0);
+    cuandoSeCalcula(() => [...tiposCubiertosPorElServidor(delServidor('ESTANCADO'), false)]);
+
+    entoncesElResultadoEs(['estancado']);
+  });
+
+  it('sin motor activo ni avisos no cubre ningún tipo', () => {
+    cuandoSeCalcula(() => tiposCubiertosPorElServidor([], false).size);
+
+    entoncesElResultadoEs(0);
   });
 
   it('con el motor activo cubre siempre los tipos del motor, aunque no haya ninguno pendiente', () => {
     // Un aviso aplicado o descartado ya no está en la lista: la copia del navegador no puede volver a mostrarlo.
-    expect([...tiposCubiertosPorElServidor([], true)]).toEqual([
+    cuandoSeCalcula(() => [...tiposCubiertosPorElServidor([], true)]);
+
+    entoncesElResultadoEs([
       'stock',
       'estancado',
       'precio_zona',
@@ -162,9 +193,11 @@ describe('tiposCubiertosPorElServidor', () => {
   });
 
   it('con el motor activo cubre todos los tipos de aviso, también los que trajo el servidor', () => {
-    const cubiertos = tiposCubiertosPorElServidor(delServidor('STOCK', 'ESTANCADO'), true);
+    cuandoSeCalcula(() =>
+      [...tiposCubiertosPorElServidor(delServidor('STOCK', 'ESTANCADO'), true)].sort(),
+    );
 
-    expect([...cubiertos].sort()).toEqual([
+    entoncesElResultadoEs([
       'combo',
       'consumo_zona',
       'estancado',
@@ -176,8 +209,10 @@ describe('tiposCubiertosPorElServidor', () => {
   });
 
   it('sin motor activo suma los tipos que trajo el servidor', () => {
-    const cubiertos = tiposCubiertosPorElServidor(delServidor('STOCK', 'ESTANCADO'), false);
+    cuandoSeCalcula(() =>
+      [...tiposCubiertosPorElServidor(delServidor('STOCK', 'ESTANCADO'), false)].sort(),
+    );
 
-    expect([...cubiertos].sort()).toEqual(['estancado', 'stock']);
+    entoncesElResultadoEs(['estancado', 'stock']);
   });
 });

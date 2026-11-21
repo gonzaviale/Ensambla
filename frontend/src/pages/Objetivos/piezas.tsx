@@ -1,0 +1,119 @@
+import type { ReactNode } from 'react';
+import { Sami } from '@/components/sistema/Sami';
+
+// Piezas visuales que comparten Objetivos y «Sami te enseña».
+
+function SamiDelEncabezado({ titulo, texto }: { titulo: string; texto: string }) {
+  return (
+    <div className="objetivos-sami-mini">
+      <Sami pose="think" />
+      <div>
+        <strong>{titulo}</strong>
+        <span>{texto}</span>
+      </div>
+    </div>
+  );
+}
+
+export function Encabezado({
+  etiqueta,
+  titulo,
+  texto,
+  sami = 'Te explica cada cálculo',
+  samiTitulo = 'Sami está listo',
+  accion,
+}: {
+  etiqueta: string;
+  titulo: string;
+  texto: string;
+  sami?: string;
+  /** Qué está haciendo Sami en esta pantalla, en pocas palabras. */
+  samiTitulo?: string;
+  /** Lo que va a la derecha en lugar del cartel de Sami, por ejemplo el botón principal de la pantalla. */
+  accion?: ReactNode;
+}) {
+  return (
+    <header className="objetivos-encabezado">
+      <div>
+        <p className="objetivos-etiqueta">{etiqueta}</p>
+        <h1>{titulo}</h1>
+        <p>{texto}</p>
+      </div>
+      {accion ?? <SamiDelEncabezado titulo={samiTitulo} texto={sami} />}
+    </header>
+  );
+}
+
+export function Dato({
+  etiqueta,
+  valor,
+  positivo,
+}: {
+  etiqueta: string;
+  valor: string;
+  positivo?: boolean;
+}) {
+  return (
+    <div className="objetivos-dato">
+      <span>{etiqueta}</span>
+      <strong className={positivo ? 'positivo' : ''}>{valor}</strong>
+    </div>
+  );
+}
+
+export function Metrica({
+  etiqueta,
+  valor,
+  alerta,
+  tono,
+}: {
+  etiqueta: string;
+  valor: string;
+  alerta?: boolean;
+  /** Qué mide la cifra: marca la línea de color de arriba (lo que entra, lo que sale, lo que queda, lo que te deben). */
+  tono?: 'ingreso' | 'costo' | 'resultado' | 'deuda';
+}) {
+  return (
+    <div className={`objetivos-metrica ${alerta ? 'alerta' : ''}`.trim()} data-tono={tono}>
+      <span>{etiqueta}</span>
+      <strong>{valor}</strong>
+    </div>
+  );
+}
+
+export function Explicacion({
+  titulo = 'Sami te lo explica',
+  children,
+}: {
+  titulo?: string;
+  children: ReactNode;
+}) {
+  return (
+    <aside className="objetivos-explicacion">
+      <div className="objetivos-sami-cara">
+        <Sami pose="think" />
+      </div>
+      <div>
+        <strong>{titulo}</strong>
+        <p>{children}</p>
+      </div>
+    </aside>
+  );
+}
+
+/** Una barra de avance, de 0 a 1. */
+export function Progreso({ valor, etiqueta }: { valor: number; etiqueta: string }) {
+  const porcentaje = Math.round(valor * 100);
+  return (
+    <div
+      className="objetivos-progreso"
+      role="progressbar"
+      aria-label={etiqueta}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={porcentaje}
+    >
+      <i style={{ width: `${porcentaje}%` }} />
+    </div>
+  );
+}

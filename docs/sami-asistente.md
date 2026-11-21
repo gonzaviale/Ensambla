@@ -197,7 +197,7 @@ comparte contador con el asistente de plantillas.
 | `cambiar_distribucion(layout)` | mosaic, single, two o three |
 | `ofrecer_opciones(preguntas[{tema?, pregunta, opciones}])` o `ofrecer_opciones(pregunta, opciones)` | **no cambia nada**: Sami plantea hasta 3 dudas con botonera en una sola llamada (con una sola alcanza `pregunta` y `opciones`; varias llamadas del turno se juntan) |
 
-**Mandarle una foto a Sami.** La cámara del taller (también en «Ajustar con Sami») adjunta una foto del cuaderno, una
+**Enviar una foto a Sami.** La cámara del taller (también en «Ajustar con Sami») adjunta una foto del cuaderno, una
 lista o una planilla al próximo mensaje. El navegador la achica (lado mayor 1600 px) y viaja en
 `POST /api/sami/taller` como `imagen: {tipo, datos}` (JPEG, PNG o WEBP en base64, hasta 5 MB; si no, 400 con un mensaje
 para la persona). El modelo la ve en el mismo turno, arma o ajusta las piezas según sus columnas y carga lo que lee

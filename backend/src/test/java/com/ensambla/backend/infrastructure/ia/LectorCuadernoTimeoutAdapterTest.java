@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,6 +40,9 @@ class LectorCuadernoTimeoutAdapterTest {
     private LectorCuadernoPort lectorCuadernoPort;
 
     private LectorCuadernoTimeoutAdapter adapter;
+    private LecturaCuaderno lectura;
+    private Throwable rechazo;
+    private LecturaCuadernoException errorDeDominio;
 
     @BeforeEach
     void setUp() {
@@ -48,35 +51,113 @@ class LectorCuadernoTimeoutAdapterTest {
 
     @Test
     @DisplayName("Devuelve el resultado del lector dentro del plazo")
-    void leerShouldReturnDelegateResult() {
-        try (ExecutorService real = Executors.newSingleThreadExecutor()) {
-            when(lectorCuadernoPort.leer(List.of(), List.of(), null)).thenReturn(ProcesamientoTestData.lectura());
-            var lector = new LectorCuadernoTimeoutAdapter(lectorCuadernoPort, real, Duration.ofSeconds(5));
+    void devuelveElResultadoDelLectorDentroDelPlazo() {
+        dadoUnLectorQueDevuelveUnaLecturaDentroDelPlazo();
 
-            LecturaCuaderno resultado = lector.leer(List.of(), List.of(), null);
+        cuandoSeLeeEnUnEjecutorReal();
 
-            assertThat(resultado).isEqualTo(ProcesamientoTestData.lectura());
-        }
+        entoncesSeDevuelveElResultadoDelLector();
     }
 
     @Test
     @DisplayName("Cancela la tarea cuando se agota el timeout")
-    void leerShouldCancelTimedOutTask() throws Exception {
-        givenFuture();
-        when(futuro.get(100, TimeUnit.MILLISECONDS)).thenThrow(new TimeoutException());
+    void cancelaLaTareaCuandoSeAgotaElTimeout() throws Exception {
+        dadoUnaTareaQueSeAgotaPorTimeout();
 
-        assertThatThrownBy(() -> adapter.leer(List.of(), List.of(), null)).hasMessageContaining("tiempo de respuesta");
-        verify(futuro).cancel(true);
+        cuandoSeIntentaLeer();
+
+        entoncesSeAvisaElTimeoutYSeCancelaLaTarea();
     }
 
     @Test
     @DisplayName("Cancela y conserva la interrupción del worker")
-    void leerShouldRestoreInterruptedFlag() throws Exception {
-        givenFuture();
-        when(futuro.get(100, TimeUnit.MILLISECONDS)).thenThrow(new InterruptedException());
+    void cancelaYConservaLaInterrupcionDelWorker() throws Exception {
+        dadoUnaTareaInterrumpida();
 
+        cuandoSeIntentaLeer();
+
+        entoncesSeAvisaLaInterrupcionSeCancelaYSeConservaLaMarca();
+    }
+
+    @Test
+    @DisplayName("Conserva un error de lectura del proveedor")
+    void conservaUnErrorDeLecturaDelProveedor() throws Exception {
+        dadoUnaTareaQueFallaConUnErrorDeLecturaDeDominio();
+
+        cuandoSeIntentaLeer();
+
+        entoncesSePropagaElErrorDeDominio();
+    }
+
+    @Test
+    @DisplayName("Oculta el mensaje técnico de errores del proveedor")
+    void ocultaElMensajeTecnicoDeErroresDelProveedor() throws Exception {
+        dadoUnaTareaQueFallaConUnErrorTecnico();
+
+        cuandoSeIntentaLeer();
+
+        entoncesSeOcultaElMensajeTecnico();
+    }
+
+    // --- dado ---
+
+    private void dadoUnLectorQueDevuelveUnaLecturaDentroDelPlazo() {
+        when(lectorCuadernoPort.leer(List.of(), List.of(), null)).thenReturn(ProcesamientoTestData.lectura());
+    }
+
+    private void dadoUnaTareaQueSeAgotaPorTimeout() throws Exception {
+        dadoUnFuturoEnElEjecutor();
+        when(futuro.get(100, TimeUnit.MILLISECONDS)).thenThrow(new TimeoutException());
+    }
+
+    private void dadoUnaTareaInterrumpida() throws Exception {
+        dadoUnFuturoEnElEjecutor();
+        when(futuro.get(100, TimeUnit.MILLISECONDS)).thenThrow(new InterruptedException());
+    }
+
+    private void dadoUnaTareaQueFallaConUnErrorDeLecturaDeDominio() throws Exception {
+        dadoUnFuturoEnElEjecutor();
+        errorDeDominio = new LecturaCuadernoException("Salida inválida", null, false);
+        when(futuro.get(100, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException(errorDeDominio));
+    }
+
+    private void dadoUnaTareaQueFallaConUnErrorTecnico() throws Exception {
+        dadoUnFuturoEnElEjecutor();
+        when(futuro.get(100, TimeUnit.MILLISECONDS))
+                .thenThrow(new ExecutionException(new IllegalStateException("privado")));
+    }
+
+    private void dadoUnFuturoEnElEjecutor() {
+        when(executorService.submit(this.<Callable<LecturaCuaderno>>cualquierTarea())).thenReturn(futuro);
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeLeeEnUnEjecutorReal() {
+        try (ExecutorService real = Executors.newSingleThreadExecutor()) {
+            var lector = new LectorCuadernoTimeoutAdapter(lectorCuadernoPort, real, Duration.ofSeconds(5));
+            lectura = lector.leer(List.of(), List.of(), null);
+        }
+    }
+
+    private void cuandoSeIntentaLeer() {
+        rechazo = catchThrowable(() -> adapter.leer(List.of(), List.of(), null));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeDevuelveElResultadoDelLector() {
+        assertThat(lectura).isEqualTo(ProcesamientoTestData.lectura());
+    }
+
+    private void entoncesSeAvisaElTimeoutYSeCancelaLaTarea() {
+        assertThat(rechazo).hasMessageContaining("tiempo de respuesta");
+        verify(futuro).cancel(true);
+    }
+
+    private void entoncesSeAvisaLaInterrupcionSeCancelaYSeConservaLaMarca() {
         try {
-            assertThatThrownBy(() -> adapter.leer(List.of(), List.of(), null)).hasMessageContaining("interrumpió");
+            assertThat(rechazo).hasMessageContaining("interrumpió");
             assertThat(Thread.currentThread().isInterrupted()).isTrue();
             verify(futuro).cancel(true);
         } finally {
@@ -84,32 +165,17 @@ class LectorCuadernoTimeoutAdapterTest {
         }
     }
 
-    @Test
-    @DisplayName("Conserva un error de lectura del proveedor")
-    void leerShouldPreserveDomainFailure() throws Exception {
-        givenFuture();
-        LecturaCuadernoException error = new LecturaCuadernoException("Salida inválida", null, false);
-        when(futuro.get(100, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException(error));
-
-        assertThatThrownBy(() -> adapter.leer(List.of(), List.of(), null)).isSameAs(error);
+    private void entoncesSePropagaElErrorDeDominio() {
+        assertThat(rechazo).isSameAs(errorDeDominio);
     }
 
-    @Test
-    @DisplayName("Oculta el mensaje técnico de errores del proveedor")
-    void leerShouldWrapUnexpectedFailure() throws Exception {
-        givenFuture();
-        when(futuro.get(100, TimeUnit.MILLISECONDS))
-                .thenThrow(new ExecutionException(new IllegalStateException("privado")));
-
-        assertThatThrownBy(() -> adapter.leer(List.of(), List.of(), null))
-                .hasMessage(LectorCuadernoIaAdapter.ERROR_PROVEEDOR);
+    private void entoncesSeOcultaElMensajeTecnico() {
+        assertThat(rechazo).hasMessage(LectorCuadernoIaAdapter.ERROR_PROVEEDOR);
     }
 
-    private void givenFuture() {
-        when(executorService.submit(this.<Callable<LecturaCuaderno>>givenAnyTask())).thenReturn(futuro);
-    }
+    // --- datos ---
 
-    private <T> T givenAnyTask() {
+    private <T> T cualquierTarea() {
         return any();
     }
 }

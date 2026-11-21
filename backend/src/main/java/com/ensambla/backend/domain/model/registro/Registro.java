@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoFormula;
 import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.lote.FotoId;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
@@ -108,20 +109,30 @@ public class Registro {
     public static Map<String, Object> validar(List<Campo> campos, Map<String, Object> valores) {
         Map<String, String> errores = new LinkedHashMap<>();
         Map<String, Object> limpios = new LinkedHashMap<>();
-        for (Campo campo : campos.stream().filter(campo -> !campo.esFormula()).toList()) {
-            String clave = campo.getId().toString();
-            Object valor = sinVacios(valores.get(clave));
-            if (valor == null) {
-                registrarFaltante(campo, clave, errores);
-            } else {
-                campo.errorDe(valor).ifPresentOrElse(error -> errores.put(clave, error),
-                        () -> limpios.put(clave, valor));
-            }
+        camposCargables(campos).forEach(campo -> validarCampo(campo, valores, limpios, errores));
+        exigirSinErrores(errores);
+        return limpios;
+    }
+
+    private static List<Campo> camposCargables(List<Campo> campos) {
+        return campos.stream().filter(campo -> !campo.esFormula()).toList();
+    }
+
+    private static void validarCampo(Campo campo, Map<String, Object> valores, Map<String, Object> limpios,
+                                     Map<String, String> errores) {
+        String clave = campo.getId().toString();
+        Object valor = sinVacios(valores.get(clave));
+        if (valor == null) {
+            registrarFaltante(campo, clave, errores);
+            return;
         }
+        campo.errorDe(valor).ifPresentOrElse(error -> errores.put(clave, error), () -> limpios.put(clave, valor));
+    }
+
+    private static void exigirSinErrores(Map<String, String> errores) {
         if (!errores.isEmpty()) {
             throw new RegistroInvalidoException(errores);
         }
-        return limpios;
     }
 
     /**
@@ -130,13 +141,20 @@ public class Registro {
      */
     public Registro conFormulas(List<Campo> campos) {
         Map<String, Object> conCalculados = new LinkedHashMap<>(valores);
-        for (Campo campo : campos.stream().filter(Campo::esFormula).toList()) {
+        for (CampoFormula campo : camposFormula(campos)) {
             BigDecimal calculado = campo.calcular(this::numeroDe);
             if (calculado != null) {
                 conCalculados.put(campo.getId().toString(), calculado);
             }
         }
         return toBuilder().valores(conCalculados).build();
+    }
+
+    private static List<CampoFormula> camposFormula(List<Campo> campos) {
+        return campos.stream()
+                .filter(CampoFormula.class::isInstance)
+                .map(CampoFormula.class::cast)
+                .toList();
     }
 
     private BigDecimal numeroDe(CampoId campoId) {

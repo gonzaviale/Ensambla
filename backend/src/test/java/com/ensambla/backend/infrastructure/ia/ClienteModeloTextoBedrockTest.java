@@ -25,6 +25,7 @@ class ClienteModeloTextoBedrockTest {
 
     private BedrockRuntimeClient bedrock;
     private ClienteModeloTextoBedrock cliente;
+    private RespuestaModeloTexto respuesta;
 
     @BeforeEach
     void setUp() {
@@ -34,17 +35,101 @@ class ClienteModeloTextoBedrockTest {
 
     @Test
     @DisplayName("Manda las instrucciones con el esquema, el contexto y devuelve el JSON con los tokens")
-    void completarShouldSendConverseRequestAndReturnJsonWithTokens() {
-        givenModelAnswers("{\"plantilla\":\"Ventas\"}", 120, 15);
+    void mandaLasInstruccionesConElEsquemaElContextoYDevuelveElJsonConLosTokens() {
+        dadoQueElModeloResponde("{\"plantilla\":\"Ventas\"}", 120, 15);
 
-        RespuestaModeloTexto result = cliente.completar(new PeticionModeloTexto("Sos Sami", "contexto", "{schema}"));
+        cuandoSeCompletaConInstruccionesContextoYEsquema();
 
-        assertThat(result.json()).isEqualTo("{\"plantilla\":\"Ventas\"}");
-        assertThat(result.proveedor()).isEqualTo("bedrock");
-        assertThat(result.modelo()).isEqualTo(MODELO);
-        assertThat(result.tokensEntrada()).isEqualTo(120);
-        assertThat(result.tokensSalida()).isEqualTo(15);
-        ConverseRequest pedido = capturedRequest();
+        entoncesDevuelveElJsonConLosTokens();
+        entoncesElPedidoLlevaInstruccionesConEsquemaYContexto();
+    }
+
+    @Test
+    @DisplayName("Descarta la cerca de código o el texto que rodea al JSON")
+    void descartaLaCercaDeCodigoOElTextoQueRodeaAlJson() {
+        dadoQueElModeloResponde("Acá va:\n```json\n{\"plantilla\":\"Ventas\"}\n```", 1, 1);
+
+        cuandoSeCompleta();
+
+        entoncesElJsonEs("{\"plantilla\":\"Ventas\"}");
+    }
+
+    @Test
+    @DisplayName("Si la respuesta no tiene llaves la devuelve tal cual para que se rechace al validar")
+    void siLaRespuestaNoTieneLlavesLaDevuelveTalCualParaQueSeRechaceAlValidar() {
+        dadoQueElModeloResponde("no sé", 1, 1);
+
+        cuandoSeCompleta();
+
+        entoncesElJsonEs("no sé");
+    }
+
+    @Test
+    @DisplayName("Si sólo hay una llave de apertura devuelve el texto tal cual")
+    void siSoloHayUnaLlaveDeAperturaDevuelveElTextoTalCual() {
+        dadoQueElModeloResponde("{", 1, 1);
+
+        cuandoSeCompleta();
+
+        entoncesElJsonEs("{");
+    }
+
+    @Test
+    @DisplayName("Ignora los bloques de la respuesta que no son texto")
+    void ignoraLosBloquesDeLaRespuestaQueNoSonTexto() {
+        dadoUnModeloQueRespondeUnBloqueVacioYUnTexto();
+
+        cuandoSeCompleta();
+
+        entoncesElJsonEs("{\"a\":1}");
+    }
+
+    // --- dado ---
+
+    private void dadoQueElModeloResponde(String texto, int tokensEntrada, int tokensSalida) {
+        ConverseResponse converse = ConverseResponse.builder()
+                .output(ConverseOutput.builder().message(Message.builder()
+                        .role(ConversationRole.ASSISTANT)
+                        .content(ContentBlock.fromText(texto))
+                        .build()).build())
+                .usage(TokenUsage.builder().inputTokens(tokensEntrada).outputTokens(tokensSalida).build())
+                .build();
+        when(bedrock.converse(any(ConverseRequest.class))).thenReturn(converse);
+    }
+
+    private void dadoUnModeloQueRespondeUnBloqueVacioYUnTexto() {
+        ConverseResponse converse = ConverseResponse.builder()
+                .output(ConverseOutput.builder().message(Message.builder()
+                        .role(ConversationRole.ASSISTANT)
+                        .content(ContentBlock.builder().build(), ContentBlock.fromText("{\"a\":1}"))
+                        .build()).build())
+                .usage(TokenUsage.builder().inputTokens(2).outputTokens(3).build())
+                .build();
+        when(bedrock.converse(any(ConverseRequest.class))).thenReturn(converse);
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeCompletaConInstruccionesContextoYEsquema() {
+        respuesta = cliente.completar(new PeticionModeloTexto("Sos Sami", "contexto", "{schema}"));
+    }
+
+    private void cuandoSeCompleta() {
+        respuesta = cliente.completar(new PeticionModeloTexto("i", "c", "{}"));
+    }
+
+    // --- entonces ---
+
+    private void entoncesDevuelveElJsonConLosTokens() {
+        assertThat(respuesta.json()).isEqualTo("{\"plantilla\":\"Ventas\"}");
+        assertThat(respuesta.proveedor()).isEqualTo("bedrock");
+        assertThat(respuesta.modelo()).isEqualTo(MODELO);
+        assertThat(respuesta.tokensEntrada()).isEqualTo(120);
+        assertThat(respuesta.tokensSalida()).isEqualTo(15);
+    }
+
+    private void entoncesElPedidoLlevaInstruccionesConEsquemaYContexto() {
+        ConverseRequest pedido = pedidoEnviado();
         assertThat(pedido.modelId()).isEqualTo(MODELO);
         assertThat(pedido.system().getFirst().text()).startsWith("Sos Sami").contains("{schema}");
         assertThat(pedido.messages().getFirst().role()).isEqualTo(ConversationRole.USER);
@@ -53,59 +138,13 @@ class ClienteModeloTextoBedrockTest {
         assertThat(pedido.inferenceConfig().temperature()).isNull();
     }
 
-    @Test
-    @DisplayName("Descarta la cerca de código o el texto que rodea al JSON")
-    void completarShouldStripTextAroundJson() {
-        givenModelAnswers("Acá va:\n```json\n{\"plantilla\":\"Ventas\"}\n```", 1, 1);
-
-        RespuestaModeloTexto result = cliente.completar(new PeticionModeloTexto("i", "c", "{}"));
-
-        assertThat(result.json()).isEqualTo("{\"plantilla\":\"Ventas\"}");
+    private void entoncesElJsonEs(String esperado) {
+        assertThat(respuesta.json()).isEqualTo(esperado);
     }
 
-    @Test
-    @DisplayName("Si la respuesta no tiene llaves la devuelve tal cual para que se rechace al validar")
-    void completarShouldReturnTextAsIsWhenThereAreNoBraces() {
-        givenModelAnswers("no sé", 1, 1);
+    // --- datos ---
 
-        assertThat(cliente.completar(new PeticionModeloTexto("i", "c", "{}")).json()).isEqualTo("no sé");
-    }
-
-    @Test
-    @DisplayName("Si sólo hay una llave de apertura devuelve el texto tal cual")
-    void completarShouldReturnTextAsIsWhenBracesAreUnbalanced() {
-        givenModelAnswers("{", 1, 1);
-
-        assertThat(cliente.completar(new PeticionModeloTexto("i", "c", "{}")).json()).isEqualTo("{");
-    }
-
-    @Test
-    @DisplayName("Ignora los bloques de la respuesta que no son texto")
-    void completarShouldIgnoreNonTextBlocks() {
-        ConverseResponse respuesta = ConverseResponse.builder()
-                .output(ConverseOutput.builder().message(Message.builder()
-                        .role(ConversationRole.ASSISTANT)
-                        .content(ContentBlock.builder().build(), ContentBlock.fromText("{\"a\":1}"))
-                        .build()).build())
-                .usage(TokenUsage.builder().inputTokens(2).outputTokens(3).build())
-                .build();
-        when(bedrock.converse(any(ConverseRequest.class))).thenReturn(respuesta);
-
-        assertThat(cliente.completar(new PeticionModeloTexto("i", "c", "{}")).json()).isEqualTo("{\"a\":1}");
-    }
-
-    private void givenModelAnswers(String texto, int tokensEntrada, int tokensSalida) {
-        ConverseResponse respuesta = ConverseResponse.builder()
-                .output(ConverseOutput.builder().message(Message.builder()
-                        .role(ConversationRole.ASSISTANT)
-                        .content(ContentBlock.fromText(texto))
-                        .build()).build())
-                .usage(TokenUsage.builder().inputTokens(tokensEntrada).outputTokens(tokensSalida).build())
-                .build();
-        when(bedrock.converse(any(ConverseRequest.class))).thenReturn(respuesta);
-    }
-
-    private ConverseRequest capturedRequest() {
+    private ConverseRequest pedidoEnviado() {
         ArgumentCaptor<ConverseRequest> captor = ArgumentCaptor.forClass(ConverseRequest.class);
         verify(bedrock).converse(captor.capture());
         return captor.getValue();

@@ -13,7 +13,7 @@ class SuscripcionTest {
 
     @Test
     @DisplayName("El período activo incluye exactamente su inicio")
-    void estaVigenteShouldIncludeStart() {
+    void elPeriodoActivoIncluyeExactamenteSuInicio() {
         Suscripcion suscripcion = suscripcion();
 
         assertThat(suscripcion.estaVigente(INSTANTE)).isTrue();
@@ -21,7 +21,7 @@ class SuscripcionTest {
 
     @Test
     @DisplayName("Un período futuro no habilita premium antes de su inicio")
-    void estaVigenteShouldRejectBeforeStart() {
+    void unPeriodoFuturoNoHabilitaPremiumAntesDeSuInicio() {
         Suscripcion suscripcion = suscripcion();
 
         assertThat(suscripcion.estaVigente(INSTANTE.minusNanos(1))).isFalse();
@@ -29,7 +29,7 @@ class SuscripcionTest {
 
     @Test
     @DisplayName("Un período deja de estar vigente en el instante exacto de fin")
-    void estaVigenteShouldExcludeEnd() {
+    void unPeriodoDejaDeEstarVigenteEnElInstanteExactoDeFin() {
         Suscripcion suscripcion = suscripcion();
 
         assertThat(suscripcion.estaVigente(suscripcion.getFinEn())).isFalse();
@@ -37,7 +37,7 @@ class SuscripcionTest {
 
     @Test
     @DisplayName("El gratuito activo puede tener vigencia sin fecha de fin")
-    void estaVigenteShouldAllowNoEnd() {
+    void elGratuitoActivoPuedeTenerVigenciaSinFechaDeFin() {
         Suscripcion suscripcion = suscripcion();
         suscripcion.setFinEn(null);
 
@@ -47,7 +47,7 @@ class SuscripcionTest {
     @ParameterizedTest
     @EnumSource(value = EstadoSuscripcion.class, names = {"VENCIDA", "CANCELADA"})
     @DisplayName("Estados sin activación no habilitan premium")
-    void estaVigenteShouldRejectInactiveStates(EstadoSuscripcion estado) {
+    void estadosSinActivacionNoHabilitanPremium(EstadoSuscripcion estado) {
         Suscripcion suscripcion = suscripcion();
         suscripcion.setEstado(estado);
 
@@ -56,7 +56,7 @@ class SuscripcionTest {
 
     @Test
     @DisplayName("La prueba habilita premium desde su inicio y termina exactamente a los siete días")
-    void estaVigenteShouldEnableTrialWithinPeriod() {
+    void laPruebaHabilitaPremiumDesdeSuInicioYTerminaExactamenteALosSieteDias() {
         Suscripcion suscripcion = suscripcion();
         suscripcion.setEstado(EstadoSuscripcion.PRUEBA);
         suscripcion.setFinEn(INSTANTE.plusDays(7));

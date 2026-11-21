@@ -3,7 +3,6 @@ package com.ensambla.backend.infrastructure.repository.mapper;
 import com.ensambla.backend.domain.model.usuario.Usuario;
 import com.ensambla.backend.infrastructure.repository.entity.UsuarioEntity;
 import com.ensambla.backend.support.IdsDePrueba;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -18,33 +17,59 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class UsuarioRepositoryMapperTest {
 
-    private UsuarioRepositoryMapper mapper;
-
-    @BeforeEach
-    void setUp() {
-        mapper = new UsuarioRepositoryMapper();
-    }
+    private final UsuarioRepositoryMapper mapper = new UsuarioRepositoryMapper();
 
     @Test
     @DisplayName("Mapea todos los campos de la entidad al modelo")
-    void toDomainShouldMapEveryEntityField() {
-        Usuario result = mapper.toDomain(entity());
+    void unaEntidadSeLeeComoUsuarioConTodosSusDatos() {
+        UsuarioEntity entidad = dadoUnaEntidadDeUsuario();
 
-        assertThat(result.getId()).isEqualTo(USUARIO_ID);
-        assertThat(result.getNombre()).isEqualTo(NOMBRE);
-        assertThat(result.getEmail()).isEqualTo(EMAIL);
-        assertThat(result.getHashContrasenia()).isEqualTo(HASH);
-        assertThat(result.estaActivo()).isTrue();
-        assertThat(result.getCreadoEn()).isEqualTo(FECHA);
-        assertThat(result.getActualizadoEn()).isEqualTo(FECHA);
+        Usuario resultado = cuandoSeConvierteEnUsuario(entidad);
+
+        entoncesElUsuarioTieneTodosLosDatosDeLaEntidad(resultado);
     }
 
     @Test
     @DisplayName("Mapea todos los campos del modelo a la entidad")
-    void toEntityShouldMapEveryDomainField() {
-        UsuarioEntity result = mapper.toEntity(usuario());
+    void unUsuarioSeGuardaConTodosSusDatos() {
+        Usuario usuario = dadoUnUsuario();
 
-        assertThat(result).usingRecursiveComparison()
+        UsuarioEntity resultado = cuandoSeConvierteEnEntidad(usuario);
+
+        entoncesLaEntidadTieneTodosLosDatosDelUsuario(resultado);
+    }
+
+    // --- dado ---
+    private UsuarioEntity dadoUnaEntidadDeUsuario() {
+        return entity();
+    }
+
+    private Usuario dadoUnUsuario() {
+        return usuario();
+    }
+
+    // --- cuando ---
+    private Usuario cuandoSeConvierteEnUsuario(UsuarioEntity entidad) {
+        return mapper.toDomain(entidad);
+    }
+
+    private UsuarioEntity cuandoSeConvierteEnEntidad(Usuario usuario) {
+        return mapper.toEntity(usuario);
+    }
+
+    // --- entonces ---
+    private void entoncesElUsuarioTieneTodosLosDatosDeLaEntidad(Usuario resultado) {
+        assertThat(resultado.getId()).isEqualTo(USUARIO_ID);
+        assertThat(resultado.getNombre()).isEqualTo(NOMBRE);
+        assertThat(resultado.getEmail()).isEqualTo(EMAIL);
+        assertThat(resultado.getHashContrasenia()).isEqualTo(HASH);
+        assertThat(resultado.estaActivo()).isTrue();
+        assertThat(resultado.getCreadoEn()).isEqualTo(FECHA);
+        assertThat(resultado.getActualizadoEn()).isEqualTo(FECHA);
+    }
+
+    private void entoncesLaEntidadTieneTodosLosDatosDelUsuario(UsuarioEntity resultado) {
+        assertThat(resultado).usingRecursiveComparison()
                 .withEqualsForFieldsMatchingRegexes(IdsDePrueba::mismoValor, IdsDePrueba.CAMPOS_DE_ID)
                 .isEqualTo(entity());
     }

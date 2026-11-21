@@ -7,7 +7,7 @@ export function MapaUbicacion({
   onMover,
   etiqueta = 'Mapa de tu comercio',
   marcador,
-  ayudaSinMapa = 'No se pudo cargar parte del mapa. Igual se usa el punto de la dirección que elegiste.',
+  ayudaSinMapa = 'No pudimos cargar parte del mapa. Igual se usa el punto de la dirección que elegiste.',
 }: {
   punto: Punto;
   onMover: (punto: Punto) => void;

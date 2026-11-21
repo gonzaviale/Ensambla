@@ -42,30 +42,68 @@ class MovimientoStockRepositoryImplTest {
     private MovimientoStockRepositoryImpl repository;
 
     @BeforeEach
-    void setUp() {
+    void dadoUnRepositorioDeMovimientos() {
         repository = new MovimientoStockRepositoryImpl(jpa, new MovimientoStockRepositoryMapper());
     }
 
+    private MovimientoStock guardado;
+    private Map<RegistroId, BigDecimal> stock;
+    private List<MovimientoStock> recientes;
+
     @Test
     @DisplayName("Guarda el movimiento y devuelve el modelo persistido")
-    void saveShouldPersistAndReturnDomain() {
-        when(jpa.save(any(MovimientoStockEntity.class))).thenReturn(entity());
+    void guardaElMovimientoYDevuelveElModeloPersistido() {
+        dadoQueGuardarDevuelveElMovimiento();
 
-        MovimientoStock result = repository.save(MovimientoStock.builder()
-                .negocioId(NEGOCIO_ID)
-                .registroId(PRODUCTO_ID)
-                .tipo(TipoMovimiento.ENTRADA)
-                .cantidad(BigDecimal.ONE)
-                .build());
+        cuandoSeGuardaUnaEntradaDeStock();
 
-        assertThat(result.getId()).isEqualTo(MOVIMIENTO_ID);
-        assertThat(result.getTipo()).isEqualTo(TipoMovimiento.ENTRADA);
-        assertThat(result.getNota()).isEqualTo("Compra");
+        entoncesSeDevuelveLaEntradaDeCompraPersistida();
     }
 
     @Test
     @DisplayName("El stock sale del repositorio JPA indexado por producto")
-    void stockDeShouldIndexTheSumsByProduct() {
+    void elStockSaleDelRepositorioJpaIndexadoPorProducto() {
+        dadoQueElProductoTieneSeisUnidades();
+
+        cuandoSeConsultaElStockDelProducto();
+
+        entoncesElStockEstaIndexadoPorProductoYVaSeis();
+    }
+
+    @Test
+    @DisplayName("Sin productos no consulta el stock")
+    void sinProductosNoConsultaElStock() {
+        cuandoSeConsultaElStockSinProductos();
+
+        entoncesNoHayStockNiSeConsultoElRepositorio();
+    }
+
+    @Test
+    @DisplayName("Los movimientos recientes pasan el producto como texto y el límite")
+    void losMovimientosRecientesPasanElProductoComoTextoYElLimite() {
+        dadoQueElProductoTieneUnMovimientoReciente();
+
+        cuandoSeListanLosMovimientosRecientesDelProducto();
+
+        entoncesSeListaElMovimientoDelProducto();
+    }
+
+    @Test
+    @DisplayName("Sin producto, los movimientos recientes son los de todo el bloque")
+    void sinProductoLosMovimientosRecientesSonLosDeTodoElBloque() {
+        dadoQueElBloqueNoTieneMovimientosRecientes();
+
+        cuandoSeListanLosMovimientosRecientesDelBloque();
+
+        entoncesNoHayMovimientosYSeConsultoSinFiltroDeProducto();
+    }
+
+    // --- dado ---
+    private void dadoQueGuardarDevuelveElMovimiento() {
+        when(jpa.save(any(MovimientoStockEntity.class))).thenReturn(unaEntidad());
+    }
+
+    private void dadoQueElProductoTieneSeisUnidades() {
         IMovimientoStockJpaRepository.StockPorRegistro fila = new IMovimientoStockJpaRepository.StockPorRegistro() {
             @Override
             public UUID getRegistro() {
@@ -78,48 +116,18 @@ class MovimientoStockRepositoryImplTest {
             }
         };
         when(jpa.stockDe(NEGOCIO_ID.valor(), List.of(PRODUCTO_ID.valor()))).thenReturn(List.of(fila));
-
-        Map<RegistroId, BigDecimal> result = repository.stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID);
-
-        assertThat(result).containsOnlyKeys(PRODUCTO_ID);
-        assertThat(result.get(PRODUCTO_ID)).isEqualByComparingTo("6");
     }
 
-    @Test
-    @DisplayName("Sin productos no consulta el stock")
-    void stockDeShouldNotQueryWithoutProducts() {
-        Map<RegistroId, BigDecimal> result = repository.stockDe(List.of(), NEGOCIO_ID);
-
-        assertThat(result).isEmpty();
-        verifyNoInteractions(jpa);
-    }
-
-    @Test
-    @DisplayName("Los movimientos recientes pasan el producto como texto y el límite")
-    void findRecientesShouldPassProductAsText() {
+    private void dadoQueElProductoTieneUnMovimientoReciente() {
         when(jpa.findRecientes(NEGOCIO_ID.valor(), BLOQUE_ID.valor(), PRODUCTO_ID.toString(), 100))
-                .thenReturn(List.of(entity()));
-
-        List<MovimientoStock> result = repository.findRecientes(BLOQUE_ID, NEGOCIO_ID, PRODUCTO_ID, 100);
-
-        assertThat(result).singleElement().satisfies(movimiento -> {
-            assertThat(movimiento.getRegistroId()).isEqualTo(PRODUCTO_ID);
-            assertThat(movimiento.getFecha()).isEqualTo(LocalDate.parse("2026-10-12"));
-        });
+                .thenReturn(List.of(unaEntidad()));
     }
 
-    @Test
-    @DisplayName("Sin producto, los movimientos recientes son los de todo el bloque")
-    void findRecientesShouldNotFilterWithoutProduct() {
+    private void dadoQueElBloqueNoTieneMovimientosRecientes() {
         when(jpa.findRecientes(NEGOCIO_ID.valor(), BLOQUE_ID.valor(), null, 100)).thenReturn(List.of());
-
-        List<MovimientoStock> result = repository.findRecientes(BLOQUE_ID, NEGOCIO_ID, null, 100);
-
-        assertThat(result).isEmpty();
-        verify(jpa).findRecientes(NEGOCIO_ID.valor(), BLOQUE_ID.valor(), null, 100);
     }
 
-    private static MovimientoStockEntity entity() {
+    private static MovimientoStockEntity unaEntidad() {
         return MovimientoStockEntity.builder()
                 .id(MOVIMIENTO_ID.valor())
                 .negocioId(NEGOCIO_ID.valor())
@@ -129,5 +137,60 @@ class MovimientoStockRepositoryImplTest {
                 .fecha(LocalDate.parse("2026-10-12"))
                 .nota("Compra")
                 .build();
+    }
+
+    // --- cuando ---
+    private void cuandoSeGuardaUnaEntradaDeStock() {
+        guardado = repository.save(MovimientoStock.builder()
+                .negocioId(NEGOCIO_ID)
+                .registroId(PRODUCTO_ID)
+                .tipo(TipoMovimiento.ENTRADA)
+                .cantidad(BigDecimal.ONE)
+                .build());
+    }
+
+    private void cuandoSeConsultaElStockDelProducto() {
+        stock = repository.stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID);
+    }
+
+    private void cuandoSeConsultaElStockSinProductos() {
+        stock = repository.stockDe(List.of(), NEGOCIO_ID);
+    }
+
+    private void cuandoSeListanLosMovimientosRecientesDelProducto() {
+        recientes = repository.findRecientes(BLOQUE_ID, NEGOCIO_ID, PRODUCTO_ID, 100);
+    }
+
+    private void cuandoSeListanLosMovimientosRecientesDelBloque() {
+        recientes = repository.findRecientes(BLOQUE_ID, NEGOCIO_ID, null, 100);
+    }
+
+    // --- entonces ---
+    private void entoncesSeDevuelveLaEntradaDeCompraPersistida() {
+        assertThat(guardado.getId()).isEqualTo(MOVIMIENTO_ID);
+        assertThat(guardado.getTipo()).isEqualTo(TipoMovimiento.ENTRADA);
+        assertThat(guardado.getNota()).isEqualTo("Compra");
+    }
+
+    private void entoncesElStockEstaIndexadoPorProductoYVaSeis() {
+        assertThat(stock).containsOnlyKeys(PRODUCTO_ID);
+        assertThat(stock.get(PRODUCTO_ID)).isEqualByComparingTo("6");
+    }
+
+    private void entoncesNoHayStockNiSeConsultoElRepositorio() {
+        assertThat(stock).isEmpty();
+        verifyNoInteractions(jpa);
+    }
+
+    private void entoncesSeListaElMovimientoDelProducto() {
+        assertThat(recientes).singleElement().satisfies(movimiento -> {
+            assertThat(movimiento.getRegistroId()).isEqualTo(PRODUCTO_ID);
+            assertThat(movimiento.getFecha()).isEqualTo(LocalDate.parse("2026-10-12"));
+        });
+    }
+
+    private void entoncesNoHayMovimientosYSeConsultoSinFiltroDeProducto() {
+        assertThat(recientes).isEmpty();
+        verify(jpa).findRecientes(NEGOCIO_ID.valor(), BLOQUE_ID.valor(), null, 100);
     }
 }

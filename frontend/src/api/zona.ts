@@ -1,6 +1,6 @@
 import type { Zona } from '@/lib/sistema/zona';
-import type { PedidoDeAnalisis, VistaDeZona } from '@/types/zona';
-import { zonaSchema } from '@/types/zona';
+import type { PedidoDeAnalisis, PedidoDondeAbrir, VistaDeZona } from '@/types/zona';
+import { dondeAbrirSchema, zonaSchema } from '@/types/zona';
 import { http } from './client';
 
 export const obtenerZona = (vista: VistaDeZona = 'precios', signal?: AbortSignal): Promise<Zona> =>
@@ -8,3 +8,6 @@ export const obtenerZona = (vista: VistaDeZona = 'precios', signal?: AbortSignal
 
 export const analizarZona = (pedido: PedidoDeAnalisis): Promise<Zona> =>
   http.post('/zona/analisis', pedido, zonaSchema);
+
+export const explorarDondeAbrir = (pedido: PedidoDondeAbrir, signal?: AbortSignal) =>
+  http.post('/zona/donde-abrir', pedido, dondeAbrirSchema, signal);

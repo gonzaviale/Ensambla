@@ -7,17 +7,37 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class DuplicateResourceExceptionTest {
 
+    private DuplicateResourceException excepcion;
+
     @Test
     @DisplayName("Conserva el mensaje recibido")
-    void constructorShouldKeepMessage() {
-        assertThat(new DuplicateResourceException("Ya existe")).hasMessage("Ya existe");
+    void conservaElMensajeRecibido() {
+        cuandoSeCreaConElMensaje("Ya existe");
+
+        entoncesTieneElMensaje("Ya existe");
     }
 
     @Test
     @DisplayName("Arma el mensaje con el recurso, el campo y el valor")
-    void constructorShouldBuildMessageFromResourceFieldAndValue() {
-        DuplicateResourceException exception = new DuplicateResourceException("usuario", "email", "a@b.com");
+    void armaElMensajeConElRecursoElCampoYElValor() {
+        cuandoSeCreaConElRecursoElCampoYElValor();
 
-        assertThat(exception).hasMessage("Ya existe un usuario con email a@b.com");
+        entoncesTieneElMensaje("Ya existe un usuario con email a@b.com");
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeCreaConElMensaje(String mensaje) {
+        excepcion = new DuplicateResourceException(mensaje);
+    }
+
+    private void cuandoSeCreaConElRecursoElCampoYElValor() {
+        excepcion = new DuplicateResourceException("usuario", "email", "a@b.com");
+    }
+
+    // --- entonces ---
+
+    private void entoncesTieneElMensaje(String mensaje) {
+        assertThat(excepcion).hasMessage(mensaje);
     }
 }

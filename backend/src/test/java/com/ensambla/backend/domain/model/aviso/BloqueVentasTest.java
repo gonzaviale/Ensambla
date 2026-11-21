@@ -13,30 +13,60 @@ class BloqueVentasTest {
 
     private static final String PRODUCTO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001").toString();
 
+    private Registro venta;
+    private BloqueVentas ventas;
+    private Object valor;
+
     @Test
     @DisplayName("Devuelve el valor que la venta cargó para la clave")
-    void valorDeShouldReturnValueOfRegistro() {
-        Registro venta = AvisoTestData.venta(PRODUCTO_ID, 2, 100, "2026-10-18", null);
-        BloqueVentas ventas = AvisoTestData.ventas(venta);
+    void devuelveElValorQueLaVentaCargoParaLaClave() {
+        dadoUnBloqueConUnaVentaDeDosUnidades();
 
-        assertThat(ventas.valorDe(venta, "quantity")).isEqualTo(2);
+        cuandoSeConsultaElValorDe("quantity");
+
+        entoncesElValorEs(2);
     }
 
     @Test
     @DisplayName("Devuelve null cuando la venta no cargó el dato")
-    void valorDeShouldReturnNullWhenRegistroHasNoValue() {
-        Registro venta = AvisoTestData.venta(PRODUCTO_ID, 2, 100, "2026-10-18", null);
-        BloqueVentas ventas = AvisoTestData.ventas(venta);
+    void devuelveNullCuandoLaVentaNoCargoElDato() {
+        dadoUnBloqueConUnaVentaDeDosUnidades();
 
-        assertThat(ventas.valorDe(venta, "customer")).isNull();
+        cuandoSeConsultaElValorDe("customer");
+
+        entoncesNoHayValor();
     }
 
     @Test
     @DisplayName("Devuelve null cuando la tabla no tiene un campo con esa clave")
-    void valorDeShouldReturnNullWhenTablaHasNoCampoWithClave() {
-        Registro venta = AvisoTestData.venta(PRODUCTO_ID, 2, 100, "2026-10-18", null);
-        BloqueVentas ventas = AvisoTestData.ventas(venta);
+    void devuelveNullCuandoLaTablaNoTieneUnCampoConEsaClave() {
+        dadoUnBloqueConUnaVentaDeDosUnidades();
 
-        assertThat(ventas.valorDe(venta, "minimum")).isNull();
+        cuandoSeConsultaElValorDe("minimum");
+
+        entoncesNoHayValor();
+    }
+
+    // --- dado ---
+
+    private void dadoUnBloqueConUnaVentaDeDosUnidades() {
+        venta = AvisoTestData.venta(PRODUCTO_ID, 2, 100, "2026-10-18", null);
+        ventas = AvisoTestData.ventas(venta);
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeConsultaElValorDe(String clave) {
+        valor = ventas.valorDe(venta, clave);
+    }
+
+    // --- entonces ---
+
+    private void entoncesElValorEs(Object esperado) {
+        assertThat(valor).isEqualTo(esperado);
+    }
+
+    private void entoncesNoHayValor() {
+        assertThat(valor).isNull();
     }
 }

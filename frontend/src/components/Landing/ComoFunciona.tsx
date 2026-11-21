@@ -5,18 +5,18 @@ const PASOS = [
     color: 'celeste',
     num: '1',
     titulo: 'Contale tu negocio',
-    texto: 'Decile a Sami qué vendés y cómo trabajás, como si se lo contaras a un amigo.',
+    texto: 'Escribile a Sami qué vendés y cómo trabajás.',
   },
   {
     color: 'coral',
     num: '2',
-    titulo: 'Mandale lo que anotás',
+    titulo: 'Enviá lo que anotás',
     texto: 'Una foto del cuaderno, un audio o un mensaje. Vos revisás y confirmás.',
   },
   {
     color: 'petroleo',
     num: '3',
-    titulo: 'Mirá cómo te va',
+    titulo: 'Seguí cómo va tu negocio',
     texto: 'Sabés cuánto ganaste, quién te debe y cuándo conviene subir un precio.',
   },
 ] as const;
@@ -27,7 +27,7 @@ export function ComoFunciona() {
       <div className="contenedor">
         <header className="seccion__cabecera revelar">
           <p className="sobretitulo">Cómo te ayuda</p>
-          <h2>Tres pasos y listo.</h2>
+          <h2>En tres pasos.</h2>
           <p>
             Cada parte de tu negocio es un bloque, y los bloques se encajan entre sí. Sami los arma
             por vos.

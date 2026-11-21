@@ -37,7 +37,7 @@ public final class CatalogoTaller {
     public static final int MAX_ACCIONES = 12;
     /** Tope de acciones por turno contando las que salen de expandir un kit. */
     public static final int MAX_ACCIONES_TOTALES = 24;
-    public static final int MAX_CAMPOS_POR_PIEZA = 12;
+    public static final int MAX_CAMPOS_POR_PIEZA = 16;
     /** Datos que se pueden sumar al crear una pieza, además de los del componente. */
     public static final int MAX_CAMPOS_EXTRA = 8;
     public static final int MAX_FILAS_EJEMPLO = 5;

@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.preferencia.guardarPreferencias;
 
 import com.ensambla.backend.domain.model.preferencia.PreferenciaUsuario;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.preferencia.PreferenciaRepository;
 import com.ensambla.backend.domain.useCase.preferencia.PreferenciasItem;
@@ -20,13 +21,25 @@ public class GuardarPreferencias {
 
     public PreferenciasItem execute(GuardarPreferenciasRequest request) {
         OffsetDateTime ahora = OffsetDateTime.now(clock);
-        return PreferenciasItem.de(transaccionPort.ejecutar(() -> guardar(request, ahora)));
+        return PreferenciasItem.de(guardarEnTransaccion(request, ahora));
+    }
+
+    private PreferenciaUsuario guardarEnTransaccion(GuardarPreferenciasRequest request, OffsetDateTime ahora) {
+        return transaccionPort.ejecutar(() -> guardar(request, ahora));
     }
 
     private PreferenciaUsuario guardar(GuardarPreferenciasRequest request, OffsetDateTime ahora) {
-        PreferenciaUsuario preferencia = preferenciaRepository.obtenerOInicial(request.usuarioId(), ahora);
+        PreferenciaUsuario preferencia = obtenerPreferencia(request.usuarioId(), ahora);
         preferencia.actualizar(
                 request.descartadas(), request.grupos(), request.bienvenidaVista(), request.nombre(), ahora);
+        return guardarPreferencia(preferencia);
+    }
+
+    private PreferenciaUsuario obtenerPreferencia(UsuarioId usuarioId, OffsetDateTime ahora) {
+        return preferenciaRepository.obtenerOInicial(usuarioId, ahora);
+    }
+
+    private PreferenciaUsuario guardarPreferencia(PreferenciaUsuario preferencia) {
         return preferenciaRepository.save(preferencia);
     }
 }

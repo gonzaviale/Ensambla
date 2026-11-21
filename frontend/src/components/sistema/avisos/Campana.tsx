@@ -87,7 +87,7 @@ export function Campana() {
                   Avisos de Sami
                   {visibles.length > 0 && <span className="campana-cuenta">{visibles.length}</span>}
                 </strong>
-                {visibles.length > 0 && <span>Deslizá un aviso para sacarlo de acá</span>}
+                {visibles.length > 0 && <span>Deslizá un aviso para quitarlo de esta lista</span>}
               </div>
               {visibles.length > 0 ? (
                 <ul className="campana-lista">
@@ -112,7 +112,7 @@ export function Campana() {
               <div className="campana-pie">
                 <img src="/mockup/sami-detective.webp" alt="" />
                 <div>
-                  <p>¿Querés el detalle? Te lo cuento en Avisos.</p>
+                  <p>El detalle de cada aviso está en Avisos.</p>
                   <button type="button" className="campana-ver-todos" onClick={() => ir(null)}>
                     Ver todos los avisos <Icon name="arrow" />
                   </button>
@@ -128,7 +128,7 @@ export function Campana() {
 
 type PropsAviso = { aviso: Aviso; onAbrir: () => void; onOcultar: () => void };
 
-// Un aviso resumido: ícono, título y de qué cuaderno es. Se desliza hacia un costado para ocultarlo.
+// Un aviso resumido: ícono, título y de qué sección es. Se desliza hacia un costado para ocultarlo.
 function AvisoDeLaCampana({ aviso, onAbrir, onOcultar }: PropsAviso) {
   const inicio = useRef<number | null>(null);
   const movido = useRef(false);
@@ -195,8 +195,8 @@ function AvisoDeLaCampana({ aviso, onAbrir, onOcultar }: PropsAviso) {
       <button
         type="button"
         className="campana-aviso-ocultar"
-        aria-label={`Sacar de acá: ${aviso.titulo}`}
-        title="Sacar de acá (sigue en Avisos)"
+        aria-label={`Quitar de esta lista: ${aviso.titulo}`}
+        title="Quitar de esta lista (sigue en Avisos)"
         onClick={onOcultar}
       >
         <Icon name="close" />

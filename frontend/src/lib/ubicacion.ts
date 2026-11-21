@@ -1,8 +1,12 @@
+import { cambiosNegocioSchema, type CambiosNegocio } from '@/types/negocio';
 import {
   puntoSchema,
   type ConfiguracionUbicacion,
   type Direccion,
+  type PorSeccion,
+  type Punto,
   type Rubro,
+  type SeccionUbicacion,
 } from '@/types/ubicacion';
 
 export function normalizarConsulta(consulta: string) {
@@ -39,31 +43,93 @@ export function leerPunto(latitud: string, longitud: string) {
   return parsed.success ? parsed.data : null;
 }
 
+type Revision = { error: string; configuracion: ConfiguracionUbicacion | null };
+
+const rechazada = (error: string): Revision => ({ error, configuracion: null });
+
+const aceptada = (configuracion: ConfiguracionUbicacion): Revision => ({
+  error: '',
+  configuracion,
+});
+
+const seMovioElPunto = (punto: Punto, direccion: Direccion) =>
+  punto.latitud !== direccion.latitud || punto.longitud !== direccion.longitud;
+
 export function revisarConfiguracion(
   direccion: Direccion | null,
   latitud: string,
   longitud: string,
   codigoRubro: string,
   rubros: Rubro[],
-): { error: string; configuracion: ConfiguracionUbicacion | null } {
-  if (!direccion)
-    return { error: 'Buscá y elegí la dirección de tu comercio.', configuracion: null };
+): Revision {
+  if (!direccion) return rechazada('Buscá y elegí la dirección de tu comercio.');
   const punto = leerPunto(latitud, longitud);
   if (!punto) {
-    return {
-      error: 'Revisá las coordenadas: latitud entre -90 y 90, longitud entre -180 y 180.',
-      configuracion: null,
-    };
+    return rechazada('Revisá las coordenadas: latitud entre -90 y 90, longitud entre -180 y 180.');
   }
   const rubro = rubros.find((item) => item.codigo === codigoRubro);
-  if (!rubro) return { error: 'Elegí el rubro de tu comercio.', configuracion: null };
-  return {
-    error: '',
-    configuracion: {
-      direccion: direccion.direccion,
-      punto,
-      rubro,
-      ajustado: punto.latitud !== direccion.latitud || punto.longitud !== direccion.longitud,
-    },
-  };
+  if (!rubro) return rechazada('Elegí el rubro de tu comercio.');
+  const ajustado = seMovioElPunto(punto, direccion);
+  return aceptada({ direccion: direccion.direccion, punto, rubro, ajustado });
+}
+
+/** Lo que la persona tiene cargado en pantalla, antes de guardar. */
+export type BorradorDeUbicacion = {
+  nombre: string;
+  comparteDatosZona: boolean;
+  rubro: string;
+  rubrosDisponibles: Rubro[];
+  direccion: Direccion | null;
+  punto: Punto | null;
+  localidad: string;
+  localidadBloquea: boolean;
+  errorDeLocalidad: string;
+};
+
+/** El PATCH de una solapa con solo sus campos, o la explicación de qué le falta. */
+export type CambiosDeSolapa = { cambios?: CambiosNegocio; error?: string };
+
+function cambiosDelComercio({ nombre, comparteDatosZona }: BorradorDeUbicacion): CambiosDeSolapa {
+  const datos = cambiosNegocioSchema.safeParse({ nombre, comparteDatosZona });
+  return datos.success
+    ? { cambios: datos.data }
+    : { error: 'Escribí el nombre del comercio (hasta 120 caracteres).' };
+}
+
+function cambiosDelRubro({ rubro, rubrosDisponibles }: BorradorDeUbicacion): CambiosDeSolapa {
+  return rubrosDisponibles.some((item) => item.codigo === rubro)
+    ? { cambios: { rubro } }
+    : { error: 'Elegí el rubro de tu comercio.' };
+}
+
+function cambiosDeLaUbicacion(borrador: BorradorDeUbicacion): CambiosDeSolapa {
+  const { direccion, punto, localidad } = borrador;
+  if (!direccion || !punto) return { error: 'Buscá y elegí la dirección de tu comercio.' };
+  if (borrador.localidadBloquea) {
+    const esperar = 'Esperá a que verifiquemos la localidad con el mapa para guardar.';
+    return { error: borrador.errorDeLocalidad || esperar };
+  }
+  const datos = cambiosNegocioSchema.safeParse({
+    ubicacion: { direccion: direccion.direccion, localidad, ...punto },
+  });
+  return datos.success
+    ? { cambios: datos.data }
+    : { error: 'No pudimos saber la localidad. Buscá la dirección con la localidad al final.' };
+}
+
+const CAMBIOS_POR_SOLAPA: PorSeccion<(borrador: BorradorDeUbicacion) => CambiosDeSolapa> = {
+  comercio: cambiosDelComercio,
+  rubro: cambiosDelRubro,
+  ubicacion: cambiosDeLaUbicacion,
+};
+
+export const cambiosDeLaSolapa = (
+  seccion: SeccionUbicacion,
+  borrador: BorradorDeUbicacion,
+): CambiosDeSolapa => CAMBIOS_POR_SOLAPA[seccion](borrador);
+
+// Lo que sigue a la última coma de la dirección escrita: "Varela 1903, San Justo" → "San Justo".
+export function localidadEscrita(consulta: string) {
+  const partes = consulta.split(',');
+  return partes.length > 1 ? (partes[partes.length - 1]?.trim() ?? '') : '';
 }

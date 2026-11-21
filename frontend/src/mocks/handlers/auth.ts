@@ -72,7 +72,7 @@ export const handlersAuth = [
     const cuerpo = loginSchema.safeParse(await request.json());
     const usuario = cuerpo.success ? estado.usuarios.get(normalizar(cuerpo.data.email)) : undefined;
     if (!cuerpo.success || usuario?.contrasenia !== cuerpo.data.contrasenia) {
-      return errorResponse(401, 'No se pudo autenticar el acceso', pathDe(request));
+      return errorResponse(401, 'No pudimos autenticar el acceso', pathDe(request));
     }
     estado.sesionUsuarioId = usuario.id;
     return HttpResponse.json(aUsuarioResponse(usuario));

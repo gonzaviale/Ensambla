@@ -173,9 +173,9 @@ del framework.
   `TransactionTemplate`, propagación REQUIRED). En los tests unitarios se usa `support/TransaccionDirecta`.
 
 ```java
-// ✅ el puerto resuelve la búsqueda y el caso de uso sólo orquesta
-NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-Proyecto proyecto = proyectoRepository.obtener(negocioId, request.proyectoId());
+// ✅ el puerto resuelve la búsqueda y el caso de uso sólo orquesta (el puerto se llama desde métodos privados)
+NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+Proyecto proyecto = obtenerProyecto(negocioId, request.proyectoId());
 
 // ❌ un servicio por una línea
 @Service
@@ -189,6 +189,121 @@ public class NegocioService {
 public class ActualizarRenovacion {
     private final SincronizarRenovacion sincronizarRenovacion;
 }
+```
+
+### 8. Calidad de código: semántico, corto y polimórfico
+
+**Por qué:** nos criticaron código espagueti, falta de herencia y polimorfismo, y código que no se lee solo. Un `switch`
+por tipo repetido en cuatro lugares obliga a tocar cuatro archivos para agregar un tipo y esconde las reglas de cada uno;
+un método de 30 líneas con comentarios obliga a descifrarlo en vez de leerlo. Es **obligatorio**, no una sugerencia:
+ninguna tarea se cierra con un `switch` por tipo ni métodos largos en el código que se tocó. Si tocás un archivo, lo
+dejás semántico.
+
+**Cómo:** (el paso a paso, la receta y el checklist están en el skill `codigo-semantico`)
+
+- **Métodos cortos:** ≈10 líneas y un solo nivel de abstracción; si no entra, se parte por significado.
+- **Semánticos:** el método público se lee como una frase que entiende alguien que no programa; el detalle va a métodos
+  privados (o al modelo) con nombre de intención.
+- **Sin comentarios que repitan el código:** solo el porqué no obvio. Si hace falta explicar *qué* hace, se renombra o
+  se extrae.
+- **Los menos condicionales posibles:** cláusulas de guarda en lugar de `if` anidados.
+- **Siempre herencia y polimorfismo, nunca `switch` ni cadenas de `if/else if` por tipo o estado:** clase base abstracta
+  con una subclase por comportamiento, y el enum como discriminador con constructor/fábrica (`TipoCampo.crear(...)`).
+- **Los métodos públicos no llaman a repositorios, puertos ni servicios:** el `execute()` de un caso de uso y los
+  públicos de un servicio solo llaman a métodos privados con nombre de intención; cada llamada al puerto se extrae a un
+  privado (`obtenerCampo(...)`).
+- **Tests:** nombre de método en español, sin tildes, como una frase del negocio que se lee sola
+  (`unCampoUsadoPorUnaFormulaNoPuedeCambiarDeTipo`; prohibidos `executeShouldXWhenY` y los nombres en inglés) y
+  **`@DisplayName` en español obligatorio en todo `@Test` y `@ParameterizedTest`** (frase con tildes que explica el
+  comportamiento: `@DisplayName("Un campo usado por una fórmula no puede cambiar de tipo")`). Tres bloques de una línea con `dadoX(...)`, `cuandoX(...)`, `entoncesX(...)`; el
+  cuerpo nunca nombra repositorios, mocks, `when(...)`, `verify(...)`, builders ni UUID sueltos. Los datos salen de
+  fábricas de dominio en `src/test/.../support/` (`CamposDePrueba`…). Un comportamiento por test, sin lógica ni
+  ternarios, y clase base abstracta cuando varios tipos comparten comportamiento.
+
+```java
+// ✅ cada tipo sabe validarse; agregar un tipo es agregar una clase
+public abstract class Campo { public abstract String errorDe(Object valor); }
+
+public class CampoFecha extends Campo {
+    @Override
+    public String errorDe(Object valor) { return esFechaIso(valor) ? null : "debe ser una fecha válida"; }
+}
+
+// ❌ el tipo se pregunta desde afuera, y en cuatro lugares
+switch (campo.getTipo()) {
+    case FECHA -> …
+    case NUMERO, MONEDA -> …
+}
+```
+
+```java
+// ✅ se lee como una frase
+renovacion.exigirPagoCoincidente(pago);
+suscripcion.activarPremium(pago, renovacion.planId());
+
+// ❌ cinco condiciones con || y comentarios que repiten el código
+// verifico el pago
+if (pago == null || !pago.getReferencia().equals(…) || … ) { throw … }
+```
+
+```java
+// ❌ el método público habla con los repositorios
+Campo campo = campoRepository.obtener(request.campoId(), negocioId);
+
+// ✅ cada paso con nombre de intención, el puerto queda en el privado
+public CampoItem execute(EditarCampoRequest request) {
+    NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+    Campo campo = obtenerCampo(request.campoId(), negocioId);
+    Bloque bloque = obtenerBloqueDelCampo(campo, negocioId);
+    return CampoItem.de(editarGuardando(bloque, campo, request));
+}
+```
+
+```java
+// ✅ test que se lee solo
+@Test
+@DisplayName("Un campo usado por una fórmula no puede cambiar de tipo")
+void unCampoUsadoPorUnaFormulaNoPuedeCambiarDeTipo() {
+    Campo cantidad = unCampoNumerico("Cantidad");
+    dadoUnBloqueCon(cantidad, unaFormulaQueUsa(cantidad, "Doble"));
+
+    cuandoSeIntentaConvertirEnTexto(cantidad);
+
+    entoncesSeRechazaPorque("No se puede cambiar el tipo de «Cantidad»: la fórmula «Doble» lo usa");
+    entoncesNoSeGuardaNingunCampo();
+}
+
+// ❌ nombre en inglés y mecánica dentro del @Test
+@Test
+void executeShouldRejectChangingTypeOfFieldUsedByFormula() {
+    givenCamposDelBloque();
+    …
+    verify(campoRepository, never()).save(any());
+}
+```
+
+Deuda conocida que todavía tiene ramas por tipo (si tocás una, la dejás semántica): `AtenderMensajeWhatsapp` y,
+hasta que se mergee la rama de objetivos con Sami, `model/objetivo`. El resto del dominio ya está bajo el candado de
+`ArchitectureTest` (`PAQUETES_MIGRADOS`).
+
+### 9. El dominio no conoce formatos de persistencia ni de transporte
+
+**Por qué:** un prefijo de clave (`"servidor:"`), un JSON o un `Map<?, ?>` con claves de texto (`"tipo"`, `"bloqueId"`)
+dentro del dominio lo atan a cómo se guarda o se transmite el dato y obligan a `if`/`switch` por texto para
+interpretarlo. Cambiar el formato obliga a tocar las reglas de negocio.
+
+**Cómo:** la infraestructura convierte a objetos tipados (interfaz sellada + records, polimorfismo, mapa tipo→fábrica
+en el mapper) y el dominio solo habla de ids y tipos propios. Ejemplo: las acciones del aviso (`AccionDeAviso`:
+`EditarRegistro`, `CrearRegistro`, `Abrir`, `VerZona`) y la clave de contenido (el dominio habla de `AvisoId`, la
+infraestructura arma `"servidor:" + id`).
+
+```java
+// ✅ dominio
+public sealed interface AccionDeAviso permits EditarRegistro, CrearRegistro, Abrir, VerZona {}
+
+// ❌ dominio
+String clave = "servidor:" + aviso.getId();
+String tipo = (String) accion.get("tipo");
 ```
 
 ## Otras reglas que siguen vigentes
@@ -210,6 +325,8 @@ public class ActualizarRenovacion {
 | Sin `domain/dto`, `domain/mapper` ni `domain/model/enums` | los paquetes no existen |
 | Ids tipados | en los fuentes de `domain`, solo los `*Id`, `Identificador`, `IdSistema` y `Huella` nombran `UUID` |
 | Sin H2 | no hay `application-h2-test.properties` ni `org.h2.Driver` en el classpath |
+| Sin `switch` por tipo en `Campo` | no hay `switch (` en los fuentes de `domain/model/campo` (mismo patrón que la regla de ids tipados) |
+| Métodos públicos sin llamadas a puertos, dominio sin formatos | no se verifica automáticamente: se revisa con los greps de abajo |
 
 ## Controles rápidos
 
@@ -221,4 +338,19 @@ find src/main/java/com/ensambla/backend/domain -name "*UseCase.java"
 ls -d src/main/java/com/ensambla/backend/domain/{dto,mapper,model/enums} 2>/dev/null
 grep -rlw "UUID" src/main/java/com/ensambla/backend/domain | grep -v "Id.java$\|Identificador\|IdSistema\|Huella"
 grep -n "h2database" pom.xml; ls src/test/resources/application-h2-test.properties 2>/dev/null
+grep -rn "switch (" src/main/java/com/ensambla/backend/domain/model/campo
+```
+
+Y estos se revisan a mano (cada resultado se convierte en polimorfismo o se justifica por escrito):
+
+```bash
+grep -rn "Should[A-Z]" src/test        # solo código legado, ningún test nuevo
+grep -rL "@DisplayName" --include=*Test.java src/test   # archivos de test sin ningún @DisplayName: revisar
+grep -rA1 -E "@(Test|ParameterizedTest)\b" src/test | grep -vE "@(Test|ParameterizedTest)\b|@DisplayName|^--"   # vacío: ningún @Test sin su @DisplayName justo debajo
+grep -rn "switch (" src/main/java/com/ensambla/backend/domain
+grep -rn "else if" src/main/java/com/ensambla/backend/domain
+grep -rnE "== TipoCampo\.|instanceof " src/main/java/com/ensambla/backend/domain
+grep -nE "=\s*\w+(Repository|Port|Service)\.\w+\(" src/main/java/com/ensambla/backend/domain/useCase   # solo líneas dentro de métodos privados
+grep -rn "servidor:" src/main   # solo en infrastructure
+grep -rnE "Map<\?, ?\?>" src/main/java/com/ensambla/backend/domain   # vacío
 ```

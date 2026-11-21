@@ -1,5 +1,7 @@
 package com.ensambla.backend.infrastructure.repository;
 
+import com.ensambla.backend.domain.model.aviso.AccionEditarRegistro;
+import com.ensambla.backend.domain.model.aviso.AccionRegistrar;
 import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.model.aviso.MetricasVentas;
@@ -49,7 +51,7 @@ import static org.mockito.Mockito.when;
 class MotorAvisosDatosPruebaTest {
 
     private static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
-            DockerImageName.parse("postgres:17-alpine"));
+            DockerImageName.parse("postgres:17-alpine")).withUrlParam("sslmode", "disable");
 
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-19T12:00:00Z");
 
@@ -100,131 +102,156 @@ class MotorAvisosDatosPruebaTest {
     @Autowired
     private EntityManager entityManager;
 
+    private UUID demoId;
+    private Aviso avisoDeYerba;
+
     @Test
     @DisplayName("El almacén demo recibe un aviso por cada producto agotado o bajo el mínimo y ninguno por los demás")
-    void ejecutarShouldCreateStockAvisosOnlyForLowProductsOfDemo() {
-        UUID demoId = negocioDemo();
+    void elAlmacenDemoRecibeUnAvisoPorCadaProductoAgotadoOBajoElMinimoYNingunoPorLosDemas() {
+        dadoElNegocioDemo();
 
-        ejecutarMotor(NegocioId.de(demoId), AHORA);
+        cuandoSeEjecutaElMotor(AHORA);
 
-        List<Aviso> avisos = pendientesDe(demoId, TipoAviso.STOCK);
-        assertThat(avisos).extracting(Aviso::getTitulo).containsExactlyInAnyOrder(
-                "Yerba Playadito 1 kg está por debajo del mínimo",
-                "Te quedaste sin Aceite Natura 900 ml",
-                "Lavandina Ayudín 1 L está por debajo del mínimo");
-        assertThat(avisos).filteredOn(aviso -> aviso.getPrioridad() == 3).hasSize(1);
+        entoncesHayUnAvisoDeStockPorCadaProductoAgotadoOBajoElMinimo();
     }
 
     @Test
     @DisplayName("Los avisos del demo ofrecen registrar la entrada en la tabla de entradas del proyecto")
-    void ejecutarShouldSuggestRegisteringEntriesInDemo() {
-        UUID demoId = negocioDemo();
+    void losAvisosDelDemoOfrecenRegistrarLaEntradaEnLaTablaDeEntradasDelProyecto() {
+        dadoElNegocioDemo();
 
-        ejecutarMotor(NegocioId.de(demoId), AHORA);
+        cuandoSeEjecutaElMotor(AHORA);
 
-        assertThat(pendientesDe(demoId, TipoAviso.STOCK))
-                .allSatisfy(aviso -> assertThat(aviso.getAcciones().toString())
-                        .contains("REGISTRAR").contains("Registrar entrada"));
+        entoncesCadaAvisoDeStockOfreceRegistrarLaEntrada();
     }
 
     @Test
     @DisplayName("Correr el motor dos veces no duplica los avisos")
-    void ejecutarShouldBeIdempotent() {
-        UUID demoId = negocioDemo();
+    void correrElMotorDosVecesNoDuplicaLosAvisos() {
+        dadoElNegocioDemo();
 
-        ejecutarMotor(NegocioId.de(demoId), AHORA);
-        ejecutarMotor(NegocioId.de(demoId), AHORA.plusMinutes(5));
+        cuandoSeEjecutaElMotorDosVeces();
 
-        assertThat(delTipo(avisoRepository.findByNegocioId(NegocioId.de(demoId)), TipoAviso.STOCK)).hasSize(3);
+        entoncesSigueHabiendoTresAvisosDeStock();
     }
 
     @Test
-    @DisplayName("Un aviso descartado no reaparece hasta que cambian los datos de origen")
-    void ejecutarShouldKeepDiscardedAvisoUntilDatosChange() {
-        UUID demoId = negocioDemo();
-        ejecutarMotor(NegocioId.de(demoId), AHORA);
-        Aviso yerba = pendientesDe(demoId, TipoAviso.STOCK).stream()
-                .filter(aviso -> aviso.getTitulo().startsWith("Yerba")).findFirst().orElseThrow();
-        yerba.descartar(AHORA);
-        avisoRepository.save(yerba);
+    @DisplayName("Un aviso descartado no reaparece mientras los datos de origen no cambien")
+    void unAvisoDescartadoNoReapareceMientrasLosDatosDeOrigenNoCambien() {
+        dadoElNegocioDemo();
+        dadoQueSeDescartoElAvisoDeLaYerba();
 
-        ejecutarMotor(NegocioId.de(demoId), AHORA.plusMinutes(5));
+        cuandoSeEjecutaElMotor(AHORA.plusMinutes(5));
 
-        assertThat(pendientesDe(demoId, TipoAviso.STOCK)).hasSize(2);
+        entoncesQuedanDosAvisosDeStockPendientes();
+    }
 
-        jdbc.update("UPDATE registro SET valores = jsonb_set(valores, ARRAY[(SELECT c.id::text FROM campo c"
-                + " WHERE c.bloque_id = registro.bloque_id AND c.clave = 'quantity')], '1') WHERE id = ?",
-                UUID.fromString(yerba.getEntidad().substring("registro:".length())));
-        entityManager.clear();
-        ejecutarMotor(NegocioId.de(demoId), AHORA.plusMinutes(10));
+    @Test
+    @DisplayName("Un aviso descartado reaparece cuando cambian los datos de origen")
+    void unAvisoDescartadoReapareceCuandoCambianLosDatosDeOrigen() {
+        dadoElNegocioDemo();
+        dadoQueSeDescartoElAvisoDeLaYerba();
+        dadoQueLaYerbaBajoAUnaUnidad();
 
-        assertThat(pendientesDe(demoId, TipoAviso.STOCK))
-                .extracting(Aviso::getTitulo).anyMatch(titulo -> titulo.startsWith("Yerba"));
+        cuandoSeEjecutaElMotor(AHORA.plusMinutes(10));
+
+        entoncesElAvisoDeLaYerbaVuelveAEstarPendiente();
     }
 
     @Test
     @DisplayName("Un producto que repone stock deja de tener aviso y el aviso vence")
-    void ejecutarShouldExpireAvisoWhenStockIsRestored() {
-        UUID demoId = negocioDemo();
-        ejecutarMotor(NegocioId.de(demoId), AHORA);
-        jdbc.update("UPDATE registro SET valores = jsonb_set(valores, ARRAY[(SELECT c.id::text FROM campo c"
-                + " WHERE c.bloque_id = registro.bloque_id AND c.clave = 'quantity')], '50')"
-                + " WHERE negocio_id = ? AND valores::text LIKE '%Aceite Natura%'", demoId);
-        entityManager.clear();
+    void unProductoQueReponeStockDejaDeTenerAvisoYElAvisoVence() {
+        dadoElNegocioDemo();
+        dadoQueElMotorYaCorrio();
+        dadoQueElAceiteRepusoCincuentaUnidades();
 
-        ejecutarMotor(NegocioId.de(demoId), AHORA.plusMinutes(5));
+        cuandoSeEjecutaElMotor(AHORA.plusMinutes(5));
 
-        assertThat(pendientesDe(demoId, TipoAviso.STOCK)).hasSize(2);
-        assertThat(delTipo(avisoRepository.findByNegocioIdAndEstado(NegocioId.de(demoId), EstadoAviso.VENCIDO), TipoAviso.STOCK)).hasSize(1);
+        entoncesElAvisoDelAceiteVencio();
     }
 
     @Test
     @DisplayName("El azúcar del demo, cara y sin ventas hace más de un mes, recibe el aviso de rebajar el precio")
-    void executeShouldCreateEstancadoAvisoForAzucarOfDemo() {
-        UUID demoId = negocioDemo();
+    void elAzucarDelDemoCaraYSinVentasHaceMasDeUnMesRecibeElAvisoDeRebajarElPrecio() {
+        dadoElNegocioDemo();
 
-        ejecutarMotor(NegocioId.de(demoId), OffsetDateTime.now());
+        cuandoSeEjecutaElMotor(OffsetDateTime.now());
 
-        assertThat(pendientesDe(demoId, TipoAviso.ESTANCADO)).singleElement().satisfies(aviso -> {
-            assertThat(aviso.getTitulo()).isEqualTo("Azúcar Ledesma 1 kg está caro y no se mueve");
-            assertThat(aviso.getPrioridad()).isEqualTo((short) 2);
-            assertThat(aviso.getAcciones().toString()).contains("EDITAR_REGISTRO").contains("Rebajar a $1.150");
-            assertThat(aviso.getMotivos().getFirst().toString()).startsWith("En tu zona, 8 comercios lo venden");
-        });
+        entoncesElAzucarRecibeElAvisoDeRebajarElPrecio();
     }
 
     @Test
     @DisplayName("Los productos que el demo vende normalmente no reciben el aviso de producto estancado")
-    void executeShouldNotCreateEstancadoAvisoForProductsThatSell() {
-        UUID demoId = negocioDemo();
+    void losProductosQueElDemoVendeNormalmenteNoRecibenElAvisoDeProductoEstancado() {
+        dadoElNegocioDemo();
 
-        ejecutarMotor(NegocioId.de(demoId), OffsetDateTime.now());
+        cuandoSeEjecutaElMotor(OffsetDateTime.now());
 
-        assertThat(pendientesDe(demoId, TipoAviso.ESTANCADO)).extracting(Aviso::getTitulo)
-                .noneMatch(titulo -> titulo.startsWith("Yerba") || titulo.startsWith("Coca"));
+        entoncesLaYerbaYLaCocaNoTienenAvisoDeEstancado();
     }
 
     @Test
     @DisplayName("Rebajar el azúcar hace desaparecer el aviso de producto estancado")
-    void executeShouldExpireEstancadoAvisoWhenPriceIsLowered() {
-        UUID demoId = negocioDemo();
-        ejecutarMotor(NegocioId.de(demoId), OffsetDateTime.now());
+    void rebajarElAzucarHaceDesaparecerElAvisoDeProductoEstancado() {
+        dadoElNegocioDemo();
+        dadoQueElMotorYaCorrio(OffsetDateTime.now());
+        dadoQueSeRebajoElAzucarA1150();
+
+        cuandoSeEjecutaElMotor(OffsetDateTime.now().plusMinutes(5));
+
+        entoncesNoHayAvisosDeEstancado();
+    }
+
+    // --- dado ---
+
+    private void dadoElNegocioDemo() {
+        demoId = jdbc.queryForObject("SELECT n.id FROM negocio n JOIN usuario u ON u.id = n.duenio_id"
+                + " WHERE u.email = 'demo@ensambla.test'", UUID.class);
+    }
+
+    private void dadoQueElMotorYaCorrio() {
+        dadoQueElMotorYaCorrio(AHORA);
+    }
+
+    private void dadoQueElMotorYaCorrio(OffsetDateTime instante) {
+        cuandoSeEjecutaElMotor(instante);
+    }
+
+    private void dadoQueSeDescartoElAvisoDeLaYerba() {
+        cuandoSeEjecutaElMotor(AHORA);
+        avisoDeYerba = pendientesDe(TipoAviso.STOCK).stream()
+                .filter(aviso -> aviso.getTitulo().startsWith("Yerba")).findFirst().orElseThrow();
+        avisoDeYerba.descartar(AHORA);
+        avisoRepository.save(avisoDeYerba);
+    }
+
+    private void dadoQueLaYerbaBajoAUnaUnidad() {
+        cuandoSeEjecutaElMotor(AHORA.plusMinutes(5));
+        jdbc.update("UPDATE registro SET valores = jsonb_set(valores, ARRAY[(SELECT c.id::text FROM campo c"
+                + " WHERE c.bloque_id = registro.bloque_id AND c.clave = 'quantity')], '1') WHERE id = ?",
+                UUID.fromString(avisoDeYerba.getEntidad().substring("registro:".length())));
+        entityManager.clear();
+    }
+
+    private void dadoQueElAceiteRepusoCincuentaUnidades() {
+        jdbc.update("UPDATE registro SET valores = jsonb_set(valores, ARRAY[(SELECT c.id::text FROM campo c"
+                + " WHERE c.bloque_id = registro.bloque_id AND c.clave = 'quantity')], '50')"
+                + " WHERE negocio_id = ? AND valores::text LIKE '%Aceite Natura%'", demoId);
+        entityManager.clear();
+    }
+
+    private void dadoQueSeRebajoElAzucarA1150() {
         jdbc.update("UPDATE registro SET valores = jsonb_set(valores, ARRAY[(SELECT c.id::text FROM campo c"
                 + " WHERE c.bloque_id = registro.bloque_id AND c.clave = 'price')], '1150')"
                 + " WHERE negocio_id = ? AND valores::text LIKE '%Azúcar Ledesma%'", demoId);
         entityManager.clear();
-
-        ejecutarMotor(NegocioId.de(demoId), OffsetDateTime.now().plusMinutes(5));
-
-        assertThat(pendientesDe(demoId, TipoAviso.ESTANCADO)).isEmpty();
     }
 
-    private UUID negocioDemo() {
-        return jdbc.queryForObject("SELECT n.id FROM negocio n JOIN usuario u ON u.id = n.duenio_id"
-                + " WHERE u.email = 'demo@ensambla.test'", UUID.class);
-    }
+    // --- cuando ---
+
     /** El motor real sobre el negocio demo y en el instante del test; los demás negocios de la base no se tocan. */
-    private void ejecutarMotor(NegocioId negocioId, OffsetDateTime ahora) {
+    private void cuandoSeEjecutaElMotor(OffsetDateTime ahora) {
+        NegocioId negocioId = NegocioId.de(demoId);
         NegocioRepository soloEsteNegocio = mock(NegocioRepository.class);
         when(soloEsteNegocio.findAllIds()).thenReturn(List.of(negocioId));
         when(soloEsteNegocio.findZonaIdById(negocioId)).thenReturn(negocioRepository.findZonaIdById(negocioId));
@@ -234,8 +261,71 @@ class MotorAvisosDatosPruebaTest {
                 .execute();
     }
 
-    private List<Aviso> pendientesDe(UUID negocioId, TipoAviso tipo) {
-        return delTipo(avisoRepository.findByNegocioIdAndEstado(NegocioId.de(negocioId), EstadoAviso.PENDIENTE), tipo);
+    private void cuandoSeEjecutaElMotorDosVeces() {
+        cuandoSeEjecutaElMotor(AHORA);
+        cuandoSeEjecutaElMotor(AHORA.plusMinutes(5));
+    }
+
+    // --- entonces ---
+
+    private void entoncesHayUnAvisoDeStockPorCadaProductoAgotadoOBajoElMinimo() {
+        List<Aviso> avisos = pendientesDe(TipoAviso.STOCK);
+        assertThat(avisos).extracting(Aviso::getTitulo).containsExactlyInAnyOrder(
+                "Yerba Playadito 1 kg está por debajo del mínimo",
+                "Te quedaste sin Aceite Natura 900 ml",
+                "Lavandina Ayudín 1 L está por debajo del mínimo");
+        assertThat(avisos).filteredOn(aviso -> aviso.getPrioridad() == 3).hasSize(1);
+    }
+
+    private void entoncesCadaAvisoDeStockOfreceRegistrarLaEntrada() {
+        assertThat(pendientesDe(TipoAviso.STOCK))
+                .allSatisfy(aviso -> assertThat(aviso.getAcciones())
+                        .hasAtLeastOneElementOfType(AccionRegistrar.class));
+    }
+
+    private void entoncesSigueHabiendoTresAvisosDeStock() {
+        assertThat(delTipo(avisoRepository.findByNegocioId(NegocioId.de(demoId)), TipoAviso.STOCK)).hasSize(3);
+    }
+
+    private void entoncesQuedanDosAvisosDeStockPendientes() {
+        assertThat(pendientesDe(TipoAviso.STOCK)).hasSize(2);
+    }
+
+    private void entoncesElAvisoDeLaYerbaVuelveAEstarPendiente() {
+        assertThat(pendientesDe(TipoAviso.STOCK))
+                .extracting(Aviso::getTitulo).anyMatch(titulo -> titulo.startsWith("Yerba"));
+    }
+
+    private void entoncesElAvisoDelAceiteVencio() {
+        assertThat(pendientesDe(TipoAviso.STOCK)).hasSize(2);
+        assertThat(delTipo(avisoRepository.findByNegocioIdAndEstado(NegocioId.de(demoId), EstadoAviso.VENCIDO),
+                TipoAviso.STOCK)).hasSize(1);
+    }
+
+    private void entoncesElAzucarRecibeElAvisoDeRebajarElPrecio() {
+        assertThat(pendientesDe(TipoAviso.ESTANCADO)).singleElement().satisfies(aviso -> {
+            assertThat(aviso.getTitulo()).isEqualTo("Azúcar Ledesma 1 kg está caro y no se mueve");
+            assertThat(aviso.getPrioridad()).isEqualTo((short) 2);
+            assertThat(aviso.getAcciones()).anySatisfy(accion -> assertThat(accion)
+                    .isInstanceOfSatisfying(AccionEditarRegistro.class,
+                            editar -> assertThat(editar.texto()).isEqualTo("Rebajar a $1.150")));
+            assertThat(aviso.getMotivos().getFirst().toString()).startsWith("En tu zona, 8 comercios lo venden");
+        });
+    }
+
+    private void entoncesLaYerbaYLaCocaNoTienenAvisoDeEstancado() {
+        assertThat(pendientesDe(TipoAviso.ESTANCADO)).extracting(Aviso::getTitulo)
+                .noneMatch(titulo -> titulo.startsWith("Yerba") || titulo.startsWith("Coca"));
+    }
+
+    private void entoncesNoHayAvisosDeEstancado() {
+        assertThat(pendientesDe(TipoAviso.ESTANCADO)).isEmpty();
+    }
+
+    // --- datos ---
+
+    private List<Aviso> pendientesDe(TipoAviso tipo) {
+        return delTipo(avisoRepository.findByNegocioIdAndEstado(NegocioId.de(demoId), EstadoAviso.PENDIENTE), tipo);
     }
 
     private static List<Aviso> delTipo(List<Aviso> avisos, TipoAviso tipo) {

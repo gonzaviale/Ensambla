@@ -71,22 +71,30 @@ public class ProyectoRepositoryImpl implements ProyectoRepository {
     }
 
     private Proyecto cargarEstructura(Proyecto proyecto) {
-        List<Bloque> bloques = bloqueJpaRepository
+        List<Bloque> bloques = bloquesDelProyecto(proyecto);
+        Map<BloqueId, List<Campo>> campos = camposDeLosBloques(proyecto, bloques);
+        bloques.forEach(bloque -> bloque.setCampos(campos.getOrDefault(bloque.getId(), List.of())));
+        proyecto.setBloques(bloques);
+        return proyecto;
+    }
+
+    private List<Bloque> bloquesDelProyecto(Proyecto proyecto) {
+        return bloqueJpaRepository
                 .findAllByProyectoIdAndNegocioIdOrderByPosicionAscIdAsc(proyecto.getId().valor(), proyecto
                 .getNegocioId().valor())
                 .stream()
                 .map(proyectoRepositoryMapper::toDomain)
                 .toList();
+    }
+
+    private Map<BloqueId, List<Campo>> camposDeLosBloques(Proyecto proyecto, List<Bloque> bloques) {
         List<BloqueId> bloqueIds = bloques.stream().map(Bloque::getId).toList();
-        Map<BloqueId, List<Campo>> campos = campoJpaRepository
+        return campoJpaRepository
                 .findAllByBloqueIdInAndNegocioIdOrderByPosicionAscIdAsc(Identificador.valores(bloqueIds), proyecto
                 .getNegocioId().valor())
                 .stream()
                 .map(proyectoRepositoryMapper::toDomain)
                 .collect(Collectors.groupingBy(Campo::getBloqueId));
-        bloques.forEach(bloque -> bloque.setCampos(campos.getOrDefault(bloque.getId(), List.of())));
-        proyecto.setBloques(bloques);
-        return proyecto;
     }
 
     private Bloque guardarBloque(Bloque bloque, ProyectoId proyectoId) {

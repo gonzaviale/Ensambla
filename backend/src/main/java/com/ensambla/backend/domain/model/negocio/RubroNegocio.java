@@ -11,6 +11,7 @@ public enum RubroNegocio {
     KIOSCO("Kiosco"),
     MINIMERCADO("Minimercado"),
     DIETETICA("Dietética"),
+    PAPELERIA("Papelería"),
     OTRO("Otro");
 
     private final String nombre;

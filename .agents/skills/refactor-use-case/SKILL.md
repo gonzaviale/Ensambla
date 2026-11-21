@@ -1,6 +1,6 @@
 ---
 name: refactor-use-case
-description: Refactoriza un caso de uso del backend de Ensambla (com.ensambla.backend.domain.useCase.*) a la estructura objetivo del proyecto, dejando execute() como una lista de pasos, moviendo las reglas puras al model, la lógica de un solo caso de uso a métodos privados y a servicios de dominio solo lo que comparten dos o más casos de uso; con sus DTOs en el subpaquete del caso, fábricas de() en lugar de mappers, ids tipados, sin sufijo UseCase y sin Spring en el dominio; y sus tests al estilo Arrange-Act-Assert con helpers privados, nombres camelCase y @DisplayName en español; sin cambiar el comportamiento y manteniendo los tests verdes. Usar cuando se pida "refactorizar este caso de uso", "dejar SOLID", "extraer a private methods/al model/al service", "eliminar este servicio/mapper", limpiar un execute() con lógica inline, o "refactorizar/limpiar los tests" (extraer when/then y validaciones a métodos privados, camelCase, DisplayName).
+description: Refactoriza un caso de uso del backend de Ensambla (com.ensambla.backend.domain.useCase.*) a la estructura objetivo del proyecto, dejando execute() como una lista de pasos, moviendo las reglas puras al model, la lógica de un solo caso de uso a métodos privados y a servicios de dominio solo lo que comparten dos o más casos de uso; con sus DTOs en el subpaquete del caso, fábricas de() en lugar de mappers, ids tipados, sin sufijo UseCase y sin Spring en el dominio; y sus tests con nombre de negocio en español sin tildes, @DisplayName obligatorio en español y tres bloques dadoX/cuandoX/entoncesX; sin cambiar el comportamiento y manteniendo los tests verdes. Aplica siempre el skill codigo-semantico (obligatorio) y pasa de switch/if por tipo a polimorfismo. Usar cuando se pida "refactorizar este caso de uso", "dejar SOLID", "extraer a private methods/al model/al service", "eliminar este servicio/mapper", limpiar un execute() con lógica inline, o "refactorizar/limpiar los tests" (extraer dado/cuando/entonces y validaciones a métodos privados, nombre en español que se lee solo).
 ---
 
 > Copia para Codex. La fuente es `.claude/skills/refactor-use-case/SKILL.md`: si cambiás uno, cambiá los dos.
@@ -31,20 +31,26 @@ Las reglas de estructura están en [`backend/ARQUITECTURA.md`](../../../backend/
 
 `execute()` solo orquesta. Cada línea es una de estas cosas:
 
-1. Una llamada a un **método privado** del caso de uso (`resolverX`, `cargarX`, `validarX`, `aplicarX`).
+1. Una llamada a un **método privado** del caso de uso (`obtenerX`, `cargarX`, `validarX`, `aplicarX`). Ahí adentro
+   —y solo ahí— se llama al **puerto** o al **servicio compartido**.
 2. Una llamada a un **método del model** (regla pura).
-3. Una llamada a un **puerto** o a un **servicio compartido**.
+3. *(sin llamadas directas a repositorios, puertos ni servicios: siempre a través de un privado con nombre de intención)*
 4. `transaccionPort.ejecutar(() -> …)` alrededor de los pasos que tienen que confirmarse juntos.
 5. La fábrica del DTO de salida (`ProyectoItem.de(proyecto)`).
 
-No debe quedar en `execute()`: validaciones inline con `throw`, matemática de dominio, cadenas
+No debe quedar en `execute()`: llamadas directas a repositorios, puertos o servicios (`campoRepository.obtener(...)`),
+validaciones inline con `throw`, matemática de dominio, cadenas
 `repository.findX().filter(...).isPresent()`, ni armado de varios valores.
 
 Caso simple — `ListarPlantillas`:
 
 ```java
 public ListarPlantillasResponse execute() {
-    return ListarPlantillasResponse.de(plantillaRepository.findAllActivas());
+    return ListarPlantillasResponse.de(obtenerPlantillasActivas());
+}
+
+private List<Plantilla> obtenerPlantillasActivas() {
+    return plantillaRepository.findAllActivas();
 }
 ```
 
@@ -52,8 +58,8 @@ Caso con más pasos — `CrearProyectoDesdePlantilla`:
 
 ```java
 public ProyectoItem execute(CrearProyectoDesdePlantillaRequest request) {
-    NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-    PlantillaProyecto plantilla = plantillaRepository.obtenerActiva(request.plantillaId());
+    NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+    PlantillaProyecto plantilla = obtenerPlantillaActiva(request.plantillaId());
     Proyecto proyecto = crearDesdePlantilla(negocioId, plantilla, OffsetDateTime.now(clock));
     return ProyectoItem.de(proyecto);
 }
@@ -93,9 +99,81 @@ pasa `OffsetDateTime.now(clock)` al servicio o al modelo.
    **toda** regla movida al model (un caso por comportamiento): el build exige 100 % por clase.
 6. **Compilar y correr** los tests afectados, `ArchitectureTest` y después `clean verify`.
 
+## Polimorfismo en lugar de `switch` (obligatorio)
+
+Al refactorizar, todo `switch` o cadena de `if/else if` por tipo o estado que encuentres en lo que tocás **se
+reemplaza por herencia**: no se deja, no se mueve a otro método ni se "prolijiza". La receta paso a paso y el
+antes/después de `Campo` están en el skill `codigo-semantico`. En resumen:
+
+1. Listá todos los sitios que despachan por el mismo enum (`grep -rn "switch (" …/domain`).
+2. Cada pregunta que le hacen al tipo es un método de una clase base abstracta; cada tipo es una subclase.
+3. El enum queda como discriminador con constructor/fábrica (`TipoCampo.crear(...)`), sin `switch`.
+4. Quien consultaba pasa a llamar al objeto (`campo.errorDe(valor)`); los tests existentes siguen verdes.
+
+## Métodos públicos sin llamadas a repositorios ni servicios (obligatorio)
+
+Un método público (`execute()`, método público de un servicio) **no llama directo** a repositorios, puertos ni otros
+servicios: cada llamada se extrae a un método privado con nombre de intención. Ejemplo `EditarCampo`:
+
+```java
+// ❌ el método público habla con los repositorios
+public CampoItem execute(EditarCampoRequest request) {
+    NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+    Campo campo = campoRepository.obtener(request.campoId(), negocioId);
+    ...
+}
+
+// ✅ solo pasos con nombre de intención; el detalle (y los puertos) en privados
+public CampoItem execute(EditarCampoRequest request) {
+    NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+    Campo campo = obtenerCampo(request.campoId(), negocioId);
+    Bloque bloque = obtenerBloqueDelCampo(campo, negocioId);
+    return CampoItem.de(editarGuardando(bloque, campo, request));
+}
+
+private Campo obtenerCampo(CampoId campoId, NegocioId negocioId) {
+    return campoRepository.obtener(campoId, negocioId);
+}
+```
+
+## El dominio no conoce formatos (obligatorio)
+
+Si el dominio arma o lee prefijos de clave, JSON o `Map<?, ?>` con claves de texto, se refactoriza: la infraestructura
+convierte a objetos tipados y el dominio recibe polimorfismo.
+
+```java
+// ❌ el dominio conoce el formato de transporte y de persistencia
+String clave = "servidor:" + aviso.getId();
+String tipo = (String) accion.get("tipo");            // Map<?, ?> con claves de texto
+UUID bloqueId = UUID.fromString((String) accion.get("bloqueId"));
+
+// ✅ el dominio habla de objetos tipados; la infraestructura convierte
+public sealed interface AccionDeAviso permits EditarRegistro, CrearRegistro, Abrir, VerZona {}
+
+public record EditarRegistro(RegistroId registroId) implements AccionDeAviso {}
+
+// en el mapper de infraestructura: mapa tipo → fábrica, sin switch
+private static final Map<String, Function<JsonNode, AccionDeAviso>> FABRICAS = Map.of(
+        "editarRegistro", EditarRegistroDeJson::leer,
+        "crearRegistro", CrearRegistroDeJson::leer);
+// y la clave de contenido la arma la infraestructura: "servidor:" + avisoId.valor()
+```
+
+## Métodos cortos con significado (no fragmentar por fragmentar)
+
+La regla es: **método corto (≈10 líneas, un solo nivel de abstracción) que nombra una intención**. Se extrae a un método
+privado cuando el trozo tiene un nombre de negocio que lo explica (`exigirPagoCoincidente`, `tieneElPlanVencido`), no
+para cumplir una cuota de líneas. Un método de una línea que solo renombra otra llamada y no aporta significado es ruido;
+pero un método largo que mezcla niveles también está mal. `execute()` se lee como una frase y el detalle va a privados.
+
 ## Anti-patrones (NO hacer)
 
-- Un método por cada write o por cada línea: eso es fragmentar, no ordenar.
+- Fragmentar por fragmentar: un método por cada write o por cada línea sin un nombre de intención (`paso1()`,
+  `guardar2()`). Extraer sí, pero solo lo que se puede nombrar con significado de negocio.
+- Dejar llamadas directas a repositorios, puertos o servicios dentro de `execute()` o de un método público.
+- Dejar formatos de persistencia o transporte (`"servidor:"`, JSON, `Map<?, ?>`) en el dominio.
+- Dejar un `switch` o una cadena de `if/else if` por tipo o estado: va a una jerarquía (ver arriba).
+- Comentarios que explican lo que el código ya dice (se arregla renombrando y extrayendo, no comentando).
 - Crear un servicio para lógica que usa un solo caso de uso, o un mapper de dominio para lo que es una fábrica.
 - Crear interfaces para los casos de uso cuando hay una sola implementación (YAGNI).
 - Mover I/O (repositorios) dentro del model.
@@ -105,18 +183,24 @@ pasa `OffsetDateTime.now(clock)` al servicio o al modelo.
 - Nombres de dominio en inglés (`Project`, `create`).
 - Sacar el filtro por `negocio_id` "para simplificar": el aislamiento no se negocia.
 
-## Refactor de los tests del caso de uso (estilo Arrange-Act-Assert)
+## Refactor de los tests del caso de uso (dado / cuando / entonces)
 
-Cada `@Test` queda en tres bloques (arrange / act / assert) de pocas líneas; toda la mecánica (stubs, ejecución,
-asserts y verifies) se extrae a **métodos privados** agrupados al final de la clase, bajo `// --- arrange ---`,
-`// --- act ---`, `// --- assert ---`.
+Cada `@Test` queda en tres bloques de **una línea** (`dadoX(...)`, `cuandoX(...)`, `entoncesX(...)`); toda la mecánica
+(stubs, ejecución, asserts, verifies, builders) se extrae a **métodos privados** agrupados al final de la clase, bajo
+`// --- dado ---`, `// --- cuando ---`, `// --- entonces ---`. El cuerpo nunca nombra repositorios, mocks, `when(...)`,
+`verify(...)` ni builders; los datos salen de fábricas de dominio en `support/` (`CamposDePrueba`…). Sin lógica ni
+ternarios (un `@ParameterizedTest` que decide qué esperar según el caso se convierte en un test por escenario) y, si
+varios tipos comparten el comportamiento, con una base abstracta de test. Antes/después real y todas las reglas en los
+skills `escribir-tests` y `codigo-semantico`.
 
-- **Arrange** → métodos `givenX(...)` con los `when(...).thenReturn(...)` y builders de fixtures.
-- **Act** → un método que ejecuta el caso de uso con el verbo del caso (`listar()`, `crear()`).
-- **Assert** → métodos `thenX(...)` que agrupan los `assertThat` y `verify`.
+- **Dado** → métodos `dadoX(...)` con los `when(...).thenReturn(...)` y las fábricas de fixtures.
+- **Cuando** → un método `cuandoX(...)` que ejecuta el caso de uso con el verbo del negocio.
+- **Entonces** → métodos `entoncesX(...)` que agrupan los `assertThat` y `verify` (uno por cosa verificada).
 
-Convenciones obligatorias: nombres en **camelCase** sin guiones bajos (`executeShouldReturnPlantillasActivas`),
-`@DisplayName` en **español**, comentarios solo en los casos no obvios y cuidado con el **strict stubbing** de Mockito.
+Convenciones obligatorias: nombre **en español, sin tildes, como frase del negocio** que se lee sola
+(`unCampoUsadoPorUnaFormulaNoPuedeCambiarDeTipo`), **más `@DisplayName("…")` en español en todo `@Test` y
+`@ParameterizedTest`** (frase con tildes que explica el comportamiento), prohibido `executeShouldXWhenY` y los nombres
+en inglés, comentarios solo en los casos no obvios y cuidado con el **strict stubbing** de Mockito.
 
 Plantillas ya hechas: `ListarPlantillasTest`, `ListarPlantillasResponseTest`, `PlantillaRepositoryTest`.
 

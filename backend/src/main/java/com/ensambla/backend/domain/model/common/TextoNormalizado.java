@@ -46,16 +46,28 @@ public final class TextoNormalizado {
     }
 
     private static String raiz(String palabra) {
-        String sinPlural = palabra;
-        if (sinPlural.length() > LARGO_MINIMO_PARA_RECORTAR && sinPlural.endsWith("es")) {
-            sinPlural = sinPlural.substring(0, sinPlural.length() - 2);
-        } else if (sinPlural.length() > LARGO_MINIMO_PARA_RECORTAR - 1 && sinPlural.endsWith("s")) {
-            sinPlural = sinPlural.substring(0, sinPlural.length() - 1);
+        return sinVocalFinal(sinPlural(palabra));
+    }
+
+    private static String sinPlural(String palabra) {
+        if (palabra.length() > LARGO_MINIMO_PARA_RECORTAR && palabra.endsWith("es")) {
+            return sinLosUltimos(palabra, 2);
         }
-        boolean terminaEnVocal = "aeiou".indexOf(sinPlural.charAt(sinPlural.length() - 1)) >= 0;
-        if (sinPlural.length() > LARGO_MINIMO_PARA_RECORTAR && terminaEnVocal) {
-            return sinPlural.substring(0, sinPlural.length() - 1);
+        if (palabra.length() > LARGO_MINIMO_PARA_RECORTAR - 1 && palabra.endsWith("s")) {
+            return sinLosUltimos(palabra, 1);
         }
-        return sinPlural;
+        return palabra;
+    }
+
+    private static String sinVocalFinal(String palabra) {
+        boolean terminaEnVocal = "aeiou".indexOf(palabra.charAt(palabra.length() - 1)) >= 0;
+        if (palabra.length() > LARGO_MINIMO_PARA_RECORTAR && terminaEnVocal) {
+            return sinLosUltimos(palabra, 1);
+        }
+        return palabra;
+    }
+
+    private static String sinLosUltimos(String palabra, int cantidad) {
+        return palabra.substring(0, palabra.length() - cantidad);
     }
 }

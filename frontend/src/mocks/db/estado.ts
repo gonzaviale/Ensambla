@@ -1,6 +1,9 @@
 import type { Sistema } from '@/lib/sistema/tipos';
 import type { AvisoDelServidor } from '@/types/avisos';
 import type { ConfiguracionNegocio } from '@/types/negocio';
+import type { ObjetivoDelServidor, RespuestaMiniObjetivo } from '@/types/objetivos';
+import type { DefinicionDeMetrica, AutoriaDeMetrica, GraficoDeMetrica } from '@/types/metricas';
+import type { DatosAutogestion } from './objetivosAutogestionados';
 import type { PruebaPremium } from '@/types/planes';
 import type { VerificacionWhatsapp, VinculoWhatsapp } from '@/types/whatsapp';
 import { PREFERENCIAS_INICIALES, type Preferencias } from '@/types/preferencias';
@@ -17,6 +20,14 @@ export type CuentaWhatsapp = {
   verificacion: (VerificacionWhatsapp & { intentos: number }) | null;
 };
 
+export type MetricaGuardada = {
+  id: string;
+  definicion: DefinicionDeMetrica;
+  autoria: AutoriaDeMetrica;
+  /** El que eligió la persona; sin elegir, el de siempre para su reparto. */
+  grafico?: GraficoDeMetrica;
+};
+
 type Estado = {
   usuarios: Map<string, UsuarioMock>;
   sesionUsuarioId: string | null;
@@ -26,6 +37,16 @@ type Estado = {
   negocios: Map<string, ConfiguracionNegocio>;
   /** Los avisos que el motor del servidor dejó a cada cuenta (por email); los tests los siembran. */
   avisosDelServidor: Map<string, AvisoDelServidor[]>;
+  /** Los objetivos de cada cuenta (por email), del más viejo al más nuevo. */
+  objetivos: Map<string, ObjetivoDelServidor[]>;
+  /** Mini-objetivos, progreso, decisiones y cierres de cada objetivo (por id); se arman la primera vez que se piden. */
+  autogestion: Map<string, DatosAutogestion>;
+  /** Las métricas a medida guardadas en cada cuaderno (por id del sistema), en el orden en que se pidieron. */
+  metricas: Map<string, MetricaGuardada[]>;
+  /** Cuántos objetivos con IA guardó cada cuenta en el mes (clave: email|AAAA-MM). */
+  objetivosConIa: Map<string, number>;
+  /** La respuesta de la semana de cada mini-objetivo manual (por id del mini); se responde una vez. */
+  respuestasDeMinis: Map<string, RespuestaMiniObjetivo>;
   pruebasPremium: Map<string, PruebaPremium>;
   contenidosDesbloqueados: Map<string, string[]>;
   paginasIa: Map<string, number>;
@@ -42,6 +63,11 @@ export const estado: Estado = {
   preferencias: new Map(),
   negocios: new Map(),
   avisosDelServidor: new Map(),
+  objetivos: new Map(),
+  autogestion: new Map(),
+  metricas: new Map(),
+  objetivosConIa: new Map(),
+  respuestasDeMinis: new Map(),
   pruebasPremium: new Map(),
   contenidosDesbloqueados: new Map(),
   paginasIa: new Map(),
@@ -56,6 +82,11 @@ export function reiniciarEstado() {
   estado.preferencias = new Map();
   estado.negocios = new Map();
   estado.avisosDelServidor = new Map();
+  estado.objetivos = new Map();
+  estado.autogestion = new Map();
+  estado.metricas = new Map();
+  estado.objetivosConIa = new Map();
+  estado.respuestasDeMinis = new Map();
   estado.pruebasPremium = new Map();
   estado.contenidosDesbloqueados = new Map();
   estado.paginasIa = new Map();
@@ -74,6 +105,13 @@ export const preferenciasDe = (email: string) =>
 
 export function guardarSistemasDe(email: string, sistemas: Sistema[]) {
   estado.sistemas.set(email, sistemas);
+  estado.alCambiar?.();
+}
+
+export const objetivosDe = (email: string) => estado.objetivos.get(email) ?? [];
+
+export function guardarObjetivosDe(email: string, objetivos: ObjetivoDelServidor[]) {
+  estado.objetivos.set(email, objetivos);
   estado.alCambiar?.();
 }
 

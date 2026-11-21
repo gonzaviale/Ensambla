@@ -1280,7 +1280,7 @@ body:has(.editor-layout) {
   }
 }
 
-/* Las herramientas del cuaderno arriba del lienzo: el navbar de arriba es el común a todas las pantallas. */
+/* Las herramientas de la sección arriba del lienzo: el navbar de arriba es el común a todas las pantallas. */
 .editor-herramientas {
   display: flex;
   flex-wrap: wrap;
@@ -1347,4 +1347,16 @@ body:has(.editor-layout) {
   .sami-franja:not(.ok) .sami-chip {
     width: 100%;
   }
+}
+
+/* Candado de las columnas que Ensambla necesita para funcionar. */
+.columna-fija {
+  display: inline-flex;
+  margin-left: 6px;
+  vertical-align: middle;
+  opacity: 0.75;
+}
+.columna-fija .icon {
+  width: 14px;
+  height: 14px;
 }

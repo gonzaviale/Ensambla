@@ -7,35 +7,68 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class ConsultaDireccionTest {
 
+    private ConsultaDireccion consulta;
+    private Throwable rechazo;
+
     @Test
     @DisplayName("Normaliza espacios y conserva la localidad")
-    void deShouldNormalizeAddress() {
-        ConsultaDireccion result = ConsultaDireccion.de("  Florencio   Varela 1903, San Justo  ");
+    void normalizaEspaciosYConservaLaLocalidad() {
+        cuandoSeEscribeLaDireccion("  Florencio   Varela 1903, San Justo  ");
 
-        assertThat(result.texto()).isEqualTo("Florencio Varela 1903, San Justo");
+        entoncesElTextoQuedaNormalizado();
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"", "    ", "abcd"})
     @DisplayName("Rechaza una dirección demasiado corta")
-    void deShouldRejectShortAddress(String escrito) {
-        assertThatThrownBy(() -> ConsultaDireccion.de(escrito)).isInstanceOf(BusinessRuleException.class);
+    void rechazaUnaDireccionDemasiadoCorta(String escrito) {
+        cuandoSeIntentaEscribirLaDireccion(escrito);
+
+        entoncesSeRechazaPorReglaDeNegocio();
     }
 
     @Test
     @DisplayName("Rechaza una dirección de más de 200 caracteres")
-    void deShouldRejectLongAddress() {
-        assertThatThrownBy(() -> ConsultaDireccion.de("a".repeat(201))).isInstanceOf(BusinessRuleException.class);
+    void rechazaUnaDireccionDeMasDe200Caracteres() {
+        cuandoSeIntentaEscribirLaDireccion("a".repeat(201));
+
+        entoncesSeRechazaPorReglaDeNegocio();
     }
 
-    @Test
+    @ParameterizedTest
+    @ValueSource(ints = {5, 200})
     @DisplayName("Acepta los largos límite")
-    void deShouldAcceptBoundaryLengths() {
-        assertThat(ConsultaDireccion.de("a".repeat(5)).texto()).hasSize(5);
-        assertThat(ConsultaDireccion.de("a".repeat(200)).texto()).hasSize(200);
+    void aceptaLosLargosLimite(int largo) {
+        cuandoSeEscribeLaDireccion("a".repeat(largo));
+
+        entoncesElTextoTieneElLargo(largo);
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEscribeLaDireccion(String escrito) {
+        consulta = ConsultaDireccion.de(escrito);
+    }
+
+    private void cuandoSeIntentaEscribirLaDireccion(String escrito) {
+        rechazo = catchThrowable(() -> ConsultaDireccion.de(escrito));
+    }
+
+    // --- entonces ---
+
+    private void entoncesElTextoQuedaNormalizado() {
+        assertThat(consulta.texto()).isEqualTo("Florencio Varela 1903, San Justo");
+    }
+
+    private void entoncesSeRechazaPorReglaDeNegocio() {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class);
+    }
+
+    private void entoncesElTextoTieneElLargo(int largo) {
+        assertThat(consulta.texto()).hasSize(largo);
     }
 }

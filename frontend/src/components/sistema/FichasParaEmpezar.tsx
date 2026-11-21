@@ -5,13 +5,23 @@ import { useSistemaStore } from '@/stores/sistemaStore';
 import { varsDeColor } from './colores';
 import { Icon } from './Icon';
 
-// Las tres maneras de crear un cuaderno (con Sami, con una plantilla o de cero) como fichas de color.
-// Están en el inicio y en «Mis cuadernos». `guia` marca las fichas que señala la guía de primeros pasos.
-export function FichasParaEmpezar({ guia = false }: { guia?: boolean }) {
+// Las tres maneras de crear una sección (con Sami, con una plantilla o de cero) como fichas de color.
+// Están en el Inicio. `guia` marca las fichas que señala la guía de primeros pasos.
+export function FichasParaEmpezar({
+  guia = false,
+  compacto = false,
+}: {
+  guia?: boolean;
+  /** Una fila corta, sin la explicación de cada ficha: para quien ya tiene datos y no necesita la bienvenida grande. */
+  compacto?: boolean;
+}) {
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const navegacion = useNavegacion();
   return (
-    <div className="inicio-fichas" data-tour={guia ? 'choose' : undefined}>
+    <div
+      className={compacto ? 'inicio-fichas compactas' : 'inicio-fichas'}
+      data-tour={guia ? 'choose' : undefined}
+    >
       <Ficha
         color="orange"
         icono="spark"
@@ -33,7 +43,7 @@ export function FichasParaEmpezar({ guia = false }: { guia?: boolean }) {
         color="yellow"
         icono="plus"
         titulo="Empezar de cero"
-        texto="Armá tus columnas y tus secciones a tu manera."
+        texto="Armá tus columnas y tus pestañas a tu manera."
         accion="blank"
         onClick={() => abrirModal({ tipo: 'blanco' })}
       />

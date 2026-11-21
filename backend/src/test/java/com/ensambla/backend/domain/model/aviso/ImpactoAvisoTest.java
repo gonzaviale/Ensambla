@@ -20,82 +20,182 @@ class ImpactoAvisoTest {
     private static final LocalDate HOY = LocalDate.of(2026, 10, 19);
     private static final int VENTANA = 14;
 
+    private List<VentaProducto> ventas = List.of();
+    private Map<String, Object> datosDelAviso;
+    private Optional<ImpactoAviso> impacto;
+
     @Test
     @DisplayName("Compara las unidades y el ingreso por día de los días anteriores con los posteriores")
-    void medirShouldCompareDaysBeforeAndAfter() {
-        List<VentaProducto> ventas = List.of(
-                venta(99, "100", "2026-09-01"),
-                venta(2, "100", "2026-09-20"),
-                venta(3, null, "2026-09-25"),
-                venta(7, "100", "2026-10-02"),
-                venta(5, "100", "2026-10-15"));
+    void comparaLasUnidadesYElIngresoPorDiaDeAntesYDespues() {
+        dadoQueSeVendio(
+                unaVenta(99, "100", "2026-09-01"),
+                unaVenta(2, "100", "2026-09-20"),
+                unaVentaSinPrecio(3, "2026-09-25"),
+                unaVenta(7, "100", "2026-10-02"),
+                unaVenta(5, "100", "2026-10-15"));
 
-        ImpactoAviso impacto = whenMedir(ventas, HOY).orElseThrow();
+        cuandoSeMideEl(HOY);
 
-        assertThat(impacto.ventanaDias()).isEqualTo(VENTANA);
-        assertThat(impacto.unidadesPorDiaAntes()).isEqualByComparingTo("0.36");
-        assertThat(impacto.unidadesPorDiaDespues()).isEqualByComparingTo("0.50");
-        assertThat(impacto.ingresoPorDiaAntes()).isEqualByComparingTo("14.29");
-        assertThat(impacto.ingresoPorDiaDespues()).isEqualByComparingTo("50.00");
-        assertThat(impacto.deltaIngresoSemanal()).isEqualByComparingTo("249.97");
+        entoncesLaVentanaEsDe(VENTANA);
+        entoncesLasUnidadesPorDiaPasaronDe("0.36", "0.50");
+        entoncesElIngresoPorDiaPasoDe("14.29", "50.00");
+        entoncesElIngresoSemanalCambio("249.97");
     }
 
     @Test
     @DisplayName("La venta del día del aviso cuenta como posterior")
-    void medirShouldCountTheSaleOfTheDayOfTheAvisoAsAfter() {
-        ImpactoAviso impacto = whenMedir(List.of(venta(14, "10", "2026-10-01")), HOY).orElseThrow();
+    void laVentaDelDiaDelAvisoCuentaComoPosterior() {
+        dadoQueSeVendio(unaVenta(14, "10", "2026-10-01"));
 
-        assertThat(impacto.unidadesPorDiaAntes()).isEqualByComparingTo("0");
-        assertThat(impacto.unidadesPorDiaDespues()).isEqualByComparingTo("1");
+        cuandoSeMideEl(HOY);
+
+        entoncesLasUnidadesPorDiaPasaronDe("0", "1");
     }
 
     @Test
     @DisplayName("Sin ventas el impacto es cero y no cambia el ingreso")
-    void medirShouldBeZeroWithoutSales() {
-        ImpactoAviso impacto = whenMedir(List.of(), HOY).orElseThrow();
+    void sinVentasElImpactoEsCeroYNoCambiaElIngreso() {
+        dadoQueNoSeVendioNada();
 
-        assertThat(impacto.deltaIngresoSemanal()).isEqualByComparingTo("0");
+        cuandoSeMideEl(HOY);
+
+        entoncesElIngresoSemanalCambio("0");
     }
 
     @Test
     @DisplayName("Si bajaron las ventas el cambio de ingreso es negativo")
-    void deltaIngresoSemanalShouldBeNegativeWhenSalesDrop() {
-        ImpactoAviso impacto = whenMedir(List.of(venta(14, "100", "2026-09-20")), HOY).orElseThrow();
+    void siBajaronLasVentasElCambioDeIngresoEsNegativo() {
+        dadoQueSeVendio(unaVenta(14, "100", "2026-09-20"));
 
-        assertThat(impacto.deltaIngresoSemanal()).isEqualByComparingTo("-700.00");
+        cuandoSeMideEl(HOY);
+
+        entoncesElIngresoSemanalCambio("-700.00");
     }
 
     @Test
-    @DisplayName("No mide hasta que termina la ventana posterior: el día de hoy no cuenta")
-    void medirShouldWaitUntilTheWindowEnds() {
-        assertThat(whenMedir(List.of(), LocalDate.of(2026, 10, 14))).isEmpty();
-        assertThat(whenMedir(List.of(), LocalDate.of(2026, 10, 15))).isPresent();
+    @DisplayName("No mide mientras la ventana posterior no terminó: el día de hoy no cuenta")
+    void noMideMientrasLaVentanaPosteriorNoTermino() {
+        dadoQueNoSeVendioNada();
+
+        cuandoSeMideEl(LocalDate.of(2026, 10, 14));
+
+        entoncesNoHayImpacto();
+    }
+
+    @Test
+    @DisplayName("Mide apenas termina la ventana posterior")
+    void mideApenasTerminaLaVentanaPosterior() {
+        dadoQueNoSeVendioNada();
+
+        cuandoSeMideEl(LocalDate.of(2026, 10, 15));
+
+        entoncesHayImpacto();
     }
 
     @Test
     @DisplayName("Lo que se guardó en los datos del aviso se vuelve a leer igual")
-    void deShouldReadWhatAMapStored() {
-        ImpactoAviso impacto = whenMedir(List.of(venta(7, "100", "2026-10-02")), HOY).orElseThrow();
-        Map<String, Object> datos = new HashMap<>();
-        datos.put(ImpactoAviso.CLAVE, impacto.aMapa());
+    void loQueSeGuardoEnLosDatosDelAvisoSeVuelveALeerIgual() {
+        ImpactoAviso medido = dadoUnImpactoGuardadoEnLosDatosDelAviso();
 
-        assertThat(ImpactoAviso.de(datos)).contains(impacto);
+        cuandoSeLeenLosDatosDelAviso();
+
+        entoncesSeLeyo(medido);
     }
 
     @Test
-    @DisplayName("Sin impacto guardado, o sin datos, no hay nada que leer")
-    void deShouldBeEmptyWithoutStoredImpact() {
-        assertThat(ImpactoAviso.de(null)).isEmpty();
-        assertThat(ImpactoAviso.de(Map.of("precio", 10))).isEmpty();
-        assertThat(ImpactoAviso.de(Map.of(ImpactoAviso.CLAVE, "no es un mapa"))).isEmpty();
+    @DisplayName("Sin datos no hay impacto que leer")
+    void sinDatosNoHayImpactoQueLeer() {
+        dadoUnAvisoConDatos(null);
+
+        cuandoSeLeenLosDatosDelAviso();
+
+        entoncesNoHayImpacto();
     }
 
-    private static Optional<ImpactoAviso> whenMedir(List<VentaProducto> ventas, LocalDate hoy) {
-        return ImpactoAviso.medir(ventas, APLICADO, hoy, VENTANA);
+    @Test
+    @DisplayName("Sin impacto guardado no hay nada que leer")
+    void sinImpactoGuardadoNoHayNadaQueLeer() {
+        dadoUnAvisoConDatos(Map.of("precio", 10));
+
+        cuandoSeLeenLosDatosDelAviso();
+
+        entoncesNoHayImpacto();
     }
 
-    private static VentaProducto venta(int cantidad, String precio, String fecha) {
-        return new VentaProducto(PRODUCTO, BigDecimal.valueOf(cantidad),
-                precio == null ? null : new BigDecimal(precio), LocalDate.parse(fecha), null);
+    @Test
+    @DisplayName("Un impacto guardado con otra forma no se lee")
+    void unImpactoGuardadoConOtraFormaNoSeLee() {
+        dadoUnAvisoConDatos(Map.of(ImpactoAviso.CLAVE, "no es un mapa"));
+
+        cuandoSeLeenLosDatosDelAviso();
+
+        entoncesNoHayImpacto();
+    }
+
+    private static VentaProducto unaVenta(int cantidad, String precio, String fecha) {
+        return new VentaProducto(PRODUCTO, BigDecimal.valueOf(cantidad), new BigDecimal(precio), LocalDate.parse(fecha), null);
+    }
+
+    private static VentaProducto unaVentaSinPrecio(int cantidad, String fecha) {
+        return new VentaProducto(PRODUCTO, BigDecimal.valueOf(cantidad), null, LocalDate.parse(fecha), null);
+    }
+
+    private void dadoQueSeVendio(VentaProducto... vendidas) {
+        ventas = List.of(vendidas);
+    }
+
+    private void dadoQueNoSeVendioNada() {
+        ventas = List.of();
+    }
+
+    private ImpactoAviso dadoUnImpactoGuardadoEnLosDatosDelAviso() {
+        ImpactoAviso medido = ImpactoAviso.medir(List.of(unaVenta(7, "100", "2026-10-02")), APLICADO, HOY, VENTANA)
+                .orElseThrow();
+        Map<String, Object> datos = new HashMap<>();
+        datos.put(ImpactoAviso.CLAVE, medido.aMapa());
+        dadoUnAvisoConDatos(datos);
+        return medido;
+    }
+
+    private void dadoUnAvisoConDatos(Map<String, Object> datos) {
+        datosDelAviso = datos;
+    }
+
+    private void cuandoSeMideEl(LocalDate hoy) {
+        impacto = ImpactoAviso.medir(ventas, APLICADO, hoy, VENTANA);
+    }
+
+    private void cuandoSeLeenLosDatosDelAviso() {
+        impacto = ImpactoAviso.de(datosDelAviso);
+    }
+
+    private void entoncesHayImpacto() {
+        assertThat(impacto).isPresent();
+    }
+
+    private void entoncesNoHayImpacto() {
+        assertThat(impacto).isEmpty();
+    }
+
+    private void entoncesSeLeyo(ImpactoAviso medido) {
+        assertThat(impacto).contains(medido);
+    }
+
+    private void entoncesLaVentanaEsDe(int dias) {
+        assertThat(impacto.orElseThrow().ventanaDias()).isEqualTo(dias);
+    }
+
+    private void entoncesLasUnidadesPorDiaPasaronDe(String antes, String despues) {
+        assertThat(impacto.orElseThrow().unidadesPorDiaAntes()).isEqualByComparingTo(antes);
+        assertThat(impacto.orElseThrow().unidadesPorDiaDespues()).isEqualByComparingTo(despues);
+    }
+
+    private void entoncesElIngresoPorDiaPasoDe(String antes, String despues) {
+        assertThat(impacto.orElseThrow().ingresoPorDiaAntes()).isEqualByComparingTo(antes);
+        assertThat(impacto.orElseThrow().ingresoPorDiaDespues()).isEqualByComparingTo(despues);
+    }
+
+    private void entoncesElIngresoSemanalCambio(String delta) {
+        assertThat(impacto.orElseThrow().deltaIngresoSemanal()).isEqualByComparingTo(delta);
     }
 }

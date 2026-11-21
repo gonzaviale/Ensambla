@@ -2,7 +2,6 @@ package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
-import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;
 import com.ensambla.backend.infrastructure.repository.entity.BloqueEntity;
 import com.ensambla.backend.infrastructure.repository.entity.CampoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
@@ -14,26 +13,18 @@ import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.I
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IProyectoJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IUsuarioJpaRepository;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
+import com.ensambla.backend.support.SesionHttpDePrueba;
 import jakarta.servlet.Filter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.mock.web.MockHttpSession;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.security.web.csrf.DefaultCsrfToken;
-import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
 import java.util.UUID;
@@ -75,27 +66,252 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     private MockMvc mockMvc;
     private UUID negocioId;
-    private MockHttpSession sesion;
-    private String csrfToken;
+    private SesionHttpDePrueba sesion;
+    private UUID bloqueId;
+    private UUID otroBloqueId;
+    private UUID campoId;
+    private UUID negocioAjenoId;
+    private ResultActions respuesta;
 
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        UUID usuarioId = givenUsuario();
-        negocioId = givenNegocio(usuarioId);
-        sesion = givenSesion(usuarioId);
+        UUID usuarioId = crearUsuario();
+        negocioId = crearNegocio(usuarioId);
+        sesion = SesionHttpDePrueba.autenticada(mockMvc, usuarioId.toString());
     }
 
     @Test
     @DisplayName("Crear agrega el campo normalizado al final del bloque propio y lo deja guardado")
-    void crearShouldPersistCampoAtTheEnd() throws Exception {
-        UUID bloqueId = givenBloque(negocioId);
-        givenCampo(negocioId, bloqueId, "Producto", 0);
+    void crearAgregaElCampoNormalizadoAlFinalDelBloquePropioYLoDejaGuardado() throws Exception {
+        dadoUnBloquePropioConElCampo("Producto", 0);
 
-        crear(bloqueId, """
+        cuandoSeCreaUnCampoEnElBloque(bloqueId, """
                 {"nombre":" Talle ","tipo":"OPCION","valorInicial":"Chico","opciones":[" Chico ","Grande"]}
-                """)
-                .andExpect(status().isCreated())
+                """);
+
+        entoncesSeCreaElCampoNormalizadoAlFinal();
+        entoncesElBloqueGuardaLosCamposEnOrden("Producto", "Talle");
+    }
+
+    @Test
+    @DisplayName("Crear un campo de conexión con el propio bloque lo guarda con la tabla conectada")
+    void crearUnCampoDeConexionConElPropioBloqueLoGuardaConLaTablaConectada() throws Exception {
+        dadoUnBloquePropio();
+
+        cuandoSeCreaUnCampoEnElBloque(bloqueId, """
+                {"nombre":"Recomendado por","tipo":"RELACION","bloqueRelacionadoId":"%s"}
+                """.formatted(bloqueId));
+
+        entoncesSeGuardaLaConexionConElPropioBloque();
+    }
+
+    @Test
+    @DisplayName("Crear un campo de conexión con una tabla de otro sistema devuelve 400 en bloqueRelacionadoId")
+    void crearUnCampoDeConexionConUnaTablaDeOtroSistemaDevuelve400EnBloqueRelacionadoId() throws Exception {
+        dadoUnBloquePropio();
+        dadoOtroBloquePropioDeOtroSistema();
+
+        cuandoSeCreaUnCampoEnElBloque(bloqueId, """
+                {"nombre":"Cliente","tipo":"RELACION","bloqueRelacionadoId":"%s"}
+                """.formatted(otroBloqueId));
+
+        entoncesSeRechazaLaConexionConOtroSistema();
+        entoncesElBloquePropioNoTieneCampos();
+    }
+
+    @Test
+    @DisplayName("Listar devuelve los campos del bloque propio ordenados por posición")
+    void listarDevuelveLosCamposDelBloquePropioOrdenadosPorPosicion() throws Exception {
+        dadoUnBloquePropio();
+        dadoUnCampoPropio("Segundo", 1);
+        dadoUnCampoPropio("Primero", 0);
+
+        cuandoSeListanLosCamposDelBloque(bloqueId);
+
+        entoncesSeListanLosCamposEnOrden();
+    }
+
+    @Test
+    @DisplayName("Un tipo fuera de la lista se rechaza con 400 y no guarda nada")
+    void unTipoFueraDeLaListaSeRechazaCon400YNoGuardaNada() throws Exception {
+        dadoUnBloquePropio();
+
+        cuandoSeCreaUnCampoEnElBloque(bloqueId, "{\"nombre\":\"Adjunto\",\"tipo\":\"ARCHIVO\"}");
+
+        entoncesSeRechazaElTipo();
+        entoncesElBloquePropioNoTieneCampos();
+    }
+
+    @Test
+    @DisplayName("Una opción sin lista de opciones se rechaza con 400")
+    void unaOpcionSinListaDeOpcionesSeRechazaCon400() throws Exception {
+        dadoUnBloquePropio();
+
+        cuandoSeCreaUnCampoEnElBloque(bloqueId, "{\"nombre\":\"Talle\",\"tipo\":\"OPCION\"}");
+
+        entoncesSeRechazanLasOpciones();
+    }
+
+    @Test
+    @DisplayName("Crear con un nombre que ya existe en el bloque devuelve 409")
+    void crearConUnNombreQueYaExisteEnElBloqueDevuelve409() throws Exception {
+        dadoUnBloquePropioConElCampo("Producto", 0);
+
+        cuandoSeCreaUnCampoEnElBloque(bloqueId, "{\"nombre\":\" PRODUCTO \",\"tipo\":\"TEXTO\"}");
+
+        entoncesRespondeConflicto();
+    }
+
+    @Test
+    @DisplayName("Editar reemplaza la configuración del campo propio")
+    void editarReemplazaLaConfiguracionDelCampoPropio() throws Exception {
+        dadoUnBloquePropioConElCampo("Precio", 0);
+
+        cuandoSeEditaElCampo("""
+                {"nombre":"Precio","tipo":"NUMERO","obligatorio":true,"valorInicial":"0"}
+                """);
+
+        entoncesElCampoPropioQuedaNumerico();
+    }
+
+    @Test
+    @DisplayName("Crear en un bloque ajeno devuelve 404 y no guarda nada")
+    void crearEnUnBloqueAjenoDevuelve404YNoGuardaNada() throws Exception {
+        dadoUnBloqueAjeno();
+
+        cuandoSeCreaUnCampoEnElBloque(bloqueId, "{\"nombre\":\"Intruso\",\"tipo\":\"TEXTO\"}");
+
+        entoncesRespondeNoEncontrado();
+        entoncesElBloqueAjenoNoTieneCampos();
+    }
+
+    @Test
+    @DisplayName("Listar los campos de un bloque ajeno devuelve 404")
+    void listarLosCamposDeUnBloqueAjenoDevuelve404() throws Exception {
+        dadoUnBloqueAjenoConElCampo("Secreto");
+
+        cuandoSeListanLosCamposDelBloque(bloqueId);
+
+        entoncesRespondeNoEncontrado();
+    }
+
+    @Test
+    @DisplayName("Un PATCH a un campo ajeno responde 404 y conserva su configuración")
+    void unPatchAUnCampoAjenoResponde404YConservaSuConfiguracion() throws Exception {
+        dadoUnBloqueAjenoConElCampo("Ajeno");
+
+        cuandoSeEditaElCampo("{\"nombre\":\"Cambio\",\"tipo\":\"TEXTO\"}");
+
+        entoncesRespondeNoEncontrado();
+        entoncesElCampoAjenoConservaElNombre("Ajeno");
+    }
+
+    @Test
+    @DisplayName("Un DELETE a un campo ajeno responde 404 y conserva el campo")
+    void unDeleteAUnCampoAjenoResponde404YConservaElCampo() throws Exception {
+        dadoUnBloqueAjenoConElCampo("Ajeno");
+
+        cuandoSeEliminaElCampo();
+
+        entoncesRespondeNoEncontrado();
+        entoncesElCampoAjenoSigueExistiendo();
+    }
+
+    @Test
+    @DisplayName("Un DELETE a un campo propio lo borra y responde 204")
+    void unDeleteAUnCampoPropioLoBorraYResponde204() throws Exception {
+        dadoUnBloquePropioConElCampo("Precio", 0);
+
+        cuandoSeEliminaElCampo();
+
+        entoncesSeEliminaElCampoPropio();
+    }
+
+    @Test
+    @DisplayName("Crear un campo sin CSRF devuelve 403")
+    void crearUnCampoSinCsrfDevuelve403() throws Exception {
+        dadoUnBloquePropio();
+
+        cuandoSeCreaUnCampoSinCsrf();
+
+        entoncesSeProhibeSinGuardarCampos();
+    }
+
+    @Test
+    @DisplayName("Listar campos exige una sesión válida")
+    void listarCamposExigeUnaSesionValida() throws Exception {
+        cuandoSeListanLosCamposSinSesion();
+
+        entoncesNoAutoriza();
+    }
+
+    // --- dado ---
+
+    private void dadoUnBloquePropio() {
+        bloqueId = crearBloque(negocioId);
+    }
+
+    private void dadoOtroBloquePropioDeOtroSistema() {
+        otroBloqueId = crearBloque(negocioId);
+    }
+
+    private void dadoUnBloquePropioConElCampo(String nombre, int posicion) {
+        dadoUnBloquePropio();
+        dadoUnCampoPropio(nombre, posicion);
+    }
+
+    private void dadoUnCampoPropio(String nombre, int posicion) {
+        campoId = crearCampo(negocioId, bloqueId, nombre, posicion);
+    }
+
+    private void dadoUnBloqueAjeno() {
+        negocioAjenoId = crearNegocio(crearUsuario());
+        bloqueId = crearBloque(negocioAjenoId);
+    }
+
+    private void dadoUnBloqueAjenoConElCampo(String nombre) {
+        dadoUnBloqueAjeno();
+        campoId = crearCampo(negocioAjenoId, bloqueId, nombre, 0);
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeCreaUnCampoEnElBloque(UUID bloque, String cuerpo) throws Exception {
+        respuesta = mockMvc.perform(post("/api/bloques/{id}/campos", bloque).session(sesion.sesion())
+                .header("X-CSRF-TOKEN", sesion.tokenCsrf())
+                .contentType("application/json").content(cuerpo));
+    }
+
+    private void cuandoSeCreaUnCampoSinCsrf() throws Exception {
+        respuesta = mockMvc.perform(post("/api/bloques/{id}/campos", bloqueId).session(sesion.sesion())
+                .contentType("application/json").content("{\"nombre\":\"Producto\",\"tipo\":\"TEXTO\"}"));
+    }
+
+    private void cuandoSeListanLosCamposDelBloque(UUID bloque) throws Exception {
+        respuesta = mockMvc.perform(get("/api/bloques/{id}/campos", bloque).session(sesion.sesion()));
+    }
+
+    private void cuandoSeListanLosCamposSinSesion() throws Exception {
+        SesionHttpDePrueba sinUsuario = SesionHttpDePrueba.anonima(mockMvc);
+        respuesta = mockMvc.perform(get("/api/bloques/{id}/campos", UUID.randomUUID()).session(sinUsuario.sesion()));
+    }
+
+    private void cuandoSeEditaElCampo(String cuerpo) throws Exception {
+        respuesta = mockMvc.perform(patch("/api/campos/{id}", campoId).session(sesion.sesion())
+                .header("X-CSRF-TOKEN", sesion.tokenCsrf())
+                .contentType("application/json").content(cuerpo));
+    }
+
+    private void cuandoSeEliminaElCampo() throws Exception {
+        respuesta = mockMvc.perform(delete("/api/campos/{id}", campoId).session(sesion.sesion())
+                .header("X-CSRF-TOKEN", sesion.tokenCsrf()));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeCreaElCampoNormalizadoAlFinal() throws Exception {
+        respuesta.andExpect(status().isCreated())
                 .andExpect(header().exists("Location"))
                 .andExpect(jsonPath("$.bloqueId").value(bloqueId.toString()))
                 .andExpect(jsonPath("$.nombre").value("Talle"))
@@ -104,202 +320,94 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(jsonPath("$.valorInicial").value("Chico"))
                 .andExpect(jsonPath("$.opciones[0]").value("Chico"))
                 .andExpect(jsonPath("$.posicion").value(1));
-
-        assertThat(campos.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(bloqueId, negocioId))
-                .extracting(CampoEntity::getNombre)
-                .containsExactly("Producto", "Talle");
     }
 
-    @Test
-    @DisplayName("Crear un campo de conexión con el propio bloque lo guarda con la tabla conectada")
-    void crearShouldPersistRelacionWithBloqueOfSameProyecto() throws Exception {
-        UUID bloqueId = givenBloque(negocioId);
+    private void entoncesElBloqueGuardaLosCamposEnOrden(String primero, String segundo) {
+        assertThat(campos.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(bloqueId, negocioId))
+                .extracting(CampoEntity::getNombre)
+                .containsExactly(primero, segundo);
+    }
 
-        crear(bloqueId, """
-                {"nombre":"Recomendado por","tipo":"RELACION","bloqueRelacionadoId":"%s"}
-                """.formatted(bloqueId))
-                .andExpect(status().isCreated())
+    private void entoncesSeGuardaLaConexionConElPropioBloque() throws Exception {
+        respuesta.andExpect(status().isCreated())
                 .andExpect(jsonPath("$.tipo").value("RELACION"))
                 .andExpect(jsonPath("$.bloqueRelacionadoId").value(bloqueId.toString()));
-
         assertThat(campos.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(bloqueId, negocioId))
                 .extracting(CampoEntity::getBloqueRelacionadoId)
                 .containsExactly(bloqueId);
     }
 
-    @Test
-    @DisplayName("Crear un campo de conexión con una tabla de otro sistema devuelve 400 en bloqueRelacionadoId")
-    void crearShouldRejectRelacionWithBloqueOfOtherProyecto() throws Exception {
-        UUID bloqueId = givenBloque(negocioId);
-        UUID deOtroSistema = givenBloque(negocioId);
-
-        crear(bloqueId, """
-                {"nombre":"Cliente","tipo":"RELACION","bloqueRelacionadoId":"%s"}
-                """.formatted(deOtroSistema))
-                .andExpect(status().isBadRequest())
+    private void entoncesSeRechazaLaConexionConOtroSistema() throws Exception {
+        respuesta.andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.bloqueRelacionadoId").value("Elegí una tabla de este sistema"));
+    }
 
+    private void entoncesElBloquePropioNoTieneCampos() {
         assertThat(campos.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(bloqueId, negocioId)).isEmpty();
     }
 
-    @Test
-    @DisplayName("Listar devuelve los campos del bloque propio ordenados por posición")
-    void listarShouldReturnCamposInOrder() throws Exception {
-        UUID bloqueId = givenBloque(negocioId);
-        givenCampo(negocioId, bloqueId, "Segundo", 1);
-        givenCampo(negocioId, bloqueId, "Primero", 0);
-
-        mockMvc.perform(get("/api/bloques/{id}/campos", bloqueId).session(sesion))
-                .andExpect(status().isOk())
+    private void entoncesSeListanLosCamposEnOrden() throws Exception {
+        respuesta.andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].nombre").value("Primero"))
                 .andExpect(jsonPath("$[1].nombre").value("Segundo"))
                 .andExpect(jsonPath("$[1].opciones").isArray());
     }
 
-    @Test
-    @DisplayName("Un tipo fuera de la lista se rechaza con 400 y no guarda nada")
-    void crearShouldRejectUnknownTipo() throws Exception {
-        UUID bloqueId = givenBloque(negocioId);
-
-        crear(bloqueId, "{\"nombre\":\"Adjunto\",\"tipo\":\"ARCHIVO\"}")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors.tipo").exists());
-
-        assertThat(campos.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(bloqueId, negocioId)).isEmpty();
+    private void entoncesSeRechazaElTipo() throws Exception {
+        respuesta.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.tipo").exists());
     }
 
-    @Test
-    @DisplayName("Una opción sin lista de opciones se rechaza con 400")
-    void crearShouldRejectOpcionWithoutOpciones() throws Exception {
-        UUID bloqueId = givenBloque(negocioId);
-
-        crear(bloqueId, "{\"nombre\":\"Talle\",\"tipo\":\"OPCION\"}")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors.opciones").exists());
+    private void entoncesSeRechazanLasOpciones() throws Exception {
+        respuesta.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.opciones").exists());
     }
 
-    @Test
-    @DisplayName("Crear con un nombre que ya existe en el bloque devuelve 409")
-    void crearShouldRejectRepeatedName() throws Exception {
-        UUID bloqueId = givenBloque(negocioId);
-        givenCampo(negocioId, bloqueId, "Producto", 0);
-
-        crear(bloqueId, "{\"nombre\":\" PRODUCTO \",\"tipo\":\"TEXTO\"}")
-                .andExpect(status().isConflict());
+    private void entoncesRespondeConflicto() throws Exception {
+        respuesta.andExpect(status().isConflict());
     }
 
-    @Test
-    @DisplayName("Editar reemplaza la configuración del campo propio")
-    void editarShouldReplaceConfiguracion() throws Exception {
-        UUID campoId = givenCampo(negocioId, givenBloque(negocioId), "Precio", 0);
-
-        mockMvc.perform(patch("/api/campos/{id}", campoId).session(sesion)
-                        .header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json")
-                        .content("""
-                                {"nombre":"Precio","tipo":"NUMERO","obligatorio":true,"valorInicial":"0"}
-                                """))
-                .andExpect(status().isOk())
+    private void entoncesElCampoPropioQuedaNumerico() throws Exception {
+        respuesta.andExpect(status().isOk())
                 .andExpect(jsonPath("$.tipo").value("NUMERO"))
                 .andExpect(jsonPath("$.obligatorio").value(true))
                 .andExpect(jsonPath("$.valorInicial").value("0"));
-
         assertThat(campos.findByIdAndNegocioId(campoId, negocioId).orElseThrow().getTipo())
                 .isEqualTo(TipoCampo.NUMERO);
     }
 
-    @Test
-    @DisplayName("Crear en un bloque ajeno devuelve 404 y no guarda nada")
-    void crearShouldHideForeignBloque() throws Exception {
-        UUID ajenoNegocioId = givenNegocio(givenUsuario());
-        UUID ajenoBloqueId = givenBloque(ajenoNegocioId);
-
-        crear(ajenoBloqueId, "{\"nombre\":\"Intruso\",\"tipo\":\"TEXTO\"}")
-                .andExpect(status().isNotFound());
-
-        assertThat(campos.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(ajenoBloqueId, ajenoNegocioId))
-                .isEmpty();
+    private void entoncesRespondeNoEncontrado() throws Exception {
+        respuesta.andExpect(status().isNotFound());
     }
 
-    @Test
-    @DisplayName("Listar los campos de un bloque ajeno devuelve 404")
-    void listarShouldHideForeignBloque() throws Exception {
-        UUID ajenoNegocioId = givenNegocio(givenUsuario());
-        UUID ajenoBloqueId = givenBloque(ajenoNegocioId);
-        givenCampo(ajenoNegocioId, ajenoBloqueId, "Secreto", 0);
-
-        mockMvc.perform(get("/api/bloques/{id}/campos", ajenoBloqueId).session(sesion))
-                .andExpect(status().isNotFound());
+    private void entoncesElBloqueAjenoNoTieneCampos() {
+        assertThat(campos.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(bloqueId, negocioAjenoId)).isEmpty();
     }
 
-    @Test
-    @DisplayName("Un PATCH a un campo ajeno responde 404 y conserva su configuración")
-    void editarShouldNotModifyForeignCampo() throws Exception {
-        UUID ajenoNegocioId = givenNegocio(givenUsuario());
-        UUID ajenoCampoId = givenCampo(ajenoNegocioId, givenBloque(ajenoNegocioId), "Ajeno", 0);
-
-        mockMvc.perform(patch("/api/campos/{id}", ajenoCampoId).session(sesion)
-                        .header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json").content("{\"nombre\":\"Cambio\",\"tipo\":\"TEXTO\"}"))
-                .andExpect(status().isNotFound());
-
-        assertThat(campos.findByIdAndNegocioId(ajenoCampoId, ajenoNegocioId).orElseThrow().getNombre())
-                .isEqualTo("Ajeno");
+    private void entoncesElCampoAjenoConservaElNombre(String nombre) {
+        assertThat(campos.findByIdAndNegocioId(campoId, negocioAjenoId).orElseThrow().getNombre())
+                .isEqualTo(nombre);
     }
 
-    @Test
-    @DisplayName("Un DELETE a un campo ajeno responde 404 y conserva el campo")
-    void eliminarShouldNotDeleteForeignCampo() throws Exception {
-        UUID ajenoNegocioId = givenNegocio(givenUsuario());
-        UUID ajenoCampoId = givenCampo(ajenoNegocioId, givenBloque(ajenoNegocioId), "Ajeno", 0);
-
-        mockMvc.perform(delete("/api/campos/{id}", ajenoCampoId).session(sesion)
-                        .header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isNotFound());
-
-        assertThat(campos.findByIdAndNegocioId(ajenoCampoId, ajenoNegocioId)).isPresent();
+    private void entoncesElCampoAjenoSigueExistiendo() {
+        assertThat(campos.findByIdAndNegocioId(campoId, negocioAjenoId)).isPresent();
     }
 
-    @Test
-    @DisplayName("Un DELETE a un campo propio lo borra y responde 204")
-    void eliminarShouldDeleteOwnCampo() throws Exception {
-        UUID campoId = givenCampo(negocioId, givenBloque(negocioId), "Precio", 0);
-
-        mockMvc.perform(delete("/api/campos/{id}", campoId).session(sesion)
-                        .header("X-CSRF-TOKEN", csrfToken))
-                .andExpect(status().isNoContent());
-
+    private void entoncesSeEliminaElCampoPropio() throws Exception {
+        respuesta.andExpect(status().isNoContent());
         assertThat(campos.findByIdAndNegocioId(campoId, negocioId)).isEmpty();
     }
 
-    @Test
-    @DisplayName("Crear un campo sin CSRF devuelve 403")
-    void crearShouldRequireCsrf() throws Exception {
-        UUID bloqueId = givenBloque(negocioId);
-
-        mockMvc.perform(post("/api/bloques/{id}/campos", bloqueId).session(sesion)
-                        .contentType("application/json").content("{\"nombre\":\"Producto\",\"tipo\":\"TEXTO\"}"))
-                .andExpect(status().isForbidden());
-
+    private void entoncesSeProhibeSinGuardarCampos() throws Exception {
+        respuesta.andExpect(status().isForbidden());
         assertThat(campos.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(bloqueId, negocioId)).isEmpty();
     }
 
-    @Test
-    @DisplayName("Listar campos exige una sesión válida")
-    void listarShouldRequireSession() throws Exception {
-        mockMvc.perform(get("/api/bloques/{id}/campos", UUID.randomUUID()).session(givenSesionSinUsuario()))
-                .andExpect(status().isUnauthorized());
+    private void entoncesNoAutoriza() throws Exception {
+        respuesta.andExpect(status().isUnauthorized());
     }
 
-    // --- act ---
-    private ResultActions crear(UUID bloqueId, String body) throws Exception {
-        return mockMvc.perform(post("/api/bloques/{id}/campos", bloqueId).session(sesion)
-                .header("X-CSRF-TOKEN", csrfToken)
-                .contentType("application/json").content(body));
-    }
+    // --- datos ---
 
-    // --- arrange ---
-    private UUID givenUsuario() {
+    private UUID crearUsuario() {
         return usuarios.saveAndFlush(UsuarioEntity.builder()
                 .nombre("Persona")
                 .email(UUID.randomUUID() + "@example.com")
@@ -309,7 +417,7 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenNegocio(UUID usuarioId) {
+    private UUID crearNegocio(UUID usuarioId) {
         return negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(usuarioId)
@@ -318,15 +426,15 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenBloque(UUID negocioId) {
+    private UUID crearBloque(UUID negocio) {
         UUID proyectoId = proyectos.saveAndFlush(ProyectoEntity.builder()
-                .negocioId(negocioId)
+                .negocioId(negocio)
                 .nombre("Inventario")
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId();
         return bloques.saveAndFlush(BloqueEntity.builder()
-                .negocioId(negocioId)
+                .negocioId(negocio)
                 .proyectoId(proyectoId)
                 .nombre("Productos")
                 .posicion((short) 0)
@@ -335,10 +443,10 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenCampo(UUID negocioId, UUID bloqueId, String nombre, int posicion) {
+    private UUID crearCampo(UUID negocio, UUID bloque, String nombre, int posicion) {
         return campos.saveAndFlush(CampoEntity.builder()
-                .negocioId(negocioId)
-                .bloqueId(bloqueId)
+                .negocioId(negocio)
+                .bloqueId(bloque)
                 .nombre(nombre)
                 .tipo(TipoCampo.TEXTO)
                 .obligatorio(false)
@@ -347,26 +455,5 @@ class CampoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId();
-    }
-
-    private MockHttpSession givenSesion(UUID usuarioId) throws Exception {
-        MockHttpSession session = givenSesionSinUsuario();
-        var securityContext = SecurityContextHolder.createEmptyContext();
-        securityContext.setAuthentication(
-                UsernamePasswordAuthenticationToken.authenticated(usuarioId.toString(), null, List.of()));
-        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, securityContext);
-        return session;
-    }
-
-    private MockHttpSession givenSesionSinUsuario() throws Exception {
-        MockHttpSession session = new MockHttpSession();
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setSession(session);
-        new HttpSessionCsrfTokenRepository().saveToken(
-                new DefaultCsrfToken("X-CSRF-TOKEN", "_csrf", "token"), request, new MockHttpServletResponse());
-        String body = mockMvc.perform(get("/api/auth/csrf").session(session))
-                .andReturn().getResponse().getContentAsString();
-        csrfToken = JsonMapper.builder().build().readValue(body, CsrfResponse.class).token();
-        return session;
     }
 }

@@ -13,7 +13,7 @@ class ContraseniaAdapterTest {
 
     @Test
     @DisplayName("BCrypt produce un hash con sal verificable que no contiene la contraseña")
-    void hashearShouldStoreSaltedBcryptHash() {
+    void bCryptProduceUnHashConSalVerificableQueNoContieneLaContrasena() {
         String contrasenia = "ClaveSegura123!";
 
         String hash = contraseniaAdapter.hashear(contrasenia);

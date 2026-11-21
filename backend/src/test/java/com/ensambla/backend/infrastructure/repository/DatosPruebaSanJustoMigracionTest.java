@@ -21,9 +21,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DatosPruebaSanJustoMigracionTest {
 
     private static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
-            DockerImageName.parse("postgres:17-alpine"));
+            DockerImageName.parse("postgres:17-alpine")).withUrlParam("sslmode", "disable");
 
     private static JdbcTemplate jdbc;
+
+    private Integer cantidad;
+    private List<String> productos;
 
     @BeforeAll
     static void migrar() {
@@ -41,45 +44,80 @@ class DatosPruebaSanJustoMigracionTest {
 
     @Test
     @DisplayName("Deja 10 comercios que aportan a la zona de la UNLaM")
-    void migrateShouldLeaveTenSharingNegocios() {
-        Integer comercios = jdbc.queryForObject(
-                "SELECT count(*) FROM negocio n JOIN zona z ON z.id = n.zona_id"
-                        + " WHERE z.nombre = 'San Justo - UNLaM' AND n.comparte_datos_zona", Integer.class);
+    void dejaDiezComerciosQueAportanALaZonaDeLaUnlam() {
+        cuandoSeCuentanLosComerciosQueAportanALaZona();
 
-        assertThat(comercios).isEqualTo(10);
+        entoncesHayDiezComercios();
     }
 
     @Test
     @DisplayName("Los agregados de la zona respetan el mínimo de 3 comercios y no incluyen el Fernet")
-    void migrateShouldOmitProductsFromFewerThanThreeComercios() {
-        List<String> productos = jdbc.queryForList(
-                "SELECT producto_normalizado FROM agregado_zona_producto", String.class);
+    void losAgregadosDeLaZonaRespetanElMinimoDeTresComerciosYNoIncluyenElFernet() {
+        cuandoSeListanLosProductosAgregadosDeLaZona();
 
-        assertThat(productos).isNotEmpty().noneMatch(nombre -> nombre.startsWith("fernet"));
-        assertThat(jdbc.queryForObject("SELECT min(comercios) FROM agregado_zona_producto", Integer.class))
-                .isGreaterThanOrEqualTo(3);
+        entoncesNingunProductoTieneMenosDeTresComercios();
     }
 
     @Test
     @DisplayName("El negocio demo trae su sistema armado con inventario, ventas, clientes y entradas")
-    void migrateShouldLeaveDemoSistemaWithFourBloques() {
-        Integer bloquesDelDemo = jdbc.queryForObject(
-                "SELECT count(*) FROM bloque b JOIN proyecto p ON p.id = b.proyecto_id"
-                        + " WHERE p.es_demo AND b.seccion_id IS NOT NULL", Integer.class);
+    void elNegocioDemoTraeSuSistemaArmadoConInventarioVentasClientesYEntradas() {
+        cuandoSeCuentanLosBloquesDelDemo();
 
-        assertThat(bloquesDelDemo).isEqualTo(4);
+        entoncesElDemoTieneCuatroBloques();
     }
 
     @Test
     @DisplayName("Cada venta sembrada apunta a un producto del mismo negocio")
-    void migrateShouldLinkEveryVentaToAnInventarioRegistroOfItsNegocio() {
-        Integer huerfanas = jdbc.queryForObject(
+    void cadaVentaSembradaApuntaAUnProductoDelMismoNegocio() {
+        cuandoSeCuentanLasVentasHuerfanas();
+
+        entoncesNoHayVentasHuerfanas();
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeCuentanLosComerciosQueAportanALaZona() {
+        cantidad = jdbc.queryForObject(
+                "SELECT count(*) FROM negocio n JOIN zona z ON z.id = n.zona_id"
+                        + " WHERE z.nombre = 'San Justo - UNLaM' AND n.comparte_datos_zona", Integer.class);
+    }
+
+    private void cuandoSeListanLosProductosAgregadosDeLaZona() {
+        productos = jdbc.queryForList("SELECT producto_normalizado FROM agregado_zona_producto", String.class);
+    }
+
+    private void cuandoSeCuentanLosBloquesDelDemo() {
+        cantidad = jdbc.queryForObject(
+                "SELECT count(*) FROM bloque b JOIN proyecto p ON p.id = b.proyecto_id"
+                        + " WHERE p.es_demo AND b.seccion_id IS NOT NULL", Integer.class);
+    }
+
+    private void cuandoSeCuentanLasVentasHuerfanas() {
+        cantidad = jdbc.queryForObject(
                 "SELECT count(*) FROM registro v"
                         + " JOIN bloque b ON b.id = v.bloque_id AND b.tipo = 'VENTAS'"
                         + " JOIN campo c ON c.bloque_id = b.id AND c.clave = 'product'"
                         + " WHERE NOT EXISTS (SELECT 1 FROM registro p WHERE p.id::text = v.valores ->> c.id::text"
                         + " AND p.negocio_id = v.negocio_id)", Integer.class);
+    }
 
-        assertThat(huerfanas).isZero();
+    // --- entonces ---
+
+    private void entoncesHayDiezComercios() {
+        assertThat(cantidad).isEqualTo(10);
+    }
+
+    private void entoncesNingunProductoTieneMenosDeTresComercios() {
+        assertThat(productos).isNotEmpty().noneMatch(nombre -> nombre.startsWith("fernet"));
+        assertThat(jdbc.queryForObject("SELECT min(comercios) FROM agregado_zona_producto", Integer.class))
+                .isGreaterThanOrEqualTo(3);
+    }
+
+    private void entoncesElDemoTieneCuatroBloques() {
+        assertThat(cantidad).isEqualTo(4);
+    }
+
+    private void entoncesNoHayVentasHuerfanas() {
+        assertThat(cantidad).isZero();
     }
 }

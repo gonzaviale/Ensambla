@@ -5,6 +5,7 @@ Thumbs.db
 *.log
 .env
 .env.local
+.superpowers/
 
 # Fotos reales, respuestas esperadas y reportes del set privado de IA.
 /datos/ia/cuadernos/fotos/*
@@ -20,3 +21,6 @@ Thumbs.db
 
 __pycache__/
 *.pyc
+
+# Catálogos de referencia locales; se regeneran con frontend/scripts/importar-sepa.mjs.
+/frontend/.local/

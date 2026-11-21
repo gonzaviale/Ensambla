@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.anything;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -43,10 +43,17 @@ class NominatimGeocodificadorAdapterTest {
             {"display_name":"Olivares, San Justo","address":{"quarter":"Olivares","suburb":"Villa Luzuriaga",
              "city":"San Justo","state_district":"Partido de La Matanza","state":"Buenos Aires"}}
             """;
+    private static final String SIN_RESULTADOS = "[]";
 
     private MockRestServiceServer servidor;
     private NominatimGeocodificadorAdapter adapter;
     private final AtomicLong tiempo = new AtomicLong();
+
+    private List<DireccionEncontrada> resultados;
+    private List<DireccionEncontrada> resultadosRepetidos;
+    private LocalidadesDelPunto localidades;
+    private LocalidadesDelPunto localidadesRepetidas;
+    private Throwable rechazo;
 
     @BeforeEach
     void setUp() {
@@ -62,195 +69,176 @@ class NominatimGeocodificadorAdapterTest {
 
     @Test
     @DisplayName("Busca en Argentina con identificación, texto escapado y límite de cinco resultados")
-    void buscarShouldSendExplicitIdentifiedSearch() {
-        servidor.expect(requestTo(URL + "/search?q=Varela%201903%2C%20San%20Justo"
-                        + "&format=jsonv2&limit=5&countrycodes=ar&accept-language=es&addressdetails=1"))
-                .andExpect(header("User-Agent", "Ensambla-test"))
-                .andRespond(withSuccess(RESPUESTA, MediaType.APPLICATION_JSON));
+    void buscaEnArgentinaConIdentificacionTextoEscapadoYLimiteDeCincoResultados() {
+        dadoUnProveedorQueEsperaLaBusquedaIdentificada();
 
-        var resultados = buscar(CONSULTA, AHORA);
+        cuandoSeBuscaLaDireccion();
 
-        assertThat(resultados).hasSize(1);
-        assertThat(resultados.getFirst().direccion()).isEqualTo(CONSULTA);
-        assertThat(resultados.getFirst().latitud()).isEqualByComparingTo("-34.6701");
-        assertThat(resultados.getFirst().longitud()).isEqualByComparingTo("-58.5625");
-        assertThat(resultados.getFirst().localidad()).isEqualTo("San Justo");
+        entoncesSeEncuentraLaDireccionConSusCoordenadasYLocalidad();
     }
 
     @Test
     @DisplayName("Una dirección sin detalle de localidad se devuelve sin localidad")
-    void buscarShouldLeaveLocalityEmptyWithoutAddressDetail() {
-        givenResponse("[{\"display_name\":\"Varela 1903\",\"lat\":\"-34.6701\",\"lon\":\"-58.5625\"}]");
+    void unaDireccionSinDetalleDeLocalidadSeDevuelveSinLocalidad() {
+        dadoQueElProveedorResponde(
+                "[{\"display_name\":\"Varela 1903\",\"lat\":\"-34.6701\",\"lon\":\"-58.5625\"}]");
 
-        var resultados = buscar(CONSULTA, AHORA);
+        cuandoSeBuscaLaDireccion();
 
-        assertThat(resultados.getFirst().localidad()).isNull();
+        entoncesLaDireccionNoTieneLocalidad();
     }
 
     @Test
     @DisplayName("Resuelve la localidad con geocodificación inversa del punto, sin contar barrios ni partidos")
-    void resolverLocalidadesShouldSendIdentifiedReverseLookup() {
-        servidor.expect(requestTo(URL + "/reverse?lat=-34.670100&lon=-58.562500"
-                        + "&format=jsonv2&zoom=14&addressdetails=1&accept-language=es"))
-                .andExpect(header("User-Agent", "Ensambla-test"))
-                .andRespond(withSuccess(REVERSO, MediaType.APPLICATION_JSON));
+    void resuelveLaLocalidadConGeocodificacionInversaDelPuntoSinContarBarriosNiPartidos() {
+        dadoUnProveedorQueEsperaLaGeocodificacionInversaIdentificada();
 
-        var localidades = resolver(LATITUD, LONGITUD, AHORA);
+        cuandoSeResuelveLaLocalidadDelPunto();
 
-        assertThat(localidades.nombres()).containsExactly("San Justo", "Villa Luzuriaga");
-        assertThat(localidades.principal()).contains("San Justo");
+        entoncesLasLocalidadesSonSanJustoYVillaLuzuriaga();
     }
 
     @Test
     @DisplayName("Reutiliza la caché para el mismo punto aunque cambie la escala de las coordenadas")
-    void resolverLocalidadesShouldReuseCachedPoint() {
-        givenResponse(REVERSO);
+    void reutilizaLaCacheParaElMismoPuntoAunqueCambieLaEscalaDeLasCoordenadas() {
+        dadoQueElProveedorResponde(REVERSO);
 
-        var primero = resolver(LATITUD, LONGITUD, AHORA);
-        var segundo = resolver(new BigDecimal("-34.670100"), new BigDecimal("-58.56250"), AHORA.plusMillis(1));
+        cuandoSeResuelveElMismoPuntoConOtraEscalaDeCoordenadas();
 
-        assertThat(segundo).isSameAs(primero);
+        entoncesSeReutilizaLaMismaRespuestaDeLocalidades();
     }
 
     @Test
     @DisplayName("Un punto que el proveedor no reconoce devuelve cero localidades")
-    void resolverLocalidadesShouldReturnEmptyWhenProviderKnowsNothing() {
-        givenResponse("{\"error\":\"Unable to geocode\"}");
+    void unPuntoQueElProveedorNoReconoceDevuelveCeroLocalidades() {
+        dadoQueElProveedorResponde("{\"error\":\"Unable to geocode\"}");
 
-        assertThat(resolver(LATITUD, LONGITUD, AHORA).nombres()).isEmpty();
+        cuandoSeResuelveLaLocalidadDelPunto();
+
+        entoncesNoHayLocalidades();
     }
 
     @Test
     @DisplayName("Ignora nombres vacíos o repetidos del proveedor")
-    void resolverLocalidadesShouldIgnoreBlankAndRepeatedNames() {
-        givenResponse("{\"address\":{\"city\":\"San Justo\",\"town\":\" \",\"suburb\":\"San Justo\"}}");
+    void ignoraNombresVaciosORepetidosDelProveedor() {
+        dadoQueElProveedorResponde("{\"address\":{\"city\":\"San Justo\",\"town\":\" \",\"suburb\":\"San Justo\"}}");
 
-        assertThat(resolver(LATITUD, LONGITUD, AHORA).nombres()).containsExactly("San Justo");
+        cuandoSeResuelveLaLocalidadDelPunto();
+
+        entoncesLaUnicaLocalidadEsSanJusto();
     }
 
     @Test
     @DisplayName("La búsqueda y la geocodificación inversa comparten la cuota global del proveedor")
-    void resolverLocalidadesShouldShareRateLimitWithSearch() {
-        givenResponse(RESPUESTA);
-        buscar(CONSULTA, AHORA);
+    void laBusquedaYLaGeocodificacionInversaComparteLaCuotaGlobalDelProveedor() {
+        dadoQueElProveedorResponde(RESPUESTA);
 
-        assertThatThrownBy(() -> resolver(LATITUD, LONGITUD, AHORA.plusMillis(1099)))
-                .isInstanceOf(ServicioUbicacionException.class).hasMessageContaining("Esperá un segundo");
+        cuandoSeBuscaYSeIntentaResolverUnPuntoAntesDelIntervalo();
+
+        entoncesSeRechazaPorLaCuotaGlobal();
     }
 
     @Test
     @DisplayName("Una caída del proveedor al verificar la localidad no filtra coordenadas ni cuerpo")
-    void resolverLocalidadesShouldHideUpstreamErrorDetails() {
-        servidor.expect(anything()).andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS).body("detalle privado"));
+    void unaCaidaDelProveedorAlVerificarLaLocalidadNoFiltraCoordenadasNiCuerpo() {
+        dadoUnProveedorCaido();
 
-        assertThatThrownBy(() -> resolver(LATITUD, LONGITUD, AHORA))
-                .isInstanceOf(ServicioUbicacionException.class)
-                .hasMessage("No pudimos verificar la localidad. Probá de nuevo en un momento.");
+        cuandoSeIntentaResolverLaLocalidadDelPunto();
+
+        entoncesSeAvisaQueNoSePudoVerificarLaLocalidad();
     }
 
     @Test
     @DisplayName("Una respuesta vacía del proveedor al verificar la localidad es un error controlado")
-    void resolverLocalidadesShouldRejectEmptyBody() {
-        givenResponse("");
+    void unaRespuestaVaciaDelProveedorAlVerificarLaLocalidadEsUnErrorControlado() {
+        dadoQueElProveedorResponde("");
 
-        assertThatThrownBy(() -> resolver(LATITUD, LONGITUD, AHORA))
-                .isInstanceOf(ServicioUbicacionException.class);
+        cuandoSeIntentaResolverLaLocalidadDelPunto();
+
+        entoncesSeRechazaConUnErrorDeUbicacion();
     }
 
     @Test
     @DisplayName("Reutiliza la caché aunque la consulta cambie de mayúsculas")
-    void buscarShouldReuseCachedAddress() {
-        givenResponse(RESPUESTA);
+    void reutilizaLaCacheAunqueLaConsultaCambieDeMayusculas() {
+        dadoQueElProveedorResponde(RESPUESTA);
 
-        var primero = buscar(CONSULTA, AHORA);
-        var segundo = buscar(CONSULTA.toUpperCase(), AHORA.plusMillis(1));
+        cuandoSeBuscaLaMismaDireccionEnMayusculas();
 
-        assertThat(segundo).isSameAs(primero);
+        entoncesSeReutilizaLaMismaRespuestaDeBusqueda();
     }
 
     @Test
     @DisplayName("Las búsquedas vacías también se cachean")
-    void buscarShouldCacheEmptyResults() {
-        givenResponse("[]");
+    void lasBusquedasVaciasTambienSeCachean() {
+        dadoQueElProveedorResponde(SIN_RESULTADOS);
 
-        buscar(CONSULTA, AHORA);
-        var resultados = buscar(CONSULTA, AHORA.plusSeconds(2));
+        cuandoSeBuscaDosVecesUnaDireccionSinResultados();
 
-        assertThat(resultados).isEmpty();
+        entoncesNoHayResultados();
     }
 
     @Test
     @DisplayName("La caché vence a las 24 horas y renueva la entrada")
-    void buscarShouldRefreshExpiredCache() {
-        givenResponse(RESPUESTA);
-        givenResponse("[]");
+    void laCacheVenceALas24HorasYRenuevaLaEntrada() {
+        dadoQueElProveedorResponde(RESPUESTA);
+        dadoQueElProveedorResponde(SIN_RESULTADOS);
 
-        buscar(CONSULTA, AHORA);
-        var resultados = buscar(CONSULTA, AHORA.plusSeconds(86400));
+        cuandoSeBuscaLaMismaDireccionAntesYDespuesDeQueVenzaLaCache();
 
-        assertThat(resultados).isEmpty();
+        entoncesNoHayResultados();
     }
 
     @Test
     @DisplayName("Dos consultas distintas seguidas no exceden la cuota global del proveedor")
-    void buscarShouldRejectRequestsInsideGlobalInterval() {
-        givenResponse(RESPUESTA);
-        buscar(CONSULTA, AHORA);
+    void dosConsultasDistintasSeguidasNoExcedenLaCuotaGlobalDelProveedor() {
+        dadoQueElProveedorResponde(RESPUESTA);
 
-        assertThatThrownBy(() -> buscar("Otra dirección", AHORA.plusMillis(1099)))
-                .isInstanceOf(ServicioUbicacionException.class).hasMessageContaining("Esperá un segundo");
+        cuandoSeBuscaYSeIntentaBuscarOtraDireccionAntesDelIntervalo();
+
+        entoncesSeRechazaPorLaCuotaGlobal();
     }
 
     @Test
     @DisplayName("Una consulta nueva puede salir al terminar el intervalo mínimo")
-    void buscarShouldAllowNextRequestAfterInterval() {
-        givenResponse(RESPUESTA);
-        givenResponse("[]");
+    void unaConsultaNuevaPuedeSalirAlTerminarElIntervaloMinimo() {
+        dadoQueElProveedorResponde(RESPUESTA);
+        dadoQueElProveedorResponde(SIN_RESULTADOS);
 
-        buscar(CONSULTA, AHORA);
-        var resultados = buscar("Otra dirección", AHORA.plusMillis(1100));
+        cuandoSeBuscaYLuegoOtraDireccionAlTerminarElIntervalo();
 
-        assertThat(resultados).isEmpty();
+        entoncesNoHayResultados();
     }
 
     @Test
     @DisplayName("El límite usa el momento de salida aunque los pedidos traigan instantes anteriores")
-    void buscarShouldRateLimitAtActualDispatchTime() {
-        givenResponse(RESPUESTA);
-        givenResponse("[]");
-        adapter.buscar(CONSULTA, AHORA);
-        tiempo.set(Duration.ofMillis(1100).toNanos());
+    void elLimiteUsaElMomentoDeSalidaAunqueLosPedidosTraenInstantesAnteriores() {
+        dadoQueElProveedorResponde(RESPUESTA);
+        dadoQueElProveedorResponde(SIN_RESULTADOS);
 
-        var resultados = adapter.buscar("Otra dirección", AHORA);
+        cuandoSeBuscaConElRelojAvanzandoMasQueElIntervalo();
 
-        assertThat(resultados).isEmpty();
-        assertThatThrownBy(() -> adapter.buscar("Tercera dirección", AHORA.plusSeconds(100)))
-                .isInstanceOf(ServicioUbicacionException.class);
+        entoncesLaSegundaSaleYUnaTerceraInmediataSeRechaza();
     }
 
     @Test
     @DisplayName("La caché tiene un tamaño limitado y descarta la entrada más antigua")
-    void buscarShouldEvictOldestEntryAtCapacity() {
-        for (int indice = 0; indice <= NominatimGeocodificadorAdapter.MAXIMO_CACHE + 1; indice++) {
-            givenResponse("[]");
-        }
+    void laCacheTieneUnTamanioLimitadoYDescartaLaEntradaMasAntigua() {
+        dadoQueElProveedorRespondeVacioUnaVezPorEntradaMasUna();
 
-        for (int indice = 0; indice <= NominatimGeocodificadorAdapter.MAXIMO_CACHE; indice++) {
-            buscar("Dirección " + indice, AHORA.plusSeconds(indice * 2L));
-        }
-        var resultados = buscar("Dirección 0", AHORA.plusSeconds(1000));
+        cuandoSeBuscaUnaDireccionPorEntradaDeCacheYLuegoLaPrimeraDeNuevo();
 
-        assertThat(resultados).isEmpty();
+        entoncesNoHayResultados();
     }
 
     @Test
     @DisplayName("Una caída del proveedor devuelve un error controlado sin filtrar la dirección ni su cuerpo")
-    void buscarShouldHideUpstreamErrorDetails() {
-        servidor.expect(anything()).andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS).body("detalle privado"));
+    void unaCaidaDelProveedorDevuelveUnErrorControladoSinFiltrarLaDireccionNiSuCuerpo() {
+        dadoUnProveedorCaido();
 
-        assertThatThrownBy(() -> buscar(CONSULTA, AHORA))
-                .isInstanceOf(ServicioUbicacionException.class)
-                .hasMessage("No pudimos buscar la dirección. Probá de nuevo en un momento.");
+        cuandoSeIntentaBuscarLaDireccion();
+
+        entoncesSeAvisaQueNoSePudoBuscarLaDireccion();
     }
 
     @ParameterizedTest
@@ -262,19 +250,175 @@ class NominatimGeocodificadorAdapterTest {
             "[{\"display_name\":\"Dirección\",\"lat\":\"NaN\",\"lon\":\"0\"}]"
     })
     @DisplayName("Una respuesta malformada del proveedor no llega al cliente como coordenadas válidas")
-    void buscarShouldRejectMalformedResponse(String respuesta) {
-        givenResponse(respuesta);
+    void unaRespuestaMalformadaDelProveedorNoLlegaAlClienteComoCoordenadasValidas(String respuesta) {
+        dadoQueElProveedorResponde(respuesta);
 
-        assertThatThrownBy(() -> buscar(CONSULTA, AHORA))
-                .isInstanceOf(ServicioUbicacionException.class);
+        cuandoSeIntentaBuscarLaDireccion();
+
+        entoncesSeRechazaConUnErrorDeUbicacion();
     }
 
-    // --- arrange ---
-    private void givenResponse(String respuesta) {
+    // --- dado ---
+
+    private void dadoQueElProveedorResponde(String respuesta) {
         servidor.expect(anything()).andRespond(withSuccess(respuesta, MediaType.APPLICATION_JSON));
     }
 
-    // --- act ---
+    private void dadoUnProveedorQueEsperaLaBusquedaIdentificada() {
+        servidor.expect(requestTo(URL + "/search?q=Varela%201903%2C%20San%20Justo"
+                        + "&format=jsonv2&limit=5&countrycodes=ar&accept-language=es&addressdetails=1"))
+                .andExpect(header("User-Agent", "Ensambla-test"))
+                .andRespond(withSuccess(RESPUESTA, MediaType.APPLICATION_JSON));
+    }
+
+    private void dadoUnProveedorQueEsperaLaGeocodificacionInversaIdentificada() {
+        servidor.expect(requestTo(URL + "/reverse?lat=-34.670100&lon=-58.562500"
+                        + "&format=jsonv2&zoom=14&addressdetails=1&accept-language=es"))
+                .andExpect(header("User-Agent", "Ensambla-test"))
+                .andRespond(withSuccess(REVERSO, MediaType.APPLICATION_JSON));
+    }
+
+    private void dadoUnProveedorCaido() {
+        servidor.expect(anything()).andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS).body("detalle privado"));
+    }
+
+    private void dadoQueElProveedorRespondeVacioUnaVezPorEntradaMasUna() {
+        for (int indice = 0; indice <= NominatimGeocodificadorAdapter.MAXIMO_CACHE + 1; indice++) {
+            dadoQueElProveedorResponde(SIN_RESULTADOS);
+        }
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeBuscaLaDireccion() {
+        resultados = buscar(CONSULTA, AHORA);
+    }
+
+    private void cuandoSeIntentaBuscarLaDireccion() {
+        rechazo = catchThrowable(this::cuandoSeBuscaLaDireccion);
+    }
+
+    private void cuandoSeResuelveLaLocalidadDelPunto() {
+        localidades = resolver(LATITUD, LONGITUD, AHORA);
+    }
+
+    private void cuandoSeIntentaResolverLaLocalidadDelPunto() {
+        rechazo = catchThrowable(this::cuandoSeResuelveLaLocalidadDelPunto);
+    }
+
+    private void cuandoSeResuelveElMismoPuntoConOtraEscalaDeCoordenadas() {
+        localidades = resolver(LATITUD, LONGITUD, AHORA);
+        localidadesRepetidas = resolver(new BigDecimal("-34.670100"), new BigDecimal("-58.56250"), AHORA.plusMillis(1));
+    }
+
+    private void cuandoSeBuscaYSeIntentaResolverUnPuntoAntesDelIntervalo() {
+        cuandoSeBuscaLaDireccion();
+        rechazo = catchThrowable(() -> resolver(LATITUD, LONGITUD, AHORA.plusMillis(1099)));
+    }
+
+    private void cuandoSeBuscaLaMismaDireccionEnMayusculas() {
+        resultados = buscar(CONSULTA, AHORA);
+        resultadosRepetidos = buscar(CONSULTA.toUpperCase(), AHORA.plusMillis(1));
+    }
+
+    private void cuandoSeBuscaDosVecesUnaDireccionSinResultados() {
+        buscar(CONSULTA, AHORA);
+        resultados = buscar(CONSULTA, AHORA.plusSeconds(2));
+    }
+
+    private void cuandoSeBuscaLaMismaDireccionAntesYDespuesDeQueVenzaLaCache() {
+        buscar(CONSULTA, AHORA);
+        resultados = buscar(CONSULTA, AHORA.plusSeconds(86400));
+    }
+
+    private void cuandoSeBuscaYSeIntentaBuscarOtraDireccionAntesDelIntervalo() {
+        cuandoSeBuscaLaDireccion();
+        rechazo = catchThrowable(() -> buscar("Otra dirección", AHORA.plusMillis(1099)));
+    }
+
+    private void cuandoSeBuscaYLuegoOtraDireccionAlTerminarElIntervalo() {
+        cuandoSeBuscaLaDireccion();
+        resultados = buscar("Otra dirección", AHORA.plusMillis(1100));
+    }
+
+    private void cuandoSeBuscaConElRelojAvanzandoMasQueElIntervalo() {
+        adapter.buscar(CONSULTA, AHORA);
+        tiempo.set(Duration.ofMillis(1100).toNanos());
+        resultados = adapter.buscar("Otra dirección", AHORA);
+        rechazo = catchThrowable(() -> adapter.buscar("Tercera dirección", AHORA.plusSeconds(100)));
+    }
+
+    private void cuandoSeBuscaUnaDireccionPorEntradaDeCacheYLuegoLaPrimeraDeNuevo() {
+        for (int indice = 0; indice <= NominatimGeocodificadorAdapter.MAXIMO_CACHE; indice++) {
+            buscar("Dirección " + indice, AHORA.plusSeconds(indice * 2L));
+        }
+        resultados = buscar("Dirección 0", AHORA.plusSeconds(1000));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeEncuentraLaDireccionConSusCoordenadasYLocalidad() {
+        assertThat(resultados).hasSize(1);
+        assertThat(resultados.getFirst().direccion()).isEqualTo(CONSULTA);
+        assertThat(resultados.getFirst().latitud()).isEqualByComparingTo("-34.6701");
+        assertThat(resultados.getFirst().longitud()).isEqualByComparingTo("-58.5625");
+        assertThat(resultados.getFirst().localidad()).isEqualTo("San Justo");
+    }
+
+    private void entoncesLaDireccionNoTieneLocalidad() {
+        assertThat(resultados.getFirst().localidad()).isNull();
+    }
+
+    private void entoncesLasLocalidadesSonSanJustoYVillaLuzuriaga() {
+        assertThat(localidades.nombres()).containsExactly("San Justo", "Villa Luzuriaga");
+        assertThat(localidades.principal()).contains("San Justo");
+    }
+
+    private void entoncesSeReutilizaLaMismaRespuestaDeLocalidades() {
+        assertThat(localidadesRepetidas).isSameAs(localidades);
+    }
+
+    private void entoncesNoHayLocalidades() {
+        assertThat(localidades.nombres()).isEmpty();
+    }
+
+    private void entoncesLaUnicaLocalidadEsSanJusto() {
+        assertThat(localidades.nombres()).containsExactly("San Justo");
+    }
+
+    private void entoncesSeRechazaPorLaCuotaGlobal() {
+        assertThat(rechazo).isInstanceOf(ServicioUbicacionException.class).hasMessageContaining("Esperá un segundo");
+    }
+
+    private void entoncesSeAvisaQueNoSePudoVerificarLaLocalidad() {
+        assertThat(rechazo).isInstanceOf(ServicioUbicacionException.class)
+                .hasMessage("No pudimos verificar la localidad. Probá de nuevo en un momento.");
+    }
+
+    private void entoncesSeAvisaQueNoSePudoBuscarLaDireccion() {
+        assertThat(rechazo).isInstanceOf(ServicioUbicacionException.class)
+                .hasMessage("No pudimos buscar la dirección. Probá de nuevo en un momento.");
+    }
+
+    private void entoncesSeRechazaConUnErrorDeUbicacion() {
+        assertThat(rechazo).isInstanceOf(ServicioUbicacionException.class);
+    }
+
+    private void entoncesSeReutilizaLaMismaRespuestaDeBusqueda() {
+        assertThat(resultadosRepetidos).isSameAs(resultados);
+    }
+
+    private void entoncesNoHayResultados() {
+        assertThat(resultados).isEmpty();
+    }
+
+    private void entoncesLaSegundaSaleYUnaTerceraInmediataSeRechaza() {
+        assertThat(resultados).isEmpty();
+        assertThat(rechazo).isInstanceOf(ServicioUbicacionException.class);
+    }
+
+    // --- datos ---
+
     private LocalidadesDelPunto resolver(BigDecimal latitud, BigDecimal longitud, Instant instante) {
         tiempo.set(Duration.between(AHORA, instante).toNanos());
         return adapter.resolverLocalidades(latitud, longitud, instante);

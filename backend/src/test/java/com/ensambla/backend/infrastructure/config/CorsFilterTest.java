@@ -33,7 +33,7 @@ class CorsFilterTest {
     private MockHttpServletResponse response;
 
     @BeforeEach
-    void setUp() {
+    void prepararElFiltro() {
         filter = new CorsFilter();
         ReflectionTestUtils.setField(filter, "frontendUrl", FRONTEND_URL);
         response = new MockHttpServletResponse();
@@ -41,72 +41,69 @@ class CorsFilterTest {
 
     @Test
     @DisplayName("Agrega los headers CORS cuando el origen es el del frontend")
-    void doFilterShouldAddCorsHeadersWhenOriginIsAllowed() throws Exception {
-        MockHttpServletRequest request = requestFrom(FRONTEND_URL);
+    void agregaLosHeadersCorsAlOrigenDelFrontend() throws Exception {
+        MockHttpServletRequest request = dadoUnPedidoDesde(FRONTEND_URL);
 
-        filter(request);
+        cuandoPasaPorElFiltro(request);
 
-        thenResponseHasCorsHeaders();
+        entoncesLaRespuestaAutorizaAlFrontend();
     }
 
     @Test
     @DisplayName("Continúa la cadena de filtros cuando el origen es el del frontend")
-    void doFilterShouldContinueChainWhenOriginIsAllowed() throws Exception {
-        MockHttpServletRequest request = requestFrom(FRONTEND_URL);
+    void continuaLaCadenaConElOrigenDelFrontend() throws Exception {
+        MockHttpServletRequest request = dadoUnPedidoDesde(FRONTEND_URL);
 
-        filter(request);
+        cuandoPasaPorElFiltro(request);
 
-        thenChainContinued(request);
+        entoncesSiguioLaCadena(request);
     }
 
     @Test
     @DisplayName("No agrega autorización CORS cuando el origen es ajeno")
-    void doFilterShouldNotAddCorsHeadersWhenOriginIsForeign() throws Exception {
-        MockHttpServletRequest request = requestFrom(FOREIGN_ORIGIN);
+    void noAutorizaUnOrigenAjeno() throws Exception {
+        MockHttpServletRequest request = dadoUnPedidoDesde(FOREIGN_ORIGIN);
 
-        filter(request);
+        cuandoPasaPorElFiltro(request);
 
-        thenResponseHasNoAllowedOrigin();
+        entoncesLaRespuestaNoAutorizaElOrigen();
     }
 
     @Test
     @DisplayName("Continúa la cadena de filtros cuando el origen es ajeno")
-    void doFilterShouldContinueChainWhenOriginIsForeign() throws Exception {
-        MockHttpServletRequest request = requestFrom(FOREIGN_ORIGIN);
+    void continuaLaCadenaConUnOrigenAjeno() throws Exception {
+        MockHttpServletRequest request = dadoUnPedidoDesde(FOREIGN_ORIGIN);
 
-        filter(request);
+        cuandoPasaPorElFiltro(request);
 
-        thenChainContinued(request);
+        entoncesSiguioLaCadena(request);
     }
 
     @Test
     @DisplayName("Responde 200 al preflight sin invocar la cadena de filtros")
-    void doFilterShouldReturnOkWithoutChainWhenRequestIsPreflight() throws Exception {
-        MockHttpServletRequest request = preflightRequest();
+    void respondeElPreflightSinInvocarLaCadena() throws Exception {
+        MockHttpServletRequest request = dadoUnPreflight();
 
-        filter(request);
+        cuandoPasaPorElFiltro(request);
 
-        thenPreflightEndedWithoutChain();
+        entoncesElPreflightTerminoSinLaCadena();
     }
 
-    // --- arrange ---
-    private MockHttpServletRequest requestFrom(String origin) {
+    private MockHttpServletRequest dadoUnPedidoDesde(String origin) {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/rutas");
         request.addHeader(ORIGIN_HEADER, origin);
         return request;
     }
 
-    private MockHttpServletRequest preflightRequest() {
+    private MockHttpServletRequest dadoUnPreflight() {
         return new MockHttpServletRequest("OPTIONS", "/api/rutas");
     }
 
-    // --- act ---
-    private void filter(MockHttpServletRequest request) throws ServletException, IOException {
+    private void cuandoPasaPorElFiltro(MockHttpServletRequest request) throws ServletException, IOException {
         filter.doFilter(request, response, chain);
     }
 
-    // --- assert ---
-    private void thenResponseHasCorsHeaders() {
+    private void entoncesLaRespuestaAutorizaAlFrontend() {
         assertThat(response.getHeader(ALLOW_ORIGIN_HEADER)).isEqualTo(FRONTEND_URL);
         assertThat(response.getHeader("Access-Control-Allow-Credentials")).isEqualTo("true");
         assertThat(response.getHeader("Access-Control-Allow-Methods")).contains("GET", "OPTIONS");
@@ -116,15 +113,15 @@ class CorsFilterTest {
         assertThat(response.getHeader("Access-Control-Max-Age")).isEqualTo("86400");
     }
 
-    private void thenResponseHasNoAllowedOrigin() {
+    private void entoncesLaRespuestaNoAutorizaElOrigen() {
         assertThat(response.getHeader(ALLOW_ORIGIN_HEADER)).isNull();
     }
 
-    private void thenChainContinued(MockHttpServletRequest request) throws ServletException, IOException {
+    private void entoncesSiguioLaCadena(MockHttpServletRequest request) throws ServletException, IOException {
         verify(chain).doFilter(request, response);
     }
 
-    private void thenPreflightEndedWithoutChain() {
+    private void entoncesElPreflightTerminoSinLaCadena() {
         assertThat(response.getStatus()).isEqualTo(200);
         verifyNoInteractions(chain);
     }

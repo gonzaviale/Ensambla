@@ -3,6 +3,7 @@ import { Modal } from '@/components/sistema/Modal';
 import { useOperacionPago } from '@/hooks/pagos/mutations';
 import { useRenovacion } from '@/hooks/pagos/queries';
 import { usePlanes } from '@/hooks/planes/queries';
+import { textoDeNegocios } from '@/lib/planes/negocios';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
 export function ModalRenovacion({ cancelar = false }: { cancelar?: boolean }) {
@@ -12,6 +13,13 @@ export function ModalRenovacion({ cancelar = false }: { cancelar?: boolean }) {
   const { data: planes } = usePlanes();
   const premium = planes?.planes.find((plan) => plan.codigo === 'PREMIUM');
   const precio = premium?.precioMensual;
+  // Sólo se dice cuántos negocios incluye si el límite está configurado y es más de uno.
+  const negociosPremium =
+    premium?.limitesConfigurados && premium.limiteProyectos !== 1
+      ? premium.limiteProyectos === null
+        ? 'todos los negocios que quieras'
+        : textoDeNegocios(premium.limiteProyectos).toLowerCase()
+      : null;
   const precioTexto =
     precio == null
       ? 'Precio por definir'
@@ -36,11 +44,11 @@ export function ModalRenovacion({ cancelar = false }: { cancelar?: boolean }) {
       {cancelar ? (
         <>
           <p>
-            Vamos a pedir la cancelación a Mercado Pago. La baja queda confirmada cuando el
+            Solicitaremos la cancelación a Mercado Pago. La baja queda confirmada cuando el
             proveedor la acepte.
           </p>
           <p>
-            Conservás los días de prueba o el período ya pagado. Tus cuadernos y registros se
+            Conservás los días de prueba o el período ya pagado. Tus negocios, secciones y datos se
             mantienen.
           </p>
           <p>Cancelar futuras renovaciones no solicita un reembolso del período actual.</p>
@@ -51,6 +59,7 @@ export function ModalRenovacion({ cancelar = false }: { cancelar?: boolean }) {
             <strong>{precioTexto} finales cada 30 días</strong>, con renovación automática en pesos
             argentinos.
           </p>
+          {negociosPremium ? <p>El plan es de tu cuenta: incluye {negociosPremium}.</p> : null}
           <p>
             {fecha ? (
               <>

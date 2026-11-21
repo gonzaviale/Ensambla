@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
+import com.ensambla.backend.domain.model.aviso.AccionAbrirRegistro;
 import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class AvisoRepositoryMapperTest {
@@ -28,40 +30,88 @@ class AvisoRepositoryMapperTest {
 
     @Test
     @DisplayName("Pasa el aviso de la entidad al dominio sin perder datos")
-    void toDomainShouldMapEveryField() {
-        Aviso result = mapper.toDomain(givenEntity());
+    void unAvisoGuardadoSePasaAlDominioSinPerderDatos() {
+        AvisoEntity entidad = dadoUnaEntidadDeAviso();
 
-        assertThat(result).usingRecursiveComparison()
-                .withEqualsForFieldsMatchingRegexes(IdsDePrueba::mismoValor, IdsDePrueba.CAMPOS_DE_ID)
-                .isEqualTo(givenAviso());
+        Aviso aviso = cuandoSePasaAlDominio(entidad);
+
+        entoncesTieneTodosLosDatosDeUnAvisoDeStock(aviso);
     }
 
     @Test
     @DisplayName("Pasa el aviso del dominio a la entidad sin perder datos")
-    void toEntityShouldMapEveryField() {
-        AvisoEntity result = mapper.toEntity(givenAviso());
+    void unAvisoDelDominioSePasaALaEntidadSinPerderDatos() {
+        Aviso aviso = dadoUnAvisoDeStock();
 
-        assertThat(result).usingRecursiveComparison().withEqualsForFieldsMatchingRegexes(IdsDePrueba::mismoValor,
-                        IdsDePrueba.CAMPOS_DE_ID).isEqualTo(givenEntity());
+        AvisoEntity entidad = cuandoSePasaALaEntidad(aviso);
+
+        entoncesTieneTodosLosDatosDeLaEntidadDeAviso(entidad);
     }
 
-    private static AvisoEntity givenEntity() {
+    // --- dado ---
+    private AvisoEntity dadoUnaEntidadDeAviso() {
         return AvisoEntity.builder()
-                .id(ID.valor()).negocioId(NEGOCIO_ID.valor()).proyectoId(PROYECTO_ID.valor()).tipo(TipoAviso.STOCK)
-                .grupo(GrupoAviso.STOCK).prioridad((short) 3).entidad("registro:1").huella("STOCK:registro:1:ab")
-                .datos(Map.of("cantidad", 0)).titulo("Te quedaste sin yerba").detalle("No te quedan unidades")
-                .motivos(List.of("motivo")).acciones(List.of(Map.of("tipo", "ABRIR")))
-                .estado(EstadoAviso.DESCARTADO).resueltoEn(AHORA).creadoEn(AHORA).actualizadoEn(AHORA)
+                .id(ID.valor())
+                .negocioId(NEGOCIO_ID.valor())
+                .proyectoId(PROYECTO_ID.valor())
+                .tipo(TipoAviso.STOCK)
+                .grupo(GrupoAviso.STOCK)
+                .prioridad((short) 3)
+                .entidad("registro:1")
+                .huella("STOCK:registro:1:ab")
+                .datos(Map.of("cantidad", 0))
+                .titulo("Te quedaste sin yerba")
+                .detalle("No te quedan unidades")
+                .motivos(List.of("motivo"))
+                .acciones(List.of(Map.of("tipo", "ABRIR", "texto", "Ver producto")))
+                .estado(EstadoAviso.DESCARTADO)
+                .resueltoEn(AHORA)
+                .creadoEn(AHORA)
+                .actualizadoEn(AHORA)
                 .build();
     }
 
-    private static Aviso givenAviso() {
+    private Aviso dadoUnAvisoDeStock() {
         return Aviso.builder()
-                .id(ID).negocioId(NEGOCIO_ID).proyectoId(PROYECTO_ID).tipo(TipoAviso.STOCK)
-                .grupo(GrupoAviso.STOCK).prioridad((short) 3).entidad("registro:1").huella("STOCK:registro:1:ab")
-                .datos(Map.of("cantidad", 0)).titulo("Te quedaste sin yerba").detalle("No te quedan unidades")
-                .motivos(List.of("motivo")).acciones(List.of(Map.of("tipo", "ABRIR")))
-                .estado(EstadoAviso.DESCARTADO).resueltoEn(AHORA).creadoEn(AHORA).actualizadoEn(AHORA)
+                .id(ID)
+                .negocioId(NEGOCIO_ID)
+                .proyectoId(PROYECTO_ID)
+                .tipo(TipoAviso.STOCK)
+                .grupo(GrupoAviso.STOCK)
+                .prioridad((short) 3)
+                .entidad("registro:1")
+                .huella("STOCK:registro:1:ab")
+                .datos(Map.of("cantidad", 0))
+                .titulo("Te quedaste sin yerba")
+                .detalle("No te quedan unidades")
+                .motivos(List.of("motivo"))
+                .acciones(List.of(new AccionAbrirRegistro("Ver producto", null, null, null)))
+                .estado(EstadoAviso.DESCARTADO)
+                .resueltoEn(AHORA)
+                .creadoEn(AHORA)
+                .actualizadoEn(AHORA)
                 .build();
+    }
+
+    // --- cuando ---
+    private Aviso cuandoSePasaAlDominio(AvisoEntity entidad) {
+        return mapper.toDomain(entidad);
+    }
+
+    private AvisoEntity cuandoSePasaALaEntidad(Aviso aviso) {
+        return mapper.toEntity(aviso);
+    }
+
+    // --- entonces ---
+    private void entoncesTieneTodosLosDatosDeUnAvisoDeStock(Aviso aviso) {
+        assertThat(aviso).usingRecursiveComparison()
+                .withEqualsForFieldsMatchingRegexes(IdsDePrueba::mismoValor, IdsDePrueba.CAMPOS_DE_ID)
+                .isEqualTo(dadoUnAvisoDeStock());
+    }
+
+    private void entoncesTieneTodosLosDatosDeLaEntidadDeAviso(AvisoEntity entidad) {
+        assertThat(entidad).usingRecursiveComparison()
+                .withEqualsForFieldsMatchingRegexes(IdsDePrueba::mismoValor, IdsDePrueba.CAMPOS_DE_ID)
+                .isEqualTo(dadoUnaEntidadDeAviso());
     }
 }

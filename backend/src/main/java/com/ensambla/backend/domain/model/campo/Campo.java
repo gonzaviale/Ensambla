@@ -1,35 +1,24 @@
 package com.ensambla.backend.domain.model.campo;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
-import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.RegistroId;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.time.format.DateTimeParseException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
+/** Un dato de una tabla. Cada tipo de campo es una subclase que sabe validar y tipar sus propios valores. */
 @Getter
 @Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class Campo {
-
-    static final int MAX_CARACTERES_TEXTO = 1000;
+public abstract class Campo {
 
     private CampoId id;
 
@@ -39,26 +28,12 @@ public class Campo {
 
     private String nombre;
 
-    private TipoCampo tipo;
-
     private Boolean obligatorio;
 
-    /** Valor inicial serializado como texto ("12", "true", "2026-10-09"); se interpreta según el tipo. */
     private String valorInicial;
 
-    /** Opciones válidas; sólo aplica a campos de tipo OPCION. */
-    private List<String> opciones;
-
-    /** Bloque al que apunta; sólo aplica a campos de tipo RELACION. */
-    private BloqueId bloqueRelacionadoId;
-
-    /** Expresión con los campos referenciados por id ({id}); sólo aplica a campos de tipo FORMULA. */
-    private String formula;
-
-    /** Clave semántica que usan los avisos y la zona para reconocer el dato (name, price, cost, quantity…). */
     private String clave;
 
-    /** Valor mínimo permitido en campos numéricos. */
     private BigDecimal minimo;
 
     private Short posicion;
@@ -67,62 +42,144 @@ public class Campo {
 
     private OffsetDateTime actualizadoEn;
 
-    /** Campo nuevo del bloque, todavía sin guardar; {@code configuracion} ya viene validada. */
-    public static Campo nuevo(
-            NegocioId negocioId,
-            BloqueId bloqueId,
-            short posicion,
-            ConfiguracionCampo.Validada configuracion,
-            OffsetDateTime ahora) {
-        Campo campo = Campo.builder()
-                .negocioId(negocioId)
-                .bloqueId(bloqueId)
-                .posicion(posicion)
-                .creadoEn(ahora)
-                .build();
-        campo.configurar(configuracion, ahora);
-        return campo;
+    protected Campo(CampoBuilder datos) {
+        this.id = datos.id;
+        this.negocioId = datos.negocioId;
+        this.bloqueId = datos.bloqueId;
+        this.nombre = datos.nombre;
+        this.obligatorio = datos.obligatorio;
+        this.valorInicial = datos.valorInicial;
+        this.clave = datos.clave;
+        this.minimo = datos.minimo;
+        this.posicion = datos.posicion;
+        this.creadoEn = datos.creadoEn;
+        this.actualizadoEn = datos.actualizadoEn;
     }
 
-    /** Reemplaza toda la configuración; conserva id, bloque, posición y fecha de creación. */
-    public void configurar(ConfiguracionCampo.Validada configuracion, OffsetDateTime ahora) {
-        this.nombre = configuracion.nombre();
-        this.tipo = configuracion.tipo();
-        this.obligatorio = configuracion.obligatorio();
-        this.valorInicial = configuracion.valorInicial();
-        this.opciones = configuracion.opciones();
-        this.bloqueRelacionadoId = configuracion.bloqueRelacionadoId();
-        this.formula = configuracion.formula();
-        this.actualizadoEn = ahora;
+    public static CampoBuilder builder() {
+        return new CampoBuilder();
+    }
+
+    public abstract TipoCampo tipo();
+
+    public abstract Optional<String> errorDe(Object valor);
+
+    protected abstract Optional<String> errorDeValorInicial(String valor);
+
+    public TipoCampo getTipo() {
+        return tipo();
+    }
+
+    public List<String> getOpciones() {
+        return List.of();
+    }
+
+    public BloqueId getBloqueRelacionadoId() {
+        return null;
+    }
+
+    public String getFormula() {
+        return null;
     }
 
     public boolean esObligatorio() {
         return Boolean.TRUE.equals(obligatorio);
     }
 
+    /** La clave con la que la pantalla conoce al campo; los que no la tienen (columnas de Sami o de una plantilla) usan su id. */
+    public String claveDePantalla() {
+        return clave == null ? id.toString() : clave;
+    }
+
+    public boolean esNumerico() {
+        return false;
+    }
+
     public boolean esRelacion() {
-        return tipo == TipoCampo.RELACION;
+        return false;
     }
 
     public boolean esFormula() {
-        return tipo == TipoCampo.FORMULA;
+        return false;
     }
 
-    /**
-     * Una fórmula sólo puede usar campos NUMERO del mismo bloque; como no puede citar a otra fórmula, tampoco puede
-     * haber referencias circulares. {@code camposDelBloque} son los campos del bloque, ya cargados.
-     */
+    /** Si un reporte se puede filtrar por uno de los valores de esta columna (las de opción y las de sí/no). */
+    public boolean admiteFiltroPorValor() {
+        return false;
+    }
+
+    /** Si ese valor es uno de los que se pueden elegir para filtrar por esta columna. */
+    public boolean admiteFiltrarPor(String valor) {
+        return false;
+    }
+
+    /** Si la fila de totales de un reporte suma esta columna. */
+    public boolean sumaEnElReporte() {
+        return false;
+    }
+
+    /** Si este campo es el que nombra cada fila de su tabla (el texto corto: «Producto», «Cliente»). */
+    public boolean nombraLasFilas() {
+        return false;
+    }
+
+    /** Si el texto que leyó la IA no sirve para este tipo de campo; vacío si sirve. */
+    public Optional<String> errorDeValorLeido(String valor) {
+        return Optional.empty();
+    }
+
+    /** Qué clase de dato de un mensaje libre puede completar este campo; vacío si ninguna. */
+    public Optional<ClaseDeDatoInterpretable> claseInterpretable() {
+        return Optional.empty();
+    }
+
+    /** El valor como se guarda en un registro; lo que no se puede convertir queda como texto. */
+    public Object tipar(String valor) {
+        return valor;
+    }
+
+    /** El valor como va en una celda del reporte; {@code etiquetaDe} nombra la fila a la que apunta una conexión. */
+    public Object celdaDeReporte(Object valor, Function<RegistroId, String> etiquetaDe) {
+        return valor.toString();
+    }
+
+    public Campo ubicadoEn(NegocioId negocioId, BloqueId bloqueId, short posicion, OffsetDateTime ahora) {
+        this.negocioId = negocioId;
+        this.bloqueId = bloqueId;
+        this.posicion = posicion;
+        this.creadoEn = ahora;
+        this.actualizadoEn = ahora;
+        return this;
+    }
+
+    /** Este campo toma el lugar de {@code anterior}: conserva su id, su bloque, su posición y su fecha de creación. */
+    public Campo reemplazandoA(Campo anterior, OffsetDateTime ahora) {
+        this.id = anterior.id;
+        this.negocioId = anterior.negocioId;
+        this.bloqueId = anterior.bloqueId;
+        this.posicion = anterior.posicion;
+        this.clave = anterior.clave;
+        this.minimo = anterior.minimo;
+        this.creadoEn = anterior.creadoEn;
+        this.actualizadoEn = ahora;
+        return this;
+    }
+
+    public Map<String, String> erroresDeConfiguracion() {
+        Map<String, String> errores = new LinkedHashMap<>();
+        errorDeOpciones().ifPresent(error -> errores.put("opciones", error));
+        errorDelValorInicialConfigurado().ifPresent(error -> errores.put("valorInicial", error));
+        errorDeBloqueRelacionado().ifPresent(error -> errores.put("bloqueRelacionadoId", error));
+        errorDeFormula().ifPresent(error -> errores.put("formula", error));
+        return errores;
+    }
+
     public void validarReferenciasDeFormula(List<Campo> camposDelBloque) {
-        if (!esFormula()) {
-            return;
-        }
-        Set<CampoId> numericos = camposDelBloque.stream()
-                .filter(otro -> otro.getTipo() == TipoCampo.NUMERO && !otro.getId().equals(id))
-                .map(Campo::getId)
-                .collect(Collectors.toSet());
-        if (!numericos.containsAll(Formula.parsear(formula).referencias())) {
-            throw new CampoInvalidoException(Map.of("formula", "Usá sólo campos numéricos de esta tabla"));
-        }
+    }
+
+    /** Al reemplazar el campo por otro tipo no puede quedar una fórmula apoyada en él. */
+    public void validarCambioDeTipo(List<Campo> camposDelBloque) {
+        validarSinFormulasQueLoUsen(camposDelBloque, "cambiar el tipo de");
     }
 
     /** No se puede dejar sin uso o cambiar un campo numérico del que depende una fórmula. */
@@ -137,64 +194,23 @@ public class Campo {
                 });
     }
 
-    /** Valor de un campo FORMULA con los datos de un registro; {@code null} si falta algún dato. */
-    public BigDecimal calcular(Function<CampoId, BigDecimal> valorDe) {
-        return Formula.parsear(formula).evaluar(valorDe);
+    protected Optional<String> errorDeOpciones() {
+        return Optional.empty();
     }
 
-    /** Mensaje de error si el valor no corresponde al tipo del campo; vacío si es válido. */
-    public Optional<String> errorDe(Object valor) {
-        return switch (tipo) {
-            case TEXTO, TEXTO_LARGO, EMAIL, TELEFONO, HORA -> errorDeTexto(valor);
-            case NUMERO, MONEDA -> errorSi(!esNumeroFinito(valor), "Tiene que ser un número");
-            case FECHA -> errorSi(!esFechaIso(valor), "Tiene que ser una fecha válida");
-            case OPCION -> errorSi(!esOpcion(valor), "Elegí una de las opciones");
-            case SI_NO -> errorSi(!(valor instanceof Boolean), "Tiene que ser sí o no");
-            case RELACION -> errorSi(!esUuid(valor), "Elegí una fila de la tabla relacionada");
-            case FORMULA -> Optional.of("Este dato se calcula solo");
-        };
+    protected Optional<String> errorDeBloqueRelacionado() {
+        return Optional.empty();
     }
 
-    private Optional<String> errorDeTexto(Object valor) {
-        if (!(valor instanceof String texto)) {
-            return Optional.of("Tiene que ser un texto");
-        }
-        return errorSi(texto.length() > MAX_CARACTERES_TEXTO, "Máximo " + MAX_CARACTERES_TEXTO + " caracteres");
+    protected Optional<String> errorDeFormula() {
+        return Optional.empty();
     }
 
-    private static Optional<String> errorSi(boolean invalido, String mensaje) {
+    protected static Optional<String> errorSi(boolean invalido, String mensaje) {
         return invalido ? Optional.of(mensaje) : Optional.empty();
     }
 
-    private static boolean esNumeroFinito(Object valor) {
-        return valor instanceof Number numero && Double.isFinite(numero.doubleValue());
-    }
-
-    private static boolean esFechaIso(Object valor) {
-        if (!(valor instanceof String texto)) {
-            return false;
-        }
-        try {
-            LocalDate.parse(texto);
-            return true;
-        } catch (DateTimeParseException e) {
-            return false;
-        }
-    }
-
-    /** El valor de una conexión es el id del registro referenciado, en su forma canónica de 36 caracteres. */
-    private static boolean esUuid(Object valor) {
-        if (!(valor instanceof String texto)) {
-            return false;
-        }
-        try {
-            return RegistroId.de(texto).toString().equalsIgnoreCase(texto);
-        } catch (IllegalArgumentException e) {
-            return false;
-        }
-    }
-
-    private boolean esOpcion(Object valor) {
-        return valor instanceof String texto && opciones.contains(texto);
+    private Optional<String> errorDelValorInicialConfigurado() {
+        return Optional.ofNullable(valorInicial).flatMap(this::errorDeValorInicial);
     }
 }

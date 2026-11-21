@@ -32,9 +32,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -60,6 +61,7 @@ class MedirImpactoAvisosTest {
     private final AvisoRepository avisoRepository = mock(AvisoRepository.class);
 
     private MedirImpactoAvisos medirImpactoAvisos;
+    private Throwable fallo;
 
     @BeforeEach
     void setUp() {
@@ -71,116 +73,143 @@ class MedirImpactoAvisosTest {
 
     @Test
     @DisplayName("Mide el aviso aplicado y guarda el impacto de las ventas de su producto")
-    void executeShouldMeasureAndSaveTheImpactOfAnAppliedAviso() {
-        Aviso aviso = givenAvisoAplicado(PRODUCTO, APLICADO_HACE_MAS_DE_UNA_VENTANA);
-        givenAvisosAplicados(aviso);
-        givenVentas(
-                AvisoTestData.venta(PRODUCTO.toString(), 2, 100, "2026-09-20", null),
-                AvisoTestData.venta(PRODUCTO.toString(), 7, 100, "2026-10-02", null),
-                AvisoTestData.venta(OTRO_PRODUCTO.toString(), 50, 100, "2026-10-02", null));
+    void mideElAvisoAplicadoYGuardaElImpactoDeLasVentasDeSuProducto() {
+        dadoUnAvisoAplicadoHaceMasDeUnaVentana();
+        dadoVentasDelProductoYDeOtroProducto();
 
-        medirImpactoAvisos.execute();
+        cuandoSeMideElImpacto();
 
-        Aviso guardado = whenGuardado();
-        assertThat(guardado.getEstado()).isEqualTo(EstadoAviso.APLICADO);
-        assertThat(guardado.impacto()).isPresent();
-        assertThat(guardado.impacto().orElseThrow().unidadesPorDiaDespues()).isEqualByComparingTo("0.50");
-        assertThat(guardado.impacto().orElseThrow().deltaIngresoSemanal()).isEqualByComparingTo("249.97");
+        entoncesSeGuardaElAvisoAplicadoConSuImpacto();
     }
 
     @Test
     @DisplayName("Las filas de ejemplo de la plantilla no cuentan como ventas")
-    void executeShouldIgnoreExampleRows() {
-        givenAvisosAplicados(givenAvisoAplicado(PRODUCTO, APLICADO_HACE_MAS_DE_UNA_VENTANA));
-        Registro ejemplo = AvisoTestData.venta(PRODUCTO.toString(), 70, 100, "2026-10-02", null);
-        ejemplo.setEsEjemplo(true);
-        givenVentas(ejemplo);
+    void lasFilasDeEjemploDeLaPlantillaNoCuentanComoVentas() {
+        dadoUnAvisoAplicadoHaceMasDeUnaVentana();
+        dadoUnaVentaDeEjemplo();
 
-        medirImpactoAvisos.execute();
+        cuandoSeMideElImpacto();
 
-        assertThat(whenGuardado().impacto().orElseThrow().deltaIngresoSemanal()).isEqualByComparingTo("0");
+        entoncesElCambioDeIngresoEsCero();
     }
 
     @Test
     @DisplayName("Una tabla que no es de ventas, o un campo sin clave, no cambian la medición")
-    void executeShouldOnlyReadVentasTablesAndCamposWithClave() {
-        givenAvisosAplicados(givenAvisoAplicado(PRODUCTO, APLICADO_HACE_MAS_DE_UNA_VENTANA));
-        List<Campo> campos = new ArrayList<>(AvisoTestData.bloqueVentas().getCampos());
-        campos.add(AvisoTestData.campo(java.util.UUID.randomUUID(), null));
-        Bloque ventas = Bloque.builder().id(AvisoTestData.VENTAS_ID).negocioId(NEGOCIO_ID)
-                .proyectoId(AvisoTestData.PROYECTO_ID).tipo(TipoBloque.VENTAS).campos(campos).build();
-        givenProyecto(AvisoTestData.bloqueInventario(), ventas);
-        when(registroRepository.findAllByBloqueIdAndNegocioId(AvisoTestData.VENTAS_ID, NEGOCIO_ID))
-                .thenReturn(List.of(AvisoTestData.venta(PRODUCTO.toString(), 7, 100, "2026-10-02", null)));
+    void unaTablaQueNoEsDeVentasOUnCampoSinClaveNoCambianLaMedicion() {
+        dadoUnAvisoAplicadoHaceMasDeUnaVentana();
+        dadoUnProyectoConInventarioYVentasConUnCampoSinClave();
 
-        medirImpactoAvisos.execute();
+        cuandoSeMideElImpacto();
 
-        assertThat(whenGuardado().impacto().orElseThrow().unidadesPorDiaDespues()).isEqualByComparingTo("0.50");
-        verify(registroRepository, never()).findAllByBloqueIdAndNegocioId(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID);
+        entoncesSeMideSoloConLasVentasDeLaTablaDeVentas();
     }
 
     @Test
     @DisplayName("Un proyecto que ya no existe no aporta ventas")
-    void executeShouldSkipProjectsThatNoLongerExist() {
-        givenAvisosAplicados(givenAvisoAplicado(PRODUCTO, APLICADO_HACE_MAS_DE_UNA_VENTANA));
-        Proyecto resumen = Proyecto.builder().id(AvisoTestData.PROYECTO_ID).negocioId(NEGOCIO_ID).build();
-        when(proyectoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(resumen));
-        when(proyectoRepository.findByIdAndNegocioId(AvisoTestData.PROYECTO_ID, NEGOCIO_ID))
-                .thenReturn(Optional.empty());
+    void unProyectoQueYaNoExisteNoAportaVentas() {
+        dadoUnAvisoAplicadoHaceMasDeUnaVentana();
+        dadoUnProyectoQueYaNoExiste();
 
-        medirImpactoAvisos.execute();
+        cuandoSeMideElImpacto();
 
-        assertThat(whenGuardado().impacto().orElseThrow().deltaIngresoSemanal()).isEqualByComparingTo("0");
+        entoncesElCambioDeIngresoEsCero();
     }
 
     @Test
     @DisplayName("No mide un aviso cuya ventana posterior todavía no terminó")
-    void executeShouldWaitWhenTheWindowHasNotEnded() {
-        givenAvisosAplicados(givenAvisoAplicado(PRODUCTO, APLICADO_HACE_POCO));
-        givenVentas();
+    void noMideUnAvisoCuyaVentanaPosteriorTodaviaNoTermino() {
+        dadoUnAvisoAplicadoHaceMuyPoco();
 
-        medirImpactoAvisos.execute();
+        cuandoSeMideElImpacto();
 
-        verify(avisoRepository, never()).save(any(Aviso.class));
+        entoncesNoSeGuardaNingunAviso();
     }
 
     @Test
     @DisplayName("Sin avisos medibles no carga las ventas del negocio")
-    void executeShouldNotLoadSalesWhenNothingIsMeasurable() {
-        Aviso yaMedido = givenAvisoAplicado(PRODUCTO, APLICADO_HACE_MAS_DE_UNA_VENTANA);
-        yaMedido.setTipo(TipoAviso.COMBO);
-        givenAvisosAplicados(yaMedido);
+    void sinAvisosMediblesNoCargaLasVentasDelNegocio() {
+        dadoUnAvisoAplicadoDeOtroTipoQueNoSeMide();
 
-        medirImpactoAvisos.execute();
+        cuandoSeMideElImpacto();
 
-        verifyNoInteractions(proyectoRepository, registroRepository);
-        verify(avisoRepository, never()).save(any(Aviso.class));
+        entoncesNoSeCargaronVentasNiSeGuardoNingunAviso();
     }
 
     @Test
     @DisplayName("Un negocio con error no frena la medición de los demás")
-    void executeShouldKeepGoingWhenABusinessFails() {
+    void unNegocioConErrorNoFrenaLaMedicionDeLosDemas() {
+        dadoUnNegocioQueFallaYOtroSinAvisos();
+
+        cuandoSeIntentaMedirElImpacto();
+
+        entoncesNoSePropagaElErrorYSeMideElOtroNegocio();
+    }
+
+    // --- dado ---
+
+    private void dadoUnAvisoAplicadoHaceMasDeUnaVentana() {
+        dadoAvisosAplicados(unAvisoAplicado(PRODUCTO, APLICADO_HACE_MAS_DE_UNA_VENTANA));
+    }
+
+    private void dadoUnAvisoAplicadoHaceMuyPoco() {
+        dadoAvisosAplicados(unAvisoAplicado(PRODUCTO, APLICADO_HACE_POCO));
+        dadoVentas();
+    }
+
+    private void dadoUnAvisoAplicadoDeOtroTipoQueNoSeMide() {
+        Aviso yaMedido = unAvisoAplicado(PRODUCTO, APLICADO_HACE_MAS_DE_UNA_VENTANA);
+        yaMedido.setTipo(TipoAviso.COMBO);
+        dadoAvisosAplicados(yaMedido);
+    }
+
+    private void dadoVentasDelProductoYDeOtroProducto() {
+        dadoVentas(
+                AvisoTestData.venta(PRODUCTO.toString(), 2, 100, "2026-09-20", null),
+                AvisoTestData.venta(PRODUCTO.toString(), 7, 100, "2026-10-02", null),
+                AvisoTestData.venta(OTRO_PRODUCTO.toString(), 50, 100, "2026-10-02", null));
+    }
+
+    private void dadoUnaVentaDeEjemplo() {
+        Registro ejemplo = AvisoTestData.venta(PRODUCTO.toString(), 70, 100, "2026-10-02", null);
+        ejemplo.setEsEjemplo(true);
+        dadoVentas(ejemplo);
+    }
+
+    private void dadoUnProyectoConInventarioYVentasConUnCampoSinClave() {
+        List<Campo> campos = new ArrayList<>(AvisoTestData.bloqueVentas().getCampos());
+        campos.add(AvisoTestData.campo(UUID.randomUUID(), null));
+        Bloque ventas = Bloque.builder().id(AvisoTestData.VENTAS_ID).negocioId(NEGOCIO_ID)
+                .proyectoId(AvisoTestData.PROYECTO_ID).tipo(TipoBloque.VENTAS).campos(campos).build();
+        dadoUnProyecto(AvisoTestData.bloqueInventario(), ventas);
+        when(registroRepository.findAllByBloqueIdAndNegocioId(AvisoTestData.VENTAS_ID, NEGOCIO_ID))
+                .thenReturn(List.of(AvisoTestData.venta(PRODUCTO.toString(), 7, 100, "2026-10-02", null)));
+    }
+
+    private void dadoUnProyectoQueYaNoExiste() {
+        Proyecto resumen = Proyecto.builder().id(AvisoTestData.PROYECTO_ID).negocioId(NEGOCIO_ID).build();
+        when(proyectoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(resumen));
+        when(proyectoRepository.findByIdAndNegocioId(AvisoTestData.PROYECTO_ID, NEGOCIO_ID))
+                .thenReturn(Optional.empty());
+    }
+
+    private void dadoUnNegocioQueFallaYOtroSinAvisos() {
         when(negocioRepository.findAllIds()).thenReturn(List.of(NEGOCIO_ID, OTRO_NEGOCIO_ID));
         when(avisoRepository.findByNegocioIdAndEstado(NEGOCIO_ID, EstadoAviso.APLICADO))
                 .thenThrow(new IllegalStateException("falló"));
         when(avisoRepository.findByNegocioIdAndEstado(OTRO_NEGOCIO_ID, EstadoAviso.APLICADO)).thenReturn(List.of());
-
-        assertThatCode(() -> medirImpactoAvisos.execute()).doesNotThrowAnyException();
-
-        verify(avisoRepository).findByNegocioIdAndEstado(OTRO_NEGOCIO_ID, EstadoAviso.APLICADO);
     }
 
-    private void givenAvisosAplicados(Aviso... avisos) {
+    private void dadoAvisosAplicados(Aviso... avisos) {
         when(avisoRepository.findByNegocioIdAndEstado(NEGOCIO_ID, EstadoAviso.APLICADO)).thenReturn(List.of(avisos));
     }
 
-    private void givenVentas(Registro... filas) {
-        givenProyecto(AvisoTestData.bloqueVentas());
+    private void dadoVentas(Registro... filas) {
+        dadoUnProyecto(AvisoTestData.bloqueVentas());
         when(registroRepository.findAllByBloqueIdAndNegocioId(AvisoTestData.VENTAS_ID, NEGOCIO_ID))
                 .thenReturn(List.of(filas));
     }
 
-    private void givenProyecto(Bloque... bloques) {
+    private void dadoUnProyecto(Bloque... bloques) {
         Proyecto resumen = Proyecto.builder().id(AvisoTestData.PROYECTO_ID).negocioId(NEGOCIO_ID).build();
         Proyecto completo = Proyecto.builder().id(AvisoTestData.PROYECTO_ID).negocioId(NEGOCIO_ID)
                 .bloques(List.of(bloques)).build();
@@ -189,13 +218,58 @@ class MedirImpactoAvisosTest {
                 .thenReturn(Optional.of(completo));
     }
 
-    private Aviso whenGuardado() {
+    // --- cuando ---
+
+    private void cuandoSeMideElImpacto() {
+        medirImpactoAvisos.execute();
+    }
+
+    private void cuandoSeIntentaMedirElImpacto() {
+        fallo = catchThrowable(() -> medirImpactoAvisos.execute());
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeGuardaElAvisoAplicadoConSuImpacto() {
+        Aviso guardado = elAvisoGuardado();
+        assertThat(guardado.getEstado()).isEqualTo(EstadoAviso.APLICADO);
+        assertThat(guardado.impacto()).isPresent();
+        assertThat(guardado.impacto().orElseThrow().unidadesPorDiaDespues()).isEqualByComparingTo("0.50");
+        assertThat(guardado.impacto().orElseThrow().deltaIngresoSemanal()).isEqualByComparingTo("249.97");
+    }
+
+    private void entoncesElCambioDeIngresoEsCero() {
+        assertThat(elAvisoGuardado().impacto().orElseThrow().deltaIngresoSemanal()).isEqualByComparingTo("0");
+    }
+
+    private void entoncesSeMideSoloConLasVentasDeLaTablaDeVentas() {
+        assertThat(elAvisoGuardado().impacto().orElseThrow().unidadesPorDiaDespues()).isEqualByComparingTo("0.50");
+        verify(registroRepository, never()).findAllByBloqueIdAndNegocioId(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID);
+    }
+
+    private void entoncesNoSeGuardaNingunAviso() {
+        verify(avisoRepository, never()).save(any(Aviso.class));
+    }
+
+    private void entoncesNoSeCargaronVentasNiSeGuardoNingunAviso() {
+        verifyNoInteractions(proyectoRepository, registroRepository);
+        entoncesNoSeGuardaNingunAviso();
+    }
+
+    private void entoncesNoSePropagaElErrorYSeMideElOtroNegocio() {
+        assertThat(fallo).isNull();
+        verify(avisoRepository).findByNegocioIdAndEstado(OTRO_NEGOCIO_ID, EstadoAviso.APLICADO);
+    }
+
+    // --- datos ---
+
+    private Aviso elAvisoGuardado() {
         ArgumentCaptor<Aviso> guardado = ArgumentCaptor.forClass(Aviso.class);
         verify(avisoRepository, times(1)).save(guardado.capture());
         return guardado.getValue();
     }
 
-    private static Aviso givenAvisoAplicado(RegistroId producto, OffsetDateTime aplicadoEn) {
+    private static Aviso unAvisoAplicado(RegistroId producto, OffsetDateTime aplicadoEn) {
         Aviso aviso = Aviso.nuevo(NEGOCIO_ID, TipoAviso.ESTANCADO,
                 new ResultadoRegla(AvisoTestData.PROYECTO_ID, ResultadoRegla.entidadDeRegistro(producto), (short) 2,
                         "Mermelada cara", "Detalle", Map.of("precio", 100), List.of(), List.of()), aplicadoEn);

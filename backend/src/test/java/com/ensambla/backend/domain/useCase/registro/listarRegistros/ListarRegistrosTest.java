@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -60,25 +60,97 @@ class ListarRegistrosTest {
     private RegistroRepository registroRepository;
 
     private ListarRegistros listarRegistros;
+    private ListarRegistrosResponse listado;
+    private Throwable rechazo;
 
     @BeforeEach
-    void setUp() {
+    void dadoUnNegocioDelUsuario() {
         listarRegistros = new ListarRegistros(
                 negocioRepository, bloqueRepository, campoRepository, registroRepository);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @Test
     @DisplayName("Arma la consulta con el negocio de la sesión y devuelve la página mapeada")
-    void executeShouldQueryWithSessionNegocioAndReturnMappedPage() {
-        givenBloqueOfNegocioWithCampo();
-        when(registroRepository.buscar(any(ConsultaRegistros.class)))
-                .thenReturn(new Pagina<>(List.of(Registro.builder().id(REGISTRO_ID).valores(Map.of()).build()), 1, 5, 6));
+    void armaLaConsultaConElNegocioDeLaSesionYDevuelveLaPaginaMapeada() {
+        dadoUnBloqueConUnCampoNumerico();
+        dadoUnaPaginaConUnRegistroYTreintaDeSuma();
+
+        cuandoSeListaConTextoOrdenYPagina();
+
+        entoncesSeConsultoConLosFiltrosPedidos();
+        entoncesSeDevuelveLaPaginaConSusTotales();
+    }
+
+    @Test
+    @DisplayName("No consulta registros cuando el bloque no es del negocio")
+    void noConsultaRegistrosCuandoElBloqueNoEsDelNegocio() {
+        dadoQueElBloqueNoEsDelNegocio();
+
+        cuandoSeIntentaListarSinFiltros();
+
+        entoncesSeRechazaPorBloqueInexistenteSinConsultar();
+    }
+
+    @Test
+    @DisplayName("Sin campos numéricos los totales traen sólo la cantidad")
+    void sinCamposNumericosLosTotalesTraenSoloLaCantidad() {
+        dadoUnBloqueConUnCampoDeTexto();
+        dadoUnaPaginaVaciaConTresRegistrosEnTotal();
+
+        cuandoSeListaSinFiltros();
+
+        entoncesLosTotalesTraenSoloLaCantidadDeTres();
+    }
+
+    // --- dado ---
+    private void dadoUnBloqueConUnCampoNumerico() {
+        dadoUnBloqueConCampos(List.of(Campo.builder().id(CAMPO_ID).tipo(TipoCampo.NUMERO).build()));
+    }
+
+    private void dadoUnBloqueConUnCampoDeTexto() {
+        dadoUnBloqueConCampos(List.of(Campo.builder().id(CAMPO_ID).tipo(TipoCampo.TEXTO).build()));
+    }
+
+    private void dadoUnBloqueConCampos(List<Campo> campos) {
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(campos);
+    }
+
+    private void dadoQueElBloqueNoEsDelNegocio() {
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID))
+                .thenThrow(new ResourceNotFoundException("El bloque no existe"));
+    }
+
+    private void dadoUnaPaginaConUnRegistroYTreintaDeSuma() {
+        Registro registro = Registro.builder().id(REGISTRO_ID).valores(Map.of()).build();
+        when(registroRepository.buscar(any(ConsultaRegistros.class))).thenReturn(new Pagina<>(List.of(registro), 1, 5, 6));
         when(registroRepository.sumarNumericos(any(ConsultaRegistros.class), eq(List.of(CAMPO_ID))))
                 .thenReturn(Map.of(CAMPO_ID, new BigDecimal("30")));
+    }
 
-        ListarRegistrosResponse response = listarRegistros.execute(new ListarRegistrosRequest(
+    private void dadoUnaPaginaVaciaConTresRegistrosEnTotal() {
+        when(registroRepository.buscar(any(ConsultaRegistros.class))).thenReturn(new Pagina<>(List.of(), 0, 20, 3));
+        when(registroRepository.sumarNumericos(any(ConsultaRegistros.class), eq(List.of()))).thenReturn(Map.of());
+    }
+
+    // --- cuando ---
+    private void cuandoSeListaConTextoOrdenYPagina() {
+        listado = listarRegistros.execute(new ListarRegistrosRequest(
                 USUARIO_ID, BLOQUE_ID, " harina ", CAMPO_ID.toString(), "asc", 1, 5));
+    }
 
+    private void cuandoSeListaSinFiltros() {
+        listado = listarRegistros.execute(
+                new ListarRegistrosRequest(USUARIO_ID, BLOQUE_ID, null, null, null, null, null));
+    }
+
+    private void cuandoSeIntentaListarSinFiltros() {
+        rechazo = catchThrowable(this::cuandoSeListaSinFiltros);
+    }
+
+    // --- entonces ---
+    private void entoncesSeConsultoConLosFiltrosPedidos() {
         ArgumentCaptor<ConsultaRegistros> consulta = ArgumentCaptor.forClass(ConsultaRegistros.class);
         verify(registroRepository).buscar(consulta.capture());
         assertThat(consulta.getValue().negocioId()).isEqualTo(NEGOCIO_ID);
@@ -88,50 +160,23 @@ class ListarRegistrosTest {
         assertThat(consulta.getValue().direccion()).isEqualTo(DireccionOrden.ASC);
         assertThat(consulta.getValue().pagina()).isEqualTo(1);
         assertThat(consulta.getValue().tamanio()).isEqualTo(5);
-        assertThat(response.contenido()).extracting("id").containsExactly(REGISTRO_ID);
-        assertThat(response.totalElementos()).isEqualTo(6);
-        assertThat(response.totalPaginas()).isEqualTo(2);
-        assertThat(response.totales().cantidad()).isEqualTo(6);
-        assertThat(response.totales().sumas()).containsOnly(entry(CAMPO_ID, new BigDecimal("30")));
     }
 
-    @Test
-    @DisplayName("No consulta registros cuando el bloque no es del negocio")
-    void executeShouldPropagateNotFoundWhenBloqueIsNotOfTheNegocio() {
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID))
-                .thenThrow(new ResourceNotFoundException("El bloque no existe"));
-        ListarRegistrosRequest request = new ListarRegistrosRequest(
-                USUARIO_ID, BLOQUE_ID, null, null, null, null, null);
-
-        assertThatThrownBy(() -> listarRegistros.execute(request))
-                .isInstanceOf(ResourceNotFoundException.class);
-
-        verifyNoInteractions(campoRepository, registroRepository, registroRepository);
+    private void entoncesSeDevuelveLaPaginaConSusTotales() {
+        assertThat(listado.contenido()).extracting("id").containsExactly(REGISTRO_ID);
+        assertThat(listado.totalElementos()).isEqualTo(6);
+        assertThat(listado.totalPaginas()).isEqualTo(2);
+        assertThat(listado.totales().cantidad()).isEqualTo(6);
+        assertThat(listado.totales().sumas()).containsOnly(entry(CAMPO_ID, new BigDecimal("30")));
     }
 
-    @Test
-    @DisplayName("Sin campos numéricos los totales traen sólo la cantidad")
-    void executeShouldTotalOnlyTheCountWhenThereAreNoNumericCampos() {
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
-        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID))
-                .thenReturn(List.of(Campo.builder().id(CAMPO_ID).tipo(TipoCampo.TEXTO).build()));
-        when(registroRepository.buscar(any(ConsultaRegistros.class))).thenReturn(new Pagina<>(List.of(), 0, 20, 3));
-        when(registroRepository.sumarNumericos(any(ConsultaRegistros.class), eq(List.of()))).thenReturn(Map.of());
-
-        ListarRegistrosResponse response = listarRegistros.execute(new ListarRegistrosRequest(
-                USUARIO_ID, BLOQUE_ID, null, null, null, null, null));
-
-        assertThat(response.totales().cantidad()).isEqualTo(3);
-        assertThat(response.totales().sumas()).isEmpty();
+    private void entoncesSeRechazaPorBloqueInexistenteSinConsultar() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class);
+        verifyNoInteractions(campoRepository, registroRepository);
     }
 
-    // --- arrange ---
-    private void givenBloqueOfNegocioWithCampo() {
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
-        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID))
-                .thenReturn(List.of(Campo.builder().id(CAMPO_ID).tipo(TipoCampo.NUMERO).build()));
+    private void entoncesLosTotalesTraenSoloLaCantidadDeTres() {
+        assertThat(listado.totales().cantidad()).isEqualTo(3);
+        assertThat(listado.totales().sumas()).isEmpty();
     }
 }

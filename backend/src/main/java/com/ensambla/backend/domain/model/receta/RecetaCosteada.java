@@ -5,12 +5,12 @@ import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.registro.Referencia;
 import com.ensambla.backend.domain.model.registro.Registro;
-
 import com.ensambla.backend.domain.model.registro.RegistroId;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -48,32 +48,50 @@ public record RecetaCosteada(
      */
     public static RecetaCosteada de(Receta receta, BloqueId bloqueInsumosId, List<Registro> insumos,
                                     List<Campo> camposDeInsumos) {
+        List<Linea> lineas = costearLineas(receta, insumos, camposDeInsumos);
+        return new RecetaCosteada(bloqueInsumosId, receta.getCampoPrecioId(), lineas,
+                sumaDeSubtotales(lineas), hayLineasSinValor(lineas));
+    }
+
+    private static List<Linea> costearLineas(Receta receta, List<Registro> insumos, List<Campo> camposDeInsumos) {
         Function<Registro, Referencia> etiquetador = Referencia.etiquetador(camposDeInsumos);
         Map<RegistroId, Registro> porId = insumos.stream()
                 .collect(Collectors.toMap(Registro::getId, Function.identity()));
         String clavePrecio = receta.getCampoPrecioId().toString();
-        List<Linea> lineas = receta.getLineas().stream()
+        return receta.getLineas().stream()
                 .map(linea -> costear(linea, porId.get(linea.insumoId()), clavePrecio, etiquetador))
                 .toList();
-        BigDecimal costo = lineas.stream()
+    }
+
+    private static BigDecimal sumaDeSubtotales(List<Linea> lineas) {
+        return lineas.stream()
                 .map(Linea::subtotal)
-                .filter(subtotal -> subtotal != null)
+                .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        boolean incompleta = lineas.stream().anyMatch(linea -> linea.subtotal() == null);
-        return new RecetaCosteada(bloqueInsumosId, receta.getCampoPrecioId(), lineas, costo, incompleta);
+    }
+
+    private static boolean hayLineasSinValor(List<Linea> lineas) {
+        return lineas.stream().anyMatch(linea -> linea.subtotal() == null);
     }
 
     private static Linea costear(LineaReceta linea, Registro insumo, String clavePrecio,
                                  Function<Registro, Referencia> etiquetador) {
         if (insumo == null) {
-            return new Linea(linea.insumoId(), INSUMO_ELIMINADO, linea.cantidad(), linea.unidad(), null, null);
+            return sinValor(linea, INSUMO_ELIMINADO);
         }
         String nombre = etiquetador.apply(insumo).etiqueta();
         if (!(insumo.getValores().get(clavePrecio) instanceof Number numero)) {
-            return new Linea(linea.insumoId(), nombre, linea.cantidad(), linea.unidad(), null, null);
+            return sinValor(linea, nombre);
         }
-        BigDecimal precio = new BigDecimal(numero.toString());
-        return new Linea(
-                linea.insumoId(), nombre, linea.cantidad(), linea.unidad(), precio, linea.cantidad().multiply(precio));
+        return conValor(linea, nombre, new BigDecimal(numero.toString()));
+    }
+
+    private static Linea sinValor(LineaReceta linea, String nombre) {
+        return new Linea(linea.insumoId(), nombre, linea.cantidad(), linea.unidad(), null, null);
+    }
+
+    private static Linea conValor(LineaReceta linea, String nombre, BigDecimal precio) {
+        BigDecimal subtotal = linea.cantidad().multiply(precio);
+        return new Linea(linea.insumoId(), nombre, linea.cantidad(), linea.unidad(), precio, subtotal);
     }
 }

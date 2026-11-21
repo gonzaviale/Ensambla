@@ -15,16 +15,13 @@ import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistroRequest;
-import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistroResponse;
 import com.ensambla.backend.domain.useCase.registro.editarRegistro.EditarRegistroRequest;
-import com.ensambla.backend.domain.useCase.registro.editarRegistro.EditarRegistroResponse;
 import com.ensambla.backend.domain.useCase.registro.eliminarRegistro.EliminarRegistroRequest;
 import com.ensambla.backend.domain.useCase.registro.listarReferencias.ListarReferenciasRequest;
 import com.ensambla.backend.domain.useCase.registro.listarReferencias.ReferenciaItem;
 import com.ensambla.backend.domain.useCase.registro.listarRegistros.ListarRegistrosRequest;
 import com.ensambla.backend.domain.useCase.registro.listarRegistros.ListarRegistrosResponse;
 import com.ensambla.backend.domain.useCase.registro.obtenerRegistro.ObtenerRegistroRequest;
-import com.ensambla.backend.domain.useCase.registro.obtenerRegistro.ObtenerRegistroResponse;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -49,113 +46,160 @@ class RegistroUseCaseConfigTest {
 
     private final RegistroUseCaseConfig config = new RegistroUseCaseConfig();
     private final Clock clock = Clock.systemUTC();
-
-    private NegocioRepository negocioRepository;
-    private BloqueRepository bloqueRepository;
-    private CampoRepository campoRepository;
-    private RegistroDatosService registroDatosService;
-    private RegistroRepository registroRepository;
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
+    private final BloqueRepository bloqueRepository = mock(BloqueRepository.class);
+    private final CampoRepository campoRepository = mock(CampoRepository.class);
+    private final RegistroDatosService registroDatosService = mock(RegistroDatosService.class);
+    private final RegistroRepository registroRepository = mock(RegistroRepository.class);
+    private RegistroId registroObtenido;
+    private ListarRegistrosResponse listado;
+    private List<ReferenciaItem> referencias;
 
     @BeforeEach
-    void setUp() {
-        negocioRepository = mock(NegocioRepository.class);
-        bloqueRepository = mock(BloqueRepository.class);
-        campoRepository = mock(CampoRepository.class);
-        registroDatosService = mock(RegistroDatosService.class);
-        registroRepository = mock(RegistroRepository.class);
+    void dadoUnNegocioConUnBloqueSinCampos() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
     }
 
     @Test
     @DisplayName("El wiring de crear conecta los servicios, el mapper y el reloj")
-    void crearRegistroUseCaseShouldWireCollaborators() {
-        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
-        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
-        when(registroRepository.save(any())).thenReturn(registro());
+    void elWiringDeCrearConectaLosServiciosYElReloj() {
+        dadoQueGuardarDevuelveElRegistro();
 
-        CrearRegistroResponse response = config.crearRegistro(
-                negocioRepository, bloqueRepository, campoRepository, registroDatosService,
-                        mock(ControlPlanService.class),
-                registroRepository, new TransaccionDirecta(), clock)
-                .execute(new CrearRegistroRequest(USUARIO_ID, BLOQUE_ID, Map.of()));
+        cuandoSeCreaUnRegistro();
 
-        assertThat(response.registro().id()).isEqualTo(REGISTRO_ID);
+        entoncesSeObtuvoElRegistro();
     }
 
     @Test
     @DisplayName("El wiring de listar conecta los servicios y el mapper")
-    void listarRegistrosUseCaseShouldWireCollaborators() {
-        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
-        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
-        when(registroRepository.buscar(any(ConsultaRegistros.class)))
-                .thenReturn(new Pagina<>(List.of(registro()), 0, 20, 1));
-        when(registroRepository.sumarNumericos(any(ConsultaRegistros.class), any())).thenReturn(Map.of());
+    void elWiringDeListarConectaLosServicios() {
+        dadaUnaPaginaConUnRegistro();
 
-        ListarRegistrosResponse response = config.listarRegistros(
-                negocioRepository, bloqueRepository, campoRepository, registroRepository)
-                .execute(new ListarRegistrosRequest(USUARIO_ID, BLOQUE_ID, null, null, null, null, null));
+        cuandoSeListanLosRegistros();
 
-        assertThat(response.contenido()).hasSize(1);
-        assertThat(response.totales().cantidad()).isEqualTo(1);
+        entoncesSeListoUnRegistro();
     }
 
     @Test
     @DisplayName("El wiring de referencias conecta los servicios y el mapper")
-    void listarReferenciasUseCaseShouldWireCollaborators() {
-        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
-        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
-        when(registroDatosService.buscarReferenciables(NEGOCIO_ID, BLOQUE_ID, List.of(), null, List.of()))
-                .thenReturn(List.of(registro()));
+    void elWiringDeReferenciasConectaLosServicios() {
+        dadoUnRegistroReferenciable();
 
-        List<ReferenciaItem> response = config.listarReferencias(
-                negocioRepository, bloqueRepository, campoRepository, registroDatosService)
-                .execute(new ListarReferenciasRequest(USUARIO_ID, BLOQUE_ID, null, List.of()));
+        cuandoSeListanLasReferencias();
 
-        assertThat(response).containsExactly(new ReferenciaItem(REGISTRO_ID, "Sin nombre"));
+        entoncesLaUnicaReferenciaEsSinNombre();
     }
 
     @Test
     @DisplayName("El wiring de obtener conecta los servicios y el mapper")
-    void obtenerRegistroUseCaseShouldWireCollaborators() {
-        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(registro());
-        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
+    void elWiringDeObtenerConectaLosServicios() {
+        dadoUnRegistroGuardado();
 
-        ObtenerRegistroResponse response = config.obtenerRegistro(
-                negocioRepository, campoRepository, registroRepository)
-                .execute(new ObtenerRegistroRequest(USUARIO_ID, REGISTRO_ID));
+        cuandoSeObtieneElRegistro();
 
-        assertThat(response.registro().id()).isEqualTo(REGISTRO_ID);
+        entoncesSeObtuvoElRegistro();
     }
 
     @Test
     @DisplayName("El wiring de editar conecta los servicios, el mapper y el reloj")
-    void editarRegistroUseCaseShouldWireCollaborators() {
-        Registro actual = registro();
-        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(actual);
-        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
-        when(registroDatosService.editar(any(), any(), any(), any())).thenReturn(actual);
+    void elWiringDeEditarConectaLosServiciosYElReloj() {
+        dadoUnRegistroEditable();
 
-        EditarRegistroResponse response = config.editarRegistro(
-                negocioRepository, campoRepository, registroDatosService, registroRepository, clock)
-                .execute(new EditarRegistroRequest(USUARIO_ID, REGISTRO_ID, Map.of()));
+        cuandoSeEditaElRegistro();
 
-        assertThat(response.registro().id()).isEqualTo(REGISTRO_ID);
+        entoncesSeObtuvoElRegistro();
     }
 
     @Test
     @DisplayName("El wiring de eliminar conecta los servicios")
-    void eliminarRegistroUseCaseShouldWireCollaborators() {
-        Registro actual = registro();
-        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(actual);
+    void elWiringDeEliminarConectaLosServicios() {
+        dadoUnRegistroGuardado();
 
+        cuandoSeEliminaElRegistro();
+
+        entoncesSeBorroElRegistro();
+    }
+
+    private void dadoUnBloque() {
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
+    }
+
+    private void dadoQueGuardarDevuelveElRegistro() {
+        dadoUnBloque();
+        when(registroRepository.save(any())).thenReturn(unRegistro());
+    }
+
+    private void dadaUnaPaginaConUnRegistro() {
+        dadoUnBloque();
+        when(registroRepository.buscar(any(ConsultaRegistros.class))).thenReturn(new Pagina<>(List.of(unRegistro()), 0, 20, 1));
+        when(registroRepository.sumarNumericos(any(ConsultaRegistros.class), any())).thenReturn(Map.of());
+    }
+
+    private void dadoUnRegistroReferenciable() {
+        dadoUnBloque();
+        when(registroDatosService.buscarReferenciables(NEGOCIO_ID, BLOQUE_ID, List.of(), null, List.of()))
+                .thenReturn(List.of(unRegistro()));
+    }
+
+    private void dadoUnRegistroGuardado() {
+        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(unRegistro());
+    }
+
+    private void dadoUnRegistroEditable() {
+        dadoUnRegistroGuardado();
+        when(registroDatosService.editar(any(), any(), any(), any())).thenReturn(unRegistro());
+    }
+
+    private void cuandoSeCreaUnRegistro() {
+        registroObtenido = config.crearRegistro(negocioRepository, bloqueRepository, campoRepository, registroDatosService,
+                        mock(ControlPlanService.class), registroRepository, new TransaccionDirecta(), clock)
+                .execute(new CrearRegistroRequest(USUARIO_ID, BLOQUE_ID, Map.of())).registro().id();
+    }
+
+    private void cuandoSeListanLosRegistros() {
+        listado = config.listarRegistros(negocioRepository, bloqueRepository, campoRepository, registroRepository)
+                .execute(new ListarRegistrosRequest(USUARIO_ID, BLOQUE_ID, null, null, null, null, null));
+    }
+
+    private void cuandoSeListanLasReferencias() {
+        referencias = config.listarReferencias(negocioRepository, bloqueRepository, campoRepository, registroDatosService)
+                .execute(new ListarReferenciasRequest(USUARIO_ID, BLOQUE_ID, null, List.of()));
+    }
+
+    private void cuandoSeObtieneElRegistro() {
+        registroObtenido = config.obtenerRegistro(negocioRepository, campoRepository, registroRepository)
+                .execute(new ObtenerRegistroRequest(USUARIO_ID, REGISTRO_ID)).registro().id();
+    }
+
+    private void cuandoSeEditaElRegistro() {
+        registroObtenido = config.editarRegistro(negocioRepository, campoRepository, registroDatosService, registroRepository,
+                clock).execute(new EditarRegistroRequest(USUARIO_ID, REGISTRO_ID, Map.of())).registro().id();
+    }
+
+    private void cuandoSeEliminaElRegistro() {
         config.eliminarRegistro(negocioRepository, registroRepository, new TransaccionDirecta())
                 .execute(new EliminarRegistroRequest(USUARIO_ID, REGISTRO_ID));
+    }
 
+    private void entoncesSeObtuvoElRegistro() {
+        assertThat(registroObtenido).isEqualTo(REGISTRO_ID);
+    }
+
+    private void entoncesSeListoUnRegistro() {
+        assertThat(listado.contenido()).hasSize(1);
+        assertThat(listado.totales().cantidad()).isEqualTo(1);
+    }
+
+    private void entoncesLaUnicaReferenciaEsSinNombre() {
+        assertThat(referencias).containsExactly(new ReferenciaItem(REGISTRO_ID, "Sin nombre"));
+    }
+
+    private void entoncesSeBorroElRegistro() {
         verify(registroRepository).deleteById(REGISTRO_ID);
     }
 
-    // --- helpers ---
-    private Registro registro() {
+    private static Registro unRegistro() {
         return Registro.builder().id(REGISTRO_ID).bloqueId(BLOQUE_ID).valores(Map.of()).build();
     }
 }

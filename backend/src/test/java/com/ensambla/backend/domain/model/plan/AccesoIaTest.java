@@ -13,14 +13,14 @@ class AccesoIaTest {
 
     @Test
     @DisplayName("Sin restringir, la IA es para cualquier email, incluso uno desconocido")
-    void permiteShouldAllowEveryoneWhenNotRestricted() {
+    void sinRestringirLaIAEsParaCualquierEmailInclusoUnoDesconocido() {
         assertThat(AccesoIa.LIBRE.permite("cualquiera@example.com")).isTrue();
         assertThat(AccesoIa.LIBRE.permite(null)).isTrue();
     }
 
     @Test
     @DisplayName("Restringido, sólo pasan los emails de la lista sin importar mayúsculas ni espacios")
-    void permiteShouldAllowOnlyListedEmailsWhenRestricted() {
+    void restringidoSoloPasanLosEmailsDeLaListaSinImportarMayusculasNiEspacios() {
         AccesoIa acceso = new AccesoIa(true, Set.of(" Gonzalo@Example.com ", "otra@example.com"));
 
         assertThat(acceso.permite("gonzalo@example.com")).isTrue();
@@ -30,20 +30,20 @@ class AccesoIaTest {
 
     @Test
     @DisplayName("Restringido, un email ausente no pasa")
-    void permiteShouldRejectMissingEmailWhenRestricted() {
+    void restringidoUnEmailAusenteNoPasa() {
         assertThat(new AccesoIa(true, Set.of("a@example.com")).permite(null)).isFalse();
     }
 
     @Test
     @DisplayName("Restringido con la lista vacía no deja pasar a nadie")
-    void permiteShouldRejectEveryoneWhenRestrictedWithoutEmails() {
+    void restringidoConLaListaVaciaNoDejaPasarANadie() {
         assertThat(new AccesoIa(true, null).permite("a@example.com")).isFalse();
         assertThat(new AccesoIa(true, Set.of()).permite("a@example.com")).isFalse();
     }
 
     @Test
     @DisplayName("Ignora los emails vacíos o nulos de la lista")
-    void constructorShouldDiscardBlankAndNullEmails() {
+    void ignoraLosEmailsVaciosONulosDeLaLista() {
         AccesoIa acceso = new AccesoIa(true, new HashSet<>(Arrays.asList("a@example.com", " ", "", null)));
 
         assertThat(acceso.emails()).containsExactly("a@example.com");

@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.useCase.aviso;
 
+import com.ensambla.backend.domain.model.aviso.AccionDeAviso;
 import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
@@ -22,7 +23,7 @@ public record AvisoItem(
         String titulo,
         String detalle,
         List<Object> motivos,
-        List<Object> acciones,
+        List<AccionDeAviso> acciones,
         Map<String, Object> datos,
         OffsetDateTime creadoEn,
         OffsetDateTime resueltoEn) {

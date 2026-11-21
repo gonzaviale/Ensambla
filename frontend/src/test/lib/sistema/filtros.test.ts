@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'vitest';
 import { claseDeFiltro, filtrarFilas, hayFiltros } from '@/lib/sistema/filtros';
+import { cuandoSeCalcula, entoncesElResultadoEs } from '@/test/calculo';
 import type { Bloque, Fila, Sistema } from '@/lib/sistema/tipos';
 
 const bloque: Bloque = {
@@ -60,109 +61,173 @@ const sistema: Sistema = {
   sections: [{ id: 'sec', name: 'Vista general', blocks: [bloque] }],
 };
 
+type Filtros = Parameters<typeof filtrarFilas>[3];
+
 const ids = (filas: Fila[]) => filas.map((fila) => fila.id);
-const filtrar = (consulta: string, filtros: Parameters<typeof filtrarFilas>[3]) =>
-  ids(filtrarFilas(sistema, bloque, consulta, filtros));
+
+const cuandoSeFiltra = (consulta: string, filtros: Filtros) =>
+  cuandoSeCalcula(() => ids(filtrarFilas(sistema, bloque, consulta, filtros)));
+
+const entoncesQuedan = (...esperadas: string[]) => entoncesElResultadoEs(esperadas);
+
+const campoDeTipo = (type: Bloque['fields'][number]['type']) => ({
+  key: 'k',
+  label: 'K',
+  type,
+  required: false,
+});
 
 describe('claseDeFiltro', () => {
-  it('elige el control según el tipo de campo', () => {
-    const clase = (type: Bloque['fields'][number]['type']) =>
-      claseDeFiltro({ key: 'k', label: 'K', type, required: false });
+  it.each([
+    ['select', 'opcion'],
+    ['checkbox', 'si-no'],
+    ['date', 'fecha'],
+    ['number', 'numero'],
+    ['currency', 'numero'],
+    ['text', 'texto'],
+    ['relation', 'texto'],
+  ] as const)('elige el control de %s según el tipo de campo: %s', (tipo, clase) => {
+    cuandoSeCalcula(() => claseDeFiltro(campoDeTipo(tipo)));
 
-    expect(clase('select')).toBe('opcion');
-    expect(clase('checkbox')).toBe('si-no');
-    expect(clase('date')).toBe('fecha');
-    expect(clase('number')).toBe('numero');
-    expect(clase('currency')).toBe('numero');
-    expect(clase('text')).toBe('texto');
-    expect(clase('relation')).toBe('texto');
+    entoncesElResultadoEs(clase);
   });
 });
 
 describe('filtrarFilas', () => {
   it('sin búsqueda ni filtros devuelve todas las filas', () => {
-    expect(filtrar('', {})).toEqual(['1', '2', '3', '4']);
-    expect(filtrar('', { name: {}, status: { opcion: '' } })).toEqual(['1', '2', '3', '4']);
+    cuandoSeFiltra('', {});
+
+    entoncesQuedan('1', '2', '3', '4');
   });
 
-  it('la búsqueda mira todas las columnas y no distingue tildes ni mayúsculas', () => {
-    expect(filtrar('CÉRA', {})).toEqual(['3']);
-    expect(filtrar('entregado', {})).toEqual(['1']);
+  it('los filtros vacíos no filtran nada', () => {
+    cuandoSeFiltra('', { name: {}, status: { opcion: '' } });
+
+    entoncesQuedan('1', '2', '3', '4');
   });
 
-  it('un filtro de texto busca dentro de esa columna', () => {
-    expect(filtrar('', { name: { texto: 'de ' } })).toEqual(['1', '2', '3']);
-    expect(filtrar('', { name: { texto: 'regalo' } })).toEqual(['2']);
+  it.each([
+    ['CÉRA', ['3']],
+    ['entregado', ['1']],
+  ])(
+    'la búsqueda «%s» mira todas las columnas y no distingue tildes ni mayúsculas',
+    (consulta, filas) => {
+      cuandoSeFiltra(consulta, {});
+
+      entoncesQuedan(...filas);
+    },
+  );
+
+  it.each([
+    ['de ', ['1', '2', '3']],
+    ['regalo', ['2']],
+  ])('un filtro de texto «%s» busca dentro de esa columna', (texto, filas) => {
+    cuandoSeFiltra('', { name: { texto } });
+
+    entoncesQuedan(...filas);
   });
 
   it('un filtro de lista deja solo la opción elegida', () => {
-    expect(filtrar('', { status: { opcion: 'Pendiente' } })).toEqual(['2', '3']);
+    cuandoSeFiltra('', { status: { opcion: 'Pendiente' } });
+
+    entoncesQuedan('2', '3');
   });
 
-  it('un filtro de sí/no mira el valor de la casilla', () => {
-    expect(filtrar('', { paid: { opcion: 'si' } })).toEqual(['1', '3']);
-    expect(filtrar('', { paid: { opcion: 'no' } })).toEqual(['2', '4']);
+  it.each([
+    ['si', ['1', '3']],
+    ['no', ['2', '4']],
+  ])('un filtro de sí/no «%s» mira el valor de la casilla', (opcion, filas) => {
+    cuandoSeFiltra('', { paid: { opcion } });
+
+    entoncesQuedan(...filas);
   });
 
-  it('un rango de fechas incluye los bordes y deja afuera las filas sin fecha', () => {
-    expect(filtrar('', { date: { desde: '2026-10-15' } })).toEqual(['2', '3']);
-    expect(filtrar('', { date: { hasta: '2026-10-15' } })).toEqual(['1', '2']);
-    expect(filtrar('', { date: { desde: '2026-10-15', hasta: '2026-10-15' } })).toEqual(['2']);
+  it.each([
+    [{ desde: '2026-10-15' }, ['2', '3']],
+    [{ hasta: '2026-10-15' }, ['1', '2']],
+    [{ desde: '2026-10-15', hasta: '2026-10-15' }, ['2']],
+  ])(
+    'un rango de fechas %j incluye los bordes y deja afuera las filas sin fecha',
+    (rango, filas) => {
+      cuandoSeFiltra('', { date: rango });
+
+      entoncesQuedan(...filas);
+    },
+  );
+
+  it.each([
+    [{ desde: '10000' }, ['1', '3']],
+    [{ hasta: '13000' }, ['1', '2']],
+    [{ desde: '8200', hasta: '13000' }, ['1', '2']],
+  ])('un rango de números %j incluye los bordes y deja afuera las filas vacías', (rango, filas) => {
+    cuandoSeFiltra('', { total: rango });
+
+    entoncesQuedan(...filas);
   });
 
-  it('un rango de números incluye los bordes y deja afuera las filas vacías', () => {
-    expect(filtrar('', { total: { desde: '10000' } })).toEqual(['1', '3']);
-    expect(filtrar('', { total: { hasta: '13000' } })).toEqual(['1', '2']);
-    expect(filtrar('', { total: { desde: '8200', hasta: '13000' } })).toEqual(['1', '2']);
+  it('la búsqueda y un filtro se combinan: hay que cumplir los dos', () => {
+    cuandoSeFiltra('cera', { status: { opcion: 'Pendiente' } });
+
+    entoncesQuedan('3');
   });
 
-  it('la búsqueda y los filtros se combinan: hay que cumplir todo', () => {
-    expect(filtrar('cera', { status: { opcion: 'Pendiente' } })).toEqual(['3']);
-    expect(filtrar('cera', { status: { opcion: 'Entregado' } })).toEqual([]);
-    expect(filtrar('', { status: { opcion: 'Pendiente' }, paid: { opcion: 'si' } })).toEqual(['3']);
+  it('si la búsqueda y el filtro no coinciden no queda nada', () => {
+    cuandoSeFiltra('cera', { status: { opcion: 'Entregado' } });
+
+    entoncesQuedan();
+  });
+
+  it('dos filtros se combinan: hay que cumplir los dos', () => {
+    cuandoSeFiltra('', { status: { opcion: 'Pendiente' }, paid: { opcion: 'si' } });
+
+    entoncesQuedan('3');
   });
 
   it('en una columna de vínculo busca por el nombre de lo vinculado', () => {
-    const clientas: Bloque = {
-      ...bloque,
-      id: 'clientas',
-      type: 'clients',
-      name: 'Clientas',
-      fields: [{ key: 'name', label: 'Nombre', type: 'text', required: true }],
-      rows: [{ id: 'c1', name: 'Carla Gómez' }],
-    };
-    const conVinculo: Bloque = {
-      ...bloque,
-      fields: [
-        {
-          key: 'customer',
-          label: 'Cliente',
-          type: 'relation',
-          required: false,
-          target: 'clientas',
-        },
-      ],
-      rows: [
-        { id: 'a', customer: 'c1' },
-        { id: 'b', customer: '' },
-      ],
-    };
-    const doble: Sistema = {
-      ...sistema,
-      sections: [{ id: 'sec', name: 'V', blocks: [conVinculo, clientas] }],
-    };
+    cuandoSeFiltraUnaColumnaDeVinculoPorNombre('carla');
 
-    expect(ids(filtrarFilas(doble, conVinculo, '', { customer: { texto: 'carla' } }))).toEqual([
-      'a',
-    ]);
+    entoncesQuedan('a');
   });
 });
 
 describe('hayFiltros', () => {
-  it('es verdadero con algo escrito en la búsqueda o en cualquier filtro', () => {
-    expect(hayFiltros('', {})).toBe(false);
-    expect(hayFiltros('  ', { name: {}, date: { desde: '', hasta: '' } })).toBe(false);
-    expect(hayFiltros('cera', {})).toBe(true);
-    expect(hayFiltros('', { total: { hasta: '5' } })).toBe(true);
-  });
+  it.each([
+    ['', {}, false],
+    ['  ', { name: {}, date: { desde: '', hasta: '' } }, false],
+    ['cera', {}, true],
+    ['', { total: { hasta: '5' } }, true],
+  ] as [string, Filtros, boolean][])(
+    'con la búsqueda «%s» y los filtros %j dice %s',
+    (consulta, filtros, hay) => {
+      cuandoSeCalcula(() => hayFiltros(consulta, filtros));
+
+      entoncesElResultadoEs(hay);
+    },
+  );
 });
+
+function cuandoSeFiltraUnaColumnaDeVinculoPorNombre(texto: string) {
+  const clientas: Bloque = {
+    ...bloque,
+    id: 'clientas',
+    type: 'clients',
+    name: 'Clientas',
+    fields: [{ key: 'name', label: 'Nombre', type: 'text', required: true }],
+    rows: [{ id: 'c1', name: 'Carla Gómez' }],
+  };
+  const conVinculo: Bloque = {
+    ...bloque,
+    fields: [
+      { key: 'customer', label: 'Cliente', type: 'relation', required: false, target: 'clientas' },
+    ],
+    rows: [
+      { id: 'a', customer: 'c1' },
+      { id: 'b', customer: '' },
+    ],
+  };
+  const doble: Sistema = {
+    ...sistema,
+    sections: [{ id: 'sec', name: 'V', blocks: [conVinculo, clientas] }],
+  };
+  cuandoSeCalcula(() => ids(filtrarFilas(doble, conVinculo, '', { customer: { texto } })));
+}

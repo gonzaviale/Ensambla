@@ -18,6 +18,15 @@ export function IconSprite() {
         <symbol id="i-check" viewBox="0 0 24 24">
           <path d="m5 12 4 4L19 6" />
         </symbol>
+        <symbol id="i-igual" viewBox="0 0 24 24">
+          <path d="M5 9h14M5 15h14" />
+        </symbol>
+        <symbol id="i-sube" viewBox="0 0 24 24">
+          <path d="M7 17 17 7M8.5 7H17v8.5" stroke-width="3" />
+        </symbol>
+        <symbol id="i-baja" viewBox="0 0 24 24">
+          <path d="M7 7l10 10M17 8.5V17H8.5" stroke-width="3" />
+        </symbol>
         <symbol id="i-box" viewBox="0 0 24 24">
           <path d="m12 3 9 5v8l-9 5-9-5V8l9-5Zm0 10 9-5M3 8l9 5v8M7.5 5.5l9 5" />
         </symbol>
@@ -69,6 +78,10 @@ export function IconSprite() {
         </symbol>
         <symbol id="i-grip" viewBox="0 0 24 24">
           <path d="M9 5h.01M15 5h.01M9 12h.01M15 12h.01M9 19h.01M15 19h.01" strokeWidth="3.5" />
+        </symbol>
+        <symbol id="i-lock" viewBox="0 0 24 24">
+          <rect x="5" y="11" width="14" height="10" rx="2" />
+          <path d="M8 11V7a4 4 0 0 1 8 0v4" />
         </symbol>
         <symbol id="i-edit" viewBox="0 0 24 24">
           <path d="m14 5 5 5M4 20l5-1L21 7a2 2 0 0 0-5-5L4 14l-1 7 6-2" />
@@ -141,6 +154,10 @@ export function IconSprite() {
         <symbol id="i-pin" viewBox="0 0 24 24">
           <path d="M9 3h6l-1 7 4 4H6l4-4-1-7Zm3 11v7" />
         </symbol>
+        <symbol id="i-ubicacion" viewBox="0 0 24 24">
+          <path d="M12 21s-7-5.6-7-11a7 7 0 1 1 14 0c0 5.4-7 11-7 11Z" />
+          <circle cx="12" cy="10" r="2.5" />
+        </symbol>
         <symbol id="i-mic" viewBox="0 0 24 24">
           <rect x="9" y="3" width="6" height="11" rx="3" />
           <path d="M5 11a7 7 0 0 0 14 0m-7 7v3m-3 0h6" />
@@ -150,6 +167,17 @@ export function IconSprite() {
         </symbol>
         <symbol id="i-expand" viewBox="0 0 24 24">
           <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+        </symbol>
+
+        {/* Favoritos de Caja: estrella vacía y llena (el relleno se elige con --relleno-de-estrella). */}
+        <symbol id="i-star" viewBox="0 0 24 24">
+          <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z" />
+        </symbol>
+        <symbol id="i-star-fill" viewBox="0 0 24 24">
+          <path
+            style={{ fill: 'var(--relleno-de-estrella, currentColor)' }}
+            d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z"
+          />
         </symbol>
       </defs>
     </svg>

@@ -70,10 +70,10 @@ public class ReglaPrecioZona implements ReglaAviso {
         String detalle = "Lo tenés a " + pesos(precio) + " y en tu zona se vende entre " + pesos(rango.precioMinimo())
                 + " y " + pesos(rango.precioMaximo()) + ": " + pesos(diferencia) + " ("
                 + porcentaje(diferencia, rango.precioMinimo()) + " %) menos que el mínimo. "
-                + "Revisá tus costos y tu margen: puede que estés vendiendo más barato de lo necesario.";
+                + "Revisá tus costos y tu ganancia: puede que estés vendiendo más barato de lo necesario.";
         return resultado(inventario, registro, nombre + " está más barato que en tu zona", detalle, precio, rango,
                 List.<Object>of(motivoRango(rango), motivoMargen(inventario, registro, precio)),
-                List.<Object>of(AccionesAviso.abrir(inventario, registro.getId())));
+                List.of(AccionesAviso.abrir(inventario, registro.getId())));
     }
 
     private ResultadoRegla porEncima(BloqueInventario inventario, Registro registro, String nombre, BigDecimal precio,
@@ -86,7 +86,7 @@ public class ReglaPrecioZona implements ReglaAviso {
                 + "Bajarlo a " + pesos(sugerido) + " lo deja dentro del rango y evita que pierdas ventas.";
         return resultado(inventario, registro, nombre + " está más caro que en tu zona", detalle, precio, rango,
                 List.<Object>of(motivoRango(rango), "Los clientes comparan: por encima de lo que cobran al lado se compra menos."),
-                List.<Object>of(AccionesAviso.cambiarPrecio(inventario, registro.getId(), "Bajar a " + pesos(sugerido), sugerido),
+                List.of(AccionesAviso.cambiarPrecio(inventario, registro.getId(), "Bajar a " + pesos(sugerido), sugerido),
                         AccionesAviso.abrir(inventario, registro.getId())));
     }
 
@@ -104,7 +104,7 @@ public class ReglaPrecioZona implements ReglaAviso {
     private String motivoMargen(BloqueInventario inventario, Registro registro, BigDecimal precio) {
         BigDecimal costo = numero(inventario.valorDe(registro, CLAVE_COSTO));
         if (costo == null || costo.signum() <= 0) {
-            return "Todavía no cargaste el costo de este producto: con él podemos ver cuánto te queda de margen.";
+            return "Todavía no cargaste el costo de este producto: con él podemos ver cuánto ganás por unidad.";
         }
         BigDecimal margen = precio.subtract(costo);
         return margen.signum() < 0
@@ -115,7 +115,7 @@ public class ReglaPrecioZona implements ReglaAviso {
 
     private ResultadoRegla resultado(BloqueInventario inventario, Registro registro, String titulo, String detalle,
                                      BigDecimal precio, AgregadoZonaProducto rango, List<Object> motivos,
-                                     List<Object> acciones) {
+                                     List<AccionDeAviso> acciones) {
         // Precio propio y rango: si cambia alguno, un aviso descartado vuelve a aparecer.
         Map<String, Object> datos = new LinkedHashMap<>();
         datos.put("precio", precio);

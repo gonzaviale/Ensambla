@@ -5,17 +5,24 @@ import com.ensambla.backend.domain.port.GeneradorResumenPdfPort;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.caja.CobroCajaRepository;
+import com.ensambla.backend.domain.repository.caja.VentaCajaRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.domain.service.reporte.ContextoDeResumenService;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
 import com.ensambla.backend.domain.service.reporte.ReporteService;
 import com.ensambla.backend.domain.useCase.reporte.exportarReporte.ExportarReporte;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenNegocio;
 import com.ensambla.backend.domain.useCase.reporte.generarReporte.GenerarReporte;
+import com.ensambla.backend.domain.useCase.reporte.obtenerAvisoEconomico.ObtenerAvisoEconomico;
+import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricas;
+import com.ensambla.backend.domain.useCase.reporte.obtenerPanelNegocio.ObtenerPanelNegocio;
+import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicio;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -56,19 +63,63 @@ public class ReporteUseCaseConfig {
             ControlPlanService controlPlanService,
             ProyectoRepository proyectoRepository,
             DatosDeProyectoService datosDeProyectoService,
-            ZonaRepository zonaRepository,
-            AgregadoZonaRepository agregadoZonaRepository,
-            AvisoRepository avisoRepository,
+            ContextoDeResumenService contextoDeResumenService,
             GeneradorResumenPdfPort generadorResumenPdfPort,
             Clock clock) {
         return new ExportarResumenNegocio(negocioRepository, controlPlanService, proyectoRepository,
-                datosDeProyectoService, zonaRepository, agregadoZonaRepository, avisoRepository,
-                generadorResumenPdfPort, clock);
+                datosDeProyectoService, contextoDeResumenService, generadorResumenPdfPort, clock);
     }
 
     @Bean
-    public DatosDeProyectoService datosDeProyectoService(RegistroRepository registroRepository) {
-        return new DatosDeProyectoService(registroRepository);
+    public ObtenerPanelNegocio obtenerPanelNegocio(
+            NegocioRepository negocioRepository,
+            ProyectoRepository proyectoRepository,
+            DatosDeProyectoService datosDeProyectoService,
+            Clock clock) {
+        return new ObtenerPanelNegocio(negocioRepository, proyectoRepository, datosDeProyectoService, clock);
+    }
+
+    @Bean
+    public ObtenerResumenInicio obtenerResumenInicio(
+            NegocioRepository negocioRepository,
+            ProyectoRepository proyectoRepository,
+            DatosDeProyectoService datosDeProyectoService,
+            Clock clock) {
+        return new ObtenerResumenInicio(negocioRepository, proyectoRepository, datosDeProyectoService, clock);
+    }
+
+    @Bean
+    public ObtenerAvisoEconomico obtenerAvisoEconomico(
+            NegocioRepository negocioRepository,
+            ProyectoRepository proyectoRepository,
+            DatosDeProyectoService datosDeProyectoService,
+            Clock clock) {
+        return new ObtenerAvisoEconomico(negocioRepository, proyectoRepository, datosDeProyectoService, clock);
+    }
+
+    @Bean
+    public ObtenerMetricas obtenerMetricas(
+            NegocioRepository negocioRepository,
+            ProyectoRepository proyectoRepository,
+            DatosDeProyectoService datosDeProyectoService,
+            ContextoDeResumenService contextoDeResumenService,
+            Clock clock) {
+        return new ObtenerMetricas(negocioRepository, proyectoRepository, datosDeProyectoService,
+                contextoDeResumenService, clock);
+    }
+
+    @Bean
+    public ContextoDeResumenService contextoDeResumenService(NegocioRepository negocioRepository,
+            ZonaRepository zonaRepository, AgregadoZonaRepository agregadoZonaRepository,
+            AvisoRepository avisoRepository) {
+        return new ContextoDeResumenService(negocioRepository, zonaRepository, agregadoZonaRepository,
+                avisoRepository);
+    }
+
+    @Bean
+    public DatosDeProyectoService datosDeProyectoService(RegistroRepository registroRepository,
+            VentaCajaRepository ventaCajaRepository, CobroCajaRepository cobroCajaRepository) {
+        return new DatosDeProyectoService(registroRepository, ventaCajaRepository, cobroCajaRepository);
     }
 
     @Bean

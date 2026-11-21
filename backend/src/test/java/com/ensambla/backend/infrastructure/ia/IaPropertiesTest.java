@@ -21,71 +21,118 @@ class IaPropertiesTest {
     private static final Map<String, IaProperties.Proveedor> PROVEEDORES =
             Map.of("anthropic", ANTHROPIC, "bedrock", BEDROCK);
 
+    private IaProperties properties;
+    private AjustesIa ajustes;
+
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"  "})
     @DisplayName("Sin proveedor, el global es el simulado")
-    void proveedorShouldDefaultToSimulatedWhenBlank(String proveedor) {
-        IaProperties properties = properties(proveedor, null);
+    void sinProveedorElGlobalEsElSimulado(String proveedor) {
+        dadoUnaConfiguracionConProveedor(proveedor, null);
 
-        assertThat(properties.proveedor()).isEqualTo("simulado");
+        entoncesElProveedorEs("simulado");
     }
 
     @Test
     @DisplayName("El nombre del proveedor no depende de mayúsculas ni espacios")
-    void proveedorShouldBeNormalized() {
-        IaProperties properties = properties(" Bedrock ", null);
+    void elNombreDelProveedorNoDependeDeMayusculasNiEspacios() {
+        dadoUnaConfiguracionConProveedor(" Bedrock ", null);
 
-        assertThat(properties.proveedor()).isEqualTo("bedrock");
+        entoncesElProveedorEs("bedrock");
     }
 
     @Test
     @DisplayName("Los ajustes globales salen de las credenciales y los modelos del proveedor elegido")
-    void ajustesShouldUseTheChosenProviderSettings() {
-        AjustesIa ajustes = properties("bedrock", null).ajustes();
+    void losAjustesGlobalesSalenDeLasCredencialesYLosModelosDelProveedorElegido() {
+        dadoUnaConfiguracionConProveedor("bedrock", null);
 
-        assertThat(ajustes).isEqualTo(new AjustesIa("bedrock", null, "us-west-2", "perfil", "haiku-bedrock",
+        cuandoSePidenLosAjustes();
+
+        entoncesLosAjustesSon(new AjustesIa("bedrock", null, "us-west-2", "perfil", "haiku-bedrock",
                 "sonnet-bedrock", "vision-bedrock", TIMEOUT));
     }
 
     @Test
     @DisplayName("ENSAMBLA_IA_MODELO pisa el modelo de visión del proveedor")
-    void ajustesShouldOverrideVisionModelWithModelo() {
-        IaProperties properties = properties("anthropic", "claude-opus");
+    void ensamblaIaModeloPisaElModeloDeVisionDelProveedor() {
+        dadoUnaConfiguracionConProveedor("anthropic", "claude-opus");
 
-        assertThat(properties.ajustes().modeloVision()).isEqualTo("claude-opus");
-        assertThat(properties.ajustes().apiKey()).isEqualTo("clave");
-        assertThat(properties.modeloVision()).isEqualTo("claude-opus");
+        cuandoSePidenLosAjustes();
+
+        entoncesElModeloDeVisionEsClaudeOpusYLaClaveSigueSiendoLaDelProveedor();
     }
 
     @Test
     @DisplayName("El simulado no tiene credenciales ni modelos")
-    void ajustesShouldBeEmptyForSimulatedProvider() {
-        AjustesIa ajustes = properties("simulado", null).ajustes();
+    void elSimuladoNoTieneCredencialesNiModelos() {
+        dadoUnaConfiguracionConProveedor("simulado", null);
 
-        assertThat(ajustes).isEqualTo(new AjustesIa("simulado", null, null, null, null, null, null, TIMEOUT));
+        cuandoSePidenLosAjustes();
+
+        entoncesLosAjustesSon(new AjustesIa("simulado", null, null, null, null, null, null, TIMEOUT));
     }
 
     @Test
     @DisplayName("Sin proveedores configurados, cualquiera queda sin datos")
-    void deShouldReturnEmptySettingsWithoutProviders() {
-        IaProperties properties = new IaProperties("bedrock", null, TIMEOUT, 10, 0.8, null);
+    void sinProveedoresConfiguradosCualquieraQuedaSinDatos() {
+        dadoUnaConfiguracionSinProveedores();
 
-        assertThat(properties.de("bedrock")).isEqualTo(new IaProperties.Proveedor(null, null, null, null, null, null));
-        assertThat(properties.modeloVision()).isNull();
+        entoncesCualquierProveedorQuedaSinDatosYSinModeloDeVision();
     }
 
     @Test
     @DisplayName("Un modelo de visión en blanco cuenta como que no hay ninguno")
-    void modeloVisionShouldBeNullWhenBlank() {
-        IaProperties properties = new IaProperties("bedrock", " ", TIMEOUT, 10, 0.8,
-                Map.of("bedrock", new IaProperties.Proveedor(null, "us-east-1", null, "rapido", null, "")));
+    void unModeloDeVisionEnBlancoCuentaComoQueNoHayNinguno() {
+        dadoUnaConfiguracionConModelosDeVisionEnBlanco();
 
+        entoncesNoHayModeloDeVision();
+    }
+
+    // --- dado ---
+
+    private void dadoUnaConfiguracionConProveedor(String proveedor, String modelo) {
+        properties = new IaProperties(proveedor, modelo, TIMEOUT, 10, 0.8, PROVEEDORES);
+    }
+
+    private void dadoUnaConfiguracionSinProveedores() {
+        properties = new IaProperties("bedrock", null, TIMEOUT, 10, 0.8, null);
+    }
+
+    private void dadoUnaConfiguracionConModelosDeVisionEnBlanco() {
+        properties = new IaProperties("bedrock", " ", TIMEOUT, 10, 0.8,
+                Map.of("bedrock", new IaProperties.Proveedor(null, "us-east-1", null, "rapido", null, "")));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSePidenLosAjustes() {
+        ajustes = properties.ajustes();
+    }
+
+    // --- entonces ---
+
+    private void entoncesElProveedorEs(String esperado) {
+        assertThat(properties.proveedor()).isEqualTo(esperado);
+    }
+
+    private void entoncesLosAjustesSon(AjustesIa esperados) {
+        assertThat(ajustes).isEqualTo(esperados);
+    }
+
+    private void entoncesElModeloDeVisionEsClaudeOpusYLaClaveSigueSiendoLaDelProveedor() {
+        assertThat(ajustes.modeloVision()).isEqualTo("claude-opus");
+        assertThat(ajustes.apiKey()).isEqualTo("clave");
+        assertThat(properties.modeloVision()).isEqualTo("claude-opus");
+    }
+
+    private void entoncesCualquierProveedorQuedaSinDatosYSinModeloDeVision() {
+        assertThat(properties.de("bedrock"))
+                .isEqualTo(new IaProperties.Proveedor(null, null, null, null, null, null));
         assertThat(properties.modeloVision()).isNull();
     }
 
-    // --- helpers ---
-    private IaProperties properties(String proveedor, String modelo) {
-        return new IaProperties(proveedor, modelo, TIMEOUT, 10, 0.8, PROVEEDORES);
+    private void entoncesNoHayModeloDeVision() {
+        assertThat(properties.modeloVision()).isNull();
     }
 }

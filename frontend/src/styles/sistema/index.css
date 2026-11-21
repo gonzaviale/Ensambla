@@ -12,18 +12,49 @@
 @import './revision.css';
 /* El inicio rearmado: acciones a mano, fondo blanco y la paleta completa. */
 @import './inicio.css';
+/* El tablero del inicio y sus gráficos. */
+@import './tablero.css';
+/* Las métricas a medida del inicio. */
+@import './metricas-a-medida.css';
+/* Mis negocios: elegirlo al iniciar sesión, el selector de la barra, crearlos y eliminarlos, y compararlos. */
+@import './negocios.css';
 /* La pantalla del sistema: fondo blanco, piezas y cabeceras de color. */
 @import './sistema-editor.css';
 @import './ubicacion.css';
 @import './planes.css';
+/* Laboratorio económico: simulaciones contables explicadas por Sami. */
+@import './objetivos.css';
+/* «Dónde abrir»: comparar zonas para un próximo local. */
+@import './donde-abrir.css';
 /* Plantillas con la paleta completa. */
 @import './plantillas.css';
 /* Taller de Sami con la paleta completa. */
 @import './taller.css';
 /* Tu cuenta: la configuración del usuario, a la que lleva el avatar. */
 @import './cuenta.css';
-/* Avisos arriba del cuaderno, marco animado de «Ver» y cifras del comercio. */
-@import './cuaderno-avisos.css';
-/* Los dos íconos de herramientas del cuaderno. */
+/* Avisos arriba de la sección, marco animado de «Ver» y cifras del comercio. */
+@import './sistema-avisos.css';
+/* Los dos íconos de herramientas de la sección. */
 @import './herramientas.css';
 @import './overrides.css';
+@import './escaneo.css';
+/* Último: el criterio único de color, botones y tarjetas (ver el comentario de la hoja). */
+@import './armonia.css';
+/* Avisos: secciones, filas y el modal con el porqué (después de armonia para que el color de nivel mande). */
+@import './avisos-lista.css';
+/* T-213: las métricas del Inicio. */
+@import './inicio-orden.css';
+/* T-216: el pie de todas las pantallas. */
+@import './pie.css';
+/* T-215: Mi zona y Tu próximo negocio. */
+@import './zona-vida.css';
+@import './lectorInventario.css';
+@import './caja.css';
+@import './cajaMostrador.css';
+@import './cajaEscaneo.css';
+@import './cajaClientes.css';
+@import './cajaCompraCobro.css';
+@import './accesosRapidos.css';
+@import './presentacionMovil.css';
+/* Último: superficies sólidas con letra blanca, por concepto (lib/sistema/tonos.ts). */
+@import './solidos.css';

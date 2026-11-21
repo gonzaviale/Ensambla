@@ -24,7 +24,7 @@ public record ResultadoRegla(
         String detalle,
         Map<String, Object> datos,
         List<Object> motivos,
-        List<Object> acciones) {
+        List<AccionDeAviso> acciones) {
 
     private static final String PREFIJO_REGISTRO = "registro:";
     private static final String PREFIJO_COMBO = "combo:";

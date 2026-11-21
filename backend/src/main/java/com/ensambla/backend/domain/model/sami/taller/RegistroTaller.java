@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.model.sami.taller;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -10,4 +11,11 @@ import java.util.Map;
  * @param datos los valores por etiqueta del dato
  */
 public record RegistroTaller(String id, Map<String, Object> datos) {
+
+    /** El mismo registro con esos valores corregidos. */
+    public RegistroTaller conCambios(Map<String, Object> cambios) {
+        Map<String, Object> corregidos = new LinkedHashMap<>(datos);
+        corregidos.putAll(cambios);
+        return new RegistroTaller(id, corregidos);
+    }
 }

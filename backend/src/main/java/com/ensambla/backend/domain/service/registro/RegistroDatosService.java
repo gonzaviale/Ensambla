@@ -103,23 +103,40 @@ public class RegistroDatosService {
      * @throws RegistroInvalidoException con "Esa fila ya no existe" en cada campo que apunta a una fila inexistente
      */
     public void validarConexiones(NegocioId negocioId, List<Campo> campos, Map<String, Object> valores) {
-        Map<BloqueId, List<Campo>> porBloque = campos.stream()
+        Map<String, String> errores = new LinkedHashMap<>();
+        conexionesPorBloque(campos, valores).forEach((bloqueId, conexiones) ->
+                errores.putAll(erroresDeLasConexiones(negocioId, bloqueId, conexiones, valores)));
+        exigirSinErrores(errores);
+    }
+
+    private static Map<BloqueId, List<Campo>> conexionesPorBloque(List<Campo> campos, Map<String, Object> valores) {
+        return campos.stream()
                 .filter(Campo::esRelacion)
                 .filter(campo -> valores.containsKey(campo.getId().toString()))
                 .collect(Collectors.groupingBy(Campo::getBloqueRelacionadoId));
+    }
+
+    private Map<String, String> erroresDeLasConexiones(NegocioId negocioId, BloqueId bloqueId,
+                                                       List<Campo> conexiones, Map<String, Object> valores) {
+        Set<RegistroId> existentes = filasExistentes(negocioId, bloqueId, referenciasDe(conexiones, valores));
         Map<String, String> errores = new LinkedHashMap<>();
-        porBloque.forEach((bloqueId, conexiones) -> {
-            Set<RegistroId> buscados = conexiones.stream()
-                    .map(campo -> referenciaDe(campo, valores))
-                    .collect(Collectors.toSet());
-            Set<RegistroId> existentes = registroRepository.findAllByIdsAndBloque(buscados, bloqueId, negocioId)
-                    .stream()
-                    .map(Registro::getId)
-                    .collect(Collectors.toSet());
-            conexiones.stream()
-                    .filter(campo -> !existentes.contains(referenciaDe(campo, valores)))
-                    .forEach(campo -> errores.put(campo.getId().toString(), MENSAJE_FILA_INEXISTENTE));
-        });
+        conexiones.stream()
+                .filter(campo -> !existentes.contains(referenciaDe(campo, valores)))
+                .forEach(campo -> errores.put(campo.getId().toString(), MENSAJE_FILA_INEXISTENTE));
+        return errores;
+    }
+
+    private static Set<RegistroId> referenciasDe(List<Campo> conexiones, Map<String, Object> valores) {
+        return conexiones.stream().map(campo -> referenciaDe(campo, valores)).collect(Collectors.toSet());
+    }
+
+    private Set<RegistroId> filasExistentes(NegocioId negocioId, BloqueId bloqueId, Set<RegistroId> buscados) {
+        return registroRepository.findAllByIdsAndBloque(buscados, bloqueId, negocioId).stream()
+                .map(Registro::getId)
+                .collect(Collectors.toSet());
+    }
+
+    private static void exigirSinErrores(Map<String, String> errores) {
         if (!errores.isEmpty()) {
             throw new RegistroInvalidoException(errores);
         }

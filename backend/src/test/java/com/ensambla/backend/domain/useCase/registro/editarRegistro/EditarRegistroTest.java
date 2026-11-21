@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -54,43 +54,69 @@ class EditarRegistroTest {
     private RegistroRepository registroRepository;
 
     private EditarRegistro editarRegistro;
+    private EditarRegistroResponse editado;
+    private Throwable rechazo;
 
     @BeforeEach
-    void setUp() {
+    void dadoUnNegocioDelUsuario() {
         editarRegistro = new EditarRegistro(
-                negocioRepository, campoRepository, registroDatosService, registroRepository, Clock
-                        .fixed(INSTANTE, ZoneOffset.UTC));
+                negocioRepository, campoRepository, registroDatosService, registroRepository,
+                Clock.fixed(INSTANTE, ZoneOffset.UTC));
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @Test
     @DisplayName("Edita el registro con los campos de su bloque y devuelve el resultado mapeado")
-    void executeShouldEditRegistroWithCamposOfItsBloque() {
-        Registro actual = Registro.builder().id(REGISTRO_ID).bloqueId(BLOQUE_ID).build();
-        Registro editado = Registro.builder().id(REGISTRO_ID).bloqueId(BLOQUE_ID).valores(CAMBIOS).build();
-        List<Campo> campos = List.of(Campo.builder().nombre("Producto").build());
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(actual);
-        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(campos);
-        when(registroDatosService.editar(actual, campos, CAMBIOS, AHORA)).thenReturn(editado);
+    void editaElRegistroConLosCamposDeSuBloqueYDevuelveElResultado() {
+        dadoUnRegistroDelNegocioQueSeEditaConLosCambios();
 
-        EditarRegistroResponse response = editarRegistro.execute(
-                new EditarRegistroRequest(USUARIO_ID, REGISTRO_ID, CAMBIOS));
+        cuandoSeEditaElRegistro();
 
-        assertThat(response.registro().id()).isEqualTo(REGISTRO_ID);
-        assertThat(response.registro().valores()).isEqualTo(CAMBIOS);
+        entoncesSeDevuelveElRegistroEditadoConLosCambios();
     }
 
     @Test
     @DisplayName("No edita nada cuando el registro es de otro negocio")
-    void executeShouldPropagateNotFoundWhenRegistroIsNotOfTheNegocio() {
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+    void noEditaNadaCuandoElRegistroEsDeOtroNegocio() {
+        dadoQueElRegistroEsDeOtroNegocio();
+
+        cuandoSeIntentaEditarElRegistro();
+
+        entoncesSeRechazaPorRegistroInexistenteSinBuscarCampos();
+    }
+
+    // --- dado ---
+    private void dadoUnRegistroDelNegocioQueSeEditaConLosCambios() {
+        Registro actual = Registro.builder().id(REGISTRO_ID).bloqueId(BLOQUE_ID).build();
+        Registro resultado = Registro.builder().id(REGISTRO_ID).bloqueId(BLOQUE_ID).valores(CAMBIOS).build();
+        List<Campo> campos = List.of(Campo.builder().nombre("Producto").build());
+        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(actual);
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(campos);
+        when(registroDatosService.editar(actual, campos, CAMBIOS, AHORA)).thenReturn(resultado);
+    }
+
+    private void dadoQueElRegistroEsDeOtroNegocio() {
         when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID))
                 .thenThrow(new ResourceNotFoundException("El registro no existe"));
+    }
 
-        assertThatThrownBy(() -> editarRegistro.execute(
-                new EditarRegistroRequest(USUARIO_ID, REGISTRO_ID, CAMBIOS)))
-                .isInstanceOf(ResourceNotFoundException.class);
+    // --- cuando ---
+    private void cuandoSeEditaElRegistro() {
+        editado = editarRegistro.execute(new EditarRegistroRequest(USUARIO_ID, REGISTRO_ID, CAMBIOS));
+    }
 
+    private void cuandoSeIntentaEditarElRegistro() {
+        rechazo = catchThrowable(this::cuandoSeEditaElRegistro);
+    }
+
+    // --- entonces ---
+    private void entoncesSeDevuelveElRegistroEditadoConLosCambios() {
+        assertThat(editado.registro().id()).isEqualTo(REGISTRO_ID);
+        assertThat(editado.registro().valores()).isEqualTo(CAMBIOS);
+    }
+
+    private void entoncesSeRechazaPorRegistroInexistenteSinBuscarCampos() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class);
         verifyNoInteractions(campoRepository);
     }
 }

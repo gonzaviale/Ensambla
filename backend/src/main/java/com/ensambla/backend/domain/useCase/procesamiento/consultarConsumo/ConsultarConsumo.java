@@ -22,8 +22,16 @@ public class ConsultarConsumo {
     private final Clock clock;
 
     public ConsumoItem execute(UsuarioId usuarioId) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(usuarioId);
-        ConsumoDiario consumo = procesamientoRepository.consumo(negocioId, ZonaNegocio.dia(OffsetDateTime.now(clock)));
+        NegocioId negocioId = obtenerNegocioDelUsuario(usuarioId);
+        ConsumoDiario consumo = obtenerConsumoDeHoy(negocioId);
         return ConsumoItem.de(consumo, politicaProcesamiento.limiteDiario());
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private ConsumoDiario obtenerConsumoDeHoy(NegocioId negocioId) {
+        return procesamientoRepository.consumo(negocioId, ZonaNegocio.dia(OffsetDateTime.now(clock)));
     }
 }

@@ -11,7 +11,7 @@ import java.util.Optional;
 import static com.ensambla.backend.support.ProcesamientoTestData.LOTE_ID;
 import static com.ensambla.backend.support.ProcesamientoTestData.NEGOCIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -20,23 +20,59 @@ class ProcesamientoRepositoryTest {
 
     private final ProcesamientoRepository procesamientoRepository = mock(ProcesamientoRepository.class,
             CALLS_REAL_METHODS);
+
+    private EstadoLectura estado;
+    private EstadoLectura obtenido;
+    private Throwable rechazo;
+
     @Test
     @DisplayName("Devuelve el estado del lote del negocio")
-    void obtenerShouldReturnOwnLote() {
-        EstadoLectura estado = new EstadoLectura(LOTE_ID, EstadoLote.ERROR, "Error", 3, null);
-        when(procesamientoRepository.obtener(NEGOCIO_ID, LOTE_ID)).thenReturn(Optional.of(estado));
+    void devuelveElEstadoDelLoteDelNegocio() {
+        dadoUnLoteDelNegocioEnError();
 
-        EstadoLectura resultado = procesamientoRepository.obtenerEstado(NEGOCIO_ID, LOTE_ID);
+        cuandoSeObtieneElEstado();
 
-        assertThat(resultado).isEqualTo(estado);
+        entoncesSeDevuelveElEstadoDelLote();
     }
 
     @Test
     @DisplayName("Un lote ajeno o inexistente responde como no encontrado")
-    void obtenerShouldRejectMissingLote() {
-        when(procesamientoRepository.obtener(NEGOCIO_ID, LOTE_ID)).thenReturn(Optional.empty());
+    void unLoteAjenoOInexistenteRespondeComoNoEncontrado() {
+        dadoQueElLoteNoExisteOEsAjeno();
 
-        assertThatThrownBy(() -> procesamientoRepository.obtenerEstado(NEGOCIO_ID, LOTE_ID))
-                .isInstanceOf(ResourceNotFoundException.class).hasMessage("Lote no encontrado");
+        cuandoSeIntentaObtenerElEstado();
+
+        entoncesSeRespondeQueElLoteNoSeEncontro();
+    }
+
+    // --- dado ---
+
+    private void dadoUnLoteDelNegocioEnError() {
+        estado = new EstadoLectura(LOTE_ID, EstadoLote.ERROR, "Error", 3, null);
+        when(procesamientoRepository.obtener(NEGOCIO_ID, LOTE_ID)).thenReturn(Optional.of(estado));
+    }
+
+    private void dadoQueElLoteNoExisteOEsAjeno() {
+        when(procesamientoRepository.obtener(NEGOCIO_ID, LOTE_ID)).thenReturn(Optional.empty());
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeObtieneElEstado() {
+        obtenido = procesamientoRepository.obtenerEstado(NEGOCIO_ID, LOTE_ID);
+    }
+
+    private void cuandoSeIntentaObtenerElEstado() {
+        rechazo = catchThrowable(this::cuandoSeObtieneElEstado);
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeDevuelveElEstadoDelLote() {
+        assertThat(obtenido).isEqualTo(estado);
+    }
+
+    private void entoncesSeRespondeQueElLoteNoSeEncontro() {
+        assertThat(rechazo).isInstanceOf(ResourceNotFoundException.class).hasMessage("Lote no encontrado");
     }
 }

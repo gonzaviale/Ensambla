@@ -17,7 +17,7 @@ function mensajeDeError(error: unknown) {
 }
 
 // Formulario de referencia: TanStack Form + zod (validators.onSubmit) + mutación de TanStack Query.
-export function LoginForm({ onExito }: { onExito: () => void }) {
+export function LoginForm({ onExito }: { onExito: () => void | Promise<void> }) {
   const login = useLogin();
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
   const [erroresServidor, setErroresServidor] = useState<Record<string, string>>({});
@@ -30,7 +30,7 @@ export function LoginForm({ onExito }: { onExito: () => void }) {
       setErroresServidor({});
       try {
         await login.mutateAsync({ ...value, email: value.email.trim() });
-        onExito();
+        await onExito();
       } catch (error) {
         if (error instanceof ApiError) setErroresServidor(error.fieldErrors);
         setErrorGeneral(mensajeDeError(error));

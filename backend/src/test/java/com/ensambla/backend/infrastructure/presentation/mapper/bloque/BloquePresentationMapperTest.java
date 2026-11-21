@@ -26,67 +26,66 @@ class BloquePresentationMapperTest {
     private static final OffsetDateTime CREADO = OffsetDateTime.parse("2026-10-09T12:00:00Z");
     private static final OffsetDateTime ACTUALIZADO = OffsetDateTime.parse("2026-10-10T12:00:00Z");
 
-    private final BloquePresentationMapper bloquePresentationMapper = new BloquePresentationMapper();
+    private final BloquePresentationMapper mapper = new BloquePresentationMapper();
 
     @Test
     @DisplayName("Arma el pedido de listar con el usuario y el proyecto")
-    void toListarRequestShouldCarryUsuarioAndProyecto() {
-        ListarBloquesRequest result = bloquePresentationMapper.toListarRequest(USUARIO_ID, PROYECTO_ID);
-
-        assertThat(result).isEqualTo(new ListarBloquesRequest(USUARIO_ID, PROYECTO_ID));
+    void armaElPedidoDeListar() {
+        entoncesElPedidoEs(mapper.toListarRequest(USUARIO_ID, PROYECTO_ID), new ListarBloquesRequest(USUARIO_ID, PROYECTO_ID));
     }
 
     @Test
     @DisplayName("Arma el pedido de crear con el nombre del body")
-    void toCrearRequestShouldCarryNombre() {
-        CrearBloqueRequest result = bloquePresentationMapper.toCrearRequest(
-                USUARIO_ID, PROYECTO_ID, new BloqueWebRequest("Clientes"));
-
-        assertThat(result).isEqualTo(new CrearBloqueRequest(USUARIO_ID, PROYECTO_ID, "Clientes"));
+    void armaElPedidoDeCrearConElNombre() {
+        entoncesElPedidoEs(mapper.toCrearRequest(USUARIO_ID, PROYECTO_ID, new BloqueWebRequest("Clientes")),
+                new CrearBloqueRequest(USUARIO_ID, PROYECTO_ID, "Clientes"));
     }
 
     @Test
     @DisplayName("Arma el pedido de renombrar con el bloque y el nombre del body")
-    void toRenombrarRequestShouldCarryBloqueAndNombre() {
-        RenombrarBloqueRequest result = bloquePresentationMapper.toRenombrarRequest(
-                USUARIO_ID, BLOQUE_ID, new BloqueWebRequest("Compradores"));
-
-        assertThat(result).isEqualTo(new RenombrarBloqueRequest(USUARIO_ID, BLOQUE_ID, "Compradores"));
+    void armaElPedidoDeRenombrarConElBloqueYElNombre() {
+        entoncesElPedidoEs(mapper.toRenombrarRequest(USUARIO_ID, BLOQUE_ID, new BloqueWebRequest("Compradores")),
+                new RenombrarBloqueRequest(USUARIO_ID, BLOQUE_ID, "Compradores"));
     }
 
     @Test
     @DisplayName("Arma el pedido de eliminar con el usuario y el bloque")
-    void toEliminarRequestShouldCarryUsuarioAndBloque() {
-        EliminarBloqueRequest result = bloquePresentationMapper.toEliminarRequest(USUARIO_ID, BLOQUE_ID);
-
-        assertThat(result).isEqualTo(new EliminarBloqueRequest(USUARIO_ID, BLOQUE_ID));
+    void armaElPedidoDeEliminar() {
+        entoncesElPedidoEs(mapper.toEliminarRequest(USUARIO_ID, BLOQUE_ID), new EliminarBloqueRequest(USUARIO_ID, BLOQUE_ID));
     }
 
     @Test
     @DisplayName("Pasa todos los datos del bloque a la respuesta HTTP")
-    void toResponseShouldMapEveryField() {
-        BloqueResponse result = bloquePresentationMapper.toResponse(givenItem("Productos"));
-
-        assertThat(result.id()).isEqualTo(BLOQUE_ID);
-        assertThat(result.proyectoId()).isEqualTo(PROYECTO_ID);
-        assertThat(result.nombre()).isEqualTo("Productos");
-        assertThat(result.posicion()).isEqualTo((short) 1);
-        assertThat(result.creadoEn()).isEqualTo(CREADO);
-        assertThat(result.actualizadoEn()).isEqualTo(ACTUALIZADO);
+    void pasaTodosLosDatosDelBloqueALaRespuesta() {
+        entoncesElBloqueSeRespondeComo(unBloque("Productos"),
+                new BloqueResponse(BLOQUE_ID, PROYECTO_ID, "Productos", (short) 1, CREADO, ACTUALIZADO));
     }
 
     @Test
-    @DisplayName("Una lista conserva el orden y una vacía queda vacía")
-    void toResponseListShouldKeepOrder() {
-        List<BloqueResponse> result = bloquePresentationMapper.toResponse(
-                List.of(givenItem("Primero"), givenItem("Segundo")));
-
-        assertThat(result).extracting(BloqueResponse::nombre).containsExactly("Primero", "Segundo");
-        assertThat(bloquePresentationMapper.toResponse(List.<BloqueItem>of())).isEmpty();
+    @DisplayName("Una lista conserva el orden")
+    void unaListaConservaElOrden() {
+        entoncesLaListaTieneLosNombres(List.of(unBloque("Primero"), unBloque("Segundo")), "Primero", "Segundo");
     }
 
-    // --- helpers ---
-    private BloqueItem givenItem(String nombre) {
+    @Test
+    @DisplayName("Una lista vacía queda vacía")
+    void unaListaVaciaQuedaVacia() {
+        entoncesLaListaTieneLosNombres(List.of());
+    }
+
+    private static BloqueItem unBloque(String nombre) {
         return new BloqueItem(BLOQUE_ID, PROYECTO_ID, nombre, (short) 1, CREADO, ACTUALIZADO);
+    }
+
+    private static void entoncesElPedidoEs(Object armado, Object esperado) {
+        assertThat(armado).isEqualTo(esperado);
+    }
+
+    private void entoncesElBloqueSeRespondeComo(BloqueItem bloque, BloqueResponse esperada) {
+        assertThat(mapper.toResponse(bloque)).isEqualTo(esperada);
+    }
+
+    private void entoncesLaListaTieneLosNombres(List<BloqueItem> bloques, String... nombres) {
+        assertThat(mapper.toResponse(bloques)).extracting(BloqueResponse::nombre).containsExactly(nombres);
     }
 }

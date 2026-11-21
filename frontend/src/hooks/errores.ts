@@ -3,17 +3,23 @@ import { ApiError } from '@/api/apiError';
 export type ErrorServidor = {
   status: number;
   mensaje: string;
+  codigo?: string;
   /** `errors` del backend: nombre del campo del cuerpo → mensaje. */
   campos: Record<string, string>;
 };
 
-const MENSAJE_GENERICO = 'Ocurrió un error inesperado. Probá de nuevo en unos minutos.';
+const MENSAJE_GENERICO = 'No pudimos completar la operación. Probá de nuevo en un rato.';
 
 // La UI no conoce ApiError (capa api): recibe el error ya traducido para ubicarlo junto a cada input.
 export function leerErrorServidor(error: unknown): ErrorServidor | undefined {
   if (!error) return undefined;
   if (error instanceof ApiError) {
-    return { status: error.status, mensaje: error.message, campos: error.fieldErrors };
+    return {
+      status: error.status,
+      mensaje: error.message,
+      codigo: error.codigo,
+      campos: error.fieldErrors,
+    };
   }
   return { status: 0, mensaje: MENSAJE_GENERICO, campos: {} };
 }

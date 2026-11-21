@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class MovimientoStockRepositoryMapperTest {
@@ -26,8 +27,17 @@ class MovimientoStockRepositoryMapperTest {
 
     @Test
     @DisplayName("Pasa del modelo a la entidad y de vuelta sin perder ningún dato")
-    void shouldRoundTripEveryField() {
-        MovimientoStock movimiento = MovimientoStock.builder()
+    void unMovimientoDeStockVuelveIgualDespuesDeIdaYVuelta() {
+        MovimientoStock movimiento = dadoUnaVentaDeDosYMedioKilos();
+
+        MovimientoStockEntity entidad = cuandoSePasaALaEntidad(movimiento);
+
+        entoncesAlVolverAlDominioEsElMismoMovimiento(entidad, movimiento);
+    }
+
+    // --- dado ---
+    private MovimientoStock dadoUnaVentaDeDosYMedioKilos() {
+        return MovimientoStock.builder()
                 .id(ID)
                 .negocioId(NEGOCIO_ID)
                 .registroId(PRODUCTO_ID)
@@ -37,14 +47,20 @@ class MovimientoStockRepositoryMapperTest {
                 .nota("Venta")
                 .creadoEn(AHORA)
                 .build();
+    }
 
-        MovimientoStockEntity entity = mapper.toEntity(movimiento);
-        MovimientoStock result = mapper.toDomain(entity);
+    // --- cuando ---
+    private MovimientoStockEntity cuandoSePasaALaEntidad(MovimientoStock movimiento) {
+        return mapper.toEntity(movimiento);
+    }
 
-        assertThat(entity.getRegistroId()).isEqualTo(PRODUCTO_ID.valor());
-        assertThat(entity.getTipo()).isEqualTo(TipoMovimiento.SALIDA);
-        assertThat(result).usingRecursiveComparison()
+    // --- entonces ---
+    private void entoncesAlVolverAlDominioEsElMismoMovimiento(MovimientoStockEntity entidad,
+                                                              MovimientoStock original) {
+        assertThat(entidad.getRegistroId()).isEqualTo(PRODUCTO_ID.valor());
+        assertThat(entidad.getTipo()).isEqualTo(TipoMovimiento.SALIDA);
+        assertThat(mapper.toDomain(entidad)).usingRecursiveComparison()
                 .withEqualsForFieldsMatchingRegexes(IdsDePrueba::mismoValor, IdsDePrueba.CAMPOS_DE_ID)
-                .isEqualTo(movimiento);
+                .isEqualTo(original);
     }
 }

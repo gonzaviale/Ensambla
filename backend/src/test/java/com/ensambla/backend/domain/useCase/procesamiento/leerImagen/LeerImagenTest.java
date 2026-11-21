@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -63,36 +63,155 @@ class LeerImagenTest {
     private final LeerImagenRequest request = new LeerImagenRequest(USUARIO_ID, ImagenTestData.jpeg(), "Ventas",
             List.of(new LeerImagenRequest.CampoItem("importe", "Monto", "NUMERO", null)), true);
 
+    private LeerImagenItem leido;
+    private Throwable rechazo;
+
     @BeforeEach
-    void givenNegocioConCupo() {
+    void dadoUnNegocioDelUsuario() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @Test
     @DisplayName("Devuelve lo leído con las claves del bloque y la columna que falta como nueva")
-    void executeShouldReturnTheReadingWithTheBlockKeys() {
-        givenLectura(List.of(columna("monto", "Monto"), columna("telefono", "Teléfono")),
-                new FilaLeida(1, 1, Map.of("monto", new DatoLeido("1500", 0.95),
-                        "telefono", new DatoLeido("1155", 0.5))));
+    void devuelveLoLeidoConLasClavesDelBloqueYLaColumnaQueFaltaComoNueva() {
+        dadoQueLaIaLeeMontoYTelefono();
 
-        LeerImagenItem item = leerImagen.execute(request);
+        cuandoSeLeeLaImagen();
 
-        assertThat(item.camposNuevos()).extracting(CampoItem::clave, CampoItem::nombre)
-                .containsExactly(tuple("telefono", "Teléfono"));
-        assertThat(item.filas().getFirst().keySet()).containsExactlyInAnyOrder("importe", "telefono");
-        assertThat(item.filas().getFirst().get("importe").valor()).isEqualTo("1500");
-        assertThat(item.filas().getFirst().get("importe").dudoso()).isFalse();
-        assertThat(item.filas().getFirst().get("telefono").dudoso()).isTrue();
+        entoncesSeDevuelveLoLeidoPorClaveDelBloqueConLaColumnaNuevaDeTelefono();
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     @DisplayName("La IA ve sólo el bloque elegido: una página y el bloque como destino")
-    void executeShouldAskTheReaderForOnlyTheChosenBlock() {
-        givenLectura(List.of(columna("monto", "Monto")), new FilaLeida(1, 1, Map.of()));
+    void laIaVeSoloElBloqueElegidoUnaPaginaYElBloqueComoDestino() {
+        dadoQueLaIaLeeSoloElMonto();
 
-        leerImagen.execute(request);
+        cuandoSeLeeLaImagen();
 
+        entoncesLaIaRecibioUnaPaginaYElBloqueElegidoComoDestino();
+    }
+
+    @Test
+    @DisplayName("Valida el mes y registra una página en el día UTC antes de invocar la IA")
+    void validaElMesYRegistraUnaPaginaEnElDiaUtcAntesDeInvocarLaIa() {
+        dadoQueLaIaLeeSoloElMonto();
+
+        cuandoSeLeeLaImagen();
+
+        entoncesSeRegistroLaPaginaAntesDeInvocarLaIa();
+    }
+
+    @Test
+    @DisplayName("Con el límite diario agotado responde una restricción clara y no llama a la IA")
+    void conElLimiteDiarioAgotadoRespondeUnaRestriccionClaraYNoLlamaALaIa() {
+        dadoQueSeAgotoElLimiteDiario();
+
+        cuandoSeIntentaLeerLaImagen(request);
+
+        entoncesSeRechazaPorLimiteDiarioSinLlamarALaIa();
+    }
+
+    @Test
+    @DisplayName("Rechaza la foto cuando ninguna columna leída es del bloque")
+    void rechazaLaFotoCuandoNingunaColumnaLeidaEsDelBloque() {
+        dadoQueLaIaLeeUnaColumnaQueNoEsDelBloque();
+
+        cuandoSeIntentaLeerLaImagen(request);
+
+        entoncesSeRechazaPorFotoIncompatible();
+    }
+
+    @Test
+    @DisplayName("Propaga el error de la IA")
+    void propagaElErrorDeLaIa() {
+        dadoQueLaIaFalla();
+
+        cuandoSeIntentaLeerLaImagen(request);
+
+        entoncesSePropagaElErrorDeLaIa();
+    }
+
+    @Test
+    @DisplayName("Con una imagen inválida no cobra ni llega a leer")
+    void conUnaImagenInvalidaNoCobraNiLlegaALeer() {
+        cuandoSeIntentaLeerLaImagen(unPedidoConImagenVacia());
+
+        entoncesSeRechazaPorImagenVaciaSinCobrarNiLeer();
+    }
+
+    @Test
+    @DisplayName("Con un bloque sin datos no cobra ni llega a leer")
+    void conUnBloqueSinDatosNoCobraNiLlegaALeer() {
+        cuandoSeIntentaLeerLaImagen(unPedidoSinCampos());
+
+        entoncesSeRechazaSinCobrarNiLeer();
+    }
+
+    // --- dado ---
+    private void dadoQueLaIaLeeMontoYTelefono() {
+        dadoQueLaIaLee(List.of(unaColumna("monto", "Monto", TipoCampo.NUMERO),
+                        unaColumna("telefono", "Teléfono", TipoCampo.TEXTO)),
+                new FilaLeida(1, 1, Map.of("monto", new DatoLeido("1500", 0.95),
+                        "telefono", new DatoLeido("1155", 0.5))));
+    }
+
+    private void dadoQueLaIaLeeSoloElMonto() {
+        dadoQueLaIaLee(List.of(unaColumna("monto", "Monto", TipoCampo.NUMERO)), new FilaLeida(1, 1, Map.of()));
+    }
+
+    private void dadoQueLaIaLeeUnaColumnaQueNoEsDelBloque() {
+        dadoQueLaIaLee(List.of(unaColumna("color", "Color", TipoCampo.TEXTO)),
+                new FilaLeida(1, 1, Map.of("color", new DatoLeido("Rojo", 0.9))));
+    }
+
+    private void dadoQueLaIaLee(List<CampoPropuesto> campos, FilaLeida... filas) {
+        when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(new LecturaCuaderno(
+                TipoRegistroCuaderno.OTRO, new BloquePropuesto("Hoja", null, campos), List.of(filas), List.of(),
+                new ConsumoIa("simulado", "demo", "v3", 1, 0, 0, 1)));
+    }
+
+    private void dadoQueSeAgotoElLimiteDiario() {
+        doThrow(new RestriccionPlanException("LIMITE_IA_DIARIO", PoliticaProcesamiento.LIMITE_DIARIO_AGOTADO))
+                .when(controlPlanService).reservarPaginaIaInmediata(NEGOCIO_ID, 100, AHORA);
+    }
+
+    private void dadoQueLaIaFalla() {
+        when(lectorCuadernoPort.leer(any(), any(), any())).thenThrow(new LecturaCuadernoException("Falla de la IA"));
+    }
+
+    private CampoPropuesto unaColumna(String clave, String nombre, TipoCampo tipo) {
+        return new CampoPropuesto(clave, nombre, tipo, List.of());
+    }
+
+    private LeerImagenRequest unPedidoConImagenVacia() {
+        return new LeerImagenRequest(USUARIO_ID, new byte[0], "Ventas", request.campos(), true);
+    }
+
+    private LeerImagenRequest unPedidoSinCampos() {
+        return new LeerImagenRequest(USUARIO_ID, request.contenido(), "Ventas", List.of(), true);
+    }
+
+    // --- cuando ---
+    private void cuandoSeLeeLaImagen() {
+        leido = leerImagen.execute(request);
+    }
+
+    private void cuandoSeIntentaLeerLaImagen(LeerImagenRequest pedido) {
+        rechazo = catchThrowable(() -> leerImagen.execute(pedido));
+    }
+
+    // --- entonces ---
+    private void entoncesSeDevuelveLoLeidoPorClaveDelBloqueConLaColumnaNuevaDeTelefono() {
+        assertThat(leido.camposNuevos()).extracting(CampoItem::clave, CampoItem::nombre)
+                .containsExactly(tuple("telefono", "Teléfono"));
+        assertThat(leido.filas().getFirst().keySet()).containsExactlyInAnyOrder("importe", "telefono");
+        assertThat(leido.filas().getFirst().get("importe").valor()).isEqualTo("1500");
+        assertThat(leido.filas().getFirst().get("importe").dudoso()).isFalse();
+        assertThat(leido.filas().getFirst().get("telefono").dudoso()).isTrue();
+    }
+
+    @SuppressWarnings("unchecked")
+    private void entoncesLaIaRecibioUnaPaginaYElBloqueElegidoComoDestino() {
         ArgumentCaptor<List<PaginaCuaderno>> paginas = ArgumentCaptor.forClass(List.class);
         ArgumentCaptor<List<BloqueConocido>> bloques = ArgumentCaptor.forClass(List.class);
         ArgumentCaptor<BloqueId> destino = ArgumentCaptor.forClass(BloqueId.class);
@@ -108,80 +227,33 @@ class LeerImagenTest {
         });
     }
 
-    @Test
-    @DisplayName("Valida el mes y registra una página en el día UTC antes de invocar la IA")
-    void executeShouldChargeTheUtcDayBeforeReading() {
-        givenLectura(List.of(columna("monto", "Monto")), new FilaLeida(1, 1, Map.of()));
-
-        leerImagen.execute(request);
-
+    private void entoncesSeRegistroLaPaginaAntesDeInvocarLaIa() {
         InOrder orden = inOrder(controlPlanService, lectorCuadernoPort);
         orden.verify(controlPlanService).reservarPaginaIaInmediata(NEGOCIO_ID, 100, AHORA);
         orden.verify(lectorCuadernoPort).leer(any(), any(), any());
     }
 
-    @Test
-    @DisplayName("Con el límite diario agotado responde una restricción clara y no llama a la IA")
-    void executeShouldRejectDailyLimit() {
-        doThrow(new RestriccionPlanException("LIMITE_IA_DIARIO", PoliticaProcesamiento.LIMITE_DIARIO_AGOTADO))
-                .when(controlPlanService).reservarPaginaIaInmediata(NEGOCIO_ID, 100, AHORA);
-
-        assertThatThrownBy(() -> leerImagen.execute(request))
-                .isInstanceOf(RestriccionPlanException.class)
+    private void entoncesSeRechazaPorLimiteDiarioSinLlamarALaIa() {
+        assertThat(rechazo).isInstanceOf(RestriccionPlanException.class)
                 .hasMessage("Se alcanzó el límite diario de análisis de foto. Probá mañana.");
-
         verifyNoInteractions(lectorCuadernoPort);
     }
 
-    @Test
-    @DisplayName("Rechaza la foto cuando ninguna columna leída es del bloque")
-    void executeShouldRejectAPhotoThatIsNotFromTheBlock() {
-        givenLectura(List.of(columna("color", "Color")),
-                new FilaLeida(1, 1, Map.of("color", new DatoLeido("Rojo", 0.9))));
-
-        assertThatThrownBy(() -> leerImagen.execute(request))
-                .isInstanceOf(BusinessRuleException.class).hasMessageContaining("compatible");
+    private void entoncesSeRechazaPorFotoIncompatible() {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class).hasMessageContaining("compatible");
     }
 
-    @Test
-    @DisplayName("Propaga el error de la IA")
-    void executeShouldPropagateTheReaderFailure() {
-        when(lectorCuadernoPort.leer(any(), any(), any())).thenThrow(new LecturaCuadernoException("Falla de la IA"));
-
-        assertThatThrownBy(() -> leerImagen.execute(request))
-                .isInstanceOf(LecturaCuadernoException.class).hasMessage("Falla de la IA");
+    private void entoncesSePropagaElErrorDeLaIa() {
+        assertThat(rechazo).isInstanceOf(LecturaCuadernoException.class).hasMessage("Falla de la IA");
     }
 
-    @Test
-    @DisplayName("Con una imagen inválida no cobra ni llega a leer")
-    void executeShouldNotReadAnInvalidImage() {
-        LeerImagenRequest vacia = new LeerImagenRequest(USUARIO_ID, new byte[0], "Ventas", request.campos(), true);
-
-        assertThatThrownBy(() -> leerImagen.execute(vacia))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("La imagen está vacía");
-
+    private void entoncesSeRechazaPorImagenVaciaSinCobrarNiLeer() {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class).hasMessage("La imagen está vacía");
         verifyNoInteractions(lectorCuadernoPort, controlPlanService);
     }
 
-    @Test
-    @DisplayName("Con un bloque sin datos no cobra ni llega a leer")
-    void executeShouldNotReadABlockWithoutFields() {
-        LeerImagenRequest sinCampos = new LeerImagenRequest(USUARIO_ID, request.contenido(), "Ventas", List.of(), true);
-
-        assertThatThrownBy(() -> leerImagen.execute(sinCampos)).isInstanceOf(BusinessRuleException.class);
-
+    private void entoncesSeRechazaSinCobrarNiLeer() {
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class);
         verifyNoInteractions(lectorCuadernoPort, controlPlanService);
-    }
-
-    // --- arrange ---
-    private void givenLectura(List<CampoPropuesto> campos, FilaLeida... filas) {
-        when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(new LecturaCuaderno(
-                TipoRegistroCuaderno.OTRO, new BloquePropuesto("Hoja", null, campos), List.of(filas), List.of(),
-                new ConsumoIa("simulado", "demo", "v3", 1, 0, 0, 1)));
-    }
-
-    private CampoPropuesto columna(String clave, String nombre) {
-        return new CampoPropuesto(clave, nombre, nombre.equals("Monto") ? TipoCampo.NUMERO : TipoCampo.TEXTO, List.of());
     }
 }

@@ -1,6 +1,6 @@
 # Ensambla
 
-> **Tu sistema, un bloque a la vez.**
+> **Tu negocio, un bloque a la vez.**
 
 Ensambla es una aplicación web **no-code** para que emprendedores, comercios y PyMEs armen el sistema interno de su
 negocio —inventario, pedidos, clientes— sin programar: eligen una **plantilla** (o empiezan en blanco), agregan
@@ -21,7 +21,7 @@ datos y los pipelines para que el equipo arranque con las tareas `T-001` … `T-
 | [`backend/`](backend/README.md) | API REST: Spring Boot 4, Java 21, PostgreSQL 17, Flyway, sesión por cookie + CSRF |
 | [`frontend/`](frontend/README.md) | SPA: Vite, React 19, TypeScript, TanStack Router/Query/Form, Tailwind 4, zod, MSW |
 | [`docs/`](docs) | Modelo de datos, backlog del MVP 2 y guía de marca |
-| `.claude/skills` | Skills para trabajar con Claude Code: `crear-use-case`, `escribir-tests`, `refactor-use-case` |
+| `.claude/skills`, `.agents/skills` | Skills para Claude Code y su copia para Codex: `reglas-arquitectura`, `codigo-semantico`, `codigo-frontend`, `crear-use-case`, `escribir-tests`, `refactor-use-case` |
 | `.github/` | CI (backend y frontend), deploy, plantilla de PR y guía de contribución |
 
 ## Cómo levantarlo

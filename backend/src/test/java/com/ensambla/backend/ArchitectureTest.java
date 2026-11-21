@@ -8,6 +8,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -26,6 +27,22 @@ class ArchitectureTest {
             .resolve("src/main/java/com/ensambla/backend/domain");
     private static final String INFRASTRUCTURE_PACKAGE = "com/ensambla/backend/infrastructure";
     private static final String SPRING_PACKAGE = "org/springframework";
+    private static final Pattern SWITCH = Pattern.compile("\\bswitch\\s*\\(");
+    private static final Pattern ELSE_IF = Pattern.compile("\\belse\\s+if\\b");
+    // Paquetes del dominio ya migrados a polimorfismo: se suman acá cuando un carril del plan de calidad los termina.
+    // Faltan model/objetivo (hasta que se mergee la rama de objetivos con Sami) y useCase/whatsapp (AtenderMensajeWhatsapp).
+    private static final List<String> PAQUETES_MIGRADOS = List.of(
+            "exception", "port", "repository", "service",
+            "model/aviso", "model/bloque", "model/caja", "model/campo", "model/catalogo", "model/common",
+            "model/inventario", "model/lectura", "model/lote", "model/metrica", "model/negocio", "model/pago", "model/plan",
+            "model/plantilla", "model/precio", "model/preferencia", "model/procesamiento", "model/proyecto",
+            "model/receta", "model/registro", "model/reporte", "model/sami", "model/seccion", "model/sistema",
+            "model/ubicacion", "model/usuario", "model/whatsapp", "model/zona",
+            "useCase/auth", "useCase/aviso", "useCase/bloque", "useCase/caja", "useCase/campo", "useCase/catalogo",
+            "useCase/inventario", "useCase/lote", "useCase/metrica", "useCase/negocio", "useCase/pago", "useCase/plan",
+            "useCase/plantilla", "useCase/preferencia", "useCase/procesamiento", "useCase/proyecto",
+            "useCase/receta", "useCase/registro", "useCase/reporte", "useCase/sami", "useCase/sistema",
+            "useCase/ubicacion", "useCase/zona");
     private static final Pattern UUID_REFERENCE = Pattern.compile("\\bUUID\\b");
     // Los value objects de id, su interfaz y las dos reglas que derivan UUID de un texto.
     private static final Pattern UUID_ALLOWED = Pattern.compile(
@@ -33,23 +50,23 @@ class ArchitectureTest {
 
     @Test
     @DisplayName("Las clases del dominio no dependen de la infraestructura")
-    void domainClassesShouldNotDependOnInfrastructure() throws IOException {
+    void lasClasesDelDominioNoDependenDeLaInfraestructura() throws IOException {
         List<Path> classes = domainClasses();
 
-        thenNoClassReferences(classes, INFRASTRUCTURE_PACKAGE);
+        entoncesNingunaClaseReferencia(classes, INFRASTRUCTURE_PACKAGE);
     }
 
     @Test
     @DisplayName("Las clases del dominio no dependen de Spring")
-    void domainClassesShouldNotDependOnSpring() throws IOException {
+    void lasClasesDelDominioNoDependenDeSpring() throws IOException {
         List<Path> classes = domainClasses();
 
-        thenNoClassReferences(classes, SPRING_PACKAGE);
+        entoncesNingunaClaseReferencia(classes, SPRING_PACKAGE);
     }
 
     @Test
     @DisplayName("Los casos de uso no llevan el sufijo UseCase")
-    void useCasesShouldNotEndWithUseCase() throws IOException {
+    void losCasosDeUsoNoLlevanElSufijoUseCase() throws IOException {
         List<Path> classes = domainClasses();
 
         assertThat(classes)
@@ -61,15 +78,15 @@ class ArchitectureTest {
 
     @Test
     @DisplayName("Un caso de uso no depende de otro caso de uso")
-    void useCasesShouldNotDependOnOtherUseCases() throws IOException {
+    void unCasoDeUsoNoDependeDeOtroCasoDeUso() throws IOException {
         List<Path> casos = useCases();
 
-        thenNoUseCaseReferencesAnother(casos);
+        entoncesNingunCasoDeUsoReferenciaAOtro(casos);
     }
 
     @Test
     @DisplayName("No existen los paquetes de DTOs, mappers ni enums del dominio")
-    void domainShouldNotHaveDtoMapperOrEnumsPackages() {
+    void elDominioNoTienePaquetesDeDtosMappersNiEnums() {
         assertThat(DOMAIN_CLASSES.resolve("dto")).doesNotExist();
         assertThat(DOMAIN_CLASSES.resolve("mapper")).doesNotExist();
         assertThat(DOMAIN_CLASSES.resolve("model/enums")).doesNotExist();
@@ -77,15 +94,31 @@ class ArchitectureTest {
 
     @Test
     @DisplayName("Dentro del dominio solo los ids tipados usan UUID")
-    void onlyTypedIdsShouldUseUuidInDomain() throws IOException {
+    void soloLosIdsTipadosUsanUuidEnElDominio() throws IOException {
         List<Path> sources = domainSources();
 
-        thenOnlyAllowedSourcesMentionUuid(sources);
+        entoncesSoloLasFuentesPermitidasMencionanUuid(sources);
+    }
+
+    @Test
+    @DisplayName("Los paquetes ya migrados no usan switch: cada tipo se comporta en su propia clase")
+    void losPaquetesMigradosNoUsanSwitch() throws IOException {
+        List<Path> fuentes = fuentesDe(PAQUETES_MIGRADOS);
+
+        entoncesNingunaFuenteContiene(SWITCH, "switch", fuentes);
+    }
+
+    @Test
+    @DisplayName("Los paquetes ya migrados no encadenan else if por tipo o estado")
+    void losPaquetesMigradosNoUsanElseIf() throws IOException {
+        List<Path> fuentes = fuentesDe(PAQUETES_MIGRADOS);
+
+        entoncesNingunaFuenteContiene(ELSE_IF, "else if", fuentes);
     }
 
     @Test
     @DisplayName("Los tests no usan H2")
-    void testsShouldNotUseH2() {
+    void losTestsNoUsanH2() {
         assertThat(ArchitectureTest.class.getResource("/application-h2-test.properties")).isNull();
         assertThatThrownBy(() -> Class.forName("org.h2.Driver")).isInstanceOf(ClassNotFoundException.class);
     }
@@ -113,8 +146,16 @@ class ArchitectureTest {
                 .toList();
     }
 
+    private List<Path> fuentesDe(List<String> paquetes) throws IOException {
+        List<Path> fuentes = new ArrayList<>();
+        for (String paquete : paquetes) {
+            fuentes.addAll(files(DOMAIN_SOURCES.resolve(paquete), ".java"));
+        }
+        return fuentes;
+    }
+
     // --- assert ---
-    private void thenNoClassReferences(List<Path> classes, String forbiddenPackage) throws IOException {
+    private void entoncesNingunaClaseReferencia(List<Path> classes, String forbiddenPackage) throws IOException {
         assertThat(classes).isNotEmpty();
         for (Path type : classes) {
             assertThat(bytecodeOf(type)).as("dependencias de %s", type)
@@ -122,7 +163,7 @@ class ArchitectureTest {
         }
     }
 
-    private void thenNoUseCaseReferencesAnother(List<Path> casos) throws IOException {
+    private void entoncesNingunCasoDeUsoReferenciaAOtro(List<Path> casos) throws IOException {
         assertThat(casos).isNotEmpty();
         for (Path caso : casos) {
             String bytecode = bytecodeDelCaso(caso);
@@ -137,7 +178,14 @@ class ArchitectureTest {
         }
     }
 
-    private void thenOnlyAllowedSourcesMentionUuid(List<Path> sources) throws IOException {
+    private void entoncesNingunaFuenteContiene(Pattern patron, String que, List<Path> fuentes) throws IOException {
+        assertThat(fuentes).isNotEmpty();
+        for (Path fuente : fuentes) {
+            assertThat(patron.matcher(Files.readString(fuente)).find()).as("%s en %s", que, fuente).isFalse();
+        }
+    }
+
+    private void entoncesSoloLasFuentesPermitidasMencionanUuid(List<Path> sources) throws IOException {
         assertThat(sources).isNotEmpty();
         for (Path source : sources) {
             if (UUID_ALLOWED.matcher(source.toString().replace('\\', '/')).matches()) {

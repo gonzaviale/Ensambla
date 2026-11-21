@@ -1,11 +1,13 @@
 package com.ensambla.backend.domain.service.plan;
 
-import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
+import com.ensambla.backend.domain.model.aviso.AvisoId;
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.AccesoIa;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
+import com.ensambla.backend.domain.model.plan.CuotaObjetivosIa;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.FuncionPlan;
 import com.ensambla.backend.domain.model.plan.Plan;
@@ -30,9 +32,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 @RequiredArgsConstructor
 public class ControlPlanService {
+
+    private static final int LIMITE_GRATUITO = 6;
 
     private final PlanRepository planRepository;
 
@@ -50,22 +55,12 @@ public class ControlPlanService {
 
     private final AccesoIa accesoIa;
 
-    private static final int LIMITE_GRATUITO = 6;
-
     public void validarAltaProyecto(NegocioId negocioId, OffsetDateTime ahora) {
-        transaccionPort.ejecutar(() -> {
-            usoPlanRepository.bloquearNegocio(negocioId);
-            Plan plan = vigente(negocioId, ahora);
-            plan.validarProyectos(usoPlanRepository.contarProyectos(negocioId));
-        });
+        conNegocioBloqueado(negocioId, () -> exigirCupoDeProyectos(negocioId, ahora));
     }
 
     public void validarAltaRegistros(NegocioId negocioId, long cantidad, OffsetDateTime ahora) {
-        transaccionPort.ejecutar(() -> {
-            usoPlanRepository.bloquearNegocio(negocioId);
-            Plan plan = vigente(negocioId, ahora);
-            plan.validarRegistros(usoPlanRepository.contarRegistros(negocioId), cantidad);
-        });
+        conNegocioBloqueado(negocioId, () -> exigirCupoDeRegistros(negocioId, cantidad, ahora));
     }
 
     /**
@@ -74,33 +69,34 @@ public class ControlPlanService {
      * @throws RestriccionPlanException si el dueño del negocio no está habilitado
      */
     public void exigirIa(NegocioId negocioId) {
-        if (accesoIa.restringido()
-                && !accesoIa.permite(negocioRepository.findEmailDuenioById(negocioId).orElse(null))) {
+        if (!estaHabilitadaLaIa(negocioId)) {
             throw new RestriccionPlanException("IA_NO_HABILITADA", AccesoIa.MENSAJE);
         }
     }
 
     public void validarPaginasIa(NegocioId negocioId, int cantidad, OffsetDateTime ahora) {
         exigirIa(negocioId);
-        transaccionPort.ejecutar(() -> {
-            usoPlanRepository.bloquearNegocio(negocioId);
-            Plan plan = vigente(negocioId, ahora);
-            Optional<PruebaPremium> prueba = pruebaVigente(negocioId, ahora);
-            if (prueba.isPresent()) {
-                prueba.get().validarPaginas(cantidad);
-                return;
-            }
-            LocalDate mes = ZonaNegocio.primerDiaDelMes(ahora);
-            plan.validarPaginasIa(usoPlanRepository.paginasEnPeriodo(negocioId, mes, mes.plusMonths(1)), cantidad);
-        });
+        conNegocioBloqueado(negocioId, () -> exigirCupoDePaginasIa(negocioId, cantidad, ahora));
+    }
+
+    /** Los objetivos con IA de este mes (calendario argentino) y los que permite el plan vigente. */
+    public CuotaObjetivosIa cuotaObjetivosIa(NegocioId negocioId, OffsetDateTime ahora) {
+        return new CuotaObjetivosIa(
+                objetivosIaDelMes(negocioId, ahora), planVigente(negocioId, ahora).getLimiteObjetivosIaMensuales());
+    }
+
+    /**
+     * Bloquea el negocio y comprueba que le quede cuota para un objetivo con IA más. Se llama dentro de la
+     * transacción que guarda el objetivo, así dos altas simultáneas no pasan el límite.
+     *
+     * @throws RestriccionPlanException si se agotó la cuota mensual
+     */
+    public void validarObjetivoIa(NegocioId negocioId, OffsetDateTime ahora) {
+        conNegocioBloqueado(negocioId, () -> exigirCupoDeObjetivosIa(negocioId, ahora));
     }
 
     public void validarFuncion(NegocioId negocioId, FuncionPlan funcion, OffsetDateTime ahora) {
-        vigente(negocioId, ahora).validarFuncion(funcion);
-    }
-
-    private boolean esPremium(NegocioId negocioId, OffsetDateTime ahora) {
-        return vigente(negocioId, ahora).getCodigo() == CodigoPlan.PREMIUM;
+        planVigente(negocioId, ahora).validarFuncion(funcion);
     }
 
     /**
@@ -110,14 +106,7 @@ public class ControlPlanService {
      * @return si la reserva diaria entró
      */
     public boolean reservarPaginasIa(NegocioId negocioId, int cantidad, OffsetDateTime ahora, BooleanSupplier reserva) {
-        return transaccionPort.ejecutar(() -> {
-            validarPaginasIa(negocioId, cantidad, ahora);
-            boolean reservada = reserva.getAsBoolean();
-            if (reservada) {
-                registrarPaginasPrueba(negocioId, cantidad, ahora);
-            }
-            return reservada;
-        });
+        return transaccionPort.ejecutar(() -> admitirIntentoDeLectura(negocioId, cantidad, ahora, reserva));
     }
 
     /**
@@ -127,78 +116,201 @@ public class ControlPlanService {
      * @throws RestriccionPlanException si se agotó el límite diario; el mensual lo informa {@link #validarPaginasIa}
      */
     public void reservarPaginaIaInmediata(NegocioId negocioId, int limiteDiario, OffsetDateTime ahora) {
-        LocalDate dia = ZonaNegocio.dia(ahora);
         boolean reservada = reservarPaginasIa(negocioId, 1, ahora,
-                () -> usoPlanRepository.registrarPaginaInmediata(negocioId, dia, limiteDiario, ahora));
+                () -> registrarPaginaInmediataDelDia(negocioId, limiteDiario, ahora));
         if (!reservada) {
             throw new RestriccionPlanException("LIMITE_IA_DIARIO", PoliticaProcesamiento.LIMITE_DIARIO_AGOTADO);
         }
     }
 
-    /** Se cobra al admitir un intento. También cuentan errores y timeouts, sin duplicar al finalizar el lote. */
-    private void registrarPaginasPrueba(NegocioId negocioId, int cantidad, OffsetDateTime ahora) {
-        transaccionPort.ejecutar(() -> {
-            usoPlanRepository.bloquearNegocio(negocioId);
-            pruebaVigente(negocioId, ahora)
-                    .ifPresent(prueba -> pruebaPremiumRepository.save(prueba.consumir(cantidad)));
-        });
+    public void exigirAccesoAlAviso(NegocioId negocioId, AvisoId avisoId, OffsetDateTime ahora) {
+        exigir(negocioId, TipoContenidoPlan.AVISOS, avisoId.toString(), ahora);
     }
 
-    private Optional<PruebaPremium> pruebaVigente(NegocioId negocioId, OffsetDateTime ahora) {
-        Suscripcion suscripcion = suscripcionRepository.findByNegocioId(negocioId)
-                .orElseThrow(() -> new ResourceNotFoundException("Suscripción no encontrada"));
-        if (suscripcion.getEstado() == EstadoSuscripcion.PRUEBA && suscripcion.estaVigente(ahora)) {
-            return Optional.of(pruebaPremiumRepository.findByNegocioId(negocioId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Prueba no encontrada")));
-        }
-        return Optional.empty();
-    }
-
-    private Plan vigente(NegocioId negocioId, OffsetDateTime ahora) {
-        Suscripcion suscripcion = suscripcionRepository.findByNegocioId(negocioId)
-                .orElseThrow(() -> new ResourceNotFoundException("Suscripción no encontrada"));
-        Plan plan = suscripcion.estaVigente(ahora)
-                ? planRepository.findById(suscripcion.getPlanId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Plan no encontrado"))
-                : planRepository.findByCodigo(CodigoPlan.GRATUITO)
-                    .orElseThrow(() -> new ResourceNotFoundException("Plan gratuito no encontrado"));
-        plan.validarLimitesConfigurados();
-        return plan;
+    public List<AvisoId> avisosAutorizados(NegocioId negocioId, List<AvisoId> avisos, OffsetDateTime ahora) {
+        Set<String> autorizadas = clavesAutorizadasDe(negocioId, avisos, ahora);
+        return avisos.stream().filter(aviso -> autorizadas.contains(aviso.toString())).toList();
     }
 
     public AccesoContenidoItem seleccionar(NegocioId negocioId, TipoContenidoPlan tipo, List<String> claves,
                                            OffsetDateTime ahora) {
-        return transaccionPort.ejecutar(() -> {
-            usoPlanRepository.bloquearNegocio(negocioId);
-            LocalDate periodo = ZonaNegocio.primerDiaDelMes(ahora);
-            OffsetDateTime fin = ZonaNegocio.inicioDelDia(periodo.plusMonths(1));
-            List<String> candidatas = claves.stream().distinct().toList();
-            if (esPremium(negocioId, ahora)) {
-                return new AccesoContenidoItem(candidatas, 0, null, candidatas.size(), 0, fin);
-            }
-            Set<String> conocidas = accesoContenidoRepository.autorizadas(negocioId, tipo, periodo);
-            List<String> permitidas = new ArrayList<>();
-            for (String clave : candidatas) {
-                if (conocidas.contains(clave)) {
-                    permitidas.add(clave);
-                } else if (conocidas.size() < LIMITE_GRATUITO) {
-                    accesoContenidoRepository.registrar(negocioId, tipo, periodo, clave, ahora);
-                    conocidas.add(clave);
-                    permitidas.add(clave);
-                }
-            }
-            return new AccesoContenidoItem(List.copyOf(permitidas), conocidas.size(), LIMITE_GRATUITO,
-                    candidatas.size(), candidatas.size() - permitidas.size(), fin);
-        });
+        return conNegocioBloqueadoDevolviendo(negocioId, () -> seleccionarContenido(negocioId, tipo, claves, ahora));
     }
 
     public void exigir(NegocioId negocioId, TipoContenidoPlan tipo, String clave, OffsetDateTime ahora) {
+        transaccionPort.ejecutar(() -> exigirAccesoAlContenido(negocioId, tipo, clave, ahora));
+    }
+
+    private Set<String> clavesAutorizadasDe(NegocioId negocioId, List<AvisoId> avisos, OffsetDateTime ahora) {
+        List<String> claves = avisos.stream().map(AvisoId::toString).toList();
+        return Set.copyOf(seleccionar(negocioId, TipoContenidoPlan.AVISOS, claves, ahora).autorizadas());
+    }
+
+    private void conNegocioBloqueado(NegocioId negocioId, Runnable trabajo) {
         transaccionPort.ejecutar(() -> {
-            if (!seleccionar(negocioId, tipo, List.of(clave), ahora).autorizadas().contains(clave)) {
-                throw new RestriccionPlanException("LIMITE_CONTENIDO_" + tipo.name(),
-                        "Usaste los " + LIMITE_GRATUITO + " contenidos incluidos este mes. "
-                                + "Con Premium podés acceder a todos desde Planes.");
-            }
+            usoPlanRepository.bloquearNegocio(negocioId);
+            trabajo.run();
         });
+    }
+
+    private <T> T conNegocioBloqueadoDevolviendo(NegocioId negocioId, Supplier<T> trabajo) {
+        return transaccionPort.ejecutar(() -> {
+            usoPlanRepository.bloquearNegocio(negocioId);
+            return trabajo.get();
+        });
+    }
+
+    private void exigirCupoDeProyectos(NegocioId negocioId, OffsetDateTime ahora) {
+        Plan plan = planVigente(negocioId, ahora);
+        plan.validarProyectos(usoPlanRepository.contarProyectos(negocioId));
+    }
+
+    private void exigirCupoDeObjetivosIa(NegocioId negocioId, OffsetDateTime ahora) {
+        Plan plan = planVigente(negocioId, ahora);
+        plan.validarObjetivosIa(objetivosIaDelMes(negocioId, ahora));
+    }
+
+    private long objetivosIaDelMes(NegocioId negocioId, OffsetDateTime ahora) {
+        LocalDate primerDia = ZonaNegocio.primerDiaDelMes(ahora);
+        return usoPlanRepository.objetivosIaEnPeriodo(negocioId, ZonaNegocio.inicioDelDia(primerDia),
+                ZonaNegocio.inicioDelDia(primerDia.plusMonths(1)));
+    }
+
+    private void exigirCupoDeRegistros(NegocioId negocioId, long cantidad, OffsetDateTime ahora) {
+        Plan plan = planVigente(negocioId, ahora);
+        plan.validarRegistros(usoPlanRepository.contarRegistros(negocioId), cantidad);
+    }
+
+    private boolean estaHabilitadaLaIa(NegocioId negocioId) {
+        return !accesoIa.restringido() || accesoIa.permite(emailDelDuenio(negocioId));
+    }
+
+    private String emailDelDuenio(NegocioId negocioId) {
+        return negocioRepository.findEmailDuenioById(negocioId).orElse(null);
+    }
+
+    private void exigirCupoDePaginasIa(NegocioId negocioId, int cantidad, OffsetDateTime ahora) {
+        Plan plan = planVigente(negocioId, ahora);
+        pruebaVigente(negocioId, ahora).ifPresentOrElse(
+                prueba -> prueba.validarPaginas(cantidad),
+                () -> plan.validarPaginasIa(paginasUsadasEnElMes(negocioId, ahora), cantidad));
+    }
+
+    private long paginasUsadasEnElMes(NegocioId negocioId, OffsetDateTime ahora) {
+        LocalDate mes = ZonaNegocio.primerDiaDelMes(ahora);
+        return usoPlanRepository.paginasEnPeriodo(negocioId, mes, mes.plusMonths(1));
+    }
+
+    private boolean admitirIntentoDeLectura(
+            NegocioId negocioId, int cantidad, OffsetDateTime ahora, BooleanSupplier reserva) {
+        validarPaginasIa(negocioId, cantidad, ahora);
+        boolean reservada = reserva.getAsBoolean();
+        if (reservada) {
+            registrarPaginasPrueba(negocioId, cantidad, ahora);
+        }
+        return reservada;
+    }
+
+    private boolean registrarPaginaInmediataDelDia(NegocioId negocioId, int limiteDiario, OffsetDateTime ahora) {
+        return usoPlanRepository.registrarPaginaInmediata(negocioId, ZonaNegocio.dia(ahora), limiteDiario, ahora);
+    }
+
+    /** Se cobra al admitir un intento. También cuentan errores y timeouts, sin duplicar al finalizar el lote. */
+    private void registrarPaginasPrueba(NegocioId negocioId, int cantidad, OffsetDateTime ahora) {
+        conNegocioBloqueado(negocioId, () -> pruebaVigente(negocioId, ahora)
+                .ifPresent(prueba -> pruebaPremiumRepository.save(prueba.consumir(cantidad))));
+    }
+
+    private Optional<PruebaPremium> pruebaVigente(NegocioId negocioId, OffsetDateTime ahora) {
+        if (!estaEnPruebaVigente(suscripcionDe(negocioId), ahora)) {
+            return Optional.empty();
+        }
+        return Optional.of(pruebaDe(negocioId));
+    }
+
+    private boolean estaEnPruebaVigente(Suscripcion suscripcion, OffsetDateTime ahora) {
+        return suscripcion.getEstado() == EstadoSuscripcion.PRUEBA && suscripcion.estaVigente(ahora);
+    }
+
+    private Plan planVigente(NegocioId negocioId, OffsetDateTime ahora) {
+        Suscripcion suscripcion = suscripcionDe(negocioId);
+        Plan plan = suscripcion.estaVigente(ahora) ? planContratadoPor(suscripcion) : planGratuito();
+        plan.validarLimitesConfigurados();
+        return plan;
+    }
+
+    private boolean esPremium(NegocioId negocioId, OffsetDateTime ahora) {
+        return planVigente(negocioId, ahora).esPremium();
+    }
+
+    private Suscripcion suscripcionDe(NegocioId negocioId) {
+        return suscripcionRepository.findByNegocioId(negocioId)
+                .orElseThrow(() -> new ResourceNotFoundException("Suscripción no encontrada"));
+    }
+
+    private PruebaPremium pruebaDe(NegocioId negocioId) {
+        return pruebaPremiumRepository.findByNegocioId(negocioId)
+                .orElseThrow(() -> new ResourceNotFoundException("Prueba no encontrada"));
+    }
+
+    private Plan planContratadoPor(Suscripcion suscripcion) {
+        return planRepository.findById(suscripcion.getPlanId())
+                .orElseThrow(() -> new ResourceNotFoundException("Plan no encontrado"));
+    }
+
+    private Plan planGratuito() {
+        return planRepository.findByCodigo(CodigoPlan.GRATUITO)
+                .orElseThrow(() -> new ResourceNotFoundException("Plan gratuito no encontrado"));
+    }
+
+    private AccesoContenidoItem seleccionarContenido(
+            NegocioId negocioId, TipoContenidoPlan tipo, List<String> claves, OffsetDateTime ahora) {
+        LocalDate periodo = ZonaNegocio.primerDiaDelMes(ahora);
+        OffsetDateTime finDelPeriodo = ZonaNegocio.inicioDelDia(periodo.plusMonths(1));
+        List<String> candidatas = claves.stream().distinct().toList();
+        if (esPremium(negocioId, ahora)) {
+            return accesoSinLimite(candidatas, finDelPeriodo);
+        }
+        return accesoConLimiteGratuito(negocioId, tipo, periodo, candidatas, finDelPeriodo, ahora);
+    }
+
+    private AccesoContenidoItem accesoSinLimite(List<String> candidatas, OffsetDateTime finDelPeriodo) {
+        return new AccesoContenidoItem(candidatas, 0, null, candidatas.size(), 0, finDelPeriodo);
+    }
+
+    private AccesoContenidoItem accesoConLimiteGratuito(NegocioId negocioId, TipoContenidoPlan tipo, LocalDate periodo,
+            List<String> candidatas, OffsetDateTime finDelPeriodo, OffsetDateTime ahora) {
+        Set<String> conocidas = accesoContenidoRepository.autorizadas(negocioId, tipo, periodo);
+        List<String> permitidas = new ArrayList<>();
+        for (String clave : candidatas) {
+            Runnable registro = () -> accesoContenidoRepository.registrar(negocioId, tipo, periodo, clave, ahora);
+            if (autorizarSiHayCupo(clave, conocidas, registro)) {
+                permitidas.add(clave);
+            }
+        }
+        return new AccesoContenidoItem(List.copyOf(permitidas), conocidas.size(), LIMITE_GRATUITO,
+                candidatas.size(), candidatas.size() - permitidas.size(), finDelPeriodo);
+    }
+
+    private boolean autorizarSiHayCupo(String clave, Set<String> conocidas, Runnable registro) {
+        if (conocidas.contains(clave)) {
+            return true;
+        }
+        if (conocidas.size() >= LIMITE_GRATUITO) {
+            return false;
+        }
+        registro.run();
+        conocidas.add(clave);
+        return true;
+    }
+
+    private void exigirAccesoAlContenido(
+            NegocioId negocioId, TipoContenidoPlan tipo, String clave, OffsetDateTime ahora) {
+        boolean autorizado = seleccionar(negocioId, tipo, List.of(clave), ahora).autorizadas().contains(clave);
+        if (!autorizado) {
+            throw new RestriccionPlanException("LIMITE_CONTENIDO_" + tipo.name(),
+                    "Usaste los " + LIMITE_GRATUITO + " contenidos incluidos este mes. "
+                            + "Con Premium podés acceder a todos desde Planes.");
+        }
     }
 }

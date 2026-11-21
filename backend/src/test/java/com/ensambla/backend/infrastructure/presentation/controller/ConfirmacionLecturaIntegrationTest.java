@@ -3,6 +3,7 @@ package com.ensambla.backend.infrastructure.presentation.controller;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
+import com.ensambla.backend.support.SesionHttpDePrueba;
 import com.ensambla.backend.support.SuscripcionesDePrueba;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.Filter;
@@ -14,14 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.mock.web.MockHttpSession;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.security.web.csrf.DefaultCsrfToken;
-import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -81,9 +74,18 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
     private UUID negocioId;
     private UUID loteId;
     private UUID fotoId;
-    private MockHttpSession sesion;
-    private String csrfToken;
+    private SesionHttpDePrueba sesion;
     private final List<String> clavesGuardadas = new ArrayList<>();
+    private ResultActions respuesta;
+    private String bloqueConfirmadoId;
+    private String proyectoConfirmadoId;
+    private UUID campoMontoId;
+    private UUID otroLoteId;
+    private UUID proyectoExistenteId;
+    private UUID otroUsuarioId;
+    private UUID otroNegocioId;
+    private UUID registroId;
+    private List<Map<String, Object>> registrosAntes;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -96,38 +98,355 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
                 negocioId, usuarioId);
         suscripcionService.asignarGratuito(NegocioId.de(negocioId), OffsetDateTime.now().minusDays(1));
         fotoId = UUID.randomUUID();
-        loteId = givenLote("LISTO", fotoId);
-        sesion = givenSesion(usuarioId);
+        loteId = crearLote("LISTO", fotoId);
+        sesion = SesionHttpDePrueba.autenticada(mockMvc, usuarioId.toString());
     }
 
     @AfterEach
-    void tearDown() {
+    void limpiarLasCuentas() {
         clavesGuardadas.forEach(clave -> archivoCuadernoPort.eliminar(NegocioId.de(negocioId), clave));
         jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId);
         jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", usuarioId);
+        borrarLaOtraCuenta();
     }
 
     @Test
     @DisplayName("Confirmar sin sesión devuelve 401")
-    void confirmarShouldRequireSession() throws Exception {
-        mockMvc.perform(post(CONFIRMAR, loteId).contentType(MediaType.APPLICATION_JSON).content(CUERPO_NUEVO))
-                .andExpect(status().isUnauthorized());
+    void confirmarSinSesionDevuelve401() throws Exception {
+        cuandoSeConfirmaSinSesion();
+
+        entoncesNoAutoriza();
     }
 
     @Test
     @DisplayName("Confirmar sin CSRF devuelve 403")
-    void confirmarShouldRequireCsrf() throws Exception {
-        mockMvc.perform(post(CONFIRMAR, loteId).session(sesion)
-                        .contentType(MediaType.APPLICATION_JSON).content(CUERPO_NUEVO))
-                .andExpect(status().isForbidden());
+    void confirmarSinCsrfDevuelve403() throws Exception {
+        cuandoSeConfirmaSinCsrf();
+
+        entoncesSeProhibe();
     }
 
     @Test
     @DisplayName("Crea proyecto, tabla, columnas y registros con su foto y deja el lote confirmado")
-    void confirmarShouldCreateEverythingAndConfirmLote() throws Exception {
-        ResultActions result = confirmar(loteId, CUERPO_NUEVO);
+    void creaProyectoTablaColumnasYRegistrosConSuFotoYDejaElLoteConfirmado() throws Exception {
+        cuandoSeConfirmaElLote(CUERPO_NUEVO);
 
-        result.andExpect(status().isCreated())
+        entoncesSeCreaTodoYElLoteQuedaConfirmado();
+    }
+
+    @Test
+    @DisplayName("Rechaza por cuota todas las filas de una foto y revierte la estructura recién creada")
+    void rechazaPorCuotaTodasLasFilasDeUnaFotoYRevierteLaEstructuraRecienCreada() throws Exception {
+        dadoUnProyectoConElLimiteDeRegistrosCasiAlcanzado();
+
+        cuandoSeConfirmaElLote(CUERPO_NUEVO.replace("\"nombreProyecto\": \"Ventas\"",
+                "\"proyectoId\": \"" + proyectoExistenteId + "\""));
+
+        entoncesSeRechazaPorCuotaYSeRevierteLaEstructura();
+    }
+
+    @Test
+    @DisplayName("Después de confirmar la lectura del lote figura como confirmada")
+    void despuesDeConfirmarLaLecturaDelLoteFiguraComoConfirmada() throws Exception {
+        dadoUnLoteConfirmado();
+
+        cuandoSeConsultaLaLecturaDelLote();
+
+        entoncesLaLecturaFiguraComoConfirmada();
+    }
+
+    @Test
+    @DisplayName("Confirmar dos veces el mismo lote responde 400 y no duplica nada")
+    void confirmarDosVecesElMismoLoteResponde400YNoDuplicaNada() throws Exception {
+        dadoUnLoteConfirmado();
+
+        cuandoSeConfirmaElLote(CUERPO_NUEVO);
+
+        entoncesSeRechazaLaSegundaConfirmacionSinDuplicarNada();
+    }
+
+    @Test
+    @DisplayName("Si una fila es inválida no queda proyecto, tabla ni registros y el lote sigue listo")
+    void siUnaFilaEsInvalidaNoQuedaProyectoTablaNiRegistrosYElLoteSigueListo() throws Exception {
+        cuandoSeConfirmaElLote(CUERPO_NUEVO.replace("\"monto\": 100", "\"monto\": \"mucho\""));
+
+        entoncesSeRevierteTodoPorLaFilaInvalida();
+    }
+
+    @Test
+    @DisplayName("Suma las filas de otro lote a la tabla ya creada reutilizando su columna")
+    void sumaLasFilasDeOtroLoteALaTablaYaCreadaReutilizandoSuColumna() throws Exception {
+        dadoUnLoteConfirmadoYOtroListoParaSumar();
+
+        cuandoSeConfirmaOtroLote(cuerpoQueSumaUnaFilaALaTabla());
+
+        entoncesSeSumaUnaFilaALaTablaExistente();
+    }
+
+    @Test
+    @DisplayName("Crea la tabla dentro de un proyecto existente")
+    void creaLaTablaDentroDeUnProyectoExistente() throws Exception {
+        dadoUnLoteConfirmadoYOtroListoParaSumar();
+
+        cuandoSeConfirmaOtroLote(cuerpoQueCreaUnaTablaEnElProyectoConfirmado());
+
+        entoncesSeCreaLaSegundaTablaEnElMismoProyecto();
+    }
+
+    @Test
+    @DisplayName("Un lote que todavía no terminó de leerse no se puede confirmar")
+    void unLoteQueTodaviaNoTerminoDeLeerseNoSePuedeConfirmar() throws Exception {
+        dadoUnLotePendiente();
+
+        cuandoSeConfirmaOtroLote(CUERPO_NUEVO);
+
+        entoncesSeRechazaPorqueTodaviaNoTerminoDeLeerse();
+    }
+
+    @Test
+    @DisplayName("Confirmar un lote de otro negocio devuelve 404 y no crea nada")
+    void confirmarUnLoteDeOtroNegocioDevuelve404YNoCreaNada() throws Exception {
+        dadoUnaSesionDeOtroNegocio();
+
+        cuandoSeConfirmaElLote(CUERPO_NUEVO);
+
+        entoncesRespondeNoEncontradoYNoSeCreaNada();
+    }
+
+    @Test
+    @DisplayName("Sirve la foto de un lote del negocio con su tipo")
+    void sirveLaFotoDeUnLoteDelNegocioConSuTipo() throws Exception {
+        cuandoSePideLaFotoDelLote(fotoId);
+
+        entoncesSeSirveLaFotoConSuTipo();
+    }
+
+    @Test
+    @DisplayName("Pedir una foto sin sesión devuelve 401")
+    void pedirUnaFotoSinSesionDevuelve401() throws Exception {
+        cuandoSePideLaFotoDelLoteSinSesion();
+
+        entoncesNoAutoriza();
+    }
+
+    @Test
+    @DisplayName("Una foto que no es del lote devuelve 404")
+    void unaFotoQueNoEsDelLoteDevuelve404() throws Exception {
+        cuandoSePideLaFotoDelLote(UUID.randomUUID());
+
+        entoncesRespondeNoEncontrado();
+    }
+
+    @Test
+    @DisplayName("La foto de un lote de otro negocio devuelve 404")
+    void laFotoDeUnLoteDeOtroNegocioDevuelve404() throws Exception {
+        dadoUnaSesionDeOtroNegocio();
+
+        cuandoSePideLaFotoDelLote(fotoId);
+
+        entoncesRespondeNoEncontrado();
+    }
+
+    @Test
+    @DisplayName("Un registro confirmado expone su foto de origen y se puede ver")
+    void unRegistroConfirmadoExponeSuFotoDeOrigenYSePuedeVer() throws Exception {
+        dadoUnLoteConfirmado();
+        dadoUnRegistroConFoto();
+
+        cuandoSePideElRegistro();
+
+        entoncesElRegistroExponeSuFotoDeOrigenYSePuedeVer();
+    }
+
+    @Test
+    @DisplayName("Un registro cargado a mano no tiene foto de origen y devuelve 404")
+    void unRegistroCargadoAManoNoTieneFotoDeOrigenYDevuelve404() throws Exception {
+        dadoUnLoteConfirmado();
+        dadoUnRegistroCargadoAMano();
+
+        cuandoSePideElRegistro();
+
+        entoncesElRegistroNoTieneFotoDeOrigen();
+    }
+
+    @Test
+    @DisplayName("La foto de origen de un registro de otro negocio devuelve 404")
+    void laFotoDeOrigenDeUnRegistroDeOtroNegocioDevuelve404() throws Exception {
+        dadoUnLoteConfirmado();
+        dadoUnRegistroConFoto();
+        dadoUnaSesionDeOtroNegocio();
+
+        cuandoSePideLaFotoDeOrigenDelRegistro();
+
+        entoncesRespondeNoEncontrado();
+    }
+
+    @Test
+    @DisplayName("Un body sin columnas devuelve 400")
+    void unBodySinColumnasDevuelve400() throws Exception {
+        cuandoSeConfirmaElLote("{\"nombreProyecto\": \"Ventas\", \"nombreBloque\": \"Hoja\", \"filas\": []}");
+
+        entoncesSeRechazaElPedido();
+    }
+
+    @Test
+    @DisplayName("Suma las filas a una tabla existente, le agrega la columna nueva y no toca los registros previos")
+    void sumaLasFilasAUnaTablaExistenteLeAgregaLaColumnaNuevaYNoTocaLosRegistrosPrevios() throws Exception {
+        dadoUnaTablaConfirmadaConSusRegistros();
+
+        cuandoSeConfirmaOtroLote(cuerpoConTelefono("40", "11 4444-5555"));
+
+        entoncesSeAgregaLaColumnaNuevaYLasFilasSinTocarLosRegistrosPrevios();
+    }
+
+    @Test
+    @DisplayName("Si una fila es inválida no queda la columna nueva ni los registros y el lote sigue listo")
+    void siUnaFilaEsInvalidaNoQuedaLaColumnaNuevaNiLosRegistrosYElLoteSigueListo() throws Exception {
+        dadoUnaTablaConfirmadaConSusRegistros();
+
+        cuandoSeConfirmaOtroLote(cuerpoConTelefono("\"mucho\"", "11 4444-5555"));
+
+        entoncesSeRevierteLaColumnaNuevaPorLaFilaInvalida();
+    }
+
+    @Test
+    @DisplayName("Si una columna nueva repite el nombre de un campo no se crea ninguna de las nuevas")
+    void siUnaColumnaNuevaRepiteElNombreDeUnCampoNoSeCreaNingunaDeLasNuevas() throws Exception {
+        dadoUnaTablaConfirmadaConSusRegistros();
+
+        cuandoSeConfirmaOtroLote(cuerpoConUnNombreRepetido());
+
+        entoncesNoSeCreaNingunaColumnaNuevaPorElNombreRepetido();
+    }
+
+    @Test
+    @DisplayName("Dos columnas que apuntan al mismo campo de la tabla se rechazan y no se guarda nada")
+    void dosColumnasQueApuntanAlMismoCampoDeLaTablaSeRechazanYNoSeGuardaNada() throws Exception {
+        dadoUnaTablaConfirmadaConSusRegistros();
+
+        cuandoSeConfirmaOtroLote(cuerpoConDosColumnasParaElMismoCampo());
+
+        entoncesSeRechazanLasColumnasQueApuntanAlMismoCampo();
+    }
+
+    // --- dado ---
+
+    private void dadoUnLoteConfirmado() throws Exception {
+        String cuerpo = confirmar(loteId, CUERPO_NUEVO).andReturn().getResponse().getContentAsString();
+        bloqueConfirmadoId = JsonPath.read(cuerpo, "$.bloqueId");
+        proyectoConfirmadoId = JsonPath.read(cuerpo, "$.proyectoId");
+        campoMontoId = jdbcTemplate.queryForObject(
+                "SELECT id FROM campo WHERE bloque_id = ?::uuid AND nombre = 'Monto'", UUID.class,
+                bloqueConfirmadoId);
+    }
+
+    private void dadoUnLoteConfirmadoYOtroListoParaSumar() throws Exception {
+        dadoUnLoteConfirmado();
+        otroLoteId = crearLote("LISTO", UUID.randomUUID());
+    }
+
+    private void dadoUnaTablaConfirmadaConSusRegistros() throws Exception {
+        dadoUnLoteConfirmadoYOtroListoParaSumar();
+        registrosAntes = registrosDe(bloqueConfirmadoId);
+    }
+
+    private void dadoUnLotePendiente() {
+        otroLoteId = crearLote("PENDIENTE", UUID.randomUUID());
+    }
+
+    private void dadoUnProyectoConElLimiteDeRegistrosCasiAlcanzado() {
+        proyectoExistenteId = UUID.randomUUID();
+        UUID bloqueId = UUID.randomUUID();
+        jdbcTemplate.update("INSERT INTO proyecto (id, negocio_id, nombre) VALUES (?, ?, 'Sistema existente')",
+                proyectoExistenteId, negocioId);
+        jdbcTemplate.update("INSERT INTO bloque (id, negocio_id, proyecto_id, nombre) VALUES (?, ?, ?, 'Inicial')",
+                bloqueId, negocioId, proyectoExistenteId);
+        jdbcTemplate.update("""
+                INSERT INTO registro (negocio_id, bloque_id, valores)
+                SELECT ?, ?, '{}'::jsonb FROM generate_series(1, 999)
+                """, negocioId, bloqueId);
+    }
+
+    private void dadoUnaSesionDeOtroNegocio() throws Exception {
+        otroUsuarioId = UUID.randomUUID();
+        otroNegocioId = UUID.randomUUID();
+        jdbcTemplate.update("INSERT INTO usuario (id, email, nombre) VALUES (?, ?, 'Otra persona')",
+                otroUsuarioId, otroUsuarioId + "@example.test");
+        jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Otro', ?)",
+                otroNegocioId, otroUsuarioId);
+        sesion = SesionHttpDePrueba.autenticada(mockMvc, otroUsuarioId.toString());
+    }
+
+    private void dadoUnRegistroConFoto() {
+        registroId = jdbcTemplate.queryForObject(
+                "SELECT id FROM registro WHERE negocio_id = ? AND foto_origen_id = ?", UUID.class, negocioId, fotoId);
+    }
+
+    private void dadoUnRegistroCargadoAMano() {
+        registroId = jdbcTemplate.queryForObject(
+                "SELECT id FROM registro WHERE negocio_id = ? AND foto_origen_id IS NULL", UUID.class, negocioId);
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeConfirmaElLote(String cuerpo) throws Exception {
+        respuesta = confirmar(loteId, cuerpo);
+    }
+
+    private void cuandoSeConfirmaOtroLote(String cuerpo) throws Exception {
+        respuesta = confirmar(otroLoteId, cuerpo);
+    }
+
+    private void cuandoSeConfirmaSinSesion() throws Exception {
+        respuesta = mockMvc.perform(post(CONFIRMAR, loteId)
+                .contentType(MediaType.APPLICATION_JSON).content(CUERPO_NUEVO));
+    }
+
+    private void cuandoSeConfirmaSinCsrf() throws Exception {
+        respuesta = mockMvc.perform(post(CONFIRMAR, loteId).session(sesion.sesion())
+                .contentType(MediaType.APPLICATION_JSON).content(CUERPO_NUEVO));
+    }
+
+    private void cuandoSeConsultaLaLecturaDelLote() throws Exception {
+        respuesta = mockMvc.perform(get("/api/lotes/{id}/lectura", loteId).session(sesion.sesion()));
+    }
+
+    private void cuandoSePideLaFotoDelLote(UUID foto) throws Exception {
+        respuesta = mockMvc.perform(get("/api/lotes/{id}/fotos/{fotoId}", loteId, foto).session(sesion.sesion()));
+    }
+
+    private void cuandoSePideLaFotoDelLoteSinSesion() throws Exception {
+        respuesta = mockMvc.perform(get("/api/lotes/{id}/fotos/{fotoId}", loteId, fotoId));
+    }
+
+    private void cuandoSePideElRegistro() throws Exception {
+        respuesta = mockMvc.perform(get("/api/registros/{id}", registroId).session(sesion.sesion()));
+    }
+
+    private void cuandoSePideLaFotoDeOrigenDelRegistro() throws Exception {
+        respuesta = mockMvc.perform(get("/api/registros/{id}/foto-origen", registroId).session(sesion.sesion()));
+    }
+
+    // --- entonces ---
+
+    private void entoncesNoAutoriza() throws Exception {
+        respuesta.andExpect(status().isUnauthorized());
+    }
+
+    private void entoncesSeProhibe() throws Exception {
+        respuesta.andExpect(status().isForbidden());
+    }
+
+    private void entoncesRespondeNoEncontrado() throws Exception {
+        respuesta.andExpect(status().isNotFound());
+    }
+
+    private void entoncesSeRechazaElPedido() throws Exception {
+        respuesta.andExpect(status().isBadRequest());
+    }
+
+    private void entoncesSeCreaTodoYElLoteQuedaConfirmado() throws Exception {
+        respuesta.andExpect(status().isCreated())
                 .andExpect(jsonPath("$.registros").value(2))
                 .andExpect(jsonPath("$.proyectoId").isNotEmpty())
                 .andExpect(jsonPath("$.bloqueId").isNotEmpty());
@@ -142,25 +461,8 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
                 Boolean.class, loteId)).isTrue();
     }
 
-    @Test
-    @DisplayName("Rechaza por cuota todas las filas de una foto y revierte la estructura recién creada")
-    void confirmarShouldRollbackNewStructureWhenRecordQuotaIsExceeded() throws Exception {
-        UUID proyectoId = UUID.randomUUID();
-        UUID bloqueId = UUID.randomUUID();
-        jdbcTemplate.update("INSERT INTO proyecto (id, negocio_id, nombre) VALUES (?, ?, 'Sistema existente')",
-                proyectoId, negocioId);
-        jdbcTemplate.update("INSERT INTO bloque (id, negocio_id, proyecto_id, nombre) VALUES (?, ?, ?, 'Inicial')",
-                bloqueId, negocioId, proyectoId);
-        jdbcTemplate.update("""
-                INSERT INTO registro (negocio_id, bloque_id, valores)
-                SELECT ?, ?, '{}'::jsonb FROM generate_series(1, 999)
-                """, negocioId, bloqueId);
-        String cuerpo = CUERPO_NUEVO.replace("\"nombreProyecto\": \"Ventas\"",
-                "\"proyectoId\": \"" + proyectoId + "\"");
-
-        confirmar(loteId, cuerpo).andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.codigo").value("LIMITE_REGISTROS"));
-
+    private void entoncesSeRechazaPorCuotaYSeRevierteLaEstructura() throws Exception {
+        respuesta.andExpect(status().isForbidden()).andExpect(jsonPath("$.codigo").value("LIMITE_REGISTROS"));
         assertThat(contar("proyecto")).isEqualTo(1);
         assertThat(contar("bloque")).isEqualTo(1);
         assertThat(contar("campo")).isZero();
@@ -168,36 +470,20 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
         assertThat(estadoDelLote(loteId)).isEqualTo("LISTO");
     }
 
-    @Test
-    @DisplayName("Después de confirmar la lectura del lote figura como confirmada")
-    void obtenerShouldReportConfirmedAfterConfirmar() throws Exception {
-        confirmar(loteId, CUERPO_NUEVO).andExpect(status().isCreated());
-
-        mockMvc.perform(get("/api/lotes/{id}/lectura", loteId).session(sesion))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.estado").value("CONFIRMADO"));
+    private void entoncesLaLecturaFiguraComoConfirmada() throws Exception {
+        respuesta.andExpect(status().isOk()).andExpect(jsonPath("$.estado").value("CONFIRMADO"));
     }
 
-    @Test
-    @DisplayName("Confirmar dos veces el mismo lote responde 400 y no duplica nada")
-    void confirmarShouldRejectSecondConfirmation() throws Exception {
-        confirmar(loteId, CUERPO_NUEVO).andExpect(status().isCreated());
-
-        confirmar(loteId, CUERPO_NUEVO).andExpect(status().isBadRequest())
+    private void entoncesSeRechazaLaSegundaConfirmacionSinDuplicarNada() throws Exception {
+        respuesta.andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Este cuaderno ya se guardó"));
-
         assertThat(contar("proyecto")).isEqualTo(1);
         assertThat(contar("registro")).isEqualTo(2);
     }
 
-    @Test
-    @DisplayName("Si una fila es inválida no queda proyecto, tabla ni registros y el lote sigue listo")
-    void confirmarShouldRollbackEverythingWhenRowIsInvalid() throws Exception {
-        String cuerpo = CUERPO_NUEVO.replace("\"monto\": 100", "\"monto\": \"mucho\"");
-
-        confirmar(loteId, cuerpo).andExpect(status().isBadRequest())
+    private void entoncesSeRevierteTodoPorLaFilaInvalida() throws Exception {
+        respuesta.andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors['filas[1].monto']").value("Tiene que ser un número"));
-
         assertThat(contar("proyecto")).isZero();
         assertThat(contar("bloque")).isZero();
         assertThat(contar("campo")).isZero();
@@ -205,289 +491,126 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
         assertThat(estadoDelLote(loteId)).isEqualTo("LISTO");
     }
 
-    @Test
-    @DisplayName("Suma las filas de otro lote a la tabla ya creada reutilizando su columna")
-    void confirmarShouldAddRowsToExistingBloque() throws Exception {
-        ResultActions primera = confirmar(loteId, CUERPO_NUEVO);
-        String bloqueId = JsonPath.read(primera.andReturn().getResponse().getContentAsString(), "$.bloqueId");
-        UUID campoMonto = jdbcTemplate.queryForObject(
-                "SELECT id FROM campo WHERE bloque_id = ?::uuid AND nombre = 'Monto'", UUID.class, bloqueId);
-        UUID otroLote = givenLote("LISTO", UUID.randomUUID());
-        String cuerpo = """
+    private void entoncesSeSumaUnaFilaALaTablaExistente() throws Exception {
+        respuesta.andExpect(status().isCreated())
+                .andExpect(jsonPath("$.bloqueId").value(bloqueConfirmadoId))
+                .andExpect(jsonPath("$.registros").value(1));
+        assertThat(contar("proyecto")).isEqualTo(1);
+        assertThat(contar("registro")).isEqualTo(3);
+        assertThat(estadoDelLote(otroLoteId)).isEqualTo("CONFIRMADO");
+    }
+
+    private void entoncesSeCreaLaSegundaTablaEnElMismoProyecto() throws Exception {
+        respuesta.andExpect(status().isCreated()).andExpect(jsonPath("$.proyectoId").value(proyectoConfirmadoId));
+        assertThat(contar("proyecto")).isEqualTo(1);
+        assertThat(contar("bloque")).isEqualTo(2);
+    }
+
+    private void entoncesSeRechazaPorqueTodaviaNoTerminoDeLeerse() throws Exception {
+        respuesta.andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Este cuaderno todavía no terminó de leerse"));
+    }
+
+    private void entoncesRespondeNoEncontradoYNoSeCreaNada() throws Exception {
+        respuesta.andExpect(status().isNotFound());
+        assertThat(contar("proyecto")).isZero();
+    }
+
+    private void entoncesSeSirveLaFotoConSuTipo() throws Exception {
+        respuesta.andExpect(status().isOk())
+                .andExpect(content().contentType("image/jpeg"))
+                .andExpect(content().bytes(JPEG));
+    }
+
+    private void entoncesElRegistroExponeSuFotoDeOrigenYSePuedeVer() throws Exception {
+        respuesta.andExpect(status().isOk()).andExpect(jsonPath("$.fotoOrigenId").value(fotoId.toString()));
+        mockMvc.perform(get("/api/registros/{id}/foto-origen", registroId).session(sesion.sesion()))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("image/jpeg"))
+                .andExpect(content().bytes(JPEG));
+    }
+
+    private void entoncesElRegistroNoTieneFotoDeOrigen() throws Exception {
+        respuesta.andExpect(jsonPath("$.fotoOrigenId").isEmpty());
+        mockMvc.perform(get("/api/registros/{id}/foto-origen", registroId).session(sesion.sesion()))
+                .andExpect(status().isNotFound());
+    }
+
+    private void entoncesSeAgregaLaColumnaNuevaYLasFilasSinTocarLosRegistrosPrevios() throws Exception {
+        respuesta.andExpect(status().isCreated())
+                .andExpect(jsonPath("$.bloqueId").value(bloqueConfirmadoId))
+                .andExpect(jsonPath("$.registros").value(2));
+        assertThat(contar("campo")).isEqualTo(3);
+        UUID telefono = jdbcTemplate.queryForObject(
+                "SELECT id FROM campo WHERE bloque_id = ?::uuid AND nombre = 'Teléfono'", UUID.class,
+                bloqueConfirmadoId);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT posicion FROM campo WHERE id = ?", Integer.class, telefono)).isEqualTo(2);
+        assertThat(contar("registro")).isEqualTo(4);
+        assertThat(jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM registro WHERE bloque_id = ?::uuid AND valores ->> ? = '11 4444-5555'
+                """, Integer.class, bloqueConfirmadoId, telefono.toString())).isEqualTo(2);
+        assertThat(registrosDe(bloqueConfirmadoId).stream().filter(registrosAntes::contains).toList())
+                .containsExactlyInAnyOrderElementsOf(registrosAntes);
+        assertThat(estadoDelLote(otroLoteId)).isEqualTo("CONFIRMADO");
+    }
+
+    private void entoncesSeRevierteLaColumnaNuevaPorLaFilaInvalida() throws Exception {
+        respuesta.andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors['filas[1].monto']").value("Tiene que ser un número"));
+        assertThat(contar("campo")).isEqualTo(2);
+        assertThat(registrosDe(bloqueConfirmadoId)).containsExactlyInAnyOrderElementsOf(registrosAntes);
+        assertThat(estadoDelLote(otroLoteId)).isEqualTo("LISTO");
+    }
+
+    private void entoncesNoSeCreaNingunaColumnaNuevaPorElNombreRepetido() throws Exception {
+        respuesta.andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors['campos[2].nombre']")
+                        .value("Ya hay un campo llamado \"monto\" en este bloque"));
+        assertThat(contar("campo")).isEqualTo(2);
+        assertThat(contar("registro")).isEqualTo(2);
+        assertThat(estadoDelLote(otroLoteId)).isEqualTo("LISTO");
+    }
+
+    private void entoncesSeRechazanLasColumnasQueApuntanAlMismoCampo() throws Exception {
+        respuesta.andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message")
+                        .value("Dos columnas no pueden guardarse en el mismo campo de la tabla"));
+        assertThat(contar("registro")).isEqualTo(2);
+        assertThat(estadoDelLote(otroLoteId)).isEqualTo("LISTO");
+    }
+
+    // --- datos ---
+
+    private ResultActions confirmar(UUID lote, String cuerpo) throws Exception {
+        return mockMvc.perform(post(CONFIRMAR, lote).session(sesion.sesion())
+                .header("X-CSRF-TOKEN", sesion.tokenCsrf())
+                .contentType(MediaType.APPLICATION_JSON).content(cuerpo));
+    }
+
+    private String cuerpoQueSumaUnaFilaALaTabla() {
+        return """
                 {
                   "bloqueId": "%s",
                   "campos": [{"clave": "monto", "campoId": "%s", "nombre": "Monto", "tipo": "NUMERO"}],
                   "filas": [{"pagina": 1, "valores": {"monto": 40}}]
                 }
-                """.formatted(bloqueId, campoMonto);
-
-        confirmar(otroLote, cuerpo).andExpect(status().isCreated())
-                .andExpect(jsonPath("$.bloqueId").value(bloqueId))
-                .andExpect(jsonPath("$.registros").value(1));
-
-        assertThat(contar("proyecto")).isEqualTo(1);
-        assertThat(contar("registro")).isEqualTo(3);
-        assertThat(estadoDelLote(otroLote)).isEqualTo("CONFIRMADO");
+                """.formatted(bloqueConfirmadoId, campoMontoId);
     }
 
-    @Test
-    @DisplayName("Crea la tabla dentro de un proyecto existente")
-    void confirmarShouldCreateBloqueInExistingProyecto() throws Exception {
-        ResultActions primera = confirmar(loteId, CUERPO_NUEVO);
-        String proyectoId = JsonPath.read(primera.andReturn().getResponse().getContentAsString(), "$.proyectoId");
-        UUID otroLote = givenLote("LISTO", UUID.randomUUID());
-        String cuerpo = """
+    private String cuerpoQueCreaUnaTablaEnElProyectoConfirmado() {
+        return """
                 {
                   "proyectoId": "%s",
                   "nombreBloque": "Hoja 2",
                   "campos": [{"clave": "nota", "nombre": "Nota", "tipo": "TEXTO"}],
                   "filas": [{"pagina": 1, "valores": {"nota": "hola"}}]
                 }
-                """.formatted(proyectoId);
-
-        confirmar(otroLote, cuerpo).andExpect(status().isCreated())
-                .andExpect(jsonPath("$.proyectoId").value(proyectoId));
-
-        assertThat(contar("proyecto")).isEqualTo(1);
-        assertThat(contar("bloque")).isEqualTo(2);
-    }
-
-    @Test
-    @DisplayName("Un lote que todavía no terminó de leerse no se puede confirmar")
-    void confirmarShouldRejectLoteThatIsStillPending() throws Exception {
-        UUID pendiente = givenLote("PENDIENTE", UUID.randomUUID());
-
-        confirmar(pendiente, CUERPO_NUEVO).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Este cuaderno todavía no terminó de leerse"));
-    }
-
-    @Test
-    @DisplayName("Confirmar un lote de otro negocio devuelve 404 y no crea nada")
-    void confirmarShouldHideForeignLote() throws Exception {
-        UUID otroUsuario = UUID.randomUUID();
-        UUID otroNegocio = UUID.randomUUID();
-        jdbcTemplate.update("INSERT INTO usuario (id, email, nombre) VALUES (?, ?, 'Otra persona')",
-                otroUsuario, otroUsuario + "@example.test");
-        jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Otro', ?)",
-                otroNegocio, otroUsuario);
-        MockHttpSession sesionAjena = givenSesion(otroUsuario);
-
-        try {
-            mockMvc.perform(post(CONFIRMAR, loteId).session(sesionAjena).header("X-CSRF-TOKEN", csrfToken)
-                            .contentType(MediaType.APPLICATION_JSON).content(CUERPO_NUEVO))
-                    .andExpect(status().isNotFound());
-            assertThat(contar("proyecto")).isZero();
-        } finally {
-            jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", otroNegocio);
-            jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", otroUsuario);
-        }
-    }
-
-    @Test
-    @DisplayName("Sirve la foto de un lote del negocio con su tipo")
-    void fotoShouldServeFotoOfOwnLote() throws Exception {
-        mockMvc.perform(get("/api/lotes/{id}/fotos/{fotoId}", loteId, fotoId).session(sesion))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType("image/jpeg"))
-                .andExpect(content().bytes(JPEG));
-    }
-
-    @Test
-    @DisplayName("Pedir una foto sin sesión devuelve 401")
-    void fotoShouldRequireSession() throws Exception {
-        mockMvc.perform(get("/api/lotes/{id}/fotos/{fotoId}", loteId, fotoId))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    @DisplayName("Una foto que no es del lote devuelve 404")
-    void fotoShouldReturn404WhenFotoIsNotInLote() throws Exception {
-        mockMvc.perform(get("/api/lotes/{id}/fotos/{fotoId}", loteId, UUID.randomUUID()).session(sesion))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    @DisplayName("La foto de un lote de otro negocio devuelve 404")
-    void fotoShouldHideFotoOfForeignNegocio() throws Exception {
-        UUID otroUsuario = UUID.randomUUID();
-        UUID otroNegocio = UUID.randomUUID();
-        jdbcTemplate.update("INSERT INTO usuario (id, email, nombre) VALUES (?, ?, 'Otra persona')",
-                otroUsuario, otroUsuario + "@example.test");
-        jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Otro', ?)",
-                otroNegocio, otroUsuario);
-        MockHttpSession sesionAjena = givenSesion(otroUsuario);
-
-        try {
-            mockMvc.perform(get("/api/lotes/{id}/fotos/{fotoId}", loteId, fotoId).session(sesionAjena))
-                    .andExpect(status().isNotFound());
-        } finally {
-            jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", otroNegocio);
-            jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", otroUsuario);
-        }
-    }
-
-    @Test
-    @DisplayName("Un registro confirmado expone su foto de origen y se puede ver")
-    void fotoOrigenShouldServeFotoOfConfirmedRegistro() throws Exception {
-        confirmar(loteId, CUERPO_NUEVO).andExpect(status().isCreated());
-        UUID registroId = registroConFoto();
-
-        mockMvc.perform(get("/api/registros/{id}", registroId).session(sesion))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.fotoOrigenId").value(fotoId.toString()));
-        mockMvc.perform(get("/api/registros/{id}/foto-origen", registroId).session(sesion))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType("image/jpeg"))
-                .andExpect(content().bytes(JPEG));
-    }
-
-    @Test
-    @DisplayName("Un registro cargado a mano no tiene foto de origen y devuelve 404")
-    void fotoOrigenShouldReturn404WhenRegistroHasNoFoto() throws Exception {
-        confirmar(loteId, CUERPO_NUEVO).andExpect(status().isCreated());
-        UUID registroId = jdbcTemplate.queryForObject(
-                "SELECT id FROM registro WHERE negocio_id = ? AND foto_origen_id IS NULL", UUID.class, negocioId);
-
-        mockMvc.perform(get("/api/registros/{id}", registroId).session(sesion))
-                .andExpect(jsonPath("$.fotoOrigenId").isEmpty());
-        mockMvc.perform(get("/api/registros/{id}/foto-origen", registroId).session(sesion))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    @DisplayName("La foto de origen de un registro de otro negocio devuelve 404")
-    void fotoOrigenShouldHideRegistroOfForeignNegocio() throws Exception {
-        confirmar(loteId, CUERPO_NUEVO).andExpect(status().isCreated());
-        UUID registroId = registroConFoto();
-        UUID otroUsuario = UUID.randomUUID();
-        UUID otroNegocio = UUID.randomUUID();
-        jdbcTemplate.update("INSERT INTO usuario (id, email, nombre) VALUES (?, ?, 'Otra persona')",
-                otroUsuario, otroUsuario + "@example.test");
-        jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Otro', ?)",
-                otroNegocio, otroUsuario);
-        MockHttpSession sesionAjena = givenSesion(otroUsuario);
-
-        try {
-            mockMvc.perform(get("/api/registros/{id}/foto-origen", registroId).session(sesionAjena))
-                    .andExpect(status().isNotFound());
-        } finally {
-            jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", otroNegocio);
-            jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", otroUsuario);
-        }
-    }
-
-    @Test
-    @DisplayName("Un body sin columnas devuelve 400")
-    void confirmarShouldRejectBodyWithoutColumns() throws Exception {
-        confirmar(loteId, "{\"nombreProyecto\": \"Ventas\", \"nombreBloque\": \"Hoja\", \"filas\": []}")
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Suma las filas a una tabla existente, le agrega la columna nueva y no toca los registros previos")
-    void confirmarShouldAddNewFieldAndRowsToExistingBloque() throws Exception {
-        BloqueExistente bloque = givenBloqueConfirmado();
-        List<Map<String, Object>> antes = registrosDe(bloque.id());
-        UUID otroLote = givenLote("LISTO", UUID.randomUUID());
-
-        confirmar(otroLote, cuerpoConTelefono(bloque, "40", "11 4444-5555"))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.bloqueId").value(bloque.id()))
-                .andExpect(jsonPath("$.registros").value(2));
-
-        assertThat(contar("campo")).isEqualTo(3);
-        UUID telefono = jdbcTemplate.queryForObject(
-                "SELECT id FROM campo WHERE bloque_id = ?::uuid AND nombre = 'Teléfono'", UUID.class, bloque.id());
-        assertThat(jdbcTemplate.queryForObject(
-                "SELECT posicion FROM campo WHERE id = ?", Integer.class, telefono)).isEqualTo(2);
-        assertThat(contar("registro")).isEqualTo(4);
-        assertThat(jdbcTemplate.queryForObject("""
-                SELECT count(*) FROM registro WHERE bloque_id = ?::uuid AND valores ->> ? = '11 4444-5555'
-                """, Integer.class, bloque.id(), telefono.toString())).isEqualTo(2);
-        assertThat(registrosDe(bloque.id()).stream().filter(antes::contains).toList())
-                .containsExactlyInAnyOrderElementsOf(antes);
-        assertThat(estadoDelLote(otroLote)).isEqualTo("CONFIRMADO");
-    }
-
-    @Test
-    @DisplayName("Si una fila es inválida no queda la columna nueva ni los registros y el lote sigue listo")
-    void confirmarShouldRollbackNewFieldWhenRowIsInvalid() throws Exception {
-        BloqueExistente bloque = givenBloqueConfirmado();
-        List<Map<String, Object>> antes = registrosDe(bloque.id());
-        UUID otroLote = givenLote("LISTO", UUID.randomUUID());
-
-        confirmar(otroLote, cuerpoConTelefono(bloque, "\"mucho\"", "11 4444-5555"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors['filas[1].monto']").value("Tiene que ser un número"));
-
-        assertThat(contar("campo")).isEqualTo(2);
-        assertThat(registrosDe(bloque.id())).containsExactlyInAnyOrderElementsOf(antes);
-        assertThat(estadoDelLote(otroLote)).isEqualTo("LISTO");
-    }
-
-    @Test
-    @DisplayName("Si una columna nueva repite el nombre de un campo no se crea ninguna de las nuevas")
-    void confirmarShouldRollbackEveryNewFieldWhenOneNameIsTaken() throws Exception {
-        BloqueExistente bloque = givenBloqueConfirmado();
-        UUID otroLote = givenLote("LISTO", UUID.randomUUID());
-        String cuerpo = """
-                {
-                  "bloqueId": "%s",
-                  "campos": [
-                    {"clave": "monto", "campoId": "%s", "nombre": "Monto", "tipo": "NUMERO"},
-                    {"clave": "telefono", "nombre": "Teléfono", "tipo": "TEXTO"},
-                    {"clave": "importe", "nombre": " monto ", "tipo": "NUMERO"}
-                  ],
-                  "filas": [{"pagina": 1, "valores": {"monto": 40, "telefono": "1", "importe": 5}}]
-                }
-                """.formatted(bloque.id(), bloque.campoMonto());
-
-        confirmar(otroLote, cuerpo).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors['campos[2].nombre']").value("Ya hay un campo llamado \"monto\" en este bloque"));
-
-        assertThat(contar("campo")).isEqualTo(2);
-        assertThat(contar("registro")).isEqualTo(2);
-        assertThat(estadoDelLote(otroLote)).isEqualTo("LISTO");
-    }
-
-    @Test
-    @DisplayName("Dos columnas que apuntan al mismo campo de la tabla se rechazan y no se guarda nada")
-    void confirmarShouldRejectTwoColumnsForTheSameField() throws Exception {
-        BloqueExistente bloque = givenBloqueConfirmado();
-        UUID otroLote = givenLote("LISTO", UUID.randomUUID());
-        String cuerpo = """
-                {
-                  "bloqueId": "%s",
-                  "campos": [
-                    {"clave": "monto", "campoId": "%s", "nombre": "Monto", "tipo": "NUMERO"},
-                    {"clave": "importe", "campoId": "%s", "nombre": "Monto", "tipo": "NUMERO"}
-                  ],
-                  "filas": [{"pagina": 1, "valores": {"monto": 40, "importe": 5}}]
-                }
-                """.formatted(bloque.id(), bloque.campoMonto(), bloque.campoMonto());
-
-        confirmar(otroLote, cuerpo).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Dos columnas no pueden guardarse en el mismo campo de la tabla"));
-
-        assertThat(contar("registro")).isEqualTo(2);
-        assertThat(estadoDelLote(otroLote)).isEqualTo("LISTO");
-    }
-
-    // --- arrange ---
-    private record BloqueExistente(String id, UUID campoMonto) {
-    }
-
-    /** Una tabla que ya tiene datos: la que dejaría una primera lectura confirmada (Monto y Pagado, 2 registros). */
-    private BloqueExistente givenBloqueConfirmado() throws Exception {
-        String bloqueId = JsonPath.read(
-                confirmar(loteId, CUERPO_NUEVO).andReturn().getResponse().getContentAsString(), "$.bloqueId");
-        UUID campoMonto = jdbcTemplate.queryForObject(
-                "SELECT id FROM campo WHERE bloque_id = ?::uuid AND nombre = 'Monto'", UUID.class, bloqueId);
-        return new BloqueExistente(bloqueId, campoMonto);
+                """.formatted(proyectoConfirmadoId);
     }
 
     /** Dos filas que suman a la tabla y traen la columna nueva «Teléfono» (el monto de la segunda se pasa tal cual). */
-    private String cuerpoConTelefono(BloqueExistente bloque, String montoSegundaFila, String telefono) {
+    private String cuerpoConTelefono(String montoSegundaFila, String telefono) {
         return """
                 {
                   "bloqueId": "%s",
@@ -500,10 +623,37 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
                     {"pagina": 1, "valores": {"monto": %s, "telefono": "%s"}}
                   ]
                 }
-                """.formatted(bloque.id(), bloque.campoMonto(), telefono, montoSegundaFila, telefono);
+                """.formatted(bloqueConfirmadoId, campoMontoId, telefono, montoSegundaFila, telefono);
     }
 
-    private UUID givenLote(String estado, UUID foto) {
+    private String cuerpoConUnNombreRepetido() {
+        return """
+                {
+                  "bloqueId": "%s",
+                  "campos": [
+                    {"clave": "monto", "campoId": "%s", "nombre": "Monto", "tipo": "NUMERO"},
+                    {"clave": "telefono", "nombre": "Teléfono", "tipo": "TEXTO"},
+                    {"clave": "importe", "nombre": " monto ", "tipo": "NUMERO"}
+                  ],
+                  "filas": [{"pagina": 1, "valores": {"monto": 40, "telefono": "1", "importe": 5}}]
+                }
+                """.formatted(bloqueConfirmadoId, campoMontoId);
+    }
+
+    private String cuerpoConDosColumnasParaElMismoCampo() {
+        return """
+                {
+                  "bloqueId": "%s",
+                  "campos": [
+                    {"clave": "monto", "campoId": "%s", "nombre": "Monto", "tipo": "NUMERO"},
+                    {"clave": "importe", "campoId": "%s", "nombre": "Monto", "tipo": "NUMERO"}
+                  ],
+                  "filas": [{"pagina": 1, "valores": {"monto": 40, "importe": 5}}]
+                }
+                """.formatted(bloqueConfirmadoId, campoMontoId, campoMontoId);
+    }
+
+    private UUID crearLote(String estado, UUID foto) {
         UUID id = UUID.randomUUID();
         String clave = negocioId + "/fotos/" + foto + ".jpg";
         jdbcTemplate.update("INSERT INTO lote_subida (id, negocio_id, estado) VALUES (?, ?, ?)", id, negocioId, estado);
@@ -517,29 +667,14 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
         return id;
     }
 
-    private MockHttpSession givenSesion(UUID usuario) throws Exception {
-        MockHttpSession session = new MockHttpSession();
-        var securityContext = SecurityContextHolder.createEmptyContext();
-        securityContext.setAuthentication(
-                UsernamePasswordAuthenticationToken.authenticated(usuario.toString(), null, List.of()));
-        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, securityContext);
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setSession(session);
-        new HttpSessionCsrfTokenRepository().saveToken(
-                new DefaultCsrfToken("X-CSRF-TOKEN", "_csrf", "token"), request, new MockHttpServletResponse());
-        String body = mockMvc.perform(get("/api/auth/csrf").session(session))
-                .andReturn().getResponse().getContentAsString();
-        csrfToken = JsonPath.read(body, "$.token");
-        return session;
+    private void borrarLaOtraCuenta() {
+        if (otroNegocioId == null) {
+            return;
+        }
+        jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", otroNegocioId);
+        jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", otroUsuarioId);
     }
 
-    // --- act ---
-    private ResultActions confirmar(UUID lote, String cuerpo) throws Exception {
-        return mockMvc.perform(post(CONFIRMAR, lote).session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                .contentType(MediaType.APPLICATION_JSON).content(cuerpo));
-    }
-
-    // --- assert ---
     private int contar(String tabla) {
         return jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM " + tabla + " WHERE negocio_id = ?", Integer.class, negocioId);
@@ -554,11 +689,6 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
     private int contarConFoto(UUID foto) {
         return jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM registro WHERE foto_origen_id = ?", Integer.class, foto);
-    }
-
-    private UUID registroConFoto() {
-        return jdbcTemplate.queryForObject(
-                "SELECT id FROM registro WHERE negocio_id = ? AND foto_origen_id = ?", UUID.class, negocioId, fotoId);
     }
 
     private String estadoDelLote(UUID lote) {

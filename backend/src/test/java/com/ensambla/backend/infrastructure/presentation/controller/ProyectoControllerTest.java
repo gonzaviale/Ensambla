@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 
+import org.springframework.test.web.servlet.ResultActions;
 import java.util.List;
 
 import static com.ensambla.backend.support.ProyectoTestData.PLANTILLA_ID;
@@ -43,6 +44,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class ProyectoControllerTest {
+
+    private ResultActions resultado;
 
     private final ListarProyectos listarProyectos = mock(ListarProyectos.class);
     private final ObtenerProyecto obtenerProyecto = mock(ObtenerProyecto.class);
@@ -71,131 +74,260 @@ class ProyectoControllerTest {
 
     @Test
     @DisplayName("GET lista proyectos y mapea todos los datos del árbol a JSON")
-    void listarShouldReturnMappedTree() throws Exception {
-        when(listarProyectos.execute(any())).thenReturn(List.of(givenResponse()));
+    void gETListaProyectosYMapeaTodosLosDatosDelArbolAJSON() throws Exception {
+        dadoElEscenarioDeGETListaProyectosYMapeaTodosLosDatosDelArbolAJSON();
 
-        mockMvc.perform(get("/api/proyectos").principal(principal))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(PROYECTO_ID.toString()))
-                .andExpect(jsonPath("$[0].nombre").value("Inventario"))
-                .andExpect(jsonPath("$[0].descripcion").value("Mis productos"))
-                .andExpect(jsonPath("$[0].plantillaId").value(PLANTILLA_ID.toString()))
-                .andExpect(jsonPath("$[0].creadoEn").exists())
-                .andExpect(jsonPath("$[0].actualizadoEn").exists())
-                .andExpect(jsonPath("$[0].bloques[0].id").exists())
-                .andExpect(jsonPath("$[0].bloques[0].nombre").value("Productos"))
-                .andExpect(jsonPath("$[0].bloques[0].posicion").value(0))
-                .andExpect(jsonPath("$[0].bloques[0].campos[0].id").exists())
-                .andExpect(jsonPath("$[0].bloques[0].campos[0].nombre").value("Nombre"))
-                .andExpect(jsonPath("$[0].bloques[0].campos[0].tipo").value("TEXTO"))
-                .andExpect(jsonPath("$[0].bloques[0].campos[0].obligatorio").value(true))
-                .andExpect(jsonPath("$[0].bloques[0].campos[0].opciones").isEmpty())
-                .andExpect(jsonPath("$[0].bloques[0].campos[0].posicion").value(0));
-        verify(listarProyectos).execute(new ListarProyectosRequest(USUARIO_ID));
+        cuandoSeEjecutaGETListaProyectosYMapeaTodosLosDatosDelArbolAJSON();
+
+        entoncesSeVerificaGETListaProyectosYMapeaTodosLosDatosDelArbolAJSON();
     }
 
     @Test
     @DisplayName("GET devuelve una lista vacía cuando no hay proyectos")
-    void listarShouldReturnEmptyList() throws Exception {
-        when(listarProyectos.execute(any())).thenReturn(List.of());
+    void gETDevuelveUnaListaVaciaCuandoNoHayProyectos() throws Exception {
+        dadoElEscenarioDeGETDevuelveUnaListaVaciaCuandoNoHayProyectos();
 
-        mockMvc.perform(get("/api/proyectos").principal(principal))
-                .andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
+        cuandoSeEjecutaGETDevuelveUnaListaVaciaCuandoNoHayProyectos();
+
+        entoncesSeVerificaGETDevuelveUnaListaVaciaCuandoNoHayProyectos();
     }
 
     @Test
     @DisplayName("GET por id delega usando el usuario de sesión")
-    void obtenerShouldPassSessionUsuario() throws Exception {
-        when(obtenerProyecto.execute(any())).thenReturn(givenResponse());
+    void gETPorIdDelegaUsandoElUsuarioDeSesion() throws Exception {
+        dadoElEscenarioDeGETPorIdDelegaUsandoElUsuarioDeSesion();
 
-        mockMvc.perform(get("/api/proyectos/{id}", PROYECTO_ID).principal(principal))
-                .andExpect(status().isOk());
-        verify(obtenerProyecto).execute(new ObtenerProyectoRequest(USUARIO_ID, PROYECTO_ID));
+        cuandoSeEjecutaGETPorIdDelegaUsandoElUsuarioDeSesion();
+
+        entoncesSeVerificaGETPorIdDelegaUsandoElUsuarioDeSesion();
     }
 
     @Test
     @DisplayName("POST crea en blanco sin aceptar el negocio indicado por el navegador")
-    void crearShouldIgnoreClientNegocio() throws Exception {
-        when(crearProyecto.execute(any())).thenReturn(givenResponse());
+    void pOSTCreaEnBlancoSinAceptarElNegocioIndicadoPorElNavegador() throws Exception {
+        dadoElEscenarioDePOSTCreaEnBlancoSinAceptarElNegocioIndicadoPorElNavegador();
 
-        mockMvc.perform(post("/api/proyectos").principal(principal).contentType("application/json")
-                        .content("{\"nombre\":\"Nuevo\",\"descripcion\":null,\"negocioId\":\"otro\"}"))
-                .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/proyectos/" + PROYECTO_ID));
-        verify(crearProyecto).execute(new CrearProyectoRequest(USUARIO_ID, "Nuevo", null));
+        cuandoSeEjecutaPOSTCreaEnBlancoSinAceptarElNegocioIndicadoPorElNavegador();
+
+        entoncesSeVerificaPOSTCreaEnBlancoSinAceptarElNegocioIndicadoPorElNavegador();
     }
 
     @Test
     @DisplayName("POST desde plantilla usa el id de plantilla y devuelve la ubicación creada")
-    void desdePlantillaShouldCreateProyecto() throws Exception {
-        when(crearProyectoDesdePlantilla.execute(any())).thenReturn(givenResponse());
+    void pOSTDesdePlantillaUsaElIdDePlantillaYDevuelveLaUbicacionCreada() throws Exception {
+        dadoElEscenarioDePOSTDesdePlantillaUsaElIdDePlantillaYDevuelveLaUbicacionCreada();
 
-        mockMvc.perform(post("/api/proyectos/desde-plantilla/{id}", PLANTILLA_ID).principal(principal))
-                .andExpect(status().isCreated());
-        verify(crearProyectoDesdePlantilla)
-                .execute(new CrearProyectoDesdePlantillaRequest(USUARIO_ID, PLANTILLA_ID));
+        cuandoSeEjecutaPOSTDesdePlantillaUsaElIdDePlantillaYDevuelveLaUbicacionCreada();
+
+        entoncesSeVerificaPOSTDesdePlantillaUsaElIdDePlantillaYDevuelveLaUbicacionCreada();
     }
 
     @Test
     @DisplayName("PATCH delega el nuevo nombre junto con el id y el usuario")
-    void renombrarShouldPassRequest() throws Exception {
-        when(renombrarProyecto.execute(any())).thenReturn(givenResponse());
+    void pATCHDelegaElNuevoNombreJuntoConElIdYElUsuario() throws Exception {
+        dadoElEscenarioDePATCHDelegaElNuevoNombreJuntoConElIdYElUsuario();
 
-        mockMvc.perform(patch("/api/proyectos/{id}", PROYECTO_ID).principal(principal)
-                        .contentType("application/json").content("{\"nombre\":\"Otro\"}"))
-                .andExpect(status().isOk());
-        verify(renombrarProyecto).execute(new RenombrarProyectoRequest(USUARIO_ID, PROYECTO_ID, "Otro"));
+        cuandoSeEjecutaPATCHDelegaElNuevoNombreJuntoConElIdYElUsuario();
+
+        entoncesSeVerificaPATCHDelegaElNuevoNombreJuntoConElIdYElUsuario();
     }
 
     @Test
     @DisplayName("DELETE devuelve 204 después de delegar el borrado")
-    void eliminarShouldReturn204() throws Exception {
-        mockMvc.perform(delete("/api/proyectos/{id}", PROYECTO_ID).principal(principal))
-                .andExpect(status().isNoContent());
+    void dELETEDevuelve204DespuesDeDelegarElBorrado() throws Exception {
+        cuandoSeEjecutaDELETEDevuelve204DespuesDeDelegarElBorrado();
 
-        verify(eliminarProyecto).execute(new EliminarProyectoRequest(USUARIO_ID, PROYECTO_ID));
+        entoncesSeVerificaDELETEDevuelve204DespuesDeDelegarElBorrado();
     }
 
     @Test
     @DisplayName("Un UUID inválido no llega al caso de uso")
-    void obtenerShouldRejectInvalidUuid() throws Exception {
-        mockMvc.perform(get("/api/proyectos/invalido").principal(principal)).andExpect(status().isBadRequest());
+    void unUUIDInvalidoNoLlegaAlCasoDeUso() throws Exception {
+        cuandoSeEjecutaUnUUIDInvalidoNoLlegaAlCasoDeUso();
 
-        verifyNoInteractions(obtenerProyecto);
+        entoncesSeVerificaUnUUIDInvalidoNoLlegaAlCasoDeUso();
     }
 
     @Test
     @DisplayName("Crear rechaza un nombre vacío antes de invocar el caso de uso")
-    void crearShouldRejectBlankName() throws Exception {
-        mockMvc.perform(post("/api/proyectos").principal(principal)
-                        .contentType("application/json").content("{\"nombre\":\"  \"}"))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.nombre").exists());
+    void crearRechazaUnNombreVacioAntesDeInvocarElCasoDeUso() throws Exception {
+        cuandoSeEjecutaCrearRechazaUnNombreVacioAntesDeInvocarElCasoDeUso();
 
-        verifyNoInteractions(crearProyecto);
+        entoncesSeVerificaCrearRechazaUnNombreVacioAntesDeInvocarElCasoDeUso();
     }
 
     @Test
     @DisplayName("Renombrar rechaza un nombre vacío antes de invocar el caso de uso")
-    void renombrarShouldRejectBlankName() throws Exception {
-        mockMvc.perform(patch("/api/proyectos/{id}", PROYECTO_ID).principal(principal)
-                        .contentType("application/json").content("{\"nombre\":\"\"}"))
-                .andExpect(status().isBadRequest());
+    void renombrarRechazaUnNombreVacioAntesDeInvocarElCasoDeUso() throws Exception {
+        cuandoSeEjecutaRenombrarRechazaUnNombreVacioAntesDeInvocarElCasoDeUso();
 
-        verifyNoInteractions(renombrarProyecto);
+        entoncesSeVerificaRenombrarRechazaUnNombreVacioAntesDeInvocarElCasoDeUso();
     }
 
     @Test
     @DisplayName("Un proyecto ajeno devuelve 404 estándar")
-    void obtenerShouldReturn404() throws Exception {
-        when(obtenerProyecto.execute(any())).thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
+    void unProyectoAjenoDevuelve404Estandar() throws Exception {
+        dadoElEscenarioDeUnProyectoAjenoDevuelve404Estandar();
 
-        mockMvc.perform(get("/api/proyectos/{id}", PROYECTO_ID).principal(principal))
-                .andExpect(status().isNotFound()).andExpect(jsonPath("$.status").value(404));
+        cuandoSeEjecutaUnProyectoAjenoDevuelve404Estandar();
+
+        entoncesSeVerificaUnProyectoAjenoDevuelve404Estandar();
     }
 
-    // --- arrange ---
-    private ProyectoItem givenResponse() {
+    // --- dado ---
+    private ProyectoItem dadoResponse() {
         return ProyectoItem.de(ProyectoTestData.proyecto());
     }
-}
 
+    // --- dado ---
+
+    private void dadoElEscenarioDeGETListaProyectosYMapeaTodosLosDatosDelArbolAJSON() throws Exception {
+        when(listarProyectos.execute(any())).thenReturn(List.of(dadoResponse()));
+    }
+
+    private void dadoElEscenarioDeGETDevuelveUnaListaVaciaCuandoNoHayProyectos() throws Exception {
+        when(listarProyectos.execute(any())).thenReturn(List.of());
+    }
+
+    private void dadoElEscenarioDeGETPorIdDelegaUsandoElUsuarioDeSesion() throws Exception {
+        when(obtenerProyecto.execute(any())).thenReturn(dadoResponse());
+    }
+
+    private void dadoElEscenarioDePOSTCreaEnBlancoSinAceptarElNegocioIndicadoPorElNavegador() throws Exception {
+        when(crearProyecto.execute(any())).thenReturn(dadoResponse());
+    }
+
+    private void dadoElEscenarioDePOSTDesdePlantillaUsaElIdDePlantillaYDevuelveLaUbicacionCreada() throws Exception {
+        when(crearProyectoDesdePlantilla.execute(any())).thenReturn(dadoResponse());
+    }
+
+    private void dadoElEscenarioDePATCHDelegaElNuevoNombreJuntoConElIdYElUsuario() throws Exception {
+        when(renombrarProyecto.execute(any())).thenReturn(dadoResponse());
+    }
+
+    private void dadoElEscenarioDeUnProyectoAjenoDevuelve404Estandar() throws Exception {
+        when(obtenerProyecto.execute(any())).thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeEjecutaGETListaProyectosYMapeaTodosLosDatosDelArbolAJSON() throws Exception {
+        resultado = mockMvc.perform(get("/api/proyectos").principal(principal));
+    }
+
+    private void cuandoSeEjecutaGETDevuelveUnaListaVaciaCuandoNoHayProyectos() throws Exception {
+        resultado = mockMvc.perform(get("/api/proyectos").principal(principal));
+    }
+
+    private void cuandoSeEjecutaGETPorIdDelegaUsandoElUsuarioDeSesion() throws Exception {
+        resultado = mockMvc.perform(get("/api/proyectos/{id}", PROYECTO_ID).principal(principal));
+    }
+
+    private void cuandoSeEjecutaPOSTCreaEnBlancoSinAceptarElNegocioIndicadoPorElNavegador() throws Exception {
+        resultado = mockMvc.perform(post("/api/proyectos").principal(principal).contentType("application/json")
+                                .content("{\"nombre\":\"Nuevo\",\"descripcion\":null,\"negocioId\":\"otro\"}"));
+    }
+
+    private void cuandoSeEjecutaPOSTDesdePlantillaUsaElIdDePlantillaYDevuelveLaUbicacionCreada() throws Exception {
+        resultado = mockMvc.perform(post("/api/proyectos/desde-plantilla/{id}", PLANTILLA_ID).principal(principal));
+    }
+
+    private void cuandoSeEjecutaPATCHDelegaElNuevoNombreJuntoConElIdYElUsuario() throws Exception {
+        resultado = mockMvc.perform(patch("/api/proyectos/{id}", PROYECTO_ID).principal(principal)
+                                .contentType("application/json").content("{\"nombre\":\"Otro\"}"));
+    }
+
+    private void cuandoSeEjecutaDELETEDevuelve204DespuesDeDelegarElBorrado() throws Exception {
+        resultado = mockMvc.perform(delete("/api/proyectos/{id}", PROYECTO_ID).principal(principal));
+    }
+
+    private void cuandoSeEjecutaUnUUIDInvalidoNoLlegaAlCasoDeUso() throws Exception {
+        resultado = mockMvc.perform(get("/api/proyectos/invalido").principal(principal));
+    }
+
+    private void cuandoSeEjecutaCrearRechazaUnNombreVacioAntesDeInvocarElCasoDeUso() throws Exception {
+        resultado = mockMvc.perform(post("/api/proyectos").principal(principal)
+                                .contentType("application/json").content("{\"nombre\":\"  \"}"));
+    }
+
+    private void cuandoSeEjecutaRenombrarRechazaUnNombreVacioAntesDeInvocarElCasoDeUso() throws Exception {
+        resultado = mockMvc.perform(patch("/api/proyectos/{id}", PROYECTO_ID).principal(principal)
+                                .contentType("application/json").content("{\"nombre\":\"\"}"));
+    }
+
+    private void cuandoSeEjecutaUnProyectoAjenoDevuelve404Estandar() throws Exception {
+        resultado = mockMvc.perform(get("/api/proyectos/{id}", PROYECTO_ID).principal(principal));
+    }
+
+    // --- entonces ---
+
+    private void entoncesSeVerificaGETListaProyectosYMapeaTodosLosDatosDelArbolAJSON() throws Exception {
+        resultado.andExpect(status().isOk())
+                        .andExpect(jsonPath("$[0].id").value(PROYECTO_ID.toString()))
+                        .andExpect(jsonPath("$[0].nombre").value("Inventario"))
+                        .andExpect(jsonPath("$[0].descripcion").value("Mis productos"))
+                        .andExpect(jsonPath("$[0].plantillaId").value(PLANTILLA_ID.toString()))
+                        .andExpect(jsonPath("$[0].creadoEn").exists())
+                        .andExpect(jsonPath("$[0].actualizadoEn").exists())
+                        .andExpect(jsonPath("$[0].bloques[0].id").exists())
+                        .andExpect(jsonPath("$[0].bloques[0].nombre").value("Productos"))
+                        .andExpect(jsonPath("$[0].bloques[0].posicion").value(0))
+                        .andExpect(jsonPath("$[0].bloques[0].campos[0].id").exists())
+                        .andExpect(jsonPath("$[0].bloques[0].campos[0].nombre").value("Nombre"))
+                        .andExpect(jsonPath("$[0].bloques[0].campos[0].tipo").value("TEXTO"))
+                        .andExpect(jsonPath("$[0].bloques[0].campos[0].obligatorio").value(true))
+                        .andExpect(jsonPath("$[0].bloques[0].campos[0].opciones").isEmpty())
+                        .andExpect(jsonPath("$[0].bloques[0].campos[0].posicion").value(0));
+        verify(listarProyectos).execute(new ListarProyectosRequest(USUARIO_ID));
+    }
+
+    private void entoncesSeVerificaGETDevuelveUnaListaVaciaCuandoNoHayProyectos() throws Exception {
+        resultado.andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
+    }
+
+    private void entoncesSeVerificaGETPorIdDelegaUsandoElUsuarioDeSesion() throws Exception {
+        resultado.andExpect(status().isOk());
+        verify(obtenerProyecto).execute(new ObtenerProyectoRequest(USUARIO_ID, PROYECTO_ID));
+    }
+
+    private void entoncesSeVerificaPOSTCreaEnBlancoSinAceptarElNegocioIndicadoPorElNavegador() throws Exception {
+        resultado.andExpect(status().isCreated())
+                        .andExpect(header().string("Location", "/api/proyectos/" + PROYECTO_ID));
+        verify(crearProyecto).execute(new CrearProyectoRequest(USUARIO_ID, "Nuevo", null));
+    }
+
+    private void entoncesSeVerificaPOSTDesdePlantillaUsaElIdDePlantillaYDevuelveLaUbicacionCreada() throws Exception {
+        resultado.andExpect(status().isCreated());
+        verify(crearProyectoDesdePlantilla)
+                        .execute(new CrearProyectoDesdePlantillaRequest(USUARIO_ID, PLANTILLA_ID));
+    }
+
+    private void entoncesSeVerificaPATCHDelegaElNuevoNombreJuntoConElIdYElUsuario() throws Exception {
+        resultado.andExpect(status().isOk());
+        verify(renombrarProyecto).execute(new RenombrarProyectoRequest(USUARIO_ID, PROYECTO_ID, "Otro"));
+    }
+
+    private void entoncesSeVerificaDELETEDevuelve204DespuesDeDelegarElBorrado() throws Exception {
+        resultado.andExpect(status().isNoContent());
+        verify(eliminarProyecto).execute(new EliminarProyectoRequest(USUARIO_ID, PROYECTO_ID));
+    }
+
+    private void entoncesSeVerificaUnUUIDInvalidoNoLlegaAlCasoDeUso() throws Exception {
+        resultado.andExpect(status().isBadRequest());
+        verifyNoInteractions(obtenerProyecto);
+    }
+
+    private void entoncesSeVerificaCrearRechazaUnNombreVacioAntesDeInvocarElCasoDeUso() throws Exception {
+        resultado.andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.nombre").exists());
+        verifyNoInteractions(crearProyecto);
+    }
+
+    private void entoncesSeVerificaRenombrarRechazaUnNombreVacioAntesDeInvocarElCasoDeUso() throws Exception {
+        resultado.andExpect(status().isBadRequest());
+        verifyNoInteractions(renombrarProyecto);
+    }
+
+    private void entoncesSeVerificaUnProyectoAjenoDevuelve404Estandar() throws Exception {
+        resultado.andExpect(status().isNotFound()).andExpect(jsonPath("$.status").value(404));
+    }
+}

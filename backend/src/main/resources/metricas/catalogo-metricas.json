@@ -1,0 +1,185 @@
+{
+  "base": [
+    {
+      "nombre": "Lo que vendiste esta semana",
+      "fuente": "VENTAS",
+      "calculo": "SUMA",
+      "agrupar": "NINGUNA",
+      "periodo": "SEMANA"
+    },
+    {
+      "nombre": "Lo que gastaste este mes",
+      "fuente": "GASTOS",
+      "calculo": "SUMA",
+      "agrupar": "NINGUNA",
+      "periodo": "MES"
+    },
+    {
+      "nombre": "Lo que te deben",
+      "fuente": "VENTAS",
+      "calculo": "SUMA",
+      "agrupar": "CLIENTE",
+      "periodo": "TODO",
+      "soloFiado": true
+    },
+    {
+      "nombre": "Producto más vendido del mes",
+      "fuente": "VENTAS",
+      "calculo": "UNIDADES",
+      "agrupar": "PRODUCTO",
+      "periodo": "MES"
+    }
+  ],
+  "porRubro": {
+    "ALMACEN": [
+      {
+        "nombre": "Ventas por día de la semana",
+        "fuente": "VENTAS",
+        "calculo": "SUMA",
+        "agrupar": "DIA_DE_LA_SEMANA",
+        "periodo": "MES"
+      },
+      {
+        "nombre": "Gastos por categoría del mes",
+        "fuente": "GASTOS",
+        "calculo": "SUMA",
+        "agrupar": "CATEGORIA",
+        "periodo": "MES"
+      },
+      {
+        "nombre": "Plata parada en mercadería",
+        "fuente": "INVENTARIO",
+        "calculo": "SUMA",
+        "agrupar": "NINGUNA",
+        "periodo": "TODO"
+      },
+      {
+        "nombre": "Importe promedio por venta",
+        "fuente": "VENTAS",
+        "calculo": "PROMEDIO",
+        "agrupar": "NINGUNA",
+        "periodo": "MES"
+      }
+    ],
+    "KIOSCO": [
+      {
+        "nombre": "Ventas por día de la semana",
+        "fuente": "VENTAS",
+        "calculo": "SUMA",
+        "agrupar": "DIA_DE_LA_SEMANA",
+        "periodo": "MES"
+      },
+      {
+        "nombre": "Cantidad de ventas de hoy",
+        "fuente": "VENTAS",
+        "calculo": "CONTEO",
+        "agrupar": "NINGUNA",
+        "periodo": "HOY"
+      },
+      {
+        "nombre": "Ventas por producto del mes",
+        "fuente": "VENTAS",
+        "calculo": "SUMA",
+        "agrupar": "PRODUCTO",
+        "periodo": "MES"
+      },
+      {
+        "nombre": "Gastos por categoría del mes",
+        "fuente": "GASTOS",
+        "calculo": "SUMA",
+        "agrupar": "CATEGORIA",
+        "periodo": "MES"
+      }
+    ],
+    "MINIMERCADO": [
+      {
+        "nombre": "Ventas por producto del mes",
+        "fuente": "VENTAS",
+        "calculo": "SUMA",
+        "agrupar": "PRODUCTO",
+        "periodo": "MES"
+      },
+      {
+        "nombre": "Clientes que más te compraron",
+        "fuente": "VENTAS",
+        "calculo": "SUMA",
+        "agrupar": "CLIENTE",
+        "periodo": "MES"
+      },
+      {
+        "nombre": "Unidades en stock",
+        "fuente": "INVENTARIO",
+        "calculo": "UNIDADES",
+        "agrupar": "NINGUNA",
+        "periodo": "TODO"
+      },
+      {
+        "nombre": "Plata parada en mercadería",
+        "fuente": "INVENTARIO",
+        "calculo": "SUMA",
+        "agrupar": "NINGUNA",
+        "periodo": "TODO"
+      }
+    ],
+    "DIETETICA": [
+      {
+        "nombre": "Ventas por producto del mes",
+        "fuente": "VENTAS",
+        "calculo": "SUMA",
+        "agrupar": "PRODUCTO",
+        "periodo": "MES"
+      },
+      {
+        "nombre": "Clientes que más te compraron",
+        "fuente": "VENTAS",
+        "calculo": "SUMA",
+        "agrupar": "CLIENTE",
+        "periodo": "MES"
+      },
+      {
+        "nombre": "Unidades en stock por producto",
+        "fuente": "INVENTARIO",
+        "calculo": "UNIDADES",
+        "agrupar": "PRODUCTO",
+        "periodo": "TODO"
+      },
+      {
+        "nombre": "Plata parada por producto",
+        "fuente": "INVENTARIO",
+        "calculo": "SUMA",
+        "agrupar": "PRODUCTO",
+        "periodo": "TODO"
+      }
+    ],
+    "PAPELERIA": [
+      {
+        "nombre": "Ventas por día de la semana",
+        "fuente": "VENTAS",
+        "calculo": "SUMA",
+        "agrupar": "DIA_DE_LA_SEMANA",
+        "periodo": "MES"
+      },
+      {
+        "nombre": "Ventas por producto del mes",
+        "fuente": "VENTAS",
+        "calculo": "SUMA",
+        "agrupar": "PRODUCTO",
+        "periodo": "MES"
+      },
+      {
+        "nombre": "Gastos por categoría del mes",
+        "fuente": "GASTOS",
+        "calculo": "SUMA",
+        "agrupar": "CATEGORIA",
+        "periodo": "MES"
+      },
+      {
+        "nombre": "Plata parada en mercadería",
+        "fuente": "INVENTARIO",
+        "calculo": "SUMA",
+        "agrupar": "NINGUNA",
+        "periodo": "TODO"
+      }
+    ]
+  }
+}

@@ -17,52 +17,123 @@ class CambioPrecioTest {
     private static final RegistroId REGISTRO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-20T01:00:00Z");
 
+    private CambioPrecio cambio;
+
     @Test
     @DisplayName("Registra el cambio entre dos precios distintos")
-    void entreShouldReturnChangeWhenPricesDiffer() {
-        CambioPrecio cambio = whenEntre("1000", "1200");
+    void registraElCambioEntreDosPreciosDistintos() {
+        cuandoCambiaElPrecio("1000", "1200");
 
-        assertThat(cambio).isEqualTo(new CambioPrecio(NEGOCIO_ID, REGISTRO_ID, new BigDecimal("1000"),
-                new BigDecimal("1200"), AHORA));
+        entoncesSeRegistraElCambioDeMilAMilDoscientos();
     }
 
     @Test
-    @DisplayName("El primer precio queda sin precio anterior, también cuando el anterior no era un precio")
-    void entreShouldLeaveAnteriorEmptyWhenThereWasNoPrice() {
-        assertThat(whenEntre(null, "1200").anterior()).isNull();
-        assertThat(whenEntre("0", "1200").anterior()).isNull();
+    @DisplayName("El primer precio queda sin precio anterior")
+    void elPrimerPrecioQuedaSinPrecioAnterior() {
+        cuandoCambiaElPrecio(null, "1200");
+
+        entoncesNoHayPrecioAnterior();
+    }
+
+    @Test
+    @DisplayName("Si el anterior no era un precio también queda sin precio anterior")
+    void siElAnteriorNoEraUnPrecioTambienQuedaSinPrecioAnterior() {
+        cuandoCambiaElPrecio("0", "1200");
+
+        entoncesNoHayPrecioAnterior();
     }
 
     @Test
     @DisplayName("No hay cambio si el precio es el mismo, aunque cambie la escala")
-    void entreShouldReturnNullWhenPriceIsTheSame() {
-        assertThat(whenEntre("1000", "1000.00")).isNull();
+    void noHayCambioSiElPrecioEsElMismoAunqueCambieLaEscala() {
+        cuandoCambiaElPrecio("1000", "1000.00");
+
+        entoncesNoHayCambio();
     }
 
     @Test
-    @DisplayName("No hay cambio si el precio nuevo falta o no es positivo")
-    void entreShouldReturnNullWhenNewPriceIsNotAPrice() {
-        assertThat(whenEntre("1000", null)).isNull();
-        assertThat(whenEntre("1000", "0")).isNull();
+    @DisplayName("No hay cambio si el precio nuevo falta")
+    void noHayCambioSiElPrecioNuevoFalta() {
+        cuandoCambiaElPrecio("1000", null);
+
+        entoncesNoHayCambio();
     }
 
     @Test
-    @DisplayName("Sólo es un aumento si el precio subió respecto de uno anterior")
-    void esAumentoShouldBeTrueOnlyWhenPriceRose() {
-        assertThat(whenEntre("1000", "1200").esAumento()).isTrue();
-        assertThat(whenEntre("1200", "1000").esAumento()).isFalse();
-        assertThat(whenEntre(null, "1200").esAumento()).isFalse();
+    @DisplayName("No hay cambio si el precio nuevo no es positivo")
+    void noHayCambioSiElPrecioNuevoNoEsPositivo() {
+        cuandoCambiaElPrecio("1000", "0");
+
+        entoncesNoHayCambio();
+    }
+
+    @Test
+    @DisplayName("Es un aumento si el precio subió respecto del anterior")
+    void esUnAumentoSiElPrecioSubioRespectoDelAnterior() {
+        cuandoCambiaElPrecio("1000", "1200");
+
+        entoncesEsUnAumento();
+    }
+
+    @Test
+    @DisplayName("No es un aumento si el precio bajó")
+    void noEsUnAumentoSiElPrecioBajo() {
+        cuandoCambiaElPrecio("1200", "1000");
+
+        entoncesNoEsUnAumento();
+    }
+
+    @Test
+    @DisplayName("El primer precio que se carga no es un aumento")
+    void elPrimerPrecioQueSeCargaNoEsUnAumento() {
+        cuandoCambiaElPrecio(null, "1200");
+
+        entoncesNoEsUnAumento();
     }
 
     @Test
     @DisplayName("La fecha es el día argentino del cambio, aunque en UTC ya sea el día siguiente")
-    void fechaShouldBeTheArgentinaDay() {
-        assertThat(whenEntre("1000", "1200").fecha()).isEqualTo(LocalDate.of(2026, 10, 19));
+    void laFechaEsElDiaArgentinoDelCambioAunqueEnUtcYaSeaElDiaSiguiente() {
+        cuandoCambiaElPrecio("1000", "1200");
+
+        entoncesLaFechaEsElDiaArgentino();
     }
 
-    // --- act ---
-    private static CambioPrecio whenEntre(String anterior, String nuevo) {
-        return CambioPrecio.entre(NEGOCIO_ID, REGISTRO_ID, anterior == null ? null : new BigDecimal(anterior),
-                nuevo == null ? null : new BigDecimal(nuevo), AHORA);
+    // --- cuando ---
+    private void cuandoCambiaElPrecio(String anterior, String nuevo) {
+        cambio = CambioPrecio.entre(NEGOCIO_ID, REGISTRO_ID, precio(anterior), precio(nuevo), AHORA);
+    }
+
+    private static BigDecimal precio(String valor) {
+        if (valor == null) {
+            return null;
+        }
+        return new BigDecimal(valor);
+    }
+
+    // --- entonces ---
+    private void entoncesSeRegistraElCambioDeMilAMilDoscientos() {
+        assertThat(cambio).isEqualTo(new CambioPrecio(NEGOCIO_ID, REGISTRO_ID, new BigDecimal("1000"),
+                new BigDecimal("1200"), AHORA));
+    }
+
+    private void entoncesNoHayPrecioAnterior() {
+        assertThat(cambio.anterior()).isNull();
+    }
+
+    private void entoncesNoHayCambio() {
+        assertThat(cambio).isNull();
+    }
+
+    private void entoncesEsUnAumento() {
+        assertThat(cambio.esAumento()).isTrue();
+    }
+
+    private void entoncesNoEsUnAumento() {
+        assertThat(cambio.esAumento()).isFalse();
+    }
+
+    private void entoncesLaFechaEsElDiaArgentino() {
+        assertThat(cambio.fecha()).isEqualTo(LocalDate.of(2026, 10, 19));
     }
 }

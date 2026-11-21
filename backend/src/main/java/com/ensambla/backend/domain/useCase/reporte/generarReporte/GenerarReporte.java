@@ -6,6 +6,7 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.FuncionPlan;
 import com.ensambla.backend.domain.model.reporte.FiltroReporte;
 import com.ensambla.backend.domain.model.reporte.ReporteRegistros;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
@@ -37,20 +38,31 @@ public class GenerarReporte {
     private final ReporteService reporteService;
 
     public GenerarReporteResponse execute(GenerarReporteRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        Bloque bloque = bloqueRepository.obtener(request.bloqueId(), negocioId);
-        controlPlanService.validarFuncion(negocioId, FuncionPlan.REPORTES_FILTRADOS, OffsetDateTime.now(clock));
-        List<Campo> campos = campoRepository.findByBloqueIdAndNegocioId(bloque.getId(), negocioId);
-        FiltroReporte filtro = FiltroReporte.armar(
-                negocioId,
-                bloque.getId(),
-                campos,
-                request.texto(),
-                request.desde(),
-                request.hasta(),
-                request.campoId(),
-                request.valor());
-        ReporteRegistros reporte = reporteService.generar(filtro, campos, MAXIMO_VISTA);
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+        Bloque bloque = obtenerBloque(request, negocioId);
+        exigirLaFuncionDeReportes(negocioId);
+        List<Campo> campos = obtenerCampos(bloque, negocioId);
+        ReporteRegistros reporte = generarVistaPrevia(request.comoFiltro(negocioId, bloque, campos), campos);
         return GenerarReporteResponse.de(reporte, MAXIMO_VISTA);
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private Bloque obtenerBloque(GenerarReporteRequest request, NegocioId negocioId) {
+        return bloqueRepository.obtener(request.bloqueId(), negocioId);
+    }
+
+    private void exigirLaFuncionDeReportes(NegocioId negocioId) {
+        controlPlanService.validarFuncion(negocioId, FuncionPlan.REPORTES_FILTRADOS, OffsetDateTime.now(clock));
+    }
+
+    private List<Campo> obtenerCampos(Bloque bloque, NegocioId negocioId) {
+        return campoRepository.findByBloqueIdAndNegocioId(bloque.getId(), negocioId);
+    }
+
+    private ReporteRegistros generarVistaPrevia(FiltroReporte filtro, List<Campo> campos) {
+        return reporteService.generar(filtro, campos, MAXIMO_VISTA);
     }
 }

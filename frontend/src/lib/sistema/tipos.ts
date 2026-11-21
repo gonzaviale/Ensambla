@@ -53,6 +53,8 @@ export type Campo = {
   min?: number;
   /** Id del bloque al que apunta un campo de tipo vínculo. */
   target?: string;
+  /** Columna que Ensambla necesita para funcionar: se puede renombrar, pero no quitar ni cambiar de tipo. */
+  system?: boolean;
 };
 
 export type Bloque = {

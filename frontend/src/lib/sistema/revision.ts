@@ -102,43 +102,53 @@ const cambiarCampo = (
   ),
 });
 
-export function reducirRevision(revision: Revision, accion: AccionDeRevision): Revision {
-  switch (accion.tipo) {
-    case 'editar':
-      // Corregir un dato dudoso lo resuelve.
-      return cambiarFila(revision, accion.filaId, (fila) => ({
-        ...fila,
-        valores: { ...fila.valores, [accion.clave]: accion.valor },
-        dudas: sinClave(fila.dudas, accion.clave),
-        editada: true,
-      }));
-    case 'estaBien':
-      return cambiarFila(revision, accion.filaId, (fila) => ({
-        ...fila,
-        dudas: sinClave(fila.dudas, accion.clave),
-      }));
-    case 'quitarFila':
-      return { ...revision, filas: revision.filas.filter((fila) => fila.id !== accion.filaId) };
-    case 'restaurarFila': {
-      const filas = [...revision.filas];
-      filas.splice(accion.indice, 0, accion.fila);
-      return { ...revision, filas };
-    }
-    case 'aceptarCampo':
-      return cambiarCampo(revision, accion.clave, (campo) => ({ ...campo, estado: 'aceptado' }));
-    case 'descartarCampo':
-      return cambiarCampo(revision, accion.clave, (campo) => ({ ...campo, estado: 'descartado' }));
-    case 'reabrirCampo':
-      return cambiarCampo(revision, accion.clave, (campo) => ({ ...campo, estado: 'pendiente' }));
-    case 'renombrarCampo':
-      return cambiarCampo(revision, accion.clave, (campo) => ({ ...campo, label: accion.label }));
-    case 'cambiarTipoDeCampo':
-      return cambiarCampo(revision, accion.clave, (campo) => ({
-        ...campo,
-        tipo: accion.tipoDeCampo,
-      }));
-  }
-}
+const marcarCampo =
+  (estado: EstadoDeCampoNuevo) => (revision: Revision, accion: { clave: string }) =>
+    cambiarCampo(revision, accion.clave, (campo) => ({ ...campo, estado }));
+
+type Reductores = {
+  [T in AccionDeRevision['tipo']]: (
+    revision: Revision,
+    accion: Extract<AccionDeRevision, { tipo: T }>,
+  ) => Revision;
+};
+
+const REDUCTORES: Reductores = {
+  // Corregir un dato dudoso lo resuelve.
+  editar: (revision, accion) =>
+    cambiarFila(revision, accion.filaId, (fila) => ({
+      ...fila,
+      valores: { ...fila.valores, [accion.clave]: accion.valor },
+      dudas: sinClave(fila.dudas, accion.clave),
+      editada: true,
+    })),
+  estaBien: (revision, accion) =>
+    cambiarFila(revision, accion.filaId, (fila) => ({
+      ...fila,
+      dudas: sinClave(fila.dudas, accion.clave),
+    })),
+  quitarFila: (revision, accion) => ({
+    ...revision,
+    filas: revision.filas.filter((fila) => fila.id !== accion.filaId),
+  }),
+  restaurarFila: (revision, accion) => {
+    const filas = [...revision.filas];
+    filas.splice(accion.indice, 0, accion.fila);
+    return { ...revision, filas };
+  },
+  aceptarCampo: marcarCampo('aceptado'),
+  descartarCampo: marcarCampo('descartado'),
+  reabrirCampo: marcarCampo('pendiente'),
+  renombrarCampo: (revision, accion) =>
+    cambiarCampo(revision, accion.clave, (campo) => ({ ...campo, label: accion.label })),
+  cambiarTipoDeCampo: (revision, accion) =>
+    cambiarCampo(revision, accion.clave, (campo) => ({ ...campo, tipo: accion.tipoDeCampo })),
+};
+
+type Reductor = (revision: Revision, accion: AccionDeRevision) => Revision;
+
+export const reducirRevision: Reductor = (revision, accion) =>
+  (REDUCTORES[accion.tipo] as Reductor)(revision, accion);
 
 /** Las opciones de una columna de tipo «Opciones»: los valores distintos que se leyeron. */
 export function opcionesDeLaColumna(revision: Revision, clave: string): string[] {

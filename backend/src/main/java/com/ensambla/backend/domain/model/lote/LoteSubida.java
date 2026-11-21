@@ -51,10 +51,6 @@ public class LoteSubida {
     public static LoteSubida nuevo(NegocioId negocioId, List<byte[]> contenidos, BloqueId bloqueDestinoId,
                                   OffsetDateTime ahora) {
         validarCantidad(contenidos);
-        List<FotoCuaderno> fotos = new ArrayList<>();
-        for (byte[] contenido : contenidos) {
-            fotos.add(FotoCuaderno.nueva(negocioId, contenido, (short) fotos.size(), ahora));
-        }
         return LoteSubida.builder()
                 .negocioId(negocioId)
                 .bloqueDestinoId(bloqueDestinoId)
@@ -62,7 +58,7 @@ public class LoteSubida {
                 .intentos((short) 0)
                 .creadoEn(ahora)
                 .actualizadoEn(ahora)
-                .fotos(fotos)
+                .fotos(fotosNuevas(negocioId, contenidos, ahora))
                 .build();
     }
 
@@ -72,12 +68,14 @@ public class LoteSubida {
      * @throws BusinessRuleException si el lote todavía se está leyendo, falló o ya se guardó
      */
     public void validarConfirmable() {
-        if (estado == EstadoLote.CONFIRMADO) {
-            throw new BusinessRuleException("Este cuaderno ya se guardó");
-        }
-        if (estado != EstadoLote.LISTO) {
-            throw new BusinessRuleException("Este cuaderno todavía no terminó de leerse");
-        }
+        estado.exigirQueSePuedaConfirmar();
+    }
+
+    /** La foto con ese id, si el lote la tiene. */
+    public Optional<FotoCuaderno> fotoConId(FotoId fotoId) {
+        return fotos.stream()
+                .filter(foto -> foto.getId().equals(fotoId))
+                .findFirst();
     }
 
     /** La foto de la página indicada (1 = la primera subida), si el lote la tiene. */
@@ -85,6 +83,15 @@ public class LoteSubida {
         return fotos.stream()
                 .filter(foto -> foto.getPosicion() == pagina - 1)
                 .findFirst();
+    }
+
+    private static List<FotoCuaderno> fotosNuevas(NegocioId negocioId, List<byte[]> contenidos,
+                                                  OffsetDateTime ahora) {
+        List<FotoCuaderno> fotos = new ArrayList<>();
+        for (byte[] contenido : contenidos) {
+            fotos.add(FotoCuaderno.nueva(negocioId, contenido, (short) fotos.size(), ahora));
+        }
+        return fotos;
     }
 
     private static void validarCantidad(List<byte[]> contenidos) {

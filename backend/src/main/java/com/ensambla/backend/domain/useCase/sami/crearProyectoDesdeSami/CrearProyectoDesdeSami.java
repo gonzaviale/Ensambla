@@ -1,5 +1,7 @@
 package com.ensambla.backend.domain.useCase.sami.crearProyectoDesdeSami;
 
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plantilla.PlantillaProyecto;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
@@ -30,11 +32,23 @@ public class CrearProyectoDesdeSami {
     private final Clock clock;
 
     public ProyectoItem execute(CrearProyectoDesdeSamiRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        PlantillaProyecto plantilla = plantillaRepository.obtenerParaProyecto(request.plantillaId());
-        OffsetDateTime ahora = OffsetDateTime.now(clock);
-        Proyecto proyecto = transaccionPort.ejecutar(() -> crear(negocioId, plantilla, request, ahora));
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+        PlantillaProyecto plantilla = obtenerPlantilla(request.plantillaId());
+        Proyecto proyecto = crearEnTransaccion(negocioId, plantilla, request, OffsetDateTime.now(clock));
         return ProyectoItem.de(proyecto);
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private PlantillaProyecto obtenerPlantilla(PlantillaId plantillaId) {
+        return plantillaRepository.obtenerParaProyecto(plantillaId);
+    }
+
+    private Proyecto crearEnTransaccion(NegocioId negocioId, PlantillaProyecto plantilla,
+                                        CrearProyectoDesdeSamiRequest request, OffsetDateTime ahora) {
+        return transaccionPort.ejecutar(() -> crear(negocioId, plantilla, request, ahora));
     }
 
     /**
@@ -46,9 +60,13 @@ public class CrearProyectoDesdeSami {
         controlPlanService.validarAltaProyecto(negocioId, ahora);
         Proyecto proyecto = Proyecto.desdePlantilla(negocioId, plantilla, ahora);
         proyecto.agregarColumnas(request.columnasExtra(), ahora);
-        if (request.nombre() != null && !request.nombre().isBlank()) {
-            proyecto.renombrar(request.nombre(), ahora);
-        }
+        renombrarSiEligioUnNombre(proyecto, request.nombre(), ahora);
         return proyectoRepository.saveConEstructura(proyecto);
+    }
+
+    private static void renombrarSiEligioUnNombre(Proyecto proyecto, String nombre, OffsetDateTime ahora) {
+        if (nombre != null && !nombre.isBlank()) {
+            proyecto.renombrar(nombre, ahora);
+        }
     }
 }

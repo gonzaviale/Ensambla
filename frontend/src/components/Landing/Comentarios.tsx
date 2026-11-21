@@ -145,7 +145,7 @@ export function Comentarios() {
     agregar(comentario);
     setNuevo(comentario);
     form.reset();
-    setMensaje({ tipo: 'ok', texto: '¡Gracias! Tu comentario ya es parte del sistema.' });
+    setMensaje({ tipo: 'ok', texto: 'Gracias. Tu comentario quedó publicado.' });
     lista.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
   };
 
@@ -192,7 +192,10 @@ export function Comentarios() {
           <div className="opinar revelar">
             <div className="opinar__texto">
               <h3>Dejanos tu comentario</h3>
-              <p>¿Probaste Ensambla o tenés una idea para un bloque nuevo? Contanos, te leemos.</p>
+              <p>
+                ¿Probaste Ensambla o tenés una idea para una sección nueva? Escribila en este
+                formulario.
+              </p>
             </div>
             <form className="formulario" onSubmit={publicar} noValidate>
               <div className="formulario__fila">

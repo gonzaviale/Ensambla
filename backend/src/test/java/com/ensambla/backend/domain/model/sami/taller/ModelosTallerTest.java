@@ -8,53 +8,108 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class ModelosTallerTest {
 
+    private LlamadaHerramienta llamada;
+
     @Test
-    @DisplayName("Las listas ausentes quedan vacías en vez de nulas")
-    void constructorsShouldReplaceMissingListsWithEmptyOnes() {
-        assertThat(new PiezaTaller("e1", "inventory", "Inventario", null, null).campos()).isEmpty();
-        assertThat(new PiezaTaller("e1", "inventory", "Inventario", null, null, null).registros()).isEmpty();
-        assertThat(new PiezaTaller("e1", "inventory", "Inventario", null, null, null, null).nombres()).isEmpty();
-        assertThat(new EstadoTaller("Sistema", "mosaic", null).piezas()).isEmpty();
-        assertThat(new LlamadaHerramienta("agregar_pieza", null).argumentos()).isEmpty();
+    @DisplayName("Una pieza sin datos, registros ni nombres los deja vacíos en vez de nulos")
+    void unaPiezaSinListasLasDejaVacias() {
+        entoncesEstaVacia(new PiezaTaller("e1", "inventory", "Inventario", null, null).campos());
+        entoncesEstaVacia(new PiezaTaller("e1", "inventory", "Inventario", null, null, null).registros());
+        entoncesEstaVacia(new PiezaTaller("e1", "inventory", "Inventario", null, null, null, null).nombres());
     }
 
     @Test
-    @DisplayName("Los argumentos de una llamada admiten valores nulos y no se pueden modificar")
-    void llamadaShouldAllowNullValuesAndBeImmutable() {
-        Map<String, Object> argumentos = new HashMap<>();
-        argumentos.put("tipo", null);
-
-        LlamadaHerramienta llamada = new LlamadaHerramienta("agregar_pieza", argumentos);
-
-        assertThat(llamada.argumentos()).containsEntry("tipo", null);
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> llamada.argumentos().put("otro", "x"))
-                .isInstanceOf(UnsupportedOperationException.class);
+    @DisplayName("Un estado del taller sin piezas y una llamada sin argumentos quedan vacíos")
+    void unEstadoSinPiezasYUnaLlamadaSinArgumentosQuedanVacios() {
+        entoncesEstaVacia(new EstadoTaller("Sistema", "mosaic", null).piezas());
+        entoncesNoTieneArgumentos(new LlamadaHerramienta("agregar_pieza", null));
     }
 
     @Test
-    @DisplayName("Encuentra una herramienta por su nombre y devuelve vacío si no existe")
-    void herramientaShouldBeFoundByName() {
-        assertThat(HerramientaTaller.deNombre("ofrecer_opciones")).contains(HerramientaTaller.OFRECER_OPCIONES);
-        assertThat(HerramientaTaller.deNombre("agregar_pieza").orElseThrow().nombre()).isEqualTo("agregar_pieza");
-        assertThat(HerramientaTaller.deNombre("inventada")).isEmpty();
+    @DisplayName("Los argumentos de una llamada admiten valores nulos")
+    void losArgumentosDeUnaLlamadaAdmitenValoresNulos() {
+        cuandoSeLlamaConUnTipoNulo();
+
+        entoncesElTipoEsNulo();
+    }
+
+    @Test
+    @DisplayName("Los argumentos de una llamada no se pueden modificar")
+    void losArgumentosDeUnaLlamadaNoSePuedenModificar() {
+        cuandoSeLlamaConUnTipoNulo();
+
+        entoncesNoSePuedenAgregarArgumentos();
+    }
+
+    @Test
+    @DisplayName("Encuentra una herramienta por su nombre")
+    void encuentraUnaHerramientaPorSuNombre() {
+        entoncesLaHerramientaDeNombre("ofrecer_opciones", HerramientaTaller.OFRECER_OPCIONES);
+        entoncesLaHerramientaDeNombreSeLlama("agregar_pieza");
+    }
+
+    @Test
+    @DisplayName("Una herramienta que no existe no se encuentra")
+    void unaHerramientaQueNoExisteNoSeEncuentra() {
+        entoncesNoHayHerramienta("inventada");
     }
 
     @Test
     @DisplayName("Los vínculos no se suman como un dato más: sólo con conectar")
-    void catalogShouldNotAllowRelationsAsPlainFields() {
-        assertThat(CatalogoTaller.TIPOS_DE_CAMPO)
-                .contains("textarea", "time")
-                .doesNotContain(CatalogoTaller.TIPO_VINCULO);
+    void losVinculosNoSeSumanComoUnDatoMas() {
+        entoncesLosTiposDeDatoNoIncluyenElVinculo();
     }
 
     @Test
     @DisplayName("Una consulta armada sin kit lo deja vacío")
-    void consultaShouldHaveNoKitWhenBuiltWithoutOne() {
-        ConsultaTaller consulta = new ConsultaTaller("hola", new EstadoTaller("S", "mosaic", null), List.of());
+    void unaConsultaArmadaSinKitLoDejaVacio() {
+        entoncesNoTieneKit(new ConsultaTaller("hola", new EstadoTaller("S", "mosaic", null), List.of()));
+    }
 
+    private void cuandoSeLlamaConUnTipoNulo() {
+        Map<String, Object> argumentos = new HashMap<>();
+        argumentos.put("tipo", null);
+        llamada = new LlamadaHerramienta("agregar_pieza", argumentos);
+    }
+
+    private void entoncesElTipoEsNulo() {
+        assertThat(llamada.argumentos()).containsEntry("tipo", null);
+    }
+
+    private void entoncesNoSePuedenAgregarArgumentos() {
+        assertThat(catchThrowable(() -> llamada.argumentos().put("otro", "x")))
+                .isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    private static void entoncesEstaVacia(List<?> lista) {
+        assertThat(lista).isEmpty();
+    }
+
+    private static void entoncesNoTieneArgumentos(LlamadaHerramienta sinArgumentos) {
+        assertThat(sinArgumentos.argumentos()).isEmpty();
+    }
+
+    private static void entoncesLaHerramientaDeNombre(String nombre, HerramientaTaller esperada) {
+        assertThat(HerramientaTaller.deNombre(nombre)).contains(esperada);
+    }
+
+    private static void entoncesLaHerramientaDeNombreSeLlama(String nombre) {
+        assertThat(HerramientaTaller.deNombre(nombre).orElseThrow().nombre()).isEqualTo(nombre);
+    }
+
+    private static void entoncesNoHayHerramienta(String nombre) {
+        assertThat(HerramientaTaller.deNombre(nombre)).isEmpty();
+    }
+
+    private static void entoncesLosTiposDeDatoNoIncluyenElVinculo() {
+        assertThat(CatalogoTaller.TIPOS_DE_CAMPO).contains("textarea", "time").doesNotContain(CatalogoTaller.TIPO_VINCULO);
+    }
+
+    private static void entoncesNoTieneKit(ConsultaTaller consulta) {
         assertThat(consulta.kit()).isNull();
     }
 }

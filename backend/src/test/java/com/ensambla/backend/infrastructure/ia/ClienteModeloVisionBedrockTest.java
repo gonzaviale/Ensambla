@@ -26,13 +26,61 @@ class ClienteModeloVisionBedrockTest {
             List.of(new PaginaCuaderno(1, new byte[]{1, 2}, "image/jpeg"),
                     new PaginaCuaderno(2, new byte[]{3}, "image/png")), "{\"type\":\"object\"}");
 
+    private BedrockRuntimeClient bedrock;
+    private RespuestaModeloVision respuesta;
+
     @Test
     @DisplayName("Devuelve el JSON sin la cerca de código, con los tokens y el modelo informados")
-    void completarShouldReturnJsonWithTokens() {
-        BedrockRuntimeClient bedrock = bedrockQueResponde("```json\n{\"a\":1}\n```");
+    void devuelveElJsonSinLaCercaDeCodigoConLosTokensYElModeloInformados() {
+        dadoUnBedrockQueResponde("```json\n{\"a\":1}\n```");
 
-        RespuestaModeloVision respuesta = new ClienteModeloVisionBedrock(bedrock, MODELO).completar(PETICION);
+        cuandoSeCompleta();
 
+        entoncesDevuelveElJsonConLosTokensYElModelo();
+    }
+
+    @Test
+    @DisplayName("Ignora los bloques que no son texto al armar la respuesta")
+    void ignoraLosBloquesQueNoSonTextoAlArmarLaRespuesta() {
+        dadoUnBedrockQueRespondeUnaHerramientaYUnTexto();
+
+        cuandoSeCompleta();
+
+        entoncesElJsonEs("{\"b\":2}");
+    }
+
+    @Test
+    @DisplayName("Manda el modelo, las instrucciones con el esquema, el contexto y cada página como ImageBlock")
+    void mandaElModeloLasInstruccionesConElEsquemaElContextoYCadaPaginaComoImageBlock() {
+        dadoUnBedrockQueResponde("{}");
+
+        cuandoSeCompleta();
+
+        entoncesElPedidoLlevaInstruccionesContextoYCadaPaginaComoImagen();
+    }
+
+    // --- dado ---
+
+    private void dadoUnBedrockQueResponde(String texto) {
+        bedrock = bedrockQueResponde(texto);
+    }
+
+    private void dadoUnBedrockQueRespondeUnaHerramientaYUnTexto() {
+        bedrock = bedrockQueResponde(
+                ContentBlock.fromToolUse(ToolUseBlock.builder().toolUseId("t").name("x")
+                        .input(Document.fromMap(Map.of())).build()),
+                ContentBlock.fromText("{\"b\":2}"));
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeCompleta() {
+        respuesta = new ClienteModeloVisionBedrock(bedrock, MODELO).completar(PETICION);
+    }
+
+    // --- entonces ---
+
+    private void entoncesDevuelveElJsonConLosTokensYElModelo() {
         assertThat(respuesta.json()).isEqualTo("{\"a\":1}");
         assertThat(respuesta.proveedor()).isEqualTo("bedrock");
         assertThat(respuesta.modelo()).isEqualTo(MODELO);
@@ -40,27 +88,12 @@ class ClienteModeloVisionBedrockTest {
         assertThat(respuesta.tokensSalida()).isEqualTo(RespuestasDePrueba.TOKENS_SALIDA);
     }
 
-    @Test
-    @DisplayName("Ignora los bloques que no son texto al armar la respuesta")
-    void completarShouldIgnoreNonTextBlocks() {
-        BedrockRuntimeClient bedrock = bedrockQueResponde(
-                ContentBlock.fromToolUse(ToolUseBlock.builder().toolUseId("t").name("x")
-                        .input(Document.fromMap(Map.of())).build()),
-                ContentBlock.fromText("{\"b\":2}"));
-
-        RespuestaModeloVision respuesta = new ClienteModeloVisionBedrock(bedrock, MODELO).completar(PETICION);
-
-        assertThat(respuesta.json()).isEqualTo("{\"b\":2}");
+    private void entoncesElJsonEs(String esperado) {
+        assertThat(respuesta.json()).isEqualTo(esperado);
     }
 
-    @Test
-    @DisplayName("Manda el modelo, las instrucciones con el esquema, el contexto y cada página como ImageBlock")
-    void completarShouldSendInstructionsContextAndPagesAsImages() {
-        BedrockRuntimeClient bedrock = bedrockQueResponde("{}");
-
-        new ClienteModeloVisionBedrock(bedrock, MODELO).completar(PETICION);
-
-        ConverseRequest pedido = pedidoEnviado(bedrock);
+    private void entoncesElPedidoLlevaInstruccionesContextoYCadaPaginaComoImagen() {
+        ConverseRequest pedido = pedidoEnviado();
         assertThat(pedido.modelId()).isEqualTo(MODELO);
         assertThat(pedido.system().getFirst().text()).startsWith("Leé el cuaderno").contains("{\"type\":\"object\"}");
         assertThat(pedido.messages().getFirst().role()).isEqualTo(ConversationRole.USER);
@@ -73,8 +106,9 @@ class ClienteModeloVisionBedrockTest {
         assertThat(pedido.inferenceConfig().maxTokens()).isEqualTo(ClienteModeloVisionBedrock.MAX_TOKENS_SALIDA);
     }
 
-    // --- assert ---
-    private ConverseRequest pedidoEnviado(BedrockRuntimeClient bedrock) {
+    // --- datos ---
+
+    private ConverseRequest pedidoEnviado() {
         ArgumentCaptor<ConverseRequest> captor = ArgumentCaptor.forClass(ConverseRequest.class);
         verify(bedrock).converse(captor.capture());
         return captor.getValue();

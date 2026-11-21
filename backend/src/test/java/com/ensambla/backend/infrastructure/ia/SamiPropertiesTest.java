@@ -21,38 +21,57 @@ class SamiPropertiesTest {
                     "bedrock", new IaProperties.Proveedor(
                             null, "us-east-1", "perfil-global", "haiku-bedrock", "sonnet-bedrock", "vision-bedrock")));
 
+    private AjustesIa ajustes;
+
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"  "})
     @DisplayName("Sin proveedor propio, Sami usa el global con sus credenciales y modelos")
-    void ajustesShouldUseGlobalProviderWhenSamiDoesNotOverride(String proveedor) {
-        AjustesIa ajustes = ia(proveedor, null, null, null, null).ajustes(GLOBAL);
+    void sinProveedorPropioSamiUsaElGlobalConSusCredencialesYModelos(String proveedor) {
+        cuandoSeCalculanLosAjustesDeSami(ia(proveedor, null, null, null, null));
 
-        assertThat(ajustes).isEqualTo(new AjustesIa("anthropic", "clave", null, null, "claude-haiku-4-5",
+        entoncesLosAjustesSon(new AjustesIa("anthropic", "clave", null, null, "claude-haiku-4-5",
                 "claude-sonnet-4-6", "claude-haiku-4-5", TIMEOUT_SAMI));
     }
 
     @Test
     @DisplayName("Si Sami pisa el proveedor, usa ése con las credenciales y los modelos de ése")
-    void ajustesShouldUseSamiProviderWhenOverridden() {
-        AjustesIa ajustes = ia(" Bedrock", null, null, null, null).ajustes(GLOBAL);
+    void siSamiPisaElProveedorUsaEseConLasCredencialesYLosModelosDeEse() {
+        cuandoSeCalculanLosAjustesDeSami(ia(" Bedrock", null, null, null, null));
 
-        assertThat(ajustes).isEqualTo(new AjustesIa("bedrock", null, "us-east-1", "perfil-global", "haiku-bedrock",
+        entoncesLosAjustesSon(new AjustesIa("bedrock", null, "us-east-1", "perfil-global", "haiku-bedrock",
                 "sonnet-bedrock", "vision-bedrock", TIMEOUT_SAMI));
     }
 
     @Test
     @DisplayName("La región, el perfil y los modelos de Sami pisan los del proveedor")
-    void ajustesShouldOverrideRegionProfileAndModels() {
-        AjustesIa ajustes = ia("bedrock", "sa-east-1", "perfil-sami", "rapido-sami", "avanzado-sami").ajustes(GLOBAL);
+    void laRegionElPerfilYLosModelosDeSamiPisanLosDelProveedor() {
+        cuandoSeCalculanLosAjustesDeSami(ia("bedrock", "sa-east-1", "perfil-sami", "rapido-sami", "avanzado-sami"));
 
+        entoncesSamiPisaRegionPerfilYModelos();
+    }
+
+    // --- cuando ---
+
+    private void cuandoSeCalculanLosAjustesDeSami(SamiProperties.Ia ia) {
+        ajustes = ia.ajustes(GLOBAL);
+    }
+
+    // --- entonces ---
+
+    private void entoncesLosAjustesSon(AjustesIa esperados) {
+        assertThat(ajustes).isEqualTo(esperados);
+    }
+
+    private void entoncesSamiPisaRegionPerfilYModelos() {
         assertThat(ajustes.region()).isEqualTo("sa-east-1");
         assertThat(ajustes.perfilAws()).isEqualTo("perfil-sami");
         assertThat(ajustes.modeloRapido()).isEqualTo("rapido-sami");
         assertThat(ajustes.modeloAvanzado()).isEqualTo("avanzado-sami");
     }
 
-    // --- helpers ---
+    // --- datos ---
+
     private SamiProperties.Ia ia(String proveedor, String region, String perfil, String rapido, String avanzado) {
         return new SamiProperties.Ia(proveedor, region, perfil, rapido, avanzado, TIMEOUT_SAMI, 700, 0.6, 900);
     }
