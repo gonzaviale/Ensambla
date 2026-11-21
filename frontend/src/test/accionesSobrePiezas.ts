@@ -84,17 +84,6 @@ export const cuandoSeResume = () => {
   resumen = resumirSistema(taller.sistema);
 };
 
-export const cuandoSeResumeConLaPrimeraVentaYaGuardada = () => {
-  resumen = resumirSistema(taller.sistema, new Set([piezaDelTipo('sales').rows[0]?.id ?? '']));
-};
-
-export const cuandoSeResumeConTodoGuardado = () => {
-  const guardadas = allBlocks(taller.sistema).flatMap((bloque) =>
-    bloque.rows.map((fila) => fila.id),
-  );
-  resumen = resumirSistema(taller.sistema, new Set(guardadas));
-};
-
 export const cuandoSeCopiaConOtraFecha = () => {
   copia = { ...clone(taller.sistema), updatedAt: 'otra fecha' };
 };
@@ -122,10 +111,11 @@ export const entoncesElResumenEsDeUnaColumnaConTodoEnLaPrimeraPestana = () => {
   );
 };
 
-export const entoncesSoloViajaLaVentaNueva = () => {
-  const nueva = piezaDelTipo('sales').rows[1];
+export const entoncesViajanLasDosVentas = () => {
+  const [primera, segunda] = piezaDelTipo('sales').rows;
   expect(piezaResumida('sales')?.registros).toEqual([
-    { id: nueva?.id, datos: { Producto: 'Fideos', Cantidad: 1 } },
+    { id: primera?.id, datos: { Producto: 'Yerba', Cantidad: 2, Cliente: 'Anto' } },
+    { id: segunda?.id, datos: { Producto: 'Fideos', Cantidad: 1 } },
   ]);
 };
 
@@ -149,8 +139,10 @@ export const entoncesLasPiezasVinculadasLlevanLosNombresQueTienen = () => {
   expect(piezaResumida('clients')?.nombres).toEqual(['Anto']);
 };
 
-export const entoncesLoGuardadoNoViajaComoRegistro = () => {
-  expect(piezaResumida('clients')?.registros).toEqual([]);
+export const entoncesLoGuardadoViajaComoRegistro = () => {
+  expect(piezaResumida('clients')?.registros.map((registro) => registro.datos)).toEqual([
+    { Nombre: 'Anto' },
+  ]);
 };
 
 export const entoncesUnaPiezaQueNadieVinculaNoLlevaNombres = () => {

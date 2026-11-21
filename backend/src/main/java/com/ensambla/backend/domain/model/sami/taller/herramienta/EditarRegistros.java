@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * {@code editar_registros} corrige registros que la pieza ya tiene (los que Sami cargó en este armado), nombrados por
+ * {@code editar_registros} corrige registros que la pieza ya tiene (los que Sami cargó o los que el negocio ya tenía guardados), nombrados por
  * su id: {@code registros} es una lista de {@code {id, datos: {Etiqueta: valor}}}. Sólo valen los ids que mandó el
  * taller y los datos de la pieza con valores simples; lo que no cambia nada se cae, y dos pedidos sobre el mismo
  * registro se juntan. Así Sami corrige lo que propuso sin volver a cargarlo.
