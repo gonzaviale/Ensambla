@@ -15,7 +15,8 @@ import type { Sistema } from '@/lib/sistema/tipos';
 import { PREFERENCIAS_INICIALES } from '@/types/preferencias';
 import { server } from '@/mocks/node';
 
-export const ESPERA = { timeout: 5000 };
+// La primera pantalla de cada archivo se carga en frío (rutas divididas, gráficos): en CI tarda más de 5 s.
+export const ESPERA = { timeout: 20_000 };
 
 type Metodo = 'get' | 'post' | 'put' | 'patch' | 'delete';
 

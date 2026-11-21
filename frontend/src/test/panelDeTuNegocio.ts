@@ -5,12 +5,10 @@ import { crearAlmacenCargado } from '@/lib/sistema/demo';
 import { hoy } from '@/lib/sistema/formato';
 import { estado, type MetricaGuardada } from '@/mocks/db/estado';
 import { renderApp } from '@/test/renderApp';
-import { setupUsuarioConSesion, verifyHeadingPresentAsync } from '@/test/testHelpers';
+import { ESPERA, setupUsuarioConSesion, verifyHeadingPresentAsync } from '@/test/testHelpers';
 import type { DefinicionDeMetrica } from '@/types/metricas';
 
 // El panel «Tu negocio» en solapas, como lo usa la persona: abrir una solapa, elegir del menú, agregar una métrica.
-
-const ESPERA = { timeout: 3000 };
 
 const receta = (nombre: string, cambios: Partial<DefinicionDeMetrica>): DefinicionDeMetrica => ({
   nombre,

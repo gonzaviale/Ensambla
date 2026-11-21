@@ -115,8 +115,22 @@ export function dadoLectorConCamaraQueFalla(nombreError: string) {
   render(<EscenarioLectorCamara />);
   return userEvent.setup();
 }
+export function dadoLectorQueNuncaTerminaDeIniciar() {
+  decodificar.mockImplementation(() => new Promise(() => undefined));
+  render(<EscenarioLectorCamara />);
+  return userEvent.setup();
+}
+export async function cuandoSeAbrenLosAjustesMientrasInicia(user: UsuarioLector) {
+  await user.click(screen.getByRole('button', { name: 'Escanear producto' }));
+  await waitFor(() => expect(pedirCamara).toHaveBeenCalled());
+  await user.click(screen.getByRole('button', { name: 'Ajustes del lector' }));
+}
+export function entoncesSePuedeVolverAEscanear() {
+  expect(screen.getByRole('button', { name: 'Escanear producto' })).toBeEnabled();
+}
 export async function cuandoSeEligeLaCamaraOcupada(user: UsuarioLector) {
   await user.click(screen.getByRole('button', { name: 'Escanear producto' }));
+  await waitFor(() => expect(decodificar).toHaveBeenCalledOnce());
   await user.click(screen.getByRole('button', { name: 'Ajustes del lector' }));
   const selector = await screen.findByRole('combobox', { name: 'Cámara del lector' });
   await waitFor(() => expect(selector).toBeEnabled());

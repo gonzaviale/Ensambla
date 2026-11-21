@@ -1,12 +1,15 @@
 import '@testing-library/jest-dom/vitest';
 import { transferableAbortController } from 'node:util';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import { invalidarCsrf } from '@/api/client';
 import { ritmoDeSami } from '@/lib/ritmoDeSami';
 import { reiniciarEstado } from '@/mocks/db/estado';
 import { server } from '@/mocks/node';
 import { useSistemaStore } from '@/stores/sistemaStore';
+
+// Las búsquedas asíncronas sin helper (findBy, waitFor) esperan lo mismo que ESPERA: la carga en frío es lenta.
+configure({ asyncUtilTimeout: 20_000 });
 
 // Las burbujas de Sami aparecen de una en los tests; el escalonado tiene su propia prueba.
 ritmoDeSami.maxima = 0;

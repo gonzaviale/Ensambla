@@ -258,7 +258,9 @@ export function useCamaraCodigo(onCodigo: (codigo: string) => void, continua = f
       }
     };
     const alOcultar = () => {
-      if (document.visibilityState === 'hidden') setAbierta(false);
+      if (document.visibilityState !== 'hidden') return;
+      setIniciando(false);
+      setAbierta(false);
     };
     document.addEventListener('visibilitychange', alOcultar);
     void iniciar();
@@ -299,6 +301,9 @@ export function useCamaraCodigo(onCodigo: (codigo: string) => void, continua = f
       setCamaraId(id);
       abrir();
     },
-    cerrar: () => setAbierta(false),
+    cerrar: () => {
+      setIniciando(false);
+      setAbierta(false);
+    },
   };
 }
