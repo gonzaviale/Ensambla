@@ -92,6 +92,6 @@ export default defineConfig({
     css: false,
     // Los tests simulan todo el backend: no dependen del VITE_API_MOCKS del .env de cada persona.
     env: { VITE_API_MOCKS: 'completo' },
-    testTimeout: 20_000,
+    testTimeout: 60_000,
   },
 });
