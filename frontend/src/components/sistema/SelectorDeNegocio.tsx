@@ -7,6 +7,8 @@ import { useActivarNegocio } from '@/hooks/negocios/mutations';
 import { useNegociosDeLaCuenta } from '@/hooks/negocios/queries';
 import { leerErrorServidor } from '@/hooks/errores';
 import { useSistemaStore } from '@/stores/sistemaStore';
+import type { NegocioDeLaCuenta } from '@/types/negocios';
+import { OpcionDeNegocio } from './OpcionDeNegocio';
 
 export function SelectorDeNegocio() {
   const { data } = useNegociosDeLaCuenta();
@@ -49,6 +51,11 @@ export function SelectorDeNegocio() {
   const elegir = (idNegocio: string) => {
     setAbierto(false);
     if (idNegocio !== data.activoId) activar.mutate(idNegocio);
+  };
+
+  const pedirEliminar = (negocio: NegocioDeLaCuenta) => {
+    setAbierto(false);
+    abrirModal({ tipo: 'eliminarNegocio', negocioId: negocio.id, nombre: negocio.nombre });
   };
 
   const mover = (evento: KeyboardEvent<HTMLDivElement>) => {
@@ -102,27 +109,15 @@ export function SelectorDeNegocio() {
             </span>
           </div>
           {data.negocios.map((negocio, posicion) => (
-            <button
+            <OpcionDeNegocio
               key={negocio.id}
-              type="button"
-              role="menuitem"
-              className={
-                negocio.activo ? 'negocio-selector-opcion activa' : 'negocio-selector-opcion'
-              }
-              aria-current={negocio.activo ? 'true' : undefined}
-              onClick={() => elegir(negocio.id)}
-            >
-              <InicialDelNegocio
-                className="negocio-selector-inicial"
-                nombre={negocio.nombre}
-                posicion={posicion}
-              />
-              <span>
-                <strong>{negocio.nombre}</strong>
-                <small>{detalleDe(negocio.id)}</small>
-              </span>
-              {negocio.activo && <Icon name="check" />}
-            </button>
+              negocio={negocio}
+              posicion={posicion}
+              detalle={detalleDe(negocio.id)}
+              sePuedeEliminar={variosNegocios}
+              onElegir={() => elegir(negocio.id)}
+              onEliminar={() => pedirEliminar(negocio)}
+            />
           ))}
           {variosNegocios && (
             <button

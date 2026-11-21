@@ -14,15 +14,18 @@ export function CabeceraComun({ active = 'home' }: { active?: SeccionActiva }) {
   const abrirAvisos = useAbrirAvisos();
   const { cerrarSesion, cerrando } = useCerrarSesion();
 
+  const abrirMiNegocio = () => {
+    if (negocio) return void navegacion.abrirSistema(negocio.id);
+    abrirModal({ tipo: 'blanco' });
+  };
+
   return (
     <TopBar
       active={active}
       nombre={nombre}
       campana={<Campana />}
       onInicio={() => void navegacion.irAInicio()}
-      onMiNegocio={() =>
-        negocio ? void navegacion.abrirSistema(negocio.id) : void navegacion.irAInicio()
-      }
+      onMiNegocio={abrirMiNegocio}
       onCaja={() => void navegacion.irACaja()}
       onZona={() => void navegacion.irAZona()}
       onAvisos={() => void abrirAvisos()}

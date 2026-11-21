@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * Una columna que Ensambla necesita en toda sección de cierto tipo: la leen Caja, Objetivos, Avisos o Mi negocio. La
- * persona puede cambiarle el nombre, pero no quitarla ni cambiarle el tipo de dato.
+ * persona no puede quitarla, renombrarla ni cambiarle el tipo de dato.
  *
  * @param tipos los tipos de dato que la columna admite; el primero es el que lleva al crearla
  * @param opcionesIniciales las opciones con las que nace una columna de lista
@@ -90,6 +90,11 @@ public record ColumnaFija(
         return cumpleLaObligatoriedadDe(campo) && tieneLasOpcionesRequeridas(campo);
     }
 
+    /** La columna sigue llamándose como cuando la persona la recibió: Ensambla la muestra con ese nombre. */
+    public boolean conservaElNombre(Campo antes, Campo ahora) {
+        return antes.getNombre().equals(ahora.getNombre());
+    }
+
     public Campo nueva(Bloque bloque, List<Bloque> bloques, CampoId id, short posicion, OffsetDateTime ahora) {
         return Campo.builder()
                 .id(id)
@@ -132,8 +137,11 @@ public record ColumnaFija(
     }
 
     public String mensajeAlCambiar(String nombreActual) {
-        return "No se puede cambiar «" + nombreActual + "»: Ensambla la necesita para " + paraQue
-                + ". Podés cambiarle el nombre.";
+        return "No se puede cambiar «" + nombreActual + "»: Ensambla la necesita para " + paraQue + ".";
+    }
+
+    public String mensajeAlRenombrar(String nombreActual) {
+        return "No se puede renombrar «" + nombreActual + "»: Ensambla la necesita para " + paraQue + ".";
     }
 
     private boolean apuntaAlDestinoCorrecto(Campo campo, List<Bloque> bloques) {

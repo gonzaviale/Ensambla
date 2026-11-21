@@ -80,20 +80,25 @@ export const dadoQueSeVieronLasFilasDelSistema = () => {
   filasAntes = allBlocks(elSistemaQueSeAjusta()).map((bloque) => bloque.rows.length);
 };
 
-/** Sami responde que Cliente pase a llamarse Clienta y vaya primero en las ventas. */
-export const dadoQueSamiRenombraClienteYLoPonePrimero = () => {
+/** Sami responde que Notas pase a llamarse Observaciones y vaya primero en los clientes. */
+export const dadoQueSamiRenombraNotasYLasPonePrimero = () => {
   pedidos = [];
   server.use(
     http.post('/api/sami/taller', async ({ request }) => {
       const pedido = (await request.json()) as PedidoAlTaller;
       pedidos.push(pedido);
-      const ventas = pedido.estado.piezas.find((pieza) => pieza.tipo === 'sales');
+      const clientes = pedido.estado.piezas.find((pieza) => pieza.tipo === 'clients');
       return HttpResponse.json({
-        respuesta: 'Listo, ahora es Clienta y va primero en las ventas.',
+        respuesta: 'Listo, ahora es Observaciones y va primero en los clientes.',
         acciones: [
           {
             herramienta: 'editar_campo',
-            argumentos: { pieza: ventas?.id, campo: 'Cliente', etiqueta: 'Clienta', posicion: 1 },
+            argumentos: {
+              pieza: clientes?.id,
+              campo: 'Notas',
+              etiqueta: 'Observaciones',
+              posicion: 1,
+            },
           },
         ],
         opciones: null,
@@ -107,9 +112,9 @@ export const dadoQueSeAjustaConSamiUnAlmacenDeAnaConEjemplos = async () => {
   await cuandoSePideAjustarConSami();
 };
 
-export const dadoQueSePidioRenombrarClienteYPonerloPrimero = async () => {
-  await pedirASami('cambiale el nombre a Cliente por Clienta y ponelo primero');
-  await screen.findByText(/ahora es Clienta/, {}, ESPERA);
+export const dadoQueSePidioRenombrarNotasYPonerlasPrimero = async () => {
+  await pedirASami('cambiale el nombre a Notas por Observaciones y ponelas primero');
+  await screen.findByText(/ahora es Observaciones/, {}, ESPERA);
 };
 
 export const dadoQueSePidioPonerClientePrimero = async () => {
@@ -121,8 +126,8 @@ export const dadoQueSePidioPonerClientePrimero = async () => {
 
 export const cuandoSePideAjustarElAlmacenConSami = cuandoSePideAjustarConSami;
 
-export const cuandoSePideRenombrarClienteYPonerloPrimero = () =>
-  pedirASami('cambiale el nombre a Cliente por Clienta y ponelo primero');
+export const cuandoSePideRenombrarNotasYPonerlasPrimero = () =>
+  pedirASami('cambiale el nombre a Notas por Observaciones y ponelas primero');
 
 export const cuandoSePidePonerClientePrimero = () => pedirASami('poné Cliente primero');
 
@@ -161,9 +166,9 @@ export const entoncesElTallerSeAbreConElSistemaParaAjustarlo = async () => {
 };
 
 export const entoncesSamiAplicaLoQuePidioSinTocarElSistemaGuardado = async () => {
-  expect(await screen.findByText(/ahora es Clienta/, {}, ESPERA)).toBeVisible();
+  expect(await screen.findByText(/ahora es Observaciones/, {}, ESPERA)).toBeVisible();
   expect(pedidos[0]?.estado.piezas.map((pieza) => pieza.tipo)).toEqual(['inventory', 'sales', 'clients']);
-  expect(etiquetas(enElStore(elSistemaQueSeAjusta().id), 'sales')[0]).toBe('Producto');
+  expect(etiquetas(enElStore(elSistemaQueSeAjusta().id), 'clients')[0]).toBe('Nombre');
   expect(screen.queryByText(/sin guardar/i)).toBeNull();
 };
 
@@ -173,22 +178,20 @@ export const entoncesSeVuelveAlSistemaConLosCambiosGuardados = async () => {
   await screen.findByRole('heading', { level: 1, name: /Almacén de Ana/ }, ESPERA);
   await verifyToastAsync('Guardé los cambios en «Almacén de Ana».');
   const guardado = enElStore(sistema.id);
-  expect(etiquetas(guardado, 'sales')).toEqual([
-    'Clienta',
-    'Producto',
-    'Cantidad',
-    'Precio',
-    'Fecha',
-    'Fiado',
+  expect(etiquetas(guardado, 'clients')).toEqual([
+    'Observaciones',
+    'Nombre',
+    'Teléfono',
+    'Correo',
   ]);
-  expect(deTipo(guardado, 'sales').fields[0]).toMatchObject({ key: 'customer', type: 'relation' });
+  expect(deTipo(guardado, 'clients').fields[0]).toMatchObject({ key: 'notes' });
   expect(allBlocks(guardado).map((bloque) => bloque.rows.length)).toEqual(filasAntes);
 };
 
 export const entoncesLosCambiosViajanAlServidor = async () => {
   await waitFor(() => {
     const enElServidor = estado.sistemas.get(elEmailDeAna())?.[0];
-    expect(etiquetas(enElServidor, 'sales')[0]).toBe('Clienta');
+    expect(etiquetas(enElServidor, 'clients')[0]).toBe('Observaciones');
   }, ESPERA);
 };
 

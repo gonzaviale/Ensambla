@@ -2,7 +2,7 @@ import { esColumnaFija } from '@/lib/sistema/estructuraFija';
 import type { Campo } from '@/lib/sistema/tipos';
 import { Icon } from '../Icon';
 
-const EXPLICACION = 'La usa Ensambla para funcionar. Podés cambiarle el nombre, pero no quitarla.';
+const EXPLICACION = 'La usa Ensambla para funcionar. No se puede quitar ni renombrar.';
 
 export function CandadoDeColumna({ campo }: { campo: Campo }) {
   if (!esColumnaFija(campo)) return null;

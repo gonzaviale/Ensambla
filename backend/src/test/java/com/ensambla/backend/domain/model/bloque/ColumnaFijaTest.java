@@ -209,8 +209,31 @@ class ColumnaFijaTest {
         dadaLaColumna(ColumnaFija.moneda("cost", "Costo", "calcular la ganancia"));
 
         entoncesLosMensajesDicen("No se puede quitar «Costo»: Ensambla la necesita para calcular la ganancia.",
-                "No se puede cambiar «Costo»: Ensambla la necesita para calcular la ganancia. "
-                        + "Podés cambiarle el nombre.");
+                "No se puede cambiar «Costo»: Ensambla la necesita para calcular la ganancia.");
+    }
+
+    @Test
+    @DisplayName("El mensaje al renombrar nombra la columna y para qué la necesita Ensambla")
+    void elMensajeAlRenombrarNombraLaColumnaYParaQueLaNecesitaEnsambla() {
+        dadaLaColumna(ColumnaFija.moneda("cost", "Costo", "calcular la ganancia"));
+
+        entoncesElMensajeAlRenombrarDice("No se puede renombrar «Costo»: Ensambla la necesita para calcular la ganancia.");
+    }
+
+    @Test
+    @DisplayName("Conserva el nombre cuando el campo se llama igual que antes")
+    void conservaElNombreCuandoElCampoSeLlamaIgualQueAntes() {
+        dadaLaColumna(ColumnaFija.moneda("cost", "Costo", "calcular la ganancia"));
+
+        entoncesConservaElNombre("Costo", "Costo", true);
+    }
+
+    @Test
+    @DisplayName("No conserva el nombre cuando el campo se llama distinto que antes")
+    void noConservaElNombreCuandoElCampoSeLlamaDistintoQueAntes() {
+        dadaLaColumna(ColumnaFija.moneda("cost", "Costo", "calcular la ganancia"));
+
+        entoncesConservaElNombre("Costo", "Costo de compra", false);
     }
 
     @Test
@@ -351,6 +374,16 @@ class ColumnaFijaTest {
     private void entoncesLosMensajesDicen(String alQuitar, String alCambiar) {
         assertThat(columna.mensajeAlQuitar("Costo")).isEqualTo(alQuitar);
         assertThat(columna.mensajeAlCambiar("Costo")).isEqualTo(alCambiar);
+    }
+
+    private void entoncesElMensajeAlRenombrarDice(String mensaje) {
+        assertThat(columna.mensajeAlRenombrar("Costo")).isEqualTo(mensaje);
+    }
+
+    private void entoncesConservaElNombre(String antes, String ahora, boolean conserva) {
+        Campo campoAntes = Campo.builder().id(CampoId.nuevo()).nombre(antes).clave(columna.clave()).build();
+        Campo campoAhora = Campo.builder().id(CampoId.nuevo()).nombre(ahora).clave(columna.clave()).build();
+        assertThat(columna.conservaElNombre(campoAntes, campoAhora)).isEqualTo(conserva);
     }
 
     private void entoncesNoEsLaColumna() {

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from '@tanstack/react-router';
+import { leerErrorServidor } from '@/hooks/errores';
 import { useCrearNegocio } from '@/hooks/negocios/mutations';
 import { useNegociosDeLaCuenta } from '@/hooks/negocios/queries';
 import { useSistemaStore } from '@/stores/sistemaStore';
@@ -15,11 +16,17 @@ export function ModalAgregarNegocio() {
   const crear = useCrearNegocio();
   const [nombre, setNombre] = useState('');
 
+  const error = leerErrorServidor(crear.error);
+
   const guardar = async (evento: FormEvent) => {
     evento.preventDefault();
     if (!nombre.trim()) return;
-    await crear.mutateAsync(nombre.trim());
-    cerrar();
+    try {
+      await crear.mutateAsync(nombre.trim());
+      cerrar();
+    } catch {
+      // La mutación conserva el mensaje del servidor para mostrarlo sin cerrar el diálogo.
+    }
   };
 
   if (!cuenta.puedeCrear) {
@@ -54,7 +61,7 @@ export function ModalAgregarNegocio() {
         <Icon name="plus" />
       </div>
       <h2 id="modal-title">Agregá otro negocio</h2>
-      <p>Empieza vacío y con sus propias secciones. Lo armás después, desde su Inicio.</p>
+      <p>Empieza con Stock, Ventas, Clientes y Gastos, sin registros. Lo armás después, desde su Inicio.</p>
       <form onSubmit={(evento) => void guardar(evento)} noValidate>
         <fieldset disabled={crear.isPending}>
           <div className="field">
@@ -73,6 +80,11 @@ export function ModalAgregarNegocio() {
         {cuenta.limite !== null && (
           <p className="negocio-cupo-nota">
             Usás {cuenta.negocios.length} de {cuenta.limite} negocios de tu plan.
+          </p>
+        )}
+        {error && (
+          <p className="form-error" role="alert">
+            {error.mensaje}
           </p>
         )}
         <div className="modal-footer">
