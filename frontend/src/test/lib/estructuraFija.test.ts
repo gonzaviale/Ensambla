@@ -61,10 +61,6 @@ function entoncesNoSePuedeQuitar() {
   expect(resultado).toBe(false);
 }
 
-function entoncesNoHayProblema() {
-  expect(resultado).toBeNull();
-}
-
 function entoncesElProblemaEs(mensaje: string) {
   expect(resultado).toBe(mensaje);
 }
@@ -105,7 +101,7 @@ describe('la estructura fija del negocio', () => {
       'No se puede quitar la sección «Inventario»: Ensambla la necesita para funcionar.',
     );
     expect(motivoParaNoQuitarLaColumna(columnaDe('cost'))).toBe(
-      'No se puede quitar «Costo»: Ensambla la necesita para funcionar. Podés cambiarle el nombre.',
+      'No se puede quitar «Costo»: Ensambla la necesita para funcionar.',
     );
   });
 
@@ -132,7 +128,7 @@ describe('la estructura fija del negocio', () => {
     cuandoSeCambiaElTipoDeLaColumna('price', 'text');
 
     entoncesElProblemaEs(
-      'No se puede cambiar «Precio»: Ensambla la necesita para funcionar. Podés cambiarle el nombre.',
+      'No se puede cambiar ni renombrar «Precio»: Ensambla la necesita para funcionar.',
     );
   });
 
@@ -143,7 +139,7 @@ describe('la estructura fija del negocio', () => {
     cuandoSeDejaDeExigirLaColumna('quantity');
 
     entoncesElProblemaEs(
-      'No se puede cambiar «Cantidad»: Ensambla la necesita para funcionar. Podés cambiarle el nombre.',
+      'No se puede cambiar ni renombrar «Cantidad»: Ensambla la necesita para funcionar.',
     );
   });
 
@@ -154,17 +150,19 @@ describe('la estructura fija del negocio', () => {
     cuandoSeQuitanLasOpcionesDeLaColumna('category');
 
     entoncesElProblemaEs(
-      'No se puede cambiar «Categoría»: Ensambla la necesita para funcionar. Podés cambiarle el nombre.',
+      'No se puede cambiar ni renombrar «Categoría»: Ensambla la necesita para funcionar.',
     );
   });
 
-  it('deja cambiar el nombre de una columna fija', () => {
+  it('no deja renombrar una columna fija', () => {
     dadoUnNegocioConLasSeccionesObligatorias();
     dadaLaSeccionDe('inventory');
 
     cuandoSeRenombraLaColumna('price');
 
-    entoncesNoHayProblema();
+    entoncesElProblemaEs(
+      'No se puede cambiar ni renombrar «Precio»: Ensambla la necesita para funcionar.',
+    );
   });
 
   it('no pone reparos a una columna que no existe todavía', () => {

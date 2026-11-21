@@ -1,6 +1,6 @@
 # Estructura fija del negocio
 
-Actualizado: 2026-11-19
+Actualizado: 2026-11-20
 
 ## Para qué sirve
 
@@ -9,7 +9,7 @@ columnas. Caja, Objetivos, Avisos y Mi negocio no buscan una sección por su nom
 y leen sus **columnas por clave** (`quantity`, `price`, `product`…). Si alguien quita una de esas columnas o cambia su
 tipo de dato, esas pantallas dejan de funcionar.
 
-Por eso hay una estructura mínima que **no se puede quitar ni cambiar**. Todo lo demás es libre: la persona puede
+Por eso hay una estructura mínima que **no se puede quitar, renombrar ni cambiar**. Todo lo demás es libre: la persona puede
 crear las secciones y columnas que quiera, y esas siguen siendo editables y borrables.
 
 Esta tabla es la **única fuente**. El backend la implementa en `domain/model/bloque` (`TipoBloque`, `ColumnasFijas`,
@@ -64,14 +64,15 @@ Fuente: lecturas del código al 2026-11-19 (backend: `CobrarVenta`, `MovimientoD
 
 ## Reglas
 
-Se compara el sistema guardado con el propuesto. Las columnas se identifican por su **clave dentro de la sección**.
+Se compara el sistema guardado con el propuesto. Las columnas se identifican por su **clave dentro de la sección**. Una columna fija conserva el nombre con el que se guardó: el nombre solo se puede cambiar en las columnas propias.
 
 | Regla | Qué se rechaza (HTTP 409 con el motivo) | Qué se permite |
 |---|---|---|
 | E1 | Quitar la última sección de un tipo obligatorio | Quitar una sección extra del mismo tipo |
 | E2 | Cambiar el tipo de una sección que lleva columnas fijas | Cambiarle el nombre, el color, el ancho o la pestaña |
 | E3 | Quitar una columna fija | Quitar columnas propias |
-| E4 | Cambiar el tipo de dato de una columna fija | Cambiarle el nombre visible y el orden |
+| E4 | Cambiar el tipo de dato de una columna fija | Cambiarle el orden |
+| E4b | Cambiarle el nombre a una columna fija | — |
 | E5 | Cambiar el destino de una conexión fija a una sección de otro tipo | — |
 | E6 | Dejar de pedir un dato que el contrato exige, o quitar «Mercadería» de la categoría | Agregar opciones a las listas |
 
@@ -114,7 +115,8 @@ protegido. El catálogo de componentes que lee Sami (`ia/catalogo-componentes.js
 | Abrir el negocio (`GET /api/sistemas`) | `ListarSistemas` completa y guarda lo que falte, una sola vez |
 | Quitar una sección o una columna por su endpoint | `EliminarBloque` y `EliminarCampo` |
 | Editar una columna por su endpoint | `EditarCampo` |
-| Taller de Sami | `QuitarPieza`, `QuitarCampo` y `EditarCampo` del taller no quitan ni cambian lo fijo, y la acción de la pantalla vuelve a comprobarlo |
+| Taller de Sami | `QuitarPieza`, `QuitarCampo` y `EditarCampo` del taller no quitan, renombran ni cambian lo fijo, y la acción de la pantalla vuelve a comprobarlo |
+| Taller de Sami, armado desde cero | la primera propuesta suma, vacías, las secciones obligatorias que Sami no armó (`completarLasSeccionesObligatorias`), cada una con sus columnas fijas del catálogo, y el tablero no deja quitar la última de cada tipo |
 | Editor | las acciones de `stores/accionesDelEditor.ts` y `lib/sistema/acciones`, y los botones deshabilitados con su motivo |
 
 La creación desde una plantilla (`CrearProyectoDesdeSami`, `CrearProyectoDesdePlantilla`) no cambia: el negocio nace con

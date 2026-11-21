@@ -4,14 +4,14 @@ import {
   cuandoSePideAjustarElAlmacenConSami,
   cuandoSePideCambiarTelefonoPorCelular,
   cuandoSePidePonerClientePrimero,
-  cuandoSePideRenombrarClienteYPonerloPrimero,
+  cuandoSePideRenombrarNotasYPonerlasPrimero,
   cuandoSeAbreElTallerDeUnSistemaQueNoExiste,
   cuandoSeVeLaTablaDeClientesAPantallaCompleta,
   cuandoSeVuelveALaPropuesta,
   cuandoSeVuelveSinGuardar,
-  dadoQueSamiRenombraClienteYLoPonePrimero,
+  dadoQueSamiRenombraNotasYLasPonePrimero,
   dadoQueSePidioPonerClientePrimero,
-  dadoQueSePidioRenombrarClienteYPonerloPrimero,
+  dadoQueSePidioRenombrarNotasYPonerlasPrimero,
   dadoQueSeAjustaConSamiUnAlmacenDeAnaConEjemplos,
   dadoQueSeVieronLasFilasDelSistema,
   dadoUnAlmacenDeAnaConEjemplosAbierto,
@@ -37,20 +37,20 @@ describe('ajustar con Sami un sistema que ya existe', () => {
   });
 
   it('aplica lo que pide Sami y el sistema no cambia hasta guardar', async () => {
-    dadoQueSamiRenombraClienteYLoPonePrimero();
+    dadoQueSamiRenombraNotasYLasPonePrimero();
     await dadoQueSeAjustaConSamiUnAlmacenDeAnaConEjemplos();
 
-    await cuandoSePideRenombrarClienteYPonerloPrimero();
+    await cuandoSePideRenombrarNotasYPonerlasPrimero();
 
     await entoncesSamiAplicaLoQuePidioSinTocarElSistemaGuardado();
   });
 
   it('al guardar reemplaza el sistema, vuelve a él y viaja al servidor', async () => {
-    dadoQueSamiRenombraClienteYLoPonePrimero();
+    dadoQueSamiRenombraNotasYLasPonePrimero();
     await dadoUnAlmacenDeAnaConEjemplosAbierto();
     dadoQueSeVieronLasFilasDelSistema();
     await cuandoSePideAjustarElAlmacenConSami();
-    await dadoQueSePidioRenombrarClienteYPonerloPrimero();
+    await dadoQueSePidioRenombrarNotasYPonerlasPrimero();
 
     await cuandoSeGuardanLosCambios();
 

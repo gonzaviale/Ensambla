@@ -1,7 +1,9 @@
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
 import { guardarNegocioActivo } from '@/lib/negocios/lista';
+import { useGuardarYAgregarSistema } from '@/hooks/sistemas/useGuardarYAgregarSistema';
 import { makeSystem } from '@/lib/sistema/core';
+import { TIPOS_OBLIGATORIOS } from '@/lib/sistema/estructuraFija';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
 // Cada negocio es un cuaderno, así que cambiar, agregar o eliminar un negocio es elegir, crear o borrar un cuaderno
@@ -32,12 +34,13 @@ export function useActivarNegocio() {
   });
 }
 
-/** Un negocio nuevo arranca como un cuaderno vacío con ese nombre, y se pasa a trabajar con él. */
+/** Un negocio nuevo arranca con las secciones que Ensambla necesita, sin registros, y se pasa a trabajar con él. */
 export function useCrearNegocio() {
   const volverAlInicio = useVolverAlInicio();
+  const guardarYAgregarSistema = useGuardarYAgregarSistema();
   return useMutation({
     mutationFn: async (nombre: string) => {
-      useSistemaStore.getState().agregarSistema(makeSystem(nombre, [], false));
+      await guardarYAgregarSistema(makeSystem(nombre, [...TIPOS_OBLIGATORIOS]));
       await volverAlInicio();
     },
   });

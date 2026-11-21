@@ -483,6 +483,23 @@
 .negocio-selector-opcion strong { font-size: 13px; }
 .negocio-selector-opcion small { color: var(--c-estructura); font-size: 11px; }
 .negocio-selector-opcion > .icon { width: 18px; color: var(--c-estructura); }
+.negocio-selector-fila { display: flex; align-items: center; gap: 4px; }
+.negocio-selector-fila .negocio-selector-opcion { flex: 1; min-width: 0; }
+.negocio-selector-eliminar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--c-estructura);
+}
+.negocio-selector-eliminar .icon { width: 18px; }
+.negocio-selector-eliminar:hover:not(:disabled),
+.negocio-selector-eliminar:focus-visible { background: var(--bad-100, #fdecec); color: var(--bad); }
+.negocio-selector-eliminar:disabled { opacity: .35; cursor: not-allowed; }
 .negocio-selector-todos { margin-top: 5px; padding-top: 9px; border-top: 1px solid var(--c-borde); border-radius: 0 0 12px 12px; opacity: 1; }
 .negocio-selector-todos .negocio-selector-inicial { border: 1.5px solid var(--c-estructura); background: #fff; color: var(--c-estructura); }
 .negocio-selector-todos .negocio-selector-inicial .icon { width: 18px; height: 18px; }

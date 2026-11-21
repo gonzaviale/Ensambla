@@ -42,7 +42,7 @@ public record ConversarTallerRequest(
     }
 
     /**
-     * @param registros los registros reales que se cargaron en este armado
+     * @param registros los registros reales de la pieza, también los ya guardados (los últimos, si son muchos)
      * @param nombres   si otra pieza se vincula con esta, los nombres que ya tiene (también los guardados)
      */
     public record Pieza(

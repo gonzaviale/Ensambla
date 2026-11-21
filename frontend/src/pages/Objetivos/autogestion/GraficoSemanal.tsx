@@ -15,6 +15,20 @@ const ALTO = 300;
 const MARGEN = { arriba: 34, abajo: 34, izquierda: 64, derecha: 28 };
 const LINEAS_DE_GUIA = 4;
 
+const SEPARACION_DEL_VALOR = 14;
+const ALTO_DE_UNA_MARCA = 22;
+const RADIO_DE_LA_MARCA = 9;
+
+/**
+ * Dónde va el número de la última semana: arriba del punto (abajo chocaría con las fechas del eje) y, si esa semana
+ * tiene decisiones marcadas, encima de ellas.
+ */
+function alturaDelValorActual(yDelPunto: number, marcas: number) {
+  if (marcas === 0) return yDelPunto - SEPARACION_DEL_VALOR;
+  const techoDeLasMarcas = yDelPunto - 20 - (marcas - 1) * ALTO_DE_UNA_MARCA - RADIO_DE_LA_MARCA;
+  return techoDeLasMarcas - SEPARACION_DEL_VALOR / 2;
+}
+
 /** «$120 mil», para que el eje se lea de un vistazo. */
 function corto(valor: number) {
   if (Math.abs(valor) >= 1_000_000) return `$${(valor / 1_000_000).toFixed(1).replace('.', ',')} M`;
@@ -130,7 +144,10 @@ export function GraficoSemanal({ progreso, decisiones }: Props) {
         <text
           className="grafico-semanal-valor-actual"
           x={x(ultimo)}
-          y={y(puntos[ultimo]?.valor ?? 0) + 24}
+          y={alturaDelValorActual(
+            y(puntos[ultimo]?.valor ?? 0),
+            porSemana.get(puntos[ultimo]?.semana ?? '')?.length ?? 0,
+          )}
         >
           {corto(puntos[ultimo]?.valor ?? 0)}
         </text>

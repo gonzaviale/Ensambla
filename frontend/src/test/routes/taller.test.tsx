@@ -16,12 +16,12 @@ import {
   cuandoSeEscribeUnMensajeMuyCorto,
   cuandoSeIntentaRegistrarUnProductoSinDatos,
   cuandoSeMinimizaElChat,
-  cuandoSePideSumarGastos,
+  cuandoSePideSumarUnProveedor,
   cuandoSePulsaEscape,
-  cuandoSeQuitaLaPiezaDeClientes,
+  cuandoSeQuitaLaPiezaDePedidos,
   cuandoSeRegistraUnProductoPropio,
   cuandoSeRenombraLaPiezaDeClientes,
-  cuandoSeSumaLaPiezaDeGastosDesdeLaPaleta,
+  cuandoSeSumaLaPiezaDePedidosDesdeLaPaleta,
   cuandoSeTocaLaCamara,
   cuandoSeVuelveAEntrarAlTaller,
   dadoQueElSelectorDeFotoSeEspia,
@@ -33,6 +33,7 @@ import {
   dadoQueSeEditoElPrimerRegistroDeEjemplo,
   dadoQueSeMinimizoElChat,
   dadoQueSePidioQuitarLosEjemplos,
+  dadoQueSeSumoLaPiezaDePedidosDesdeLaPaleta,
   dadoQueSeVieronLasFilasDeProductos,
   dadoQueSeVieronLasPiezasEnOrden,
   entoncesElChatQuedaMinimizadoYElFocoVaAlBotonParaAbrirlo,
@@ -42,16 +43,18 @@ import {
   entoncesEmpiezaConElSaludoLosEjemplosYElLienzoVacio,
   entoncesLaConversacionEmpiezaDeNuevo,
   entoncesLaPrimeraPiezaPasaALaSegundaPosicion,
+  entoncesLaPiezaDeClientesNoSePuedeQuitar,
   entoncesLaPiezaOcupaLaFilaCompleta,
   entoncesLaPiezaSeLlamaComoLaPersonaQuiso,
   entoncesLaPiezaYaNoEstaEnLaPropuesta,
   entoncesLaPropuestaTieneUnaPiezaMas,
+  entoncesLaPropuestaYaTraeLasCuatroSeccionesQueEnsamblaNecesita,
   entoncesLaSeccionSeGuardaSinEjemplosYSeAbreLista,
   entoncesLosRegistrosEditadosYPropiosPasanAlSistema,
   entoncesNoSeGuardaYElFormularioSigueAbierto,
   entoncesPideUnPocoMasYNoArmaNingunaPropuesta,
   entoncesSamiArmaUnaBaseQueSeVeALaDerecha,
-  entoncesSamiSumaLosGastosALaPropuesta,
+  entoncesSamiSumaElProveedorALaPropuesta,
   entoncesSeAbreElSelectorUnaVezYSeCierraElPopUp,
   entoncesSeCierraElPopUpSinAbrirElSelector,
   entoncesSeMuestranLosConsejosSinAbrirElSelector,
@@ -147,9 +150,15 @@ describe('el taller de Sami', () => {
   it('lo que se escribe después ajusta la propuesta', async () => {
     await dadoQueSamiArmoLaPropuesta();
 
-    await cuandoSePideSumarGastos();
+    await cuandoSePideSumarUnProveedor();
 
-    await entoncesSamiSumaLosGastosALaPropuesta();
+    await entoncesSamiSumaElProveedorALaPropuesta();
+  });
+
+  it('lo que Sami arma desde cero ya trae las cuatro secciones que Ensambla necesita', async () => {
+    await cuandoSamiArmaLaPropuesta();
+
+    entoncesLaPropuestaYaTraeLasCuatroSeccionesQueEnsamblaNecesita();
   });
 
   it('se puede cambiar el nombre de una pieza', async () => {
@@ -168,12 +177,19 @@ describe('el taller de Sami', () => {
     entoncesLaPiezaOcupaLaFilaCompleta();
   });
 
-  it('se puede quitar una pieza de la propuesta', async () => {
+  it('se puede quitar de la propuesta una pieza que Ensambla no necesita', async () => {
     await dadoQueSamiArmoLaPropuesta();
+    await dadoQueSeSumoLaPiezaDePedidosDesdeLaPaleta();
 
-    await cuandoSeQuitaLaPiezaDeClientes();
+    await cuandoSeQuitaLaPiezaDePedidos();
 
     entoncesLaPiezaYaNoEstaEnLaPropuesta();
+  });
+
+  it('no se puede quitar de la propuesta una pieza que Ensambla necesita', async () => {
+    await dadoQueSamiArmoLaPropuesta();
+
+    entoncesLaPiezaDeClientesNoSePuedeQuitar();
   });
 
   it('el formulario de un registro de ejemplo no ofrece eliminarlo', async () => {
@@ -222,7 +238,7 @@ describe('el taller de Sami', () => {
   it('suma una pieza de la paleta', async () => {
     await dadoQueSamiArmoLaPropuesta();
 
-    await cuandoSeSumaLaPiezaDeGastosDesdeLaPaleta();
+    await cuandoSeSumaLaPiezaDePedidosDesdeLaPaleta();
 
     entoncesLaPropuestaTieneUnaPiezaMas();
   });

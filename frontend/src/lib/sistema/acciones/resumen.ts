@@ -6,19 +6,12 @@ import type { DatosParaSami, EstadoCompacto, PiezaCompacta } from './tipos';
 
 type QueResumir = {
   sistema: Sistema;
-  guardadas: ReadonlySet<string>;
   destinos: ReadonlySet<string>;
 };
 
-/**
- * `guardadas`: los ids de las filas que el sistema ya tenía guardadas (al ajustar uno). Esas no viajan: Sami sólo
- * corrige lo que propuso en este armado.
- */
-export function resumirSistema(
-  sistema: Sistema,
-  guardadas: ReadonlySet<string> = new Set(),
-): EstadoCompacto {
-  const queResumir = { sistema, guardadas, destinos: destinosDeLosVinculos(sistema) };
+/** El sistema como lo ve Sami: su estructura y los registros reales (también los ya guardados), sin los de ejemplo. */
+export function resumirSistema(sistema: Sistema): EstadoCompacto {
+  const queResumir = { sistema, destinos: destinosDeLosVinculos(sistema) };
   return {
     nombre: sistema.name,
     distribucion: sistema.layout ?? 'mosaic',
@@ -42,7 +35,7 @@ function piezaCompacta(queResumir: QueResumir, seccion: Seccion, bloque: Bloque)
     nombre: bloque.name,
     seccion: seccion.name,
     campos: bloque.fields.map((campo) => ({ etiqueta: campo.label, tipo: campo.type })),
-    registros: registrosDelArmado(queResumir, bloque),
+    registros: registrosDeLaPieza(queResumir, bloque),
     ...(queResumir.destinos.has(bloque.id) && { nombres: nombresDe(bloque) }),
   };
 }
@@ -63,10 +56,10 @@ function nombresDe(bloque: Bloque): string[] {
   return [...new Set(nombres)].slice(0, MAXIMO_DE_NOMBRES);
 }
 
-/** Los registros reales que se cargaron en este armado (los últimos, si son muchos), con sus datos por etiqueta. */
-const registrosDelArmado = ({ sistema, guardadas }: QueResumir, bloque: Bloque) =>
+/** Los registros reales de una pieza (los últimos, si son muchos), con sus datos por etiqueta. */
+const registrosDeLaPieza = ({ sistema }: QueResumir, bloque: Bloque) =>
   bloque.rows
-    .filter((fila) => !fila.__example && !guardadas.has(fila.id))
+    .filter((fila) => !fila.__example)
     .slice(-MAXIMO_DE_REGISTROS)
     .map((fila) => ({ id: fila.id, datos: datosParaSami(sistema, bloque, fila) }));
 
