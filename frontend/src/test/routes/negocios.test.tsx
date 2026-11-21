@@ -46,6 +46,18 @@ async function cuandoAbreAgregarNegocioEnLaBarra(user: ReturnType<typeof userEve
   );
 }
 
+async function cuandoAbreElSelectorDeLaBarra() {
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole('button', { name: /Negocio activo/ }, ESPERA));
+}
+
+async function cuandoEliminaEnLaBarra(nombre: string) {
+  const user = userEvent.setup();
+  await cuandoAbreElSelectorDeLaBarra();
+  await user.click(screen.getByRole('menuitem', { name: `Eliminar ${nombre}` }));
+  await user.click(screen.getByRole('button', { name: 'Sí, eliminar negocio' }));
+}
+
 async function cuandoEligeEnLaBarra(nombre: RegExp) {
   const user = userEvent.setup();
   await user.click(await screen.findByRole('button', { name: /Negocio activo/ }, ESPERA));
@@ -84,11 +96,11 @@ describe('mis negocios: cada negocio es un cuaderno', () => {
     await user.click(await selectorDe(/Almacén San Justo/));
 
     const menu = screen.getByRole('menu');
-    expect(within(menu).getByRole('menuitem', { name: /Almacén San Justo/ })).toHaveAttribute(
+    expect(within(menu).getByRole('menuitem', { name: /^Almacén San Justo/ })).toHaveAttribute(
       'aria-current',
       'true',
     );
-    expect(within(menu).getByRole('menuitem', { name: /Kiosco de la plaza/ })).toBeEnabled();
+    expect(within(menu).getByRole('menuitem', { name: /^Kiosco de la plaza/ })).toBeEnabled();
     expect(within(menu).getByRole('menuitem', { name: /Todos mis negocios/ })).toBeEnabled();
   });
 
@@ -97,7 +109,7 @@ describe('mis negocios: cada negocio es un cuaderno', () => {
     dadoDosNegocios(usuario);
     renderApp('/inicio');
 
-    await cuandoEligeEnLaBarra(/Kiosco de la plaza/);
+    await cuandoEligeEnLaBarra(/^Kiosco de la plaza/);
 
     expect(await selectorDe(/Kiosco de la plaza/)).toBeVisible();
     expect(leerNegocioGuardado()).toBe(KIOSCO.id);
@@ -108,7 +120,7 @@ describe('mis negocios: cada negocio es un cuaderno', () => {
     dadoDosNegocios(usuario);
     renderApp('/inicio');
 
-    await cuandoEligeEnLaBarra(/Kiosco de la plaza/);
+    await cuandoEligeEnLaBarra(/^Kiosco de la plaza/);
     await selectorDe(/Kiosco de la plaza/);
 
     const visibles = seleccionarSistemasDelNegocio(useSistemaStore.getState());
@@ -186,5 +198,29 @@ describe('mis negocios: cada negocio es un cuaderno', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/inicio'), ESPERA);
     expect(await selectorDe(/Kiosco de la plaza/)).toBeVisible();
     expect(leerNegocioGuardado()).toBe(KIOSCO.id);
+  });
+
+  it('elimina un negocio desde el selector de la barra y conserva el otro', async () => {
+    const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+    dadoDosNegocios(usuario);
+    renderApp('/inicio');
+
+    await cuandoEliminaEnLaBarra('Almacén San Justo');
+
+    await waitFor(
+      () => expect(nombresEnElServidor(usuario)).toEqual(['Kiosco de la plaza']),
+      ESPERA,
+    );
+    expect(await selectorDe(/Kiosco de la plaza/)).toBeVisible();
+  });
+
+  it('con un solo negocio el selector no deja eliminarlo', async () => {
+    const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+    setupNegocios(usuario.email, KIOSCO);
+    renderApp('/inicio');
+
+    await cuandoAbreElSelectorDeLaBarra();
+
+    expect(screen.getByRole('menuitem', { name: 'Eliminar Kiosco de la plaza' })).toBeDisabled();
   });
 });
