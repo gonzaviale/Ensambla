@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { estado, sistemasDe, type UsuarioMock } from '@/mocks/db/estado';
 import { leerNegocioGuardado } from '@/lib/negocios/lista';
 import { crearAlmacenCargado } from '@/lib/sistema/demo';
+import { TIPOS_OBLIGATORIOS } from '@/lib/sistema/estructuraFija';
 import { hoy } from '@/lib/sistema/formato';
 import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
 import { renderApp } from '@/test/renderApp';
@@ -53,6 +54,12 @@ async function cuandoEligeEnLaBarra(nombre: RegExp) {
 
 const nombresEnElServidor = (usuario: UsuarioMock) =>
   sistemasDe(usuario.email).map((sistema) => sistema.name);
+
+function entoncesElNegocioGuardadoTieneLasSeccionesObligatorias(usuario: UsuarioMock, nombre: string) {
+  const guardado = sistemasDe(usuario.email).find((sistema) => sistema.name === nombre);
+  const tipos = guardado?.sections.flatMap((seccion) => seccion.blocks.map((bloque) => bloque.type));
+  expect(tipos).toEqual(expect.arrayContaining([...TIPOS_OBLIGATORIOS]));
+}
 
 describe('mis negocios: cada negocio es un cuaderno', () => {
   it('con un solo negocio el selector de la barra deja agregar otro, sin comparar', async () => {
@@ -123,7 +130,7 @@ describe('mis negocios: cada negocio es un cuaderno', () => {
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('crea un negocio desde el selector de arriba como un cuaderno vacío, lo activa y lo guarda', async () => {
+  it('crea un negocio desde el selector de arriba con las secciones obligatorias, lo activa y lo guarda', async () => {
     const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
     dadoPremium(usuario.email);
     setupNegocios(usuario.email, KIOSCO);
@@ -142,6 +149,7 @@ describe('mis negocios: cada negocio es un cuaderno', () => {
         expect(nombresEnElServidor(usuario)).toEqual(['Kiosco de la plaza', 'Dietética Centro']),
       ESPERA,
     );
+    entoncesElNegocioGuardadoTieneLasSeccionesObligatorias(usuario, 'Dietética Centro');
   });
 
   it('con el cupo del plan agotado explica el límite y lleva a Planes', async () => {

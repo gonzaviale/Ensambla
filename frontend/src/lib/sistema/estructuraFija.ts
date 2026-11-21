@@ -3,7 +3,7 @@ import type { Bloque, Campo, Sistema, TipoBloque } from './tipos';
 
 // La estructura que Ensambla necesita para funcionar. La tabla completa y su porqué están en docs/estructura-fija.md;
 // el backend la hace cumplir y esta pantalla evita intentar lo que el servidor rechazaría.
-const TIPOS_OBLIGATORIOS: readonly TipoBloque[] = ['inventory', 'sales', 'clients', 'expenses'];
+export const TIPOS_OBLIGATORIOS: readonly TipoBloque[] = ['inventory', 'sales', 'clients', 'expenses'];
 
 const OPCIONES_QUE_NO_SE_QUITAN: Readonly<Record<string, readonly string[]>> = {
   saleMode: ['unidad', 'peso'],
