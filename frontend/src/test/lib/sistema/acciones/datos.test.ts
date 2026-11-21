@@ -133,8 +133,8 @@ describe('sumar y quitar datos', () => {
     );
 
     entoncesSoloSeOmitio(
-      'No se puede quitar «Producto»: Ensambla la necesita para funcionar. Podés cambiarle el nombre.',
-      'No se puede quitar «Cliente»: Ensambla la necesita para funcionar. Podés cambiarle el nombre.',
+      'No se puede quitar «Producto»: Ensambla la necesita para funcionar.',
+      'No se puede quitar «Cliente»: Ensambla la necesita para funcionar.',
       'No encontré ese dato.',
       'No encontré ese dato.',
     );
@@ -198,7 +198,7 @@ describe('renombrar un dato', () => {
     entoncesLaEtiquetaDeLaClave('clients', 'email', 'Correo');
   });
 
-  it('un vínculo y el dato principal sí se pueden renombrar', () => {
+  it('un vínculo y el dato principal no se pueden renombrar: son datos fijos', () => {
     dadoUnAlmacenDeEjemplo();
 
     cuandoSamiPide(
@@ -206,18 +206,18 @@ describe('renombrar un dato', () => {
       editarCampo('clients', 'Nombre', { etiqueta: 'Nombre y apellido' }),
     );
 
-    entoncesSeAplico(
-      'Renombré Cliente a Clienta en ventas.',
-      'Renombré Nombre a Nombre y apellido en clientes.',
+    entoncesSoloSeOmitio(
+      'No se puede cambiar ni renombrar «Cliente»: Ensambla la necesita para funcionar.',
+      'No se puede cambiar ni renombrar «Nombre»: Ensambla la necesita para funcionar.',
     );
   });
 
-  it('un vínculo renombrado sigue siendo el mismo vínculo', () => {
+  it('un dato fijo que se quiso renombrar queda con su nombre', () => {
     dadoUnAlmacenDeEjemplo();
 
     cuandoSamiPide(editarCampo('Ventas', 'Cliente', { etiqueta: 'Clienta' }));
 
-    entoncesLosDatosSon('sales', { Clienta: { key: 'customer', type: 'relation' } });
+    entoncesLosDatosSon('sales', { Cliente: { key: 'customer', type: 'relation' } });
   });
 });
 

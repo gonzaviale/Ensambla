@@ -43,11 +43,21 @@ class ConversarEnTallerEdicionTest {
     @Test
     @DisplayName("Renombra un dato buscando la pieza por nombre y el dato sin importar mayúsculas")
     void renombraUnDatoBuscandoLaPiezaPorNombreYElDatoSinImportarMayusculas() {
-        dadoQueSePideRenombrarElClienteDeVentasComoClienta();
+        dadoQueSePideRenombrarElTelefonoDeClientesComoCelular();
 
         cuandoSeValidanLasLlamadas();
 
-        entoncesElClienteDeVentasQuedaRenombradoComoClienta();
+        entoncesElTelefonoDeClientesQuedaRenombradoComoCelular();
+    }
+
+    @Test
+    @DisplayName("No renombra un dato fijo del Stock")
+    void noRenombraUnDatoFijoDelStock() {
+        dadoQueSePideRenombrarElPrecioDelStockComoValor();
+
+        cuandoSeValidanLasLlamadas();
+
+        entoncesSeDescartaTodo();
     }
 
     @Test
@@ -63,11 +73,11 @@ class ConversarEnTallerEdicionTest {
     @Test
     @DisplayName("Puede cambiar sólo las mayúsculas de la etiqueta del mismo dato")
     void puedeCambiarSoloLasMayusculasDeLaEtiquetaDelMismoDato() {
-        dadoQueSePideEscribirElPrecioEnMayusculas();
+        dadoQueSePideEscribirElRubroEnMayusculas();
 
         cuandoSeValidanLasLlamadas();
 
-        entoncesSeAcepta(editada("pieza", "e1", "campo", "Precio", "etiqueta", "PRECIO"));
+        entoncesSeAcepta(editada("pieza", "e3", "campo", "Rubro", "etiqueta", "RUBRO"));
     }
 
     @Test
@@ -172,12 +182,12 @@ class ConversarEnTallerEdicionTest {
 
     @Test
     @DisplayName("No cambia el tipo de un vínculo ni del primer dato: esa parte se ignora y, si no queda nada, se descarta")
-    void noCambiaElTipoDeUnVinculoNiDelPrimerDatoEstaParteSeIgnoraYSiNoQuedaNadaSeDescarta() {
+    void noCambiaElTipoDeUnVinculoNiDelPrimerDatoYSiNoQuedaNadaSeDescarta() {
         dadoQueSePideCambiarElTipoDeVinculosYDelPrimerDato();
 
         cuandoSeValidanLasLlamadas();
 
-        entoncesSoloSeAceptaElCambioDeEtiquetaDelPrimerDato();
+        entoncesSeDescartaTodo();
     }
 
     @Test
@@ -242,12 +252,16 @@ class ConversarEnTallerEdicionTest {
 
     // --- dado ---
 
-    private void dadoQueSePideRenombrarElClienteDeVentasComoClienta() {
-        dadoLasLlamadas(editar("pieza", "Ventas", "campo", " cliente ", "etiqueta", " Clienta "));
+    private void dadoQueSePideRenombrarElTelefonoDeClientesComoCelular() {
+        dadoLasLlamadas(editar("pieza", "Clientes", "campo", " teléfono ", "etiqueta", " Celular "));
     }
 
-    private void dadoQueSePideEscribirElPrecioEnMayusculas() {
-        dadoLasLlamadas(editar("pieza", "e1", "campo", "Precio", "etiqueta", "PRECIO"));
+    private void dadoQueSePideRenombrarElPrecioDelStockComoValor() {
+        dadoLasLlamadas(editar("pieza", "e1", "campo", "Precio", "etiqueta", "Valor"));
+    }
+
+    private void dadoQueSePideEscribirElRubroEnMayusculas() {
+        dadoLasLlamadas(editar("pieza", "e3", "campo", "Rubro", "etiqueta", "RUBRO"));
     }
 
     private void dadoQueSePidePasarElPrecioATipoNumberEscritoEnMayusculas() {
@@ -292,8 +306,7 @@ class ConversarEnTallerEdicionTest {
         dadoLasLlamadas(
                 editar("pieza", "e2", "campo", "Cliente", "tipo", "text"),
                 editar("pieza", "e2", "campo", "Producto", "tipo", "relation"),
-                editar("pieza", "e1", "campo", "Producto", "tipo", "select", "opciones", List.of("A", "B"),
-                        "etiqueta", "Artículo"));
+                editar("pieza", "e1", "campo", "Producto", "tipo", "select", "opciones", List.of("A", "B")));
     }
 
     private void dadoQueSePideEditarPiezasYDatosInexistentes() {
@@ -352,8 +365,8 @@ class ConversarEnTallerEdicionTest {
 
     // --- entonces ---
 
-    private void entoncesElClienteDeVentasQuedaRenombradoComoClienta() {
-        entoncesSeAcepta(editada("pieza", "e2", "campo", "Cliente", "etiqueta", "Clienta"));
+    private void entoncesElTelefonoDeClientesQuedaRenombradoComoCelular() {
+        entoncesSeAcepta(editada("pieza", "e3", "campo", "Teléfono", "etiqueta", "Celular"));
     }
 
     private void entoncesLaCantidadQuedaComoListaConLasPrimerasSeisOpcionesSinRepetir() {
@@ -375,10 +388,6 @@ class ConversarEnTallerEdicionTest {
         entoncesSeAcepta(
                 editada("pieza", "e1", "campo", "Precio", "posicion", 1),
                 editada("pieza", "e1", "campo", "Precio", "posicion", 3));
-    }
-
-    private void entoncesSoloSeAceptaElCambioDeEtiquetaDelPrimerDato() {
-        entoncesSeAcepta(editada("pieza", "e1", "campo", "Producto", "etiqueta", "Artículo"));
     }
 
     private void entoncesLasEdicionesVenLosCambiosAnterioresDelTurno() {

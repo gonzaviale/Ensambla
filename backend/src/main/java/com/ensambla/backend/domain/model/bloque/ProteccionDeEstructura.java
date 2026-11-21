@@ -9,7 +9,7 @@ import java.util.Optional;
 
 /**
  * Que un guardado no cambie lo que Ensambla necesita para funcionar: el tipo de las secciones que llevan columnas
- * fijas y el tipo de dato, la obligatoriedad y el destino de esas columnas. Compara el sistema guardado con el
+ * fijas y el nombre, el tipo de dato, la obligatoriedad y el destino de esas columnas. Compara el sistema guardado con el
  * propuesto. Lo que falta no se rechaza: lo repone {@link EstructuraFija}, porque quien guarda puede no haber recibido
  * todavía lo que el servidor completó (por ejemplo, un negocio nuevo que se guarda dos veces).
  */
@@ -41,11 +41,17 @@ public final class ProteccionDeEstructura {
     /** Para cambiar una columna por fuera del guardado del negocio entero. */
     public static void exigirQueSePuedaCambiarLaColumna(Bloque bloque, Campo actual, Campo editado,
                                                         List<Bloque> bloquesDelSistema) {
-        bloque.getTipo().columnasFijas().stream()
-                .filter(columna -> columna.esLaDe(actual) && !columna.laCumple(editado, bloquesDelSistema))
-                .findFirst().ifPresent(columna -> {
-                    throw rechazo(columna.mensajeAlCambiar(actual.getNombre()));
-                });
+        bloque.getTipo().columnasFijas().stream().filter(columna -> columna.esLaDe(actual)).findFirst()
+                .ifPresent(columna -> exigirQueSigaIgual(columna, actual, editado, bloquesDelSistema));
+    }
+
+    private static void exigirQueSigaIgual(ColumnaFija columna, Campo antes, Campo ahora, List<Bloque> bloques) {
+        if (!columna.laCumple(ahora, bloques)) {
+            throw rechazo(columna.mensajeAlCambiar(antes.getNombre()));
+        }
+        if (!columna.conservaElNombre(antes, ahora)) {
+            throw rechazo(columna.mensajeAlRenombrar(antes.getNombre()));
+        }
     }
 
     private static void validar(Sistema actual, Sistema propuesto) {
@@ -86,10 +92,7 @@ public final class ProteccionDeEstructura {
     private static void exigirQueSigaCumpliendo(ColumnaFija columna, Campo antes, Bloque nuevo,
                                                 List<Bloque> bloquesPropuestos) {
         nuevo.getCampos().stream().filter(columna::esLaDe).findFirst()
-                .filter(ahora -> !columna.laCumple(ahora, bloquesPropuestos))
-                .ifPresent(ahora -> {
-                    throw rechazo(columna.mensajeAlCambiar(antes.getNombre()));
-                });
+                .ifPresent(ahora -> exigirQueSigaIgual(columna, antes, ahora, bloquesPropuestos));
     }
 
     private static DuplicateResourceException rechazo(String mensaje) {

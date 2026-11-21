@@ -10,7 +10,7 @@ const OPCIONES_QUE_NO_SE_QUITAN: Readonly<Record<string, readonly string[]>> = {
   category: ['Mercadería'],
 };
 
-const NO_SE_PUEDE_PERO_SE_RENOMBRA = 'Ensambla la necesita para funcionar. Podés cambiarle el nombre.';
+const NO_SE_PUEDE_TOCAR = 'Ensambla la necesita para funcionar.';
 
 export const esUnaSeccionObligatoria = (bloque: Bloque) => TIPOS_OBLIGATORIOS.includes(bloque.type);
 
@@ -31,10 +31,10 @@ export const motivoParaNoQuitarLaSeccion = (bloque: Bloque) =>
   `No se puede quitar la sección «${bloque.name}»: Ensambla la necesita para funcionar.`;
 
 export const motivoParaNoQuitarLaColumna = (campo: Campo) =>
-  `No se puede quitar «${campo.label}»: ${NO_SE_PUEDE_PERO_SE_RENOMBRA}`;
+  `No se puede quitar «${campo.label}»: ${NO_SE_PUEDE_TOCAR}`;
 
 export const motivoParaNoCambiarLaColumna = (campo: Campo) =>
-  `No se puede cambiar «${campo.label}»: ${NO_SE_PUEDE_PERO_SE_RENOMBRA}`;
+  `No se puede cambiar ni renombrar «${campo.label}»: ${NO_SE_PUEDE_TOCAR}`;
 
 /** Lo que no se puede hacer con una columna fija al guardar sus cambios; nada si no es fija o el cambio es válido. */
 export function problemaAlCambiarLaColumna(existente: Campo | undefined, cambio: Campo) {
@@ -44,6 +44,7 @@ export function problemaAlCambiarLaColumna(existente: Campo | undefined, cambio:
 
 const cambiaLoQueNoDebe = (existente: Campo, cambio: Campo) =>
   existente.type !== cambio.type ||
+  existente.label !== cambio.label ||
   (existente.required && !cambio.required) ||
   !conservaSusOpciones(existente, cambio);
 

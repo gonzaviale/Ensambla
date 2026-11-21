@@ -124,7 +124,7 @@ class ProteccionDeEstructuraTest {
         cuandoSeIntentaValidar();
 
         entoncesSeRechazaPorque("No se puede cambiar «Precio»: Ensambla la necesita para cobrar en Caja y calcular "
-                + "la ganancia. Podés cambiarle el nombre.");
+                + "la ganancia.");
     }
 
     @Test
@@ -135,7 +135,7 @@ class ProteccionDeEstructuraTest {
         cuandoSeIntentaValidar();
 
         entoncesSeRechazaPorque("No se puede cambiar «Cantidad»: Ensambla la necesita para controlar el stock y "
-                + "descontarlo en Caja. Podés cambiarle el nombre.");
+                + "descontarlo en Caja.");
     }
 
     @Test
@@ -146,7 +146,7 @@ class ProteccionDeEstructuraTest {
         cuandoSeIntentaValidar();
 
         entoncesSeRechazaPorque("No se puede cambiar «Categoría»: Ensambla la necesita para separar la mercadería "
-                + "de los otros gastos. Podés cambiarle el nombre.");
+                + "de los otros gastos.");
     }
 
     @Test
@@ -157,17 +157,18 @@ class ProteccionDeEstructuraTest {
         cuandoSeIntentaValidar();
 
         entoncesSeRechazaPorque("No se puede cambiar «Producto»: Ensambla la necesita para saber qué producto se "
-                + "vendió. Podés cambiarle el nombre.");
+                + "vendió.");
     }
 
     @Test
-    @DisplayName("Se puede cambiar el nombre de una columna fija")
-    void sePuedeCambiarElNombreDeUnaColumnaFija() {
+    @DisplayName("No se puede cambiar el nombre de una columna fija")
+    void noSePuedeCambiarElNombreDeUnaColumnaFija() {
         dadoUnaPropuestaConElPrecioRenombrado();
 
-        cuandoSeValida();
+        cuandoSeIntentaValidar();
 
-        entoncesSeAcepta();
+        entoncesSeRechazaPorque("No se puede renombrar «Precio»: Ensambla la necesita para cobrar en Caja y calcular "
+                + "la ganancia.");
     }
 
     @Test
@@ -219,17 +220,18 @@ class ProteccionDeEstructuraTest {
         cuandoSeIntentaCambiarLaColumna("price");
 
         entoncesSeRechazaPorque("No se puede cambiar «Precio»: Ensambla la necesita para cobrar en Caja y calcular "
-                + "la ganancia. Podés cambiarle el nombre.");
+                + "la ganancia.");
     }
 
     @Test
-    @DisplayName("Cambiar sólo el nombre de una columna fija por fuera del guardado se acepta")
-    void cambiarSoloElNombreDeUnaColumnaFijaPorFueraDelGuardadoSeAcepta() {
+    @DisplayName("Renombrar una columna fija por fuera del guardado se rechaza")
+    void renombrarUnaColumnaFijaPorFueraDelGuardadoSeRechaza() {
         dadoUnaPropuestaConElPrecioRenombrado();
 
         cuandoSeIntentaCambiarLaColumna("price");
 
-        entoncesSeAcepta();
+        entoncesSeRechazaPorque("No se puede renombrar «Precio»: Ensambla la necesita para cobrar en Caja y calcular "
+                + "la ganancia.");
     }
 
     @Test
