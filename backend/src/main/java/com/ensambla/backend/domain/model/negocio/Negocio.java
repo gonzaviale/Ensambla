@@ -45,18 +45,35 @@ public class Negocio {
     @Builder.Default
     private Boolean comparteDatosZona = true;
 
+    /** Alias o CVU donde el comerciante recibe las transferencias de sus ventas con QR. */
+    private String cobroAlias;
+
+    private String cobroTitular;
+
     private OffsetDateTime creadoEn;
 
     private OffsetDateTime actualizadoEn;
 
-    /** Los campos ausentes conservan su valor; una ubicación se reemplaza de forma completa. */
+    /** Los campos ausentes conservan su valor; la ubicación y el destino de cobro se reemplazan de forma completa. */
     public void configurar(String nombre, RubroNegocio rubro, UbicacionNegocio ubicacion,
-                           Boolean comparteDatosZona, OffsetDateTime ahora) {
+                           Boolean comparteDatosZona, DestinoDeCobro destinoDeCobro, OffsetDateTime ahora) {
         cambiarNombreSiViene(nombre);
         cambiarRubroSiViene(rubro);
         reubicarSiViene(ubicacion);
         cambiarPrivacidadSiViene(comparteDatosZona);
+        cambiarDestinoDeCobroSiViene(destinoDeCobro);
         actualizadoEn = ahora;
+    }
+
+    public DestinoDeCobro destinoDeCobro() {
+        return new DestinoDeCobro(cobroAlias, cobroTitular);
+    }
+
+    private void cambiarDestinoDeCobroSiViene(DestinoDeCobro destino) {
+        if (destino != null) {
+            cobroAlias = destino.alias();
+            cobroTitular = destino.titular();
+        }
     }
 
     private void cambiarNombreSiViene(String nombre) {

@@ -131,6 +131,36 @@ class NegocioIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     @Test
+    @DisplayName("Guarda y recupera el alias y el titular de cobro desde PostgreSQL")
+    void guardaYRecuperaElAliasYElTitularDeCobroDesdePostgresql() throws Exception {
+        cuandoSeGuardaElDestinoDeCobro("  mi.alias.mp  ", "Ana Pérez");
+        cuandoSeVuelveAConsultarLaConfiguracion();
+
+        entoncesLaConsultaTraeElDestinoDeCobro("mi.alias.mp", "Ana Pérez");
+        entoncesLaBaseGuardaElAlias("mi.alias.mp");
+    }
+
+    @Test
+    @DisplayName("Un alias vacío quita el destino de cobro guardado")
+    void unAliasVacioQuitaElDestinoDeCobroGuardado() throws Exception {
+        dadoUnDestinoDeCobroGuardado();
+
+        cuandoSeGuardaElDestinoDeCobro("", null);
+        cuandoSeVuelveAConsultarLaConfiguracion();
+
+        entoncesLaConsultaNoTraeDestinoDeCobro();
+    }
+
+    @Test
+    @DisplayName("Un alias de cobro de más de 120 caracteres responde 400 y no se guarda")
+    void unAliasDeCobroDeMasDe120CaracteresResponde400YNoSeGuarda() throws Exception {
+        cuandoSeGuardaElDestinoDeCobro("a".repeat(121), null);
+
+        entoncesResponde(400);
+        entoncesLaBaseNoGuardaAlias();
+    }
+
+    @Test
     @DisplayName("Un punto dentro de la zona de San Justo queda asignado a esa zona")
     void unPuntoDentroDeLaZonaDeSanJustoQuedaAsignadoAEsaZona() throws Exception {
         cuandoSeGuardaLaConfiguracionCompleta();
@@ -305,6 +335,19 @@ class NegocioIntegrationTest extends PostgresRepositoryTestSupport {
         respuestaDeLaConsulta = mockMvc.perform(get(API).session(sesion.sesion()));
     }
 
+    private void dadoUnDestinoDeCobroGuardado() throws Exception {
+        cuandoSeGuardaElDestinoDeCobro("mi.alias.mp", "Ana Pérez");
+    }
+
+    private void cuandoSeGuardaElDestinoDeCobro(String alias, String titular) throws Exception {
+        String cuerpo = "{\"cobroAlias\":\"" + alias + "\"," + titularEnJson(titular) + "}";
+        respuesta = actualizar(cuerpo);
+    }
+
+    private String titularEnJson(String titular) {
+        return titular == null ? "\"cobroTitular\":null" : "\"cobroTitular\":\"" + titular + "\"";
+    }
+
     private void cuandoSeGuardaLaConfiguracionCompleta() throws Exception {
         respuesta = actualizar(CONFIGURACION);
     }
@@ -360,6 +403,28 @@ class NegocioIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(jsonPath("$.ubicacion.latitud").value(-34.670123))
                 .andExpect(jsonPath("$.ubicacion.longitud").value(-58.560789))
                 .andExpect(jsonPath("$.comparteDatosZona").value(false));
+    }
+
+    private void entoncesLaConsultaTraeElDestinoDeCobro(String alias, String titular) throws Exception {
+        respuestaDeLaConsulta.andExpect(status().isOk())
+                .andExpect(jsonPath("$.cobroAlias").value(alias))
+                .andExpect(jsonPath("$.cobroTitular").value(titular));
+    }
+
+    private void entoncesLaConsultaNoTraeDestinoDeCobro() throws Exception {
+        respuestaDeLaConsulta.andExpect(status().isOk())
+                .andExpect(jsonPath("$.cobroAlias").isEmpty())
+                .andExpect(jsonPath("$.cobroTitular").isEmpty());
+    }
+
+    private void entoncesLaBaseGuardaElAlias(String alias) {
+        assertThat(jdbcTemplate.queryForObject("SELECT cobro_alias FROM negocio WHERE id = ?", String.class,
+                negocioId.valor())).isEqualTo(alias);
+    }
+
+    private void entoncesLaBaseNoGuardaAlias() {
+        assertThat(jdbcTemplate.queryForObject("SELECT cobro_alias FROM negocio WHERE id = ?", String.class,
+                negocioId.valor())).isNull();
     }
 
     private void entoncesLaBaseGuardaLaDireccion(String direccion) {

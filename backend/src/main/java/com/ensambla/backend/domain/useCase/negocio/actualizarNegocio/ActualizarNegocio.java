@@ -44,7 +44,8 @@ public class ActualizarNegocio {
         Negocio negocio = obtenerNegocioParaActualizar(request.usuarioId());
         UbicacionNegocio ubicacion = request.ubicacionNegocio();
         exigirLocalidadSiCambiaLaUbicacion(negocio, ubicacion, ahora);
-        negocio.configurar(request.nombre(), request.rubro(), ubicacion, request.comparteDatosZona(), ahora);
+        negocio.configurar(request.nombre(), request.rubro(), ubicacion, request.comparteDatosZona(),
+                request.destinoDeCobro(), ahora);
         asignarZonaSiLaNecesita(negocio);
         return guardar(negocio);
     }

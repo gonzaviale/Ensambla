@@ -5,7 +5,9 @@ import {
   cierreCajaSchema,
   cuentasCajaSchema,
   cobroDeudaCajaSchema,
+  cobroQrSchema,
   type SolicitudCobro,
+  type SolicitudCobroQr,
   type SolicitudCierreCaja,
   type SolicitudPagoDeudaCaja,
 } from '@/types/caja';
@@ -32,3 +34,8 @@ export const listarCuentasCaja = (proyectoId: string, inventarioId: string) =>
   http.get(`/caja/ventas?${new URLSearchParams({ proyectoId, inventarioId })}`, cuentasCajaSchema);
 export const registrarPagoDeudaCaja = (request: SolicitudPagoDeudaCaja) =>
   http.post('/caja/cobros', request, cobroDeudaCajaSchema);
+
+export const generarCobroQr = (request: SolicitudCobroQr) =>
+  http.post('/caja/cobros-qr', request, cobroQrSchema);
+export const cancelarCobroQr = (id: string) =>
+  http.post(`/caja/cobros-qr/${encodeURIComponent(id)}/cancelar`, {}, cobroQrSchema);

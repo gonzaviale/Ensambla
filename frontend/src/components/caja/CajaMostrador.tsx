@@ -401,8 +401,8 @@ export function CajaMostrador({
           ocupada={caja.ocupada}
           incierta={!!caja.solicitud && !caja.ocupada}
           error={caja.error}
-          onConfirmar={(medio, recibido, pagos, clienteId) =>
-            void caja.confirmar(medio, recibido, pagos, clienteId)
+          onConfirmar={(medio, recibido, pagos, clienteId, cobroQrId) =>
+            void caja.confirmar(medio, recibido, pagos, clienteId, cobroQrId)
           }
           onCerrar={() => setCobrando(false)}
         />

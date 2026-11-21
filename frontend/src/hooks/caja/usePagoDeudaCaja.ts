@@ -22,13 +22,17 @@ export function usePagoDeudaCaja(sistemaId: string, inventarioId: string, client
   const [confirmado, setConfirmado] = useState<CobroDeudaCaja | null>(null);
   const bloqueo = useRef(false);
   const cliente = useQueryClient();
-  const confirmar = async (aplicaciones: SolicitudPagoDeudaCaja['aplicaciones']) => {
+  const confirmar = async (
+    aplicaciones: SolicitudPagoDeudaCaja['aplicaciones'],
+    cobroQrId?: string,
+  ) => {
     if (bloqueo.current) return;
     const request = solicitud ?? {
       id: crypto.randomUUID(),
       proyectoId: idCaja(sistemaId),
       inventarioId: idCaja(inventarioId),
       aplicaciones,
+      ...(cobroQrId ? { cobroQrId } : {}),
     };
     bloqueo.current = true;
     setOcupada(true);

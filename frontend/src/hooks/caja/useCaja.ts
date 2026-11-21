@@ -241,6 +241,7 @@ export function useCaja(sistemaId: string, inventarioId: string, ventasId: strin
     recibido: number | null,
     pagos?: PagoCaja[],
     clienteId?: string,
+    cobroQrId?: string,
   ) => {
     if (bloqueada.current || pendiente || !lineas.length) return;
     const request = solicitud ?? {
@@ -252,6 +253,7 @@ export function useCaja(sistemaId: string, inventarioId: string, ventasId: strin
       recibido,
       ...(pagos ? { pagos } : {}),
       ...(clienteId ? { clienteId: idCaja(clienteId) } : {}),
+      ...(cobroQrId ? { cobroQrId } : {}),
       lineas: lineas.map(lineaParaCobrar),
     };
     bloqueada.current = true;

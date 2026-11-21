@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.caja.VentaCajaId;
 import com.ensambla.backend.domain.model.caja.CierreCajaId;
 import com.ensambla.backend.domain.model.caja.CobroCajaId;
+import com.ensambla.backend.domain.model.caja.CobroQrId;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.inventario.MovimientoStockId;
@@ -63,7 +64,7 @@ class IdentificadorTest {
     private List<UUID> valores;
 
     static Stream<Class<?>> tipos() {
-        return Stream.of(CobroCajaId.class, CierreCajaId.class, VentaCajaId.class, AvisoId.class, BloqueId.class,
+        return Stream.of(CobroCajaId.class, CobroQrId.class, CierreCajaId.class, VentaCajaId.class, AvisoId.class, BloqueId.class,
                 CampoId.class, MovimientoStockId.class, FotoId.class, LoteId.class, NegocioId.class,
                 RenovacionId.class, PlanId.class, SuscripcionId.class, PlantillaId.class, ReclamoId.class,
                 ProyectoId.class, RecetaId.class, RegistroId.class, SeccionId.class, UsuarioId.class, ZonaId.class,

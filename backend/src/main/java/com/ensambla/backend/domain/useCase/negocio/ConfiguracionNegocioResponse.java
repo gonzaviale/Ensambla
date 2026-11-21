@@ -6,11 +6,12 @@ import com.ensambla.backend.domain.model.zona.Zona;
 
 /** {@code zona} es sólo el nombre de la zona asignada; nunca datos de otros comercios. */
 public record ConfiguracionNegocioResponse(String nombre, RubroNegocio rubro, UbicacionNegocioItem ubicacion,
-                                           Boolean comparteDatosZona, String zona) {
+                                           Boolean comparteDatosZona, String zona,
+                                           String cobroAlias, String cobroTitular) {
 
     public static ConfiguracionNegocioResponse de(Negocio negocio, Zona zona) {
         return new ConfiguracionNegocioResponse(negocio.getNombre(), negocio.getRubro(),
                 UbicacionNegocioItem.de(negocio), negocio.getComparteDatosZona(),
-                zona == null ? null : zona.getNombre());
+                zona == null ? null : zona.getNombre(), negocio.getCobroAlias(), negocio.getCobroTitular());
     }
 }
