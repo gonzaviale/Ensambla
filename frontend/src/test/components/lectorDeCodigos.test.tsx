@@ -1,5 +1,8 @@
 import { describe, it } from 'vitest';
 import {
+  cuandoSeAbrenLosAjustesMientrasInicia,
+  dadoLectorQueNuncaTerminaDeIniciar,
+  entoncesSePuedeVolverAEscanear,
   almacenamientosDelLector,
   dadoLectorConCamaraQueFalla,
   dadoLectorConCamaraRecordada,
@@ -12,6 +15,12 @@ import {
 } from '@/test/lectorConCamara';
 
 describe('recuperación del lector al fallar una cámara', () => {
+  it('abrir los ajustes mientras la cámara inicia deja volver a escanear', async () => {
+    const user = dadoLectorQueNuncaTerminaDeIniciar();
+    await cuandoSeAbrenLosAjustesMientrasInicia(user);
+    entoncesSePuedeVolverAEscanear();
+  });
+
   it.each(['NotReadableError', 'NotFoundError'])(
     'permite elegir otra cámara después de que la seleccionada falle con %s',
     async (nombreError) => {
