@@ -220,7 +220,7 @@ async function cuandoSeCorrigeElDesdeYSeDescarga() {
 }
 
 async function cuandoSePideVerLosPlanes() {
-  await user.click(within(modal).getByRole('link', { name: 'Ver planes' }));
+  await user.click(await within(modal).findByRole('link', { name: 'Ver planes' }, ESPERA));
 }
 
 function entoncesElModalOfreceLosUltimos30Dias() {

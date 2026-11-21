@@ -27,6 +27,11 @@ import { ESPERA, verifyAlertPresentAsync } from '@/test/testHelpers';
 
 const cuandoSeAbreArmalaVos = (usuario: UserEvent) => cuandoSeEligeLaPestana(usuario, 'Armala vos');
 
+// Guardar queda deshabilitado hasta que llega el cálculo de la vista previa en vivo.
+const entoncesSeVeLaVistaPrevia = async () => {
+  expect(await screen.findByLabelText('Así quedaría', {}, ESPERA)).toBeInTheDocument();
+};
+
 describe('Inicio: métricas en solapas de «Tu negocio»', () => {
   beforeEach(() => estado.metricas.clear());
 
@@ -169,7 +174,7 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
     await cuandoSeEligeLaTarjeta(usuario, '¿Qué querés saber?', 'Total de ventas');
     await cuandoSeEligeLaTarjeta(usuario, '¿Cómo querés verla?', 'Por día de la semana');
     await cuandoSeEligeLaTarjeta(usuario, '¿De cuándo?', 'Todo lo cargado');
-    expect(await screen.findByLabelText('Así quedaría', {}, ESPERA)).toBeInTheDocument();
+    await entoncesSeVeLaVistaPrevia();
 
     await usuario.type(screen.getByLabelText('Nombre'), 'Ventas por día');
     await usuario.click(screen.getByRole('button', { name: 'Guardar métrica' }));
@@ -223,6 +228,7 @@ describe('Inicio: métricas en solapas de «Tu negocio»', () => {
     await cuandoSeEligeLaTarjeta(usuario, '¿Qué querés saber?', 'Total de ventas');
     await cuandoSeEligeLaTarjeta(usuario, '¿Cómo querés verla?', 'Todo junto');
     await cuandoSeEligeLaTarjeta(usuario, '¿De cuándo?', 'Este mes');
+    await entoncesSeVeLaVistaPrevia();
     await usuario.type(screen.getByLabelText('Nombre'), 'Total del mes');
     await usuario.click(screen.getByRole('button', { name: 'Guardar métrica' }));
     await verifyAlertPresentAsync('Esa ya la tenés en el panel');
