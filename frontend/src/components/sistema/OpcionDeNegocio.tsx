@@ -5,7 +5,7 @@ import { Icon } from './Icon';
 type Props = {
   negocio: NegocioDeLaCuenta;
   posicion: number;
-  detalle: string;
+  detalle?: string;
   sePuedeEliminar: boolean;
   onElegir: () => void;
   onEliminar: () => void;

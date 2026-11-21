@@ -350,7 +350,7 @@ class ConversarEnTallerEdicionTest {
     private void dadoQueSeSumaUnaPiezaDeGastosYSeEditaUnDatoSuyoEnElMismoTurno() {
         dadoLasLlamadas(
                 llamada("agregar_pieza", Map.of("tipo", "expenses")),
-                editar("pieza", "Gastos", "campo", "concepto", "etiqueta", "Detalle"));
+                editar("pieza", "Gastos", "campo", "importe", "posicion", 1));
     }
 
     private void dadoLasLlamadas(LlamadaHerramienta... pedidas) {
@@ -401,7 +401,7 @@ class ConversarEnTallerEdicionTest {
         assertThat(validacion.acciones()).extracting(AccionTaller::herramienta)
                 .containsExactly("agregar_pieza", "editar_campo");
         assertThat(validacion.acciones().get(1))
-                .isEqualTo(editada("pieza", "expenses", "campo", "Concepto", "etiqueta", "Detalle"));
+                .isEqualTo(editada("pieza", "expenses", "campo", "Importe", "posicion", 1));
     }
 
     private void entoncesSeAcepta(AccionTaller... esperadas) {
