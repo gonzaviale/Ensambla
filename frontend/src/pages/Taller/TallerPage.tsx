@@ -27,6 +27,7 @@ import { ritmoDeSami } from '@/lib/ritmoDeSami';
 import { debeMostrarConsejosDeFoto } from '@/lib/sistema/consejosDeFoto';
 import { allBlocks, applyLayout, findBlock, moveBlock, totals } from '@/lib/sistema/core';
 import type { NombreDeIcono } from '@/lib/sistema/iconos';
+import { sePuedeQuitarLaSeccion } from '@/lib/sistema/estructuraFija';
 import { resaltar } from '@/lib/sistema/resaltar';
 import { registrosNuevos } from '@/lib/sistema/tandas';
 import type { Distribucion } from '@/lib/sistema/tipos';
@@ -288,6 +289,8 @@ export function TallerPage() {
 
   const quitarPieza = (bloqueId: string) =>
     editarBorrador((copia) => {
+      const pieza = findBlock(copia, bloqueId);
+      if (!pieza || !sePuedeQuitarLaSeccion(copia, pieza)) return;
       for (const seccion of copia.sections) {
         seccion.blocks = seccion.blocks.filter((bloque) => bloque.id !== bloqueId);
       }

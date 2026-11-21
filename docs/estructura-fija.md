@@ -116,6 +116,7 @@ protegido. El catálogo de componentes que lee Sami (`ia/catalogo-componentes.js
 | Quitar una sección o una columna por su endpoint | `EliminarBloque` y `EliminarCampo` |
 | Editar una columna por su endpoint | `EditarCampo` |
 | Taller de Sami | `QuitarPieza`, `QuitarCampo` y `EditarCampo` del taller no quitan, renombran ni cambian lo fijo, y la acción de la pantalla vuelve a comprobarlo |
+| Taller de Sami, armado desde cero | la primera propuesta suma, vacías, las secciones obligatorias que Sami no armó (`completarLasSeccionesObligatorias`), cada una con sus columnas fijas del catálogo, y el tablero no deja quitar la última de cada tipo |
 | Editor | las acciones de `stores/accionesDelEditor.ts` y `lib/sistema/acciones`, y los botones deshabilitados con su motivo |
 
 La creación desde una plantilla (`CrearProyectoDesdeSami`, `CrearProyectoDesdePlantilla`) no cambia: el negocio nace con

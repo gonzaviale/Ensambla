@@ -2,6 +2,7 @@ import { useMemo, useState, type CSSProperties, type DragEvent } from 'react';
 import { CATALOG } from '@/lib/sistema/catalogo';
 import { comportamientoDe } from '@/lib/sistema/comportamiento';
 import { normalize } from '@/lib/sistema/core';
+import { motivoParaNoQuitarLaSeccion, sePuedeQuitarLaSeccion } from '@/lib/sistema/estructuraFija';
 import { textoPlano } from '@/lib/sistema/formato';
 import { useTandas } from '@/hooks/sistemas/useTandas';
 import { conNuevasPrimero, TANDA_DE_REGISTROS } from '@/lib/sistema/tandas';
@@ -142,6 +143,11 @@ function Tabla({ bloque, sistema, nuevas, onRegistro }: TablaProps) {
   );
 }
 
+const etiquetaDeQuitar = (sistema: Sistema, bloque: Bloque) =>
+  sePuedeQuitarLaSeccion(sistema, bloque)
+    ? 'Quitar de la propuesta'
+    : motivoParaNoQuitarLaSeccion(bloque);
+
 type TableroDelTallerProps = {
   sistema: Sistema;
   seccionId: string | null;
@@ -274,7 +280,8 @@ export function TableroDelTaller({
                 </button>
                 <IconBtn
                   name="trash"
-                  label="Quitar de la propuesta"
+                  label={etiquetaDeQuitar(sistema, bloque)}
+                  disabled={!sePuedeQuitarLaSeccion(sistema, bloque)}
                   onClick={() => onQuitar(bloque.id)}
                 />
               </div>

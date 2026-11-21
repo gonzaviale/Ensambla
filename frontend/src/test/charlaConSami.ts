@@ -129,10 +129,10 @@ export const dadoQueSamiPreguntaSiVendeProductosOSoloServicios = () =>
 export const dadoQueSamiSoloPiensa = () =>
   samiResponde(() => ({ respuesta: 'Lo pienso.', acciones: [], opciones: null }));
 
-export const dadoQueSamiSumaLosGastos = () =>
+export const dadoQueSamiSumaLosPedidos = () =>
   samiResponde(() => ({
-    respuesta: 'Listo, sumé los gastos.',
-    acciones: [{ herramienta: 'agregar_pieza', argumentos: { tipo: 'expenses' } }],
+    respuesta: 'Listo, sumé los pedidos.',
+    acciones: [{ herramienta: 'agregar_pieza', argumentos: { tipo: 'orders' } }],
     opciones: null,
   }));
 
@@ -177,7 +177,7 @@ export const cuandoSeDeshaceLoUltimo = () => clickButton(persona(), /Deshacer lo
 export const entoncesElPrimerMensajeVaConUnSistemaVacioYLoQueEnsamblaSeVe = async () => {
   expect(await screen.findByText('Te armé las ventas y los clientes.', {}, ESPERA)).toBeVisible();
   expect(screen.getByLabelText('Nombre de tu sección')).toHaveValue('Mi sección');
-  expect(cantidadDePiezasDeLaPropuesta()).toBe(2);
+  expect(cantidadDePiezasDeLaPropuesta()).toBe(5);
   expect(pedidoNumero(0).mensaje).toBe('Tengo un almacén y vendo productos');
   expect(pedidoNumero(0).estado).toMatchObject({ nombre: 'Mi sección', piezas: [] });
   expect(pedidoNumero(0).historial.map((mensaje) => mensaje.quien)).toEqual(['sami']);
@@ -200,7 +200,13 @@ export const entoncesSamiPreguntaElRubroConUnaBotoneraQueDejaEscribirOtraCosa = 
 export const entoncesSamiEnsamblaLasPiezasDeLasVelas = async () => {
   expect(await screen.findByLabelText('Nombre de tu sección', {}, ESPERA)).toHaveValue('Mis velas');
   expect(screen.getByText(/Armé tus velas/)).toBeVisible();
-  expect(piezasDelBorrador().map((bloque) => bloque.name)).toEqual(['Velas', 'Clientas', 'Pedidos']);
+  expect(piezasDelBorrador().map((bloque) => bloque.name)).toEqual([
+    'Velas',
+    'Clientas',
+    'Pedidos',
+    'Ventas',
+    'Gastos',
+  ]);
   expect(within(await botonera()).getByText(/gastás en cera, mechas y esencias/)).toBeVisible();
 };
 
@@ -233,13 +239,13 @@ export const entoncesSamiSumaUnaTablaDeTurnosAMedida = async () => {
   ]);
   const sofia = pieza('Clientes').rows.find((fila) => fila.name === 'Sofía Ruiz');
   expect(turnos.rows[0]).toMatchObject({ cliente: sofia?.id, hora: '10:30' });
-  expect(cantidadDePiezasDeLaPropuesta()).toBe(3);
+  expect(cantidadDePiezasDeLaPropuesta()).toBe(5);
 };
 
 export const entoncesSamiArmaElSistemaDesdeCeroYDejaUnaPregunta = async () => {
   expect(await screen.findByText('Empecemos por tus ventas y tus clientes.', {}, ESPERA)).toBeVisible();
   expect(await screen.findByLabelText('Nombre de tu sección', {}, ESPERA)).toBeVisible();
-  expect(cantidadDePiezasDeLaPropuesta()).toBe(2);
+  expect(cantidadDePiezasDeLaPropuesta()).toBe(4);
   expect(within(await botonera()).getByText('¿Llevás stock?')).toBeVisible();
 };
 
@@ -277,21 +283,26 @@ export const entoncesElAjusteVaConElSistemaResumidoYLaCharlaReciente = async () 
   const pedido = pedidoNumero(0);
   expect(pedido.mensaje).toBe('¿por qué me pusiste esas piezas?');
   expect(pedido.estado.nombre).toBe('Mi almacén');
-  expect(pedido.estado.piezas.map((item) => item.tipo)).toEqual(['inventory', 'sales', 'clients']);
+  expect(pedido.estado.piezas.map((item) => item.tipo)).toEqual([
+    'inventory',
+    'sales',
+    'clients',
+    'expenses',
+  ]);
   expect(JSON.stringify(pedido.estado)).not.toContain('Yerba');
   expect(pedido.historial.length).toBeLessThanOrEqual(6);
   expect(pedido.historial.at(-1)?.quien).toBe('sami');
 };
 
-export const entoncesSamiSumaLosGastosATravesDeLaOrden = async () => {
-  expect(await screen.findByText('Listo, sumé los gastos.', {}, ESPERA)).toBeVisible();
-  expect(pedidos.map((pedido) => pedido.mensaje)).toEqual(['sumá gastos']);
-  expect(cantidadDePiezasDeLaPropuesta()).toBe(4);
+export const entoncesSamiSumaLosPedidosATravesDeLaOrden = async () => {
+  expect(await screen.findByText('Listo, sumé los pedidos.', {}, ESPERA)).toBeVisible();
+  expect(pedidos.map((pedido) => pedido.mensaje)).toEqual(['sumá pedidos']);
+  expect(cantidadDePiezasDeLaPropuesta()).toBe(5);
 };
 
 export const entoncesSamiNoSacaLosClientes = async () => {
   expect(await screen.findByText(/No puedo sacar clientes: Ensambla los necesita/, {}, ESPERA)).toBeVisible();
-  expect(cantidadDePiezasDeLaPropuesta()).toBe(3);
+  expect(cantidadDePiezasDeLaPropuesta()).toBe(4);
 };
 
 export const entoncesSamiRenombraElSistema = async () => {
@@ -315,7 +326,7 @@ export const entoncesSamiConfirmaQueVolvioAtrasYYaNoOfreceDeshacer = () => {
 
 export const entoncesLaPropuestaNoCambiaNiOfreceDeshacer = async () => {
   expect(await screen.findByText(/Cuando quieras seguimos/, {}, ESPERA)).toBeVisible();
-  expect(cantidadDePiezasDeLaPropuesta()).toBe(3);
+  expect(cantidadDePiezasDeLaPropuesta()).toBe(4);
   expect(screen.queryByRole('button', { name: /Deshacer lo último/ })).toBeNull();
 };
 
