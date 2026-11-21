@@ -12,6 +12,7 @@ import {
 } from '@/lib/sistema/acciones';
 import { applyLayout, clone, makeSystem } from '@/lib/sistema/core';
 import { aBase64, reducirImagen } from '@/lib/sistema/imagen';
+import { completarLasSeccionesObligatorias } from '@/lib/sistema/secciones';
 import type { Sistema } from '@/lib/sistema/tipos';
 import { useSistemaStore, type Taller } from '@/stores/sistemaStore';
 import {
@@ -155,6 +156,8 @@ export function useTaller() {
     const copia = clone(base);
     const { aplicadas, pendientes, sinStock } = aplicarAcciones(copia, respuesta.acciones);
     const cambio = !mismoSistema(copia, base);
+    // Lo que Sami arma desde cero ya nace con las secciones que Ensambla necesita; un sistema que se ajusta ya las tiene.
+    if (cambio && !borrador) completarLasSeccionesObligatorias(copia);
     // Lo primero que arma Sami se acomoda como el resto de las propuestas: el stock a lo ancho, lo demás de a dos.
     if (cambio && !borrador && !copia.layout) applyLayout(copia, 'mosaic');
     const dudas = respuesta.preguntas;

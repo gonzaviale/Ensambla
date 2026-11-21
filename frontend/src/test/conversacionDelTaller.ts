@@ -107,8 +107,8 @@ export const cuandoSeEscribeUnMensajeMuyCorto = async () => {
   await clickButton(persona(), /Enviar a Sami/);
 };
 
-export const cuandoSePideSumarGastos = async () => {
-  await persona().type(campoDeLosAjustes(), 'sumá gastos');
+export const cuandoSePideSumarUnProveedor = async () => {
+  await persona().type(campoDeLosAjustes(), 'agregá un proveedor al inventario');
   await clickButton(persona(), /Ajustar con Sami/);
 };
 
@@ -125,9 +125,9 @@ export const cuandoSeAnchaLaPiezaDeClientesAFilaCompleta = () =>
     within(piezaDeLaPropuesta(/^Clientes/)).getByRole('button', { name: 'Fila completa' }),
   );
 
-export const cuandoSeQuitaLaPiezaDeClientes = () =>
+export const cuandoSeQuitaLaPiezaDePedidos = () =>
   persona().click(
-    within(piezaDeLaPropuesta(/^Clientes/)).getByRole('button', { name: 'Quitar de la propuesta' }),
+    within(piezaDeLaPropuesta(/^Pedidos/)).getByRole('button', { name: 'Quitar de la propuesta' }),
   );
 
 export const cuandoSeAbreElPrimerRegistroDeEjemplo = async () => {
@@ -165,12 +165,14 @@ export const cuandoSeArmaElSistemaACrear = () => {
   sistemaACrear = sistemaParaCrear(propuesta);
 };
 
-export const cuandoSeSumaLaPiezaDeGastosDesdeLaPaleta = async () => {
+export const cuandoSeSumaLaPiezaDePedidosDesdeLaPaleta = async () => {
   await persona().click(screen.getByRole('button', { name: 'Agregar y organizar' }));
   await persona().click(screen.getByRole('button', { name: 'Bloques' }));
   const dialogo = await screen.findByRole('dialog');
-  await persona().click(within(dialogo).getByRole('button', { name: /^Gastos/ }));
+  await persona().click(within(dialogo).getByRole('button', { name: /^Pedidos/ }));
 };
+
+export const dadoQueSeSumoLaPiezaDePedidosDesdeLaPaleta = cuandoSeSumaLaPiezaDePedidosDesdeLaPaleta;
 
 export const cuandoSeElijeLaDistribucionDeUnaColumna = async () => {
   await persona().click(screen.getByRole('button', { name: 'Agregar y organizar' }));
@@ -255,13 +257,18 @@ export const entoncesSamiArmaUnaBaseQueSeVeALaDerecha = async () => {
   expect(screen.queryByText(/sin guardar/i)).toBeNull();
   expect(screen.getByText(/^Te armé los productos/)).toBeVisible();
   expect(await screen.findByText(/Ya lo podés ver a la derecha\./, {}, ESPERA)).toBeVisible();
-  expect(cantidadDePiezasDeLaPropuesta()).toBe(3);
+  expect(cantidadDePiezasDeLaPropuesta()).toBe(4);
   expect(campoDeLosAjustes()).toBeVisible();
 };
 
-export const entoncesSamiSumaLosGastosALaPropuesta = async () => {
-  expect(await screen.findByText('Listo, sumé los gastos.', {}, ESPERA)).toBeVisible();
-  expect(cantidadDePiezasDeLaPropuesta()).toBe(4);
+export const entoncesLaPropuestaYaTraeLasCuatroSeccionesQueEnsamblaNecesita = () => {
+  expect(piezasDeLaPropuesta()).toEqual(['Productos', 'Ventas', 'Clientes', 'Gastos']);
+};
+
+export const entoncesSamiSumaElProveedorALaPropuesta = async () => {
+  expect(
+    await screen.findByText('Listo, sumé el proveedor al inventario.', {}, ESPERA),
+  ).toBeVisible();
 };
 
 export const entoncesLaPiezaSeLlamaComoLaPersonaQuiso = async () => {
@@ -273,8 +280,15 @@ export const entoncesLaPiezaOcupaLaFilaCompleta = () => {
 };
 
 export const entoncesLaPiezaYaNoEstaEnLaPropuesta = () => {
-  expect(screen.queryByRole('button', { name: /^Clientes/ })).toBeNull();
-  expect(cantidadDePiezasDeLaPropuesta()).toBe(2);
+  expect(screen.queryByRole('button', { name: /^Pedidos/ })).toBeNull();
+  expect(cantidadDePiezasDeLaPropuesta()).toBe(4);
+};
+
+export const entoncesLaPiezaDeClientesNoSePuedeQuitar = () => {
+  const quitar = within(piezaDeLaPropuesta(/^Clientes/)).getByRole('button', {
+    name: /No se puede quitar la sección «Clientes»/,
+  });
+  expect(quitar).toBeDisabled();
 };
 
 export const entoncesElFormularioNoOfreceEliminarElRegistroDeEjemplo = async () => {
@@ -308,7 +322,7 @@ export const entoncesNoSeGuardaYElFormularioSigueAbierto = async () => {
 };
 
 export const entoncesLaPropuestaTieneUnaPiezaMas = () => {
-  expect(cantidadDePiezasDeLaPropuesta()).toBe(4);
+  expect(cantidadDePiezasDeLaPropuesta()).toBe(5);
 };
 
 export const entoncesTodasLasPiezasOcupanLaFilaCompleta = () => {

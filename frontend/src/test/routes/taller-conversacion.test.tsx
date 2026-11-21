@@ -14,7 +14,7 @@ import {
   dadoQueSamiPreguntaSiSumaGastos,
   dadoQueSamiPreguntaSiVendeProductosOSoloServicios,
   dadoQueSamiSoloPiensa,
-  dadoQueSamiSumaLosGastos,
+  dadoQueSamiSumaLosPedidos,
   dadoQueSamiSumaTurnosSinDecirNada,
   dadoQueSeAbreElTallerParaConversar,
   dadoQueSeAplicoUnPedidoDeSami,
@@ -38,7 +38,7 @@ import {
   entoncesSamiRenombraElSistema,
   entoncesSamiNoSacaLosClientes,
   entoncesSamiSumaElProveedorAlInventario,
-  entoncesSamiSumaLosGastosATravesDeLaOrden,
+  entoncesSamiSumaLosPedidosATravesDeLaOrden,
   entoncesSamiSumaUnaTablaDeTurnosAMedida,
   entoncesSeAvisaConElMensajeDelServidorYSeSigueEscribiendo,
   entoncesSeAvisaYSigueSinPropuesta,
@@ -153,13 +153,13 @@ describe('la conversación de Sami en el taller', () => {
     await entoncesElAjusteVaConElSistemaResumidoYLaCharlaReciente();
   });
 
-  it('una orden simple como «sumá gastos» también la resuelve Sami', async () => {
+  it('una orden simple como «sumá pedidos» también la resuelve Sami', async () => {
     await dadoQueSamiArmoLaPropuestaDeUnAlmacen();
-    dadoQueSamiSumaLosGastos();
+    dadoQueSamiSumaLosPedidos();
 
-    await cuandoSeEscribe('sumá gastos');
+    await cuandoSeEscribe('sumá pedidos');
 
-    await entoncesSamiSumaLosGastosATravesDeLaOrden();
+    await entoncesSamiSumaLosPedidosATravesDeLaOrden();
   });
 
   it('Sami no saca una pieza que Ensambla necesita', async () => {
