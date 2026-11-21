@@ -58,7 +58,7 @@ export async function cuandoEligeNegocio(nombre: string) {
   const user = userEvent.setup();
   await user.click(screen.getByRole('button', { name: /Negocio activo:/ }));
   await user.click(
-    within(screen.getByRole('menu')).getByRole('menuitem', { name: new RegExp(nombre) }),
+    within(screen.getByRole('menu')).getByRole('menuitem', { name: new RegExp(`^${nombre}`) }),
   );
   await screen.findByRole('heading', { name: /En qué puedo/ }, ESPERA);
 }

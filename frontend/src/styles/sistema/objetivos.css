@@ -1874,6 +1874,10 @@
   fill: var(--orange);
   font-size: 13px;
   font-weight: 800;
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 4px;
+  stroke-linejoin: round;
   text-anchor: middle;
 }
 .grafico-semanal-marca circle {

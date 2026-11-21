@@ -63,7 +63,7 @@ public final class EditarCampo extends HerramientaSobreElSistema {
     private Optional<Map<String, Object>> cambiosDe(ArgumentosDeHerramienta argumentos, PiezaTaller pieza,
                                                     ListaDeCampos campos, CampoTaller campo) {
         CambiosDeCampo cambios = new CambiosDeCampo();
-        etiquetaEditada(argumentos.de("etiqueta"), campos, campo, cambios);
+        etiquetaEditada(argumentos.de("etiqueta"), pieza, campos, campo, cambios);
         String tipo = tipoEditado(argumentos.de("tipo"), pieza, campos, campo, cambios);
         opcionesEditadas(argumentos.de("opciones"), tipo, campo, cambios);
         obligatorioEditado(argumentos.de("obligatorio"), cambios);
@@ -71,14 +71,18 @@ public final class EditarCampo extends HerramientaSobreElSistema {
         return cambios.validos();
     }
 
-    /** La etiqueta nueva no puede repetir la de otro dato de la pieza; la misma de antes no es un cambio. */
-    private void etiquetaEditada(ValorDeArgumento valor, ListaDeCampos campos, CampoTaller campo,
+    /**
+     * La etiqueta nueva no puede repetir la de otro dato de la pieza; la misma de antes no es un cambio. Un dato que
+     * Ensambla necesita para funcionar no se renombra.
+     */
+    private void etiquetaEditada(ValorDeArgumento valor, PiezaTaller pieza, ListaDeCampos campos, CampoTaller campo,
                                  CambiosDeCampo cambios) {
         if (!valor.llego()) {
             return;
         }
         Optional<String> etiqueta = valor.texto(CatalogoTaller.MAX_LARGO_NOMBRE)
-                .filter(nueva -> campos.campoDe(nueva).filter(otro -> !otro.equals(campo)).isEmpty());
+                .filter(nueva -> campos.campoDe(nueva).filter(otro -> !otro.equals(campo)).isEmpty())
+                .filter(nueva -> puedeLlamarse(pieza, campo, nueva));
         cambios.exigir(etiqueta.isPresent());
         etiqueta.filter(nueva -> !nueva.equals(campo.etiqueta())).ifPresent(nueva -> cambios.anotar("etiqueta", nueva));
     }
@@ -101,6 +105,10 @@ public final class EditarCampo extends HerramientaSobreElSistema {
     private boolean esDeTipoFijo(PiezaTaller pieza, ListaDeCampos campos, CampoTaller campo) {
         return CatalogoTaller.TIPO_VINCULO.equals(campo.tipo()) || campos.esElPrimero(campo)
                 || esFijoDelComponente(pieza, campo);
+    }
+
+    private boolean puedeLlamarse(PiezaTaller pieza, CampoTaller campo, String etiqueta) {
+        return !esFijoDelComponente(pieza, campo) || etiqueta.equals(campo.etiqueta());
     }
 
     private boolean esFijoDelComponente(PiezaTaller pieza, CampoTaller campo) {

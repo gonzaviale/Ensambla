@@ -133,8 +133,8 @@ describe('sumar y quitar datos', () => {
     );
 
     entoncesSoloSeOmitio(
-      'No se puede quitar «Producto»: Ensambla la necesita para funcionar. Podés cambiarle el nombre.',
-      'No se puede quitar «Cliente»: Ensambla la necesita para funcionar. Podés cambiarle el nombre.',
+      'No se puede quitar «Producto»: Ensambla la necesita para funcionar.',
+      'No se puede quitar «Cliente»: Ensambla la necesita para funcionar.',
       'No encontré ese dato.',
       'No encontré ese dato.',
     );
@@ -198,7 +198,7 @@ describe('renombrar un dato', () => {
     entoncesLaEtiquetaDeLaClave('clients', 'email', 'Correo');
   });
 
-  it('un vínculo y el dato principal sí se pueden renombrar', () => {
+  it('un vínculo y el dato principal no se pueden renombrar: son datos fijos', () => {
     dadoUnAlmacenDeEjemplo();
 
     cuandoSamiPide(
@@ -206,18 +206,18 @@ describe('renombrar un dato', () => {
       editarCampo('clients', 'Nombre', { etiqueta: 'Nombre y apellido' }),
     );
 
-    entoncesSeAplico(
-      'Renombré Cliente a Clienta en ventas.',
-      'Renombré Nombre a Nombre y apellido en clientes.',
+    entoncesSoloSeOmitio(
+      'No se puede cambiar ni renombrar «Cliente»: Ensambla la necesita para funcionar.',
+      'No se puede cambiar ni renombrar «Nombre»: Ensambla la necesita para funcionar.',
     );
   });
 
-  it('un vínculo renombrado sigue siendo el mismo vínculo', () => {
+  it('un dato fijo que se quiso renombrar queda con su nombre', () => {
     dadoUnAlmacenDeEjemplo();
 
     cuandoSamiPide(editarCampo('Ventas', 'Cliente', { etiqueta: 'Clienta' }));
 
-    entoncesLosDatosSon('sales', { Clienta: { key: 'customer', type: 'relation' } });
+    entoncesLosDatosSon('sales', { Cliente: { key: 'customer', type: 'relation' } });
   });
 });
 
@@ -354,20 +354,22 @@ describe('cambiar el tipo de un dato', () => {
     entoncesLosDatosSon('clients', { Nombre: { type: 'text' } });
   });
 
-  it('el tipo del dato principal se ignora y lo demás se aplica', () => {
+  it('el dato principal no se renombra aunque se pida otro tipo', () => {
     dadoUnAlmacenDeEjemplo();
 
     cuandoSamiPide(editarCampo('clients', 'Nombre', { etiqueta: 'Razón social', tipo: 'number' }));
 
-    entoncesSoloSeHizo('Renombré Nombre a Razón social en clientes.');
+    entoncesSoloSeOmitio(
+      'No se puede cambiar ni renombrar «Nombre»: Ensambla la necesita para funcionar.',
+    );
   });
 
-  it('el dato principal renombrado sigue siendo texto', () => {
+  it('el dato principal conserva su nombre y su tipo', () => {
     dadoUnAlmacenDeEjemplo();
 
     cuandoSamiPide(editarCampo('clients', 'Nombre', { etiqueta: 'Razón social', tipo: 'number' }));
 
-    entoncesLosDatosSon('clients', { 'Razón social': { type: 'text' } });
+    entoncesLosDatosSon('clients', { Nombre: { type: 'text' } });
   });
 });
 
@@ -443,17 +445,20 @@ describe('obligatorio y lugar de un dato', () => {
   it('renombra y mueve en la misma acción', () => {
     dadoUnAlmacenDeEjemplo();
 
-    cuandoSamiPide(editarCampo('sales', 'Cliente', { etiqueta: 'Clienta', posicion: 1 }));
+    cuandoSamiPide(editarCampo('clients', 'Notas', { etiqueta: 'Observaciones', posicion: 1 }));
 
-    entoncesSeAplico('Renombré Cliente a Clienta en ventas.', 'Moví Clienta al lugar 1 en ventas.');
+    entoncesSeAplico(
+      'Renombré Notas a Observaciones en clientes.',
+      'Moví Observaciones al lugar 1 en clientes.',
+    );
   });
 
   it('el dato renombrado y movido queda primero con su nombre nuevo', () => {
     dadoUnAlmacenDeEjemplo();
 
-    cuandoSamiPide(editarCampo('sales', 'Cliente', { etiqueta: 'Clienta', posicion: 1 }));
+    cuandoSamiPide(editarCampo('clients', 'Notas', { etiqueta: 'Observaciones', posicion: 1 }));
 
-    entoncesLaPrimeraEtiquetaEs('sales', 'Clienta');
+    entoncesLaPrimeraEtiquetaEs('clients', 'Observaciones');
   });
 
   it('omite un lugar que no es un número', () => {

@@ -12,8 +12,8 @@ import java.util.Optional;
  * @param id        identificador que le puso el taller; las piezas que se suman en el mismo turno todavía no lo tienen
  * @param tipo      tipo del catálogo de componentes ({@link CatalogoComponentes})
  * @param seccion   nombre de la sección donde está
- * @param registros los registros reales que se cargaron en este armado (sin las filas de ejemplo), para poder
- *                  corregirlos
+ * @param registros los registros reales de la pieza, también los ya guardados (sin las filas de ejemplo), para
+ *                  poder corregirlos
  * @param nombres   si otra pieza se vincula con esta (clientes, productos), los nombres que ya tiene, también los
  *                  guardados: Sami los usa tal cual en vez de inventar otro
  */
