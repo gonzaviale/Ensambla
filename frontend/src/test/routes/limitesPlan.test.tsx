@@ -28,7 +28,7 @@ describe('vista gratuita y acceso a Premium', () => {
 
     await cuandoSeAbreLaCampana();
 
-    entoncesLaCampanaAvisaQueHayUnAvisoMasConPremium();
+    await entoncesLaCampanaAvisaQueHayUnAvisoMasConPremium();
   });
 
   it('el panel de avisos sólo entrega seis detalles', async () => {
@@ -83,8 +83,8 @@ function entoncesMiZonaOfreceConocerPremiumSinElContenidoRestringido() {
   expect(document.querySelector('.contenido-premium-muestra')?.textContent).toBe('');
 }
 
-function entoncesLaCampanaAvisaQueHayUnAvisoMasConPremium() {
-  expect(screen.getByText('Hay 1 aviso más con Premium.')).toBeVisible();
+async function entoncesLaCampanaAvisaQueHayUnAvisoMasConPremium() {
+  expect(await screen.findByText('Hay 1 aviso más con Premium.', {}, ESPERA)).toBeVisible();
 }
 
 function entoncesElPanelEntregaSeisDetallesYOfreceConocerPremium() {
