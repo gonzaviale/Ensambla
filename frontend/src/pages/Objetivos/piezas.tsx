@@ -21,6 +21,7 @@ export function Encabezado({
   texto,
   sami = 'Te explica cada cálculo',
   samiTitulo = 'Sami está listo',
+  conSami = true,
   accion,
 }: {
   etiqueta: string;
@@ -29,6 +30,8 @@ export function Encabezado({
   sami?: string;
   /** Qué está haciendo Sami en esta pantalla, en pocas palabras. */
   samiTitulo?: string;
+  /** Sin el cartel de Sami a la derecha, para las pantallas donde no suma nada. */
+  conSami?: boolean;
   /** Lo que va a la derecha en lugar del cartel de Sami, por ejemplo el botón principal de la pantalla. */
   accion?: ReactNode;
 }) {
@@ -39,7 +42,7 @@ export function Encabezado({
         <h1>{titulo}</h1>
         <p>{texto}</p>
       </div>
-      {accion ?? <SamiDelEncabezado titulo={samiTitulo} texto={sami} />}
+      {accion ?? (conSami && <SamiDelEncabezado titulo={samiTitulo} texto={sami} />)}
     </header>
   );
 }

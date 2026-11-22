@@ -43,6 +43,11 @@ public final class MedidorMiniObjetivo {
         public BigDecimal gananciaPorUnidad() {
             return precio.subtract(costo);
         }
+
+        /** Si tiene un mínimo y ya llegó a él: hay que reponerlo antes de empujar su venta. */
+        public boolean faltaStock() {
+            return minimo != null && stock.compareTo(minimo) <= 0;
+        }
     }
 
     /** Lo gastado en una categoría en los últimos 30 días. */
@@ -159,7 +164,7 @@ public final class MedidorMiniObjetivo {
             return Optional.empty();
         }
         return Optional.of(BigDecimal.valueOf(conMinimo.stream()
-                .filter(producto -> producto.stock().compareTo(producto.minimo()) <= 0)
+                .filter(Producto::faltaStock)
                 .count()));
     }
 

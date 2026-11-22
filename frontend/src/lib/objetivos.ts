@@ -45,6 +45,14 @@ export function ultimoValor(objetivo: Objetivo): number {
   return objetivo.historial.at(-1)?.valor ?? 0;
 }
 
+/** Lo que se gana hoy por mes, listo para mostrar: si el negocio pierde plata va «−$126.150» y dice «perdés». */
+export function resultadoDelMes(objetivo: Objetivo): { monto: string; etiqueta: string } {
+  const valor = ultimoValor(objetivo);
+  return valor < 0
+    ? { monto: `−${formatoPesos(-valor)}`, etiqueta: 'perdés por mes' }
+    : { monto: formatoPesos(valor), etiqueta: 'ganás por mes' };
+}
+
 /** Qué parte de la meta ya se logra hoy, de 0 a 1. */
 export function avance(objetivo: Objetivo): number {
   if (!tieneMeta(objetivo) || objetivo.meta <= 0) return 0;

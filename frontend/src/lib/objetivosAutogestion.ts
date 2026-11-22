@@ -14,6 +14,11 @@ const numero = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 });
 
 const enPesos = (valor: number) => formatoPesos(valor);
 const porSemana = (valor: number) => `${numero.format(valor)} por semana`;
+/** Lo que falta de margen se cuenta en puntos: de 25,9 % a 27,9 % faltan 2 puntos, no «2 %». */
+const enPuntos = (valor: number) => {
+  const texto = numero.format(valor);
+  return `${texto} ${texto === '1' ? 'punto' : 'puntos'}`;
+};
 
 const FORMATO_DE_VALOR: Record<TipoMiniObjetivo, (valor: number) => string> = {
   SUBIR_PRECIO: enPesos,
@@ -163,7 +168,7 @@ export function faltaParaLaMeta(mini: MiniMedido): string | null {
   const falta =
     mini.sentido === 'BAJA' ? mini.valorActual - mini.meta : mini.meta - mini.valorActual;
   if (falta <= 0) return null;
-  return valorDeMini(mini.tipo, falta);
+  return mini.tipo === 'MEJORAR_MARGEN' ? enPuntos(falta) : valorDeMini(mini.tipo, falta);
 }
 
 /** El próximo domingo de cierre, contando hoy si es domingo. */
@@ -209,7 +214,7 @@ export function cuantoCubren(minis: MiniObjetivo[], teFaltan: number): string | 
   );
   if (teFaltan <= 0 || suman <= 0) return null;
   if (suman >= teFaltan) {
-    return `Si cumplís estos mini-objetivos sumás cerca de ${formatoPesos(suman)} por mes: alcanza para llegar a tu meta.`;
+    return `Si cumplís estos mini-objetivos ganás cerca de ${formatoPesos(suman)} más por mes: alcanza para llegar a tu meta.`;
   }
-  return `Si cumplís estos mini-objetivos sumás cerca de ${formatoPesos(suman)} por mes de los ${formatoPesos(teFaltan)} que te faltan.`;
+  return `Si cumplís estos mini-objetivos ganás cerca de ${formatoPesos(suman)} más por mes de los ${formatoPesos(teFaltan)} que te faltan.`;
 }

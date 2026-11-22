@@ -6,8 +6,8 @@ import {
   avance,
   brecha,
   formatoPesos,
+  resultadoDelMes,
   tieneMeta,
-  ultimoValor,
   variacion,
   type Objetivo,
   type ObjetivoConMeta,
@@ -93,8 +93,8 @@ function ObjetivoConMetaCard({
 
       <div className="objetivos-tarjeta-avance">
         <div className="objetivos-avance-cifras">
-          <strong>{formatoPesos(ultimoValor(objetivo))}</strong>
-          <span>ganás por mes</span>
+          <strong>{resultadoDelMes(objetivo).monto}</strong>
+          <span>{resultadoDelMes(objetivo).etiqueta}</span>
         </div>
         <div className="objetivos-avance-meta">
           <p>

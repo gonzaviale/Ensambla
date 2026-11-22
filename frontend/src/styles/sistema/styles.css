@@ -195,7 +195,7 @@ select:focus {
   color: white;
   box-shadow: 0 3px 0 #00384c;
 }
-.btn.primary:hover {
+.btn.primary:hover:not(:disabled) {
   background: #003e53;
 }
 .btn.orange {

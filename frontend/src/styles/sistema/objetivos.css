@@ -1483,6 +1483,125 @@
   color: var(--muted);
   font-size: 12px;
 }
+
+/* Botón para cambiar entre «contárselo a Sami» y «meta en pesos»: tiene que verse como botón. */
+.objetivos-cambiar-camino {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: start;
+  min-height: 44px;
+  margin-top: 14px;
+  margin-bottom: 22px;
+  padding: 8px 18px;
+  border: 2px solid var(--petrol);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--petrol);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.objetivos-cambiar-camino:hover,
+.objetivos-cambiar-camino:focus-visible {
+  background: var(--petrol);
+  color: #fff;
+}
+
+/* «¿Qué querés lograr?» con meta en pesos: mismo borde que la tarjeta de Sami. */
+.objetivos-definir-titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.objetivos-definir-icono {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--orange);
+  color: #fff;
+}
+/* Mismos tamaños de letra que el chat de Sami, para que las dos tarjetas se vean parejas. */
+.objetivos-definir-pesos .field label,
+.objetivos-definir-pesos .objetivos-ejemplos-titulo {
+  font-size: 14px;
+}
+.objetivos-definir-pesos .objetivos-formulario textarea {
+  font-size: 14px;
+}
+.objetivos-definir-pesos .objetivos-formulario textarea:focus {
+  border-color: var(--petrol);
+  outline: none;
+}
+.objetivos-definir-pesos .input-hint {
+  color: var(--ink);
+  font-size: 13px;
+}
+.objetivos-definir-pesos .example-chips button {
+  padding: 5px 10px;
+  font-size: 13px;
+  border: 2px solid var(--blue);
+  background: #fff;
+  color: var(--petrol);
+  font-weight: 600;
+}
+.objetivos-definir-pesos .example-chips button:hover {
+  background: var(--blue);
+  color: #fff;
+}
+.objetivos-definir-pesos .objetivos-fundamento {
+  border: 2px solid var(--blue);
+  background: #fff;
+}
+.objetivos-definir-pesos .objetivos-fundamento strong {
+  font-size: 14px;
+}
+.objetivos-definir-pesos .objetivos-fundamento p {
+  color: var(--ink);
+  font-size: 14px;
+}
+.objetivos-formula {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  list-style: none;
+}
+.objetivos-formula li.objetivos-formula-signo {
+  padding: 0 2px;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 800;
+}
+.objetivos-formula li {
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+.objetivos-formula-ventas {
+  background: var(--petrol);
+}
+.objetivos-formula-mercaderia {
+  background: var(--coral);
+}
+.objetivos-formula-gastos {
+  background: var(--orange);
+}
+.objetivos-formula-resultado {
+  background: var(--blue);
+}
 @media (max-width: 900px) {
   .objetivos-definir {
     grid-template-columns: minmax(0, 1fr);

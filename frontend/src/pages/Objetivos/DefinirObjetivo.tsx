@@ -1,5 +1,5 @@
 import { useId, useState, type FormEvent } from 'react';
-import { ChartLineUpIcon } from '@phosphor-icons/react';
+import { ChartLineUpIcon, TargetIcon } from '@phosphor-icons/react';
 import { leerErrorServidor } from '@/hooks/errores';
 import { useDefinirObjetivo } from '@/hooks/objetivos/mutations';
 import { useComoVieneTuNegocio } from '@/hooks/objetivos/useComoVieneTuNegocio';
@@ -56,9 +56,17 @@ export function DefinirObjetivo({ onDefinido, onCancelar, textoInicial = '' }: P
   };
 
   return (
-    <section className="objetivos-definir" aria-labelledby={`${idCampo}-titulo`}>
+    <section
+      className="objetivos-definir objetivos-definir-pesos"
+      aria-labelledby={`${idCampo}-titulo`}
+    >
       <form className="objetivos-formulario" onSubmit={enviar}>
-        <h2 id={`${idCampo}-titulo`}>¿Qué querés lograr?</h2>
+        <div className="objetivos-definir-titulo">
+          <span className="objetivos-definir-icono" aria-hidden>
+            <TargetIcon size={24} />
+          </span>
+          <h2 id={`${idCampo}-titulo`}>¿Qué querés lograr?</h2>
+        </div>
         <div className="field">
           <label htmlFor={idCampo}>Contale tu objetivo a Sami</label>
           <textarea
@@ -158,6 +166,15 @@ export function DefinirObjetivo({ onDefinido, onCancelar, textoInicial = '' }: P
         <ChartLineUpIcon aria-hidden size={24} />
         <div>
           <strong>Cómo se mide</strong>
+          <ul className="objetivos-formula" aria-hidden>
+            <li className="objetivos-formula-ventas">Ventas</li>
+            <li className="objetivos-formula-signo">−</li>
+            <li className="objetivos-formula-mercaderia">Mercadería</li>
+            <li className="objetivos-formula-signo">−</li>
+            <li className="objetivos-formula-gastos">Gastos</li>
+            <li className="objetivos-formula-signo">=</li>
+            <li className="objetivos-formula-resultado">Resultado</li>
+          </ul>
           <p>
             Ventas − costo de mercadería − gastos = resultado. Sami compara ese resultado con tu
             meta, y revisa la ganancia, el punto de equilibrio y las ventas pendientes de cobro.

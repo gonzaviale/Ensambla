@@ -18,7 +18,7 @@ class TextoMiniObjetivoTest {
 
         entoncesElTextoEs("Subile $250 a Yerba 1 kg",
                 "Te deja $900 por unidad (21,4 %) y vendés cerca de 14 por semana. Con $250 más, aunque se vendan "
-                        + "algunos menos, sumás cerca de $6.786 por mes.");
+                        + "algunos menos, ganás cerca de $6.786 más por mes.");
     }
 
     @Test
@@ -37,8 +37,8 @@ class TextoMiniObjetivoTest {
         cuandoSeEscribePonerALaVista();
 
         entoncesElTextoEs("Poné a la vista «Aceite 900 ml»",
-                "Es de los que más te dejan por unidad: $850. Si pasás de 5 a 6 por semana, sumás cerca de $3.643 "
-                        + "por mes.");
+                "Es de los que más te dejan por unidad: $850. Si pasás de 5 a 6 por semana, ganás cerca de $3.643 "
+                        + "más por mes.");
     }
 
     @Test
@@ -51,22 +51,23 @@ class TextoMiniObjetivoTest {
     }
 
     @Test
-    @DisplayName("Mejorar el margen dice cuánto queda de cada $100 y cuántos puntos más se buscan")
-    void mejorarElMargenDiceCuantoQuedaDeCada100YCuantosPuntosMasSeBuscan() {
+    @DisplayName("Mejorar el margen dice cuánto queda de cada $1.000 y cuántos puntos más se buscan")
+    void mejorarElMargenDiceCuantoQuedaDeCada1000YCuantosPuntosMasSeBuscan() {
         cuandoSeEscribeMejorarMargen();
 
         entoncesElTextoEs("Ganar 2 puntos más en lo que vendés",
-                "Hoy de cada $100 que vendés te quedan $35,7 después de pagar la mercadería. Con $37,7 sumás cerca "
-                        + "de $14.000 por mes.");
+                "Hoy de cada $1.000 que vendés te quedan $357 después de pagar la mercadería. Con $377 ganás cerca "
+                        + "de $14.000 más por mes.");
     }
 
     @Test
-    @DisplayName("Vender más por semana dice lo vendido, la meta y cuánto suma por mes")
-    void venderMasPorSemanaDiceLoVendidoLaMetaYCuantoSumaPorMes() {
+    @DisplayName("Vender más por semana dice lo vendido, cuánto más vender por semana y cuánto más se gana por mes")
+    void venderMasPorSemanaDiceLoVendidoCuantoMasVenderPorSemanaYCuantoMasSeGanaPorMes() {
         cuandoSeEscribeVentasSemanales();
 
         entoncesElTextoEs("Vender un 10 % más por semana",
-                "En los últimos 7 días vendiste $163.333. Con $179.666 por semana sumás cerca de $25.000 por mes.");
+                "Vendiste $163.333 en los últimos 7 días. Si vendés $16.333 más por semana (llegás a $179.666), "
+                        + "ganás cerca de $25.000 más por mes.");
     }
 
     @Test

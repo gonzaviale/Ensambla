@@ -234,6 +234,22 @@ describe('objetivos que se autogestionan', () => {
 
     entoncesElResultadoEs('3 por semana');
   });
+
+  it('lo que falta de ganancia por venta se cuenta en puntos, no en %', () => {
+    cuandoSeCalcula(() =>
+      faltaParaLaMeta({ ...miniDePrueba, tipo: 'MEJORAR_MARGEN', valorActual: 25.9, meta: 27.9 }),
+    );
+
+    entoncesElResultadoEs('2 puntos');
+  });
+
+  it('un solo punto se dice en singular', () => {
+    cuandoSeCalcula(() =>
+      faltaParaLaMeta({ ...miniDePrueba, tipo: 'MEJORAR_MARGEN', valorActual: 26, meta: 27 }),
+    );
+
+    entoncesElResultadoEs('1 punto');
+  });
 });
 
 describe('cuantoCubren', () => {
@@ -259,7 +275,7 @@ describe('cuantoCubren', () => {
     );
 
     entoncesElResultadoEs(
-      expect.stringMatching(/sumás cerca de \$39\.373 por mes de los \$972\.000 que te faltan/),
+      expect.stringMatching(/ganás cerca de \$39\.373 más por mes de los \$972\.000 que te faltan/),
     );
   });
 

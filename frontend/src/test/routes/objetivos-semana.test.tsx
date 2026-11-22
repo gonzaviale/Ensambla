@@ -269,7 +269,7 @@ async function entoncesElGraficoMuestraLaMetaYLasDecisiones() {
   const lista = await minis();
   await lista.findAllByRole('article');
   expect(
-    screen.getByText(/Si cumplís estos mini-objetivos sumás cerca de \$[\d.]+ por mes/),
+    screen.getByText(/Si cumplís estos mini-objetivos ganás cerca de \$[\d.]+ más por mes/),
   ).toBeVisible();
   expect(lista.getByRole('heading', { name: 'Subile $250 a Yerba 1 kg' })).toBeVisible();
   expect(lista.getByRole('heading', { name: 'Volvé a vender 6 Fernet por semana' })).toBeVisible();

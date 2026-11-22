@@ -54,8 +54,7 @@ function PrimerObjetivo({ onDefinido }: { onDefinido: () => void }) {
         etiqueta="Objetivos"
         titulo="Definí tu primer objetivo"
         texto="Contale a Sami qué querés lograr, aunque no sea plata. Te arma pasos chicos para cada semana."
-        samiTitulo="Sami te ayuda"
-        sami="Le pone número a lo que querés lograr"
+        conSami={false}
       />
       <NuevoObjetivo onDefinido={onDefinido} />
     </>

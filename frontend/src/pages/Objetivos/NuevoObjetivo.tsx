@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ChatCircleDotsIcon, CurrencyCircleDollarIcon } from '@phosphor-icons/react';
 import { DefinirObjetivo } from './DefinirObjetivo';
 import { ConversarConSami } from './sami/ConversarConSami';
 
@@ -23,7 +24,12 @@ export function NuevoObjetivo({ onDefinido, onCancelar }: Props) {
           onDefinido={onDefinido}
           onCancelar={onCancelar}
         />
-        <button type="button" className="objetivos-textual" onClick={() => setCamino('sami')}>
+        <button
+          type="button"
+          className="objetivos-cambiar-camino"
+          onClick={() => setCamino('sami')}
+        >
+          <ChatCircleDotsIcon aria-hidden size={20} />
           Prefiero contárselo a Sami
         </button>
       </>
@@ -41,12 +47,13 @@ export function NuevoObjetivo({ onDefinido, onCancelar }: Props) {
       />
       <button
         type="button"
-        className="objetivos-textual"
+        className="objetivos-cambiar-camino"
         onClick={() => {
           setTextoInicial('');
           setCamino('pesos');
         }}
       >
+        <CurrencyCircleDollarIcon aria-hidden size={20} />
         Quiero poner una meta en pesos por mes
       </button>
     </>
