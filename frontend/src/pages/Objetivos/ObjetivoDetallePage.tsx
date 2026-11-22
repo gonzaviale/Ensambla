@@ -9,8 +9,8 @@ import {
   avance,
   brecha,
   formatoPesos,
+  resultadoDelMes,
   tieneMeta,
-  ultimoValor,
   type Objetivo,
   type ObjetivoConMeta,
 } from '@/lib/objetivos';
@@ -112,8 +112,8 @@ function FranjaDeAvance({ objetivo, cumplido }: { objetivo: ObjetivoConMeta; cum
           <span className="objetivo-tablero-etiqueta">
             <TrendUpIcon aria-hidden size={20} weight="bold" /> Hoy
           </span>
-          <strong>{formatoPesos(ultimoValor(objetivo))}</strong>
-          <small>ganás por mes</small>
+          <strong>{resultadoDelMes(objetivo).monto}</strong>
+          <small>{resultadoDelMes(objetivo).etiqueta}</small>
         </div>
         <p className="objetivo-tablero-porcentaje">
           <strong>{Math.round(avance(objetivo) * 100)} %</strong>

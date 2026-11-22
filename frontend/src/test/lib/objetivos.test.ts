@@ -8,6 +8,7 @@ import {
   conHistorialReal,
   objetivoDeEjemplo,
   objetivoDesdeServidor,
+  resultadoDelMes,
   resultadoProyectado,
   tieneMeta,
   ultimoValor,
@@ -105,6 +106,26 @@ describe('objetivos', () => {
     );
 
     entoncesElResultadoEs(180_000);
+  });
+
+  it('con ganancia dice cuánto ganás por mes', () => {
+    cuandoSeCalcula(() =>
+      resultadoDelMes(
+        conHistorialReal(conMeta('Quiero crecer', 300_000), HISTORIAL_DE_DOS_SEMANAS),
+      ),
+    );
+
+    entoncesElResultadoEs({ monto: '$120.000', etiqueta: 'ganás por mes' });
+  });
+
+  it('con pérdida dice cuánto perdés por mes, con el menos delante del signo $', () => {
+    cuandoSeCalcula(() =>
+      resultadoDelMes(
+        conHistorialReal(conMeta('Quiero crecer', 300_000), [{ semana: 'Hoy', queda: -126_150 }]),
+      ),
+    );
+
+    entoncesElResultadoEs({ monto: '−$126.150', etiqueta: 'perdés por mes' });
   });
 
   it('con historial real la variación es lo que cambió en la última semana', () => {

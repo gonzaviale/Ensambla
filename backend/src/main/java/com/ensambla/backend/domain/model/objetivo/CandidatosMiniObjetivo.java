@@ -75,7 +75,9 @@ public final class CandidatosMiniObjetivo {
             moverParado(medidor, producto).ifPresent(candidatos::add);
             ponerALaVista(medidor, producto).ifPresent(candidatos::add);
         }
-        medidor.gastos().forEach(gasto -> candidatos.add(recortarGasto(gasto)));
+        medidor.gastos().stream()
+                .filter(GastoFijo::sePuedeRecortar)
+                .forEach(gasto -> candidatos.add(recortarGasto(gasto)));
         mejorarMargen(medidor).ifPresent(candidatos::add);
         ventasSemanales(medidor).ifPresent(candidatos::add);
         reponerStock(medidor).ifPresent(candidatos::add);
@@ -165,13 +167,16 @@ public final class CandidatosMiniObjetivo {
                 .orElse(aumento);
     }
 
-    /** Un producto con stock que no se vendió en 30 días y que admite una rebaja: venderlo a un ritmo semanal. */
+    /**
+     * Un producto con stock que no se vendió en 30 días y que admite una rebaja: venderlo a un ritmo semanal. Si ya
+     * llegó a su mínimo no: primero hay que reponerlo.
+     */
     private static Optional<CandidatoMiniObjetivo> moverParado(MedidorMiniObjetivo medidor, Producto producto) {
         BigDecimal paso = pasoDePrecio(producto);
         BigDecimal ganancia = producto.gananciaPorUnidad();
         boolean parado = medidor.unidades(producto.id(), MedidorMiniObjetivo.DIAS_MES).signum() == 0
                 && producto.stock().signum() > 0;
-        if (!parado || ganancia.compareTo(paso.multiply(BigDecimal.valueOf(2))) < 0) {
+        if (!parado || producto.faltaStock() || ganancia.compareTo(paso.multiply(BigDecimal.valueOf(2))) < 0) {
             return Optional.empty();
         }
         BigDecimal meta = producto.stock().multiply(PARTE_DEL_STOCK_A_MOVER)
@@ -184,10 +189,14 @@ public final class CandidatosMiniObjetivo {
                 TipoMiniObjetivo.MOVER_PARADO, producto, BigDecimal.ZERO, meta, aporte, texto));
     }
 
-    /** Un producto que se vende y deja plata por unidad: venderle una unidad más por semana, o un 20 % más. */
+    /**
+     * Un producto que se vende y deja plata por unidad: venderle una unidad más por semana, o un 20 % más. Si ya llegó
+     * a su mínimo no: venderlo más rápido lo deja sin stock.
+     */
     private static Optional<CandidatoMiniObjetivo> ponerALaVista(MedidorMiniObjetivo medidor, Producto producto) {
         BigDecimal ganancia = producto.gananciaPorUnidad();
-        if (medidor.unidades(producto.id(), MedidorMiniObjetivo.DIAS_MES).signum() == 0 || ganancia.signum() <= 0) {
+        boolean seVende = medidor.unidades(producto.id(), MedidorMiniObjetivo.DIAS_MES).signum() > 0;
+        if (!seVende || ganancia.signum() <= 0 || producto.faltaStock()) {
             return Optional.empty();
         }
         BigDecimal valorInicial = medidor.unidades(producto.id(), MedidorMiniObjetivo.DIAS_SEMANA);

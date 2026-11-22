@@ -86,8 +86,8 @@ class CandidatosMiniObjetivoTest {
     }
 
     @Test
-    @DisplayName("Recortar el gasto: un 10 % menos en cada categoría, sin la mercadería")
-    void recortarElGastoUn10MenosEnCadaCategoriaSinLaMercaderia() {
+    @DisplayName("Recortar el gasto: un 10 % menos en cada categoría, sin la mercadería ni el alquiler")
+    void recortarElGastoUn10MenosEnCadaCategoriaSinLaMercaderiaNiElAlquiler() {
         dadoUnNegocio(almacen());
 
         cuandoSeArmanLosCandidatos();
@@ -383,6 +383,46 @@ class CandidatosMiniObjetivoTest {
         entoncesSeEligenTambienLasMetricasSinProducto();
     }
 
+    @Test
+    @DisplayName("No propone recortar gastos fijos como el alquiler, los sueldos o los impuestos")
+    void noProponeRecortarGastosFijosComoElAlquilerLosSueldosOLosImpuestos() {
+        dadoUnNegocio(conSoloGastosFijos());
+
+        cuandoSeArmanLosCandidatos();
+
+        entoncesNoSePropone(TipoMiniObjetivo.RECORTAR_GASTO);
+    }
+
+    @Test
+    @DisplayName("No propone poner a la vista un producto que ya llegó a su mínimo: primero hay que reponerlo")
+    void noProponePonerALaVistaUnProductoQueYaLlegoASuMinimoPrimeroHayQueReponerlo() {
+        dadoUnNegocio(conMinimos(3, 5));
+
+        cuandoSeArmanLosCandidatos();
+
+        entoncesNoSeProponePonerALaVista("Yerba 1 kg");
+    }
+
+    @Test
+    @DisplayName("Propone poner a la vista un producto que está por encima de su mínimo")
+    void proponePonerALaVistaUnProductoQueEstaPorEncimaDeSuMinimo() {
+        dadoUnNegocio(conMinimos(30, 5));
+
+        cuandoSeArmanLosCandidatos();
+
+        entoncesSeProponePonerALaVista("Yerba 1 kg");
+    }
+
+    @Test
+    @DisplayName("No propone volver a vender un producto parado que ya llegó a su mínimo")
+    void noProponeVolverAVenderUnProductoParadoQueYaLlegoASuMinimo() {
+        dadoUnNegocio(conUnParadoEnSuMinimo());
+
+        cuandoSeArmanLosCandidatos();
+
+        entoncesNoSePropone(TipoMiniObjetivo.MOVER_PARADO);
+    }
+
     // --- arrange ---
     private void dadoUnNegocio(DatosDeProyecto datos) {
         negocio = datos;
@@ -414,7 +454,6 @@ class CandidatosMiniObjetivoTest {
                         tuple(TipoMiniObjetivo.VENTAS_SEMANALES, null),
                         tuple(TipoMiniObjetivo.SUBIR_PRECIO, "Yerba 1 kg"),
                         tuple(TipoMiniObjetivo.MEJORAR_MARGEN, null),
-                        tuple(TipoMiniObjetivo.RECORTAR_GASTO, "Alquiler"),
                         tuple(TipoMiniObjetivo.PONER_A_LA_VISTA, "Aceite 900 ml"),
                         tuple(TipoMiniObjetivo.RECORTAR_GASTO, "Servicios"),
                         tuple(TipoMiniObjetivo.MOVER_PARADO, "Fideos 500 g"),
@@ -428,7 +467,6 @@ class CandidatosMiniObjetivoTest {
                 aporte -> assertThat(aporte).isEqualByComparingTo("7394.75"),
                 aporte -> assertThat(aporte).isEqualByComparingTo("6789.00"),
                 aporte -> assertThat(aporte).isEqualByComparingTo("6180.00"),
-                aporte -> assertThat(aporte).isEqualByComparingTo("6000.00"),
                 aporte -> assertThat(aporte).isEqualByComparingTo("4071.43"),
                 aporte -> assertThat(aporte).isEqualByComparingTo("4000.00"),
                 aporte -> assertThat(aporte).isEqualByComparingTo("3728.57"),
@@ -468,12 +506,12 @@ class CandidatosMiniObjetivoTest {
         List<CandidatoMiniObjetivo> recortes = candidatos.stream()
                 .filter(candidatoDeLaLista -> candidatoDeLaLista.tipo() == TipoMiniObjetivo.RECORTAR_GASTO)
                 .toList();
-        assertThat(recortes).hasSize(2);
+        assertThat(recortes).hasSize(1);
         assertThat(recortes.getFirst().registroId()).isNull();
-        assertThat(recortes.getFirst().referencia()).isEqualTo("Alquiler");
-        assertThat(recortes.getFirst().valorInicial()).isEqualByComparingTo("60000");
-        assertThat(recortes.getFirst().meta()).isEqualByComparingTo("54000");
-        assertThat(recortes.getFirst().aporteEstimado()).isEqualByComparingTo("6000");
+        assertThat(recortes.getFirst().referencia()).isEqualTo("Servicios");
+        assertThat(recortes.getFirst().valorInicial()).isEqualByComparingTo("40000");
+        assertThat(recortes.getFirst().meta()).isEqualByComparingTo("36000");
+        assertThat(recortes.getFirst().aporteEstimado()).isEqualByComparingTo("4000");
     }
 
     private void entoncesMejorarElMargenEstaArmado() {
@@ -515,10 +553,10 @@ class CandidatosMiniObjetivoTest {
 
     private void entoncesSeEligenLosQueNoChocanConLosOcupados() {
         assertThat(elegidos).extracting(CandidatoMiniObjetivo::tipo).containsExactly(
-                TipoMiniObjetivo.MEJORAR_MARGEN, TipoMiniObjetivo.RECORTAR_GASTO,
-                TipoMiniObjetivo.PONER_A_LA_VISTA);
+                TipoMiniObjetivo.MEJORAR_MARGEN, TipoMiniObjetivo.PONER_A_LA_VISTA,
+                TipoMiniObjetivo.RECORTAR_GASTO);
         assertThat(elegidos).extracting(CandidatoMiniObjetivo::referencia)
-                .containsExactly(null, "Alquiler", "Aceite 900 ml");
+                .containsExactly(null, "Aceite 900 ml", "Servicios");
     }
 
     private void entoncesLasAlternativasExcluyenAlActualYLosTiposDeLosOtros() {
@@ -526,7 +564,7 @@ class CandidatosMiniObjetivoTest {
                 .containsExactly(
                         tuple(TipoMiniObjetivo.PONER_A_LA_VISTA, "Yerba 1 kg"),
                         tuple(TipoMiniObjetivo.MEJORAR_MARGEN, null),
-                        tuple(TipoMiniObjetivo.RECORTAR_GASTO, "Alquiler"),
+                        tuple(TipoMiniObjetivo.RECORTAR_GASTO, "Servicios"),
                         tuple(TipoMiniObjetivo.MOVER_PARADO, "Fideos 500 g"),
                         tuple(TipoMiniObjetivo.CAPITAL_PARADO, null),
                         tuple(TipoMiniObjetivo.VARIEDAD_VENDIDA, null));
@@ -570,6 +608,14 @@ class CandidatosMiniObjetivoTest {
         assertThat(reponer.titulo()).isEqualTo("Reponé lo que está por debajo de tu mínimo");
     }
 
+    private void entoncesNoSeProponePonerALaVista(String producto) {
+        assertThat(ponerALaVista()).doesNotContain(producto);
+    }
+
+    private void entoncesSeProponePonerALaVista(String producto) {
+        assertThat(ponerALaVista()).contains(producto);
+    }
+
     private void entoncesSeEligenTambienLasMetricasSinProducto() {
         assertThat(elegidos).extracting(CandidatoMiniObjetivo::tipo)
                 .contains(TipoMiniObjetivo.CAPITAL_PARADO, TipoMiniObjetivo.VARIEDAD_VENDIDA);
@@ -580,6 +626,13 @@ class CandidatosMiniObjetivoTest {
         MedidorMiniObjetivo medidor = MedidorMiniObjetivo.de(
                 List.of(negocio), new MetricasVentas(30, new BigDecimal("0.5")), HOY);
         return CandidatosMiniObjetivo.armar(medidor, zona);
+    }
+
+    private List<String> ponerALaVista() {
+        return candidatos.stream()
+                .filter(candidatoDeLaLista -> candidatoDeLaLista.tipo() == TipoMiniObjetivo.PONER_A_LA_VISTA)
+                .map(CandidatoMiniObjetivo::referencia)
+                .toList();
     }
 
     private CandidatoMiniObjetivo candidatoDe(TipoMiniObjetivo tipo) {
@@ -684,6 +737,24 @@ class CandidatosMiniObjetivoTest {
     private static DatosDeProyecto conUnSoloProductoQueRota() {
         return NegocioDePrueba.cuaderno("Almacén")
                 .producto(YERBA, "Yerba 1 kg", 40, 4200, 3300)
+                .venta(YERBA, 3, 4200, "2026-11-08")
+                .build();
+    }
+
+    private static DatosDeProyecto conSoloGastosFijos() {
+        return NegocioDePrueba.cuaderno("Almacén")
+                .producto(YERBA, "Yerba 1 kg", 40, 4200, 3300)
+                .venta(YERBA, 3, 4200, "2026-11-08")
+                .gasto("2026-11-01", 500000, "Alquiler")
+                .gasto("2026-11-02", 300000, "Sueldo empleada")
+                .gasto("2026-11-03", 80000, "Impuestos municipales")
+                .build();
+    }
+
+    private static DatosDeProyecto conUnParadoEnSuMinimo() {
+        return NegocioDePrueba.cuaderno("Almacén")
+                .producto(YERBA, "Yerba 1 kg", 40, 4200, 3300)
+                .productoConMinimo(FIDEOS, "Fideos 500 g", 2, 10, 1100, 800)
                 .venta(YERBA, 3, 4200, "2026-11-08")
                 .build();
     }

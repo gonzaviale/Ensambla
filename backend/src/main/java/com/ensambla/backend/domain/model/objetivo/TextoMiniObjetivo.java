@@ -18,8 +18,8 @@ public record TextoMiniObjetivo(String titulo, String justificacion) {
                 "Subile " + pesos(aumento) + " a " + producto,
                 "Te deja " + pesos(gananciaPorUnidad) + " por unidad (" + numero(margenPorciento) + " %) y vendés "
                         + "cerca de " + numero(unidadesPorSemana) + " por semana. Con " + pesos(aumento)
-                        + " más, aunque se vendan algunos menos, sumás cerca de " + pesos(aportePorMes)
-                        + " por mes.");
+                        + " más, aunque se vendan algunos menos, ganás cerca de " + pesos(aportePorMes)
+                        + " más por mes.");
     }
 
     public static TextoMiniObjetivo moverParado(
@@ -37,8 +37,8 @@ public record TextoMiniObjetivo(String titulo, String justificacion) {
         return new TextoMiniObjetivo(
                 "Poné a la vista «" + producto + "»",
                 "Es de los que más te dejan por unidad: " + pesos(gananciaPorUnidad) + ". Si pasás de "
-                        + numero(unidadesHoy) + " a " + numero(unidadesMeta) + " por semana, sumás cerca de "
-                        + pesos(aportePorMes) + " por mes.");
+                        + numero(unidadesHoy) + " a " + numero(unidadesMeta) + " por semana, ganás cerca de "
+                        + pesos(aportePorMes) + " más por mes.");
     }
 
     public static TextoMiniObjetivo recortarGasto(
@@ -53,8 +53,9 @@ public record TextoMiniObjetivo(String titulo, String justificacion) {
             BigDecimal margenHoy, BigDecimal margenMeta, BigDecimal aportePorMes) {
         return new TextoMiniObjetivo(
                 "Ganar " + numero(margenMeta.subtract(margenHoy)) + " puntos más en lo que vendés",
-                "Hoy de cada $100 que vendés te quedan $" + numero(margenHoy) + " después de pagar la mercadería. "
-                        + "Con $" + numero(margenMeta) + " sumás cerca de " + pesos(aportePorMes) + " por mes.");
+                "Hoy de cada $1.000 que vendés te quedan " + deCadaMil(margenHoy) + " después de pagar la "
+                        + "mercadería. Con " + deCadaMil(margenMeta) + " ganás cerca de " + pesos(aportePorMes)
+                        + " más por mes.");
     }
 
     public static TextoMiniObjetivo reponerStock(BigDecimal productos) {
@@ -82,7 +83,13 @@ public record TextoMiniObjetivo(String titulo, String justificacion) {
             BigDecimal ventasHoy, BigDecimal ventasMeta, BigDecimal aportePorMes) {
         return new TextoMiniObjetivo(
                 "Vender un 10 % más por semana",
-                "En los últimos 7 días vendiste " + pesos(ventasHoy) + ". Con " + pesos(ventasMeta)
-                        + " por semana sumás cerca de " + pesos(aportePorMes) + " por mes.");
+                "Vendiste " + pesos(ventasHoy) + " en los últimos 7 días. Si vendés "
+                        + pesos(ventasMeta.subtract(ventasHoy)) + " más por semana (llegás a " + pesos(ventasMeta)
+                        + "), ganás cerca de " + pesos(aportePorMes) + " más por mes.");
+    }
+
+    /** Lo que queda de cada $1.000 vendidos con un margen en puntos: 25,9 puntos son $259. */
+    private static String deCadaMil(BigDecimal puntos) {
+        return pesos(puntos.multiply(BigDecimal.TEN));
     }
 }
