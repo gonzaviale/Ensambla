@@ -116,6 +116,7 @@ export function editarCampo({ sistema, hecho }: Turno, args: Record<string, unkn
 
 const campoComoQuedaria = (campo: Campo, cambio: CambioDeCampo): Campo => ({
   ...campo,
+  label: cambio.etiqueta ?? campo.label,
   type: cambio.tipo,
   options: cambio.opciones ?? campo.options,
   required: cambio.obligatorio ?? campo.required,

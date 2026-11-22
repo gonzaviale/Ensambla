@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { estado, sistemasDe, type UsuarioMock } from '@/mocks/db/estado';
 import { leerNegocioGuardado } from '@/lib/negocios/lista';
 import { crearAlmacenCargado } from '@/lib/sistema/demo';
+import { TIPOS_OBLIGATORIOS } from '@/lib/sistema/estructuraFija';
 import { hoy } from '@/lib/sistema/formato';
 import { seleccionarSistemasDelNegocio, useSistemaStore } from '@/stores/sistemaStore';
 import { renderApp } from '@/test/renderApp';
@@ -45,6 +46,18 @@ async function cuandoAbreAgregarNegocioEnLaBarra(user: ReturnType<typeof userEve
   );
 }
 
+async function cuandoAbreElSelectorDeLaBarra() {
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole('button', { name: /Negocio activo/ }, ESPERA));
+}
+
+async function cuandoEliminaEnLaBarra(nombre: string) {
+  const user = userEvent.setup();
+  await cuandoAbreElSelectorDeLaBarra();
+  await user.click(screen.getByRole('menuitem', { name: `Eliminar ${nombre}` }));
+  await user.click(screen.getByRole('button', { name: 'Sí, eliminar negocio' }));
+}
+
 async function cuandoEligeEnLaBarra(nombre: RegExp) {
   const user = userEvent.setup();
   await user.click(await screen.findByRole('button', { name: /Negocio activo/ }, ESPERA));
@@ -53,6 +66,12 @@ async function cuandoEligeEnLaBarra(nombre: RegExp) {
 
 const nombresEnElServidor = (usuario: UsuarioMock) =>
   sistemasDe(usuario.email).map((sistema) => sistema.name);
+
+function entoncesElNegocioGuardadoTieneLasSeccionesObligatorias(usuario: UsuarioMock, nombre: string) {
+  const guardado = sistemasDe(usuario.email).find((sistema) => sistema.name === nombre);
+  const tipos = guardado?.sections.flatMap((seccion) => seccion.blocks.map((bloque) => bloque.type));
+  expect(tipos).toEqual(expect.arrayContaining([...TIPOS_OBLIGATORIOS]));
+}
 
 describe('mis negocios: cada negocio es un cuaderno', () => {
   it('con un solo negocio el selector de la barra deja agregar otro, sin comparar', async () => {
@@ -77,11 +96,11 @@ describe('mis negocios: cada negocio es un cuaderno', () => {
     await user.click(await selectorDe(/Almacén San Justo/));
 
     const menu = screen.getByRole('menu');
-    expect(within(menu).getByRole('menuitem', { name: /Almacén San Justo/ })).toHaveAttribute(
+    expect(within(menu).getByRole('menuitem', { name: /^Almacén San Justo/ })).toHaveAttribute(
       'aria-current',
       'true',
     );
-    expect(within(menu).getByRole('menuitem', { name: /Kiosco de la plaza/ })).toBeEnabled();
+    expect(within(menu).getByRole('menuitem', { name: /^Kiosco de la plaza/ })).toBeEnabled();
     expect(within(menu).getByRole('menuitem', { name: /Todos mis negocios/ })).toBeEnabled();
   });
 
@@ -90,7 +109,7 @@ describe('mis negocios: cada negocio es un cuaderno', () => {
     dadoDosNegocios(usuario);
     renderApp('/inicio');
 
-    await cuandoEligeEnLaBarra(/Kiosco de la plaza/);
+    await cuandoEligeEnLaBarra(/^Kiosco de la plaza/);
 
     expect(await selectorDe(/Kiosco de la plaza/)).toBeVisible();
     expect(leerNegocioGuardado()).toBe(KIOSCO.id);
@@ -101,7 +120,7 @@ describe('mis negocios: cada negocio es un cuaderno', () => {
     dadoDosNegocios(usuario);
     renderApp('/inicio');
 
-    await cuandoEligeEnLaBarra(/Kiosco de la plaza/);
+    await cuandoEligeEnLaBarra(/^Kiosco de la plaza/);
     await selectorDe(/Kiosco de la plaza/);
 
     const visibles = seleccionarSistemasDelNegocio(useSistemaStore.getState());
@@ -123,7 +142,7 @@ describe('mis negocios: cada negocio es un cuaderno', () => {
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('crea un negocio desde el selector de arriba como un cuaderno vacío, lo activa y lo guarda', async () => {
+  it('crea un negocio desde el selector de arriba con las secciones obligatorias, lo activa y lo guarda', async () => {
     const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
     dadoPremium(usuario.email);
     setupNegocios(usuario.email, KIOSCO);
@@ -142,6 +161,7 @@ describe('mis negocios: cada negocio es un cuaderno', () => {
         expect(nombresEnElServidor(usuario)).toEqual(['Kiosco de la plaza', 'Dietética Centro']),
       ESPERA,
     );
+    entoncesElNegocioGuardadoTieneLasSeccionesObligatorias(usuario, 'Dietética Centro');
   });
 
   it('con el cupo del plan agotado explica el límite y lleva a Planes', async () => {
@@ -178,5 +198,29 @@ describe('mis negocios: cada negocio es un cuaderno', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/inicio'), ESPERA);
     expect(await selectorDe(/Kiosco de la plaza/)).toBeVisible();
     expect(leerNegocioGuardado()).toBe(KIOSCO.id);
+  });
+
+  it('elimina un negocio desde el selector de la barra y conserva el otro', async () => {
+    const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+    dadoDosNegocios(usuario);
+    renderApp('/inicio');
+
+    await cuandoEliminaEnLaBarra('Almacén San Justo');
+
+    await waitFor(
+      () => expect(nombresEnElServidor(usuario)).toEqual(['Kiosco de la plaza']),
+      ESPERA,
+    );
+    expect(await selectorDe(/Kiosco de la plaza/)).toBeVisible();
+  });
+
+  it('con un solo negocio el selector no deja eliminarlo', async () => {
+    const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+    setupNegocios(usuario.email, KIOSCO);
+    renderApp('/inicio');
+
+    await cuandoAbreElSelectorDeLaBarra();
+
+    expect(screen.getByRole('menuitem', { name: 'Eliminar Kiosco de la plaza' })).toBeDisabled();
   });
 });

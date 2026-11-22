@@ -40,18 +40,6 @@
         ]
       },
       {
-        "tipo": "form",
-        "nombre": "Proveedores",
-        "campos": [
-          {"etiqueta": "Teléfono", "tipo": "tel"},
-          {"etiqueta": "Días de visita", "tipo": "text"}
-        ],
-        "ejemplos": [
-          {"Nombre": "Distribuidora La Norteña", "Teléfono": "11 4444-0000", "Días de visita": "Martes y viernes"},
-          {"Nombre": "Mayorista de bebidas", "Días de visita": "Lunes", "Detalle": "Pedido mínimo de 10 packs"}
-        ]
-      },
-      {
         "tipo": "expenses",
         "nombre": "Gastos",
         "campos": [],
@@ -61,9 +49,7 @@
         ]
       }
     ],
-    "conexiones": [
-      {"desde": "Inventario", "hacia": "Proveedores", "etiqueta": "Proveedor"}
-    ],
+    "conexiones": [],
     "pregunta": {
       "pregunta": "¿Sumamos las entradas de mercadería para que el stock se actualice solo?",
       "opciones": ["Sí, sumalas", "Por ahora no", "Contame cómo funciona"]

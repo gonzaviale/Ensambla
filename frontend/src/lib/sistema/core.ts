@@ -114,13 +114,13 @@ export function makeSystem(name: string, types: TipoBloque[] = [], examples = fa
   const blocks = types.filter((tipo) => CATALOG[tipo]).map((tipo) => makeBlock(tipo, examples));
   vincularConLosClientes(blocks);
   const ahora = new Date().toISOString();
-  return {
+  return wireSystem({
     id: id(),
     name: nombreDeSistema(name),
     createdAt: ahora,
     updatedAt: ahora,
     sections: [{ id: id(), name: 'Vista general', blocks }],
-  };
+  });
 }
 
 const nombreDeSistema = (nombre: string) =>

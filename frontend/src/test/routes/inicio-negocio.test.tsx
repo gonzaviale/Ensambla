@@ -27,7 +27,23 @@ const cuandoAbreInicio = async (nombres: string[] = []) => {
 const bloqueDeTuNegocio = async () =>
   within(await screen.findByRole('region', { name: 'Tu negocio' }, ESPERA));
 
+const cuandoTocaMiNegocio = async (user: ReturnType<typeof userEvent.setup>) =>
+  user.click(screen.getByRole('button', { name: 'Mi negocio' }));
+
+const entoncesSeOfreceCrearElNegocio = async () =>
+  expect(
+    await screen.findByRole('heading', { name: /Un lienzo en blanco/ }, ESPERA),
+  ).toBeVisible();
+
 describe('inicio · tu negocio', () => {
+  it('sin negocios, «Mi negocio» abre las opciones para crear el primero', async () => {
+    const { user } = await cuandoAbreInicio();
+
+    await cuandoTocaMiNegocio(user);
+
+    await entoncesSeOfreceCrearElNegocio();
+  });
+
   it('sin negocios no muestra el bloque: la bienvenida invita a crear el primero', async () => {
     await cuandoAbreInicio();
 

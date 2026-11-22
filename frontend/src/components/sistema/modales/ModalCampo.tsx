@@ -51,8 +51,8 @@ export function ModalCampo({ bloqueId, clave }: { bloqueId: string; clave?: stri
       <p>Elegí qué dato querés registrar en {bloque.name.toLowerCase()}.</p>
       {esFija && (
         <p className="input-hint">
-          <Icon name="lock" /> Ensambla necesita este campo para funcionar. Podés cambiarle el nombre, pero no
-          quitarlo ni cambiar su tipo.
+          <Icon name="lock" /> Ensambla necesita este campo para funcionar. No se puede quitar, renombrar ni
+          cambiar su tipo.
         </p>
       )}
       <form onSubmit={guardar} noValidate>
@@ -64,6 +64,7 @@ export function ModalCampo({ bloqueId, clave }: { bloqueId: string; clave?: stri
             name="label"
             maxLength={60}
             required
+            disabled={esFija}
             placeholder="Por ejemplo, Fecha de entrega"
             value={label}
             onChange={(evento) => setLabel(evento.target.value)}

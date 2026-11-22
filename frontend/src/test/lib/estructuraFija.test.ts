@@ -53,16 +53,18 @@ function cuandoSeRenombraLaColumna(clave: string) {
   resultado = problemaAlCambiarLaColumna(columnaDe(clave), { ...columnaDe(clave), label: 'Otro nombre' });
 }
 
+function entoncesElProductoApuntaAlStock() {
+  const stock = sistema.sections.flatMap((seccion) => seccion.blocks).find((item) => item.type === 'inventory');
+  expect(columnaDe('product').type).toBe('relation');
+  expect(columnaDe('product').target).toBe(stock?.id);
+}
+
 function entoncesSePuedeQuitar() {
   expect(resultado).toBe(true);
 }
 
 function entoncesNoSePuedeQuitar() {
   expect(resultado).toBe(false);
-}
-
-function entoncesNoHayProblema() {
-  expect(resultado).toBeNull();
 }
 
 function entoncesElProblemaEs(mensaje: string) {
@@ -105,7 +107,7 @@ describe('la estructura fija del negocio', () => {
       'No se puede quitar la sección «Inventario»: Ensambla la necesita para funcionar.',
     );
     expect(motivoParaNoQuitarLaColumna(columnaDe('cost'))).toBe(
-      'No se puede quitar «Costo»: Ensambla la necesita para funcionar. Podés cambiarle el nombre.',
+      'No se puede quitar «Costo»: Ensambla la necesita para funcionar.',
     );
   });
 
@@ -132,7 +134,7 @@ describe('la estructura fija del negocio', () => {
     cuandoSeCambiaElTipoDeLaColumna('price', 'text');
 
     entoncesElProblemaEs(
-      'No se puede cambiar «Precio»: Ensambla la necesita para funcionar. Podés cambiarle el nombre.',
+      'No se puede cambiar ni renombrar «Precio»: Ensambla la necesita para funcionar.',
     );
   });
 
@@ -143,7 +145,7 @@ describe('la estructura fija del negocio', () => {
     cuandoSeDejaDeExigirLaColumna('quantity');
 
     entoncesElProblemaEs(
-      'No se puede cambiar «Cantidad»: Ensambla la necesita para funcionar. Podés cambiarle el nombre.',
+      'No se puede cambiar ni renombrar «Cantidad»: Ensambla la necesita para funcionar.',
     );
   });
 
@@ -154,21 +156,30 @@ describe('la estructura fija del negocio', () => {
     cuandoSeQuitanLasOpcionesDeLaColumna('category');
 
     entoncesElProblemaEs(
-      'No se puede cambiar «Categoría»: Ensambla la necesita para funcionar. Podés cambiarle el nombre.',
+      'No se puede cambiar ni renombrar «Categoría»: Ensambla la necesita para funcionar.',
     );
   });
 
-  it('deja cambiar el nombre de una columna fija', () => {
+  it('no deja renombrar una columna fija', () => {
     dadoUnNegocioConLasSeccionesObligatorias();
     dadaLaSeccionDe('inventory');
 
     cuandoSeRenombraLaColumna('price');
 
-    entoncesNoHayProblema();
+    entoncesElProblemaEs(
+      'No se puede cambiar ni renombrar «Precio»: Ensambla la necesita para funcionar.',
+    );
   });
 
   it('no pone reparos a una columna que no existe todavía', () => {
     expect(problemaAlCambiarLaColumna(undefined, { key: 'x', label: 'X', type: 'text', required: false })).toBeNull();
+  });
+
+  it('conecta el producto de Ventas con Stock desde que nace el negocio', () => {
+    dadoUnNegocioConLasSeccionesObligatorias();
+    dadaLaSeccionDe('sales');
+
+    entoncesElProductoApuntaAlStock();
   });
 
   it('reserva las claves de las columnas fijas de cada tipo de sección', () => {

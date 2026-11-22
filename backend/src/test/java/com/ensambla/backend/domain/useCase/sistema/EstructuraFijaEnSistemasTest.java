@@ -110,7 +110,7 @@ class EstructuraFijaEnSistemasTest {
         cuandoSeIntentaGuardar();
 
         entoncesSeRechazaPorque("No se puede cambiar «Precio»: Ensambla la necesita para cobrar en Caja y calcular "
-                + "la ganancia. Podés cambiarle el nombre.");
+                + "la ganancia.");
         entoncesNoSeGuardaNada();
     }
 

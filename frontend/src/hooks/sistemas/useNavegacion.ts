@@ -1,14 +1,12 @@
-import { guardarSistema } from '@/api/sistemas';
 import { ApiError } from '@/api/apiError';
-import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useRouter } from '@tanstack/react-router';
 import { useUsuario } from '@/hooks/auth/queries';
-import { objetivosKeys } from '@/hooks/objetivos/queries';
 import { usePreferencias } from '@/hooks/preferencias/queries';
 import type { SeccionDeCuenta } from '@/lib/cuenta';
 import type { Sistema } from '@/lib/sistema/tipos';
 import { useSistemaStore, type ModoDelEditor } from '@/stores/sistemaStore';
 import type { ImagenParaSami } from '@/types/samiTaller';
+import { useGuardarYAgregarSistema } from './useGuardarYAgregarSistema';
 
 /** Lo que se le dice a Sami cuando la persona llega con una foto. */
 export const MENSAJE_DE_LA_FOTO = 'Te paso una foto de cómo anoto hoy.';
@@ -33,7 +31,7 @@ export const saludoParaAjustar = (nombreDelSistema: string) =>
 export function useNavegacion() {
   const navigate = useNavigate();
   const router = useRouter();
-  const queryClient = useQueryClient();
+  const guardarYAgregarSistema = useGuardarYAgregarSistema();
   const nombre = useNombre();
 
   const limpiar = () => {
@@ -157,10 +155,7 @@ export function useNavegacion() {
     /** saveNew() del mockup: guarda el sistema nuevo y lo abre. */
     crearYAbrir: async (sistema: Sistema, modo: ModoDelEditor = 'use') => {
       try {
-        const guardado = await guardarSistema(sistema);
-        useSistemaStore.getState().agregarSistema(guardado);
-        useSistemaStore.getState().marcarGuardados([guardado.id], []);
-        void queryClient.invalidateQueries({ queryKey: objetivosKeys.pasos });
+        const guardado = await guardarYAgregarSistema(sistema);
         await abrirSistema(guardado.id, modo, true);
       } catch (error) {
         useSistemaStore

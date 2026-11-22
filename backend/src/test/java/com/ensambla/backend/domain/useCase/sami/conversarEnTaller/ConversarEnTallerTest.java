@@ -477,7 +477,7 @@ class ConversarEnTallerTest {
     void cuentaQueDatoCambioYEnQuePiezaConLaEtiquetaQueTenia() {
         dadoElCupoDisponible();
         dadoUnSistemaConDatos();
-        dadoQueElModeloRenombraElDatoProducto();
+        dadoQueElModeloHaceObligatorioElDatoProducto();
 
         cuandoSeConversaCon("cambialo");
 
@@ -793,9 +793,9 @@ class ConversarEnTallerTest {
                 llamada("quitar_campo", Map.of("pieza", "e1", "campo", "proveedor"))));
     }
 
-    private void dadoQueElModeloRenombraElDatoProducto() {
+    private void dadoQueElModeloHaceObligatorioElDatoProducto() {
         dadoQueElModeloResponde(resultado(null,
-                llamada("editar_campo", Map.of("pieza", "e1", "campo", "producto", "etiqueta", "Artículo"))));
+                llamada("editar_campo", Map.of("pieza", "e1", "campo", "producto", "obligatorio", true))));
     }
 
     private void dadoQueElModeloSumaGastosLeAgregaUnDatoYSeparaClientes() {

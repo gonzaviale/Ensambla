@@ -1,5 +1,6 @@
 import { PRESETS_DE_SECCION } from './catalogo';
-import { id as nuevoId, makeBlock, makeSystem, wireSystem } from './core';
+import { allBlocks, id as nuevoId, makeBlock, makeSystem, wireSystem } from './core';
+import { TIPOS_OBLIGATORIOS } from './estructuraFija';
 import type { Bloque, Seccion, Sistema, TipoBloque } from './tipos';
 
 // Lo que se le hace a las pestañas y a los bloques de un sistema, sin saber de dónde sale: lo usan el editor de la
@@ -23,6 +24,19 @@ export function sumarBloque(
   wireSystem(sistema);
   return creado;
 }
+
+/**
+ * Suma, vacías y al final de la primera pestaña, las secciones que Ensambla necesita y el sistema todavía no tiene.
+ * Cada una llega con sus columnas fijas, porque salen del catálogo.
+ */
+export function completarLasSeccionesObligatorias(sistema: Sistema) {
+  const primera = sistema.sections[0];
+  if (!primera) return;
+  for (const tipo of tiposObligatoriosQueFaltan(sistema)) sumarBloque(sistema, tipo, primera.id);
+}
+
+const tiposObligatoriosQueFaltan = (sistema: Sistema) =>
+  TIPOS_OBLIGATORIOS.filter((tipo) => !allBlocks(sistema).some((bloque) => bloque.type === tipo));
 
 /** Arma una pestaña (vacía o con las piezas de un preset), sin ponerla todavía en el sistema. */
 export function armarSeccion(nombre: string, inicio: string): Seccion {

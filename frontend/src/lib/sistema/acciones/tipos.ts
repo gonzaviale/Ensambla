@@ -2,7 +2,7 @@ export type AccionDeSami = { herramienta: string; argumentos: Record<string, unk
 
 /**
  * El sistema resumido que se manda en cada turno: sin filas de ejemplo, para gastar pocos tokens. De cada pieza van
- * los registros reales que se cargaron en este armado (con su id), así Sami los puede corregir sin cargarlos de nuevo.
+ * los registros reales, también los ya guardados (con su id), así Sami los puede corregir sin cargarlos de nuevo.
  */
 export type EstadoCompacto = {
   nombre: string;
