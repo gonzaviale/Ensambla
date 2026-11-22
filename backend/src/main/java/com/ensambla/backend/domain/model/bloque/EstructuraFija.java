@@ -135,15 +135,43 @@ public final class EstructuraFija {
 
     private static void apartarYReponer(ColumnaFija columna, Campo propia, List<Campo> campos, Bloque bloque,
                                         List<Bloque> bloques, OffsetDateTime ahora) {
-        apartar(propia, ahora);
+        apartar(propia, campos, ahora);
         agregarLaColumna(columna, campos, bloque, bloques, ahora);
     }
 
     /** La columna de la persona con una clave reservada y otro tipo se conserva, con sus datos, con otro nombre. */
-    private static void apartar(Campo propia, OffsetDateTime ahora) {
-        propia.setClave(propia.getClave() + SUFIJO_DE_LA_ANTERIOR);
-        propia.setNombre(propia.getNombre() + NOMBRE_DE_LA_ANTERIOR);
+    private static void apartar(Campo propia, List<Campo> campos, OffsetDateTime ahora) {
+        int repeticion = primeraRepeticionLibre(propia.getClave(), campos);
+        propia.setClave(claveAnterior(propia.getClave(), repeticion));
+        propia.setNombre(nombreAnterior(propia.getNombre(), repeticion));
         propia.setActualizadoEn(ahora);
+    }
+
+    /** La clave de una columna es única en la sección: si ya hay una «anterior», la nueva lleva el número que sigue. */
+    private static int primeraRepeticionLibre(String clave, List<Campo> campos) {
+        int repeticion = 1;
+        while (hayUnaColumnaConLaClave(claveAnterior(clave, repeticion), campos)) {
+            repeticion++;
+        }
+        return repeticion;
+    }
+
+    private static boolean hayUnaColumnaConLaClave(String clave, List<Campo> campos) {
+        return campos.stream().anyMatch(campo -> clave.equals(campo.getClave()));
+    }
+
+    private static String claveAnterior(String clave, int repeticion) {
+        if (repeticion == 1) {
+            return clave + SUFIJO_DE_LA_ANTERIOR;
+        }
+        return clave + SUFIJO_DE_LA_ANTERIOR + "_" + repeticion;
+    }
+
+    private static String nombreAnterior(String nombre, int repeticion) {
+        if (repeticion == 1) {
+            return nombre + NOMBRE_DE_LA_ANTERIOR;
+        }
+        return nombre + " (anterior " + repeticion + ")";
     }
 
     private static void agregarLaColumna(ColumnaFija columna, List<Campo> campos, Bloque bloque,

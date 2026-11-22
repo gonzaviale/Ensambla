@@ -53,6 +53,12 @@ function cuandoSeRenombraLaColumna(clave: string) {
   resultado = problemaAlCambiarLaColumna(columnaDe(clave), { ...columnaDe(clave), label: 'Otro nombre' });
 }
 
+function entoncesElProductoApuntaAlStock() {
+  const stock = sistema.sections.flatMap((seccion) => seccion.blocks).find((item) => item.type === 'inventory');
+  expect(columnaDe('product').type).toBe('relation');
+  expect(columnaDe('product').target).toBe(stock?.id);
+}
+
 function entoncesSePuedeQuitar() {
   expect(resultado).toBe(true);
 }
@@ -167,6 +173,13 @@ describe('la estructura fija del negocio', () => {
 
   it('no pone reparos a una columna que no existe todavía', () => {
     expect(problemaAlCambiarLaColumna(undefined, { key: 'x', label: 'X', type: 'text', required: false })).toBeNull();
+  });
+
+  it('conecta el producto de Ventas con Stock desde que nace el negocio', () => {
+    dadoUnNegocioConLasSeccionesObligatorias();
+    dadaLaSeccionDe('sales');
+
+    entoncesElProductoApuntaAlStock();
   });
 
   it('reserva las claves de las columnas fijas de cada tipo de sección', () => {
