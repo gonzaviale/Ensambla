@@ -157,6 +157,16 @@ class EstructuraFijaTest {
     }
 
     @Test
+    @DisplayName("Si ya hay una columna anterior, la que se aparta lleva otra clave y no la repite")
+    void siYaHayUnaColumnaAnteriorLaQueSeApartaLlevaOtraClaveYNoLaRepite() {
+        dadoUnNegocioConUnPrecioAnteriorYOtroPrecioEnTexto();
+
+        cuandoSeCompleta();
+
+        entoncesLasClavesDeStockNoSeRepitenYLasDosAnterioresSeConservan();
+    }
+
+    @Test
     @DisplayName("Una conexión que apunta a la sección equivocada se aparta y se repone")
     void unaConexionQueApuntaALaSeccionEquivocadaSeApartaYSeRepone() {
         dadoUnNegocioCompletoConElProductoDeVentasApuntandoAClientes();
@@ -221,6 +231,11 @@ class EstructuraFijaTest {
     private void dadoUnNegocioCompletoConElPrecioEnTexto() {
         dadoUnNegocioCompleto();
         cambiarElTipoDeLaColumna(stock, "price", TipoCampo.TEXTO);
+    }
+
+    private void dadoUnNegocioConUnPrecioAnteriorYOtroPrecioEnTexto() {
+        dadoUnNegocioCompletoConElPrecioEnTexto();
+        agregarLaColumna(stock, unaColumnaPropia(stock, "price_anterior", "Precio (anterior)", TipoCampo.TEXTO));
     }
 
     private void dadoUnNegocioCompletoConLaCantidadOpcional() {
@@ -328,6 +343,13 @@ class EstructuraFijaTest {
                 });
         assertThat(laColumna(laSeccionDe(completo, TipoBloque.INVENTARIO), "price").getTipo())
                 .isEqualTo(TipoCampo.MONEDA);
+    }
+
+    private void entoncesLasClavesDeStockNoSeRepitenYLasDosAnterioresSeConservan() {
+        List<Campo> columnas = laSeccionDe(completo, TipoBloque.INVENTARIO).getCampos();
+        assertThat(columnas).extracting(Campo::getClave).doesNotHaveDuplicates()
+                .contains("price", "price_anterior", "price_anterior_2");
+        assertThat(columnas).extracting(Campo::getNombre).contains("Precio (anterior)", "Precio (anterior 2)");
     }
 
     private void entoncesLasColumnasDeStockTienenIdsDistintos() {
