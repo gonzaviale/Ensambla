@@ -15,7 +15,7 @@ public class CobroQrService {
 
     private final CobroQrRepository cobroQrRepository;
 
-    /** Sin cobro con QR no hace nada; con uno, exige que coincida con lo transferido y lo confirma a mano. */
+    /** Sin cobro con QR no hace nada; con uno, exige importe y acreditación cuando pertenece a Mercado Pago. */
     public void confirmarSiHay(CobroQrId cobroQrId, NegocioId negocioId, BigDecimal transferido,
                                OffsetDateTime ahora) {
         if (cobroQrId == null) {
@@ -23,6 +23,10 @@ public class CobroQrService {
         }
         CobroQr cobro = obtenerCobro(cobroQrId, negocioId);
         cobro.exigirTransferenciaPor(transferido);
+        if (cobro.usaMercadoPago()) {
+            cobro.exigirAcreditadoPorMercadoPago();
+            return;
+        }
         guardar(cobro.confirmarManualmente(ahora));
     }
 

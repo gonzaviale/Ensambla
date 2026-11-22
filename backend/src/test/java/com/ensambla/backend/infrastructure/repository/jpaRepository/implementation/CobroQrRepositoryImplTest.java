@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import static com.ensambla.backend.support.CobrosQrDePrueba.COBRO_QR_ID;
 import static com.ensambla.backend.support.CobrosQrDePrueba.unCobroQrCobrado;
+import static com.ensambla.backend.support.CobrosQrDePrueba.ORDEN_ID;
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -71,6 +72,14 @@ class CobroQrRepositoryImplTest {
         entoncesNoSeEncuentraNada();
     }
 
+    @Test
+    @DisplayName("Busca el cobro por el id de la order de Mercado Pago")
+    void buscaElCobroPorElIdDeLaOrderDeMercadoPago() {
+        dadoUnaOrderGuardadaEnLaBase();
+        cuandoSeBuscaElCobroPorOrder();
+        entoncesSeEncuentraElCobro();
+    }
+
     // --- dado ---
     private void dadoQueGuardarDevuelveLaEntidadRecibida() {
         when(jpa.save(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
@@ -85,6 +94,10 @@ class CobroQrRepositoryImplTest {
         when(jpa.findByIdAndNegocioId(COBRO_QR_ID.valor(), NEGOCIO_ID.valor())).thenReturn(Optional.empty());
     }
 
+    private void dadoUnaOrderGuardadaEnLaBase() {
+        when(jpa.findByProveedorOrdenId(ORDEN_ID)).thenReturn(Optional.of(mapper.toEntity(cobro)));
+    }
+
     // --- cuando ---
     private void cuandoSeGuardaElCobro() {
         guardado = repositorio.save(cobro);
@@ -92,6 +105,10 @@ class CobroQrRepositoryImplTest {
 
     private void cuandoSeBuscaElCobroPorIdYNegocio() {
         encontrado = repositorio.findByIdAndNegocioId(COBRO_QR_ID, NEGOCIO_ID);
+    }
+
+    private void cuandoSeBuscaElCobroPorOrder() {
+        encontrado = repositorio.findByProveedorOrdenId(ORDEN_ID);
     }
 
     // --- entonces ---

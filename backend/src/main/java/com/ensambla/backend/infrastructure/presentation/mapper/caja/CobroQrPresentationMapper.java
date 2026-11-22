@@ -22,6 +22,6 @@ public class CobroQrPresentationMapper {
 
     public CobroQrWebResponse toResponse(CobroQrItem cobro) {
         return new CobroQrWebResponse(cobro.id(), cobro.importe(), cobro.alias(), cobro.titular(),
-                cobro.estado(), cobro.venceEn());
+                cobro.estado(), cobro.venceEn(), cobro.qrDinamico(), cobro.qrEstatico(), cobro.proveedor());
     }
 }

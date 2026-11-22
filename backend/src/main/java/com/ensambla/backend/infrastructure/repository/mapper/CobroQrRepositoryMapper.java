@@ -14,7 +14,9 @@ public class CobroQrRepositoryMapper {
         return new CobroQr(CobroQrId.de(entity.getId()), NegocioId.de(entity.getNegocioId()),
                 new DestinoDeCobro(entity.getAlias(), entity.getTitular()), entity.getImporte(),
                 entity.getEstado(), entity.getCreadoEn(), entity.getVenceEn(),
-                entity.getConfirmadoEn(), entity.getConfirmacion(), entity.getActualizadoEn());
+                entity.getConfirmadoEn(), entity.getConfirmacion(), entity.getActualizadoEn(),
+                entity.getProveedorOrdenId(), entity.getProveedorPagoId(), entity.getQrDinamico(),
+                entity.getQrEstatico(), entity.getEstadoDetalle());
     }
 
     public CobroQrEntity toEntity(CobroQr cobro) {
@@ -30,6 +32,11 @@ public class CobroQrRepositoryMapper {
                 .confirmadoEn(cobro.confirmadoEn())
                 .confirmacion(cobro.confirmacion())
                 .actualizadoEn(cobro.actualizadoEn())
+                .proveedorOrdenId(cobro.proveedorOrdenId())
+                .proveedorPagoId(cobro.proveedorPagoId())
+                .qrDinamico(cobro.qrDinamico())
+                .qrEstatico(cobro.qrEstatico())
+                .estadoDetalle(cobro.estadoDetalle())
                 .build();
     }
 }

@@ -6,6 +6,9 @@ import com.ensambla.backend.domain.useCase.caja.cancelarCobroQr.CancelarCobroQr;
 import com.ensambla.backend.domain.useCase.caja.cancelarCobroQr.CancelarCobroQrRequest;
 import com.ensambla.backend.domain.useCase.caja.generarCobroQr.GenerarCobroQr;
 import com.ensambla.backend.domain.useCase.caja.generarCobroQr.GenerarCobroQrRequest;
+import com.ensambla.backend.domain.useCase.caja.consultarCobroQr.ConsultarCobroQr;
+import com.ensambla.backend.domain.useCase.caja.consultarCobroQr.ConsultarCobroQrRequest;
+import com.ensambla.backend.domain.useCase.caja.recibirNotificacionCobroQr.RecibirNotificacionCobroQr;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.caja.CobroQrPresentationMapper;
 import com.ensambla.backend.support.MockMvcDePrueba;
@@ -34,6 +37,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -44,6 +48,10 @@ class CobroQrControllerTest {
     private GenerarCobroQr generarCobroQr;
     @Mock
     private CancelarCobroQr cancelarCobroQr;
+    @Mock
+    private ConsultarCobroQr consultarCobroQr;
+    @Mock
+    private RecibirNotificacionCobroQr recibirNotificacionCobroQr;
 
     private MockMvc mockMvc;
     private ResultActions respuesta;
@@ -51,7 +59,8 @@ class CobroQrControllerTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcDePrueba.standalone(new CobroQrController(generarCobroQr, cancelarCobroQr,
-                new CobroQrPresentationMapper())).setControllerAdvice(new GlobalExceptionHandler()).build();
+                consultarCobroQr, recibirNotificacionCobroQr, new CobroQrPresentationMapper()))
+                .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 
     @Test
@@ -110,6 +119,23 @@ class CobroQrControllerTest {
         entoncesRespondeNoEncontrado();
     }
 
+    @Test
+    @DisplayName("Consultar el cobro concilia su estado y pasa el usuario de la sesión")
+    void consultarElCobroConciliaSuEstadoYPasaElUsuarioDeLaSesion() throws Exception {
+        dadoQueSeConsultaUnCobroPendiente();
+        cuandoSeConsultaElCobro();
+        entoncesSeResponde200ConElCobro("PENDIENTE");
+        entoncesElCasoDeUsoDeConsultarRecibeElUsuarioYElId();
+    }
+
+    @Test
+    @DisplayName("La notificación de Mercado Pago pasa la order y la firma al caso de uso")
+    void laNotificacionDeMercadoPagoPasaLaOrderYLaFirmaAlCasoDeUso() throws Exception {
+        cuandoSeNotificaUnaOrder();
+        entoncesSeRespondeOkSinCuerpo();
+        entoncesSeProcesaLaNotificacionFirmada();
+    }
+
     // --- dado ---
     private void dadoQueSeGeneraUnCobroPendiente() {
         when(generarCobroQr.execute(any())).thenReturn(CobroQrItem.de(unCobroQrPendiente(), AHORA));
@@ -123,6 +149,10 @@ class CobroQrControllerTest {
         when(cancelarCobroQr.execute(any())).thenThrow(new ResourceNotFoundException("Cobro con QR no encontrado"));
     }
 
+    private void dadoQueSeConsultaUnCobroPendiente() {
+        when(consultarCobroQr.execute(any())).thenReturn(CobroQrItem.de(unCobroQrPendiente(), AHORA));
+    }
+
     // --- cuando ---
     private void cuandoSeGeneraElCobro(String cuerpo) throws Exception {
         respuesta = mockMvc.perform(post("/api/caja/cobros-qr").principal(sesion())
@@ -131,6 +161,16 @@ class CobroQrControllerTest {
 
     private void cuandoSeCancelaElCobro(String id) throws Exception {
         respuesta = mockMvc.perform(post("/api/caja/cobros-qr/" + id + "/cancelar").principal(sesion()));
+    }
+
+    private void cuandoSeConsultaElCobro() throws Exception {
+        respuesta = mockMvc.perform(get("/api/caja/cobros-qr/" + COBRO_QR_ID).principal(sesion()));
+    }
+
+    private void cuandoSeNotificaUnaOrder() throws Exception {
+        respuesta = mockMvc.perform(post("/api/caja/cobros-qr/mercadopago")
+                .param("type", "order").param("data.id", "ORD01ENSAMBLA")
+                .header("x-signature", "firma").header("x-request-id", "solicitud"));
     }
 
     // --- entonces ---
@@ -157,6 +197,21 @@ class CobroQrControllerTest {
         verify(cancelarCobroQr).execute(pedido.capture());
         assertThat(pedido.getValue().usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(pedido.getValue().id()).isEqualTo(COBRO_QR_ID);
+    }
+
+    private void entoncesElCasoDeUsoDeConsultarRecibeElUsuarioYElId() {
+        ArgumentCaptor<ConsultarCobroQrRequest> pedido = ArgumentCaptor.forClass(ConsultarCobroQrRequest.class);
+        verify(consultarCobroQr).execute(pedido.capture());
+        assertThat(pedido.getValue().usuarioId()).isEqualTo(USUARIO_ID);
+        assertThat(pedido.getValue().id()).isEqualTo(COBRO_QR_ID);
+    }
+
+    private void entoncesSeRespondeOkSinCuerpo() throws Exception {
+        respuesta.andExpect(status().isOk()).andExpect(jsonPath("$").doesNotExist());
+    }
+
+    private void entoncesSeProcesaLaNotificacionFirmada() {
+        verify(recibirNotificacionCobroQr).execute("order", "ORD01ENSAMBLA", "firma", "solicitud");
     }
 
     private void entoncesSeRechazaSinLlegarAlCasoDeUsoDeGenerar() throws Exception {

@@ -39,6 +39,7 @@ public final class MercadoPagoDePrueba {
     public static final String CONTRATO = "mp-contrato";
     public static final String VENDEDOR = "100";
     public static final String COMPRADOR_DEL_CONTRATO = "300";
+    public static final String ORDER = "ORD01ENSAMBLA";
 
     private final HttpClient cliente = mock(HttpClient.class);
     private final HttpResponse<String> respuestaPorDefecto = respuestaMock();
@@ -198,6 +199,21 @@ public final class MercadoPagoDePrueba {
         return pago;
     }
 
+    public static Map<String, Object> order(String estado) {
+        Map<String, Object> order = new HashMap<>();
+        order.put("id", ORDER);
+        order.put("type", "qr");
+        order.put("external_reference", com.ensambla.backend.support.CobrosQrDePrueba.COBRO_QR_ID.toString());
+        order.put("total_amount", "2500.50");
+        order.put("currency", "ARS");
+        order.put("user_id", VENDEDOR);
+        order.put("status", estado);
+        order.put("status_detail", estado + "_detail");
+        order.put("transactions", Map.of("payments", List.of(Map.of("id", "PAY01", "amount", "2500.50"))));
+        order.put("type_response", Map.of("qr_data", "qr-dinamico"));
+        return order;
+    }
+
     public static Map<String, Object> pagoDeSuscripcion(String estado) {
         Map<String, Object> pago = pago();
         pago.remove("application_id");
@@ -258,6 +274,8 @@ public final class MercadoPagoDePrueba {
         properties.setWebhookSecret(SECRETO);
         properties.setNotificationUrl("https://ensambla.example.test/api/pagos/mercadopago");
         properties.setReturnUrl("https://ensambla.example.test/planes");
+        properties.setQrExternalPosId("ENSAMBLA_POS_01");
+        properties.setQrStaticData("qr-estatico");
         return properties;
     }
 

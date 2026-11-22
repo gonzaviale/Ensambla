@@ -33,7 +33,7 @@ public class CobroQrEntity {
     @Column(name = "negocio_id", nullable = false, updatable = false)
     private UUID negocioId;
 
-    @Column(nullable = false, updatable = false, columnDefinition = "text")
+    @Column(updatable = false, columnDefinition = "text")
     private String alias;
 
     @Column(updatable = false, columnDefinition = "text")
@@ -61,4 +61,19 @@ public class CobroQrEntity {
 
     @Column(name = "actualizado_en", nullable = false)
     private OffsetDateTime actualizadoEn;
+
+    @Column(name = "proveedor_orden_id", updatable = false, unique = true, columnDefinition = "text")
+    private String proveedorOrdenId;
+
+    @Column(name = "proveedor_pago_id", columnDefinition = "text")
+    private String proveedorPagoId;
+
+    @Column(name = "qr_dinamico", columnDefinition = "text")
+    private String qrDinamico;
+
+    @Column(name = "qr_estatico", updatable = false, columnDefinition = "text")
+    private String qrEstatico;
+
+    @Column(name = "estado_detalle", columnDefinition = "text")
+    private String estadoDetalle;
 }

@@ -11,6 +11,8 @@ public interface CobroQrRepository {
 
     Optional<CobroQr> findByIdAndNegocioId(CobroQrId id, NegocioId negocioId);
 
+    Optional<CobroQr> findByProveedorOrdenId(String proveedorOrdenId);
+
     CobroQr save(CobroQr cobro);
 
     /** El cobro del negocio de la sesión; uno de otro negocio responde como inexistente. */

@@ -96,13 +96,13 @@ class ICobroQrJpaRepositoryTest extends PostgresDatosTestSupport {
     }
 
     @Test
-    @DisplayName("No se guarda el estado vencido, que se calcula al leer")
-    void noSeGuardaElEstadoVencidoQueSeCalculaAlLeer() {
+    @DisplayName("Se guarda el vencimiento conciliado por Mercado Pago sin una confirmación")
+    void seGuardaElVencimientoConciliadoPorMercadoPagoSinUnaConfirmacion() {
         dadoUnCobroDelNegocioA();
 
-        cuandoSeIntentaGuardarConEstado(EstadoCobroQr.VENCIDO);
+        cuandoSeGuardaConEstado(EstadoCobroQr.VENCIDO);
 
-        entoncesLaBaseRechazaPorIntegridad();
+        entoncesSeGuardaSinConfirmacion(EstadoCobroQr.VENCIDO);
     }
 
     // --- dado ---
@@ -152,6 +152,12 @@ class ICobroQrJpaRepositoryTest extends PostgresDatosTestSupport {
         rechazo = catchThrowable(() -> cobros.saveAndFlush(cobro));
     }
 
+    private void cuandoSeGuardaConEstado(EstadoCobroQr estado) {
+        cobro.setEstado(estado);
+        cobros.saveAndFlush(cobro);
+        encontrado = cobros.findByIdAndNegocioId(cobro.getId(), negocioA);
+    }
+
     // --- entonces ---
     private void entoncesSeEncuentraElCobroPendienteConSusDatos() {
         assertThat(encontrado).hasValueSatisfying(guardado -> {
@@ -173,6 +179,14 @@ class ICobroQrJpaRepositoryTest extends PostgresDatosTestSupport {
             assertThat(guardado.getEstado()).isEqualTo(EstadoCobroQr.COBRADO);
             assertThat(guardado.getConfirmacion()).isEqualTo(ConfirmacionDeCobro.MANUAL);
             assertThat(guardado.getConfirmadoEn()).isEqualTo(AHORA.plusMinutes(5));
+        });
+    }
+
+    private void entoncesSeGuardaSinConfirmacion(EstadoCobroQr estado) {
+        assertThat(encontrado).hasValueSatisfying(guardado -> {
+            assertThat(guardado.getEstado()).isEqualTo(estado);
+            assertThat(guardado.getConfirmadoEn()).isNull();
+            assertThat(guardado.getConfirmacion()).isNull();
         });
     }
 

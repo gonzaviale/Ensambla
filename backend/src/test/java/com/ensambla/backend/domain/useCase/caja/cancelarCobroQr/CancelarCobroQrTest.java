@@ -4,9 +4,11 @@ import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.caja.CobroQr;
 import com.ensambla.backend.domain.model.caja.EstadoCobroQr;
+import com.ensambla.backend.domain.model.caja.EstadoOrdenCobroQr;
 import com.ensambla.backend.domain.repository.caja.CobroQrRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
+import com.ensambla.backend.domain.port.PasarelaCobrosQrPort;
 import com.ensambla.backend.domain.useCase.caja.CobroQrItem;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
@@ -20,6 +22,9 @@ import static com.ensambla.backend.support.CobrosQrDePrueba.AHORA;
 import static com.ensambla.backend.support.CobrosQrDePrueba.COBRO_QR_ID;
 import static com.ensambla.backend.support.CobrosQrDePrueba.unCobroQrCobrado;
 import static com.ensambla.backend.support.CobrosQrDePrueba.unCobroQrPendiente;
+import static com.ensambla.backend.support.CobrosQrDePrueba.unCobroQrMercadoPago;
+import static com.ensambla.backend.support.CobrosQrDePrueba.unaOrdenQr;
+import static com.ensambla.backend.support.CobrosQrDePrueba.ORDEN_ID;
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.UsuarioTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,8 +42,9 @@ class CancelarCobroQrTest {
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final UsoPlanRepository usoPlanRepository = mock(UsoPlanRepository.class);
     private final CobroQrRepository cobroQrRepository = mock(CobroQrRepository.class);
+    private final PasarelaCobrosQrPort pasarelaCobrosQrPort = mock(PasarelaCobrosQrPort.class);
     private final CancelarCobroQr cancelarCobroQr = new CancelarCobroQr(negocioRepository, usoPlanRepository,
-            cobroQrRepository, new TransaccionDirecta(), RELOJ);
+            cobroQrRepository, pasarelaCobrosQrPort, new TransaccionDirecta(), RELOJ);
 
     private CobroQrItem respuesta;
     private Throwable rechazo;
@@ -77,6 +83,31 @@ class CancelarCobroQrTest {
         entoncesNoSeGuardaNada();
     }
 
+    @Test
+    @DisplayName("Cancela la order pendiente de Mercado Pago y guarda su estado confirmado")
+    void cancelaLaOrderPendienteDeMercadoPagoYGuardaSuEstadoConfirmado() {
+        dadoUnCobroGuardado(unCobroQrMercadoPago(EstadoOrdenCobroQr.PENDIENTE));
+        dadoQueMercadoPagoInformaLaOrder(EstadoOrdenCobroQr.PENDIENTE);
+        dadoQueMercadoPagoCancelaLaOrder();
+
+        cuandoSeCancelaElCobro();
+
+        entoncesSeGuardaElCobroCancelado();
+        verify(pasarelaCobrosQrPort).cancelar(ORDEN_ID);
+    }
+
+    @Test
+    @DisplayName("Si Mercado Pago ya acreditó la order no intenta cancelarla")
+    void siMercadoPagoYaAcreditoLaOrderNoIntentaCancelarla() {
+        dadoUnCobroGuardado(unCobroQrMercadoPago(EstadoOrdenCobroQr.PENDIENTE));
+        dadoQueMercadoPagoInformaLaOrder(EstadoOrdenCobroQr.COBRADO);
+
+        cuandoSeCancelaElCobro();
+
+        entoncesSeGuardaElCobroCobrado();
+        verify(pasarelaCobrosQrPort, never()).cancelar(any());
+    }
+
     // --- dado ---
     private void dadoUnCobroGuardado(CobroQr cobro) {
         dadoUnUsuarioDelNegocio();
@@ -88,6 +119,15 @@ class CancelarCobroQrTest {
         dadoUnUsuarioDelNegocio();
         when(cobroQrRepository.obtener(COBRO_QR_ID, NEGOCIO_ID))
                 .thenThrow(new ResourceNotFoundException("Cobro con QR no encontrado"));
+    }
+
+    private void dadoQueMercadoPagoCancelaLaOrder() {
+        when(pasarelaCobrosQrPort.cancelar(ORDEN_ID))
+                .thenReturn(unaOrdenQr(EstadoOrdenCobroQr.CANCELADO));
+    }
+
+    private void dadoQueMercadoPagoInformaLaOrder(EstadoOrdenCobroQr estado) {
+        when(pasarelaCobrosQrPort.consultar(ORDEN_ID)).thenReturn(unaOrdenQr(estado));
     }
 
     private void dadoUnUsuarioDelNegocio() {
@@ -109,6 +149,12 @@ class CancelarCobroQrTest {
         verify(cobroQrRepository).save(guardado.capture());
         assertThat(guardado.getValue().estado()).isEqualTo(EstadoCobroQr.CANCELADO);
         assertThat(guardado.getValue().actualizadoEn()).isEqualTo(AHORA.plusMinutes(1));
+    }
+
+    private void entoncesSeGuardaElCobroCobrado() {
+        ArgumentCaptor<CobroQr> guardado = ArgumentCaptor.forClass(CobroQr.class);
+        verify(cobroQrRepository).save(guardado.capture());
+        assertThat(guardado.getValue().estado()).isEqualTo(EstadoCobroQr.COBRADO);
     }
 
     private void entoncesSeBloqueoElNegocio() {

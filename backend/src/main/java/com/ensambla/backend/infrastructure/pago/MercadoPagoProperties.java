@@ -23,6 +23,10 @@ public class MercadoPagoProperties {
 
     private String returnUrl = "";
 
+    private String qrExternalPosId = "";
+
+    private String qrStaticData = "";
+
     private String apiUrl = "https://api.mercadopago.com";
 
     private boolean produccion;

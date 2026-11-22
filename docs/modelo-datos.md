@@ -8,7 +8,7 @@ Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (
 `V15__renovaciones_y_pagos_premium.sql`,
 `V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`,
 `V24__objetivo.sql`, `V29__mini_objetivo.sql`, `V30__progreso_objetivo.sql`, `V31__decision_objetivo.sql`,
-`V32__resumen_semanal_objetivo.sql`, `V33__objetivo_demo.sql`, `V38__objetivo_tipo_y_modo.sql`, `V39__respuesta_mini_objetivo.sql`, `V40__cuota_objetivos_ia.sql`, `V41__metricas_mini_objetivo_nuevas.sql`, `V42__cierre_con_manuales.sql`).
+`V32__resumen_semanal_objetivo.sql`, `V33__objetivo_demo.sql`, `V38__objetivo_tipo_y_modo.sql`, `V39__respuesta_mini_objetivo.sql`, `V40__cuota_objetivos_ia.sql`, `V41__metricas_mini_objetivo_nuevas.sql`, `V42__cierre_con_manuales.sql`, `V44__cobro_qr_mercado_pago.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -23,6 +23,12 @@ porqué; si cambian, se actualizan juntos.
 `venta_caja.datos` conserva `clienteId`, `clienteNombre` y `pagosIniciales`, además de los pagos acumulados. Un cobro actualiza sólo ese acumulado, con bloqueo por negocio y en la misma transacción que el movimiento nuevo; conserva el cierre original de la venta. El saldo y el estado se calculan desde total y pagos. Los datos JSON anteriores, sin `pagosIniciales` ni cobros de deuda en el resumen de cierre, siguen siendo legibles.
 
 El cierre guarda una foto de ventas, cobros y saldos. Recibir después un pago modifica el estado actual de la venta y el nuevo período de caja; el cierre anterior conserva sus importes. Ver el contrato y la prueba de aceptación en [caja-clientes-y-cobros.md](caja-clientes-y-cobros.md).
+
+## Caja: cobros QR con Mercado Pago (V44 · ENS-348)
+
+`cobro_qr` conserva la orden híbrida de Mercado Pago y su conciliación: el identificador único de la orden, el pago acreditado, la trama dinámica de un solo uso, la trama del QR fijo de la caja y el detalle de estado informado por el proveedor. El alias pasa a ser opcional porque no participa del cobro integrado.
+
+Los estados finales son `COBRADO`, `CANCELADO`, `VENCIDO` y `REEMBOLSADO`. Sólo `COBRADO` y `REEMBOLSADO` guardan la fecha y el origen de confirmación; una restricción única sobre `proveedor_orden_id` evita registrar dos veces la misma orden. La venta o el cobro de deuda se confirma únicamente después de que Mercado Pago informa la acreditación del importe en ARS.
 
 ## Convenciones
 

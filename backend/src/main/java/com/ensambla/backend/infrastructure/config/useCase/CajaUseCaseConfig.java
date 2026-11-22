@@ -2,6 +2,9 @@ package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.useCase.caja.cancelarCobroQr.CancelarCobroQr;
 import com.ensambla.backend.domain.useCase.caja.generarCobroQr.GenerarCobroQr;
+import com.ensambla.backend.domain.useCase.caja.consultarCobroQr.ConsultarCobroQr;
+import com.ensambla.backend.domain.useCase.caja.recibirNotificacionCobroQr.RecibirNotificacionCobroQr;
+import com.ensambla.backend.domain.port.PasarelaCobrosQrPort;
 import com.ensambla.backend.domain.repository.caja.CobroQrRepository;
 import com.ensambla.backend.domain.service.caja.CobroQrService;
 import com.ensambla.backend.domain.port.TransaccionPort;
@@ -80,13 +83,29 @@ public class CajaUseCaseConfig {
 
     @Bean
     public GenerarCobroQr generarCobroQr(NegocioRepository negocioRepository, CobroQrRepository cobroQrRepository,
-            TransaccionPort transaccionPort, Clock clock) {
-        return new GenerarCobroQr(negocioRepository, cobroQrRepository, transaccionPort, clock);
+            PasarelaCobrosQrPort pasarelaCobrosQrPort, TransaccionPort transaccionPort, Clock clock) {
+        return new GenerarCobroQr(negocioRepository, cobroQrRepository, pasarelaCobrosQrPort, transaccionPort, clock);
     }
 
     @Bean
     public CancelarCobroQr cancelarCobroQr(NegocioRepository negocioRepository, UsoPlanRepository usoPlanRepository,
+            CobroQrRepository cobroQrRepository, PasarelaCobrosQrPort pasarelaCobrosQrPort,
+            TransaccionPort transaccionPort, Clock clock) {
+        return new CancelarCobroQr(negocioRepository, usoPlanRepository, cobroQrRepository,
+                pasarelaCobrosQrPort, transaccionPort, clock);
+    }
+
+    @Bean
+    public ConsultarCobroQr consultarCobroQr(NegocioRepository negocioRepository,
+            CobroQrRepository cobroQrRepository, PasarelaCobrosQrPort pasarelaCobrosQrPort,
+            TransaccionPort transaccionPort, Clock clock) {
+        return new ConsultarCobroQr(negocioRepository, cobroQrRepository, pasarelaCobrosQrPort,
+                transaccionPort, clock);
+    }
+
+    @Bean
+    public RecibirNotificacionCobroQr recibirNotificacionCobroQr(PasarelaCobrosQrPort pasarelaCobrosQrPort,
             CobroQrRepository cobroQrRepository, TransaccionPort transaccionPort, Clock clock) {
-        return new CancelarCobroQr(negocioRepository, usoPlanRepository, cobroQrRepository, transaccionPort, clock);
+        return new RecibirNotificacionCobroQr(pasarelaCobrosQrPort, cobroQrRepository, transaccionPort, clock);
     }
 }

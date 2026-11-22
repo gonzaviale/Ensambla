@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.caja.CobroQr;
 import com.ensambla.backend.domain.model.caja.ConfirmacionDeCobro;
 import com.ensambla.backend.domain.model.caja.EstadoCobroQr;
+import com.ensambla.backend.domain.model.caja.EstadoOrdenCobroQr;
 import com.ensambla.backend.domain.repository.caja.CobroQrRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,7 @@ import static com.ensambla.backend.support.CobrosQrDePrueba.COBRO_QR_ID;
 import static com.ensambla.backend.support.CobrosQrDePrueba.IMPORTE;
 import static com.ensambla.backend.support.CobrosQrDePrueba.unCobroQrCancelado;
 import static com.ensambla.backend.support.CobrosQrDePrueba.unCobroQrPendiente;
+import static com.ensambla.backend.support.CobrosQrDePrueba.unCobroQrMercadoPago;
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
@@ -83,6 +85,22 @@ class CobroQrServiceTest {
 
         entoncesSeRespondeNoEncontrado();
         entoncesNoSeGuardaNada();
+    }
+
+    @Test
+    @DisplayName("Acepta el cobro de Mercado Pago acreditado sin confirmarlo a mano")
+    void aceptaElCobroDeMercadoPagoAcreditadoSinConfirmarloAMano() {
+        dadoUnCobroGuardado(unCobroQrMercadoPago(EstadoOrdenCobroQr.COBRADO));
+        cuandoSeConfirmaPor(IMPORTE);
+        entoncesNoSeGuardaNada();
+    }
+
+    @Test
+    @DisplayName("Rechaza registrar un cobro de Mercado Pago todavía pendiente")
+    void rechazaRegistrarUnCobroDeMercadoPagoTodaviaPendiente() {
+        dadoUnCobroGuardado(unCobroQrMercadoPago(EstadoOrdenCobroQr.PENDIENTE));
+        cuandoSeIntentaConfirmarPor(IMPORTE);
+        entoncesSeRechazaPorque("Mercado Pago todavía no acreditó el cobro con QR");
     }
 
     // --- dado ---

@@ -4,9 +4,11 @@ import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.model.caja.CobroQr;
 import com.ensambla.backend.domain.model.caja.EstadoCobroQr;
+import com.ensambla.backend.domain.model.caja.EstadoOrdenCobroQr;
 import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.repository.caja.CobroQrRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.port.PasarelaCobrosQrPort;
 import com.ensambla.backend.domain.useCase.caja.CobroQrItem;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
@@ -22,6 +24,7 @@ import static com.ensambla.backend.support.CobrosQrDePrueba.AHORA;
 import static com.ensambla.backend.support.CobrosQrDePrueba.COBRO_QR_ID;
 import static com.ensambla.backend.support.CobrosQrDePrueba.IMPORTE;
 import static com.ensambla.backend.support.CobrosQrDePrueba.unCobroQrPendiente;
+import static com.ensambla.backend.support.CobrosQrDePrueba.unaOrdenQr;
 import static com.ensambla.backend.support.NegociosDePrueba.unNegocioConDestinoDeCobro;
 import static com.ensambla.backend.support.NegociosDePrueba.unNegocioSinUbicacion;
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
@@ -39,8 +42,9 @@ class GenerarCobroQrTest {
 
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final CobroQrRepository cobroQrRepository = mock(CobroQrRepository.class);
+    private final PasarelaCobrosQrPort pasarelaCobrosQrPort = mock(PasarelaCobrosQrPort.class);
     private final GenerarCobroQr generarCobroQr = new GenerarCobroQr(negocioRepository, cobroQrRepository,
-            new TransaccionDirecta(), Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
+            pasarelaCobrosQrPort, new TransaccionDirecta(), Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
 
     private CobroQrItem respuesta;
     private Throwable rechazo;
@@ -93,6 +97,33 @@ class GenerarCobroQrTest {
         entoncesNoSeGuardaNada();
     }
 
+    @Test
+    @DisplayName("Genera una order híbrida de Mercado Pago aunque el negocio no tenga alias")
+    void generaUnaOrderHibridaDeMercadoPagoAunqueElNegocioNoTengaAlias() {
+        dadoUnNegocioSinAlias();
+        dadoQueNoHayUnCobroPrevio();
+        dadoMercadoPagoDisponible();
+
+        cuandoSeGeneraElCobroPorElImporte(IMPORTE);
+
+        entoncesSeGuardaElCobroDeMercadoPago();
+    }
+
+    @Test
+    @DisplayName("No solicita una order de Mercado Pago por menos de quince pesos")
+    void noSolicitaUnaOrderDeMercadoPagoPorMenosDeQuincePesos() {
+        dadoUnNegocioSinAlias();
+        dadoQueNoHayUnCobroPrevio();
+        dadoMercadoPagoDisponible();
+
+        cuandoSeIntentaGenerarElCobroPorElImporte(new BigDecimal("14.99"));
+
+        assertThat(rechazo).isInstanceOf(BusinessRuleException.class)
+                .hasMessage("Mercado Pago permite cobrar con QR desde $15");
+        verify(pasarelaCobrosQrPort, never()).crear(any(), any());
+        entoncesNoSeGuardaNada();
+    }
+
     // --- dado ---
     private void dadoUnNegocioQueCobraEnSuAlias() {
         dadoUnNegocio(unNegocioConDestinoDeCobro("mi.alias.mp", "Ana Pérez"));
@@ -114,6 +145,12 @@ class GenerarCobroQrTest {
     private void dadoUnCobroPrevio() {
         when(cobroQrRepository.findByIdAndNegocioId(COBRO_QR_ID, NEGOCIO_ID))
                 .thenReturn(Optional.of(unCobroQrPendiente()));
+    }
+
+    private void dadoMercadoPagoDisponible() {
+        when(pasarelaCobrosQrPort.disponible()).thenReturn(true);
+        when(pasarelaCobrosQrPort.crear(COBRO_QR_ID, IMPORTE))
+                .thenReturn(unaOrdenQr(EstadoOrdenCobroQr.PENDIENTE));
     }
 
     // --- cuando ---
@@ -140,6 +177,14 @@ class GenerarCobroQrTest {
         assertThat(respuesta.id()).isEqualTo(COBRO_QR_ID);
         assertThat(respuesta.estado()).isEqualTo(estado);
         assertThat(respuesta.alias()).isEqualTo("mi.alias.mp");
+    }
+
+    private void entoncesSeGuardaElCobroDeMercadoPago() {
+        ArgumentCaptor<CobroQr> guardado = ArgumentCaptor.forClass(CobroQr.class);
+        verify(cobroQrRepository).save(guardado.capture());
+        assertThat(guardado.getValue().usaMercadoPago()).isTrue();
+        assertThat(guardado.getValue().qrDinamico()).isEqualTo("qr-dinamico");
+        assertThat(respuesta.proveedor()).isEqualTo("MERCADO_PAGO");
     }
 
     private void entoncesSeRechazaCon(Class<? extends Throwable> tipo) {

@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.pago;
 
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
+import com.ensambla.backend.domain.port.PasarelaCobrosQrPort;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,5 +30,14 @@ public class MercadoPagoConfig {
                 .followRedirects(HttpClient.Redirect.NEVER)
                 .build();
         return new MercadoPagoSuscripcionesAdapter(properties, objectMapper, httpClient);
+    }
+
+    @Bean
+    public PasarelaCobrosQrPort pasarelaCobrosQrPort(MercadoPagoProperties properties, ObjectMapper objectMapper) {
+        HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(3))
+                .followRedirects(HttpClient.Redirect.NEVER)
+                .build();
+        return new MercadoPagoCobrosQrAdapter(properties, objectMapper, httpClient);
     }
 }

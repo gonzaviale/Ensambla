@@ -6,5 +6,6 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 public record CobroQrWebResponse(CobroQrId id, BigDecimal importe, String alias, String titular,
-                                 String estado, OffsetDateTime venceEn) {
+                                 String estado, OffsetDateTime venceEn, String qrDinamico,
+                                 String qrEstatico, String proveedor) {
 }

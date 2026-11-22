@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.model.caja.CobroQrId;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.port.PasarelaCobrosQrPort;
 import com.ensambla.backend.domain.repository.caja.CobroQrRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
@@ -20,6 +21,7 @@ public class CancelarCobroQr {
     private final NegocioRepository negocioRepository;
     private final UsoPlanRepository usoPlanRepository;
     private final CobroQrRepository cobroQrRepository;
+    private final PasarelaCobrosQrPort pasarelaCobrosQrPort;
     private final TransaccionPort transaccionPort;
     private final Clock clock;
 
@@ -36,7 +38,17 @@ public class CancelarCobroQr {
     /** Bajo el mismo bloqueo del negocio que usa el cobro de la venta, para que no se crucen. */
     private CobroQr cancelar(NegocioId negocioId, CobroQrId id, OffsetDateTime ahora) {
         bloquearNegocio(negocioId);
-        return guardar(obtenerCobro(id, negocioId).cancelar(ahora));
+        CobroQr cobro = obtenerCobro(id, negocioId);
+        if (!cobro.usaMercadoPago()) {
+            return guardar(cobro.cancelar(ahora));
+        }
+        CobroQr conciliado = cobro.sincronizar(
+                pasarelaCobrosQrPort.consultar(cobro.proveedorOrdenId()), ahora);
+        if (conciliado.estado().estaFinalizado()) {
+            return guardar(conciliado);
+        }
+        return guardar(conciliado.sincronizar(
+                pasarelaCobrosQrPort.cancelar(cobro.proveedorOrdenId()), ahora));
     }
 
     private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {

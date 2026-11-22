@@ -25,6 +25,12 @@ public class CobroQrRepositoryImpl implements CobroQrRepository {
     }
 
     @Override
+    public Optional<CobroQr> findByProveedorOrdenId(String proveedorOrdenId) {
+        return cobroQrJpaRepository.findByProveedorOrdenId(proveedorOrdenId)
+                .map(cobroQrRepositoryMapper::toDomain);
+    }
+
+    @Override
     public CobroQr save(CobroQr cobro) {
         return cobroQrRepositoryMapper.toDomain(cobroQrJpaRepository.save(cobroQrRepositoryMapper.toEntity(cobro)));
     }
