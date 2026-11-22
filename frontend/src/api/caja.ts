@@ -37,5 +37,7 @@ export const registrarPagoDeudaCaja = (request: SolicitudPagoDeudaCaja) =>
 
 export const generarCobroQr = (request: SolicitudCobroQr) =>
   http.post('/caja/cobros-qr', request, cobroQrSchema);
+export const consultarCobroQr = (id: string) =>
+  http.get(`/caja/cobros-qr/${encodeURIComponent(id)}`, cobroQrSchema);
 export const cancelarCobroQr = (id: string) =>
   http.post(`/caja/cobros-qr/${encodeURIComponent(id)}/cancelar`, {}, cobroQrSchema);

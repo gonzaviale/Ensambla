@@ -173,10 +173,13 @@ export type SolicitudCierreCaja = {
 export const cobroQrSchema = z.object({
   id: z.string(),
   importe: z.number(),
-  alias: z.string(),
+  alias: z.string().nullish(),
   titular: z.string().nullish(),
-  estado: z.enum(['PENDIENTE', 'VENCIDO', 'COBRADO', 'CANCELADO']),
+  estado: z.enum(['PENDIENTE', 'VENCIDO', 'COBRADO', 'CANCELADO', 'REEMBOLSADO']),
   venceEn: z.string(),
+  qrDinamico: z.string().nullish(),
+  qrEstatico: z.string().nullish(),
+  proveedor: z.enum(['MERCADO_PAGO', 'MANUAL']),
 });
 export type CobroQr = z.infer<typeof cobroQrSchema>;
 export type SolicitudCobroQr = { id: string; importe: number };

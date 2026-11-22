@@ -2,6 +2,27 @@ import { useEffect, useRef } from 'react';
 
 const CONTROLES = 'button, input, select, textarea, a[href], [tabindex]';
 
+let bloqueosDelScroll = 0;
+let overflowAnterior = '';
+
+function bloquearScroll() {
+  if (bloqueosDelScroll === 0) {
+    overflowAnterior = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = 'hidden';
+  }
+  bloqueosDelScroll++;
+  let liberado = false;
+  return () => {
+    if (liberado) return;
+    liberado = true;
+    bloqueosDelScroll--;
+    if (bloqueosDelScroll > 0) return;
+    bloqueosDelScroll = 0;
+    document.documentElement.style.overflow = overflowAnterior;
+    overflowAnterior = '';
+  };
+}
+
 function controlesDisponibles(raiz: HTMLElement) {
   return [...raiz.querySelectorAll<HTMLElement>(CONTROLES)].filter(
     (elemento) =>
@@ -50,14 +71,13 @@ function ajustarAlTeclado(raiz: HTMLElement) {
 
 function activarDialogo(raiz: HTMLElement, alTeclear: (evento: KeyboardEvent) => void) {
   const anterior = document.activeElement as HTMLElement | null;
-  const scroll = document.documentElement.style.overflow;
   const liberarTeclado = ajustarAlTeclado(raiz);
-  document.documentElement.style.overflow = 'hidden';
+  const liberarScroll = bloquearScroll();
   (controlesDisponibles(raiz)[0] ?? raiz).focus();
   document.addEventListener('keydown', alTeclear, true);
   return () => {
     liberarTeclado();
-    document.documentElement.style.overflow = scroll;
+    liberarScroll();
     document.removeEventListener('keydown', alTeclear, true);
     if (anterior?.isConnected) anterior.focus();
   };

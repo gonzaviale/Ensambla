@@ -66,7 +66,7 @@ describe('cobrar una venta con QR en la caja', () => {
     await entoncesSeMuestraElQrPor(/10\.000,00/);
   });
 
-  it('muestra el alias y el titular para que el cliente los vea', async () => {
+  it('ofrece el QR fijo de la caja además del QR dinámico', async () => {
     await dadaUnaVentaPorTransferenciaListaParaCobrarConQr();
 
     await cuandoSeCobraConQr(user);
@@ -74,7 +74,7 @@ describe('cobrar una venta con QR en la caja', () => {
     await entoncesSeMuestranElAliasYElTitular();
   });
 
-  it('avisa que Ensambla no verificó el pago', async () => {
+  it('avisa que Mercado Pago confirmará el pago automáticamente', async () => {
     await dadaUnaVentaPorTransferenciaListaParaCobrarConQr();
 
     await cuandoSeCobraConQr(user);
@@ -82,7 +82,7 @@ describe('cobrar una venta con QR en la caja', () => {
     await entoncesSeAvisaQueEnsamblaNoVerificoElPago();
   });
 
-  it('explica que el cliente debe ingresar el importe manualmente', async () => {
+  it('explica que el importe ya está cargado en el QR', async () => {
     await dadaUnaVentaPorTransferenciaListaParaCobrarConQr();
 
     await cuandoSeCobraConQr(user);
@@ -98,7 +98,7 @@ describe('cobrar una venta con QR en la caja', () => {
     await entoncesSeIndicaHastaCuandoVale();
   });
 
-  it('avisa cuando el cobro venció y permite confirmar si llegó el pago', async () => {
+  it('avisa cuando el cobro venció y pide generar uno nuevo', async () => {
     await dadaUnaVentaPorTransferenciaListaParaCobrarConQr();
     dadoUnServidorQueGeneraUnCobroVencido();
 
@@ -107,7 +107,7 @@ describe('cobrar una venta con QR en la caja', () => {
     await entoncesSeIndicaQueElCobroVencio();
   });
 
-  it('el alias se puede copiar', async () => {
+  it('el QR fijo se puede abrir para cobrar la misma orden', async () => {
     await dadaUnaVentaPorTransferenciaListaParaCobrarConQr();
     await cuandoSeCobraConQr(user);
     await entoncesSeMuestranElAliasYElTitular();
@@ -146,7 +146,7 @@ describe('cobrar una venta con QR en la caja', () => {
     entoncesSePidioElQrPorImporte(4000);
   });
 
-  it('Ya me transfirieron guarda la venta con el cobro con QR', async () => {
+  it('cuando Mercado Pago acredita guarda la venta con el cobro con QR', async () => {
     await dadaUnaVentaPorTransferenciaListaParaCobrarConQr();
     await cuandoSeCobraConQr(user);
     await entoncesSeMuestraElQrPor(/10\.000,00/);
@@ -154,6 +154,19 @@ describe('cobrar una venta con QR en la caja', () => {
     await cuandoYaLeTransfirieron(user);
 
     await entoncesSeGuardoLaVentaConElCobroQrGenerado();
+  });
+
+  it('después del comprobante recupera el scroll para continuar usando la caja', async () => {
+    document.documentElement.style.overflow = '';
+    await dadaUnaVentaPorTransferenciaListaParaCobrarConQr();
+    await cuandoSeCobraConQr(user);
+    await entoncesSeMuestraElQrPor(/10\.000,00/);
+
+    await cuandoYaLeTransfirieron(user);
+    await screen.findByRole('heading', { name: 'Venta guardada' }, ESPERA);
+    await user.click(screen.getByRole('button', { name: 'Nueva venta' }));
+
+    await waitFor(() => expect(document.documentElement.style.overflow).toBe(''), ESPERA);
   });
 
   it('cancelar el cobro con QR avisa al servidor y no guarda la venta', async () => {
@@ -187,7 +200,7 @@ describe('cobrar una venta con QR en la caja', () => {
     entoncesSeGeneroUnSoloCobroQr();
   });
 
-  it('sin alias cargado explica cómo cargarlo y no genera ningún cobro', async () => {
+  it('genera el cobro de Mercado Pago aunque el negocio no tenga alias', async () => {
     await dadaUnaVentaPorTransferenciaSinAliasCargado();
 
     await cuandoSeCobraConQr(user);
@@ -216,7 +229,7 @@ describe('cobrar una venta con QR en la caja', () => {
     await entoncesElQrMuestraElError('El cobro con QR ya está cobrado');
   });
 
-  it('si no se sabe si la venta se guardó obliga a verificar antes de cancelar el QR', async () => {
+  it('si no se sabe si la venta se guardó deja verificarla pero no cancelar el QR', async () => {
     await dadaUnaVentaPorTransferenciaListaParaCobrarConQr();
     dadoUnServidorQueDejaInciertaLaVenta();
     await cuandoSeCobraConQr(user);

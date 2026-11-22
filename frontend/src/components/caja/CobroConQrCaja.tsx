@@ -1,10 +1,8 @@
-import type { ComponentType } from 'react';
-import { Link } from '@tanstack/react-router';
+import { useEffect, useRef, type ComponentType } from 'react';
 import { CodigoQrDiferido } from '@/components/cobro/CodigoQrDiferido';
 import { useCancelarCobroQr } from '@/hooks/caja/useCancelarCobroQr';
 import { useCobroConQr, type EstadoDelCobroQr } from '@/hooks/caja/useCobroConQr';
 import { useVigenciaCobroQr } from '@/hooks/caja/useVigenciaCobroQr';
-import { useCopiarAlPortapapeles } from '@/hooks/useCopiarAlPortapapeles';
 import { dineroCaja } from '@/lib/caja';
 import { horaDelVencimiento } from '@/lib/caja/cobroQr';
 import type { CobroQr } from '@/types/caja';
@@ -25,7 +23,6 @@ interface PropsDeLaPantalla extends Props {
 
 const PANTALLAS: Record<EstadoDelCobroQr, ComponentType<PropsDeLaPantalla>> = {
   cargando: PantallaGenerando,
-  sinAlias: PantallaSinAlias,
   fallo: PantallaConFallo,
   listo: PantallaDelCobro,
 };
@@ -34,9 +31,16 @@ export function CobroConQrCaja(props: Props) {
   const { id, estado, cobro } = useCobroConQr(props.importeCentavos);
   const { cancelar } = useCancelarCobroQr();
   const Pantalla = PANTALLAS[estado];
+  const confirmado = useRef(false);
+  useEffect(() => {
+    if (cobro?.estado === 'COBRADO' && !confirmado.current) {
+      confirmado.current = true;
+      props.onYaTransfirieron(cobro.id);
+    }
+  }, [cobro, props]);
   const cerrar = () => {
     if (props.ocupada || props.incierta) return;
-    if (cobro) cancelar(id);
+    if (cobro?.estado === 'PENDIENTE' || cobro?.estado === 'VENCIDO') cancelar(id);
     props.onCerrar();
   };
 
@@ -56,20 +60,6 @@ function PantallaGenerando({ onCerrar }: PropsDeLaPantalla) {
   return (
     <>
       <p role="status">Generando el QR…</p>
-      <AccionVolver onCerrar={onCerrar} />
-    </>
-  );
-}
-
-function PantallaSinAlias({ onCerrar }: PropsDeLaPantalla) {
-  return (
-    <>
-      <p>
-        Todavía no cargaste tu alias o CVU. Lo necesitamos para mostrarle al cliente dónde pagar.
-      </p>
-      <Link className="text-link" to="/cuenta" search={{ seccion: 'perfil' }}>
-        Cargar mi alias o CVU
-      </Link>
       <AccionVolver onCerrar={onCerrar} />
     </>
   );
@@ -97,21 +87,37 @@ function AccionVolver({ onCerrar }: { onCerrar: () => void }) {
 }
 
 function PantallaDelCobro(props: PropsDeLaPantalla) {
-  const { cobro, importeCentavos, ocupada, incierta, error, onYaTransfirieron, onCerrar } = props;
+  const { cobro, importeCentavos, ocupada, incierta, error, onCerrar, onYaTransfirieron } = props;
   if (!cobro) return null;
+  const permiteReintentarGuardado = cobro.estado === 'COBRADO' && !!error && !ocupada;
 
   return (
     <>
       <div className="caja-qr">
-        <span className="caja-antetitulo">MONTO A TRANSFERIR</span>
+        <span className="caja-antetitulo">MONTO A PAGAR</span>
         <p className="caja-qr-monto">{dineroCaja(importeCentavos)}</p>
-        <CodigoQrDiferido texto={cobro.alias} descripcion="QR con tu alias o CVU para transferir" />
+        {cobro.qrDinamico && (
+          <CodigoQrDiferido
+            texto={cobro.qrDinamico}
+            descripcion="QR dinámico de Mercado Pago con el importe de la compra"
+          />
+        )}
         <p className="caja-ayuda">
-          El QR lleva tu alias o CVU. El cliente escribe el monto en su app.
+          Escanealo con Mercado Pago. El importe ya está cargado y no hace falta escribirlo.
         </p>
-        <DatosParaTransferir cobro={cobro} />
+        {cobro.qrEstatico && (
+          <details className="caja-qr-datos">
+            <summary>Usar el QR fijo del mostrador</summary>
+            <CodigoQrDiferido
+              texto={cobro.qrEstatico}
+              descripcion="QR fijo de la caja de Mercado Pago"
+            />
+            <span>El QR fijo y el dinámico cobran esta misma compra. Solo uno puede pagarse.</span>
+          </details>
+        )}
+        <EstadoDelPago cobro={cobro} />
         <p className="caja-nota">
-          Ensambla no verificó el pago. Revisá en tu cuenta que te llegó antes de confirmar.
+          Ensambla confirmará la venta automáticamente cuando Mercado Pago acredite el pago.
         </p>
         {error && (
           <p className="caja-error" role="alert">
@@ -131,47 +137,31 @@ function PantallaDelCobro(props: PropsDeLaPantalla) {
         <button
           type="button"
           className="btn primary"
-          disabled={ocupada}
+          disabled={!permiteReintentarGuardado}
           onClick={() => onYaTransfirieron(cobro.id)}
         >
-          {textoDelBotonDeConfirmar(ocupada, incierta)}
+          {ocupada
+            ? 'Guardando venta…'
+            : permiteReintentarGuardado
+              ? incierta
+                ? 'Verificar y guardar venta'
+                : 'Volver a guardar la venta'
+              : cobro.estado === 'COBRADO'
+                ? 'Pago acreditado'
+                : 'Esperando el pago…'}
         </button>
       </div>
     </>
   );
 }
 
-function textoDelBotonDeConfirmar(ocupada: boolean, incierta: boolean): string {
-  if (ocupada) return 'Confirmando…';
-  if (incierta) return 'Verificar misma operación';
-  return 'Ya me transfirieron';
-}
-
-function DatosParaTransferir({ cobro }: { cobro: CobroQr }) {
-  const { copiar, resultado } = useCopiarAlPortapapeles('Alias copiado.');
+function EstadoDelPago({ cobro }: { cobro: CobroQr }) {
   const vencido = useVigenciaCobroQr(cobro.venceEn);
-
-  return (
-    <div className="caja-qr-datos">
-      <span>Alias o CVU</span>
-      <strong>{cobro.alias}</strong>
-      <button type="button" className="btn secondary" onClick={() => void copiar(cobro.alias)}>
-        Copiar alias
-      </button>
-      {cobro.titular && <span>Titular: {cobro.titular}</span>}
-      <span role="status">{resultado}</span>
-      <VigenciaDelCobro vencido={vencido} venceEn={cobro.venceEn} />
-    </div>
-  );
-}
-
-function VigenciaDelCobro({ vencido, venceEn }: { vencido: boolean; venceEn: string }) {
-  if (vencido) {
-    return (
-      <span role="status">
-        Este cobro venció. Si te pagaron, podés confirmarlo; si no, cancelalo y abrí otro.
-      </span>
-    );
+  if (cobro.estado === 'COBRADO') return <p role="status">Pago acreditado por Mercado Pago.</p>;
+  if (cobro.estado === 'CANCELADO') return <p role="status">Este cobro fue cancelado.</p>;
+  if (cobro.estado === 'REEMBOLSADO') return <p role="status">Este pago fue reembolsado.</p>;
+  if (vencido || cobro.estado === 'VENCIDO') {
+    return <p role="status">Este QR venció. Cancelalo y generá un cobro nuevo.</p>;
   }
-  return <span>Vale hasta las {horaDelVencimiento(venceEn)}.</span>;
+  return <p role="status">Esperando el pago. Vale hasta las {horaDelVencimiento(cobro.venceEn)}.</p>;
 }

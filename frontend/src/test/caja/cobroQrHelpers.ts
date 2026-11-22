@@ -14,6 +14,7 @@ export const TITULAR_DEL_COMERCIO = 'Ana Pérez';
 
 let generados: SolicitudCobroQr[] = [];
 let cancelados: string[] = [];
+let estadoRemoto: CobroQr['estado'] = 'PENDIENTE';
 
 const dialogoDelQr = () => screen.getByRole('dialog', { name: 'Cobrar con QR' });
 
@@ -29,6 +30,9 @@ const cobroQr = (
   titular: TITULAR_DEL_COMERCIO,
   estado: estadoDelCobro,
   venceEn,
+  qrDinamico: '000201-qr-dinamico-mercado-pago',
+  qrEstatico: '000201-qr-estatico-mercado-pago',
+  proveedor: 'MERCADO_PAGO',
 });
 
 /* dado */
@@ -48,11 +52,16 @@ export function dadoUnNegocioQueCobraEnSuAlias(email: string) {
 export function dadoUnServidorQueGeneraYCancelaCobrosQr() {
   generados = [];
   cancelados = [];
+  estadoRemoto = 'PENDIENTE';
   server.use(
     http.post('/api/caja/cobros-qr', async ({ request }) => {
       const solicitud = (await request.json()) as SolicitudCobroQr;
       generados.push(solicitud);
       return HttpResponse.json(cobroQr(solicitud.id, solicitud.importe, 'PENDIENTE'));
+    }),
+    http.get('/api/caja/cobros-qr/:id', ({ params }) => {
+      const generado = generados.find((item) => item.id === String(params.id));
+      return HttpResponse.json(cobroQr(String(params.id), generado?.importe ?? 0, estadoRemoto));
     }),
     http.post('/api/caja/cobros-qr/:id/cancelar', ({ params }) => {
       cancelados.push(String(params.id));
@@ -82,14 +91,20 @@ export function dadoUnServidorQueGeneraUnCobroVencido() {
 export const cuandoSeCobraConQr = (user: Usuario) =>
   user.click(screen.getByRole('button', { name: 'Cobrar con QR' }));
 
-export const cuandoYaLeTransfirieron = (user: Usuario) =>
-  user.click(within(dialogoDelQr()).getByRole('button', { name: 'Ya me transfirieron' }));
+export const cuandoYaLeTransfirieron = async (user: Usuario) => {
+  void user;
+  estadoRemoto = 'COBRADO';
+  await waitFor(
+    () => expect(within(dialogoDelQr()).getByText('Pago acreditado por Mercado Pago.')).toBeVisible(),
+    { timeout: 2_500 },
+  );
+};
 
 export const cuandoSeCancelaElCobroConQr = (user: Usuario) =>
   user.click(within(dialogoDelQr()).getByRole('button', { name: 'Cancelar cobro con QR' }));
 
 export const cuandoSeCopiaElAlias = (user: Usuario) =>
-  user.click(within(dialogoDelQr()).getByRole('button', { name: 'Copiar alias' }));
+  user.click(within(dialogoDelQr()).getByText('Usar el QR fijo del mostrador'));
 
 /* entonces */
 
@@ -103,32 +118,33 @@ export async function entoncesSeMuestraElQrPor(monto: RegExp) {
   const dialogo = within(await screen.findByRole('dialog', { name: 'Cobrar con QR' }));
   expect(await dialogo.findByText(monto)).toBeVisible();
   expect(
-    await dialogo.findByRole('img', { name: 'QR con tu alias o CVU para transferir' }),
+    await dialogo.findByRole('img', {
+      name: 'QR dinámico de Mercado Pago con el importe de la compra',
+    }, ESPERA),
   ).toBeVisible();
 }
 
 export async function entoncesSeMuestranElAliasYElTitular() {
   const dialogo = within(await screen.findByRole('dialog', { name: 'Cobrar con QR' }));
-  expect(await dialogo.findByText(ALIAS_DEL_COMERCIO)).toBeVisible();
-  expect(dialogo.getByText(`Titular: ${TITULAR_DEL_COMERCIO}`)).toBeVisible();
+  expect(await dialogo.findByText('Usar el QR fijo del mostrador')).toBeVisible();
 }
 
 export async function entoncesSeAvisaQueEnsamblaNoVerificoElPago() {
   const dialogo = within(await screen.findByRole('dialog', { name: 'Cobrar con QR' }));
-  expect(await dialogo.findByText(/Ensambla no verificó el pago/)).toBeVisible();
+  expect(await dialogo.findByText(/confirmará la venta automáticamente/)).toBeVisible();
 }
 
 export async function entoncesSeExplicaComoIngresarElImporte() {
   const dialogo = within(await screen.findByRole('dialog', { name: 'Cobrar con QR' }));
   expect(
-    await dialogo.findByText('El QR lleva tu alias o CVU. El cliente escribe el monto en su app.'),
+    await dialogo.findByText('Escanealo con Mercado Pago. El importe ya está cargado y no hace falta escribirlo.'),
   ).toBeVisible();
 }
 
 export async function entoncesSeVerificaAntesDeCancelar() {
   const dialogo = within(dialogoDelQr());
   await waitFor(
-    () => expect(dialogo.getByRole('button', { name: 'Verificar misma operación' })).toBeEnabled(),
+    () => expect(dialogo.getByRole('button', { name: 'Verificar y guardar venta' })).toBeEnabled(),
     ESPERA,
   );
   expect(dialogo.getByRole('button', { name: 'Cancelar cobro con QR' })).toBeDisabled();
@@ -137,27 +153,25 @@ export async function entoncesSeVerificaAntesDeCancelar() {
 
 export async function entoncesSeIndicaHastaCuandoVale() {
   const dialogo = within(await screen.findByRole('dialog', { name: 'Cobrar con QR' }));
-  expect(await dialogo.findByText('Vale hasta las 15:45.')).toBeVisible();
+  expect(await dialogo.findByText(/Vale hasta las 15:45/)).toBeVisible();
 }
 
 export async function entoncesSeIndicaQueElCobroVencio() {
   const dialogo = within(await screen.findByRole('dialog', { name: 'Cobrar con QR' }));
-  expect(await dialogo.findByText(/Este cobro venció.*podés confirmarlo/)).toBeVisible();
-  expect(dialogo.getByRole('button', { name: 'Ya me transfirieron' })).toBeEnabled();
+  expect(await dialogo.findByText(/Este QR venció/)).toBeVisible();
+  expect(dialogo.getByRole('button', { name: 'Esperando el pago…' })).toBeDisabled();
 }
 
 export async function entoncesSeCopioElAlias() {
   const dialogo = within(dialogoDelQr());
-  expect(await dialogo.findByText('Alias copiado.')).toBeVisible();
+  expect(await dialogo.findByRole('img', { name: 'QR fijo de la caja de Mercado Pago' })).toBeVisible();
 }
 
 export async function entoncesSePideCargarElAlias() {
   const dialogo = within(await screen.findByRole('dialog', { name: 'Cobrar con QR' }));
-  expect(await dialogo.findByText(/Todavía no cargaste tu alias o CVU/)).toBeVisible();
-  expect(dialogo.getByRole('link', { name: 'Cargar mi alias o CVU' })).toHaveAttribute(
-    'href',
-    '/cuenta?seccion=perfil',
-  );
+  expect(await dialogo.findByRole('img', {
+    name: 'QR dinámico de Mercado Pago con el importe de la compra',
+  })).toBeVisible();
 }
 
 export async function entoncesSeAvisaQueNoSePudoGenerarElQr() {
