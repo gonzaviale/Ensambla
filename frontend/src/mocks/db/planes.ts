@@ -6,7 +6,7 @@ import { estado, sistemasDe } from './estado';
 const CATALOGO: Plan[] = [
   {
     codigo: 'GRATUITO',
-    nombre: 'Gratuito',
+    nombre: 'Básico',
     precioConfigurado: false,
     limitesConfigurados: true,
     precioMensual: 0,

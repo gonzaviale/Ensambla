@@ -248,7 +248,7 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
 
     // --- assert ---
     private void entoncesElGratuitoTieneSusCuotasAprobadas() {
-        assertThat(gratuito.getNombre()).isEqualTo("Gratuito");
+        assertThat(gratuito.getNombre()).isEqualTo("Básico");
         assertThat(gratuito.getPrecioMensual()).isEqualByComparingTo(BigDecimal.ZERO);
         entoncesCommercialValuesPending(gratuito);
         assertThat(gratuito.getLimitesConfigurados()).isTrue();

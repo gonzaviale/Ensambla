@@ -339,14 +339,14 @@ async function entoncesSePrepararonUnaVezConCsrfYSinCuerpo() {
 async function entoncesSeOfreceContinuarEnMercadoPagoSinDarAccesoPago() {
   const continuar = await screen.findByRole('link', { name: 'Continuar en Mercado Pago' }, ESPERA);
   expect(continuar).toHaveAttribute('href', ENLACE_DE_MERCADO_PAGO);
-  expect(screen.getByRole('heading', { name: 'Gratuito, tu espacio actual' })).toBeVisible();
+  expect(screen.getByRole('heading', { name: 'Básico, tu espacio actual' })).toBeVisible();
   expect(estado.pruebasPremium.size).toBe(0);
 }
 
 async function entoncesSeEsperaElPagoYNoSePresentaComoCobrado() {
   expect(await screen.findByText('Renovación automática autorizada.', {}, ESPERA)).toBeVisible();
   expect(screen.getByText(/El acceso pago se habilita al confirmar/)).toBeVisible();
-  expect(screen.getByRole('heading', { name: 'Gratuito, tu espacio actual' })).toBeVisible();
+  expect(screen.getByRole('heading', { name: 'Básico, tu espacio actual' })).toBeVisible();
 }
 
 function entoncesSePideConfirmacionYTodaviaNoSeCancelo() {

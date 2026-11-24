@@ -1,34 +1,10 @@
-import { Btn } from '@/components/sistema/Btn';
-import { GestionRenovacion } from './GestionRenovacion';
-import { Icon } from '@/components/sistema/Icon';
-import type { NombreDeIcono } from '@/lib/sistema/iconos';
-import { textoDeNegocios } from '@/lib/planes/negocios';
+import { etiquetaDelPlan } from '@/lib/planes/etiquetaDelPlan';
+import { presentacionDelPlan } from '@/lib/planes/presentacionDelPlan';
 import type { Plan } from '@/types/planes';
-
-const FUNCIONES = [['REPORTES_FILTRADOS', 'Resúmenes en PDF']] as const;
-
-const AVISOS_Y_RECOMENDACIONES_GRATUITOS = '6';
-
-function limite(valor: number | null, configurado: boolean) {
-  if (!configurado) return 'Por definir';
-  return valor === null ? 'Sin límite' : valor.toLocaleString('es-AR');
-}
-
-type FilaDeLimite = { icono: NombreDeIcono; titulo: string; valor: string };
-
-function filaDeObjetivosConIa(plan: Plan): FilaDeLimite[] {
-  if (plan.limiteObjetivosIaMensuales === undefined) return [];
-  const valor = limite(plan.limiteObjetivosIaMensuales, plan.limitesConfigurados);
-  return [{ icono: 'chart', titulo: 'Objetivos con IA por mes', valor }];
-}
-
-function precio(plan: Plan) {
-  if (plan.codigo === 'GRATUITO') return 'Sin costo';
-  if (!plan.precioConfigurado || plan.precioMensual === null || !plan.moneda)
-    return 'Precio por definir';
-  const importe = plan.precioMensual.toLocaleString('es-AR', { maximumFractionDigits: 0 });
-  return plan.moneda === 'ARS' ? `$${importe}` : `${importe} ${plan.moneda}`;
-}
+import { EncabezadoDelPlan } from './EncabezadoDelPlan';
+import { FilasDelPlan } from './FilasDelPlan';
+import { PieDelPlanPremium } from './PieDelPlanPremium';
+import { PrecioDelPlan } from './PrecioDelPlan';
 
 type TarjetaPlanProps = {
   plan: Plan;
@@ -40,122 +16,19 @@ type TarjetaPlanProps = {
   onIniciar: () => void;
 };
 
-export function TarjetaPlan({
-  plan,
-  actual,
-  pruebaActiva,
-  puedeIniciar,
-  activando,
-  pruebaUtilizada,
-  onIniciar,
-}: TarjetaPlanProps) {
-  const premium = plan.codigo === 'PREMIUM';
-  const avisos = premium ? 'Sin límite' : AVISOS_Y_RECOMENDACIONES_GRATUITOS;
-  const color = premium ? 'petrol' : 'blue';
-  const limites: FilaDeLimite[] = [
-    {
-      icono: 'folder',
-      titulo: 'Negocios',
-      valor: plan.limitesConfigurados ? textoDeNegocios(plan.limiteProyectos) : 'Por definir',
-    },
-    {
-      icono: 'note',
-      titulo: 'Datos guardados en total',
-      valor: limite(plan.limiteRegistros, plan.limitesConfigurados),
-    },
-    {
-      icono: 'camera',
-      titulo: 'Análisis de foto por mes',
-      valor: limite(plan.limitePaginasIaMensuales, plan.limitesConfigurados),
-    },
-    ...filaDeObjetivosConIa(plan),
-    { icono: 'bell', titulo: 'Avisos por mes', valor: avisos },
-    { icono: 'ubicacion', titulo: 'Recomendaciones de zona por mes', valor: avisos },
-  ];
+export function TarjetaPlan({ plan, onIniciar, ...situacion }: TarjetaPlanProps) {
+  const { color, destacado } = presentacionDelPlan(plan);
   return (
     <article
-      className={`plan-card ${premium ? 'plan-card-premium' : ''}`}
+      className={`plan-card ${destacado ? 'plan-card-premium' : ''}`}
       data-color={color}
-      data-actual={actual ? 'true' : undefined}
+      data-actual={situacion.actual ? 'true' : undefined}
       aria-label={`Plan ${plan.nombre}`}
     >
-      <div className="plan-card-top">
-        <span className="plan-card-icon">
-          <Icon name={premium ? 'spark' : 'grid'} />
-        </span>
-        {actual ? (
-          <span className="plan-label">{pruebaActiva ? 'En prueba' : 'Tu plan'}</span>
-        ) : premium ? (
-          <span className="plan-destacado">El más completo</span>
-        ) : null}
-      </div>
-      <h2>{plan.nombre}</h2>
-      <p className="plan-card-description">
-        {premium
-          ? 'Más espacio para tus datos. Más herramientas para decidir.'
-          : 'Lo esencial para empezar a organizar tu negocio.'}
-      </p>
-      {premium ? (
-        <>
-          <p className="plan-price">{precio(plan)}</p>
-          <p className="plan-price-detail">
-            {plan.precioConfigurado
-              ? 'Cada 30 días · renovación automática'
-              : 'La contratación estará disponible próximamente.'}
-          </p>
-        </>
-      ) : null}
-      <dl className="plan-limits">
-        {limites.map((fila) => (
-          <div key={fila.titulo}>
-            <dt>
-              <span className="plan-limit-icono">
-                <Icon name={fila.icono} />
-              </span>
-              {fila.titulo}
-            </dt>
-            <dd>{fila.valor}</dd>
-          </div>
-        ))}
-      </dl>
-      <ul className="plan-features">
-        <li>
-          <Icon name="check" /> Carga manual, edición y consulta
-        </li>
-        {FUNCIONES.map(([codigo, nombre]) => {
-          const incluida = plan.funciones.includes(codigo);
-          return (
-            <li key={codigo} className={incluida ? '' : 'plan-feature-excluded'}>
-              <Icon name={incluida ? 'check' : 'close'} />
-              <span>
-                {nombre}
-                {!incluida ? <span className="sr-only">: no incluido</span> : null}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-      {premium ? (
-        <div className="plan-card-bottom">
-          <Btn cls="primary full" disabled={!puedeIniciar || activando} onClick={onIniciar}>
-            {activando
-              ? 'Activando tu prueba…'
-              : puedeIniciar
-                ? 'Probar Premium por 7 días'
-                : pruebaActiva
-                  ? 'Prueba activa'
-                  : actual
-                    ? 'Premium activo'
-                    : pruebaUtilizada
-                      ? 'Prueba ya utilizada'
-                      : 'Prueba no disponible'}
-          </Btn>
-          <p>
-            La prueba incluye <strong>10 análisis de foto en total</strong>, durante los 7 días.
-          </p>
-          <GestionRenovacion />
-        </div>
-      ) : null}
+      <EncabezadoDelPlan plan={plan} etiqueta={etiquetaDelPlan({ plan, ...situacion })} />
+      <PrecioDelPlan plan={plan} />
+      <FilasDelPlan plan={plan} />
+      {destacado ? <PieDelPlanPremium {...situacion} onIniciar={onIniciar} /> : null}
     </article>
   );
 }

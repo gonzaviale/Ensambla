@@ -18,7 +18,7 @@ export function ContenidoPremium({
       aria-label={`Tu acceso a ${recurso}`}
     >
       <div>
-        <span className="tag outline">Tu plan Gratuito</span>
+        <span className="tag outline">Tu plan Básico</span>
         <p>
           Usaste{' '}
           <strong>

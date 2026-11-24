@@ -116,7 +116,7 @@ export function PlanesPage() {
                     <p>Tenés las funciones premium hasta el {fecha(datos.prueba.finEn)}.</p>
                   ) : null}
                   {pruebaFinalizada ? (
-                    <p>Tu prueba terminó. Seguís con el gratuito y todos tus datos se conservan.</p>
+                    <p>Tu prueba terminó. Seguís con el plan Básico y todos tus datos se conservan.</p>
                   ) : null}
                   {!esPrueba &&
                   !pruebaFinalizada &&
@@ -192,7 +192,7 @@ export function PlanesPage() {
                 <p>
                   Cuando termina la prueba conservás tus secciones, tus datos y tus recetas. Podés
                   consultar y editar tus datos; las nuevas altas y las funciones premium respetan
-                  los límites del plan gratuito.
+                  los límites del plan Básico.
                 </p>
               </div>
             </section>

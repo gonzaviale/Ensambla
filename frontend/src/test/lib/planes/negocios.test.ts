@@ -25,7 +25,7 @@ describe('textoDeNegocios', () => {
   it('sin límite lo dice', () => {
     cuandoSeDescribenLosNegocios(null);
 
-    entoncesDice('Sin límite');
+    entoncesDice('Ilimitado');
   });
 });
 

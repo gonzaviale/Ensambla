@@ -276,29 +276,6 @@
   color: var(--petrol);
   white-space: nowrap;
 }
-.plan-features {
-  display: grid;
-  gap: 10px;
-  margin: 0 0 22px;
-  padding: 12px 0 0;
-  border-top: 1px solid var(--c-borde, var(--line));
-  list-style: none;
-  font-size: 14px;
-}
-.plan-features li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.plan-features .icon {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-.plan-feature-excluded {
-  text-decoration: line-through;
-  text-decoration-thickness: 1.5px;
-}
 .plan-card-bottom {
   margin-top: auto;
 }
@@ -593,12 +570,6 @@
 .plan-card[data-color='petrol'] .plan-limit-icono {
   background: var(--yellow);
 }
-.plan-features .icon {
-  color: var(--orange);
-}
-.plan-feature-excluded .icon {
-  color: var(--petrol);
-}
 
 /* Premium: la tarjeta que más se ve. Borde petróleo entero, la franja con los cinco colores de la marca, más aire
    y un escalón arriba de las demás. */
@@ -650,10 +621,6 @@
 @media (min-width: 961px) {
   .plans-grid {
     align-items: stretch;
-  }
-  .plan-card-premium {
-    margin-top: -10px;
-    margin-bottom: 10px;
   }
 }
 @media (max-width: 700px) {
@@ -777,16 +744,6 @@
   width: 14px;
   height: 14px;
 }
-.plan-features {
-  gap: 6px;
-  margin: 0 0 12px;
-  padding-top: 8px;
-  font-size: 13px;
-}
-.plan-features .icon {
-  width: 16px;
-  height: 16px;
-}
 .plan-card-bottom p {
   margin: 6px 0 0;
   font-size: 12px;
@@ -819,12 +776,6 @@
 .plan-destacado {
   padding: 4px 12px;
   font-size: 11px;
-}
-@media (min-width: 961px) {
-  .plan-card-premium {
-    margin-top: -6px;
-    margin-bottom: 6px;
-  }
 }
 .plans-reassurance {
   margin: 14px 0 4px;
@@ -860,4 +811,14 @@
 .plan-limit-icono .icon {
   width: 16px;
   height: 16px;
+}
+
+/* Una función que el plan no incluye: la ficha vacía y el «No incluido» sin negrita. */
+.plan-limits > [data-excluida='true'] .plan-limit-icono {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--petrol);
+  color: var(--petrol);
+}
+.plan-limits > [data-excluida='true'] dd {
+  font-weight: 500;
 }

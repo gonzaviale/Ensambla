@@ -42,6 +42,18 @@ describe('planes y activación de prueba', () => {
     entoncesCadaPlanMuestraSusLimites();
   });
 
+  it('el plan Básico muestra su precio en cero por mes', async () => {
+    await dadaLaPantallaDePlanes();
+
+    entoncesElPlanBasicoMuestraSuPrecioEnCero();
+  });
+
+  it('cada plan dice si incluye o no cada función, como en el resto de las filas', async () => {
+    await dadaLaPantallaDePlanes();
+
+    entoncesCadaPlanDiceQueIncluyeOQueNoIncluye();
+  });
+
   it('muestra el precio aprobado cada treinta días y ofrece la prueba', async () => {
     await dadaLaPantallaDePlanes();
 
@@ -141,7 +153,7 @@ describe('planes y activación de prueba', () => {
 
     await cuandoSeReintentaConElServidorRecuperado();
 
-    await esperarGratuito();
+    await esperarPlanBasico();
   });
 
   it('una activación rechazada no habilita premium', async () => {
@@ -174,8 +186,8 @@ describe('planes y activación de prueba', () => {
   });
 });
 
-const esperarGratuito = () =>
-  screen.findByRole('heading', { name: 'Gratuito, tu espacio actual' }, ESPERA);
+const esperarPlanBasico = () =>
+  screen.findByRole('heading', { name: 'Básico, tu espacio actual' }, ESPERA);
 const esperarPrueba = () =>
   screen.findByRole('heading', { name: 'Tu prueba Premium está activa' }, ESPERA);
 const botonPrueba = () => screen.getByRole('button', { name: 'Probar Premium por 7 días' });
@@ -183,7 +195,7 @@ const botonPrueba = () => screen.getByRole('button', { name: 'Probar Premium por
 async function dadaLaPantallaDePlanes() {
   usuario = setupUsuarioConSesion();
   router = renderApp('/planes');
-  await esperarGratuito();
+  await esperarPlanBasico();
   user = userEvent.setup();
 }
 
@@ -202,7 +214,7 @@ async function dadaLaPantallaDePlanesConUnServidorQueActivaLaPrueba() {
     }),
   );
   router = renderApp('/planes');
-  await esperarGratuito();
+  await esperarPlanBasico();
   user = userEvent.setup();
 }
 
@@ -227,7 +239,7 @@ async function dadaLaPantallaDePlanesConUnServidorQueRechazaLaPrueba() {
     }),
   );
   router = renderApp('/planes');
-  await esperarGratuito();
+  await esperarPlanBasico();
   user = userEvent.setup();
 }
 
@@ -271,7 +283,7 @@ function cuandoSeAbrenLosPlanes() {
 
 async function cuandoSeEligePlanesEnLaNavegacion() {
   await user.click(await screen.findByRole('button', { name: 'Planes' }, ESPERA));
-  await esperarGratuito();
+  await esperarPlanBasico();
 }
 
 async function cuandoSeAbreLaConfirmacionYSeCancelaConEscape() {
@@ -301,10 +313,27 @@ async function cuandoSeReintentaConElServidorRecuperado() {
 
 function entoncesCadaPlanMuestraSusLimites() {
   const premium = screen.getByRole('article', { name: 'Plan Premium' });
-  const gratuito = screen.getByRole('article', { name: 'Plan Gratuito' });
-  expect(within(gratuito).getByText('1.000')).toBeVisible();
-  expect(within(gratuito).queryByText('Sin costo')).toBeNull();
+  const basico = screen.getByRole('article', { name: 'Plan Básico' });
+  expect(within(basico).getByText('1.000')).toBeVisible();
   expect(within(premium).getByText('100')).toBeVisible();
+}
+
+function entoncesElPlanBasicoMuestraSuPrecioEnCero() {
+  const basico = screen.getByRole('article', { name: 'Plan Básico' });
+  expect(within(basico).getByText('$0')).toBeVisible();
+  expect(within(basico).getByText('Por mes · sin vencimiento')).toBeVisible();
+}
+
+function entoncesCadaPlanDiceQueIncluyeOQueNoIncluye() {
+  const basico = within(screen.getByRole('article', { name: 'Plan Básico' }));
+  const premium = within(screen.getByRole('article', { name: 'Plan Premium' }));
+  expect(valorDeLaFila(basico, 'Carga manual, edición y consulta')).toHaveTextContent('Incluido');
+  expect(valorDeLaFila(basico, 'Resúmenes en PDF')).toHaveTextContent('No incluido');
+  expect(valorDeLaFila(premium, 'Resúmenes en PDF')).toHaveTextContent('Incluido');
+}
+
+function valorDeLaFila(plan: ReturnType<typeof within>, titulo: string) {
+  return plan.getByText(titulo).nextElementSibling;
 }
 
 function entoncesPremiumMuestraSuPrecioYSeOfreceLaPrueba() {
@@ -317,9 +346,9 @@ function entoncesPremiumMuestraSuPrecioYSeOfreceLaPrueba() {
 
 function entoncesSeDiceCuantosNegociosDejaCadaPlan() {
   const premium = screen.getByRole('article', { name: 'Plan Premium' });
-  const gratuito = screen.getByRole('article', { name: 'Plan Gratuito' });
-  expect(within(gratuito).getByText('1 negocio')).toBeVisible();
-  expect(within(premium).getAllByText('Sin límite')[0]).toBeVisible();
+  const basico = screen.getByRole('article', { name: 'Plan Básico' });
+  expect(within(basico).getByText('1 negocio')).toBeVisible();
+  expect(within(premium).getAllByText('Ilimitado')[0]).toBeVisible();
   expect(screen.getByText('El plan es de tu cuenta y vale para todos tus negocios.')).toBeVisible();
 }
 
@@ -355,7 +384,7 @@ async function entoncesSeMuestraElCupoTotalAgotado() {
 }
 
 async function entoncesSeMuestraLaPruebaFinalizada() {
-  await esperarGratuito();
+  await esperarPlanBasico();
   expect(screen.getByText(/Tu prueba terminó/)).toBeVisible();
   expect(screen.getByRole('button', { name: 'Prueba ya utilizada' })).toBeDisabled();
   expect(screen.getByText(/conservás tus secciones, tus datos y tus recetas/)).toBeVisible();

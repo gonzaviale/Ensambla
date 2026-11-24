@@ -128,7 +128,7 @@ describe('tu cuenta', () => {
 
   it('en suscripción lleva a los planes', async () => {
     await dadaLaCuenta('/cuenta?seccion=suscripcion');
-    await screen.findByText('Gratuito', {}, ESPERA);
+    await screen.findByText('Básico', {}, ESPERA);
 
     await cuandoSePideVerLosPlanes();
 
@@ -258,7 +258,7 @@ async function entoncesYaNoHayAvisosOcultos() {
 }
 
 async function entoncesLaSuscripcionMuestraElPlanYLoUsado() {
-  expect(await screen.findByText('Gratuito', {}, ESPERA)).toBeVisible();
+  expect(await screen.findByText('Básico', {}, ESPERA)).toBeVisible();
   expect(screen.getByText('Sin costo')).toBeVisible();
   expect(screen.getByText('Negocios')).toBeVisible();
   expect(screen.getByText('Registros')).toBeVisible();

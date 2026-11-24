@@ -278,7 +278,7 @@ async function entoncesElModalExplicaQueEsPremiumSinOfrecerLaDescarga() {
 async function entoncesSeMuestranLosPlanes() {
   const titulo = await screen.findByRole(
     'heading',
-    { name: 'Gratuito, tu espacio actual' },
+    { name: 'Básico, tu espacio actual' },
     ESPERA,
   );
   expect(titulo).toBeVisible();

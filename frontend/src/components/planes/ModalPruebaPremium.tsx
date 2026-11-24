@@ -26,7 +26,7 @@ export function ModalPruebaPremium() {
           <strong>10 análisis de foto en total</strong> para toda la prueba, sin renovación mensual.
         </li>
         <li>Una sola prueba por negocio. Sin tarjeta ni cobro automático.</li>
-        <li>Al terminar volvés al gratuito y tus datos se conservan.</li>
+        <li>Al terminar volvés al plan Básico y tus datos se conservan.</li>
       </ul>
       {activa ? (
         <p role="status" className="plan-success">

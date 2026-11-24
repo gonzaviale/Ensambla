@@ -9,7 +9,7 @@ Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (
 `V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`,
 `V24__objetivo.sql`, `V29__mini_objetivo.sql`, `V30__progreso_objetivo.sql`, `V31__decision_objetivo.sql`,
 `V32__resumen_semanal_objetivo.sql`, `V33__objetivo_demo.sql`, `V38__objetivo_tipo_y_modo.sql`, `V39__respuesta_mini_objetivo.sql`, `V40__cuota_objetivos_ia.sql`, `V41__metricas_mini_objetivo_nuevas.sql`, `V42__cierre_con_manuales.sql`, `V43__metrica.sql`, `V44__grafico_metrica.sql`,
-`V45__metrica_calculo_ganancia_y_costo.sql`).
+`V45__metrica_calculo_ganancia_y_costo.sql`, `V46__renombrar_plan_gratuito_a_basico.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -514,6 +514,12 @@ rubro o una que armó ella. Se guarda la **receta**, nunca el número: el servid
 - `V45__metrica_calculo_ganancia_y_costo.sql` amplía el `CHECK` de `calculo` con `GANANCIA` y `COSTO`.
 
 El catálogo de sugeridas vive en `resources/metricas/catalogo-metricas.json`, por rubro del negocio (`RubroNegocio`).
+
+### Plan «Básico» (V46)
+
+`V46__renombrar_plan_gratuito_a_basico.sql` cambia `plan.nombre` del plan `GRATUITO` a «Básico», para mostrar su precio
+($0 por mes) sin repetir la palabra «gratuito». El código `GRATUITO` no cambia: lo usan las reglas, las suscripciones y
+los tests.
 
 **API.** Bajo `/api/proyectos/{proyectoId}/metricas`: `GET` (las guardadas, cada una con su resultado y «de dónde sale»),
 `GET /sugeridas`, `GET /fuentes` (de qué se puede armar en ese cuaderno), `POST /previsualizar` (calcula sin guardar),

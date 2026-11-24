@@ -99,7 +99,7 @@ function cuandoSeAbreObjetivos() {
 
 async function cuandoSeAbrenLosPlanes() {
   renderApp('/planes');
-  await screen.findByRole('article', { name: 'Plan Gratuito' }, ESPERA);
+  await screen.findByRole('article', { name: 'Plan Básico' }, ESPERA);
 }
 
 async function cuandoSeDefineUnObjetivoMonetarioClasico() {
@@ -154,7 +154,7 @@ async function entoncesNoSeOfreceCambiarDePlan() {
 }
 
 function entoncesCadaPlanDiceSusObjetivosConIa(gratuito: string, premium: string) {
-  const delGratuito = within(screen.getByRole('article', { name: 'Plan Gratuito' }));
+  const delGratuito = within(screen.getByRole('article', { name: 'Plan Básico' }));
   const delPremium = within(screen.getByRole('article', { name: 'Plan Premium' }));
   const etiqueta = 'Objetivos con IA por mes';
   expect(delGratuito.getByText(etiqueta).nextElementSibling).toHaveTextContent(gratuito);

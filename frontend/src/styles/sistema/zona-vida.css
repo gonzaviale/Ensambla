@@ -1324,6 +1324,7 @@
   height: 38px;
   border-radius: 12px;
 }
+.plan-price,
 .plan-card-premium .plan-price {
   font-size: 34px;
 }
@@ -1346,7 +1347,6 @@
   border-left: 0;
 }
 .plan-limits,
-.plan-features,
 .plan-renewal {
   border-top: 0;
 }
@@ -1389,9 +1389,7 @@
 /* Todos los renglones de los planes con el mismo tamaño de letra. */
 .plan-limits > div,
 .plan-limits dt,
-.plan-limits dd,
-.plan-features,
-.plan-features li {
+.plan-limits dd {
   font-size: 15px;
 }
 
